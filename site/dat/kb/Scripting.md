@@ -1,11 +1,12 @@
 # Creating JMeter and Selenium Scripts with Taurus
 
+_Author: Iurii Bushnev_
 
 The wide range of [performance testing tools](https://www.blazemeter.com/blog/open-source-load-testing-tools-which-one-should-you-use?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) available enables companies to find a solution that can meet any expectation and budget. However, many testing tools are limited when it comes to automating and integrating them into the [Continuous Integration](http://info.blazemeter.com/automated-performance-tests-in-jenkins-ci-environments?utm_source=BM&utm_medium=resources&utm_campaign=webinar-automated-performance-tests-jenkins-ci-environments) cycle, and using them to manage the functionality workflow might also be complicated. For example, when invoking workflow management APIs that don’t alert when the workflow is finished.
 
 Many of you are probably using, [Selenium](https://www.blazemeter.com/blog/how-automate-testing-using-selenium-webdriver-jenkins-and-allure?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) for this purpose. This might be an even more attractive idea if you already cover functional testing for your application with Selenium scripts. But getting reasonable performance metrics from Selenium might be tricky.
 
-[Taurus](http://gettaurus.org/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) is an open-source framework that helps manage the above-mentioned issues, and more. Briefly, Taurus is a tool that provides a simple way to create and run performance tests, as well as an easy integration with additional open-source functional and performance testing software, like Selenium, Gatling or JMeter. Taurus uses YAML files, which are very easy to understand.
+[Taurus](/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) is an open-source framework that helps manage the above-mentioned issues, and more. Briefly, Taurus is a tool that provides a simple way to create and run performance tests, as well as an easy integration with additional open-source functional and performance testing software, like Selenium, Gatling or JMeter. Taurus uses YAML files, which are very easy to understand.
 
 In this article we will go over the steps to create basic functional and performance tests for a simple web application, by using Selenium, [JMeter](https://www.blazemeter.com/jmeter-load-testing?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) and Taurus. In following articles we will also go over how to analyze test results and how to configure [Jenkins](https://www.blazemeter.com/jenkins?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) to establish a basic Continuous Integration environment for tests orchestrated by Taurus.
 
@@ -97,7 +98,7 @@ After your script is successfully recorded with the Proxy Recorder, save the *.j
 
 ## Taurus
 
-Taurus is a free and open-source framework under the Apache 2.0 License. Taurus extends the capabilities of popular functional and performance testing frameworks like JMeter, [Gatling](http://gatling.io/) or Selenium. It is also user-friendly for configuration, running and analyzing [test results](http://gettaurus.org/docs/Reporting/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium).
+Taurus is a free and open-source framework under the Apache 2.0 License. Taurus extends the capabilities of popular functional and performance testing frameworks like JMeter, [Gatling](http://gatling.io/) or Selenium. It is also user-friendly for configuration, running and analyzing [test results](/docs/Reporting/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium).
 
 The simplest script looks like this (TaurusScriptExample.yml):
 
@@ -116,13 +117,13 @@ scenarios:
     - http://blazedemo.com/
 ```
 
-As you can see, the Taurus [YAML](http://gettaurus.org/docs/YAMLTutorial/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) test file is very easy to use. By using just a few human readable lines, we can start our first test.
+As you can see, the Taurus [YAML](/docs/YAMLTutorial/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) test file is very easy to use. By using just a few human readable lines, we can start our first test.
 
-We just need to [install](http://gettaurus.org/install/Installation/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) Taurus, and after that we can run this test with simple console command:
+We just need to [install](/install/Installation/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) Taurus, and after that we can run this test with simple console command:
 
 ![console3.png](console3.png)
 
-But back to our existing JMeter and Selenium tests. Taurus lets you run existing *.jmx JMeter files and Selenium *.java tests files using the JUnit executor. You can find detailed instructions for supported functionality for the [JMeter executor](http://gettaurus.org/docs/JMeter/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) and the [Selenium executor](http://gettaurus.org/docs/Selenium/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium). 
+But back to our existing JMeter and Selenium tests. Taurus lets you run existing *.jmx JMeter files and Selenium *.java tests files using the JUnit executor. You can find detailed instructions for supported functionality for the [JMeter executor](/docs/JMeter/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium) and the [Selenium executor](/docs/Selenium/?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium). 
 
 Based on these instructions and our implemented scripts, we can run the tests using the YAML file by specifying the sections (assuming that we are going to run our Taurus script from the root of the project):
 
@@ -286,11 +287,9 @@ scenarios:
         regexp: false
 ```
 
-
-
 Congratulations! You now know how to create scripts in Taurus from scratch, without direct use of Selenium and JMeter. This comes in handy when we need to create complicated tests, because it helps avoid redundant actions and adding unnecessary files.
 
-Learn more about using Taurus from this free [webinar](http://info.blazemeter.com/automated-performance-tests-in-jenkins-ci-environments?utm_source=Blog&utm_medium=BM_Blog&utm_campaign=automated-performance-tests-jenkins-ci-environments?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium), and follow us for the upcoming articles, which will cover analyzing test results and integration with Jenkins.
+Learn more about using Taurus from this free [webinar](http://info.blazemeter.com/automated-performance-tests-in-jenkins-ci-environments?utm_source=Blog&utm_medium=BM_Blog&utm_campaign=automated-performance-tests-jenkins-ci-environments?utm_source=taurus&utm_medium=KB&utm_campaign=JMeterSelenium), and follow us for the upcoming articles, which will cover [analyzing test results](Reporting.md) and [integration with Jenkins](Jenkins.md).
 
 The Taurus team is open for feedbacks and suggestions and you can be sure that you will get help for any issues via the [support forum](https://groups.google.com/forum/#!forum/codename-taurus).
 

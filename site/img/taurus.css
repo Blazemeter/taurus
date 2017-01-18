@@ -212,6 +212,25 @@ table.wiki img {
     display: block;
 }
 
+.yaml-json-switch {
+    text-align: right;
+    font-size: xx-small;
+    font-family: monospace;
+    margin-bottom: -2em;
+    margin-right: 0.25em;
+}
+
+.yaml-json-switch span {
+    margin-left: 0.5em;
+    margin-right: 0.5em;
+    cursor: pointer;
+    color: gray;
+}
+
+.yaml-json-switch .selected {
+    color: black;
+}
+
 /* DOWNLOADS */
 .file_download {
     display: block;
