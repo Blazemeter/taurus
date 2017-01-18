@@ -14,8 +14,6 @@ from bzt.six import text_type
 from bzt.six import urlencode
 from bzt.utils import to_json, MultiPartForm
 
-logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
-
 
 class BZAObject(dict):
     def __init__(self, proto=None, data=None):
@@ -35,17 +33,20 @@ class BZAObject(dict):
         self._cookies = cookielib.CookieJar()
         self.http_request = requests.request
 
-        if isinstance(proto, BZAObject):  # TODO: do we have anything more graceful to handle this?
-            self.address = proto.address
-            self.data_address = proto.data_address
-            self.timeout = proto.timeout
-            self.logger_limit = proto.logger_limit
-            self.token = proto.token
-            self.http_request = proto.http_request  # for unit tests override
-            self._request = proto._request  # for unit tests override
-            self._cookies = proto._cookies
+        if isinstance(proto, BZAObject):
+            for attr in set(dir(BZAObject())) - set(dir({})):
+                if attr.startswith('__') or attr in (self.ping.__name__, self._request.__name__):
+                    continue
+                self.__setattr__(attr, proto.__getattribute__(attr))
 
     def _request(self, url, data=None, headers=None, method=None):
+        """
+        :param url: str
+        :type data: Union[dict,str]
+        :param headers: dict
+        :param method: str
+        :return: dict
+        """
         if not headers:
             headers = {}
 
@@ -127,7 +128,7 @@ class User(BZAObject):
         res = self._request(self.address + '/api/v4/accounts')
         return BZAObjectsList([Account(self, x) for x in res['result']])
 
-    def fetch(self):  # TODO: move it to parent class?
+    def fetch(self):
         res = self._request(self.address + '/api/v4/user')
         self.update(res)
         return self
