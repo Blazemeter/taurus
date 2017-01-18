@@ -34,8 +34,10 @@ class BZAObject(dict):
         self.http_request = requests.request
 
         if isinstance(proto, BZAObject):
-            for attr in set(dir(BZAObject())) - set(dir({})):
-                if attr.startswith('__') or attr in (self.ping.__name__, self._request.__name__):
+            dummy = BZAObject()
+            my_attrs = set(dir(dummy)) - set(dir(super(dummy)))
+            for attr in my_attrs:
+                if attr.startswith('__') or attr in (self._request.__name__,):
                     continue
                 self.__setattr__(attr, proto.__getattribute__(attr))
 
@@ -88,10 +90,6 @@ class BZAObject(dict):
 
         return result
 
-    def ping(self):
-        """ Quick check if we can access the service """
-        self._request(self.address + '/api/v4/web/version')
-
 
 class BZAObjectsList(list):
     def first(self):
@@ -121,6 +119,10 @@ class BZAObjectsList(list):
 # ================================= Entities =================================
 
 class User(BZAObject):
+    def ping(self):
+        """ Quick check if we can access the service """
+        self._request(self.address + '/api/v4/web/version')
+
     def accounts(self):
         """
         :rtype: BZAObjectsList[Account]

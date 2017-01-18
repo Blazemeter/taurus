@@ -3,7 +3,7 @@ import logging
 import requests
 
 from bzt import TaurusNetworkError
-from bzt.bza import BZAObject
+from bzt.bza import BZAObject, User
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
@@ -80,7 +80,7 @@ class BZMock(object):
 
 class TestBZAObject(BZTestCase):
     def test_ping(self):
-        obj = BZAObject()
+        obj = User()
         obj.ping()
 
     def test_request(self):
