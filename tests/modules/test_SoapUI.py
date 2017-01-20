@@ -7,7 +7,7 @@ from tests import BZTestCase, __dir__
 class TestSoapUIConverter(BZTestCase):
     def test_minimal(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        config = obj.convert(__dir__() + "/../soapui/project.xml")
+        config = obj.convert_script(__dir__() + "/../soapui/project.xml")
 
         self.assertIn("execution", config)
         self.assertEqual(1, len(config["execution"]))
@@ -21,7 +21,11 @@ class TestSoapUIConverter(BZTestCase):
 
         scenario = config["scenarios"]["TestSuite 1-index"]
         self.assertIn("requests", scenario)
-        self.assertEqual(2, len(scenario["requests"]))
+        self.assertEqual(3, len(scenario["requests"]))
+
+        self.assertIn("variables", scenario)
+        self.assertEqual("foo", scenario["variables"].get("something"))
+        self.assertEqual("2", scenario["variables"].get("something_else"))
 
         first_req = scenario["requests"][0]
         self.assertEqual("http://blazedemo.com/reserve.php", first_req["url"])

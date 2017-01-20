@@ -32,7 +32,7 @@ class SoapUI2YAML(object):
             raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
         self.converter = SoapUIScriptConverter(self.log)
         try:
-            converted_config = self.converter.convert(self.file_to_convert)
+            converted_config = self.converter.convert_script(self.file_to_convert, self.options.test_case)
         except BaseException:
             self.log.error("Error while processing jmx file: %s", self.file_to_convert)
             raise
@@ -53,6 +53,8 @@ class SoapUI2YAML(object):
 def main():
     usage = "Usage: soapui2yaml [input SoapUI file] [options]"
     parser = OptionParser(usage=usage, prog="soapui2yaml")
+    parser.add_option('-t', '--test-case', action='store', default=None,
+                      help="Extract only one test case given its name")
     parser.add_option('-v', '--verbose', action='store_true', default=False,
                       help="Prints all logging messages to console")
     parser.add_option('-o', '--out', dest="file_name",

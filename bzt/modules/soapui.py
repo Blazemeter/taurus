@@ -123,7 +123,16 @@ class SoapUIScriptConverter(object):
 
         return request
 
-    def convert(self, script_path):
+    def _extract_properties(self, test_step):
+        properties = test_step.findall('./con:config/con:properties/con:property', namespaces=self.NAMESPACES)
+        return {
+            prop.findtext('./con:name',
+                          namespaces=self.NAMESPACES): prop.findtext('./con:value',
+                                                                     namespaces=self.NAMESPACES)
+            for prop in properties
+        }
+
+    def convert_script(self, script_path, target_test_case=None):
         if not os.path.exists(script_path):
             raise ValueError("SoapUI script %s doesn't exist" % script_path)
 
@@ -146,21 +155,25 @@ class SoapUIScriptConverter(object):
         for suite in test_suites:
             test_cases = suite.findall('.//con:testCase', namespaces=self.NAMESPACES)
             for case in test_cases:
-                scenario_name = suite.get("name") + "-" + case.get("name")
+                case_name = case.get("name")
+                scenario_name = suite.get("name") + "-" + case_name
+                variables = {}
                 requests = []
                 steps = case.findall('.//con:testStep', namespaces=self.NAMESPACES)
                 for step in steps:
+                    request = None
                     if step.get("type") == "httprequest":
                         request = self._extract_http_request(step)
-                        if request is not None:
-                            requests.append(request)
                     elif step.get("type") == "restrequest":
                         request = self._extract_rest_request(step)
-                        if request is not None:
-                            requests.append(request)
+                    elif step.get("type") == "properties":
+                        props = self._extract_properties(step)
+                        variables.update(props)
 
-                scenarios[scenario_name] = {"requests": requests}
-                self.log.debug("Extracted scenario: %s", scenario_name)
+                    if request is not None:
+                        requests.append(request)
+
+                self.log.info("Extracted scenario: %s", scenario_name)
 
                 load_exec = {}
                 load_test = case.find('./con:loadTest', namespaces=self.NAMESPACES)
@@ -171,9 +184,20 @@ class SoapUIScriptConverter(object):
                     load_exec['concurrency'] = 1
 
                 load_exec['scenario'] = scenario_name
-                self.log.debug("Extracted execution for scenario %s", scenario_name)
+                self.log.info("Extracted execution for scenario %s", scenario_name)
 
-                execution.append(load_exec)
+                if target_test_case is None or target_test_case == case_name:
+                    scenario = {"requests": requests}
+                    if variables:
+                        scenario["variables"] = variables
+                    scenarios[scenario_name] = scenario
+                    execution.append(load_exec)
+
+        if not scenarios:
+            self.log.warning("No scenarios were extracted")
+
+        if not execution:
+            self.log.warning("No load tests were extracted")
 
         return {
             "execution": execution,
