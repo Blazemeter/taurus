@@ -188,9 +188,6 @@
     },
     "android-emulator": {
       "class": "bzt.modules.services.AndroidEmulatorLoader"
-    },
-    "soapui": {
-      "class": "bzt.modules.soapui.SoapUIService"
     }
   },
   "settings": {
