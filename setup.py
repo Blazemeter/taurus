@@ -71,7 +71,8 @@ setup(
     entry_points={
         'console_scripts': [
             'bzt=bzt.cli:main',
-            'jmx2yaml=bzt.jmx2yaml:main'
+            'jmx2yaml=bzt.jmx2yaml:main',
+            'soapui2yaml=bzt.soapui2yaml:main',
         ],
     },
     include_package_data=True,
