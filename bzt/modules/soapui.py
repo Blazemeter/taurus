@@ -1,5 +1,5 @@
 """
-SoapUI support for Taurus.
+SoapUI module for Taurus.
 
 Copyright 2016 BlazeMeter Inc.
 
@@ -19,37 +19,6 @@ import os
 from lxml import etree
 
 from bzt import TaurusInternalException
-from bzt.engine import Service
-
-
-class SoapUIService(Service):
-    def __init__(self):
-        super(SoapUIService, self).__init__()
-
-    def prepare(self):
-        script = self.parameters.get("script", ValueError("'script' for soapui should be provided"))
-        executor = self.parameters.get("executor", None)
-
-        converter = SoapUIScriptConverter(self.log)
-        config = converter.convert(script)
-
-        for ex in config.get("execution", []):
-            if executor:
-                ex["executor"] = executor
-
-        self.engine.config.merge(config)
-
-    def startup(self):
-        pass
-
-    def check(self):
-        return False
-
-    def shutdown(self):
-        pass
-
-    def post_process(self):
-        pass
 
 
 class SoapUIScriptConverter(object):
@@ -126,7 +95,8 @@ class SoapUIScriptConverter(object):
 
         if params:
             request["body"] = {
-                param.findtext("./con:name", namespaces=self.NAMESPACES): param.findtext("./con:value", namespaces=self.NAMESPACES)
+                param.findtext("./con:name", namespaces=self.NAMESPACES): param.findtext("./con:value",
+                                                                                         namespaces=self.NAMESPACES)
                 for param in params
             }
 
@@ -161,16 +131,13 @@ class SoapUIScriptConverter(object):
 
         self.log.debug("Found namespaces: %s", self.NAMESPACES)
 
-        # project - con:soapui-project
         projects = self.tree.xpath('//con:soapui-project', namespaces=self.NAMESPACES)
         self.log.debug("Found projects: %s", projects)
         project = projects[0]
 
-        # interface - con:interface (inside project)
         interface = project.find('.//con:interface', namespaces=self.NAMESPACES)
         self.log.debug("Found interface: %s", interface)
 
-        # test suite - con:testSuite (inside project)
         test_suites = project.findall('.//con:testSuite', namespaces=self.NAMESPACES)
         self.log.debug("Found test suites: %s", test_suites)
 
@@ -212,27 +179,3 @@ class SoapUIScriptConverter(object):
             "execution": execution,
             "scenarios": scenarios,
         }
-
-
-# Strategy #1: execute SoapUI with given script (or generate the script from given scenario)
-# Pros:
-# - simple execution scheme
-# - script generation is entirely possible
-# Cons:
-# - extracting live stats for the dashboard seems kind of tricky (or even impossible for the free version)
-
-# Strategy #2: convert SoapUI script into YAML format and execute it with JMeter (or convert straight to JMX)
-# Pros:
-# - simpler
-# - allows to execute the test with whatever Taurus supports
-# - allows to capture raw load test stats
-# Cons:
-# - not actually executing SoapUI
-# - need to marry SoapUI and Taurus semantics
-
-# Conversion strategy.
-# For all test suites:
-#   For each test case:
-#     convert test steps into a scenario
-#     convert corresponding load tests into an execution
-# if test case name (or load test name) is given - convert only corresponding test case
