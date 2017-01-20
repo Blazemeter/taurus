@@ -6,8 +6,8 @@ from optparse import OptionParser
 
 from bzt import TaurusInternalException
 from bzt.cli import CLI
+from bzt.engine import Configuration
 from bzt.modules.soapui import SoapUIScriptConverter
-from engine import Configuration
 
 
 class SoapUI2YAML(object):
@@ -26,7 +26,7 @@ class SoapUI2YAML(object):
     def process(self):
         output_format = Configuration.JSON if self.options.json else Configuration.YAML
 
-        self.log.info('Loading jmx file %s', self.file_to_convert)
+        self.log.info('Loading SoapUI project %s', self.file_to_convert)
         self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
         if not os.path.exists(self.file_to_convert):
             raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
@@ -34,7 +34,7 @@ class SoapUI2YAML(object):
         try:
             converted_config = self.converter.convert_script(self.file_to_convert, self.options.test_case)
         except BaseException:
-            self.log.error("Error while processing jmx file: %s", self.file_to_convert)
+            self.log.error("Error while processing SoapUI project: %s", self.file_to_convert)
             raise
 
         exporter = Configuration()

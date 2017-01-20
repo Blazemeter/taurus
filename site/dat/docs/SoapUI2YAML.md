@@ -1,6 +1,6 @@
 # Convert Existing SoapUI Project into Taurus YAML
 
-Taurus includes a command-line utility named `soap2yaml` that can be used to convert existing SoapUI scripts
+Taurus includes a command-line utility named `soapui2yaml` that can be used to convert existing SoapUI scripts
 into Taurus YAML-based configs.
 
 Supported command-line options:

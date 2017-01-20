@@ -16,9 +16,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-from lxml import etree
 
 from bzt import TaurusInternalException
+from bzt.six import etree
 
 
 class SoapUIScriptConverter(object):
@@ -132,6 +132,65 @@ class SoapUIScriptConverter(object):
             for prop in properties
         }
 
+    def _extract_execution(self, test_case):
+        load_exec = {}
+        load_test = test_case.find('./con:loadTest', namespaces=self.NAMESPACES)
+        if load_test is not None:
+            load_exec['concurrency'] = int(load_test.find('./con:threadCount', self.NAMESPACES).text)
+            load_exec['hold-for'] = int(load_test.find('./con:testLimit', self.NAMESPACES).text)
+        else:
+            load_exec['concurrency'] = 1
+        return load_exec
+
+    def _extract_scenario(self, test_case):
+        variables = {}
+        requests = []
+
+        steps = test_case.findall('.//con:testStep', namespaces=self.NAMESPACES)
+        for step in steps:
+            request = None
+            if step.get("type") == "httprequest":
+                request = self._extract_http_request(step)
+            elif step.get("type") == "restrequest":
+                request = self._extract_rest_request(step)
+            elif step.get("type") == "properties":
+                props = self._extract_properties(step)
+                variables.update(props)
+
+            if request is not None:
+                requests.append(request)
+
+        scenario = {"requests": requests}
+        if variables:
+            scenario["variables"] = variables
+
+        return scenario
+
+    def _extract_config(self, test_suites, target_test_case=None):
+        execution = []
+        scenarios = {}
+
+        for suite in test_suites:
+            test_cases = suite.findall('.//con:testCase', namespaces=self.NAMESPACES)
+            for case in test_cases:
+                case_name = case.get("name")
+                scenario_name = suite.get("name") + "-" + case_name
+                scenario = self._extract_scenario(case)
+                self.log.info("Extracted scenario: %s", scenario_name)
+
+                load_exec = self._extract_execution(case)
+                load_exec['scenario'] = scenario_name
+                self.log.info("Extracted execution for scenario %s", scenario_name)
+
+                if target_test_case is None or target_test_case == case_name:
+                    scenarios[scenario_name] = scenario
+                    execution.append(load_exec)
+
+        return {
+            "execution": execution,
+            "scenarios": scenarios,
+        }
+
     def convert_script(self, script_path, target_test_case=None):
         if not os.path.exists(script_path):
             raise ValueError("SoapUI script %s doesn't exist" % script_path)
@@ -150,56 +209,12 @@ class SoapUIScriptConverter(object):
         test_suites = project.findall('.//con:testSuite', namespaces=self.NAMESPACES)
         self.log.debug("Found test suites: %s", test_suites)
 
-        execution = []
-        scenarios = {}
-        for suite in test_suites:
-            test_cases = suite.findall('.//con:testCase', namespaces=self.NAMESPACES)
-            for case in test_cases:
-                case_name = case.get("name")
-                scenario_name = suite.get("name") + "-" + case_name
-                variables = {}
-                requests = []
-                steps = case.findall('.//con:testStep', namespaces=self.NAMESPACES)
-                for step in steps:
-                    request = None
-                    if step.get("type") == "httprequest":
-                        request = self._extract_http_request(step)
-                    elif step.get("type") == "restrequest":
-                        request = self._extract_rest_request(step)
-                    elif step.get("type") == "properties":
-                        props = self._extract_properties(step)
-                        variables.update(props)
+        config = self._extract_config(test_suites, target_test_case=target_test_case)
 
-                    if request is not None:
-                        requests.append(request)
-
-                self.log.info("Extracted scenario: %s", scenario_name)
-
-                load_exec = {}
-                load_test = case.find('./con:loadTest', namespaces=self.NAMESPACES)
-                if load_test is not None:
-                    load_exec['concurrency'] = int(load_test.find('./con:threadCount', self.NAMESPACES).text)
-                    load_exec['hold-for'] = int(load_test.find('./con:testLimit', self.NAMESPACES).text)
-                else:
-                    load_exec['concurrency'] = 1
-
-                load_exec['scenario'] = scenario_name
-                self.log.info("Extracted execution for scenario %s", scenario_name)
-
-                if target_test_case is None or target_test_case == case_name:
-                    scenario = {"requests": requests}
-                    if variables:
-                        scenario["variables"] = variables
-                    scenarios[scenario_name] = scenario
-                    execution.append(load_exec)
-
-        if not scenarios:
+        if not config["scenarios"]:
             self.log.warning("No scenarios were extracted")
 
-        if not execution:
+        if not config["execution"]:
             self.log.warning("No load tests were extracted")
 
-        return {
-            "execution": execution,
-            "scenarios": scenarios,
-        }
+        return config
