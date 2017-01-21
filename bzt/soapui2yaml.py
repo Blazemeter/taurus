@@ -50,6 +50,11 @@ class SoapUI2YAML(object):
         self.log.info("Done processing, result saved in %s", file_name)
 
 
+def process(parsed_options, args):
+    tool = SoapUI2YAML(parsed_options, args[0])
+    tool.process()
+
+
 def main():
     usage = "Usage: soapui2yaml [input SoapUI file] [options]"
     parser = OptionParser(usage=usage, prog="soapui2yaml")
@@ -66,9 +71,8 @@ def main():
     parser.add_option('-l', '--log', action='store', default=False, help="Log file location")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
-        tool = SoapUI2YAML(parsed_options, args[0])
         try:
-            tool.process()
+            process(parsed_options, args)
         except BaseException as exc:
             logging.error("Exception: %s", exc)
             logging.debug("Exception: %s", traceback.format_exc())
