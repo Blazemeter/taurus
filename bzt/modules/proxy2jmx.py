@@ -19,11 +19,15 @@ limitations under the License.
 import json
 import sys
 import time
+import os
 
 import requests
 
+from os.path import join
+
 from bzt import TaurusConfigError, TaurusNetworkError, TaurusInternalException
 from bzt.engine import Service
+from bzt.utils import is_windows
 from bzt.modules.selenium import AbstractSeleniumExecutor
 
 
@@ -55,10 +59,13 @@ class Proxy2JMX(Service):
         if req.status_code == 404:
             self.log.info('Creating new recording proxy...')
             req = self.api_request(method='POST')
-            json_content = json.loads(req.content)
+            json_content = json.loads(req.content.decode())
         elif req.status_code == 200:
             self.log.info('Using existing recording proxy...')
-            json_content = json.loads(req.content)
+            if isinstance(req.content, str):
+                json_content = json.loads(req.content)
+            else:
+                json_content = json.loads(req.content.decode())
             if json_content['result']['status'] == 'active':
                 self.log.info('Proxy is active, stop it')
                 self.api_request('/stopRecording', 'POST')
@@ -94,18 +101,10 @@ class Proxy2JMX(Service):
 
         labels = []
         is_linux = 'linux' in sys.platform.lower()
+        additional_env = {}
         if is_linux:
             self.log.info('Set proxy for selenium: %s', self.proxy)
-        else:
-            msg = "Your system doesn't support settings of proxy by Taurus way, " \
-                  "please set HTTP and HTTPS proxy to %s manually" % self.proxy
-            self.log.warning(msg)
-
-        for executor in self.engine.provisioning.executors:
-            if isinstance(executor, AbstractSeleniumExecutor):
-                if executor.label:
-                    labels.append(executor.label)
-                executor.add_env({'http_proxy': self.proxy,  # set vars anyway for case
+            additional_env.update({'http_proxy': self.proxy,  # set vars anyway for case
                                   'https_proxy': self.proxy,  # linux system can't say correct name
                                   'HTTP_PROXY': self.proxy,
                                   'HTTPS_PROXY': self.proxy,
@@ -114,10 +113,38 @@ class Proxy2JMX(Service):
                                   'DESKTOP_SESSION': None,
                                   'GNOME_DESKTOP_SESSION_ID': None,
                                   'KDE_FULL_SESSION': None})
+        elif is_windows():
+            self._prepare_chrome_loader()
+            additional_env.update({'path_to_chrome': self._get_chrome_path(),
+                                   'additional_chrome_params': '--proxy-server="%s"' % self.proxy,
+                                   'chrome_loader_log': join(self.engine.artifacts_dir, 'chrome-loader.log'),
+                                   'path': join(self.engine.artifacts_dir, 'chrome-loader') + os.getenv('path', ''),
+            })
+        else:   # probably we are in MacOS
+            # TODO: fix taurus/selenium proxy conflict because as just now manual proxy setup is useless
+            msg = "Your system doesn't support settings of proxy by Taurus way, " \
+                  "please set HTTP and HTTPS proxy to %s manually" % self.proxy
+            self.log.warning(msg)
+
+        for executor in self.engine.provisioning.executors:
+            if isinstance(executor, AbstractSeleniumExecutor):
+                if executor.label:
+                    labels.append(executor.label)
+                executor.add_env(additional_env)
         if len(labels) == 1:
             self.label += '_' + labels[0]
 
         self.api_request('/startRecording', 'POST')
+
+    def _get_chrome_path(self):
+        pass
+        # todo: logic from chromedriver should be there
+
+    def _prepare_chrome_loader(self):
+        pass
+        # todo: mkdir artifacts/chrome-loader
+        # todo: find chromedriver.exe and copy it into artifacts/chrome-loader
+        # todo: copy chrome-loader.exe into artifacts/chrome-loader/chrome.exe
 
     def shutdown(self):
         super(Proxy2JMX, self).shutdown()
@@ -133,7 +160,7 @@ class Proxy2JMX(Service):
         self.log.info("Waiting for proxy to generate JMX...")
         while True:
             req = self.api_request()
-            json_content = json.loads(req.content)
+            json_content = json.loads(req.content.decode())
             if json_content['result']['smartjmx'] == "available":
                 break
             time.sleep(self.api_delay)
@@ -141,8 +168,14 @@ class Proxy2JMX(Service):
         req = self.api_request('/jmx?smart=true')
         jmx_file = self.engine.create_artifact(self.label, '.jmx')
         with open(jmx_file, 'w') as _file:
-            _file.writelines(req.content)
+            _file.writelines(req.content.decode())
 
         self.log.info("JMX saved into %s", jmx_file)
-        if 'HTTPSampler' not in req.content:
+        if 'HTTPSampler' not in req.content.decode():
             self.log.warning("There aren't requests recorded by proxy2jmx, check your proxy configuration")
+
+        # log of chrome-loader not found under windows
+        if is_windows() and not os.path.isfile(join(self.engine.artifacts_dir, 'chrome-loader')):
+            msg = "Problems with chrome tuning are encountered, "
+            msg += "take look at http://http://gettaurus.org/docs/Proxy2JMX/ for help"
+            self.log.warning(msg)
