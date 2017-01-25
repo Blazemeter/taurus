@@ -6,7 +6,7 @@
  * and add some chrome settings. (mainly proxies)
  * This file should be compiled with MinGW (http://www.mingw.org)
  *
- * > gcc loader.c -oloader.exe
+ * > gcc -m32 -o loader.exe loader.c
  *
  * and put exe into resources directory.
  * In time of taurus working this binary file will be copied into chromedriver directory
