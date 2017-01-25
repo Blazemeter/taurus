@@ -1,3 +1,38 @@
+/*
+ * Chrome loader for proxy2jmx service under Microsoft Windows.
+ *
+ * It helps you to cut in normal selenium call chain:
+ * user_script -> Nose -> WebDriver -> chromedriver.exe -> chrome.exe
+ * and add some chrome settings. (mainly proxies)
+ * This file should be compiled with MinGW (http://www.mingw.org)
+ *
+ * > gcc loader.c -oloader.exe
+ *
+ * and put exe into resources directory.
+ * In time of taurus working this binary file will be copied into chromedriver directory
+ * and started by chromedriver as chrome.exe (look at bzt.modules.proxy2jmx.Proxy2JMX.startup)
+ *
+ * This loader looks for next environment variables:
+ * 1. CHROME_LOADER_LOG: name of loader log file
+ * 2. PATH_TO_CHROME: path to real chrome.exe
+ * 3. ADDITIONAL_CHROME_PARAMS: string that should be added to chrome parameters (e.q. proxy option)
+ *
+ * Copyright 2017 BlazeMeter Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
 #include <stdio.h>
 #include <unistd.h>
 #include <windows.h>

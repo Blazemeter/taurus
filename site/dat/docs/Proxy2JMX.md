@@ -25,4 +25,16 @@ modules:
 After execution it you'll find JMX in artifacts dir with the name `generated.jmx`.
 As only Linux supports setting proxy through environment variables, you have set up another systems for work with proxy2jmx manually. Info about proxy parameters (port and address) you can find in your BlazeMeter account or in the Taurus log. 
 
+## Proxy Server Auto Setup
+Taurus helps you with setting of proxy server for recording purposes. This ability depends on your operation system.
+
+### Linux 
+Full support of Chrome and Firefox.
+
+### Microsoft Windows
+We provide support of Chrome browser at the moment. For correct work don't place your chromedriver inside of Windows directory.
+
+### MacOS
+Auto setup in MacOS is impossible.
+
 <iframe width="700" height="394" src="https://www.youtube.com/embed/zuZkCHW259U" frameborder="0" allowfullscreen></iframe>
