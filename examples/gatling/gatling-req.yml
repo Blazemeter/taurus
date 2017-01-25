@@ -4,7 +4,9 @@ execution:
   scenario: blazedemo
   concurrency: 10
   ramp-up: 30s
+  steps: 5
   hold-for: 2m
+  # iterations: 100
 
 scenarios:
   blazedemo:
@@ -14,16 +16,17 @@ scenarios:
       Accept: "*/*"
     requests:
     - url: /
+      headers:
+        Accept: text/html
       assert:
       - contains:
         - ".+sometext.+"
         subject: body
         regexp: true
         not: true
-      body: 'Some Body Data'
-      headers:
-        Accept: text/html
     - url: /reserve.php
+      method: POST
+      body: 'Some Body Data'
       think-time: 2s
       assert:
       - contains:
