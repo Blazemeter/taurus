@@ -655,7 +655,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.log.addHandler(log_recorder)
         self.obj.engine.configure([
             __dir__() + '/../../bzt/10-base.json',
-            __dir__() + '/../yaml/resource_files.yml'])
+            __dir__() + '/../yaml/resource_files.yml'], read_config_files=False)
         self.obj.settings = self.obj.engine.config['modules']['cloud']
         self.obj.settings.merge({'delete-test-files': False})
 
@@ -761,8 +761,116 @@ class TestCloudProvisioning(BZTestCase):
             engine_cfg={
                 ScenarioExecutor.EXEC: {"executor": "mock", }},
             get={
-                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": id(self.obj)}},
-                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []}
+                'https://a.blazemeter.com/api/v4/masters/1/status': [
+                    {"result": {"id": id(self.obj)}},
+                    {"result": {"id": id(self.obj), 'progress': 100}},
+                ],
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
+                'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {"result": [
+                    {"id": "ALL", "name": "ALL"},
+                    {"id": "e843ff89a5737891a10251cbb0db08e5", "name": "http://blazedemo.com/"}
+                ]},
+                'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=0&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                    "api_version": 2,
+                    "error": None,
+                    "result": [
+                        {
+                            "labelId": "ALL",
+                            "labelName": "ALL",
+                            "label": "ALL",
+                            "kpis": [
+                                {
+                                    "n": 15,
+                                    "na": 2,
+                                    "ec": 0,
+                                    "ts": 1442497724,
+                                    "t_avg": 558,
+                                    "lt_avg": 25.7,
+                                    "by_avg": 0,
+                                    "n_avg": 15,
+                                    "ec_avg": 0
+                                }, {
+                                    "n": 7,
+                                    "na": 4,
+                                    "ec": 0,
+                                    "ts": 1442497725,
+                                    "t_avg": 88.1,
+                                    "lt_avg": 11.9,
+                                    "by_avg": 0,
+                                    "n_avg": 7,
+                                    "ec_avg": 0
+                                }]
+                        }, {
+                            "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                            "labelName": "http://blazedemo.com/",
+                            "label": "http://blazedemo.com/",
+                            "kpis": [
+                                {
+                                    "n": 15,
+                                    "na": 2,
+                                    "ec": 0,
+                                    "ts": 1442497724,
+                                    "t_avg": 558,
+                                    "lt_avg": 25.7,
+                                    "by_avg": 0,
+                                    "n_avg": 15,
+                                    "ec_avg": 0
+                                }, {
+                                    "n": 7,
+                                    "na": 4,
+                                    "ec": 0,
+                                    "ts": 1442497725,
+                                    "t_avg": 88.1,
+                                    "lt_avg": 11.9,
+                                    "by_avg": 0,
+                                    "n_avg": 7,
+                                    "ec_avg": 0
+                                }]}]},
+                'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
+                    "api_version": 2,
+                    "error": None,
+                    "result": [
+                        {
+                            "labelId": "ALL",
+                            "labelName": "ALL",
+                            "samples": 152,
+                            "avgResponseTime": 786,
+                            "90line": 836,
+                            "95line": 912,
+                            "99line": 1050,
+                            "minResponseTime": 531,
+                            "maxResponseTime": 1148,
+                            "avgLatency": 81,
+                            "geoMeanResponseTime": None,
+                            "stDev": 108,
+                            "duration": 119,
+                            "avgBytes": 0,
+                            "avgThroughput": 1.2773109243697,
+                            "medianResponseTime": 0,
+                            "errorsCount": 0,
+                            "errorsRate": 0,
+                            "hasLabelPassedThresholds": None
+                        }, {
+                            "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                            "labelName": "http://blazedemo.com/",
+                            "samples": 152,
+                            "avgResponseTime": 786,
+                            "90line": 836,
+                            "95line": 912,
+                            "99line": 1050,
+                            "minResponseTime": 531,
+                            "maxResponseTime": 1148,
+                            "avgLatency": 81,
+                            "geoMeanResponseTime": None,
+                            "stDev": 108,
+                            "duration": 119,
+                            "avgBytes": 0,
+                            "avgThroughput": 1.2773109243697,
+                            "medianResponseTime": 0,
+                            "errorsCount": 0,
+                            "errorsRate": 0,
+                            "hasLabelPassedThresholds": None
+                        }]}
             }
         )
 
@@ -771,12 +879,17 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.obj.startup()
         self.obj.check()  # this one should work
+        self.obj.engine.aggregator.check()
         self.obj.check()  # this one should be skipped
+        self.obj.engine.aggregator.check()
         time.sleep(1.5)
         self.obj.check()  # this one should work
+        self.obj.engine.aggregator.check()
         self.obj.check()  # this one should skip
+        self.obj.results_reader.min_ts = 0  # to make it request same URL
+        self.obj.engine.aggregator.check()
 
-        self.assertEqual(14, len(self.mock.requests))
+        self.assertEqual(20, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()
