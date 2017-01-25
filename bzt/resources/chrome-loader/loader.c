@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <windows.h>
 
+#define PATH_LEN
 #define JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 0x00002000
 
 HANDLE getJob(void);
@@ -34,12 +35,12 @@ FILE* FP;
 	// build new cmdline
 	fprintf(FP, "Path to real chrome: %s\n", chrome_path);
 	old_params = getChromeParameters(argc, argv);
-	new_cmdline = malloc(2048);
-	snprintf(new_cmdline, 2047, "%s %s %s", chrome_path, new_params, old_params);
+	new_cmdline = malloc(PATH_LEN);
+	snprintf(new_cmdline, PATH_LEN-1, "%s %s %s", chrome_path, new_params, old_params);
 
 	fprintf(FP, "Old params: %s\n", old_params);
 	fprintf(FP, "New params: %s\n", new_params);
-		
+
 	// create Chrome process
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -55,6 +56,13 @@ FILE* FP;
 
 	//wait till the Chrome process ends
 	WaitForSingleObject(pi.hProcess, INFINITE);
+
+    CloseHandle(pi.hThread)
+    CloseHandle(pi.hProcess)
+    CloseHandle(ghJob)
+
+    free(new_cmdline)
+    free(old_params)
 
 	return 0;
 }
@@ -73,7 +81,7 @@ void createChildProcess(char* cmdline, STARTUPINFO *si, PROCESS_INFORMATION *pi)
 
 char* getChromeParameters(int argc, char* argv[])
 {
-	char* cmdline = malloc(2048);
+	char* cmdline = malloc(PATH_LEN);
 	strcpy(cmdline, " ");
 
 	// concatenate arguments, skip the program name

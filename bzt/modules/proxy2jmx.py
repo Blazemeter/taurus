@@ -93,6 +93,8 @@ class Proxy2JMX(Service):
             raise TaurusConfigError(msg)
 
         self.headers = {"X-Api-Key": token}
+
+        # todo: handle network exceptions (ssl, ...) in next call
         self.proxy = self.__get_proxy()
 
     def startup(self):
@@ -121,10 +123,7 @@ class Proxy2JMX(Service):
                                    'path': join(self.engine.artifacts_dir, 'chrome-loader') + os.getenv('path', ''),
             })
         else:   # probably we are in MacOS
-            # TODO: fix taurus/selenium proxy conflict because as just now manual proxy setup is useless
-            msg = "Your system doesn't support settings of proxy by Taurus way, " \
-                  "please set HTTP and HTTPS proxy to %s manually" % self.proxy
-            self.log.warning(msg)
+            self.log.warning("Your system doesn't support settings of proxy by Taurus way")
 
         for executor in self.engine.provisioning.executors:
             if isinstance(executor, AbstractSeleniumExecutor):
