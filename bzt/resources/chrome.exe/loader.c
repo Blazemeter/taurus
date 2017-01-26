@@ -37,7 +37,7 @@
 #include <unistd.h>
 #include <windows.h>
 
-#define PATH_LEN
+#define PATH_LEN 2048
 #define JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 0x00002000
 
 HANDLE getJob(void);
@@ -92,12 +92,12 @@ FILE* FP;
 	//wait till the Chrome process ends
 	WaitForSingleObject(pi.hProcess, INFINITE);
 
-    CloseHandle(pi.hThread)
-    CloseHandle(pi.hProcess)
-    CloseHandle(ghJob)
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    CloseHandle(ghJob);
 
-    free(new_cmdline)
-    free(old_params)
+    free(new_cmdline);
+    free(old_params);
 
 	return 0;
 }
