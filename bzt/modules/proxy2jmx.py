@@ -20,14 +20,15 @@ import json
 import sys
 import time
 import os
+import shutil
 
 import requests
 
-from os.path import join
+from os.path import join, isfile
 
-from bzt import TaurusConfigError, TaurusNetworkError, TaurusInternalException
+from bzt import TaurusConfigError, TaurusNetworkError, TaurusInternalException, ToolError
 from bzt.engine import Service
-from bzt.utils import is_windows
+from bzt.utils import is_windows, get_full_path
 from bzt.modules.selenium import AbstractSeleniumExecutor
 
 
@@ -116,11 +117,14 @@ class Proxy2JMX(Service):
                                   'GNOME_DESKTOP_SESSION_ID': None,
                                   'KDE_FULL_SESSION': None})
         elif is_windows():
-            self._prepare_chrome_loader()
-            additional_env.update({'path_to_chrome': self._get_chrome_path(),
-                                   'additional_chrome_params': '--proxy-server="%s"' % self.proxy,
-                                   'chrome_loader_log': join(self.engine.artifacts_dir, 'chrome-loader.log'),
-                                   'path': join(self.engine.artifacts_dir, 'chrome-loader') + os.getenv('path', ''),
+            chrome_path = self._get_chrome_path()
+            if chrome_path:
+                self._prepare_chrome_loader()
+                additional_env.update({
+                    'path_to_chrome': self._get_chrome_path(),
+                    'additional_chrome_params': '--proxy-server="%s"' % self.proxy,
+                    'chrome_loader_log': join(self.engine.artifacts_dir, 'chrome-loader.log'),
+                    'path': join(self.engine.artifacts_dir, 'chrome-loader') + os.getenv('PATH', ''),
             })
         else:   # probably we are in MacOS
             self.log.warning("Your system doesn't support settings of proxy by Taurus way")
@@ -135,15 +139,44 @@ class Proxy2JMX(Service):
 
         self.api_request('/startRecording', 'POST')
 
-    def _get_chrome_path(self):
-        pass
-        # todo: logic from chromedriver should be there
+    @staticmethod
+    def _get_chrome_path():
+        # logic from chromedriver for determination of path to real Chrome
+        chrome_path = None
+
+        steps1 = (os.getenv('DIR_LOCAL_APP_DATA', ''),
+                  os.getenv('DIR_PROGRAM_FILES', ''),
+                  os.getenv('DIR_PROGRAM_FILESX86', ''))
+        steps2 = ('Google\\Chrome\\Application\\', 'Chromium\\Application')
+        for step1 in steps1:
+            for step2 in steps2:
+                path = join(step1, step2, 'chrome.exe')
+                if isfile(path):
+                    if not chrome_path:     # the path found first should be chosen.
+                        chrome_path = path
+
+        return chrome_path
 
     def _prepare_chrome_loader(self):
-        pass
-        # todo: mkdir artifacts/chrome-loader
-        # todo: find chromedriver.exe and copy it into artifacts/chrome-loader
-        # todo: copy chrome-loader.exe into artifacts/chrome-loader/chrome.exe
+        os.mkdir(join(self.engine.artifacts_dir, 'chrome-loader'))
+
+        # find chromedriver.exe and copy it into artifacts/chrome-loader
+        for _dir in os.getenv('PATH').split(os.path.sep):
+            path = join(_dir, 'chromedriver.exe')
+            if isfile(path):
+                if path.lower().startswith(os.getenv('WINDIR')):
+                    msg = 'Wrong chromedriver location, look at http://localhost:8002/docs/Proxy2JMX/#Microsoft-Windows'
+                    self.log.warning(msg)
+                shutil.copy2(path, join(self.engine.artifacts_dir, 'chrome-loader'))
+                break
+        else:
+            self.log.warning('cromedriver.exe not found in directories described in PATH')
+            return
+
+        # copy chrome loader into artifacts/chrome-loader/chrome.exe
+        old_file = join(get_full_path(__file__, step_up=2), 'resources', 'chrome-loader', 'loader.exe')
+        new_file = join(self.engine.artifacts_dir, 'chrome-loader', 'chrome.exe')
+        shutil.copy2(old_file, new_file)
 
     def shutdown(self):
         super(Proxy2JMX, self).shutdown()
