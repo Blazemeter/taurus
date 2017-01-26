@@ -9,10 +9,10 @@
  * > gcc -m32 -o loader.exe loader.c
  *
  * and put exe into resources directory.
- * In time of taurus working this binary file will be copied into chromedriver directory
+ * This binary file will be copied by Taurus into chromedriver directory
  * and started by chromedriver as chrome.exe (look at bzt.modules.proxy2jmx.Proxy2JMX.startup)
  *
- * This loader looks for next environment variables:
+ * Loader looks for next environment variables:
  * 1. CHROME_LOADER_LOG: name of loader log file
  * 2. PATH_TO_CHROME: path to real chrome.exe
  * 3. ADDITIONAL_CHROME_PARAMS: string that should be added to chrome parameters (e.q. proxy option)
@@ -37,7 +37,7 @@
 #include <unistd.h>
 #include <windows.h>
 
-#define PATH_LEN 2048
+#define MAX_PATH_LEN 2048
 #define JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 0x00002000
 
 HANDLE getJob(void);
@@ -57,7 +57,7 @@ FILE* FP;
 	// activate logging
 	log_file_name = getLog();
 	FP = fopen(log_file_name, "a");
-	fprintf(FP, "Logging started\n");
+	fprintf(FP, "\nEmulation session started\n");
 
 	// read necessary variables
 	chrome_path = getVar("PATH_TO_CHROME");
@@ -70,8 +70,8 @@ FILE* FP;
 	// build new cmdline
 	fprintf(FP, "Path to real chrome: %s\n", chrome_path);
 	old_params = getChromeParameters(argc, argv);
-	new_cmdline = malloc(PATH_LEN);
-	snprintf(new_cmdline, PATH_LEN-1, "%s %s %s", chrome_path, new_params, old_params);
+	new_cmdline = malloc(MAX_PATH_LEN);
+	snprintf(new_cmdline, MAX_PATH_LEN-1, "%s %s %s", chrome_path, new_params, old_params);
 
 	fprintf(FP, "Old params: %s\n", old_params);
 	fprintf(FP, "New params: %s\n", new_params);
@@ -116,7 +116,7 @@ void createChildProcess(char* cmdline, STARTUPINFO *si, PROCESS_INFORMATION *pi)
 
 char* getChromeParameters(int argc, char* argv[])
 {
-	char* cmdline = malloc(PATH_LEN);
+	char* cmdline = malloc(MAX_PATH_LEN);
 	strcpy(cmdline, " ");
 
 	// concatenate arguments, skip the program name
