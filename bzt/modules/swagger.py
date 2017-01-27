@@ -61,6 +61,7 @@ class SwaggerConverter(object):
         for path, path_obj in iteritems(paths):
             for method in Swagger.METHODS:
                 if getattr(path_obj, method) is not None:
+                    # TODO: responses -> assertions?
                     requests.append({"url": base_path + path,
                                      "method": method.upper()})
 
@@ -193,6 +194,8 @@ class Swagger(object):
                             value = str(Swagger.get_data_for_type(param.type, param.format))
                             pattern = "{" + name + "}"
                             new_path = new_path.replace(pattern, value)
+                        # TODO: what if param.location == "body" or something else?
+                        # TODO: convert 'schema' from JSON Schema to concrete value?
             for param_name, param in iteritems(path_obj.parameters):
                 if param.location == "path":
                     name = param.name
