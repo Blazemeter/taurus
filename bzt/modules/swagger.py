@@ -188,7 +188,7 @@ class Swagger(object):
             for method in Swagger.METHODS:
                 operation = getattr(path_obj, method)
                 if operation is not None:
-                    for param_name, param in iteritems(operation.parameters):
+                    for _, param in iteritems(operation.parameters):
                         if param.location == "path":
                             name = param.name
                             value = str(Swagger.get_data_for_type(param.type, param.format))
@@ -196,7 +196,7 @@ class Swagger(object):
                             new_path = new_path.replace(pattern, value)
                         # TODO: what if param.location == "body" or something else?
                         # TODO: convert 'schema' from JSON Schema to concrete value?
-            for param_name, param in iteritems(path_obj.parameters):
+            for _, param in iteritems(path_obj.parameters):
                 if param.location == "path":
                     name = param.name
                     value = str(Swagger.get_data_for_type(param.type, param.format))
@@ -216,16 +216,16 @@ class Swagger(object):
         return self.swagger.get("basePath")
 
     @staticmethod
-    def get_data_for_type(type, format):
-        if type == "string":
+    def get_data_for_type(data_type, format):
+        if data_type == "string":
             return "string"
-        elif type == "number":
+        elif data_type == "number":
             return 42
-        elif type == "integer":
+        elif data_type == "integer":
             return 13
-        elif type == "boolean":
+        elif data_type == "boolean":
             return True
-        elif type == "array":
+        elif data_type == "array":
             return [42]
         else:
-            raise ValueError("Can't fake data for type %s" % type)
+            raise ValueError("Can't fake data for type %s" % data_type)
