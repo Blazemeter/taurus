@@ -216,7 +216,7 @@ class Swagger(object):
         return self.swagger.get("basePath")
 
     @staticmethod
-    def get_data_for_type(data_type, format):
+    def get_data_for_type(data_type, _):
         if data_type == "string":
             return "string"
         elif data_type == "number":
