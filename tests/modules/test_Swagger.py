@@ -13,7 +13,7 @@ class TestSwaggerConverter(BZTestCase):
         self.assertIsNotNone(config.get("scenarios"))
 
         scenario = config["scenarios"].get("Swagger-Petstore")
-        self.assertEqual("petstore.swagger.io", scenario["default-address"])
+        self.assertEqual("http://petstore.swagger.io", scenario["default-address"])
         self.assertEqual(20, len(scenario["requests"]))
 
     def test_minimal_yaml(self):
@@ -24,7 +24,7 @@ class TestSwaggerConverter(BZTestCase):
         self.assertIsNotNone(config.get("scenarios"))
 
         scenario = config["scenarios"].get("Swagger-Petstore")
-        self.assertEqual("petstore.swagger.io", scenario["default-address"])
+        self.assertEqual("http://petstore.swagger.io", scenario["default-address"])
         self.assertEqual(3, len(scenario["requests"]))
 
     def test_interpolated_paths(self):
