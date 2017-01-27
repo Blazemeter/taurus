@@ -109,6 +109,10 @@ class Swagger(object):
     def parse(self, swagger_spec_path):
         self._load(swagger_spec_path)
 
+        swagger_version = self.swagger.get("swagger")
+        if swagger_version != "2.0":
+            raise ValueError("Only Swagger 2.0 specs are supported, got %s" % swagger_version)
+
         self.info = self.swagger.get("info", {})
 
         for name, schema in iteritems(self.swagger.get("definitions", {})):
