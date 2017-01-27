@@ -15,10 +15,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
-from collections import OrderedDict, namedtuple
-
 import logging
+import os
+from collections import namedtuple, OrderedDict
+
+import copy
 import yaml
 
 from bzt import TaurusConfigError
@@ -52,13 +53,13 @@ class SwaggerConverter(object):
         title = info.get("title", "Swagger")
         host = self.swagger.get_host()
         base_path = self.swagger.get_base_path()
-        paths = self.swagger.get_paths()
+        paths = self.swagger.get_interpolated_paths()
 
         scenario_name = title.replace(' ', '-')
         requests = []
 
         for path, path_obj in iteritems(paths):
-            for method in Swagger._methods:
+            for method in Swagger.METHODS:
                 if getattr(path_obj, method) is not None:
                     requests.append({"url": base_path + path,
                                      "method": method.upper()})
@@ -78,7 +79,7 @@ class SwaggerConverter(object):
 
 
 class Swagger(object):
-    _methods = ["get", "put", "post", "delete", "options", "head", "patch"]
+    METHODS = ["get", "put", "post", "delete", "options", "head", "patch"]
 
     Definition = namedtuple("Definition", "name, schema")
     Parameter = namedtuple("Parameter", "name, location, description, required, schema, type, format")
@@ -130,7 +131,7 @@ class Swagger(object):
         for name, path_item in iteritems(self.swagger["paths"]):
             path = {"ref": None, "get": None, "put": None, "post": None, "delete": None, "options": None, "head": None,
                     "patch": None, "parameters": None}
-            for method in Swagger._methods:
+            for method in Swagger.METHODS:
                 if method in path_item:
                     op = path_item[method]
                     parameters = {param["name"]: Swagger.Parameter(name=param["name"],
@@ -141,7 +142,6 @@ class Swagger(object):
                                                                    type=param.get("type"),
                                                                    format=param.get("format"))
                                   for param in op.get("parameters", [])}
-                    # TODO: parse location-specific and schema stuff ('type', 'schema', etc)
 
                     responses = {name: Swagger.Response(name=name,
                                                         description=resp["description"],
@@ -180,11 +180,49 @@ class Swagger(object):
     def get_paths(self):
         return self.paths
 
+    def get_interpolated_paths(self):
+        paths = OrderedDict()
+        for path, path_obj in iteritems(self.paths):
+            new_path = path
+            for method in Swagger.METHODS:
+                operation = getattr(path_obj, method)
+                if operation is not None:
+                    for param_name, param in iteritems(operation.parameters):
+                        if param.location == "path":
+                            name = param.name
+                            value = str(Swagger.get_data_for_type(param.type, param.format))
+                            pattern = "{" + name + "}"
+                            new_path = new_path.replace(pattern, value)
+            for param_name, param in iteritems(path_obj.parameters):
+                if param.location == "path":
+                    name = param.name
+                    value = str(Swagger.get_data_for_type(param.type, param.format))
+                    pattern = "{" + name + "}"
+                    new_path = path.replace(pattern, value)
+            path_obj = copy.deepcopy(path_obj)
+            paths[new_path] = path_obj
+        return paths
+
     def get_info(self):
-        return self.info
+        return copy.deepcopy(self.info)
 
     def get_host(self):
         return self.swagger.get("host")
 
     def get_base_path(self):
         return self.swagger.get("basePath")
+
+    @staticmethod
+    def get_data_for_type(type, format):
+        if type == "string":
+            return "string"
+        elif type == "number":
+            return 42
+        elif type == "integer":
+            return 13
+        elif type == "boolean":
+            return True
+        elif type == "array":
+            return [42]
+        else:
+            raise ValueError("Can't fake data for type %s" % type)
