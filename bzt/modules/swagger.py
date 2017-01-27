@@ -54,21 +54,43 @@ class SwaggerConverter(object):
         host = self.swagger.get_host()
         base_path = self.swagger.get_base_path()
         paths = self.swagger.get_interpolated_paths()
+        schemes = self.swagger.swagger.get("schemes", ["http"])
+        scheme = schemes[0]
+        default_address = scheme + "://" + host
 
         scenario_name = title.replace(' ', '-')
         requests = []
 
         for path, path_obj in iteritems(paths):
+            self.log.debug("Handling path %s", path)
             for method in Swagger.METHODS:
-                if getattr(path_obj, method) is not None:
+                operation = getattr(path_obj, method)
+                if operation is not None:
+                    self.log.debug("Handling method %s", method.upper())
+                    req = {"url": base_path + path}
+
+                    if method != "get":
+                        req["method"] = method.upper()
+
+                    if operation.operation_id is not None:
+                        req["label"] = operation.operation_id
+
+                    headers = {}
+                    for _, param in iteritems(operation.parameters):
+                        if param.location == "header":
+                            name = param.name
+                            value = Swagger.get_data_for_type(param.type, param.format)
+                            headers[name] = value
+                    if headers:
+                        req["headers"] = headers
+
                     # TODO: responses -> assertions?
-                    requests.append({"url": base_path + path,
-                                     "method": method.upper()})
+                    requests.append(req)
 
         return {
             "scenarios": {
                 scenario_name: {
-                    "default-address": host,
+                    "default-address": default_address,
                     "requests": requests
                 }
             },
