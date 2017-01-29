@@ -82,6 +82,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def get_scenario(self, name=None, cache_scenario=True):
         scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
 
+        # TODO: don't do that for cloud provisioning?
+
         if "script" in scenario_obj and scenario_obj["script"] is not None:
             script_path = scenario_obj["script"]
             with open(script_path) as fds:
