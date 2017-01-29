@@ -2053,7 +2053,6 @@ class TestJMeterExecutor(BZTestCase):
             }
         })
         self.obj.prepare()
-        import pudb; pudb.set_trace()
 
 
 class TestJMX(BZTestCase):
