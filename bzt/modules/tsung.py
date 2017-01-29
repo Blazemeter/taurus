@@ -328,8 +328,8 @@ class TsungConfig(object):
         return clients
 
     def __gen_servers(self, scenario):
-        default_address = scenario.get("default-address", None)
-        if default_address is None:
+        default_address = scenario.get("default-address", "")
+        if default_address:
             requests = list(scenario.get_requests())
             if not requests:
                 raise TaurusConfigError("Tsung: you must specify requests in scenario")

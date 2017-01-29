@@ -106,7 +106,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         else:
             env["JTL"] = self.kpi_jtl
 
-        host = self.get_scenario().get("default-address", None)
+        host = self.get_scenario().get("default-address", "")
         if host:
             args.append("--host=%s" % host)
 

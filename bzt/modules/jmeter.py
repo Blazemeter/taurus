@@ -1368,7 +1368,7 @@ class JMeterScenarioBuilder(JMX):
         return smart_time
 
     def __gen_defaults(self, scenario):
-        default_address = scenario.get("default-address", None)
+        default_address = scenario.get("default-address", "")
         retrieve_resources = scenario.get("retrieve-resources", True)
         resources_regex = scenario.get("retrieve-resources-regex", None)
         concurrent_pool_size = scenario.get("concurrent-pool-size", 4)

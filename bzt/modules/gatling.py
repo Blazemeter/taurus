@@ -59,7 +59,7 @@ class GatlingScriptBuilder(object):
             if len(exec_str) > 0:
                 exec_str += '.'
 
-            if len(self.scenario.get('default-address')) > 0:
+            if self.scenario.get("default-address", ""):
                 url = req.url
             else:
                 url = self.fixed_addr(req.url)
