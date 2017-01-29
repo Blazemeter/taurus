@@ -1869,7 +1869,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
 
-    def test_jsr223_exceptions(self):
+    def test_jsr223_exceptions_1(self):
         self.configure({
             "execution": {
                 "scenario": {
@@ -1883,6 +1883,8 @@ class TestJMeterExecutor(BZTestCase):
             }
         })
         self.assertRaises(TaurusConfigError, self.obj.prepare)
+
+    def test_jsr223_exceptions_2(self):
         self.configure({
             "execution": {
                 "scenario": {
