@@ -176,11 +176,11 @@ class SoapUIScriptConverter(object):
                 case_name = case.get("name")
                 scenario_name = suite.get("name") + "-" + case_name
                 scenario = self._extract_scenario(case)
-                self.log.info("Extracted scenario: %s", scenario_name)
+                self.log.debug("Extracted scenario: %s", scenario_name)
 
                 load_exec = self._extract_execution(case)
                 load_exec['scenario'] = scenario_name
-                self.log.info("Extracted execution for scenario %s", scenario_name)
+                self.log.debug("Extracted execution for scenario %s", scenario_name)
 
                 if target_test_case is None or target_test_case == case_name:
                     scenarios[scenario_name] = scenario

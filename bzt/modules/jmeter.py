@@ -38,6 +38,7 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
+from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
@@ -78,6 +79,29 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self._env = {}
         self.resource_files_collector = None
 
+    def get_scenario(self, name=None):
+        scenario_obj = super(JMeterExecutor, self).get_scenario(name=name)
+
+        if "script" in scenario_obj:
+            script_path = scenario_obj["script"]
+            with open(script_path) as fds:
+                script_content = fds.read()
+            if "con:soapui-project" in script_content:
+                self.log.debug("SoapUI project detected")
+                # TODO: don't fail if there's one test case inside the SoapUI project
+                test_case = scenario_obj.get("test-case",
+                                             ValueError("'test-case' field should be present for SoapUI projects"))
+                converter = SoapUIScriptConverter(self.log)
+                conv_config = converter.convert_script(script_path, test_case)
+                conv_scenarios = conv_config["scenarios"]
+                scenario_name, conv_scenario = next(iteritems(conv_scenarios))
+                if scenario_name not in self.engine.config["scenarios"]:
+                    self.engine.config["scenarios"].merge({scenario_name: conv_scenario})
+                    self.execution["scenario"] = scenario_name
+                return super(JMeterExecutor, self).get_scenario(name=scenario_name)
+
+        return scenario_obj
+
     def prepare(self):
         """
         Preparation for JMeter involves either getting existing JMX
@@ -87,11 +111,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         :raise TaurusConfigError:
         """
+        scenario = self.get_scenario()
+
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
         self.install_required_tools()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
-        scenario = self.get_scenario()
 
         is_jmx_generated = False
 

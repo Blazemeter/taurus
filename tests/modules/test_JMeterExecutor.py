@@ -2043,6 +2043,18 @@ class TestJMeterExecutor(BZTestCase):
             cumulative = point[DataPoint.CUMULATIVE]
             self.assertNotIn("Тест.Эхо", cumulative)
 
+    def test_soapui_script(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "script": __dir__() + "/../soapui/project.xml",
+                    "test-case": "index",
+                }
+            }
+        })
+        self.obj.prepare()
+        import pudb; pudb.set_trace()
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
