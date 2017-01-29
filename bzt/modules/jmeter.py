@@ -79,15 +79,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self._env = {}
         self.resource_files_collector = None
 
-    def get_scenario(self, name=None):
-        scenario_obj = super(JMeterExecutor, self).get_scenario(name=name)
+    def get_scenario(self, name=None, cache_scenario=True):
+        scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
 
-        if "script" in scenario_obj:
+        if "script" in scenario_obj and scenario_obj["script"] is not None:
             script_path = scenario_obj["script"]
             with open(script_path) as fds:
                 script_content = fds.read()
             if "con:soapui-project" in script_content:
-                self.log.debug("SoapUI project detected")
+                self.log.info("SoapUI project detected")
                 # TODO: don't fail if there's one test case inside the SoapUI project
                 test_case = scenario_obj.get("test-case",
                                              ValueError("'test-case' field should be present for SoapUI projects"))
