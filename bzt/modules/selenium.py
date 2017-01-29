@@ -1229,7 +1229,7 @@ from selenium.webdriver.support.wait import WebDriverWait
         counter = 0
         methods = {}
         requests = self.scenario.get_requests(False)
-        default_address = self.scenario.get("default-address", "")
+        default_address = self.scenario.get("default-address", None)
 
         for req in requests:
             if req.label:
