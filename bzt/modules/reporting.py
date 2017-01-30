@@ -357,7 +357,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             disp_name = tpl % data
 
             if fc_obj.is_triggered and fc_obj.fail:
-                errors = [etree.Element("error", message="", type="pass/fail criteria triggered")]
+                errors = [etree.Element("error", message=str(fc_obj), type="pass/fail criteria triggered")]
             else:
                 errors = ()
 
@@ -402,7 +402,7 @@ class XUnitFileWriter(object):
                     result.append((report_url, test_name if test_name is not None else report_url))
 
             if len(result) > 1:
-                self.log.warning("More then one blazemeter reporter found")
+                self.log.warning("More than one blazemeter reporter found")
         return result
 
     def save_report(self, fname):

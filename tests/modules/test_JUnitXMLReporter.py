@@ -4,9 +4,8 @@ import tempfile
 from collections import Counter
 
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning, BlazeMeterClientEmul
+from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus, DataCriterion
-from bzt.modules.provisioning import Local
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
 from bzt.utils import BetterDict
@@ -100,6 +99,9 @@ class TestJUnitXML(BZTestCase):
 
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
+        rep = BlazeMeterUploader()
+        rep.client.results_url = "http://report/123"
+        obj.engine.reporters.append(rep)
         obj.parameters = BetterDict()
 
         path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml-sample-labels',
@@ -219,16 +221,20 @@ class TestJUnitXML(BZTestCase):
         logging.info(f_contents)
         xml_tree = etree.fromstring(f_contents)
         self.assertEqual('testsuite', xml_tree.tag)
-        self.assertEqual(3, len(xml_tree.getchildren()))
-        self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
-        self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
-        self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
         self.assertListEqual(['sample_labels', "bzt"], xml_tree.values())
+        test_cases = xml_tree.getchildren()
+        self.assertEqual(3, len(test_cases))
+        self.assertEqual('testcase', test_cases[0].tag)
+        self.assertEqual('error', test_cases[0].getchildren()[1].tag)
+        self.assertEqual('system-out', test_cases[0].getchildren()[0].tag)
+        self.assertIn('BlazeMeter report link: http://report/123', test_cases[0].getchildren()[0].text)
 
     def test_xml_format_passfail(self):
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
+        obj.engine.provisioning = CloudProvisioning()
+        obj.engine.provisioning.client.results_url = "http://test/report/123"
 
         pass_fail1 = PassFailStatus()
 
@@ -276,35 +282,15 @@ class TestJUnitXML(BZTestCase):
         logging.info(f_contents)
         xml_tree = etree.fromstring(f_contents)
         self.assertEqual('testsuite', xml_tree.tag)
-        self.assertEqual(4, len(xml_tree.getchildren()))
-        self.assertEqual('testcase', xml_tree.getchildren()[0].tag)
-        self.assertEqual('error', xml_tree.getchildren()[0].getchildren()[0].tag)
-        self.assertEqual('error', xml_tree.getchildren()[2].getchildren()[0].tag)
+        test_cases = xml_tree.getchildren()
+        self.assertEqual(4, len(test_cases))
+        self.assertEqual('testcase', test_cases[0].tag)
+        self.assertEqual('error', test_cases[0].getchildren()[1].tag)
+        self.assertEqual('error', test_cases[2].getchildren()[1].tag)
 
-    def test_results_link_cloud(self):
-        obj = JUnitXMLReporter()
-        obj.engine = EngineEmul()
-        obj.engine.provisioning = CloudProvisioning()
-        obj.engine.provisioning.client = BlazeMeterClientEmul(obj.log)
-        prov = obj.engine.provisioning
-        prov.client.results_url = 'url1'
-        prov.settings.merge({'test': 'test1'})
-        obj.aggregated_second(DataPoint(0))
-        obj.post_process()
-        report_info = ""
-        self.assertEqual(report_info, [('Cloud report link: url1\n', 'test1')])
-
-    def test_results_link_blazemeter(self):
-        obj = JUnitXMLReporter()
-        obj.engine = EngineEmul()
-        obj.engine.provisioning = Local()
-        obj.engine.reporters.append(BlazeMeterUploader())
-        obj.engine.provisioning.client = BlazeMeterClientEmul(obj.log)
-        rep = obj.engine.reporters[0]
-        rep.client.results_url = 'url2'
-        rep.parameters.merge({'test': 'test2'})
-        report_info = obj.get_bza_report_info()
-        self.assertEqual(report_info, [('BlazeMeter report link: url2\n', 'test2')])
+        sys_out = test_cases[0].getchildren()[0]
+        self.assertEqual('system-out', sys_out.tag)
+        self.assertIn('Cloud report link: http://test/report/123', sys_out.text)
 
     def test_report_criteria_without_label(self):
         obj = JUnitXMLReporter()
