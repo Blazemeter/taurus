@@ -97,9 +97,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 conv_config = converter.convert_script(script_path)
                 conv_scenarios = conv_config["scenarios"]
                 scenario_name, conv_scenario = converter.find_soapui_test_case(test_case, conv_scenarios)
-                if scenario_name not in self.engine.config["scenarios"]:
-                    self.engine.config["scenarios"].merge({scenario_name: conv_scenario})
-                    self.execution["scenario"] = scenario_name
+
+                if scenario_name in self.engine.config["scenarios"]:
+                    scenario_name += "-soapui"
+
+                self.engine.config["scenarios"].merge({scenario_name: conv_scenario})
+                self.execution["scenario"] = scenario_name
+
                 return super(JMeterExecutor, self).get_scenario(name=scenario_name)
 
         return scenario_obj
