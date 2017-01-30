@@ -218,7 +218,7 @@ class TestJUnitXML(BZTestCase):
         with open(obj.report_file_path, 'rb') as fds:
             f_contents = fds.read()
 
-        logging.info(f_contents)
+        logging.info("File: %s", f_contents)
         xml_tree = etree.fromstring(f_contents)
         self.assertEqual('testsuite', xml_tree.tag)
         self.assertListEqual(['sample_labels', "bzt"], xml_tree.values())
@@ -279,7 +279,7 @@ class TestJUnitXML(BZTestCase):
         with open(obj.report_file_path, 'rb') as fds:
             f_contents = fds.read()
 
-        logging.info(f_contents)
+        logging.info("File: %s", f_contents)
         xml_tree = etree.fromstring(f_contents)
         self.assertEqual('testsuite', xml_tree.tag)
         test_cases = xml_tree.getchildren()
