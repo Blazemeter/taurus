@@ -2055,6 +2055,29 @@ class TestJMeterExecutor(BZTestCase):
             }
         })
         self.obj.prepare()
+        self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
+
+    def test_soapui_renaming(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "script": __dir__() + "/../soapui/project.xml",
+                    "test-case": "index",
+                },
+            },
+            "scenarios": {
+                "TestSuite 1-index": {
+                    "hello": "world",
+                },
+                "TestSuite 1-index-1": {
+                    "hello": "world",
+                },
+            },
+        })
+        self.obj.prepare()
+        self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
+        self.assertIn("TestSuite 1-index-1", self.obj.engine.config["scenarios"])
+        self.assertIn("TestSuite 1-index-2", self.obj.engine.config["scenarios"])
 
 
 class TestJMX(BZTestCase):

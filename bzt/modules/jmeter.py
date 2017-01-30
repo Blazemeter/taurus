@@ -100,8 +100,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
                 new_name = scenario_name
                 counter = 1
-                while scenario_name in self.engine.config["scenarios"]:
+                while new_name in self.engine.config["scenarios"]:
                     new_name = scenario_name + ("-%s" % counter)
+                    counter += 1
 
                 if new_name != scenario_name:
                     self.log.info("Scenario name '%s' is already taken, renaming to '%s'", scenario_name, new_name)
