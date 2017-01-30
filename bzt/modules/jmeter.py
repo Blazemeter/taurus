@@ -99,7 +99,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 scenario_name, conv_scenario = converter.find_soapui_test_case(test_case, conv_scenarios)
 
                 if scenario_name in self.engine.config["scenarios"]:
-                    scenario_name += "-soapui"
+                    new_name = scenario_name + "-soapui"
+                    self.log.info("Scenario name '%s' is already taken, renaming to '%s'", scenario_name, new_name)
+                    scenario_name = new_name
 
                 self.engine.config["scenarios"].merge({scenario_name: conv_scenario})
                 self.execution["scenario"] = scenario_name
