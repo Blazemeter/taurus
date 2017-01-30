@@ -2,6 +2,7 @@ import logging
 
 from bzt.modules.soapui import SoapUIScriptConverter
 from tests import BZTestCase, __dir__
+from tests.mocks import RecordingHandler
 
 
 class TestSoapUIConverter(BZTestCase):
@@ -10,7 +11,7 @@ class TestSoapUIConverter(BZTestCase):
         config = obj.convert_script(__dir__() + "/../soapui/project.xml")
 
         self.assertIn("execution", config)
-        self.assertEqual(1, len(config["execution"]))
+        self.assertEqual(3, len(config["execution"]))
         execution = config["execution"][0]
         self.assertEqual("TestSuite 1-index", execution.get("scenario"))
         self.assertEqual(60, execution.get("hold-for"))
@@ -50,3 +51,30 @@ class TestSoapUIConverter(BZTestCase):
         self.assertIn("answer", second_req["body"])
         self.assertEqual('42', second_req["body"]["answer"])
 
+    def test_find_test_case(self):
+        obj = SoapUIScriptConverter(logging.getLogger(''))
+        config = obj.convert_script(__dir__() + "/../soapui/project.xml")
+
+        scenarios = config["scenarios"]
+        self.assertEqual(len(scenarios), 3)
+
+        target_scenario = scenarios["TestSuite 1-index"]
+        found_name, found_scenario = obj.find_soapui_test_case("index", scenarios)
+        self.assertEqual(target_scenario, found_scenario)
+
+    def test_find_test_case_empty(self):
+        log_recorder = RecordingHandler()
+        obj = SoapUIScriptConverter(logging.getLogger(''))
+        obj.log.addHandler(log_recorder)
+
+        config = obj.convert_script(__dir__() + "/../soapui/project.xml")
+
+        scenarios = config["scenarios"]
+        self.assertEqual(len(scenarios), 3)
+
+        target_scenario = scenarios["TestSuite 1-index"]
+        found_name, found_scenario = obj.find_soapui_test_case(None, scenarios)
+        self.assertEqual(target_scenario, found_scenario)
+
+        self.assertIn("No `test-case` specified for SoapUI script, will use 'index'",
+                      log_recorder.warn_buff.getvalue())

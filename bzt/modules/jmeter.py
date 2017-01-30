@@ -92,13 +92,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 script_content = fds.read()
             if "con:soapui-project" in script_content:
                 self.log.info("SoapUI project detected")
-                # TODO: don't fail if there's one test case inside the SoapUI project
-                test_case = scenario_obj.get("test-case",
-                                             ValueError("'test-case' field should be present for SoapUI projects"))
+                test_case = scenario_obj.get("test-case", None)
                 converter = SoapUIScriptConverter(self.log)
-                conv_config = converter.convert_script(script_path, test_case)
+                conv_config = converter.convert_script(script_path)
                 conv_scenarios = conv_config["scenarios"]
-                scenario_name, conv_scenario = next(iteritems(conv_scenarios))
+                scenario_name, conv_scenario = converter.find_soapui_test_case(test_case, conv_scenarios)
                 if scenario_name not in self.engine.config["scenarios"]:
                     self.engine.config["scenarios"].merge({scenario_name: conv_scenario})
                     self.execution["scenario"] = scenario_name
