@@ -302,7 +302,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             writer = XUnitFileWriter(self.engine, 'bzt_pass_fail')
             self.log.warning("Using 'data-source=pass-fail' is deprecated and will be removed in future release. "
                              "Use pass-fail module's own option")
-            root_element = self.process_pass_fail(writer)
+            self.process_pass_fail(writer)
             writer.save_report(filename)
         else:
             raise TaurusConfigError("Unsupported data source: %s" % test_data_source)
@@ -357,7 +357,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             disp_name = tpl % data
 
             if fc_obj.is_triggered and fc_obj.fail:
-                errors = (etree.Element("error", message="", type="pass/fail criteria triggered"))
+                errors = [etree.Element("error", message="", type="pass/fail criteria triggered")]
             else:
                 errors = ()
 
@@ -434,5 +434,6 @@ class XUnitFileWriter(object):
             system_out_etree = etree.SubElement(test_case, "system-out")
             system_out_etree.text = "".join(self.report_urls)
 
-        test_case.extend(children)
+        for child in children:
+            test_case.append(child)
         self.test_suite.append(test_case)
