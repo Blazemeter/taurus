@@ -38,6 +38,8 @@ from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
+from bzt.modules.provisioning import Local
+from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
@@ -78,6 +80,41 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self._env = {}
         self.resource_files_collector = None
 
+    def get_scenario(self, name=None, cache_scenario=True):
+        scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
+
+        if not isinstance(self.engine.provisioning, Local):
+            return scenario_obj
+
+        if "script" in scenario_obj and scenario_obj["script"] is not None:
+            script_path = scenario_obj["script"]
+            with open(script_path) as fds:
+                script_content = fds.read()
+            if "con:soapui-project" in script_content:
+                self.log.info("SoapUI project detected")
+                test_case = scenario_obj.get("test-case", None)
+                converter = SoapUIScriptConverter(self.log)
+                conv_config = converter.convert_script(script_path)
+                conv_scenarios = conv_config["scenarios"]
+                scenario_name, conv_scenario = converter.find_soapui_test_case(test_case, conv_scenarios)
+
+                new_name = scenario_name
+                counter = 1
+                while new_name in self.engine.config["scenarios"]:
+                    new_name = scenario_name + ("-%s" % counter)
+                    counter += 1
+
+                if new_name != scenario_name:
+                    self.log.info("Scenario name '%s' is already taken, renaming to '%s'", scenario_name, new_name)
+                    scenario_name = new_name
+
+                self.engine.config["scenarios"].merge({scenario_name: conv_scenario})
+                self.execution["scenario"] = scenario_name
+
+                return super(JMeterExecutor, self).get_scenario(name=scenario_name)
+
+        return scenario_obj
+
     def prepare(self):
         """
         Preparation for JMeter involves either getting existing JMX
@@ -87,11 +124,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         :raise TaurusConfigError:
         """
+        scenario = self.get_scenario()
+
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
         self.install_required_tools()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
-        scenario = self.get_scenario()
 
         is_jmx_generated = False
 

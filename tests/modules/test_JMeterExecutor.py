@@ -1869,7 +1869,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
 
-    def test_jsr223_exceptions(self):
+    def test_jsr223_exceptions_1(self):
         self.configure({
             "execution": {
                 "scenario": {
@@ -1883,6 +1883,8 @@ class TestJMeterExecutor(BZTestCase):
             }
         })
         self.assertRaises(TaurusConfigError, self.obj.prepare)
+
+    def test_jsr223_exceptions_2(self):
         self.configure({
             "execution": {
                 "scenario": {
@@ -2042,6 +2044,40 @@ class TestJMeterExecutor(BZTestCase):
         for point in reader.datapoints():
             cumulative = point[DataPoint.CUMULATIVE]
             self.assertNotIn("Тест.Эхо", cumulative)
+
+    def test_soapui_script(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "script": __dir__() + "/../soapui/project.xml",
+                    "test-case": "index",
+                }
+            }
+        })
+        self.obj.prepare()
+        self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
+
+    def test_soapui_renaming(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "script": __dir__() + "/../soapui/project.xml",
+                    "test-case": "index",
+                },
+            },
+            "scenarios": {
+                "TestSuite 1-index": {
+                    "hello": "world",
+                },
+                "TestSuite 1-index-1": {
+                    "hello": "world",
+                },
+            },
+        })
+        self.obj.prepare()
+        self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
+        self.assertIn("TestSuite 1-index-1", self.obj.engine.config["scenarios"])
+        self.assertIn("TestSuite 1-index-2", self.obj.engine.config["scenarios"])
 
 
 class TestJMX(BZTestCase):

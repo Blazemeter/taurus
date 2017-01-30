@@ -18,7 +18,7 @@ limitations under the License.
 import os
 
 from bzt import TaurusInternalException
-from bzt.six import etree
+from bzt.six import etree, iteritems
 
 
 class SoapUIScriptConverter(object):
@@ -160,7 +160,10 @@ class SoapUIScriptConverter(object):
             if request is not None:
                 requests.append(request)
 
-        scenario = {"requests": requests}
+        scenario = {
+            "test-case": test_case.get("name"),
+            "requests": requests
+        }
         if variables:
             scenario["variables"] = variables
 
@@ -176,11 +179,12 @@ class SoapUIScriptConverter(object):
                 case_name = case.get("name")
                 scenario_name = suite.get("name") + "-" + case_name
                 scenario = self._extract_scenario(case)
-                self.log.info("Extracted scenario: %s", scenario_name)
+                scenario['test-suite'] = suite.get("name")
+                self.log.debug("Extracted scenario: %s", scenario_name)
 
                 load_exec = self._extract_execution(case)
                 load_exec['scenario'] = scenario_name
-                self.log.info("Extracted execution for scenario %s", scenario_name)
+                self.log.debug("Extracted execution for scenario %s", scenario_name)
 
                 if target_test_case is None or target_test_case == case_name:
                     scenarios[scenario_name] = scenario
@@ -218,3 +222,25 @@ class SoapUIScriptConverter(object):
             self.log.warning("No load tests were extracted")
 
         return config
+
+    def find_soapui_test_case(self, test_case, scenarios):
+        matching_scenarios = [
+            (name, scen)
+            for name, scen in iteritems(scenarios)
+            if scen.get("test-case") == test_case
+        ]
+        if len(matching_scenarios) == 0:
+            sorted_scenarios = sorted((name, scen) for name, scen in iteritems(scenarios))
+            scenario_name, scenario = next(iter(sorted_scenarios))
+            if test_case is None:
+                self.log.warning("No `test-case` specified for SoapUI script, will use '%s'", scenario.get("test-case"))
+            else:
+                msg = "No matching test cases found for name '%s', using the '%s'"
+                self.log.warning(msg, test_case, scenario.get("test-case"))
+        elif len(matching_scenarios) > 1:
+            scenario_name, scenario = next(iter(matching_scenarios))
+            msg = "Multiple test cases found for name '%s', using case '%s' from suite '%s'"
+            self.log.warning(msg, test_case, scenario.get('test-case'), scenario.get('test-suite'))
+        else:
+            scenario_name, scenario = next(iter(matching_scenarios))
+        return scenario_name, scenario
