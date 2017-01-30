@@ -66,7 +66,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         """
         Just store the latest info
 
-        :type data: bzt.modules.functional.ResultsTree
+        :type results: bzt.modules.functional.ResultsTree
         """
         self.cumulative_results = cumulative_results
 
@@ -265,37 +265,30 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
     A reporter that exports results in Jenkins JUnit XML format.
     """
 
-    REPORT_FILE_NAME = "xunit"
-    REPORT_FILE_EXT = ".xml"
-
     def __init__(self):
         super(JUnitXMLReporter, self).__init__()
-        self.report_file_path = "xunit.xml"
         self.last_second = None
+        self.xunit_writer = None
 
     def prepare(self):
         """
         create artifacts, parse options.
         report filename from parameters
-        :return:
         """
 
+        self.xunit_writer = XUnitFileWriter(self.engine)
         filename = self.parameters.get("filename", None)
         if filename:
-            self.report_file_path = filename
+            self.xunit_writer.report_file_path = filename
         else:
-            self.report_file_path = self.engine.create_artifact(JUnitXMLReporter.REPORT_FILE_NAME,
-                                                                JUnitXMLReporter.REPORT_FILE_EXT)
-        self.parameters["filename"] = self.report_file_path
+            artifact = self.engine.create_artifact(XUnitFileWriter.REPORT_FILE_NAME, XUnitFileWriter.REPORT_FILE_EXT)
+            self.xunit_writer.report_file_path = artifact
+        self.parameters["filename"] = self.xunit_writer.report_file_path
 
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):
-        """
-        :param data:
-        :return:
-        """
         self.last_second = data
 
     def post_process(self):
@@ -348,51 +341,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
         return root_xml_element
 
-    def get_bza_report_info(self):
-        """
-        :return: [(url, test), (url, test), ...]
-        """
-        result = []
-        if isinstance(self.engine.provisioning, CloudProvisioning):
-            cloud_prov = self.engine.provisioning
-            report_url = "Cloud report link: %s\n" % cloud_prov.client.results_url
-            test_name = cloud_prov.settings.get('test', None)
-            result.append((report_url, test_name if test_name is not None else report_url))
-        else:
-            bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
-            for bza_reporter in bza_reporters:
-
-                if bza_reporter.client.results_url:
-                    report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
-                    test_name = bza_reporter.parameters.get("test", None)
-
-                    result.append((report_url, test_name if test_name is not None else report_url))
-
-            if len(result) > 1:
-                self.log.warning("More then one blazemeter reporter found")
-        return result
-
-    def save_report(self, root_node):
-        """
-        :param root_node:
-        :return:
-        """
-        try:
-            if os.path.exists(self.report_file_path):
-                self.log.warning("File %s already exists, will be overwritten", self.report_file_path)
-            else:
-                dirname = os.path.dirname(self.report_file_path)
-                if dirname and not os.path.exists(dirname):
-                    os.makedirs(dirname)
-
-            etree_obj = etree.ElementTree(root_node)
-            self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
-            with open(get_full_path(self.report_file_path), 'wb') as _fds:
-                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
-
-        except BaseException:
-            raise TaurusInternalException("Cannot create file %s" % self.report_file_path)
-
     def process_pass_fail(self):
         """
         :return: etree element
@@ -436,3 +384,62 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         if fc_obj.is_triggered and fc_obj.fail:
             etree.SubElement(testcase_etree, "error", type="pass/fail criteria triggered", message="")
         return testcase_etree
+
+
+class XUnitFileWriter(object):
+    REPORT_FILE_NAME = "xunit"
+    REPORT_FILE_EXT = ".xml"
+
+    def __init__(self, engine):
+        """
+        :type engine: bzt.engine.Engine
+        """
+        super(XUnitFileWriter, self).__init__()
+        self.engine = engine
+        self.log = engine.log.getChild(self.__class__.__name__)
+        self.report_file_path = self.REPORT_FILE_NAME + self.REPORT_FILE_EXT
+
+    def get_bza_report_info(self):
+        """
+        :return: [(url, test), (url, test), ...]
+        """
+        result = []
+        if isinstance(self.engine.provisioning, CloudProvisioning):
+            cloud_prov = self.engine.provisioning
+            report_url = "Cloud report link: %s\n" % cloud_prov.client.results_url
+            test_name = cloud_prov.settings.get('test', None)
+            result.append((report_url, test_name if test_name is not None else report_url))
+        else:
+            bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
+            """:type bza_reporters: list[BlazeMeterUploader]"""
+            for bza_reporter in bza_reporters:
+                if bza_reporter.client.results_url:
+                    report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
+                    test_name = bza_reporter.parameters.get("test", None)
+
+                    result.append((report_url, test_name if test_name is not None else report_url))
+
+            if len(result) > 1:
+                self.log.warning("More then one blazemeter reporter found")
+        return result
+
+    def save_report(self, root_node):
+        """
+        :param root_node:
+        :return:
+        """
+        try:
+            if os.path.exists(self.report_file_path):
+                self.log.warning("File %s already exists, will be overwritten", self.report_file_path)
+            else:
+                dirname = os.path.dirname(self.report_file_path)
+                if dirname and not os.path.exists(dirname):
+                    os.makedirs(dirname)
+
+            etree_obj = etree.ElementTree(root_node)
+            self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
+            with open(get_full_path(self.report_file_path), 'wb') as _fds:
+                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
+
+        except BaseException:
+            raise TaurusInternalException("Cannot create file %s" % self.report_file_path)
