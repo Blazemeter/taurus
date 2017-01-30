@@ -299,10 +299,11 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 self.process_sample_labels(writer)
                 writer.save_report(filename)
         elif test_data_source == "pass-fail":
+            writer = XUnitFileWriter(self.engine, 'bzt_pass_fail')
             self.log.warning("Using 'data-source=pass-fail' is deprecated and will be removed in future release. "
                              "Use pass-fail module's own option")
-            root_element = self.process_pass_fail()
-            self.save_report(root_element)
+            root_element = self.process_pass_fail(writer)
+            writer.save_report(filename)
         else:
             raise TaurusConfigError("Unsupported data source: %s" % test_data_source)
 
@@ -329,9 +330,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
             xunit.add_test_case(key, errors)
 
-    def process_pass_fail(self):
+    def process_pass_fail(self, xunit):
         """
-        :return: etree element
+        :type xunit: XUnitFileWriter
         """
         mods = self.engine.reporters + self.engine.services  # TODO: remove it after migrating to service
         pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
@@ -341,37 +342,26 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             if pf_obj.criteria:
                 for _fc in pf_obj.criteria:
                     fail_criteria.append(_fc)
-        root_xml_element = etree.Element("testsuite", name='bzt_pass_fail', package="bzt")
-
-        bza_report_info = self.get_bza_report_info()
-        classname = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
-        report_urls = [info_item[0] for info_item in bza_report_info]
 
         for fc_obj in fail_criteria:
-            testcase_etree = self.__process_criteria(classname, fc_obj, report_urls)
-            root_xml_element.append(testcase_etree)
-        return root_xml_element
+            if 'label' in fc_obj.config:
+                data = (fc_obj.config['subject'], fc_obj.config['label'], fc_obj.config['condition'],
+                        fc_obj.config['threshold'])
+                tpl = "%s of %s%s%s"
+            else:
+                data = (fc_obj.config['subject'], fc_obj.config['condition'], fc_obj.config['threshold'])
+                tpl = "%s%s%s"
+            if fc_obj.config['timeframe']:
+                tpl += " for %s"
+                data += (fc_obj.config['timeframe'],)
+            disp_name = tpl % data
 
-    def __process_criteria(self, classname, fc_obj, report_urls):
-        if 'label' in fc_obj.config:
-            data = (fc_obj.config['subject'], fc_obj.config['label'],
-                    fc_obj.config['condition'], fc_obj.config['threshold'])
-            tpl = "%s of %s%s%s"
-        else:
-            data = (fc_obj.config['subject'], fc_obj.config['condition'],
-                    fc_obj.config['threshold'])
-            tpl = "%s%s%s"
-        if fc_obj.config['timeframe']:
-            tpl += " for %s"
-            data += (fc_obj.config['timeframe'],)
-        disp_name = tpl % data
-        testcase_etree = etree.Element("testcase", classname=classname, name=disp_name)
-        if report_urls:
-            system_out_etree = etree.SubElement(testcase_etree, "system-out")
-            system_out_etree.text = "".join(report_urls)
-        if fc_obj.is_triggered and fc_obj.fail:
-            etree.SubElement(testcase_etree, "error", type="pass/fail criteria triggered", message="")
-        return testcase_etree
+            if fc_obj.is_triggered and fc_obj.fail:
+                errors = (etree.Element("error", message="", type="pass/fail criteria triggered"))
+            else:
+                errors = ()
+
+            xunit.add_test_case(disp_name, errors)
 
 
 class XUnitFileWriter(object):
@@ -434,16 +424,15 @@ class XUnitFileWriter(object):
         except BaseException:
             raise TaurusInternalException("Cannot create file %s" % fname)
 
-    def add_test_case(self, case_name, errors=()):
+    def add_test_case(self, case_name, children=()):
         """
         :type case_name: str
-        :type errors: list[bzt.six.etree.Element]
+        :type children: list[bzt.six.etree.Element]
         """
         test_case = etree.Element("testcase", classname=self.class_name, name=case_name)
         if self.report_urls:
             system_out_etree = etree.SubElement(test_case, "system-out")
             system_out_etree.text = "".join(self.report_urls)
 
-        test_case.extend(errors)
-
+        test_case.extend(children)
         self.test_suite.append(test_case)
