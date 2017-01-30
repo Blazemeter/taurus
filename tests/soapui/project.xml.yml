@@ -32,7 +32,8 @@ scenarios:
     - body: ''
       label: /api/json
       url: http://localhost:9999/api/json
+    test-case: index
+    test-suite: TestSuite 1
     variables:
       something: foo
       something_else: '2'
-

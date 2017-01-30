@@ -815,7 +815,7 @@ class ScenarioExecutor(EngineModule):
         else:
             return None
 
-    def get_scenario(self, name=None):
+    def get_scenario(self, name=None, cache_scenario=True):
         """
         Returns scenario dict, extract if scenario is inlined
 
@@ -861,7 +861,7 @@ class ScenarioExecutor(EngineModule):
         scenario = scenarios.get(label, exc)
         scenario_obj = Scenario(self.engine, scenario)
 
-        if name is None:
+        if name is None and cache_scenario:
             self.__scenario = scenario_obj
 
         return scenario_obj
