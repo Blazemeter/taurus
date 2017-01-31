@@ -299,9 +299,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 self.process_sample_labels(writer)
                 writer.save_report(filename)
         elif test_data_source == "pass-fail":
-            writer = XUnitFileWriter(self.engine, 'bzt_pass_fail')
             self.log.warning("Using 'data-source=pass-fail' is deprecated and will be removed in future release. "
                              "Use pass-fail module's own option")
+            writer = XUnitFileWriter(self.engine, 'bzt_pass_fail')
             self.process_pass_fail(writer)
             writer.save_report(filename)
         else:
@@ -334,7 +334,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         :type xunit: XUnitFileWriter
         """
-        mods = self.engine.reporters + self.engine.services  # TODO: remove it after migrating to service
+        mods = self.engine.reporters + self.engine.services  # TODO: remove it after passfail is only reporter
         pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
         self.log.debug("Processing passfail objects: %s", pass_fail_objects)
         fail_criteria = []

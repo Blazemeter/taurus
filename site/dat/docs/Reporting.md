@@ -152,4 +152,22 @@ modules:
     - 99.9
     - 100.0
 ```
-`rtimes-len` allows to reduce memory consumption for heavy tests. On the other hand, you reduce the precision of distribution with that. 
+`rtimes-len` allows to reduce memory consumption for heavy tests. On the other hand, you reduce the precision of distribution with that.
+ 
+ ## Pass/Fail Criteria Subsystem
+ 
+ Pass/Fail module is used to dynamically update test status based on some runtime criteria. For
+ example, you can use it to automatically fail the test when response time exceeds some threshold.
+ Here's a sample:
+ 
+ ```yaml
+ ---
+ reporting:
+ - module: passfail
+   criteria:
+   - avg-rt of IndexPage>150ms for 10s, stop as failed
+   - fail of CheckoutPage>50% for 10s, stop as failed
+ ```
+ 
+ You can learn more about Pass/Fail criteria capabilities at its [page](PassFail.md).
+ 

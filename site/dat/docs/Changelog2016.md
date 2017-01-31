@@ -1,4 +1,4 @@
-# Changelog
+# Changelog for year 2016
 
 ## 1.7.5 <sup>29 dec 2016</sup>
  - add `actions` into selenium to perform clicks, type keys and wait for items
