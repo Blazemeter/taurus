@@ -1,4 +1,25 @@
-# Convert Existing SoapUI Project into Taurus YAML
+# SoapUI Support
+
+## SoapUI support
+
+You can specify existing SoapUI scripts for JMeter executor. The executor will extract specified test case from SoapUI project
+and convert it to Taurus scenario.
+
+Example:
+```yaml
+---
+execution:
+- executor: jmeter
+  concurrency: 20
+  hold-for: 1m
+  scenario:
+    script: project.xml  # SoapUI project
+    test-case: index  # name of SoapUI test case to use
+```
+
+If your SoapUI project contains only one test case — you can omit the `test-case` option.
+
+##  soapui2yaml — Converting Existing SoapUI Project into Taurus YAML
 
 Taurus includes a command-line utility named `soapui2yaml` that can be used to convert existing SoapUI scripts
 into Taurus YAML-based configs.
