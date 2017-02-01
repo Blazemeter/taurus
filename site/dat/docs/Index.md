@@ -18,15 +18,16 @@
     1. [ApacheBenchmark Executor](ApacheBenchmark.md)
     1. [Tsung Executor](Tsung.md)
  1. [Cloud Provisioned Test Execution](Cloud.md)
+ 1. [Pass/Fail Criteria](PassFail.md)
  1. [Generating Test Reports](Reporting.md)
     1. [Observing Live Test Stats in Your Terminal](ConsoleReporter.md)
     1. [Online Interactive Reports](BlazemeterReporter.md)
  1. [Services Subsystem](Services.md)
-    1. [Pass/Fail Criteria](PassFail.md)
     1. [ShellExec Service](ShellExec.md)
     1. [Resource Monitoring](Monitoring.md)
     1. [Proxy2JMX Converter](Proxy2JMX.md)
  1. [JMX to YAML converter](JMX2YAML.md)
+ 1. [SoapUI support](SoapUI.md)
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
 
 ## Developer Documentation

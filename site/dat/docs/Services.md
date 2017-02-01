@@ -21,27 +21,9 @@ services:
 ```
 
 Taurus provides the following services:
-- `passfail` allows you to set test status based on runtime criteria
 - `shellexec` used to execute additional shell commands when test is executed
 - `monitoring` allows including monitoring data in test reports
 - `chrome-profiler` allows to extract performance metrics from Chrome running Selenium tests
-
-## Pass/Fail Service
-
-Pass/Fail Service is used to dynamically update test status based on some runtime criteria. For
-example, you can use it to automatically fail the test when response time exceeds some limit.
-Here's a sample:
-
-```yaml
----
-services:
-- module: passfail
-  criteria:
-  - avg-rt of IndexPage>150ms for 10s, stop as failed
-  - fail of CheckoutPage>50% for 10s, stop as failed
-```
-
-You can learn more about Pass/Fail Service at its [page](PassFail.md).
 
 ## Shell Executor Service Module
 

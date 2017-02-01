@@ -1,14 +1,18 @@
 ---
 execution:
 - executor: gatling
-  scenario: blazedemo
+  scenario: simple
   concurrency: 10
   ramp-up: 30s
   steps: 5
   hold-for: 2m
   # iterations: 100
+  # throughput: 1000
 
 scenarios:
+  simple:
+    requests:
+    - http://blazedemo.com/
   blazedemo:
     default-address: blazedemo.com
     headers:

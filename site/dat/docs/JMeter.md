@@ -181,7 +181,7 @@ scenarios:
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
 
-If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${__P(hostname)}:${__P(port)}`.
+If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${\__P(hostname)}:${\__P(port)}`.
 
 ### Requests
 
@@ -257,7 +257,6 @@ scenarios:
     - url: http://blazedemo.com/  
       extract-regexp: # dictionary under it has form <var name>: <regular expression>
         page_title: <title>(\w+)</title>  #  must have at least one capture group
-        subject: body                     #  subject for search
       extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
         varname: $.jsonpath[0].expression
     - url: http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
@@ -268,10 +267,6 @@ scenarios:
         title: /html/head/title
 ```
 
-Possible subjects for regexp are:
-  - `body`
-  - `headers`
-  - `http-code`
 
 The full form for extractors is:
 
@@ -287,6 +282,7 @@ scenarios:
           default: NOT_FOUND  # default value to use when regexp not found
           match-no: 1  # if multiple values has matched, which match use (0=random)
           template: 1  # which capture group to take, integer or template string
+          subject: body  #  subject for search
       extract-jsonpath:   
         varname:
           jsonpath: $.jsonpath[0]  # jsonpath expression
@@ -307,6 +303,11 @@ scenarios:
           ignore-whitespace: true
           use-tolerant-parser: false
 ```
+
+Possible subjects for regexp are:
+  - `body`
+  - `headers`
+  - `http-code`
 
 ##### Assertions
 
@@ -722,3 +723,24 @@ modules:
   jmeter:
     memory-xmx: 4G  # allow JMeter to use up to 4G of memory
 ```
+
+## SoapUI Integration
+
+You can specify SoapUI projects in place of JMX scripts for JMeter executor. The executor will convert them into
+Taurus scenarios and execute them with JMeter.
+
+Example:
+```yaml
+---
+execution:
+- concurrency: 10
+  hold-for: 5m
+  scenario: soapui-project
+
+scenarios:
+  soapui-project:
+    script: project.xml
+    test-case: TestIndex
+```
+
+You can read more on that [here](SoapUI.md).

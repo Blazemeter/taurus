@@ -1,5 +1,4 @@
 # coding=utf-8
-""" test """
 import json
 import logging
 import os
@@ -74,6 +73,14 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_jmx(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        self.obj.engine.create_artifacts_dir()
+        self.obj.prepare()
+
+    def test_jmx_with_props(self):
+        self.obj.execution.merge({
+            "concurrency": 10,
+            "scenario": {"script": __dir__() + "/../jmeter/jmx/props_tg.jmx"}
+        })
         self.obj.engine.create_artifacts_dir()
         self.obj.prepare()
 
@@ -373,9 +380,9 @@ class TestJMeterExecutor(BZTestCase):
         file_was_created = False
         if not os.path.exists(file_in_home):
             file_was_created = True
-            with open(file_in_home, 'w') as _file:      # real file is required by Engine.find_file()
+            with open(file_in_home, 'w') as _file:  # real file is required by Engine.find_file()
                 _file.write('')
-        self.obj.engine.file_search_paths = ['tests']    # config not in cwd
+        self.obj.engine.file_search_paths = ['tests']  # config not in cwd
         self.obj.resource_files()
         if file_was_created:
             os.remove(file_in_home)
@@ -1869,7 +1876,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
 
-    def test_jsr223_exceptions(self):
+    def test_jsr223_exceptions_1(self):
         self.configure({
             "execution": {
                 "scenario": {
@@ -1883,6 +1890,8 @@ class TestJMeterExecutor(BZTestCase):
             }
         })
         self.assertRaises(TaurusConfigError, self.obj.prepare)
+
+    def test_jsr223_exceptions_2(self):
         self.configure({
             "execution": {
                 "scenario": {
@@ -2042,6 +2051,40 @@ class TestJMeterExecutor(BZTestCase):
         for point in reader.datapoints():
             cumulative = point[DataPoint.CUMULATIVE]
             self.assertNotIn("Тест.Эхо", cumulative)
+
+    def test_soapui_script(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "script": __dir__() + "/../soapui/project.xml",
+                    "test-case": "index",
+                }
+            }
+        })
+        self.obj.prepare()
+        self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
+
+    def test_soapui_renaming(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "script": __dir__() + "/../soapui/project.xml",
+                    "test-case": "index",
+                },
+            },
+            "scenarios": {
+                "TestSuite 1-index": {
+                    "hello": "world",
+                },
+                "TestSuite 1-index-1": {
+                    "hello": "world",
+                },
+            },
+        })
+        self.obj.prepare()
+        self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
+        self.assertIn("TestSuite 1-index-1", self.obj.engine.config["scenarios"])
+        self.assertIn("TestSuite 1-index-2", self.obj.engine.config["scenarios"])
 
 
 class TestJMX(BZTestCase):

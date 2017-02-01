@@ -329,14 +329,15 @@ class TsungConfig(object):
 
     def __gen_servers(self, scenario):
         default_address = scenario.get("default-address", None)
-        if default_address is None:
+        if default_address:
+            base_addr = parse.urlparse(default_address)
+        else:
             requests = list(scenario.get_requests())
             if not requests:
                 raise TaurusConfigError("Tsung: you must specify requests in scenario")
             base_addr = parse.urlparse(requests[0].url)
             self.log.debug("default-address was not specified, using %s instead", base_addr.hostname)
-        else:
-            base_addr = parse.urlparse(default_address)
+
         servers = etree.Element("servers")
         port = base_addr.port if base_addr.port is not None else 80
         server = etree.Element("server", host=base_addr.hostname, port=str(port), type="tcp")

@@ -31,7 +31,7 @@ from bzt.six import string_types, viewvalues, iteritems
 from bzt.utils import load_class, dehumanize_time
 
 
-class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
+class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):  # TODO: remove Service
     """
     :type criteria: list[FailCriterion]
     """
@@ -44,13 +44,7 @@ class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):
 
     def prepare(self):
         super(PassFailStatus, self).prepare()
-
-        # TODO: remove "criterias" support in three months
-        criterias = self.parameters.get("criterias", [])
-        if criterias:
-            self.log.warning('"criterias" section name is deprecated, use "criteria" instead')
-        criteria = self.parameters.get("criteria", criterias)
-
+        criteria = self.parameters.get("criteria", [])
         if isinstance(criteria, dict):
             crit_iter = iteritems(criteria)
         else:
