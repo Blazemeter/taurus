@@ -29,7 +29,7 @@ class TestConverter(BZTestCase):
     def test_convert(self):
         source = __dir__() + "/soapui/project.xml"
         result = self._get_tmp()
-        options = FakeOptions(file_name=result)
+        options = FakeOptions(file_name=result, test_case="index")
         process(options, [source])
         actual = yaml.load(open(result).read())
         expected = yaml.load(open(__dir__() + "/soapui/project.xml.yml").read())
