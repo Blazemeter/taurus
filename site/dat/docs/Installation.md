@@ -100,11 +100,14 @@ brew install libxslt
 then try installing Taurus again.
 
 
-Upgrading to latest is as simple as this:
+Upgrading Taurus to latest on Mac OS is suggested as:
 
 ```bash
-sudo pip install --upgrade bzt
+sudo pip uninstall bzt
+sudo pip install bzt
 ```
+
+We suggest to avoid using `--upgrade` command with `pip` on Mac OS, since it does not work as expected for Taurus.
 
 ## Linux
 
