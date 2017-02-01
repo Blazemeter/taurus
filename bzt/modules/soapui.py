@@ -227,7 +227,6 @@ class SoapUIScriptConverter(object):
             elif step.get("type") == "transfer":
                 extracted_extractors = self._extract_property_transfer(step)  # label -> extractor
                 if extracted_extractors:
-                    self.log.info("extracted extractors: %s", extracted_extractors)
                     extractors.merge(extracted_extractors)
 
             if request is not None:
@@ -311,7 +310,8 @@ class SoapUIScriptConverter(object):
             sorted_scenarios = sorted((name, scen) for name, scen in iteritems(scenarios))
             scenario_name, scenario = next(iter(sorted_scenarios))
             if test_case is None:
-                self.log.warning("No `test-case` specified for SoapUI script, will use '%s'", scenario.get("test-case"))
+                self.log.warning("No `test-case` specified for SoapUI project, will use '%s'",
+                                 scenario.get("test-case"))
             else:
                 msg = "No matching test cases found for name '%s', using the '%s'"
                 self.log.warning(msg, test_case, scenario.get("test-case"))
