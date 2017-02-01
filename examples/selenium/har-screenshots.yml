@@ -1,0 +1,21 @@
+---
+scenarios:
+  req:
+    browser: Chrome
+    requests:
+    - https://nytimes.com
+
+execution:
+  - scenario: req
+    executor: selenium
+    iterations: 2
+
+services:
+- capturehar
+- screenshoter
+
+modules:
+  selenium:
+    virtual-display:
+      width: 1280
+      height: 800

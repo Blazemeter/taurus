@@ -181,7 +181,7 @@ scenarios:
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
 
-If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${__P(hostname)}:${__P(port)}`.
+If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${\__P(hostname)}:${\__P(port)}`.
 
 ### Requests
 
@@ -257,7 +257,6 @@ scenarios:
     - url: http://blazedemo.com/  
       extract-regexp: # dictionary under it has form <var name>: <regular expression>
         page_title: <title>(\w+)</title>  #  must have at least one capture group
-        subject: body                     #  subject for search
       extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
         varname: $.jsonpath[0].expression
     - url: http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
@@ -268,10 +267,6 @@ scenarios:
         title: /html/head/title
 ```
 
-Possible subjects for regexp are:
-  - `body`
-  - `headers`
-  - `http-code`
 
 The full form for extractors is:
 
@@ -287,6 +282,7 @@ scenarios:
           default: NOT_FOUND  # default value to use when regexp not found
           match-no: 1  # if multiple values has matched, which match use (0=random)
           template: 1  # which capture group to take, integer or template string
+          subject: body  #  subject for search
       extract-jsonpath:   
         varname:
           jsonpath: $.jsonpath[0]  # jsonpath expression
@@ -307,6 +303,11 @@ scenarios:
           ignore-whitespace: true
           use-tolerant-parser: false
 ```
+
+Possible subjects for regexp are:
+  - `body`
+  - `headers`
+  - `http-code`
 
 ##### Assertions
 

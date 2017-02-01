@@ -401,9 +401,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def __apply_concurrency(self, jmx, concurrency):
         """
         Apply concurrency to ThreadGroup.num_threads
-        :param jmx: JMX
-        :param concurrency: int
-        :return:
+        :type jmx: JMX
+        :type concurrency: int
         """
         # TODO: what to do when they used non-standard thread groups?
         tnum_sel = ".//*[@name='ThreadGroup.num_threads']"
@@ -411,12 +410,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         orig_sum = 0.0
         for group in jmx.enabled_thread_groups():
             othread = group.find(tnum_sel)
-            orig_sum += int(othread.text)
+            try:
+                orig_sum += int(othread.text)
+            except ValueError:
+                self.log.debug("Using value 1 since cannot parse int: %s", othread.text)
+                orig_sum += 1
         self.log.debug("Original threads: %s", orig_sum)
         leftover = concurrency
         for group in jmx.enabled_thread_groups():
             othread = group.find(tnum_sel)
-            orig = int(othread.text)
+            try:
+                orig = int(othread.text)
+            except ValueError:
+                self.log.debug("Using value 1 since cannot parse int: %s", othread.text)
+                orig = 1
+
             new = int(round(concurrency * orig / orig_sum))
             leftover -= new
             othread.text = str(new)
@@ -568,7 +576,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 self.__add_stepping_shaper(jmx, load)
             else:
                 self.__add_shaper(jmx, load)
-
 
     @staticmethod
     def __fill_empty_delimiters(jmx):
