@@ -6,13 +6,11 @@ from collections import Counter
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus, DataCriterion
-from bzt.modules.provisioning import Local
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
 from bzt.utils import BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul
-from tests.modules.test_blazemeter import BZMock
 
 
 class TestJUnitXML(BZTestCase):
@@ -102,7 +100,7 @@ class TestJUnitXML(BZTestCase):
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
         rep = BlazeMeterUploader()
-        rep.client.results_url = "http://report/123"
+        rep.results_url = "http://report/123"
         obj.engine.reporters.append(rep)
         obj.parameters = BetterDict()
 
@@ -236,7 +234,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
         obj.engine.provisioning = CloudProvisioning()
-        obj.engine.provisioning.client.results_url = "http://test/report/123"
+        obj.engine.provisioning.results_url = "http://test/report/123"
 
         pass_fail1 = PassFailStatus()
 
@@ -293,28 +291,6 @@ class TestJUnitXML(BZTestCase):
         sys_out = test_cases[0].getchildren()[0]
         self.assertEqual('system-out', sys_out.tag)
         self.assertIn('Cloud report link: http://test/report/123', sys_out.text)
-    def test_results_link_cloud(self):
-        obj = JUnitXMLReporter()
-        obj.engine = EngineEmul()
-        obj.engine.provisioning = CloudProvisioning()
-        mock = BZMock(obj.engine.provisioning.user)
-        prov = obj.engine.provisioning
-        prov.results_url = 'url1'
-        prov.settings.merge({'test': 'test1'})
-        report_info = obj.get_bza_report_info()
-        self.assertEqual(report_info, [('Cloud report link: url1\n', 'test1')])
-
-    def test_results_link_blazemeter(self):
-        obj = JUnitXMLReporter()
-        obj.engine = EngineEmul()
-        obj.engine.provisioning = Local()
-        rep = BlazeMeterUploader()
-        obj.engine.reporters.append(rep)
-        mock = BZMock(rep._user)
-        rep.results_url = 'url2'
-        rep.parameters.merge({'test': 'test2'})
-        report_info = obj.get_bza_report_info()
-        self.assertEqual(report_info, [('BlazeMeter report link: url2\n', 'test2')])
 
     def test_report_criteria_without_label(self):
         obj = JUnitXMLReporter()
