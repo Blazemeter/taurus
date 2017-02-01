@@ -87,5 +87,5 @@ class TestSoapUIConverter(BZTestCase):
         found_name, found_scenario = obj.find_soapui_test_case(None, scenarios)
         self.assertEqual(target_scenario, found_scenario)
 
-        self.assertIn("No `test-case` specified for SoapUI script, will use 'index'",
+        self.assertIn("No `test-case` specified for SoapUI project, will use 'index'",
                       log_recorder.warn_buff.getvalue())
