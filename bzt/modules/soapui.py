@@ -19,6 +19,7 @@ import os
 
 from bzt import TaurusInternalException
 from bzt.six import etree, iteritems
+from utils import BetterDict
 
 
 class SoapUIScriptConverter(object):
@@ -142,9 +143,76 @@ class SoapUIScriptConverter(object):
             load_exec['concurrency'] = 1
         return load_exec
 
+    def _extract_property_transfer(self, test_step):
+        extractors = BetterDict()  # label -> {extract-xpath: ..., extract-jsonpath: ...}
+        transfers = test_step.findall('./con:config/con:transfers', namespaces=self.NAMESPACES)
+        if not transfers:
+            return None
+
+        for transfer in transfers:
+            source_type = transfer.findtext('./con:sourceType', namespaces=self.NAMESPACES)
+            source_step_name = transfer.findtext('./con:sourceStep', namespaces=self.NAMESPACES)
+            query = transfer.findtext('./con:sourcePath', namespaces=self.NAMESPACES)
+            transfer_type = transfer.findtext('./con:type', namespaces=self.NAMESPACES)
+            target_step_name = transfer.findtext('./con:targetStep', namespaces=self.NAMESPACES)
+            target_prop = transfer.findtext('./con:targetType', namespaces=self.NAMESPACES)
+
+            if source_type != "Response":
+                self.log.warning("Found Property Transfer with non-response source (%s). Skipping", source_type)
+                continue
+
+            if transfer_type not in ["JSONPATH", "XPATH"]:
+                self.log.warning("Found Property Transfer with unsupported type (%s). Skipping", transfer_type)
+                continue
+
+            source_step = self.tree.find("//con:testStep[@name='%s']" % source_step_name, namespaces=self.NAMESPACES)
+            if source_step is None:
+                self.log.warning("Can't find source step (%s) for Property Transfer. Skipping", source_step_name)
+                continue
+
+            source_step_type = source_step.get("type")
+            if source_step_type not in ["httprequest", "restrequest"]:
+                self.log.warning("Unsupported source step type for Property Transfer (%s). Skipping", source_step_type)
+                continue
+
+            target_step = self.tree.find("//con:testStep[@name='%s']" % target_step_name, namespaces=self.NAMESPACES)
+            if target_step is None:
+                self.log.warning("Can't find target step (%s) for Property Transfer. Skipping", target_step_name)
+                continue
+
+            target_step_type = target_step.get("type")
+            if target_step_type != "properties":
+                self.log.warning("Unsupported source step type for Property Transfer (%s). Skipping", target_step_type)
+                continue
+
+            extractor = BetterDict()
+            if transfer_type == "JSONPATH":
+                extractor.merge({
+                    'extract-jsonpath': {
+                        target_prop: {
+                            'jsonpath': query,
+                            'default': 'NOT_FOUND',
+                        }
+                    }
+                })
+            elif transfer_type == "XPATH":
+                extractor.merge({
+                    'extract-xpath': {
+                        target_prop: {
+                            'xpath': query,
+                            'default': 'NOT_FOUND',
+                        }
+                    }
+                })
+            extractors.merge({source_step_name: extractor})
+
+        return extractors
+
     def _extract_scenario(self, test_case):
         variables = {}
         requests = []
+
+        extractors = BetterDict()
 
         steps = test_case.findall('.//con:testStep', namespaces=self.NAMESPACES)
         for step in steps:
@@ -156,9 +224,19 @@ class SoapUIScriptConverter(object):
             elif step.get("type") == "properties":
                 props = self._extract_properties(step)
                 variables.update(props)
+            elif step.get("type") == "transfer":
+                extracted_extractors = self._extract_property_transfer(step)  # label -> extractor
+                if extracted_extractors:
+                    self.log.info("extracted extractors: %s", extracted_extractors)
+                    extractors.merge(extracted_extractors)
 
             if request is not None:
                 requests.append(request)
+
+        for request in requests:
+            label = request["label"]
+            if label in extractors:
+                request.update(extractors[label])
 
         scenario = {
             "test-case": test_case.get("name"),
