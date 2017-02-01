@@ -19,7 +19,7 @@ import os
 
 from bzt import TaurusInternalException
 from bzt.six import etree, iteritems
-from utils import BetterDict
+from bzt.utils import BetterDict
 
 
 class SoapUIScriptConverter(object):
