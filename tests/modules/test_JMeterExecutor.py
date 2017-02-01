@@ -1,5 +1,4 @@
 # coding=utf-8
-""" test """
 import json
 import logging
 import os
@@ -74,6 +73,14 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_jmx(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        self.obj.engine.create_artifacts_dir()
+        self.obj.prepare()
+
+    def test_jmx_with_props(self):
+        self.obj.execution.merge({
+            "concurrency": 10,
+            "scenario": {"script": __dir__() + "/../jmeter/jmx/props_tg.jmx"}
+        })
         self.obj.engine.create_artifacts_dir()
         self.obj.prepare()
 
@@ -373,9 +380,9 @@ class TestJMeterExecutor(BZTestCase):
         file_was_created = False
         if not os.path.exists(file_in_home):
             file_was_created = True
-            with open(file_in_home, 'w') as _file:      # real file is required by Engine.find_file()
+            with open(file_in_home, 'w') as _file:  # real file is required by Engine.find_file()
                 _file.write('')
-        self.obj.engine.file_search_paths = ['tests']    # config not in cwd
+        self.obj.engine.file_search_paths = ['tests']  # config not in cwd
         self.obj.resource_files()
         if file_was_created:
             os.remove(file_in_home)
