@@ -271,9 +271,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         self.report_file_path = None
 
     def prepare(self):
-        """
-        create artifacts, parse options, take report filename from parameters
-        """
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
@@ -299,8 +296,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 self.process_sample_labels(writer)
                 writer.save_report(filename)
         elif test_data_source == "pass-fail":
-            self.log.warning("Using 'data-source=pass-fail' is deprecated and will be removed in future release. "
-                             "Use pass-fail module's own option")
             writer = XUnitFileWriter(self.engine, 'bzt_pass_fail')
             self.process_pass_fail(writer)
             writer.save_report(filename)

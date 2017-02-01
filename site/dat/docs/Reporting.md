@@ -101,7 +101,7 @@ Reporter has two options:
 - `data-source` (which data source to use: `sample-labels` or `pass-fail`)
 
 If `sample-labels` used as source data, report will contain urls with test errors.
-If `pass-fail` used as source data, report will contain [Pass/Fail](PassFail.md) criteria information.
+If `pass-fail` used as source data, report will contain [Pass/Fail](PassFail.md) criteria information. Please note that you have to place pass-fail module in reporters list, before junit-xml module.
 
 Sample configuration:
 
