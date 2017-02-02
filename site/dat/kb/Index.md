@@ -14,6 +14,7 @@
  1. [Taurus Overview](https://blazemeter.com/blog/taurus-new-star-test-automation-tools-constellation) 
  1. [Taurus First Steps](https://blazemeter.com/blog/navigating-your-first-steps-using-taurus)
  1. [Taurus - Working with Multiple JMeter Tests](https://blazemeter.com/blog/taurus-working-multiple-jmeter-tests)
+ 1. [How to Execute a Load Test Using the Taurus Docker Image](https://www.blazemeter.com/blog/how-execute-load-test-using-taurus-docker-image)
 
 
 # Videos

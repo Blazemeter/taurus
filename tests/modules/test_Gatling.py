@@ -174,7 +174,7 @@ class TestGatlingExecutor(BZTestCase):
         scala_file = obj.engine.artifacts_dir + '/' + obj.get_scenario().get('simulation') + '.scala'
         self.assertEqualFiles(__dir__() + "/../gatling/generated1.scala", scala_file)
 
-    def test_requests_2(self):
+    def test_requests_def_addr_is_none(self):
         obj = self.getGatling()
         obj.execution.merge({
             "concurrency": 10,
@@ -182,6 +182,7 @@ class TestGatlingExecutor(BZTestCase):
             "throughput": 33,
             "ramp-up": 30,
             "scenario": {
+                'default-address': None,
                 'keepalive': False,
                 'timeout': '100ms',
                 'requests': ['http://blazedemo.com', 'google.com']
@@ -189,16 +190,28 @@ class TestGatlingExecutor(BZTestCase):
         })
         obj.prepare()
 
-        scala_file = obj.engine.artifacts_dir + '/' + obj.get_scenario().get('simulation') + '.scala'
-        self.assertEqualFiles(__dir__() + "/../gatling/generated2.scala", scala_file)
+    def test_requests_def_addr_is_empty(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "concurrency": 10,
+            "hold-for": 110,
+            "throughput": 33,
+            "ramp-up": 30,
+            "scenario": {
+                'default-address': '',
+                'keepalive': False,
+                'timeout': '100ms',
+                'requests': ['http://blazedemo.com', 'google.com']
+            }
+        })
+        obj.prepare()
 
     def test_requests_3(self):
         obj = self.getGatling()
         obj.execution.merge({
             "iterations": 55,
             "scenario": {
-                "default-address": "blazedemo.com",
-                "requests": [{'url': '/reserve.php',
+                "requests": [{'url': 'http://site.com/reserve.php',
                               'assert': [{
                                   'contains': [200],
                                   'subject': 'http-code',
@@ -215,8 +228,8 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             "iterations": 55,
             "scenario": {
-                "default-address": "blazedemo.com",
-                "requests": [{'url': '/reserve.php',
+                "default-address": "",
+                "requests": [{'url': 'site.com/reserve.php',
                               'assert': [{
                                   'subject': 'body',
                                   'contains': 'boot(.*)strap.min',

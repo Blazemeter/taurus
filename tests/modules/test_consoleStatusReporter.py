@@ -143,6 +143,24 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.shutdown()
         obj.post_process()
 
+    def test_disabled_1(self):
+        obj = ConsoleStatusReporter()
+        obj.engine = EngineEmul()
+        obj.engine.provisioning = Local()
+        obj.engine.config[Provisioning.PROV] = ''
+        obj.settings["disable"] = 1
+        obj.prepare()
+        self.assertEquals(True, obj.disabled)
+
+    def test_disabled_0(self):
+        obj = ConsoleStatusReporter()
+        obj.engine = EngineEmul()
+        obj.engine.provisioning = Local()
+        obj.engine.config[Provisioning.PROV] = ''
+        obj.settings["disable"] = 0
+        obj.prepare()
+        self.assertEquals(False, obj.disabled)
+
     def test_screen(self):
         obj = ConsoleStatusReporter()
         obj.settings["screen"] = "console"

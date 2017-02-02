@@ -23,6 +23,16 @@ modules:
 
 All folders among your resource files (scripts) will be packed automatically before sending and unpacked on cloud workers with `unpacker` service.   
 
+<div class="alert alert-danger">
+Never put API key into your main config files! 
+
+Never post it to support forums!
+
+It is recommended to place the token setting in your personal
+[per-user config](CommandLine.md#configuration-files-processing) `~/.bzt-rc` to prevent it from
+being logged and collected in artifacts.
+</div>
+
 ## Load Settings for Cloud
 
 By default, cloud-provisioned execution will read `concurrency` and `throughput` options normally. There's a notation that allows configuring values for `local` and `cloud` at once, to remove the need to edit load settings when switching `provisioning` during test debugging from `local` to `cloud` and back:

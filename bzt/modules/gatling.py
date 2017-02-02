@@ -45,8 +45,11 @@ class GatlingScriptBuilder(object):
             return addr
 
     def _get_http(self):
-        http_str = 'http.baseURL("%(addr)s")\n'
-        http_str = http_str % {'addr': self.fixed_addr(self.scenario.get('default-address', ''))}
+        default_address = self.scenario.get('default-address', None)
+        if default_address is None:
+            default_address = ''
+
+        http_str = 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
 
         scenario_headers = self.scenario.get_headers()
         for key in scenario_headers:
@@ -59,7 +62,8 @@ class GatlingScriptBuilder(object):
             if len(exec_str) > 0:
                 exec_str += '.'
 
-            if len(self.scenario.get('default-address')) > 0:
+            default_address = self.scenario.get("default-address", None)
+            if default_address:
                 url = req.url
             else:
                 url = self.fixed_addr(req.url)

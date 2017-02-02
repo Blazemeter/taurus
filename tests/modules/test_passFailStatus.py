@@ -200,7 +200,6 @@ class TestPassFailStatus(BZTestCase):
         })
         obj.prepare()
         self.assertTrue(all(isinstance(obj, dict) for obj in passfail["criteria"]))
-        self.assertTrue(all(isinstance(obj, dict) for obj in passfail["criterias"]))
 
     def test_percentiles_track(self):
         obj = PassFailStatus()
