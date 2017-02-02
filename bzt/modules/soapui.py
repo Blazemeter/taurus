@@ -19,6 +19,7 @@ import os
 
 from bzt import TaurusInternalException
 from bzt.six import etree, iteritems
+from bzt.utils import BetterDict
 
 
 class SoapUIScriptConverter(object):
@@ -142,9 +143,90 @@ class SoapUIScriptConverter(object):
             load_exec['concurrency'] = 1
         return load_exec
 
+    def _validate_transfer(self, source_type, source_step_name, transfer_type, target_step_name):
+        source_step = self.tree.find("//con:testStep[@name='%s']" % source_step_name, namespaces=self.NAMESPACES)
+        if source_step is None:
+            self.log.warning("Can't find source step (%s) for Property Transfer. Skipping", source_step_name)
+            return False
+
+        source_step_type = source_step.get("type")
+        if source_step_type not in ["httprequest", "restrequest"]:
+            self.log.warning("Unsupported source step type for Property Transfer (%s). Skipping", source_step_type)
+            return False
+
+        if source_type != "Response":
+            self.log.warning("Found Property Transfer with non-response source (%s). Skipping", source_type)
+            return False
+
+        if transfer_type not in ["JSONPATH", "XPATH"]:
+            self.log.warning("Found Property Transfer with unsupported type (%s). Skipping", transfer_type)
+            return False
+
+        target_step = self.tree.find("//con:testStep[@name='%s']" % target_step_name, namespaces=self.NAMESPACES)
+        if target_step is None:
+            self.log.warning("Can't find target step (%s) for Property Transfer. Skipping", target_step_name)
+            return False
+
+        target_step_type = target_step.get("type")
+        if target_step_type != "properties":
+            self.log.warning("Unsupported source step type for Property Transfer (%s). Skipping", target_step_type)
+            return False
+
+        return True
+
+    def _extract_transfer(self, transfer):
+        source_type = transfer.findtext('./con:sourceType', namespaces=self.NAMESPACES)
+        source_step_name = transfer.findtext('./con:sourceStep', namespaces=self.NAMESPACES)
+        query = transfer.findtext('./con:sourcePath', namespaces=self.NAMESPACES)
+        transfer_type = transfer.findtext('./con:type', namespaces=self.NAMESPACES)
+        target_step_name = transfer.findtext('./con:targetStep', namespaces=self.NAMESPACES)
+        target_prop = transfer.findtext('./con:targetType', namespaces=self.NAMESPACES)
+
+        if source_step_name.startswith("#") and source_step_name.endswith("#"):
+            source_step_name = source_step_name[1:-1]
+
+        if not self._validate_transfer(source_type, source_step_name, transfer_type, target_step_name):
+            return None
+
+        extractor = BetterDict()
+        if transfer_type == "JSONPATH":
+            extractor.merge({
+                'extract-jsonpath': {
+                    target_prop: {
+                        'jsonpath': query,
+                        'default': 'NOT_FOUND',
+                    }
+                }
+            })
+        elif transfer_type == "XPATH":
+            extractor.merge({
+                'extract-xpath': {
+                    target_prop: {
+                        'xpath': query,
+                        'default': 'NOT_FOUND',
+                    }
+                }
+            })
+        return {source_step_name: extractor}
+
+    def _extract_property_transfers(self, test_step):
+        extractors = BetterDict()  # label -> {extract-xpath: ..., extract-jsonpath: ...}
+        transfers = test_step.findall('./con:config/con:transfers', namespaces=self.NAMESPACES)
+        if not transfers:
+            return None
+
+        for transfer in transfers:
+            extracted_transfer = self._extract_transfer(transfer)
+            if extracted_transfer is not None:
+                extractors.merge(extracted_transfer)
+
+        return extractors
+
     def _extract_scenario(self, test_case):
         variables = {}
         requests = []
+
+        extractors = BetterDict()
 
         steps = test_case.findall('.//con:testStep', namespaces=self.NAMESPACES)
         for step in steps:
@@ -156,9 +238,18 @@ class SoapUIScriptConverter(object):
             elif step.get("type") == "properties":
                 props = self._extract_properties(step)
                 variables.update(props)
+            elif step.get("type") == "transfer":
+                extracted_extractors = self._extract_property_transfers(step)  # label -> extractor
+                if extracted_extractors:
+                    extractors.merge(extracted_extractors)
 
             if request is not None:
                 requests.append(request)
+
+        for request in requests:
+            label = request["label"]
+            if label in extractors:
+                request.update(extractors[label])
 
         scenario = {
             "test-case": test_case.get("name"),
@@ -233,7 +324,8 @@ class SoapUIScriptConverter(object):
             sorted_scenarios = sorted((name, scen) for name, scen in iteritems(scenarios))
             scenario_name, scenario = next(iter(sorted_scenarios))
             if test_case is None:
-                self.log.warning("No `test-case` specified for SoapUI script, will use '%s'", scenario.get("test-case"))
+                self.log.warning("No `test-case` specified for SoapUI project, will use '%s'",
+                                 scenario.get("test-case"))
             else:
                 msg = "No matching test cases found for name '%s', using the '%s'"
                 self.log.warning(msg, test_case, scenario.get("test-case"))
