@@ -211,8 +211,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             "iterations": 55,
             "scenario": {
-                "default-address": "blazedemo.com",
-                "requests": [{'url': '/reserve.php',
+                "requests": [{'url': 'http://site.com/reserve.php',
                               'assert': [{
                                   'contains': [200],
                                   'subject': 'http-code',
@@ -229,8 +228,8 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             "iterations": 55,
             "scenario": {
-                "default-address": "blazedemo.com",
-                "requests": [{'url': '/reserve.php',
+                "default-address": "",
+                "requests": [{'url': 'site.com/reserve.php',
                               'assert': [{
                                   'subject': 'body',
                                   'contains': 'boot(.*)strap.min',
