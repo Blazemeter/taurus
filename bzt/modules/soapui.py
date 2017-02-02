@@ -157,14 +157,8 @@ class SoapUIScriptConverter(object):
             target_step_name = transfer.findtext('./con:targetStep', namespaces=self.NAMESPACES)
             target_prop = transfer.findtext('./con:targetType', namespaces=self.NAMESPACES)
 
-            if source_type != "Response":
-                self.log.warning("Found Property Transfer with non-response source (%s). Skipping", source_type)
-                continue
-
-            if transfer_type not in ["JSONPATH", "XPATH"]:
-                self.log.warning("Found Property Transfer with unsupported type (%s). Skipping", transfer_type)
-                continue
-
+            if source_step_name.startswith("#") and source_step_name.endswith("#"):
+                source_step_name = source_step_name[1:-1]
             source_step = self.tree.find("//con:testStep[@name='%s']" % source_step_name, namespaces=self.NAMESPACES)
             if source_step is None:
                 self.log.warning("Can't find source step (%s) for Property Transfer. Skipping", source_step_name)
@@ -173,6 +167,14 @@ class SoapUIScriptConverter(object):
             source_step_type = source_step.get("type")
             if source_step_type not in ["httprequest", "restrequest"]:
                 self.log.warning("Unsupported source step type for Property Transfer (%s). Skipping", source_step_type)
+                continue
+
+            if source_type != "Response":
+                self.log.warning("Found Property Transfer with non-response source (%s). Skipping", source_type)
+                continue
+
+            if transfer_type not in ["JSONPATH", "XPATH"]:
+                self.log.warning("Found Property Transfer with unsupported type (%s). Skipping", transfer_type)
                 continue
 
             target_step = self.tree.find("//con:testStep[@name='%s']" % target_step_name, namespaces=self.NAMESPACES)
