@@ -16,11 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import datetime
 import sys
 import time
 import traceback
-
-import datetime
 
 from bzt import ToolError
 from bzt.engine import Provisioning
@@ -155,8 +154,9 @@ class Local(Provisioning):
                 try:
                     executor.post_process()
                     if executor in self.engine.started and not executor.has_results():
-                        msg = "Empty results, most likely %s (%s) failed"
-                        raise ToolError(msg % (executor.label, executor.__class__.__name__))
+                        msg = "Empty results, most likely %s (%s) failed. " \
+                              "Actual reason for this can be found in logs under %s"
+                        raise ToolError(msg % (executor.label, executor.__class__.__name__, self.engine.artifacts_dir))
                 except BaseException as exc:
                     msg = "Exception in post_process of %s: %s %s"
                     self.log.debug(msg, executor.__class__.__name__, exc, traceback.format_exc())
