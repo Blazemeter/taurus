@@ -43,6 +43,44 @@ class SwaggerConverter(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.swagger = Swagger(self.log)
 
+    @staticmethod
+    def _extract_request(path, method, operation):
+        request = {"url": path}
+
+        if method != "get":
+            request["method"] = method.upper()
+
+        if operation.operation_id is not None:
+            request["label"] = operation.operation_id
+
+        headers = {}
+        for _, param in iteritems(operation.parameters):
+            if param.location == "header":
+                name = param.name
+                value = Swagger.get_data_for_type(param.type, param.format)
+                headers[name] = value
+        if headers:
+            request["headers"] = headers
+
+        return request
+
+    def _extract_requests_from_paths(self, paths):
+        base_path = self.swagger.get_base_path()
+        requests = []
+        for path, path_obj in iteritems(paths):
+            self.log.debug("Handling path %s", path)
+            for method in Swagger.METHODS:
+                operation = getattr(path_obj, method)
+                if operation is not None:
+                    self.log.debug("Handling method %s", method.upper())
+                    request = self._extract_request(base_path + path, method, operation)
+                    # TODO: Swagger responses -> JMeter assertions?
+
+                    if request is not None:
+                        requests.append(request)
+
+        return requests
+
     def convert(self, swagger_path):
         if not os.path.exists(swagger_path):
             raise ValueError("Swagger file %s doesn't exist")
@@ -52,40 +90,12 @@ class SwaggerConverter(object):
         info = self.swagger.get_info()
         title = info.get("title", "Swagger")
         host = self.swagger.get_host()
-        base_path = self.swagger.get_base_path()
         paths = self.swagger.get_interpolated_paths()
         schemes = self.swagger.swagger.get("schemes", ["http"])
         scheme = schemes[0]
         default_address = scheme + "://" + host
-
         scenario_name = title.replace(' ', '-')
-        requests = []
-
-        for path, path_obj in iteritems(paths):
-            self.log.debug("Handling path %s", path)
-            for method in Swagger.METHODS:
-                operation = getattr(path_obj, method)
-                if operation is not None:
-                    self.log.debug("Handling method %s", method.upper())
-                    req = {"url": base_path + path}
-
-                    if method != "get":
-                        req["method"] = method.upper()
-
-                    if operation.operation_id is not None:
-                        req["label"] = operation.operation_id
-
-                    headers = {}
-                    for _, param in iteritems(operation.parameters):
-                        if param.location == "header":
-                            name = param.name
-                            value = Swagger.get_data_for_type(param.type, param.format)
-                            headers[name] = value
-                    if headers:
-                        req["headers"] = headers
-
-                    # TODO: responses -> assertions?
-                    requests.append(req)
+        requests = self._extract_requests_from_paths(paths)
 
         return {
             "scenarios": {
