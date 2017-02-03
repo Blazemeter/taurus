@@ -21,9 +21,7 @@ scenarios:
     - label: updatePetWithForm
       method: POST
       url: /v2/pet/13
-    - headers:
-        api_key: string
-      label: deletePet
+    - label: deletePet
       method: DELETE
       url: /v2/pet/13
     - label: uploadFile
