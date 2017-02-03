@@ -120,7 +120,27 @@ paths:
           description: unexpected error
           schema:
             $ref: '#/definitions/Error'
-
+    put:
+      summary: Update the owner
+      operationId: updateOwner
+      tags:
+        - owners
+      parameters:
+        - name: owner
+          in: body
+          description: Owner object
+          required: true
+          schema:
+            $ref: '#/definitions/Owner'
+      responses:
+        "200":
+          description: An updated owner
+          schema:
+            $ref: '#/definitions/Owner'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/Error'
 definitions:
   Pet:
     required:

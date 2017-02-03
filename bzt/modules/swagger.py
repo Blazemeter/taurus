@@ -58,28 +58,38 @@ class SwaggerConverter(object):
 
         query_params = {}
         form_data = {}
+        request_body = None
         headers = {}
         for _, param in iteritems(operation.parameters):
+            if not param.required:
+                continue
             if param.location == "header":
                 name = param.name
                 value = Swagger.get_data_for_type(param.type, param.format)
                 headers[name] = value
-            elif param.location == "query" and param.required:
+            elif param.location == "query":
                 name = param.name
                 value = Swagger.get_data_for_type(param.type, param.format)
                 query_params[name] = value
-            elif param.location == "formData" and param.required:
+            elif param.location == "formData":
                 name = param.name
                 value = Swagger.get_data_for_type(param.type, param.format)
                 form_data[name] = value
             elif param.location == "body":
-                # TODO:
-                pass
-
+                request_body = Swagger.get_data_for_schema(param.schema)
+            elif param.location == "path":
+                pass  # path parameters are resolved at a different level
+            else:
+                self.log.warning("Unsupported parameter location (%s). Skipping", param.location)
         if headers:
             request["headers"] = headers
 
-        if form_data:
+        if form_data and request_body:
+            self.log.warning("Both form data and request body are specified. Omitting form data")
+
+        if request_body:
+            request["body"] = request_body
+        elif form_data:
             request["body"] = form_data
 
         if query_params:
@@ -260,8 +270,6 @@ class Swagger(object):
                             value = str(Swagger.get_data_for_type(param.type, param.format))
                             pattern = "{" + name + "}"
                             new_path = new_path.replace(pattern, value)
-                        # TODO: what if param.location == "body" or something else?
-                        # TODO: convert 'schema' from JSON Schema to concrete value?
             for _, param in iteritems(path_obj.parameters):
                 if param.location == "path":
                     name = param.name
@@ -282,7 +290,8 @@ class Swagger(object):
         return self.swagger.get("basePath")
 
     @staticmethod
-    def get_data_for_type(data_type, _):
+    def get_data_for_type(data_type, data_format):
+        del data_format
         if data_type == "string":
             return "string"
         elif data_type == "number":
@@ -294,4 +303,10 @@ class Swagger(object):
         elif data_type == "array":
             return [42]
         else:
-            raise ValueError("Can't fake data for type %s" % data_type)
+            raise ValueError("Can't generate dummy data for type %s" % data_type)
+
+    @staticmethod
+    def get_data_for_schema(schema):
+        del schema
+        # TODO: generate dummy data from JSONSchema
+        return None

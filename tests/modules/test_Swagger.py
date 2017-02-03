@@ -62,7 +62,7 @@ class TestSwaggerConverter(BZTestCase):
         config = obj.convert(__dir__() + "/../swagger/petstore.yaml")
 
         requests = config["scenarios"]["Swagger-Petstore"]["requests"]
-        request = requests[4]
+        request = requests[5]
         self.assertIn("body", request)
         self.assertEqual(request["body"].get("name"), "string")
 
