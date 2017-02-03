@@ -1876,21 +1876,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
 
-    def test_jsr223_exceptions_1(self):
-        self.configure({
-            "execution": {
-                "scenario": {
-                    "requests": [{
-                        "url": "http://blazedemo.com/",
-                        "jsr223": {
-                            "script-file": "something.js",
-                        }
-                    }]
-                }
-            }
-        })
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
-
     def test_jsr223_exceptions_2(self):
         self.configure({
             "execution": {
@@ -1922,7 +1907,8 @@ class TestJMeterExecutor(BZTestCase):
                             "language": "beanshell",
                             "script-file": post_script,
                             "execute": "after",
-                        }]
+                        },
+                            'vars.put("a", 1)']
                     }]
                 }
             }
@@ -1932,7 +1918,7 @@ class TestJMeterExecutor(BZTestCase):
         pre_procs = xml_tree.findall(".//JSR223PreProcessor[@testclass='JSR223PreProcessor']")
         post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
         self.assertEqual(1, len(pre_procs))
-        self.assertEqual(1, len(post_procs))
+        self.assertEqual(2, len(post_procs))
 
         pre = pre_procs[0]
         self.assertEqual(pre_script, pre.find(".//stringProp[@name='filename']").text)
@@ -1943,6 +1929,12 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(post_script, pre.find(".//stringProp[@name='filename']").text)
         self.assertEqual("beanshell", pre.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+
+        pre = post_procs[1]
+        self.assertEqual(None, pre.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("groovy", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+        self.assertEqual('vars.put("a", 1)', pre.find(".//stringProp[@name='script']").text)
 
     def test_request_content_encoding(self):
         self.configure({
@@ -2085,6 +2077,36 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
         self.assertIn("TestSuite 1-index-1", self.obj.engine.config["scenarios"])
         self.assertIn("TestSuite 1-index-2", self.obj.engine.config["scenarios"])
+
+    def test_include_scenario_mutual_recursion(self):
+        self.configure({
+            "execution": {
+                "scenario": "scen",
+            },
+            "scenarios": {
+                "scen": {
+                    "requests": [{"include-scenario": "subroutine"},
+                                 {"include-scenario": "subroutine"}]
+                },
+                "subroutine": {"requests": ["http://blazedemo.com"]},
+            },
+        })
+        self.obj.prepare()
+
+    def test_include_scenario_mutual_recursion_resources(self):
+        self.configure({
+            "execution": {
+                "scenario": "scen",
+            },
+            "scenarios": {
+                "scen": {
+                    "requests": [{"include-scenario": "subroutine"},
+                                 {"include-scenario": "subroutine"}]
+                },
+                "subroutine": {"requests": ["http://blazedemo.com"]},
+            },
+        })
+        self.obj.resource_files()
 
 
 class TestJMX(BZTestCase):
