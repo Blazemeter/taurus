@@ -1,6 +1,6 @@
 # Swagger
 
-## swagger2yaml — Converting Swagger specifications into Taurus Scenarios
+## swagger2yaml — Convert Swagger specs into Taurus YAML
 
 Taurus includes a command-line utility named `swagger2yaml` that can be used to convert existing Swagger definitions
 into Taurus YAML-based configs.
@@ -25,5 +25,4 @@ Notes about Swagger to YAML translation process:
 2. Only GET requests are extracted by default (you can use `-a` option to extract all kinds of requests)
 3. Templated paths (e.g. `/api/users/{userId}`) are converted to real paths by replacing path parameters with placeholder values accoding to parameter type
 4. All types of parameters (except for `body`) are supported: `path`, `query`, `header`, `formData`.
-5. While `swagger2yaml` can generate dummy data for parameters using `type` and `format` fields,
-   the generation of dummy data from `schema` field (containing JSONSchema definition) isn't supported (yet).
+5. While `swagger2yaml` can generate dummy data for parameters using `type` and `format` fields, the generation of dummy data from `schema` field (containing JSON Schema definition) isn't supported (yet).
