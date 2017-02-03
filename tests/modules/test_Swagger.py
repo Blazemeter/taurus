@@ -48,14 +48,14 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(requests[2]["url"], "/v1/owners?limit=13")
 
     def test_headers(self):
-        obj = SwaggerConverter({}, logging.getLogger(''))
+        obj = SwaggerConverter({"get-only": False}, logging.getLogger(''))
         config = obj.convert(__dir__() + "/../swagger/petstore.yaml")
 
         scenario = config["scenarios"].get("Swagger-Petstore")
         requests = scenario["requests"]
-        request = requests[2]
-        self.assertIn("headers", request)
-        self.assertIn("string", request["headers"].get("token"))
+        for request in requests[3:6]:
+            self.assertIn("headers", request)
+            self.assertIn("string", request["headers"].get("token"))
 
     def test_form_data(self):
         obj = SwaggerConverter({"get-only": False}, logging.getLogger(''))

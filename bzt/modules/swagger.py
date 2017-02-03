@@ -24,6 +24,7 @@ import yaml
 
 from bzt import TaurusConfigError
 from bzt.six import iteritems, parse, urlencode
+from bzt.utils import BetterDict
 
 
 def yaml_ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
@@ -79,7 +80,7 @@ class SwaggerConverter(object):
         replaced = parts._replace(query=query)
         return parse.urlunparse(replaced)
 
-    def _extract_request(self, path, method, operation):
+    def _extract_request(self, path, path_obj, method, operation):
         request = {}
 
         if self.settings.get("get-only", True) and method != "get":
@@ -91,7 +92,12 @@ class SwaggerConverter(object):
         if operation.operation_id is not None:
             request["label"] = operation.operation_id
 
-        query_params, form_data, request_body, headers = self._handle_parameters(operation.parameters)
+        parameters = BetterDict()
+        if path_obj.parameters:
+            parameters.merge(path_obj.parameters)
+        if operation.parameters:
+            parameters.merge(operation.parameters)
+        query_params, form_data, request_body, headers = self._handle_parameters(parameters)
 
         if headers:
             request["headers"] = headers
@@ -122,7 +128,7 @@ class SwaggerConverter(object):
                 operation = getattr(path_obj, method)
                 if operation is not None:
                     self.log.debug("Handling method %s", method.upper())
-                    request = self._extract_request(base_path + path, method, operation)
+                    request = self._extract_request(base_path + path, path_obj, method, operation)
                     # TODO: Swagger responses -> JMeter assertions?
 
                     if request is not None:
@@ -245,14 +251,15 @@ class Swagger(object):
                                                   responses=responses)
 
                     path[method] = operation
-            path["parameters"] = {name: Swagger.Parameter(name=name,
-                                                          location=param.get("in"),
-                                                          description=param.get("description"),
-                                                          required=param.get("required"),
-                                                          schema=param.get("schema"),
-                                                          type=param.get("type"),
-                                                          format=param.get("format"))
-                                  for name, param in iteritems(path_item.get("parameters", {}))}
+
+            path["parameters"] = {param["name"]: Swagger.Parameter(name=param["name"],
+                                                           location=param.get("in"),
+                                                           description=param.get("description"),
+                                                           required=param.get("required"),
+                                                           schema=param.get("schema"),
+                                                           type=param.get("type"),
+                                                           format=param.get("format"))
+                          for param in path_item.get("parameters", [])}
             self.paths[name] = Swagger.Path(**path)
 
     def get_definitions(self):

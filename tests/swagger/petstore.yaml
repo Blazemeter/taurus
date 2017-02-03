@@ -73,6 +73,13 @@ paths:
           schema:
             $ref: '#/definitions/Error'
   /owners:
+    parameters:
+      - name: token
+        in: header
+        description: token to be passed as a header
+        required: true
+        type: string
+        format: base64
     get:
       summary: List all owners
       operationId: listOwners
@@ -85,12 +92,6 @@ paths:
           required: true
           type: integer
           format: int32
-        - name: token
-          in: header
-          description: token to be passed as a header
-          required: true
-          type: string
-          format: base64
       responses:
         "200":
           description: An paged array of owners
