@@ -1510,17 +1510,23 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __add_jsr_elements(self, children, req):
-        jsrs = req.config.get("jsr223", None)
-        if not jsrs:
-            return
-        if isinstance(jsrs, dict):
+        """
+        :type children: etree.Element
+        :type req: Request
+        """
+        jsrs = req.config.get("jsr223", [])
+        if not isinstance(jsrs, list):
             jsrs = [jsrs]
-        for jsr in jsrs:
-            lang = jsr.get("language", TaurusConfigError("jsr223 element should specify 'language'"))
-            script = jsr.get("script-file", TaurusConfigError("jsr223 element should specify 'script-file'"))
+        for idx, _ in enumerate(jsrs):
+            jsr = ensure_is_dict(jsrs, idx, default_key='script-text')
+            lang = jsr.get("language", "groovy")
+            script_file = jsr.get("script-file", None)
+            script_text = jsr.get("script-text", None)
+            if not script_file and not script_text:
+                raise TaurusConfigError("jsr223 element must specify one of 'script-file' or 'script-text'")
             parameters = jsr.get("parameters", "")
             execute = jsr.get("execute", "after")
-            children.append(JMX._get_jsr223_element(lang, script, parameters, execute))
+            children.append(JMX._get_jsr223_element(lang, script_file, parameters, execute, script_text))
             children.append(etree.Element("hashTree"))
 
     def _get_merged_ci_headers(self, req, header):
@@ -1703,7 +1709,9 @@ class JMeterScenarioBuilder(JMX):
         if block.duration is not None:
             duration = int(block.duration * 1000)
         test_action = JMX._get_action_block(action, target, duration)
-        return [test_action, etree.Element("hashTree")]
+        children = etree.Element("hashTree")
+        self.__add_jsr_elements(children, block)
+        return [test_action, children]
 
     def compile_requests(self, requests):
         if self.request_compiler is None:

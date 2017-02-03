@@ -901,14 +901,15 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_jsr223_element(language, script_file, parameters, execute):
+    def _get_jsr223_element(language, script_file, parameters, execute, script_text=None):
         if execute == "before":
             element = etree.Element("JSR223PreProcessor", guiclass="TestBeanGUI",
                                     testclass="JSR223PreProcessor", testname="JSR223 PreProcessor")
         else:
             element = etree.Element("JSR223PostProcessor", guiclass="TestBeanGUI",
                                     testclass="JSR223PostProcessor", testname="JSR223 PostProcessor")
-        element.append(JMX._string_prop("filename", script_file))
+        element.append(JMX._string_prop("filename", script_file if script_file else ''))
+        element.append(JMX._string_prop("script", script_text if script_text else ''))
         element.append(JMX._string_prop("parameters", parameters))
         element.append(JMX._string_prop("scriptLanguage", language))
         return element
@@ -920,7 +921,6 @@ class JMX(object):
         :type path: str
         :type delimiter: str
         :type is_quoted: bool
-        :type is_recycle: bool
         :return:
         """
         element = etree.Element("CSVDataSet", guiclass="TestBeanGUI",
