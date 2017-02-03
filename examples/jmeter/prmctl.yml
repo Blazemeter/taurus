@@ -1,0 +1,19 @@
+---
+scenarios:
+  main:
+    requests:
+    - action: pause # this item serves as Parameterized Controller that sets variables before calling subroutine
+      jsr223: 'vars.put("url", "http://blazedemo.com")' # short form
+    - include-scenario: subroutine
+
+    - action: pause
+      jsr223: # longer form of dict
+        script-text: 'vars.put("url", "http://blazedemo.com/vacation.html")'
+    - include-scenario: subroutine
+  subroutine:
+    requests:
+      - ${url}
+
+execution:
+- scenario: main
+  hold-for: 1m

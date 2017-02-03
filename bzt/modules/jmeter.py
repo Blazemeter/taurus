@@ -1514,12 +1514,16 @@ class JMeterScenarioBuilder(JMX):
             return
         if isinstance(jsrs, dict):
             jsrs = [jsrs]
-        for jsr in jsrs:
-            lang = jsr.get("language", TaurusConfigError("jsr223 element should specify 'language'"))
-            script = jsr.get("script-file", TaurusConfigError("jsr223 element should specify 'script-file'"))
+        for idx, source in enumerate(jsrs):
+            jsr = ensure_is_dict(jsrs, idx, default_key='script-text')
+            lang = jsr.get("language", "groovy")
+            script_file = jsr.get("script-file", None)
+            script_text = jsr.get("script-text", None)
+            if not script_file and not script_text:
+                raise TaurusConfigError("jsr223 element must specify one of 'script-file' or 'script-text'")
             parameters = jsr.get("parameters", "")
             execute = jsr.get("execute", "after")
-            children.append(JMX._get_jsr223_element(lang, script, parameters, execute))
+            children.append(JMX._get_jsr223_element(lang, script_file, parameters, execute, script_text))
             children.append(etree.Element("hashTree"))
 
     def _get_merged_ci_headers(self, req, header):
