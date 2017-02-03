@@ -14,7 +14,7 @@ class TestSwaggerConverter(BZTestCase):
 
         scenario = config["scenarios"].get("Swagger-Petstore")
         self.assertEqual("http://petstore.swagger.io", scenario["default-address"])
-        self.assertEqual(20, len(scenario["requests"]))
+        self.assertEqual(8, len(scenario["requests"]))
         # TODO: check body
 
     def test_minimal_yaml(self):
