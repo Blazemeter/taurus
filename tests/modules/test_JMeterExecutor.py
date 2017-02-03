@@ -2086,6 +2086,36 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn("TestSuite 1-index-1", self.obj.engine.config["scenarios"])
         self.assertIn("TestSuite 1-index-2", self.obj.engine.config["scenarios"])
 
+    def test_include_scenario_mutual_recursion(self):
+        self.configure({
+            "execution": {
+                "scenario": "scen",
+            },
+            "scenarios": {
+                "scen": {
+                    "requests": [{"include-scenario": "subroutine"},
+                                 {"include-scenario": "subroutine"}]
+                },
+                "subroutine": {"requests": ["http://blazedemo.com"]},
+            },
+        })
+        self.obj.prepare()
+
+    def test_include_scenario_mutual_recursion_resources(self):
+        self.configure({
+            "execution": {
+                "scenario": "scen",
+            },
+            "scenarios": {
+                "scen": {
+                    "requests": [{"include-scenario": "subroutine"},
+                                 {"include-scenario": "subroutine"}]
+                },
+                "subroutine": {"requests": ["http://blazedemo.com"]},
+            },
+        })
+        self.obj.resource_files()
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):

@@ -791,6 +791,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         requests = requests_parser.extract_requests(scenario)
         for req in requests:
             files.extend(self.res_files_from_request(req))
+            self.resource_files_collector.clear_path_cache()
         return files
 
     def res_files_from_request(self, request):
@@ -1707,7 +1708,11 @@ class JMeterScenarioBuilder(JMX):
     def compile_requests(self, requests):
         if self.request_compiler is None:
             self.request_compiler = RequestCompiler(self)
-        return [self.request_compiler.visit(request) for request in requests]
+        compiled = []
+        for request in requests:
+            compiled.append(self.request_compiler.visit(request))
+            self.request_compiler.clear_path_cache()
+        return compiled
 
     def __generate(self):
         """
@@ -2142,6 +2147,12 @@ class RequestVisitor(object):
     def __init__(self):
         self.path = []
 
+    def clear_path_cache(self):
+        self.path = []
+
+    def record_path(self, path):
+        self.path.append(path)
+
     def visit(self, node):
         class_name = node.__class__.__name__.lower()
         visitor = getattr(self, 'visit_' + class_name, None)
@@ -2209,7 +2220,7 @@ class ResourceFilesCollector(RequestVisitor):
         if scenario_name in self.path:
             msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
             raise TaurusConfigError(msg % scenario_name)
-        self.path.append(scenario_name)
+        self.record_path(scenario_name)
         scenario = self.executor.get_scenario(name=block.scenario_name)
         return self.executor.res_files_from_scenario(scenario)
 
@@ -2245,7 +2256,7 @@ class RequestCompiler(RequestVisitor):
         if scenario_name in self.path:
             msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
             raise TaurusConfigError(msg % scenario_name)
-        self.path.append(scenario_name)
+        self.record_path(scenario_name)
         return self.jmx_builder.compile_include_scenario_block(block)
 
     def visit_actionblock(self, block):
