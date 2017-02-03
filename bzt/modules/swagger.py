@@ -23,7 +23,7 @@ import copy
 import yaml
 
 from bzt import TaurusConfigError
-from bzt.six import iteritems
+from bzt.six import iteritems, parse, urlencode
 
 
 def yaml_ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict):
@@ -39,13 +39,16 @@ def yaml_ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict)
 
 
 class SwaggerConverter(object):
-    def __init__(self, parent_log):
+    def __init__(self, settings, parent_log):
+        self.settings = settings
         self.log = parent_log.getChild(self.__class__.__name__)
         self.swagger = Swagger(self.log)
 
-    @staticmethod
-    def _extract_request(path, method, operation):
-        request = {"url": path}
+    def _extract_request(self, path, method, operation):
+        request = {}
+
+        if self.settings.get("get-only", True) and method != "get":
+            return None
 
         if method != "get":
             request["method"] = method.upper()
@@ -53,14 +56,33 @@ class SwaggerConverter(object):
         if operation.operation_id is not None:
             request["label"] = operation.operation_id
 
+        query_params = {}
         headers = {}
         for _, param in iteritems(operation.parameters):
             if param.location == "header":
                 name = param.name
                 value = Swagger.get_data_for_type(param.type, param.format)
                 headers[name] = value
+            elif param.location == "query" and param.required:
+                name = param.name
+                value = Swagger.get_data_for_type(param.type, param.format)
+                query_params[name] = value
+            elif param.location == "formData":
+                pass
+            elif param.location == "body":
+                pass
         if headers:
             request["headers"] = headers
+
+        if query_params:
+            parts = parse.urlparse(path)
+            query = urlencode(query_params)
+            replaced = parts._replace(query=query)
+            url = parse.urlunparse(replaced)
+        else:
+            url = path
+
+        request["url"] = url
 
         return request
 
