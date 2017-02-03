@@ -1,5 +1,5 @@
 """
-Swagger module for Taurus
+Swagger integration for Taurus
 
 Copyright 2017 BlazeMeter Inc.
 
