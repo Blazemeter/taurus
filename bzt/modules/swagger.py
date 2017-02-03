@@ -147,6 +147,7 @@ class SwaggerConverter(object):
             "execution": [{
                 "concurrency": 1,
                 "scenario": scenario_name,
+                "hold-for": "1m",
             }]
         }
 
