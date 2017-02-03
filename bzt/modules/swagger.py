@@ -57,6 +57,7 @@ class SwaggerConverter(object):
             request["label"] = operation.operation_id
 
         query_params = {}
+        form_data = {}
         headers = {}
         for _, param in iteritems(operation.parameters):
             if param.location == "header":
@@ -67,12 +68,19 @@ class SwaggerConverter(object):
                 name = param.name
                 value = Swagger.get_data_for_type(param.type, param.format)
                 query_params[name] = value
-            elif param.location == "formData":
-                pass
+            elif param.location == "formData" and param.required:
+                name = param.name
+                value = Swagger.get_data_for_type(param.type, param.format)
+                form_data[name] = value
             elif param.location == "body":
+                # TODO:
                 pass
+
         if headers:
             request["headers"] = headers
+
+        if form_data:
+            request["body"] = form_data
 
         if query_params:
             parts = parse.urlparse(path)

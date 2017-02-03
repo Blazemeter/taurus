@@ -57,6 +57,15 @@ class TestSwaggerConverter(BZTestCase):
         self.assertIn("headers", request)
         self.assertIn("string", request["headers"].get("token"))
 
+    def test_form_data(self):
+        obj = SwaggerConverter({"get-only": False}, logging.getLogger(''))
+        config = obj.convert(__dir__() + "/../swagger/petstore.yaml")
+
+        requests = config["scenarios"]["Swagger-Petstore"]["requests"]
+        request = requests[4]
+        self.assertIn("body", request)
+        self.assertEqual(request["body"].get("name"), "string")
+
     def test_get_only(self):
         obj = SwaggerConverter({}, logging.getLogger(''))
         config = obj.convert(__dir__() + "/../swagger/petstore.json")

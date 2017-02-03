@@ -100,6 +100,27 @@ paths:
           description: unexpected error
           schema:
             $ref: '#/definitions/Error'
+    post:
+      summary: Create an owner
+      operationId: createOwner
+      tags:
+        - owners
+      parameters:
+        - name: name
+          in: formData
+          description: Name of the owner
+          required: true
+          type: string
+      responses:
+        "200":
+          description: A freshly created owner
+          schema:
+            $ref: '#/definitions/Owner'
+        default:
+          description: unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+
 definitions:
   Pet:
     required:
