@@ -31,7 +31,7 @@ class Swagger2YAML(object):
         if not os.path.exists(self.file_to_convert):
             raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
         settings = {
-            "get-only": self.options.get_only
+            "get-only": not self.options.all_http_methods
         }
         self.converter = SwaggerConverter(settings, self.log)
         try:
@@ -70,8 +70,8 @@ def main():
     parser.add_option('-j', '--json', action='store_true', default=False, dest='json',
                       help="Use JSON format")
     parser.add_option('-l', '--log', action='store', default=False, help="Log file location")
-    parser.add_option('-g', '--get-only', action='store', default=True,
-                      help="Extract only GET requests from Swagger spec. True by default")
+    parser.add_option('-a', '--all-http-methods', action='store', default=False,
+                      help="Extract all HTTP requests (not only GETs) from Swagger spec")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
         try:

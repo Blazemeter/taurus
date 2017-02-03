@@ -44,23 +44,12 @@ class SwaggerConverter(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.swagger = Swagger(self.log)
 
-    def _extract_request(self, path, method, operation):
-        request = {}
-
-        if self.settings.get("get-only", True) and method != "get":
-            return None
-
-        if method != "get":
-            request["method"] = method.upper()
-
-        if operation.operation_id is not None:
-            request["label"] = operation.operation_id
-
+    def _handle_parameters(self, parameters):
         query_params = {}
         form_data = {}
         request_body = None
         headers = {}
-        for _, param in iteritems(operation.parameters):
+        for _, param in iteritems(parameters):
             if not param.required:
                 continue
             if param.location == "header":
@@ -81,6 +70,29 @@ class SwaggerConverter(object):
                 pass  # path parameters are resolved at a different level
             else:
                 self.log.warning("Unsupported parameter location (%s). Skipping", param.location)
+        return query_params, form_data, request_body, headers
+
+    @staticmethod
+    def _embed_query_in_path(path, query_dict):
+        parts = parse.urlparse(path)
+        query = urlencode(query_dict)
+        replaced = parts._replace(query=query)
+        return parse.urlunparse(replaced)
+
+    def _extract_request(self, path, method, operation):
+        request = {}
+
+        if self.settings.get("get-only", True) and method != "get":
+            return None
+
+        if method != "get":
+            request["method"] = method.upper()
+
+        if operation.operation_id is not None:
+            request["label"] = operation.operation_id
+
+        query_params, form_data, request_body, headers = self._handle_parameters(operation.parameters)
+
         if headers:
             request["headers"] = headers
 
@@ -93,10 +105,7 @@ class SwaggerConverter(object):
             request["body"] = form_data
 
         if query_params:
-            parts = parse.urlparse(path)
-            query = urlencode(query_params)
-            replaced = parts._replace(query=query)
-            url = parse.urlunparse(replaced)
+            url = self._embed_query_in_path(path, query_params)
         else:
             url = path
 

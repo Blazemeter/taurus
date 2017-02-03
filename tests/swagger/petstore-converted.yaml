@@ -1,6 +1,7 @@
 ---
 execution:
 - concurrency: 1
+  hold-for: 1m
   scenario: Swagger-Petstore
 scenarios:
   Swagger-Petstore:
