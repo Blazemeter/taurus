@@ -552,7 +552,7 @@ class TestJMeterExecutor(BZTestCase):
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
 
-    def test_auser_def_vars_override(self):
+    def test_user_def_vars_override(self):
         self.configure(
             {'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m', 'scenario': {
                 'variables': {'my_var': 'http://demo.blazemeter.com/api/user', 'myvar2': 'val2'},
@@ -563,7 +563,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(self.obj.engine.config['scenarios'].values()[0]['properties']))
 
         # no properties in module properties list
-        self.assertNotIn('properties', self.obj.settings)
+        self.assertEqual(0, len(self.obj.settings.get('properties')))
 
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
