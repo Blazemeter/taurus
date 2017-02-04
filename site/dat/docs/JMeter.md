@@ -420,14 +420,16 @@ scenarios:
   jsr-example:
     requests:
     - url: http://blazedemo.com/
-      jsr223:
-        language: javascript  # required field
-        script-file: postproc.js  # required field
+      jsr223: 'vars.put("varname", "somevalue")'  # inline script to execute, unless script-file is specified
 ```
+
+The example above uses defaults and inline script. If you want to use language different from groovy or use separate
+script file, please use extended form of `jsr223` with key-value options.
 
 Each jsr223 element can define the following fields:
 - `language` - script language ('beanshell', 'bsh', 'ecmascript', 'groovy', 'java', 'javascript', 'jexl', 'jexl2')
 - `script-file` - path to script file
+- `script-text` - inline code, specified directly in config file
 - `parameters` - string of parameters to pass to script, empty by default
 - `execute` - whether to execute script before or after the request
 

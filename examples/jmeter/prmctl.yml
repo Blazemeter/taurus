@@ -1,0 +1,27 @@
+---
+scenarios:
+  main:
+    variables:
+      url: http://localhost
+      param: 0
+    requests:
+    - action: pause # this item serves as Parameterized Controller that sets variables before calling subroutine
+      jsr223:
+        execute: before
+        script-text: vars.put("url", "http://blazedemo.com")
+    - include-scenario: subroutine
+
+    - action: pause
+      jsr223:
+        execute: before
+        script-text: |  # this is an example of multiline code block, marked by `|`
+          vars.put("url", "http://blazedemo.com/vacation.html")
+          vars.put("param", "${__Random(0,10)}")
+    - include-scenario: subroutine
+  subroutine:
+    requests:
+      - ${url}?param=${param}
+
+execution:
+- scenario: main
+  hold-for: 1m
