@@ -589,6 +589,9 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
     def test_distributed_props(self):
+        handler = RecordingHandler()
+        self.obj.log.addHandler(handler)
+
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         self.obj.settings['properties'] = BetterDict()
@@ -596,6 +599,9 @@ class TestJMeterExecutor(BZTestCase):
 
         self.obj.prepare()
         self.obj.startup()
+
+        self.obj.log.removeHandler(handler)
+        self.assertIn("', '-G', '", handler.debug_buff.getvalue())
 
     def test_distributed_th_hostnames_complex(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
