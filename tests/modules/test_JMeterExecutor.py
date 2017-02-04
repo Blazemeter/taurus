@@ -560,7 +560,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
 
         # no new properties in scenario properties list
-        self.assertEqual(1, len(self.obj.engine.config['scenarios'].values()[0]['properties']))
+        self.assertEqual(1, len(self.obj.engine.config['scenarios']['http.jmx']['properties']))
 
         # no properties in module properties list
         self.assertEqual(0, len(self.obj.settings.get('properties')))
