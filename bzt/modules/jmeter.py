@@ -210,6 +210,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         if self.properties_file:
             cmdline += ["-q", os.path.abspath(self.properties_file)]
+            if self.distributed_servers:
+                cmdline += ["-G", os.path.abspath(self.properties_file)]
 
         if self.sys_properties_file:
             cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
