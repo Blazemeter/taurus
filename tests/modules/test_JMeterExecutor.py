@@ -558,6 +558,13 @@ class TestJMeterExecutor(BZTestCase):
                 'variables': {'my_var': 'http://demo.blazemeter.com/api/user', 'myvar2': 'val2'},
                 'properties': {'log_level.jmeter': 'DEBUG'}, 'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
         self.obj.prepare()
+
+        # no new properties in scenario properties list
+        self.assertEqual(1, len(self.obj.engine.config['scenarios']['http.jmx']['properties']))
+
+        # no properties in module properties list
+        self.assertEqual(0, len(self.obj.settings.get('properties')))
+
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
