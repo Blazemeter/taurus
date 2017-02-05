@@ -38,7 +38,7 @@ from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusIntern
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
 
 SETTINGS = "settings"
 
@@ -944,6 +944,17 @@ class ScenarioExecutor(EngineModule):
         if aliases:
             environ["HOSTALIASES"] = hosts_file
         if env is not None:
+            if is_windows:
+                # as variables in windows are case insensitive we should provide correct merging
+                cur_env = {name.upper(): environ[name] for name in environ}
+                old_keys = set(env.keys())
+                env = {name.upper(): env[name] for name in env}
+                new_keys = set(env.keys())
+                if old_keys != new_keys:
+                    msg = 'Some taurus environment variables has been lost: %s'
+                    self.log.warning(msg, list(old_keys - new_keys))
+                environ = BetterDict()
+                environ.merge(cur_env)
             environ.merge(env)
 
         environ.merge({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})
