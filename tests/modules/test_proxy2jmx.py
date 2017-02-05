@@ -13,9 +13,9 @@ class Proxy2JMXEmul(Proxy2JMX):
 
 
 class ResponseEmul(object):
-    def __init__(self, status_code, content):
+    def __init__(self, status_code, text):
         self.status_code = status_code
-        self.content = content
+        self.text = text
 
 
 class TestProxy2JMX(BZTestCase):

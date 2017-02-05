@@ -50,7 +50,7 @@ class Proxy2JMX(Service):
             raise TaurusInternalException('Unsupported API request method: %s' % method)
 
         if check and req.status_code != 200:
-            json_content = json.loads(req.content)
+            json_content = json.loads(req.text)
             raise TaurusNetworkError('API request failed: %s' % json_content['error']['message'])
         return req
 
@@ -60,15 +60,15 @@ class Proxy2JMX(Service):
         if req.status_code == 404:
             self.log.info('Creating new recording proxy...')
             req = self.api_request(method='POST')
-            json_content = json.loads(req.content)
+            json_content = json.loads(req.text)
         elif req.status_code == 200:
             self.log.info('Using existing recording proxy...')
-            json_content = json.loads(req.content)
+            json_content = json.loads(req.text)
             if json_content['result']['status'] == 'active':
                 self.log.info('Proxy is active, stop it')
                 self.api_request('/stopRecording', 'POST')
         else:
-            json_content = json.loads(req.content)
+            json_content = json.loads(req.text)
             raise TaurusNetworkError('API request failed: %s' % json_content['error']['message'])
 
         self.api_request('/clearRecording', 'POST')
@@ -195,7 +195,7 @@ class Proxy2JMX(Service):
         self.log.info("Waiting for proxy to generate JMX...")
         while True:
             req = self.api_request()
-            json_content = json.loads(req.content)
+            json_content = json.loads(req.text)
             if json_content['result']['smartjmx'] == "available":
                 break
             time.sleep(self.api_delay)
@@ -203,10 +203,10 @@ class Proxy2JMX(Service):
         req = self.api_request('/jmx?smart=true')
         jmx_file = self.engine.create_artifact(self.label, '.jmx')
         with open(jmx_file, 'w') as _file:
-            _file.writelines(req.content)
+            _file.writelines(req.text)
 
         self.log.info("JMX saved into %s", jmx_file)
-        if 'HTTPSampler' not in req.content:
+        if 'HTTPSampler' not in req.text:
             self.log.warning("There aren't requests recorded by proxy2jmx, check your proxy configuration")
 
         # log of chrome-loader not found under windows
