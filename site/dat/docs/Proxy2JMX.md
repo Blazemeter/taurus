@@ -28,7 +28,12 @@ Taurus helps you with setting of proxy server for recording purposes. This abili
 Full support of Chrome and Firefox.
 
 ### Microsoft Windows
-We provide support of Chrome browser at the moment. For correct work don't place your chromedriver inside of Windows directory.
+We provide support of Chrome browser at the moment. For correct work don't place your chromedriver
+inside of Windows directory. We recommend next way:
+1. create directory
+2. put crhomedriver.exe into created directory
+3. add directory to path (for that purpose use the documentation for your system
+(e.g. https://support.microsoft.com/en-us/help/310519/how-to-manage-environment-variables-in-windows-xp)
 
 ### MacOS
 Auto setup in MacOS is impossible.

@@ -19,17 +19,18 @@ class ResponseEmul(object):
 
 
 class TestProxy2JMX(BZTestCase):
+    def setUp(self):
+        self.obj = Proxy2JMXEmul()
+        self.obj.engine = EngineEmul()
+
     def test_no_token(self):
-        obj = Proxy2JMXEmul()
-        obj.engine = EngineEmul()
-        obj.engine.config.merge({})
-        obj.settings = obj.engine.config.get('recorder')
-        self.assertRaises(TaurusConfigError, obj.prepare)
+        self.obj.engine.config.merge({})
+        self.obj.settings = self.obj.engine.config.get('recorder')
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_full(self):
-        obj = Proxy2JMXEmul()
-        obj.api_delay = 1
-        obj.responses = [
+        self.obj.api_delay = 1
+        self.obj.responses = [
             ResponseEmul(404, ''),
             ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1"}}'),
             ResponseEmul(200, ''),
@@ -37,41 +38,41 @@ class TestProxy2JMX(BZTestCase):
             ResponseEmul(200, ''),  # shutdown: stopRecording
             ResponseEmul(200, '{"result" : {"smartjmx": "unavailable"}}'),
             ResponseEmul(200, '{"result" : {"smartjmx": "available"}}'),
-            ResponseEmul(200, 'only one string')
-        ]
-        obj.engine = EngineEmul()
-        obj.engine.config.merge({
+            ResponseEmul(200, 'only one string')]
+
+        self.obj.engine.config.merge({
             'modules': {
                 'recorder': {
                     'token': '123'}}})
-        obj.settings = obj.engine.config.get('modules').get('recorder')
+        self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
 
-        obj.prepare()
-        self.assertEqual(obj.proxy, 'http://host1:port1')
-        obj.engine.provisioning.executors = [SeleniumExecutor()]
-        obj.startup()
-        obj.shutdown()
-        obj.post_process()
-        res_file = obj.engine.artifacts_dir + '/generated.jmx'
+        self.obj.prepare()
+        self.assertEqual(self.obj.proxy, 'http://host1:port1')
+        self.obj.engine.provisioning.executors = [SeleniumExecutor()]
+        self.obj.startup()
+        self.obj.shutdown()
+        self.obj.post_process()
+        res_file = self.obj.engine.artifacts_dir + '/generated.jmx'
         with open(res_file) as fd:
             lines = fd.readlines()
         self.assertEqual(len(lines), 1)
         self.assertEqual(lines[0].strip(), 'only one string')
 
     def test_existing_proxy(self):
-        obj = Proxy2JMXEmul()
-        obj.api_delay = 1
-        obj.responses = [
+        self.obj.api_delay = 1
+        self.obj.responses = [
             ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
             ResponseEmul(200, ''),  # stopRecording
-            ResponseEmul(200, '')  # clearRecording
-        ]
-        obj.engine = EngineEmul()
-        obj.engine.config.merge({
+            ResponseEmul(200, '')]  # clearRecording
+
+        self.obj.engine.config.merge({
             'modules': {
                 'recorder': {
                     'token': '123'}}})
-        obj.settings = obj.engine.config.get('modules').get('recorder')
+        self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
 
-        obj.prepare()
-        self.assertEqual(obj.proxy, 'http://host1:port1')
+        self.obj.prepare()
+        self.assertEqual(self.obj.proxy, 'http://host1:port1')
+
+    def test_variables_setting(self):
+        pass
