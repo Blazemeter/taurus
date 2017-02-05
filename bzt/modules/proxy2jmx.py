@@ -177,7 +177,7 @@ class Proxy2JMX(Service):
             return
 
         # copy chrome loader into artifacts/chrome-loader/chrome.exe
-        old_file = join(get_full_path(__file__, step_up=2), 'resources', 'chrome', 'loader.exe')
+        old_file = join(get_full_path(__file__, step_up=2), 'resources', 'chrome.exe', 'loader.exe')
         new_file = join(loader_dir, 'chrome.exe')
         shutil.copy2(old_file, new_file)
 
