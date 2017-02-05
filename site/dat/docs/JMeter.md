@@ -92,7 +92,7 @@ scenarios:
   some_scenario:
     script: my-test.jmx
 ```
-For accurate load calculation don't forget to choose different hostname values for slave hosts. 
+For accurate load calculation don't forget to choose different hostname values for slave hosts. If you have any properties specified in settings, they will be sent to remote nodes. 
 
 ## Shutdown Delay
 By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutdown port (this works only for non-GUI). There is option to wait for JMeter to exit before killing it forcefully, called `shutdown-wait`. By default, its value is 5 seconds.

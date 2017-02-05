@@ -17,7 +17,7 @@ from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJ
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -558,6 +558,13 @@ class TestJMeterExecutor(BZTestCase):
                 'variables': {'my_var': 'http://demo.blazemeter.com/api/user', 'myvar2': 'val2'},
                 'properties': {'log_level.jmeter': 'DEBUG'}, 'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
         self.obj.prepare()
+
+        # no new properties in scenario properties list
+        self.assertEqual(1, len(self.obj.engine.config['scenarios']['http.jmx']['properties']))
+
+        # no properties in module properties list
+        self.assertEqual(0, len(self.obj.settings.get('properties')))
+
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
@@ -587,6 +594,21 @@ class TestJMeterExecutor(BZTestCase):
         writers = xml_tree.findall(".//ResultCollector[@testname='KPI Writer']")
         for writer in writers:
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
+
+    def test_distributed_props(self):
+        handler = RecordingHandler()
+        self.obj.log.addHandler(handler)
+
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
+        self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
+        self.obj.settings['properties'] = BetterDict()
+        self.obj.settings['properties'].merge({"a": 1})
+
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.obj.log.removeHandler(handler)
+        self.assertIn("', '-G', '", handler.debug_buff.getvalue())
 
     def test_distributed_th_hostnames_complex(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))

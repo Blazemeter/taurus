@@ -25,6 +25,7 @@ import socket
 import subprocess
 import tempfile
 import time
+import copy
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
@@ -177,8 +178,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self._env["JVM_ARGS"] = jvm_args + "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
-        props = self.settings.get("properties")
-        props_local = scenario.get("properties")
+        props = copy.deepcopy(self.settings.get("properties"))
+        props_local = copy.deepcopy(scenario.get("properties"))
         if self.distributed_servers and self.settings.get("gui", False):
             props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
         props_local.update({"jmeterengine.nongui.port": self.management_port})
@@ -210,6 +211,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         if self.properties_file:
             cmdline += ["-q", os.path.abspath(self.properties_file)]
+            if self.distributed_servers:
+                cmdline += ["-G", os.path.abspath(self.properties_file)]
 
         if self.sys_properties_file:
             cmdline += ["-S", os.path.abspath(self.sys_properties_file)]

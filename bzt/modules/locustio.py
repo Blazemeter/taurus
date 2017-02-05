@@ -107,8 +107,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             env["JTL"] = self.kpi_jtl
 
         host = self.get_scenario().get("default-address", None)
-        if host:
-            args.append("--host=%s" % host)
+        if host is None:
+            host = ''
+        args.append('--host="%s"' % host)
 
         self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
         self.process = self.execute(args, stderr=STDOUT, stdout=self.__out, env=env)
@@ -317,8 +318,9 @@ from locust import HttpLocust, TaskSet, task
         swarm_class.append(self.gen_statement('task_set = UserBehaviour', indent=4))
 
         default_address = self.scenario.get("default-address", None)
-        if default_address:
-            swarm_class.append(self.gen_statement('host = "%s"' % default_address, indent=4))
+        if default_address is None:
+            default_address = ''
+        swarm_class.append(self.gen_statement('host = "%s"' % default_address, indent=4))
 
         swarm_class.append(self.gen_statement('min_wait = %s' % 0, indent=4))
         swarm_class.append(self.gen_statement('max_wait = %s' % 0, indent=4))
