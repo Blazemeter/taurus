@@ -92,7 +92,7 @@ scenarios:
   some_scenario:
     script: my-test.jmx
 ```
-For accurate load calculation don't forget to choose different hostname values for slave hosts. 
+For accurate load calculation don't forget to choose different hostname values for slave hosts. If you have any properties specified in settings, they will be sent to remote nodes. 
 
 ## Shutdown Delay
 By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutdown port (this works only for non-GUI). There is option to wait for JMeter to exit before killing it forcefully, called `shutdown-wait`. By default, its value is 5 seconds.
@@ -181,7 +181,7 @@ scenarios:
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
 
-If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${__P(hostname)}:${__P(port)}`.
+If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${\__P(hostname)}:${\__P(port)}`.
 
 ### Requests
 
@@ -257,7 +257,6 @@ scenarios:
     - url: http://blazedemo.com/  
       extract-regexp: # dictionary under it has form <var name>: <regular expression>
         page_title: <title>(\w+)</title>  #  must have at least one capture group
-        subject: body                     #  subject for search
       extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
         varname: $.jsonpath[0].expression
     - url: http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
@@ -268,10 +267,6 @@ scenarios:
         title: /html/head/title
 ```
 
-Possible subjects for regexp are:
-  - `body`
-  - `headers`
-  - `http-code`
 
 The full form for extractors is:
 
@@ -287,6 +282,7 @@ scenarios:
           default: NOT_FOUND  # default value to use when regexp not found
           match-no: 1  # if multiple values has matched, which match use (0=random)
           template: 1  # which capture group to take, integer or template string
+          subject: body  #  subject for search
       extract-jsonpath:   
         varname:
           jsonpath: $.jsonpath[0]  # jsonpath expression
@@ -307,6 +303,11 @@ scenarios:
           ignore-whitespace: true
           use-tolerant-parser: false
 ```
+
+Possible subjects for regexp are:
+  - `body`
+  - `headers`
+  - `http-code`
 
 ##### Assertions
 
@@ -419,14 +420,16 @@ scenarios:
   jsr-example:
     requests:
     - url: http://blazedemo.com/
-      jsr223:
-        language: javascript  # required field
-        script-file: postproc.js  # required field
+      jsr223: 'vars.put("varname", "somevalue")'  # inline script to execute, unless script-file is specified
 ```
+
+The example above uses defaults and inline script. If you want to use language different from groovy or use separate
+script file, please use extended form of `jsr223` with key-value options.
 
 Each jsr223 element can define the following fields:
 - `language` - script language ('beanshell', 'bsh', 'ecmascript', 'groovy', 'java', 'javascript', 'jexl', 'jexl2')
 - `script-file` - path to script file
+- `script-text` - inline code, specified directly in config file
 - `parameters` - string of parameters to pass to script, empty by default
 - `execute` - whether to execute script before or after the request
 

@@ -1,14 +1,14 @@
 # Pass/Fail Criteria
 
 Every execution has pass/fail status and there is a way to set this status based on runtime criteria.
-Special `passfail` service offers this functionality. Another useful feature of pass/fail criteria
+Special `passfail` module offers this functionality. Another useful feature of pass/fail criteria
 is _auto-stop_ functionality, allowing to interrupt failed tests automatically, sparing the time and
 resources.
 
-Pass/fail criteria are specified as array of `criteria`, set through `services` item in config:
+Pass/fail criteria are specified as array of `criteria`, set through `reporting` item in config:
 ```yaml
 ---
-services:
+reporting:
 - module: passfail
   criteria:
   - avg-rt of IndexPage>150ms for 10s, stop as failed
@@ -58,7 +58,7 @@ specify it as this:
 
 ```yaml
 ---
-services:
+reporting:
 - module: passfail
   criteria:
   - subject: avg-rt  # required
@@ -83,7 +83,7 @@ to change the message, you can do one of:
  
 ```yaml
 ---
-services:
+reporting:
 - module: passfail
   criteria:
     My Message: avg-rt of Sample Label>150ms for 10s, stop as failed
@@ -99,7 +99,7 @@ For example, to stop test once local CPU is exhausted, use:
 
 ```yaml
 ---
-services:
+reporting:
 - module: passfail
   criteria:
   - class: bzt.modules.monitoring.MonitoringCriteria

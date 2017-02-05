@@ -27,6 +27,7 @@ class TestSoapUIConverter(BZTestCase):
         self.assertIn("variables", scenario)
         self.assertEqual("foo", scenario["variables"].get("something"))
         self.assertEqual("2", scenario["variables"].get("something_else"))
+        self.assertEqual("json", scenario["variables"].get("route_part"))
 
         first_req = scenario["requests"][0]
         self.assertEqual("http://blazedemo.com/reserve.php", first_req["url"])
@@ -50,6 +51,16 @@ class TestSoapUIConverter(BZTestCase):
         self.assertIn("body", second_req)
         self.assertIn("answer", second_req["body"])
         self.assertEqual('42', second_req["body"]["answer"])
+        self.assertIn("extract-xpath", second_req)
+        self.assertIn("something_else", second_req["extract-xpath"])
+        self.assertEqual("//head", second_req["extract-xpath"]["something_else"]["xpath"])
+
+        third_req = scenario["requests"][2]
+        self.assertEqual("http://localhost:9999/api/${route_part}", third_req["url"])
+        self.assertEqual("/api/json", third_req["label"])
+        self.assertIn("extract-jsonpath", third_req)
+        self.assertIn("something", third_req["extract-jsonpath"])
+        self.assertEqual("$.baz", third_req["extract-jsonpath"]["something"]["jsonpath"])
 
     def test_find_test_case(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
@@ -76,5 +87,5 @@ class TestSoapUIConverter(BZTestCase):
         found_name, found_scenario = obj.find_soapui_test_case(None, scenarios)
         self.assertEqual(target_scenario, found_scenario)
 
-        self.assertIn("No `test-case` specified for SoapUI script, will use 'index'",
+        self.assertIn("No `test-case` specified for SoapUI project, will use 'index'",
                       log_recorder.warn_buff.getvalue())

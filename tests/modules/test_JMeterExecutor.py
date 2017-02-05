@@ -1,5 +1,4 @@
 # coding=utf-8
-""" test """
 import json
 import logging
 import os
@@ -18,7 +17,7 @@ from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJ
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -74,6 +73,14 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_jmx(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        self.obj.engine.create_artifacts_dir()
+        self.obj.prepare()
+
+    def test_jmx_with_props(self):
+        self.obj.execution.merge({
+            "concurrency": 10,
+            "scenario": {"script": __dir__() + "/../jmeter/jmx/props_tg.jmx"}
+        })
         self.obj.engine.create_artifacts_dir()
         self.obj.prepare()
 
@@ -373,9 +380,9 @@ class TestJMeterExecutor(BZTestCase):
         file_was_created = False
         if not os.path.exists(file_in_home):
             file_was_created = True
-            with open(file_in_home, 'w') as _file:      # real file is required by Engine.find_file()
+            with open(file_in_home, 'w') as _file:  # real file is required by Engine.find_file()
                 _file.write('')
-        self.obj.engine.file_search_paths = ['tests']    # config not in cwd
+        self.obj.engine.file_search_paths = ['tests']  # config not in cwd
         self.obj.resource_files()
         if file_was_created:
             os.remove(file_in_home)
@@ -551,6 +558,13 @@ class TestJMeterExecutor(BZTestCase):
                 'variables': {'my_var': 'http://demo.blazemeter.com/api/user', 'myvar2': 'val2'},
                 'properties': {'log_level.jmeter': 'DEBUG'}, 'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
         self.obj.prepare()
+
+        # no new properties in scenario properties list
+        self.assertEqual(1, len(self.obj.engine.config['scenarios']['http.jmx']['properties']))
+
+        # no properties in module properties list
+        self.assertEqual(0, len(self.obj.settings.get('properties')))
+
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
@@ -580,6 +594,21 @@ class TestJMeterExecutor(BZTestCase):
         writers = xml_tree.findall(".//ResultCollector[@testname='KPI Writer']")
         for writer in writers:
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
+
+    def test_distributed_props(self):
+        handler = RecordingHandler()
+        self.obj.log.addHandler(handler)
+
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
+        self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
+        self.obj.settings['properties'] = BetterDict()
+        self.obj.settings['properties'].merge({"a": 1})
+
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.obj.log.removeHandler(handler)
+        self.assertIn("', '-G', '", handler.debug_buff.getvalue())
 
     def test_distributed_th_hostnames_complex(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
@@ -1869,21 +1898,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
 
-    def test_jsr223_exceptions_1(self):
-        self.configure({
-            "execution": {
-                "scenario": {
-                    "requests": [{
-                        "url": "http://blazedemo.com/",
-                        "jsr223": {
-                            "script-file": "something.js",
-                        }
-                    }]
-                }
-            }
-        })
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
-
     def test_jsr223_exceptions_2(self):
         self.configure({
             "execution": {
@@ -1915,7 +1929,8 @@ class TestJMeterExecutor(BZTestCase):
                             "language": "beanshell",
                             "script-file": post_script,
                             "execute": "after",
-                        }]
+                        },
+                            'vars.put("a", 1)']
                     }]
                 }
             }
@@ -1925,7 +1940,7 @@ class TestJMeterExecutor(BZTestCase):
         pre_procs = xml_tree.findall(".//JSR223PreProcessor[@testclass='JSR223PreProcessor']")
         post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
         self.assertEqual(1, len(pre_procs))
-        self.assertEqual(1, len(post_procs))
+        self.assertEqual(2, len(post_procs))
 
         pre = pre_procs[0]
         self.assertEqual(pre_script, pre.find(".//stringProp[@name='filename']").text)
@@ -1936,6 +1951,12 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(post_script, pre.find(".//stringProp[@name='filename']").text)
         self.assertEqual("beanshell", pre.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+
+        pre = post_procs[1]
+        self.assertEqual(None, pre.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("groovy", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+        self.assertEqual('vars.put("a", 1)', pre.find(".//stringProp[@name='script']").text)
 
     def test_request_content_encoding(self):
         self.configure({
@@ -2078,6 +2099,36 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
         self.assertIn("TestSuite 1-index-1", self.obj.engine.config["scenarios"])
         self.assertIn("TestSuite 1-index-2", self.obj.engine.config["scenarios"])
+
+    def test_include_scenario_mutual_recursion(self):
+        self.configure({
+            "execution": {
+                "scenario": "scen",
+            },
+            "scenarios": {
+                "scen": {
+                    "requests": [{"include-scenario": "subroutine"},
+                                 {"include-scenario": "subroutine"}]
+                },
+                "subroutine": {"requests": ["http://blazedemo.com"]},
+            },
+        })
+        self.obj.prepare()
+
+    def test_include_scenario_mutual_recursion_resources(self):
+        self.configure({
+            "execution": {
+                "scenario": "scen",
+            },
+            "scenarios": {
+                "scen": {
+                    "requests": [{"include-scenario": "subroutine"},
+                                 {"include-scenario": "subroutine"}]
+                },
+                "subroutine": {"requests": ["http://blazedemo.com"]},
+            },
+        })
+        self.obj.resource_files()
 
 
 class TestJMX(BZTestCase):

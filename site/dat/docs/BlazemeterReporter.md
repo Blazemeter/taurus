@@ -33,9 +33,15 @@ modules:
     token: TDknBxu0hmVnJ7NqtG2F
 ```
 
-It is highly recommended to place the token setting in your personal
+<div class="alert alert-danger">
+Never put API key into your main config files! 
+
+Never post it to support forums!
+
+It is recommended to place the token setting in your personal
 [per-user config](CommandLine.md#configuration-files-processing) `~/.bzt-rc` to prevent it from
 being logged and collected in artifacts.
+</div>
 
 Now you can use `-report` command-line switch, or you can set BlazeMeter reporting as part of
 your config, the `test` option specifies test name to use, `project` names group of tests:

@@ -215,7 +215,7 @@ class TestLocustIOExecutor(BZTestCase):
 
         with open(self.obj.script) as generated:
             gen_contents = generated.readlines()
-        with open(__dir__() + "/../locust/generated_from_requests.py") as sample:
+        with open(__dir__() + "/../locust/generated_from_requests_1.py") as sample:
             sample_contents = sample.readlines()
 
         # strip line terminators
@@ -223,3 +223,30 @@ class TestLocustIOExecutor(BZTestCase):
         sample_contents = [line.rstrip() for line in sample_contents]
 
         self.assertEqual(gen_contents, sample_contents)
+
+    def test_build_script_none_def_addr(self):
+        self.obj.engine.config.merge({
+            "execution": [{
+                "executor": "locust",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "url": "http://blazedemo.com"}]}}})
+
+        self.obj.execution = self.obj.engine.config.get('execution')[0]
+        self.obj.prepare()
+
+        with open(self.obj.script) as generated:
+            gen_contents = generated.readlines()
+        with open(__dir__() + "/../locust/generated_from_requests_2.py") as sample:
+            sample_contents = sample.readlines()
+
+        # strip line terminators
+        gen_contents = [line.rstrip() for line in gen_contents]
+        sample_contents = [line.rstrip() for line in sample_contents]
+
+        self.assertEqual(gen_contents, sample_contents)
+

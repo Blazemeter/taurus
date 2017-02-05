@@ -48,7 +48,7 @@ class Engine(object):
     Core entity of the technology, used to coordinate whole process
 
     :type reporters: list[Reporter]
-    :type services: list[EngineModule]
+    :type services: list[Service]
     :type log: logging.Logger
     :type aggregator: bzt.modules.aggregator.ConsolidatingAggregator
     :type stopping_reason: BaseException
@@ -122,7 +122,7 @@ class Engine(object):
             raise
 
     def _startup(self):
-        modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
+        modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]  # order matters
         for module in modules:
             self.log.debug("Startup %s", module)
             self.started.append(module)
@@ -159,7 +159,7 @@ class Engine(object):
 
     def _check_modules_list(self):
         finished = False
-        modules = [self.provisioning, self.aggregator] + self.services + self.reporters
+        modules = [self.provisioning, self.aggregator] + self.services + self.reporters  # order matters
         for module in modules:
             if module in self.started:
                 self.log.debug("Checking %s", module)
@@ -193,7 +193,7 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         exc_info = None
-        modules = [self.provisioning, self.aggregator] + self.reporters + self.services
+        modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
             try:
                 if module in self.started:
@@ -214,7 +214,8 @@ class Engine(object):
         self.log.info("Post-processing...")
         # :type exception: BaseException
         exc_info = None
-        modules = [self.provisioning, self.aggregator] + self.reporters + self.services
+        modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
+        # services are last because of shellexec which is "final-final" action
         for module in modules:
             if module in self.prepared:
                 try:
@@ -1076,7 +1077,7 @@ class HTTPRequest(Request):
         body_file = config.get('body-file', None)
         if body_file:
             if body:
-                # fixme: add own logger?
+                # todo: add own logger?
                 self.engine.log.warning('body and body-file fields are found, only first will take effect')
             else:
                 bodyfile_path = self.engine.find_file(body_file)
@@ -1090,5 +1091,3 @@ class HavingInstallableTools(object):
     @abstractmethod
     def install_required_tools(self):
         pass
-
-

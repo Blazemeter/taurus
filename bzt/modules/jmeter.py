@@ -25,6 +25,7 @@ import socket
 import subprocess
 import tempfile
 import time
+import copy
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
@@ -177,8 +178,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self._env["JVM_ARGS"] = jvm_args + "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
-        props = self.settings.get("properties")
-        props_local = scenario.get("properties")
+        props = copy.deepcopy(self.settings.get("properties"))
+        props_local = copy.deepcopy(scenario.get("properties"))
         if self.distributed_servers and self.settings.get("gui", False):
             props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
         props_local.update({"jmeterengine.nongui.port": self.management_port})
@@ -210,6 +211,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         if self.properties_file:
             cmdline += ["-q", os.path.abspath(self.properties_file)]
+            if self.distributed_servers:
+                cmdline += ["-G", os.path.abspath(self.properties_file)]
 
         if self.sys_properties_file:
             cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
@@ -401,9 +404,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def __apply_concurrency(self, jmx, concurrency):
         """
         Apply concurrency to ThreadGroup.num_threads
-        :param jmx: JMX
-        :param concurrency: int
-        :return:
+        :type jmx: JMX
+        :type concurrency: int
         """
         # TODO: what to do when they used non-standard thread groups?
         tnum_sel = ".//*[@name='ThreadGroup.num_threads']"
@@ -411,12 +413,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         orig_sum = 0.0
         for group in jmx.enabled_thread_groups():
             othread = group.find(tnum_sel)
-            orig_sum += int(othread.text)
+            try:
+                orig_sum += int(othread.text)
+            except ValueError:
+                self.log.debug("Using value 1 since cannot parse int: %s", othread.text)
+                orig_sum += 1
         self.log.debug("Original threads: %s", orig_sum)
         leftover = concurrency
         for group in jmx.enabled_thread_groups():
             othread = group.find(tnum_sel)
-            orig = int(othread.text)
+            try:
+                orig = int(othread.text)
+            except ValueError:
+                self.log.debug("Using value 1 since cannot parse int: %s", othread.text)
+                orig = 1
+
             new = int(round(concurrency * orig / orig_sum))
             leftover -= new
             othread.text = str(new)
@@ -568,7 +579,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 self.__add_stepping_shaper(jmx, load)
             else:
                 self.__add_shaper(jmx, load)
-
 
     @staticmethod
     def __fill_empty_delimiters(jmx):
@@ -784,6 +794,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         requests = requests_parser.extract_requests(scenario)
         for req in requests:
             files.extend(self.res_files_from_request(req))
+            self.resource_files_collector.clear_path_cache()
         return files
 
     def res_files_from_request(self, request):
@@ -1502,17 +1513,23 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __add_jsr_elements(self, children, req):
-        jsrs = req.config.get("jsr223", None)
-        if not jsrs:
-            return
-        if isinstance(jsrs, dict):
+        """
+        :type children: etree.Element
+        :type req: Request
+        """
+        jsrs = req.config.get("jsr223", [])
+        if not isinstance(jsrs, list):
             jsrs = [jsrs]
-        for jsr in jsrs:
-            lang = jsr.get("language", TaurusConfigError("jsr223 element should specify 'language'"))
-            script = jsr.get("script-file", TaurusConfigError("jsr223 element should specify 'script-file'"))
+        for idx, _ in enumerate(jsrs):
+            jsr = ensure_is_dict(jsrs, idx, default_key='script-text')
+            lang = jsr.get("language", "groovy")
+            script_file = jsr.get("script-file", None)
+            script_text = jsr.get("script-text", None)
+            if not script_file and not script_text:
+                raise TaurusConfigError("jsr223 element must specify one of 'script-file' or 'script-text'")
             parameters = jsr.get("parameters", "")
             execute = jsr.get("execute", "after")
-            children.append(JMX._get_jsr223_element(lang, script, parameters, execute))
+            children.append(JMX._get_jsr223_element(lang, script_file, parameters, execute, script_text))
             children.append(etree.Element("hashTree"))
 
     def _get_merged_ci_headers(self, req, header):
@@ -1695,12 +1712,18 @@ class JMeterScenarioBuilder(JMX):
         if block.duration is not None:
             duration = int(block.duration * 1000)
         test_action = JMX._get_action_block(action, target, duration)
-        return [test_action, etree.Element("hashTree")]
+        children = etree.Element("hashTree")
+        self.__add_jsr_elements(children, block)
+        return [test_action, children]
 
     def compile_requests(self, requests):
         if self.request_compiler is None:
             self.request_compiler = RequestCompiler(self)
-        return [self.request_compiler.visit(request) for request in requests]
+        compiled = []
+        for request in requests:
+            compiled.append(self.request_compiler.visit(request))
+            self.request_compiler.clear_path_cache()
+        return compiled
 
     def __generate(self):
         """
@@ -2135,6 +2158,12 @@ class RequestVisitor(object):
     def __init__(self):
         self.path = []
 
+    def clear_path_cache(self):
+        self.path = []
+
+    def record_path(self, path):
+        self.path.append(path)
+
     def visit(self, node):
         class_name = node.__class__.__name__.lower()
         visitor = getattr(self, 'visit_' + class_name, None)
@@ -2202,7 +2231,7 @@ class ResourceFilesCollector(RequestVisitor):
         if scenario_name in self.path:
             msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
             raise TaurusConfigError(msg % scenario_name)
-        self.path.append(scenario_name)
+        self.record_path(scenario_name)
         scenario = self.executor.get_scenario(name=block.scenario_name)
         return self.executor.res_files_from_scenario(scenario)
 
@@ -2238,7 +2267,7 @@ class RequestCompiler(RequestVisitor):
         if scenario_name in self.path:
             msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
             raise TaurusConfigError(msg % scenario_name)
-        self.path.append(scenario_name)
+        self.record_path(scenario_name)
         return self.jmx_builder.compile_include_scenario_block(block)
 
     def visit_actionblock(self, block):

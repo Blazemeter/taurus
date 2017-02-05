@@ -76,5 +76,6 @@ scenarios:
         regexp: false  # treat string as regular expression, true by default
         not: false  # inverse assertion condition
 ```
- 
+Keep in mind: locust requires default url for its work (empty string is accepted). You have to set `host`
+in python script or `default-address` in script for Taurus. If both are found value from Taurus script has priority.
  
