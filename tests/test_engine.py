@@ -192,7 +192,7 @@ class TestScenarioExecutor(BZTestCase):
 
     def test_case_of_variables(self):
         env = {'aaa': 333, 'AAA': 666}
-        line_tpl = "echo %%s%" if is_windows() else "echo $%s"
+        line_tpl = "echo %%%s%%" if is_windows() else "echo $%s"
         cmdlines = [line_tpl % "aaa", line_tpl % "AAA"]
         results = set()
         for cmdline in cmdlines:
