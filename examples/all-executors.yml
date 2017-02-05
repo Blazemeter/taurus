@@ -94,19 +94,19 @@ execution:
   scenario:
     script: selenium/TestNGExample.java
 
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: selenium/rspec_example.rb
+#- executor: selenium
+#  concurrency: 1
+#  hold-for: 10s
+#  iterations: 10
+#  scenario:
+#    script: selenium/rspec_example.rb
 
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: selenium/mocha_example.js
+#- executor: selenium
+#  concurrency: 1
+#  hold-for: 10s
+#  iterations: 10
+#  scenario:
+#    script: selenium/mocha_example.js
 
 - executor: selenium
   concurrency: 1
