@@ -68,7 +68,6 @@ class TestEngine(BZTestCase):
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
 
-
 class TestScenarioExecutor(BZTestCase):
     def setUp(self):
         super(TestScenarioExecutor, self).setUp()

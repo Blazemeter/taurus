@@ -38,7 +38,7 @@ from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusIntern
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
 
 SETTINGS = "settings"
 
@@ -944,12 +944,6 @@ class ScenarioExecutor(EngineModule):
         if aliases:
             environ["HOSTALIASES"] = hosts_file
         if env is not None:
-            if is_windows:
-                cur_env = {name.upper(): environ[name] for name in environ}
-                env = {name.upper(): env[name] for name in env}
-                environ = BetterDict()
-                environ.merge(cur_env)
-
             environ.merge(env)
 
         environ.merge({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})
