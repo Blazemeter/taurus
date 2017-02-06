@@ -82,36 +82,6 @@ execution:
   concurrency: 1
   hold-for: 10s
   iterations: 10
-  runner: junit
-  scenario:
-    script: BOOTH1/Blazedemo.java
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  runner: testng
-  scenario:
-    script: selenium/TestNGExample.java
-
-#- executor: selenium
-#  concurrency: 1
-#  hold-for: 10s
-#  iterations: 10
-#  scenario:
-#    script: selenium/rspec_example.rb
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: selenium/mocha_example.js
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
   scenario:
     browser: Chrome
     requests:
@@ -127,4 +97,34 @@ execution:
     requests:
       - url: http://blazedemo.com/
         label: selenium-firefox
+
+- executor: selenium
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  runner: junit
+  scenario:
+    script: BOOTH1/Blazedemo.java
+
+- executor: selenium
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  runner: testng
+  scenario:
+    script: selenium/TestNGExample.java
+
+- executor: selenium
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/rspec_example.rb
+
+#- executor: selenium
+#  concurrency: 1
+#  hold-for: 10s
+#  iterations: 10
+#  scenario:
+#    script: selenium/mocha_example.js
 
