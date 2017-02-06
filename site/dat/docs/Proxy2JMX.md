@@ -18,22 +18,25 @@ services:
 - module: proxy2jmx
 ```
 
-After execution it you'll find JMX in artifacts dir with the name `generated.jmx`.
-As only Linux supports setting proxy through environment variables, you have set up another systems for work with proxy2jmx manually. Info about proxy parameters (port and address) you can find in your BlazeMeter account or in the Taurus log. 
+As soon as taurus completes its work you'll find JMX in artifacts dir with the name `generated.jmx`.
 
 ## Proxy Server Auto Setup
-Taurus helps you with setting of proxy server for recording purposes. This ability depends on your operation system.
+Taurus can help you with settings of proxy server for recording purposes. This ability depends on your operation system.
 
 ### Linux 
 Full support of Chrome and Firefox.
 
 ### Microsoft Windows
-We provide support of Chrome browser at the moment. For correct work don't place your chromedriver
-inside of Windows directory. We recommend next way:
-1. create directory
-2. put crhomedriver.exe into created directory
-3. add directory to path (for that purpose use the documentation for your system
-(e.g. https://support.microsoft.com/en-us/help/310519/how-to-manage-environment-variables-in-windows-xp)
+We provide support of Chrome browser at the moment. For correct work of proxy you have to prepare the right place
+for chromedriver (don't place your chromedriver inside Windows directory). We strongly recommend next way:
+1. create directory (e.g. "c:\chromedriver")
+2. put chromedriver.exe into created directory and remove all another copies of chromedriver
+3. add directory to path:
+3.1 go to `Control Panel` -> `System and Security` -> `System`
+3.2 `Advanced system settings` -> `Environment Variables`
+3.3 in the `System Variables` area locate the `Path` variable, highlight it and click `Edit`
+3.4 add your path ("c:\chromedriver") to previous value (and don't forget about path separator `;`)
+3.5 save changes.
 
 ### MacOS
 Auto setup in MacOS is impossible.
