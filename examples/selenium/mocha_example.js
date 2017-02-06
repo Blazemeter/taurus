@@ -9,7 +9,7 @@ test.describe('Blazedemo verification', function() {
 
     test.before(function () {
         driver = new webdriver.Builder().
-            withCapabilities(webdriver.Capabilities.firefox()).
+            withCapabilities(webdriver.Capabilities.chrome()).
             build();
     });
 
