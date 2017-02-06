@@ -98,6 +98,8 @@ class Local(Provisioning):
                 relies_on_prev = prev_executor and executor.delay == prev_executor
                 start_from_prev = relies_on_prev and prev_executor in self.finished_modules
                 if not executor.delay or start_from_prev or timed_start:
+                    if start_from_prev or self.settings.get("sequential", False):
+                        self.log.info("Starting next sequential execution: %s", executor)
                     executor.startup()
                     self.engine.started.append(executor)
 
