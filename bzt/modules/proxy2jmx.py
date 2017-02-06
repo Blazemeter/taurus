@@ -118,7 +118,7 @@ class Proxy2JMX(Service):
             chrome_path = self._get_chrome_path()
             if chrome_path:
                 self._prepare_chrome_loader()
-                new_path = join(self.engine.artifacts_dir, 'chrome-loader') + os.path.pathsep + os.getenv('PATH', '')
+                new_path = join(self.engine.artifacts_dir, 'chrome-loader') + os.pathsep + os.getenv('PATH', '')
                 additional_env.update({
                     'path_to_chrome': chrome_path,
                     'additional_chrome_params': '--proxy-server="%s"' % self.proxy,
@@ -164,11 +164,12 @@ class Proxy2JMX(Service):
         os.mkdir(loader_dir)
 
         # find chromedriver.exe and copy it into artifacts/chrome-loader
-        for _dir in os.getenv('PATH').split(os.path.pathsep):
+        for _dir in os.getenv('PATH').split(os.pathsep):
             path = join(_dir, 'chromedriver.exe')
             if isfile(path):
                 if path.lower().startswith(os.getenv('WINDIR')):
-                    msg = 'Wrong chromedriver location, look at http://localhost:8002/docs/Proxy2JMX/#Microsoft-Windows'
+                    msg = 'Wrong chromedriver location: %s, look at ' % path
+                    msg += 'http://gettaurus.org/docs/Proxy2JMX/#Microsoft-Windows for help'
                     self.log.warning(msg)
                 shutil.copy2(path, loader_dir)
                 break
