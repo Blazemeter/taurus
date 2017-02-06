@@ -94,6 +94,7 @@ class TestProxy2JMX(BZTestCase):
         os.environ['LOCALAPPDATA'] = art_dir
         os.mkdir(join(art_dir, 'Chromium'))
         os.mkdir(join(art_dir, 'Chromium', 'Application'))
+        os.mkdir(join(art_dir, 'chromedriver'))
         src = join(get_full_path(__file__, step_up=3), 'bzt', 'resources', 'chrome.exe', 'loader.exe')
         dst_chrome = join(art_dir, 'Chromium', 'Application', 'chrome.exe')
         dst_chromedriver = join(art_dir, 'chromedriver', 'chromedriver.exe')
