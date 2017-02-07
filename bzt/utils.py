@@ -686,6 +686,7 @@ class RequiredTool(object):
         if os.path.exists(self.tool_path):
             self.already_installed = True
             return True
+        self.log.debug("File not exists: %s", self.tool_path)
         return False
 
     def install(self):
