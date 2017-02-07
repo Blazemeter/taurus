@@ -39,6 +39,6 @@ for chromedriver (don't place your chromedriver inside Windows directory). We st
 3.5 save changes.
 
 ### MacOS
-Auto setup in MacOS is impossible.
+Auto setup in MacOS is currently not implemented.
 
 <iframe width="700" height="394" src="https://www.youtube.com/embed/zuZkCHW259U" frameborder="0" allowfullscreen></iframe>
