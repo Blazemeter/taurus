@@ -7,7 +7,7 @@ virtualenv --clear build
 source build/bin/activate
 
 # install depends
-pip install --upgrade colorlog pyyaml psutil!=5.1.1 lxml cssselect nose urwid six pylint selenium==2.53.1 progressbar33 locustio pyvirtualdisplay pynsist
+pip install --upgrade colorlog pyyaml psutil!=5.1.1 lxml cssselect nose urwid selenium six pylint progressbar33 locustio pyvirtualdisplay pynsist
 
 pylint -d R0903,R0904,C0301,C0302,C0111,E1103,R0201,R0902,W0511,F0401,E0611,R0801,R0913,W0613,C0412,I0011,C0411 --extension-pkg-whitelist=lxml -f parseable bzt > build/pylint.out || echo
 
@@ -26,7 +26,6 @@ source build/bin/activate
 cd build # cd is to make it not find bzt package from sources
 pip install --upgrade ../dist/bzt-*.tar.gz
 pip install locustio
-pip install --upgrade selenium==2.53.1
 pip show selenium
 cd ..
 

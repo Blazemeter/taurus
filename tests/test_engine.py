@@ -188,3 +188,17 @@ class TestScenarioExecutor(BZTestCase):
         process = self.executor.execute(cmdline, shell=True)
         stdout, _ = process.communicate()
         self.assertEquals(self.engine.artifacts_dir, stdout.decode().strip())
+
+    def test_case_of_variables(self):
+        env = {'aaa': 333, 'AAA': 666}
+        line_tpl = "echo %%%s%%" if is_windows() else "echo $%s"
+        cmdlines = [line_tpl % "aaa", line_tpl % "AAA"]
+        results = set()
+        for cmdline in cmdlines:
+            process = self.executor.execute(cmdline, shell= True, env=env)
+            stdout, _ = process.communicate()
+            results.add(stdout.decode().strip())
+        if is_windows():
+            self.assertEqual(1, len(results))
+        else:
+            self.assertEqual(2, len(results))
