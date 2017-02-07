@@ -680,7 +680,7 @@ class RequiredTool(object):
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
-        self.log = None
+        self.log = logging.getLogger('')
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
