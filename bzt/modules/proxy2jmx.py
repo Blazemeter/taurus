@@ -122,7 +122,7 @@ class Proxy2JMX(Service):
                 additional_env.update({
                     'path_to_chrome': chrome_path,
                     'additional_chrome_params': '--proxy-server="%s"' % self.proxy,
-                    'chrome_loader_log': join(self.engine.artifacts_dir, 'chrome-loader.log'),
+                    'chrome_loader_log': self.engine.create_artifact('chrome-loader', '.log'),
                     'path': new_path
                 })
             else:
