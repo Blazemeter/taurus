@@ -694,6 +694,7 @@ class RequiredTool(object):
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
             downloader = ExceptionalDownloader()
+            self.log.info("Downloading %s", self.download_link)
             downloader.get(self.download_link, self.tool_path, reporthook=pbar.download_callback)
 
             if self.check_if_installed():
