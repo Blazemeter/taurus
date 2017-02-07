@@ -73,8 +73,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     :type virtual_display: Display
     :type runner: AbstractTestRunner
     """
-    SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
-                             "selenium-server-standalone-{version}.0.jar"
+    SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.0/" \
+                             "selenium-server-standalone-3.0.1.jar"
     SELENIUM_VERSION = "3.0"
 
     JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/" \
