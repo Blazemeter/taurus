@@ -1,6 +1,0 @@
----
-execution:
-  executor: selenium
-  language: java-testng
-  scenario:
-    script: testng-suite.jar
