@@ -73,9 +73,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     :type virtual_display: Display
     :type runner: AbstractTestRunner
     """
-    SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
-                             "selenium-server-standalone-{version}.0.jar"
-    SELENIUM_VERSION = "2.53"
+    SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.0/" \
+                             "selenium-server-standalone-3.0.1.jar"
 
     JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/" \
                           "{version}/junit-{version}.jar"
@@ -596,7 +595,7 @@ class JUnitTester(JavaTestRunner):
 
         self.required_tools.append(TclLibrary(self.log))
         self.required_tools.append(JavaVM("", "", self.log))
-        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
+        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
         self.required_tools.append(JUnitJar(self.junit_path, self.log, SeleniumExecutor.JUNIT_VERSION))
         self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))
@@ -673,7 +672,7 @@ class TestNGTester(JavaTestRunner):
 
         self.required_tools.append(TclLibrary(self.log))
         self.required_tools.append(JavaVM("", "", self.log))
-        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK.format(version=SeleniumExecutor.SELENIUM_VERSION)
+        link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK
         self.required_tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
         self.required_tools.append(TestNGJar(self.testng_path, SeleniumExecutor.TESTNG_DOWNLOAD_LINK))
         self.required_tools.append(HamcrestJar(self.hamcrest_path, SeleniumExecutor.HAMCREST_DOWNLOAD_LINK))

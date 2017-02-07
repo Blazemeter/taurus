@@ -6,7 +6,7 @@ install:
   - choco install firefox -version 46.0.1
   - "%PYTHON%\\python.exe -m pip install nose"
   - "%PYTHON%\\python.exe -m pip install colorlog pyyaml psutil!=5.1.1 lxml==3.4.2 cssselect urwid six progressbar33 locustio pyvirtualdisplay"
-  - "%PYTHON%\\python.exe -m pip install --upgrade selenium==2.53.0"
+  - "%PYTHON%\\python.exe -m pip install --upgrade selenium"
   - set PATH=C:\Ruby22\bin;%PATH%
 
 build: off
