@@ -26,7 +26,6 @@ source build/bin/activate
 cd build # cd is to make it not find bzt package from sources
 pip install --upgrade ../dist/bzt-*.tar.gz
 pip install locustio
-pip install --upgrade selenium==2.53.1
 pip show selenium
 cd ..
 
