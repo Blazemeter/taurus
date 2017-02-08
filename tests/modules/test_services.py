@@ -27,7 +27,7 @@ class TestZipFolder(BZTestCase):
                     "us-east-1": 1,
                     "us-west": 2},
                 "scenario": {
-                    "script": __dir__() + "/../selenium/java_package"}},
+                    "script": __dir__() + "/../selenium/junit/java_package"}},
             "modules": {
                 "selenium": "bzt.modules.selenium.SeleniumExecutor",
                 "cloud": "bzt.modules.blazemeter.CloudProvisioning"},
@@ -80,7 +80,7 @@ class TestZipFolder(BZTestCase):
         obj.parameters["files"] = ["java_package.zip"]
 
         # create archive and put it in artifact dir
-        source = __dir__() + "/../selenium/java_package"
+        source = __dir__() + "/../selenium/junit/java_package"
         zip_name = obj.engine.create_artifact('java_package', '.zip')
         with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
             for filename in get_files_recursive(source):
