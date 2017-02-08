@@ -7,6 +7,7 @@ python:
   - "3.3"
   - "3.4"
 addons:
+  firefox: "51.0.1"
   apt:
     packages:
       - oracle-java8-set-default
