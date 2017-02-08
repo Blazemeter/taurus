@@ -409,7 +409,8 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    'script': __dir__() + '/../selenium/java/TestNGSuite.java',
+                    'script': __dir__() + '/../selenium/testng/TestNGSuite.java',
+                    'testng-xml': None
                 },
                 'runner': 'testng',
             },
