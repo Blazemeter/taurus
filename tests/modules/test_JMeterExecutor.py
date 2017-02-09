@@ -834,9 +834,6 @@ class TestJMeterExecutor(BZTestCase):
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
 
     def test_css_jquery_extractor(self):
-        handler = RecordingHandler()
-        self.obj.log.addHandler(handler)
-
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
@@ -857,11 +854,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
-        self.obj.log.removeHandler(handler)
 
     def test_xpath_extractor(self):
-        handler = RecordingHandler()
-        self.obj.log.addHandler(handler)
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
@@ -886,11 +880,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.validate']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "true")
-        self.obj.log.removeHandler(handler)
 
     def test_xpath_assertion(self):
-        handler = RecordingHandler()
-        self.obj.log.addHandler(handler)
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
@@ -911,7 +902,34 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.whitespace']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.tolerant']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.negate']").text, "true")
-        self.obj.log.removeHandler(handler)
+
+    def test_jsonpath_assertion(self):
+        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.obj.prepare()
+        target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
+        modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
+        path = ".//com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion"
+        assertions = modified_xml_tree.findall(path)
+        self.assertEqual(4, len(assertions))
+
+        vals = [
+            {'path': '$.', 'exp_val': None, 'valid': 'false',
+             'null': 'false', 'invert': 'false', 'regexp': 'true'},
+            {'path': '$.res[0].type', 'exp_val': 'some_value.1', 'valid': 'true',
+             'null': 'false', 'invert': 'false', 'regexp': 'true'},
+            {'path': '$.res[1].ip', 'exp_val': 'some_value.2', 'valid': 'true',
+             'null': 'false', 'invert': 'true', 'regexp': 'false'},
+            {'path': '$.res[2].default', 'exp_val': None, 'valid': 'false',
+             'null': 'true', 'invert': 'false', 'regexp': 'true'}]
+        for num in range(len(assertions)):
+            assertion = assertions[num]
+            val = vals[num]
+            self.assertEqual(val['path'], assertion.find(".//stringProp[@name='JSON_PATH']").text)
+            self.assertEqual(val['exp_val'], assertion.find(".//stringProp[@name='EXPECTED_VALUE']").text)
+            self.assertEqual(val['valid'], assertion.find(".//boolProp[@name='JSONVALIDATION']").text)
+            self.assertEqual(val['null'], assertion.find(".//boolProp[@name='EXPECT_NULL']").text)
+            self.assertEqual(val['invert'], assertion.find(".//boolProp[@name='INVERT']").text)
+            self.assertEqual(val['regexp'], assertion.find(".//boolProp[@name='ISREGEX']").text)
 
     def test_shutdown_soft(self):
         log_recorder = RecordingHandler()

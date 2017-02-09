@@ -125,7 +125,8 @@ class FailCriterion(object):
         self.agg_buffer = OrderedDict()
         self.percentage = str(config['threshold']).endswith('%')
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
-        self.agg_logic = self._get_aggregator_functor(config.get('logic', 'for'), config['subject'])
+        self.window_logic = config.get('logic', 'for')
+        self.agg_logic = self._get_aggregator_functor(self.window_logic, config['subject'])
         self.condition = self._get_condition_functor(config.get('condition', '>'))
         self.threshold = dehumanize_time(config['threshold'])
         self.stop = config.get('stop', True)
@@ -154,16 +155,19 @@ class FailCriterion(object):
                     self.config['subject'],
                     self.config['condition'],
                     self.config['threshold'],
-                    self.config.get('logic', 'for'),
+                    self.window_logic,
                     self.counting)
             return "%s: %s%s%s %s %s sec" % data
 
     def process_criteria_logic(self, tstmp, get_value):
         value = self.agg_logic(tstmp, get_value)
-
         state = self.condition(value, self.threshold)
         if state:
-            self._count(tstmp)
+            if self.window_logic == 'within':
+                self.counting = self.window
+                self.is_triggered = True
+            else:
+                self._count(tstmp)
         else:
             self.counting = 0
             if not self.is_triggered:
@@ -213,7 +217,7 @@ class FailCriterion(object):
 
     def _get_windowed_points(self, tstmp, value):
         self.agg_buffer[tstmp] = value
-        for tstmp_old in self.agg_buffer.keys():
+        for tstmp_old in list(self.agg_buffer.keys()):
             if tstmp_old <= tstmp - self.window:
                 del self.agg_buffer[tstmp_old]
                 continue
@@ -313,9 +317,13 @@ class DataCriterion(FailCriterion):
             level = str(float(subject[1:]))
             return lambda x: x[KPISet.PERCENTILES][level] if level in x[KPISet.PERCENTILES] else 0
         elif subject.startswith('rc'):
-            count = lambda x: sum([fnmatch.fnmatch(y, subject[2:]) for y in x[KPISet.RESP_CODES].keys()])
+            count = lambda x: sum([
+                                      x[KPISet.RESP_CODES][y]
+                                      for y in x[KPISet.RESP_CODES].keys()
+                                      if fnmatch.fnmatch(y, subject[2:])
+                                      ])
             if percentage:
-                return lambda x: 100.0 * count(x) / x[KPISet.SAMPLE_COUNT]
+                return lambda x: 100.0 * count(x) / float(x[KPISet.SAMPLE_COUNT])
             else:
                 return count
         else:
