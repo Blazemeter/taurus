@@ -240,3 +240,29 @@ class TestPassFailStatus(BZTestCase):
         for crit in obj.criteria:
             self.assertTrue(crit.is_triggered)
 
+    def test_rc_within(self):
+        obj = PassFailStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = {"criteria": [
+            "rc413>10 within 3s, stop as successful",  # this one to cover branch that caused bug
+            "rc413>10 within 10s, stop as failed",
+        ]}
+        obj.prepare()
+        self.assertEquals(len(obj.criteria), 2)
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            rcs = point[DataPoint.CURRENT][''][KPISet.RESP_CODES]
+            rcs['413'] = 3
+            obj.aggregated_second(point)
+            try:
+                obj.check()
+            except AutomatedShutdown:
+                break
+
+            self.assertLess(n, 3)
+
+        obj.shutdown()
+        obj.post_process()
+        self.assertFalse(obj.criteria[0].is_triggered)
+        self.assertTrue(obj.criteria[1].is_triggered)
