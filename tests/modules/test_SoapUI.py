@@ -98,3 +98,12 @@ class TestSoapUIConverter(BZTestCase):
         obj.convert_script(__dir__() + "/../soapui/amazon-sample.xml")
         self.assertIn("No requests extracted for scenario TestSuite 1-TestCase 1, skipping it",
                       log_recorder.warn_buff.getvalue())
+
+    def test_rest_service_name_as_base_address(self):
+        obj = SoapUIScriptConverter(logging.getLogger(''))
+        config = obj.convert_script(__dir__() + "/../soapui/youtube-sample.xml")
+        scenarios = config["scenarios"]
+        scenario = scenarios["TestSuite-TestCase"]
+        self.assertEqual(len(scenario["requests"]), 5)
+        for request in scenario["requests"]:
+            self.assertTrue(request["url"].startswith("http://gdata.youtube.com/"))

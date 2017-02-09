@@ -103,11 +103,24 @@ class SoapUIScriptConverter(object):
 
         return request
 
+    def _calc_base_address(self, test_step):
+        config = test_step.find('./con:config', namespaces=self.NAMESPACES)
+        service = config.get('service')
+        interfaces = self.tree.xpath('//con:interface', namespaces=self.NAMESPACES)
+        for interface in interfaces:
+            if interface.get("name") == service:
+                endpoint = interface.find('.//con:endpoints/con:endpoint', namespaces=self.NAMESPACES)
+                if endpoint is not None:
+                    service = endpoint.text
+                    break
+        return service
+
     def _extract_rest_request(self, test_step):
         label = test_step.get('name')
         config = test_step.find('./con:config', namespaces=self.NAMESPACES)
         method = config.get('method')
-        url = config.get('service') + config.get('resourcePath')
+
+        url = self._calc_base_address(test_step) + config.get('resourcePath')
         headers = self._extract_headers(config)
         assertions = self._extract_assertions(config)
 
