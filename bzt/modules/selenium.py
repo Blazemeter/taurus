@@ -1372,6 +1372,7 @@ from selenium.webdriver.support.wait import WebDriverWait
             'bycss': "CSS_SELECTOR",
             'byname': "NAME",
             'byid': "ID",
+            'bylinktext': "LINK_TEXT"
         }
         if atype in ('click', 'keys'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
@@ -1400,7 +1401,7 @@ from selenium.webdriver.support.wait import WebDriverWait
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath)\((.+)\)$", re.IGNORECASE)
+        expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath|byLinkText)\((.+)\)$", re.IGNORECASE)
         res = expr.match(name)
         if not res:
             raise TaurusConfigError("Unsupported action: %s" % name)
