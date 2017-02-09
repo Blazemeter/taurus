@@ -17,7 +17,6 @@ limitations under the License.
 """
 import logging
 import os
-import re
 import traceback
 from itertools import chain
 
