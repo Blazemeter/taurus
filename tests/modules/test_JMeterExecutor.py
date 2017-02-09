@@ -16,7 +16,7 @@ from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
-from bzt.six import etree, u, iteritems
+from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
