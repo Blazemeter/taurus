@@ -64,14 +64,14 @@
             "$.",
             {
               "jsonpath": "$.res[0].type",
-              "expected-value": "some_value.1",
+              "expected-value": "somevalue.1",
               "validate": true,
               "expect-null": false,
               "invert": false
             },
             {
               "jsonpath": "$.res[1].ip",
-              "expected-value": "some_value.2",
+              "expected-value": "somevalue.2",
               "validate": true,
               "expect-null": false,
               "invert": true,

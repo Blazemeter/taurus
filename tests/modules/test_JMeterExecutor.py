@@ -914,8 +914,8 @@ class TestJMeterExecutor(BZTestCase):
 
         vals = [
             {'path': '$.', 'exp_val': None, 'valid': 'false', 'null': 'false', 'invert': 'false'},
-            {'path': '$.res[0].type', 'exp_val': 'some_value.1', 'valid': 'true', 'null': 'false', 'invert': 'false'},
-            {'path': '$.res[1].ip', 'exp_val': 'some\\_value\\.2', 'valid': 'true', 'null': 'false', 'invert': 'true'},
+            {'path': '$.res[0].type', 'exp_val': 'somevalue.1', 'valid': 'true', 'null': 'false', 'invert': 'false'},
+            {'path': '$.res[1].ip', 'exp_val': 'somevalue\\.2', 'valid': 'true', 'null': 'false', 'invert': 'true'},
             {'path': '$.res[2].default', 'exp_val': None, 'valid': 'false', 'null': 'true', 'invert': 'false'}]
         for num in range(len(assertions)):
             assertion = assertions[num]
