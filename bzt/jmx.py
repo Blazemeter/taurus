@@ -17,6 +17,7 @@ limitations under the License.
 """
 import logging
 import os
+import re
 import traceback
 from itertools import chain
 
@@ -792,7 +793,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert):
+    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert, regexp):
         """
         :type jsonpath: str
         :type expected_value: str
@@ -800,6 +801,8 @@ class JMX(object):
         :type expect_null: bool
         :return: lxml.etree.Element
         """
+        if not regexp:
+            expected_value = re.escape(expected_value)
         package = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion"
         element = etree.Element("%s.JSONPathAssertion" % package,
                                 guiclass="%s.gui.JSONPathAssertionGui" % package,

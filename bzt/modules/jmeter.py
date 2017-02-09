@@ -1493,10 +1493,13 @@ class JMeterScenarioBuilder(JMX):
         for idx, assertion in enumerate(jpath_assertions):
             assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
 
-            component = JMX._get_json_path_assertion(assertion['jsonpath'], assertion.get('expected-value', ''),
+            exc = TaurusConfigError('JSON Path not found in assertion: %s' % assertion)
+            component = JMX._get_json_path_assertion(assertion.get('jsonpath', exc),
+                                                     assertion.get('expected-value', ''),
                                                      assertion.get('validate', False),
                                                      assertion.get('expect-null', False),
-                                                     assertion.get('invert', False), )
+                                                     assertion.get('invert', False),
+                                                     assertion.get('regexp', True))
             children.append(component)
             children.append(etree.Element("hashTree"))
 
@@ -1504,7 +1507,8 @@ class JMeterScenarioBuilder(JMX):
         for idx, assertion in enumerate(xpath_assertions):
             assertion = ensure_is_dict(xpath_assertions, idx, "xpath")
 
-            component = JMX._get_xpath_assertion(assertion['xpath'],
+            exc = TaurusConfigError('XPath not found in assertion: %s' % assertion)
+            component = JMX._get_xpath_assertion(assertion.get('xpath', exc),
                                                  assertion.get('validate-xml', False),
                                                  assertion.get('ignore-whitespace', True),
                                                  assertion.get('use-tolerant-parser', False),
