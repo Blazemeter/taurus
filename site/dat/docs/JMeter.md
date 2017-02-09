@@ -374,7 +374,8 @@ scenarios:
       assert-jsonpath:
       - jsonpath: "$." # path to value, validation fails if path not exists
         validate: true # validate against expected value
-        expected-value: "value" # the value we are expecting to validate
+        expected-value: "value" # the value we are expecting to validate, default: false
+        regexp: true  # if the value is regular expression, default: true
         expect-null: false  # expected value is null
         invert: false # invert condition
 ```
