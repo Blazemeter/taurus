@@ -793,16 +793,16 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert, regexp):
+    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert, regexp=True):
         """
         :type jsonpath: str
         :type expected_value: str
         :type json_validation: bool
         :type expect_null: bool
+        :type invert: bool
+        :type regexp: bool
         :return: lxml.etree.Element
         """
-        if not regexp:
-            expected_value = re.escape(expected_value)
         package = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion"
         element = etree.Element("%s.JSONPathAssertion" % package,
                                 guiclass="%s.gui.JSONPathAssertionGui" % package,
@@ -813,6 +813,7 @@ class JMX(object):
         element.append(JMX._bool_prop("JSONVALIDATION", json_validation))
         element.append(JMX._bool_prop("EXPECT_NULL", expect_null))
         element.append(JMX._bool_prop("INVERT", invert))
+        element.append(JMX._bool_prop("ISREGEX", regexp))
 
         return element
 

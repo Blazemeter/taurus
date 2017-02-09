@@ -1486,7 +1486,7 @@ class JMeterScenarioBuilder(JMX):
                                                     assertion['contains'],
                                                     assertion.get('regexp', True),
                                                     assertion.get('not', False),
-                                                    assertion.get('assume-success', False)), )
+                                                    assertion.get('assume-success', False)))
             children.append(etree.Element("hashTree"))
 
         jpath_assertions = req.config.get("assert-jsonpath", [])

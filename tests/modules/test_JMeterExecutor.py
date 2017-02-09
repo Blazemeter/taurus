@@ -913,10 +913,14 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(4, len(assertions))
 
         vals = [
-            {'path': '$.', 'exp_val': None, 'valid': 'false', 'null': 'false', 'invert': 'false'},
-            {'path': '$.res[0].type', 'exp_val': 'somevalue.1', 'valid': 'true', 'null': 'false', 'invert': 'false'},
-            {'path': '$.res[1].ip', 'exp_val': 'somevalue\\.2', 'valid': 'true', 'null': 'false', 'invert': 'true'},
-            {'path': '$.res[2].default', 'exp_val': None, 'valid': 'false', 'null': 'true', 'invert': 'false'}]
+            {'path': '$.', 'exp_val': None, 'valid': 'false',
+             'null': 'false', 'invert': 'false', 'regexp': 'true'},
+            {'path': '$.res[0].type', 'exp_val': 'some_value.1', 'valid': 'true',
+             'null': 'false', 'invert': 'false', 'regexp': 'true'},
+            {'path': '$.res[1].ip', 'exp_val': 'some_value.2', 'valid': 'true',
+             'null': 'false', 'invert': 'true', 'regexp': 'false'},
+            {'path': '$.res[2].default', 'exp_val': None, 'valid': 'false',
+             'null': 'true', 'invert': 'false', 'regexp': 'true'}]
         for num in range(len(assertions)):
             assertion = assertions[num]
             val = vals[num]
@@ -925,6 +929,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual(val['valid'], assertion.find(".//boolProp[@name='JSONVALIDATION']").text)
             self.assertEqual(val['null'], assertion.find(".//boolProp[@name='EXPECT_NULL']").text)
             self.assertEqual(val['invert'], assertion.find(".//boolProp[@name='INVERT']").text)
+            self.assertEqual(val['regexp'], assertion.find(".//boolProp[@name='ISREGEX']").text)
 
     def test_shutdown_soft(self):
         log_recorder = RecordingHandler()
