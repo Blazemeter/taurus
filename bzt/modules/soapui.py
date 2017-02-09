@@ -277,6 +277,10 @@ class SoapUIScriptConverter(object):
                 load_exec['scenario'] = scenario_name
                 self.log.debug("Extracted execution for scenario %s", scenario_name)
 
+                if not scenario["requests"]:
+                    self.log.warning("No requests extracted for scenario %s, skipping it" % scenario_name)
+                    continue
+
                 if target_test_case is None or target_test_case == case_name:
                     scenarios[scenario_name] = scenario
                     execution.append(load_exec)
