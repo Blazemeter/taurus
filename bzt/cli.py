@@ -127,8 +127,10 @@ class CLI(object):
 
         if self.options.no_system_configs is None:
             self.options.no_system_configs = False
+        if self.options.strict_mode is None:
+            self.options.strict_mode = False
 
-        merged_config = self.engine.configure(configs, not self.options.no_system_configs)
+        merged_config = self.engine.configure(configs, not self.options.no_system_configs, self.options.strict_mode)
 
         # apply aliases
         for alias in self.options.aliases:
@@ -417,6 +419,8 @@ def main():
                       help="Prints all logging messages to console")
     parser.add_option('-n', '--no-system-configs', action='store_true',
                       help="Skip system and user config files")
+    parser.add_option('-s', '--strict_mode', action='store_true',
+                      help="Terminate test if any syntax error is found")
 
     parsed_options, parsed_configs = parser.parse_args()
 
