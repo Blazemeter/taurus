@@ -1,5 +1,0 @@
-Compile SoapUI properties into JMeter variables and 'property transfer' steps into JMeter extractors
-
-Notes:
-- Works for JSONPath- and XPath-based transfers.
-- Works only for transfers which have 'Response' as a source and 'Property' as a target.

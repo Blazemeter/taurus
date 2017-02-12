@@ -1,6 +1,0 @@
-Added a converter utility `soapui2yaml` for converting SoapUI projects into Taurus configs.
-
-Features:
-- Converts the whole SoapUI project into a set of scenarios and executions
-- Supports extracting a single test case from the SoapUI project
-- Extracts HTTP/REST requests and some of their features (HTTP headers, request body, assertions about results, etc)

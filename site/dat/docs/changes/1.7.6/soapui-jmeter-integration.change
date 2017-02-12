@@ -1,4 +1,0 @@
-Added a possibility to specify SoapUI scripts for JMeter executor
-
-This script will be converted to Taurus scenario(s) and executed with JMeter.
-

@@ -1,7 +1,0 @@
-Fix bug about None value in default-address.
-
-Description of problem: when jmeter is found in execution list before gatling,
-the first try to read 'default-address' and write None as default value if address not found.
-Later gatling reads this value as real default-address an encountered problem as it expects a string.
-
-Solution: specify correct default value of default-address and handling of this parameter in all executors.
