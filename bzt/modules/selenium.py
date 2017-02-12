@@ -580,8 +580,7 @@ class JUnitTester(JavaTestRunner):
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
         self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
-                                                os.pardir,
+        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=2),
                                                 "resources",
                                                 "taurus-junit-1.0.jar")
 
@@ -658,8 +657,7 @@ class TestNGTester(JavaTestRunner):
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar")
         self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/testng/json.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                               os.pardir,
+        self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                                "resources",
                                                "taurus-testng-1.0.jar")
 
@@ -725,8 +723,7 @@ class NoseTester(AbstractTestRunner):
 
     def __init__(self, nose_config, executor):
         super(NoseTester, self).__init__(nose_config, executor)
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                        os.pardir,
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "nose_plugin.py")
 
@@ -778,8 +775,7 @@ class RSpecTester(AbstractTestRunner):
 
     def __init__(self, rspec_config, executor):
         super(RSpecTester, self).__init__(rspec_config, executor)
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                        os.pardir,
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "rspec_taurus_plugin.rb")
 
@@ -846,8 +842,7 @@ class MochaTester(AbstractTestRunner):
 
     def __init__(self, rspec_config, executor):
         super(MochaTester, self).__init__(rspec_config, executor)
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                        os.pardir,
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "mocha-taurus-plugin.js")
         self.tools_dir = get_full_path(self.settings.get("tools-dir", "~/.bzt/selenium-taurus/mocha"))

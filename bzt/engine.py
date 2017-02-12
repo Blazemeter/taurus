@@ -268,7 +268,7 @@ class Engine(object):
         newname = os.path.join(self.artifacts_dir, os.path.basename(filename))
         self.__artifacts.append(newname)
 
-        if os.path.realpath(filename) == os.path.realpath(newname):
+        if get_full_path(filename) == get_full_path(newname):
             self.log.debug("No need to copy %s", filename)
             return
 
@@ -287,14 +287,12 @@ class Engine(object):
         """
         Create directory for artifacts, directory name based on datetime.now()
         """
-        if self.artifacts_dir:
-            self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
-        else:
+        if not self.artifacts_dir:
             default = "%Y-%m-%d_%H-%M-%S.%f"
             artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", default)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
-            self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
-            self.artifacts_dir = os.path.abspath(self.artifacts_dir)
+
+        self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
 
@@ -431,7 +429,7 @@ class Engine(object):
         return user_config
 
     def __config_loaded(self, config):
-        self.file_search_paths.append(os.path.dirname(os.path.realpath(config)))
+        self.file_search_paths.append(get_full_path(config, step_up=1))
 
     def __prepare_provisioning(self):
         """
@@ -1043,8 +1041,8 @@ class Scenario(UserDict, object):
         :rtype: dict[str,str]
         """
         scenario = self
-        headers = scenario.get("headers")
-        return headers if headers else {}
+        headers = scenario.get("headers", {})
+        return headers
 
     def get_requests(self, require_url=True):
         """

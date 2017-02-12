@@ -104,11 +104,10 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         if request.method != 'GET':
             raise TaurusConfigError("ab supports only GET requests, but '%s' is found" % request.method)
 
-        keepalive = True
-        if request.config.get('keepalive') is not None:
+        keepalive = self.scenario.get('keepalive', True)
+        if 'keepalive' in request.config:
             keepalive = request.config.get('keepalive')
-        elif self.scenario.get('keepalive') is not None:
-            keepalive = self.scenario.get('keepalive')
+
         if keepalive:
             args += ['-k']
 
