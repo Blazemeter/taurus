@@ -137,8 +137,8 @@ class SoapUIScriptConverter(object):
 
         return request
 
-    def _extract_properties(self, test_step):
-        properties = test_step.findall('./con:config/con:properties/con:property', namespaces=self.NAMESPACES)
+    def _extract_properties(self, block):
+        properties = block.findall('.//con:properties/con:property', namespaces=self.NAMESPACES)
         return {
             prop.findtext('./con:name',
                           namespaces=self.NAMESPACES): prop.findtext('./con:value',
@@ -235,8 +235,9 @@ class SoapUIScriptConverter(object):
 
         return extractors
 
-    def _extract_scenario(self, test_case):
-        variables = {}
+    def _extract_scenario(self, test_case, case_level_props):
+        variables = BetterDict()
+        variables.merge(case_level_props)
         requests = []
 
         extractors = BetterDict()
@@ -273,16 +274,26 @@ class SoapUIScriptConverter(object):
 
         return scenario
 
-    def _extract_config(self, test_suites, target_test_case=None):
+    def _extract_config(self, project, test_suites, target_test_case=None):
         execution = []
         scenarios = {}
+        project_properties = self._extract_properties(project)
 
         for suite in test_suites:
+            suite_properties = self._extract_properties(suite)
+            suite_level_props = BetterDict()
+            suite_level_props.merge(project_properties)
+            suite_level_props.merge(suite_properties)
             test_cases = suite.findall('.//con:testCase', namespaces=self.NAMESPACES)
             for case in test_cases:
+                case_properties = self._extract_properties(case)
+                case_level_props = BetterDict()
+                case_level_props.merge(suite_level_props)
+                case_level_props.merge(case_properties)
+
                 case_name = case.get("name")
                 scenario_name = suite.get("name") + "-" + case_name
-                scenario = self._extract_scenario(case)
+                scenario = self._extract_scenario(case, case_level_props)
                 scenario['test-suite'] = suite.get("name")
                 self.log.debug("Extracted scenario: %s", scenario_name)
 
@@ -321,7 +332,7 @@ class SoapUIScriptConverter(object):
         test_suites = project.findall('.//con:testSuite', namespaces=self.NAMESPACES)
         self.log.debug("Found test suites: %s", test_suites)
 
-        config = self._extract_config(test_suites, target_test_case=target_test_case)
+        config = self._extract_config(project, test_suites, target_test_case=target_test_case)
 
         if not config["scenarios"]:
             self.log.warning("No scenarios were extracted")

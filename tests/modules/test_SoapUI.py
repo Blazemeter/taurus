@@ -107,3 +107,12 @@ class TestSoapUIConverter(BZTestCase):
         self.assertEqual(len(scenario["requests"]), 5)
         for request in scenario["requests"]:
             self.assertTrue(request["url"].startswith("http://gdata.youtube.com/"))
+
+    def test_project_suite_case_level_properties(self):
+        obj = SoapUIScriptConverter(logging.getLogger(''))
+        config = obj.convert_script(__dir__() + "/../soapui/flickr-sample.xml")
+        scenarios = config["scenarios"]
+        scenario = scenarios["TestSuite-TestCase"]
+        self.assertEqual(len(scenario["variables"]), 2)
+        self.assertIn("ApiKey", scenario["variables"])
+        self.assertIn("temp", scenario["variables"])
