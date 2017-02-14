@@ -116,3 +116,14 @@ class TestSoapUIConverter(BZTestCase):
         self.assertEqual(len(scenario["variables"]), 2)
         self.assertIn("ApiKey", scenario["variables"])
         self.assertIn("temp", scenario["variables"])
+
+    def test_rest_parameters(self):
+        obj = SoapUIScriptConverter(logging.getLogger(''))
+        config = obj.convert_script(__dir__() + "/../soapui/flickr-sample.xml")
+        scenarios = config["scenarios"]
+        scenario = scenarios["TestSuite-TestCase"]
+        self.assertEqual(len(scenario["requests"]), 4)
+        first = scenario["requests"][0]
+        self.assertIn("body", first)
+        self.assertEqual(len(first["body"]), 4)
+        self.assertTrue(all(key in first["body"] for key in ["format", "method", "nojsoncallback", "api_key"]))

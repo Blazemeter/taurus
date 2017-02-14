@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+import re
 
 from bzt import TaurusInternalException
 from bzt.six import etree, iteritems
@@ -28,6 +29,7 @@ class SoapUIScriptConverter(object):
     def __init__(self, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.tree = None
+        self.interface = None
 
     def load(self, path):
         try:
@@ -36,6 +38,28 @@ class SoapUIScriptConverter(object):
         except BaseException as exc:
             msg = "XML parsing failed for file %s: %s"
             raise TaurusInternalException(msg % (path, exc))
+
+    @staticmethod
+    def _normalize_interpolation(text):
+        # interpolation_re = r"\$\{[^\}]+\}"
+        # interpolations = re.findall(interpolation_re, text)
+        # replacements = {}
+        # for inter in interpolations:
+        #     body = inter[2:-1]
+        #     elements = body.split("#")
+        #     if len(elements) == 1:
+        #         continue
+        #     elif len(elements) == 2:
+        #         name_only = elements[-1]
+        #         replacements[inter] = name_only
+        #     elif len(elements) > 2:
+        #         name_only = elements[-2]
+        #         replacements[inter] = name_only
+        #
+        # for block, replacement in iteritems(replacements):
+        #     text = text.replace(block, replacement)
+        #
+        return text
 
     def _extract_headers(self, config_elem):
         headers_settings = config_elem.find(
@@ -49,7 +73,7 @@ class SoapUIScriptConverter(object):
         else:
             entries = headers.findall(".//con:entry", namespaces=self.NAMESPACES)
 
-        headers = {entry.get('key'): entry.get('value')
+        headers = {entry.get('key'): self._normalize_interpolation(entry.get('value'))
                    for entry in entries}
         return headers
 
@@ -57,6 +81,7 @@ class SoapUIScriptConverter(object):
         assertions = []
         assertion_tags = config_elem.findall('.//con:assertion', namespaces=self.NAMESPACES)
         for assertion in assertion_tags:
+            # TODO: XPath assertions / JSONPath assertions ?
             if assertion.get('type') in ('Simple Contains', 'Simple NotContains'):
                 subject = assertion.findtext('./con:configuration/token', namespaces=self.NAMESPACES)
                 use_regex = assertion.findtext('./con:configuration/useRegEx', namespaces=self.NAMESPACES)
@@ -80,7 +105,7 @@ class SoapUIScriptConverter(object):
         body = config.findtext('./con:request', namespaces=self.NAMESPACES)
         params = config.findall('./con:parameters/con:parameter', namespaces=self.NAMESPACES)
 
-        request = {"url": url, "label": label}
+        request = {"url": self._normalize_interpolation(url), "label": label}
 
         if method is not None and method != "GET":
             request["method"] = method
@@ -92,14 +117,15 @@ class SoapUIScriptConverter(object):
             request["assert"] = assertions
 
         if body is not None:
-            request["body"] = body
+            request["body"] = self._normalize_interpolation(body)
 
         if params:
-            request["body"] = {
-                param.findtext("./con:name", namespaces=self.NAMESPACES): param.findtext("./con:value",
-                                                                                         namespaces=self.NAMESPACES)
-                for param in params
-            }
+            body = {}
+            for param in params:
+                key = param.findtext("./con:name", namespaces=self.NAMESPACES)
+                value = param.findtext("./con:value", namespaces=self.NAMESPACES)
+                body[key] = self._normalize_interpolation(value)
+            request["body"] = body
 
         return request
 
@@ -120,11 +146,30 @@ class SoapUIScriptConverter(object):
         config = test_step.find('./con:config', namespaces=self.NAMESPACES)
         method = config.get('method')
 
+        method_name = config.get('methodName')
+        method_obj = self.interface.find('.//con:method[@name="%s"]' % method_name, namespaces=self.NAMESPACES)
+        default_params = {}
+        if method_obj is not None:
+            parent = method_obj.getparent()
+            while parent.tag.endswith('resource'):
+                for param in parent.findall('./con:parameters/con:parameter', namespaces=self.NAMESPACES):
+                    param_name = param.findtext('./con:name', namespaces=self.NAMESPACES)
+                    param_value = param.findtext('./con:value', namespaces=self.NAMESPACES)
+                    def_value = param.findtext('./con:default', namespaces=self.NAMESPACES)
+                    if param_value:
+                        default_params[param_name] = self._normalize_interpolation(param_value)
+                    elif def_value:
+                        default_params[param_name] = self._normalize_interpolation(def_value)
+
+                parent = parent.getparent()
+
         url = self._calc_base_address(test_step) + config.get('resourcePath')
         headers = self._extract_headers(config)
         assertions = self._extract_assertions(config)
 
-        request = {"url": url, "label": label}
+        parameters = config.findall('./con:restRequest/con:parameters/con:entry', namespaces=self.NAMESPACES)
+
+        request = {"url": self._normalize_interpolation(url), "label": label}
 
         if method is not None and method != "GET":
             request["method"] = method
@@ -135,10 +180,18 @@ class SoapUIScriptConverter(object):
         if assertions:
             request["assert"] = assertions
 
+        body = {}
+        for key, value in iteritems(default_params):
+            body[key] = value
+        for entry in parameters:
+            body[entry.get("key")] = self._normalize_interpolation(entry.get("value"))
+        if body:
+            request["body"] = body
+
         return request
 
     def _extract_properties(self, block):
-        properties = block.findall('.//con:properties/con:property', namespaces=self.NAMESPACES)
+        properties = block.findall('./con:properties/con:property', namespaces=self.NAMESPACES)
         return {
             prop.findtext('./con:name',
                           namespaces=self.NAMESPACES): prop.findtext('./con:value',
@@ -277,16 +330,27 @@ class SoapUIScriptConverter(object):
     def _extract_config(self, project, test_suites, target_test_case=None):
         execution = []
         scenarios = {}
-        project_properties = self._extract_properties(project)
+        project_properties = {
+            "#Project#" + key: value
+            for key, value in iteritems(self._extract_properties(project))
+        }
 
         for suite in test_suites:
             suite_properties = self._extract_properties(suite)
+            suite_properties = {
+                "#TestSuite#" + key: value
+                for key, value in iteritems(suite_properties)
+            }
             suite_level_props = BetterDict()
             suite_level_props.merge(project_properties)
             suite_level_props.merge(suite_properties)
             test_cases = suite.findall('.//con:testCase', namespaces=self.NAMESPACES)
             for case in test_cases:
                 case_properties = self._extract_properties(case)
+                case_properties = {
+                    "#TestCase#" + key: value
+                    for key, value in iteritems(case_properties)
+                }
                 case_level_props = BetterDict()
                 case_level_props.merge(suite_level_props)
                 case_level_props.merge(case_properties)
@@ -326,8 +390,8 @@ class SoapUIScriptConverter(object):
         self.log.debug("Found projects: %s", projects)
         project = projects[0]
 
-        interface = project.find('.//con:interface', namespaces=self.NAMESPACES)
-        self.log.debug("Found interface: %s", interface)
+        self.interface = project.find('.//con:interface', namespaces=self.NAMESPACES)
+        self.log.debug("Found interface: %s", self.interface)
 
         test_suites = project.findall('.//con:testSuite', namespaces=self.NAMESPACES)
         self.log.debug("Found test suites: %s", test_suites)
