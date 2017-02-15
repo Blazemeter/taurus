@@ -114,8 +114,8 @@ class TestSoapUIConverter(BZTestCase):
         scenarios = config["scenarios"]
         scenario = scenarios["TestSuite-TestCase"]
         self.assertEqual(len(scenario["variables"]), 2)
-        self.assertIn("ApiKey", scenario["variables"])
-        self.assertIn("temp", scenario["variables"])
+        self.assertIn("#Project#ApiKey", scenario["variables"])
+        self.assertIn("#TestCase#temp", scenario["variables"])
 
     def test_rest_parameters(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))

@@ -303,8 +303,10 @@ class SoapUIScriptConverter(object):
             elif step.get("type") == "restrequest":
                 request = self._extract_rest_request(step)
             elif step.get("type") == "properties":
-                props = self._extract_properties(step)
-                variables.update(props)
+                config_block = step.find('./con:config', namespaces=self.NAMESPACES)
+                if config_block is not None:
+                    props = self._extract_properties(config_block)
+                    variables.merge(props)
             elif step.get("type") == "transfer":
                 extracted_extractors = self._extract_property_transfers(step)  # label -> extractor
                 if extracted_extractors:
