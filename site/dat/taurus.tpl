@@ -140,6 +140,11 @@
                         {/if}
                     {/if}
                 {/foreach}
+                <li role="presentation">
+                    <a href="https://gitter.im/Blazemeter/taurus">
+                        <img src="https://camo.githubusercontent.com/39cdc6c17f2b2d57b923ec2c78d923bf926a537b/68747470733a2f2f6261646765732e6769747465722e696d2f426c617a656d657465722f7461757275732e737667" alt="Gitter" data-canonical-src="https://badges.gitter.im/Blazemeter/taurus.svg" style="max-width:100%;">
+                    </a>
+                </li>
             </ul>
         </nav>
     {/if}

@@ -23,6 +23,7 @@ import logging
 import os
 import shutil
 import sys
+import threading
 import time
 import traceback
 from abc import abstractmethod
@@ -97,7 +98,10 @@ class Engine(object):
 
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
-        self._check_updates()
+
+        thread = threading.Thread(target=self._check_updates)
+        thread.daemon = True
+        thread.start()
 
         return merged_config
 
@@ -518,7 +522,7 @@ class Engine(object):
                 params = (bzt.VERSION, self.config.get("install-id", "N/A"))
                 req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
                 self.log.debug("Requesting updates info: %s", req)
-                response = urlopen(req, timeout=1)
+                response = urlopen(req, timeout=10)
                 resp = response.read()
 
                 if not isinstance(resp, str):
