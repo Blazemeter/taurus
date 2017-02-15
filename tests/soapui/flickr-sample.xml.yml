@@ -40,8 +40,6 @@ scenarios:
         query: stockholm
       label: Find Places - JSON
       url: https://api.flickr.com/services/rest
-    test-case: TestCase
-    test-suite: TestSuite
     variables:
       '#Project#ApiKey': MY_API_KEY
       '#TestCase#temp': ''
