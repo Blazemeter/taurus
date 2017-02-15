@@ -1277,7 +1277,10 @@ from selenium.webdriver.support.wait import WebDriverWait
         test_method.append(self.gen_statement("self.driver.get('%s')" % url))
 
     def gen_setup_method(self):
-        scenario_timeout = dehumanize_time(self.scenario.get("timeout", 30))
+        timeout = self.scenario.get("timeout", None)
+        if timeout is None:
+            timeout = '30s'
+        scenario_timeout = dehumanize_time(timeout)
         setup_method_def = self.gen_method_definition('setUp', ['self'])
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
         setup_method_def.append(self.gen_new_line())
@@ -1305,7 +1308,9 @@ from selenium.webdriver.support.wait import WebDriverWait
         else:
             setup_method_def.append(self.gen_statement("cls.driver = webdriver.%s()" % browser))
 
-        scenario_timeout = self.scenario.get("timeout", 30)
+        scenario_timeout = self.scenario.get("timeout", None)
+        if scenario_timeout is None:
+            scenario_timeout = '30s'
         setup_method_def.append(self.gen_impl_wait(scenario_timeout, target='cls'))
         if self.window_size:
             statement = self.gen_statement("cls.driver.set_window_size(%s, %s)" % self.window_size)
@@ -1384,7 +1389,7 @@ from selenium.webdriver.support.wait import WebDriverWait
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
-            exc = TaurusInternalException("Timeout value should be present")
+            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
             return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg))
