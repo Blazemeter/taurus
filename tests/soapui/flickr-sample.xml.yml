@@ -23,7 +23,7 @@ scenarios:
       - contains:
         - <brand id="nikon" name="Nikon" />
         not: false
-        regexp: true
+        regexp: false
         subject: body
       body:
         api_key: ${#Project#ApiKey}
