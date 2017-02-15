@@ -66,7 +66,7 @@ class SoapUIScriptConverter(object):
 
                 assertions.append({"contains": [subject],
                                    "subject": "body",
-                                   "regexp": use_regex == "false",
+                                   "regexp": use_regex != "false",
                                    "not": negate,
                                    })
         return assertions

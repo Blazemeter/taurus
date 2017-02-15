@@ -36,10 +36,14 @@ class TestSoapUIConverter(BZTestCase):
         self.assertEqual(first_req["headers"].get("X-Custom-Header"), "Value")
         self.assertIn("assert", first_req)
         self.assertEqual(2, len(first_req["assert"]))
+
         self.assertEqual("BlazeDemo", first_req["assert"][0]["contains"][0])
-        self.assertEqual(False, first_req["assert"][0]["not"])
+        self.assertFalse(first_req["assert"][0]["not"])
+        self.assertFalse(first_req["assert"][0]["regexp"])
+
         self.assertEqual("BlazeDemou", first_req["assert"][1]["contains"][0])
-        self.assertEqual(True, first_req["assert"][1]["not"])
+        self.assertTrue(first_req["assert"][1]["not"])
+        self.assertTrue(first_req["assert"][1]["regexp"])
 
         second_req = scenario["requests"][1]
         self.assertEqual("http://example.com/body", second_req["url"])
