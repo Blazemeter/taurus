@@ -306,6 +306,21 @@ class SoapUIScriptConverter(object):
 
         return scenario
 
+    def _extract_test_case(self, test_case, test_suite, suite_level_props):
+        case_properties = self._extract_properties(test_case)
+        case_properties = {
+            "#TestCase#" + key: value
+            for key, value in iteritems(case_properties)
+            }
+        case_level_props = BetterDict()
+        case_level_props.merge(suite_level_props)
+        case_level_props.merge(case_properties)
+
+        scenario = self._extract_scenario(test_case, case_level_props)
+        scenario['test-suite'] = test_suite.get("name")
+
+        return scenario
+
     def _extract_config(self, project, test_suites, target_test_case=None):
         execution = []
         scenarios = {}
@@ -325,20 +340,9 @@ class SoapUIScriptConverter(object):
             suite_level_props.merge(suite_properties)
             test_cases = suite.findall('.//con:testCase', namespaces=self.NAMESPACES)
             for case in test_cases:
-                case_properties = self._extract_properties(case)
-                case_properties = {
-                    "#TestCase#" + key: value
-                    for key, value in iteritems(case_properties)
-                }
-                case_level_props = BetterDict()
-                case_level_props.merge(suite_level_props)
-                case_level_props.merge(case_properties)
-
                 case_name = case.get("name")
                 scenario_name = suite.get("name") + "-" + case_name
-                scenario = self._extract_scenario(case, case_level_props)
-                scenario['test-suite'] = suite.get("name")
-                self.log.debug("Extracted scenario: %s", scenario_name)
+                scenario = self._extract_test_case(case, suite, suite_level_props)
 
                 load_exec = self._extract_execution(case)
                 load_exec['scenario'] = scenario_name
@@ -349,6 +353,7 @@ class SoapUIScriptConverter(object):
                     continue
 
                 if target_test_case is None or target_test_case == case_name:
+                    self.log.debug("Extracted scenario: %s", scenario_name)
                     scenarios[scenario_name] = scenario
                     execution.append(load_exec)
 
