@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-import re
 
 from bzt import TaurusInternalException
 from bzt.six import etree, iteritems
@@ -39,28 +38,6 @@ class SoapUIScriptConverter(object):
             msg = "XML parsing failed for file %s: %s"
             raise TaurusInternalException(msg % (path, exc))
 
-    @staticmethod
-    def _normalize_interpolation(text):
-        # interpolation_re = r"\$\{[^\}]+\}"
-        # interpolations = re.findall(interpolation_re, text)
-        # replacements = {}
-        # for inter in interpolations:
-        #     body = inter[2:-1]
-        #     elements = body.split("#")
-        #     if len(elements) == 1:
-        #         continue
-        #     elif len(elements) == 2:
-        #         name_only = elements[-1]
-        #         replacements[inter] = name_only
-        #     elif len(elements) > 2:
-        #         name_only = elements[-2]
-        #         replacements[inter] = name_only
-        #
-        # for block, replacement in iteritems(replacements):
-        #     text = text.replace(block, replacement)
-        #
-        return text
-
     def _extract_headers(self, config_elem):
         headers_settings = config_elem.find(
             './/con:settings/con:setting[@id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers"]',
@@ -73,7 +50,7 @@ class SoapUIScriptConverter(object):
         else:
             entries = headers.findall(".//con:entry", namespaces=self.NAMESPACES)
 
-        headers = {entry.get('key'): self._normalize_interpolation(entry.get('value'))
+        headers = {entry.get('key'): entry.get('value')
                    for entry in entries}
         return headers
 
@@ -105,7 +82,7 @@ class SoapUIScriptConverter(object):
         body = config.findtext('./con:request', namespaces=self.NAMESPACES)
         params = config.findall('./con:parameters/con:parameter', namespaces=self.NAMESPACES)
 
-        request = {"url": self._normalize_interpolation(url), "label": label}
+        request = {"url": url, "label": label}
 
         if method is not None and method != "GET":
             request["method"] = method
@@ -117,14 +94,14 @@ class SoapUIScriptConverter(object):
             request["assert"] = assertions
 
         if body is not None:
-            request["body"] = self._normalize_interpolation(body)
+            request["body"] = body
 
         if params:
             body = {}
             for param in params:
                 key = param.findtext("./con:name", namespaces=self.NAMESPACES)
                 value = param.findtext("./con:value", namespaces=self.NAMESPACES)
-                body[key] = self._normalize_interpolation(value)
+                body[key] = value
             request["body"] = body
 
         return request
@@ -157,9 +134,9 @@ class SoapUIScriptConverter(object):
                     param_value = param.findtext('./con:value', namespaces=self.NAMESPACES)
                     def_value = param.findtext('./con:default', namespaces=self.NAMESPACES)
                     if param_value:
-                        default_params[param_name] = self._normalize_interpolation(param_value)
+                        default_params[param_name] = param_value
                     elif def_value:
-                        default_params[param_name] = self._normalize_interpolation(def_value)
+                        default_params[param_name] = def_value
 
                 parent = parent.getparent()
 
@@ -169,7 +146,7 @@ class SoapUIScriptConverter(object):
 
         parameters = config.findall('./con:restRequest/con:parameters/con:entry', namespaces=self.NAMESPACES)
 
-        request = {"url": self._normalize_interpolation(url), "label": label}
+        request = {"url": url, "label": label}
 
         if method is not None and method != "GET":
             request["method"] = method
@@ -184,7 +161,7 @@ class SoapUIScriptConverter(object):
         for key, value in iteritems(default_params):
             body[key] = value
         for entry in parameters:
-            body[entry.get("key")] = self._normalize_interpolation(entry.get("value"))
+            body[entry.get("key")] = entry.get("value")
         if body:
             request["body"] = body
 
