@@ -20,6 +20,7 @@ import os
 import re
 import time
 import traceback
+import copy
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools
@@ -405,8 +406,8 @@ class TsungConfig(object):
             if request.body:
                 http_elem.set('contents', request.body)
 
-            headers = scenario.get_headers()
-            headers.update(request.headers)
+            headers = copy.deepcopy(scenario.get_headers())
+            headers.update(copy.deepcopy(request.headers))
             for header_name, header_value in iteritems(headers):
                 http_elem.append(etree.Element("http_header", name=header_name, value=header_value))
 
