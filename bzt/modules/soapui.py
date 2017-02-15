@@ -307,8 +307,8 @@ class SoapUIScriptConverter(object):
         return scenario
 
     def _extract_test_case(self, test_case, test_suite, suite_level_props):
-        case_name = case.get("name")
-        scenario_name = suite.get("name") + "-" + case_name
+        case_name = test_case.get("name")
+        scenario_name = test_suite.get("name") + "-" + case_name
 
         case_properties = self._extract_properties(test_case)
         case_properties = {
