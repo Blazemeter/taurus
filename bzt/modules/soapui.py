@@ -167,14 +167,14 @@ class SoapUIScriptConverter(object):
 
         return request
 
-    def _extract_properties(self, block):
+    def _extract_properties(self, block, key_prefix=""):
         properties = block.findall('./con:properties/con:property', namespaces=self.NAMESPACES)
-        return {
-            prop.findtext('./con:name',
-                          namespaces=self.NAMESPACES): prop.findtext('./con:value',
-                                                                     namespaces=self.NAMESPACES)
-            for prop in properties
-        }
+        prop_map = {}
+        for prop in properties:
+            key = key_prefix + prop.findtext('./con:name', namespaces=self.NAMESPACES)
+            value = prop.findtext('./con:value', namespaces=self.NAMESPACES)
+            prop_map[key] = value
+        return prop_map
 
     def _extract_execution(self, test_case):
         load_exec = {}
@@ -307,6 +307,9 @@ class SoapUIScriptConverter(object):
         return scenario
 
     def _extract_test_case(self, test_case, test_suite, suite_level_props):
+        case_name = case.get("name")
+        scenario_name = suite.get("name") + "-" + case_name
+
         case_properties = self._extract_properties(test_case)
         case_properties = {
             "#TestCase#" + key: value
@@ -319,30 +322,23 @@ class SoapUIScriptConverter(object):
         scenario = self._extract_scenario(test_case, case_level_props)
         scenario['test-suite'] = test_suite.get("name")
 
-        return scenario
+        return scenario_name, scenario
 
     def _extract_config(self, project, test_suites, target_test_case=None):
         execution = []
         scenarios = {}
-        project_properties = {
-            "#Project#" + key: value
-            for key, value in iteritems(self._extract_properties(project))
-        }
+
+        project_properties = self._extract_properties(project, key_prefix="#Project#")
 
         for suite in test_suites:
-            suite_properties = self._extract_properties(suite)
-            suite_properties = {
-                "#TestSuite#" + key: value
-                for key, value in iteritems(suite_properties)
-            }
-            suite_level_props = BetterDict()
-            suite_level_props.merge(project_properties)
-            suite_level_props.merge(suite_properties)
+            suite_props = BetterDict()
+            suite_props.merge(project_properties)
+            suite_props.merge(self._extract_properties(suite, key_prefix="#TestSuite#"))
+
             test_cases = suite.findall('.//con:testCase', namespaces=self.NAMESPACES)
             for case in test_cases:
                 case_name = case.get("name")
-                scenario_name = suite.get("name") + "-" + case_name
-                scenario = self._extract_test_case(case, suite, suite_level_props)
+                scenario_name, scenario = self._extract_test_case(case, suite, suite_props)
 
                 load_exec = self._extract_execution(case)
                 load_exec['scenario'] = scenario_name
