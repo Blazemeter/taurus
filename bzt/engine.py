@@ -99,8 +99,7 @@ class Engine(object):
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
 
-        thread = threading.Thread(target=self._check_updates)
-        thread.daemon = True
+        thread = threading.Thread(target=self._check_updates) # intentionally non-daemon thread
         thread.start()
 
         return merged_config
@@ -534,7 +533,9 @@ class Engine(object):
                 mine = LooseVersion(bzt.VERSION)
                 latest = LooseVersion(data['latest'])
                 if mine < latest or data['needsUpgrade']:
-                    self.log.warning("There is newer version of Taurus %s available, consider upgrading", latest)
+                    msg = "There is newer version of Taurus %s available, consider upgrading. " \
+                          "What's new: http://gettaurus.org/docs/Changelog/"
+                    self.log.warning(msg, latest)
                 else:
                     self.log.debug("Installation is up-to-date")
 
