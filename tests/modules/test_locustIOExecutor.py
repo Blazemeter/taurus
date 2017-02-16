@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import time
 
@@ -250,3 +251,30 @@ class TestLocustIOExecutor(BZTestCase):
 
         self.assertEqual(gen_contents, sample_contents)
 
+    def test_jtl_key_order(self):
+        self.obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 1,
+            "hold-for": 30,
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "requests": [
+                    "/"
+                ]
+            }
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+
+        kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
+        if os.path.exists(kpi_path):
+            with open(kpi_path) as fds:
+                jtl = fds.readlines()
+
+            header_line = jtl[0].strip()
+            expected_header = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
+            self.assertEqual(header_line, expected_header)
