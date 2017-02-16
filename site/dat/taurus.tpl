@@ -140,11 +140,6 @@
                         {/if}
                     {/if}
                 {/foreach}
-                <li role="presentation">
-                    <a href="https://gitter.im/Blazemeter/taurus">
-                        <img src="https://camo.githubusercontent.com/39cdc6c17f2b2d57b923ec2c78d923bf926a537b/68747470733a2f2f6261646765732e6769747465722e696d2f426c617a656d657465722f7461757275732e737667" alt="Gitter" data-canonical-src="https://badges.gitter.im/Blazemeter/taurus.svg" style="max-width:100%;">
-                    </a>
-                </li>
             </ul>
         </nav>
     {/if}
@@ -190,6 +185,17 @@
             $(".yaml-json-switch").append(toYAML.click()).append(toJSON);
         });
     </script>
+
+    <button class="js-gitter-toggle-chat-button gitter-button">
+        <i class="fa fa-comments-o" aria-hidden="true"></i> Users Chat
+    </button>
+    <script>
+        ((window.gitter = {}).chat = {}).options = {
+            room: 'Blazemeter/taurus',
+            activationElement: false
+        };
+    </script>
+    <script src="https://sidecar.gitter.im/dist/sidecar.v1.js" async defer></script>
 </footer>
 
 </body>
