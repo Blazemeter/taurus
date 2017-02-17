@@ -52,7 +52,7 @@ RUN apt-get -y update \
   && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
   && wget http://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip -P /tmp \
   && unzip -d /usr/bin /tmp/chromedriver_linux64.zip \
-  && wget https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v{GECKODRIVER_VERSION}-linux64.tar.gz -P /tmp \
+  && wget https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz -P /tmp \
   && tar -xzf /tmp/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz --directory /usr/local/bin \
   && rm -rf /var/lib/apt/lists/* \
   && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
