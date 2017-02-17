@@ -106,6 +106,28 @@ class SoapUIScriptConverter(object):
 
         return request
 
+    def _extract_soap_request(self, test_step):
+        label = test_step.get('name')
+        config = test_step.find('./con:config', namespaces=self.NAMESPACES)
+        body = config.findtext('./con:request/con:request', namespaces=self.NAMESPACES)
+
+        interface = config.findtext('./con:interface', namespaces=self.NAMESPACES)
+        operation = config.findtext('./con:operation', namespaces=self.NAMESPACES)  # we can infer 'url' from there
+
+        request = {
+            "url": "https://webservices.amazon.com/onca/soap?Service=AWSECommerceService",
+            "label": label,
+            "method": "POST",
+            "headers": {
+                "Content-Type": "text/xml; charset=utf-8",
+            }
+        }
+
+        if body:
+            request["body"] = body
+
+        return request
+
     def _calc_base_address(self, test_step):
         config = test_step.find('./con:config', namespaces=self.NAMESPACES)
         service = config.get('service')
@@ -279,6 +301,8 @@ class SoapUIScriptConverter(object):
                 request = self._extract_http_request(step)
             elif step.get("type") == "restrequest":
                 request = self._extract_rest_request(step)
+            elif step.get("type") == "request":
+                request = self._extract_soap_request(step)
             elif step.get("type") == "properties":
                 config_block = step.find('./con:config', namespaces=self.NAMESPACES)
                 if config_block is not None:

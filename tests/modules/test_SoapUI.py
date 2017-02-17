@@ -99,8 +99,8 @@ class TestSoapUIConverter(BZTestCase):
         obj = SoapUIScriptConverter(logging.getLogger(''))
         obj.log.addHandler(log_recorder)
 
-        obj.convert_script(__dir__() + "/../soapui/amazon-sample.xml")
-        self.assertIn("No requests extracted for scenario TestSuite 1-TestCase 1, skipping it",
+        obj.convert_script(__dir__() + "/../soapui/project.xml")
+        self.assertIn("No requests extracted for scenario TestSuite 1-EmptyTestCase, skipping it",
                       log_recorder.warn_buff.getvalue())
 
     def test_rest_service_name_as_base_address(self):
