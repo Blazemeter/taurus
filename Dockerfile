@@ -4,8 +4,6 @@ ENV CHROMEDRIVER_VERSION=2.27
 ENV GECKODRIVER_VERSION=0.14.0
 
 ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
-ADD http://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip /tmp
-ADD https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v{GECKODRIVER_VERSION}-linux64.tar.gz /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_6.x /tmp
 RUN apt-get -y update \
@@ -52,7 +50,9 @@ RUN apt-get -y update \
   && gem install rspec \
   && gem install selenium-webdriver \
   && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
+  && wget http://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip -P /tmp
   && unzip -d /usr/bin /tmp/chromedriver_linux64.zip \
+  && wget https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v{GECKODRIVER_VERSION}-linux64.tar.gz -P /tmp
   && tar -xzf /tmp/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz --directory /usr/local/bin \
   && rm -rf /var/lib/apt/lists/* \
   && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
