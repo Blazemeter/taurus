@@ -737,7 +737,18 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx = JMX(self.original_jmx)
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
             if resource_files_from_jmx:
-                self.execution.get('files', []).extend(resource_files_from_jmx)
+                execution_files = self.execution.get('files', [])
+                script_basedir = os.path.dirname(get_full_path(self.original_jmx))
+                for res_file in resource_files_from_jmx:
+                    if not os.path.exists(res_file):
+                        path_relative_to_jmx = os.path.join(script_basedir, res_file)
+                        if os.path.exists(path_relative_to_jmx):
+                            self.log.info("Found resource file with path relative to JMX: %s", path_relative_to_jmx)
+                            execution_files.append(path_relative_to_jmx)
+                            continue
+                    execution_files.append(res_file)
+
+                # self.execution.get('files', []).extend(resource_files_from_jmx)
                 self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
                 script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
                 self.original_jmx = self.engine.create_artifact(script_name, script_ext)
