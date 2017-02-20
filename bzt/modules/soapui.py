@@ -106,16 +106,44 @@ class SoapUIScriptConverter(object):
 
         return request
 
+    def _extract_soap_endpoint(self, interface_name, operation_name):
+        interface = self.tree.find("//con:interface[@name='%s']" % interface_name, namespaces=self.NAMESPACES)
+        if interface is None:
+            self.log.warning("Can't find intreface %s for operation %s, skipping", interface_name, operation_name)
+            return None
+
+        interface_endpoint = interface.findtext("./con:endpoints/con:endpoint", namespaces=self.NAMESPACES)
+
+        operation = interface.find(".//con:operation[@name='%s']" % operation_name, namespaces=self.NAMESPACES)
+        if operation is None:
+            self.log.warning("Can't find operation %s for interface %s, skipping", operation_name, interface_name)
+            return None
+
+        operation_endpoint = operation.findtext(".//con:endpoint", namespaces=self.NAMESPACES)
+
+        if operation_endpoint is not None:
+            return operation_endpoint
+        elif interface_endpoint is not None:
+            return interface_endpoint
+        else:
+            self.log.warning("Can't find endpoint for %s:%s", interface_name, operation_name)
+            return None
+
     def _extract_soap_request(self, test_step):
         label = test_step.get('name')
         config = test_step.find('./con:config', namespaces=self.NAMESPACES)
         body = config.findtext('./con:request/con:request', namespaces=self.NAMESPACES)
 
         interface = config.findtext('./con:interface', namespaces=self.NAMESPACES)
-        operation = config.findtext('./con:operation', namespaces=self.NAMESPACES)  # we can infer 'url' from there
+        operation = config.findtext('./con:operation', namespaces=self.NAMESPACES)
+        self.log.debug("Extracting SOAP request, interface=%r, operation=%r", interface, operation)
+        endpoint = self._extract_soap_endpoint(interface, operation)
+
+        if endpoint is None:
+            return
 
         request = {
-            "url": "https://webservices.amazon.com/onca/soap?Service=AWSECommerceService",
+            "url": endpoint,
             "label": label,
             "method": "POST",
             "headers": {

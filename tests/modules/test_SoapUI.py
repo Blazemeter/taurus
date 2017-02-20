@@ -131,3 +131,24 @@ class TestSoapUIConverter(BZTestCase):
         self.assertIn("body", first)
         self.assertEqual(len(first["body"]), 4)
         self.assertTrue(all(key in first["body"] for key in ["format", "method", "nojsoncallback", "api_key"]))
+
+    def test_soap_conversion(self):
+        obj = SoapUIScriptConverter(logging.getLogger(''))
+        config = obj.convert_script(__dir__() + "/../soapui/globalweather.xml")
+        self.assertEqual(len(config["scenarios"]), 3)
+        merged = config["scenarios"]["GWSOAPMerged-Test"]
+        split1 = config["scenarios"]["GWSOAPSplit-GetCities"]
+        split2 = config["scenarios"]["GWSOAPSplit-GetWeather"]
+
+        self.assertEqual(len(merged["requests"]), 2)
+        self.assertEqual(merged["requests"][0]["url"], "http://www.webservicex.com/globalweather.asmx")
+        self.assertEqual(merged["requests"][0]["method"], "POST")
+        self.assertEqual(merged["requests"][0]["headers"]["Content-Type"], "text/xml; charset=utf-8")
+        self.assertIn("body", merged["requests"][0])
+        self.assertEqual(merged["requests"][1]["url"], "http://www.webservicex.com/globalweather.asmx")
+
+        self.assertEqual(len(split1["requests"]), 1)
+        self.assertEqual(split1["requests"][0]["url"], "http://www.webservicex.com/globalweather.asmx")
+
+        self.assertEqual(len(split2["requests"]), 1)
+        self.assertEqual(split2["requests"][0]["url"], "http://www.webservicex.com/globalweather.asmx")
