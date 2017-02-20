@@ -1,0 +1,39 @@
+---
+scenarios:
+  base: # this scenario will be re-used below with changing csv_file property
+    data-sources:
+    - ${__P(csv_file)}
+    requests:
+    - ${url}
+
+  csv1:
+    properties:
+      csv_file: csv1.csv
+    requests:
+    - include-scenario: base
+
+  csv2:
+    properties:
+      csv_file: csv2.csv
+    requests:
+    - include-scenario: base
+
+  csv3:
+    properties:
+      csv_file: csv3.csv
+    requests:
+    - include-scenario: base
+
+# this will make executions to run one after another
+modules:
+  local:
+    sequential: true
+    
+execution: # three executions, one per CSV file
+- scenario: csv1
+  iterations: 1
+- scenario: csv2
+  iterations: 1
+- scenario: csv3
+  iterations: 1
+

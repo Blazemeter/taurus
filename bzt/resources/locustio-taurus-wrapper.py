@@ -3,6 +3,7 @@ import csv
 import json
 import os
 import time
+from collections import OrderedDict
 
 from locust import main, events, runners
 from locust.exception import StopLocust
@@ -34,20 +35,20 @@ class LocustStarter(object):
             rcode = exc.message[:exc.message.index(' ')]
             rmsg = exc.message[exc.message.index(':') + 2:]
 
-        return {
-            'timeStamp': "%d" % (time.time() * 1000),
-            'label': name,
-            'method': request_type,
-            'elapsed': response_time,
-            'bytes': response_length,  # NOTE: not sure if the field name is right
-            'responseCode': rcode,
-            'responseMessage': rmsg,
-            'success': 'true' if exc is None else 'false',
+        return OrderedDict([
+            ('timeStamp', "%d" % (time.time() * 1000)),
+            ('label', name),
+            ('method', request_type),
+            ('elapsed', response_time),
+            ('bytes', response_length),
+            ('responseCode', rcode),
+            ('responseMessage', rmsg),
+            ('success', 'true' if exc is None else 'false'),
 
             # NOTE: might be resource-consuming
-            "allThreads": runners.locust_runner.user_count if runners.locust_runner else 0,
-            "Latency": 0
-        }
+            ('allThreads', runners.locust_runner.user_count if runners.locust_runner else 0),
+            ('Latency', 0),
+        ])
 
     def __on_request_success(self, request_type, name, response_time, response_length):
         self.writer.writerow(self.__getrec(request_type, name, response_time, response_length))
