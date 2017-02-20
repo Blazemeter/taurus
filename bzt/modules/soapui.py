@@ -243,7 +243,7 @@ class SoapUIScriptConverter(object):
             return False
 
         source_step_type = source_step.get("type")
-        if source_step_type not in ["httprequest", "restrequest"]:
+        if source_step_type not in ["httprequest", "restrequest", "request"]:
             self.log.warning("Unsupported source step type for Property Transfer (%s). Skipping", source_step_type)
             return False
 
