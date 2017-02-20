@@ -10,7 +10,7 @@ scenarios:
       - contains:
         - BlazeDemo
         not: false
-        regexp: true
+        regexp: false
         subject: body
       - contains:
         - BlazeDemou
@@ -40,8 +40,6 @@ scenarios:
           jsonpath: $.baz
       label: /api/json
       url: http://localhost:9999/api/${route_part}
-    test-case: index
-    test-suite: TestSuite 1
     variables:
       route_part: json
       something: foo

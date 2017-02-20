@@ -36,10 +36,14 @@ class TestSoapUIConverter(BZTestCase):
         self.assertEqual(first_req["headers"].get("X-Custom-Header"), "Value")
         self.assertIn("assert", first_req)
         self.assertEqual(2, len(first_req["assert"]))
+
         self.assertEqual("BlazeDemo", first_req["assert"][0]["contains"][0])
-        self.assertEqual(False, first_req["assert"][0]["not"])
+        self.assertFalse(first_req["assert"][0]["not"])
+        self.assertFalse(first_req["assert"][0]["regexp"])
+
         self.assertEqual("BlazeDemou", first_req["assert"][1]["contains"][0])
-        self.assertEqual(True, first_req["assert"][1]["not"])
+        self.assertTrue(first_req["assert"][1]["not"])
+        self.assertTrue(first_req["assert"][1]["regexp"])
 
         second_req = scenario["requests"][1]
         self.assertEqual("http://example.com/body", second_req["url"])
@@ -95,8 +99,8 @@ class TestSoapUIConverter(BZTestCase):
         obj = SoapUIScriptConverter(logging.getLogger(''))
         obj.log.addHandler(log_recorder)
 
-        obj.convert_script(__dir__() + "/../soapui/amazon-sample.xml")
-        self.assertIn("No requests extracted for scenario TestSuite 1-TestCase 1, skipping it",
+        obj.convert_script(__dir__() + "/../soapui/project.xml")
+        self.assertIn("No requests extracted for scenario TestSuite 1-EmptyTestCase, skipping it",
                       log_recorder.warn_buff.getvalue())
 
     def test_rest_service_name_as_base_address(self):
@@ -107,3 +111,44 @@ class TestSoapUIConverter(BZTestCase):
         self.assertEqual(len(scenario["requests"]), 5)
         for request in scenario["requests"]:
             self.assertTrue(request["url"].startswith("http://gdata.youtube.com/"))
+
+    def test_project_suite_case_level_properties(self):
+        obj = SoapUIScriptConverter(logging.getLogger(''))
+        config = obj.convert_script(__dir__() + "/../soapui/flickr-sample.xml")
+        scenarios = config["scenarios"]
+        scenario = scenarios["TestSuite-TestCase"]
+        self.assertEqual(len(scenario["variables"]), 2)
+        self.assertIn("#Project#ApiKey", scenario["variables"])
+        self.assertIn("#TestCase#temp", scenario["variables"])
+
+    def test_rest_parameters(self):
+        obj = SoapUIScriptConverter(logging.getLogger(''))
+        config = obj.convert_script(__dir__() + "/../soapui/flickr-sample.xml")
+        scenarios = config["scenarios"]
+        scenario = scenarios["TestSuite-TestCase"]
+        self.assertEqual(len(scenario["requests"]), 4)
+        first = scenario["requests"][0]
+        self.assertIn("body", first)
+        self.assertEqual(len(first["body"]), 4)
+        self.assertTrue(all(key in first["body"] for key in ["format", "method", "nojsoncallback", "api_key"]))
+
+    def test_soap_conversion(self):
+        obj = SoapUIScriptConverter(logging.getLogger(''))
+        config = obj.convert_script(__dir__() + "/../soapui/globalweather.xml")
+        self.assertEqual(len(config["scenarios"]), 3)
+        merged = config["scenarios"]["GWSOAPMerged-Test"]
+        split1 = config["scenarios"]["GWSOAPSplit-GetCities"]
+        split2 = config["scenarios"]["GWSOAPSplit-GetWeather"]
+
+        self.assertEqual(len(merged["requests"]), 2)
+        self.assertEqual(merged["requests"][0]["url"], "http://www.webservicex.com/globalweather.asmx")
+        self.assertEqual(merged["requests"][0]["method"], "POST")
+        self.assertEqual(merged["requests"][0]["headers"]["Content-Type"], "text/xml; charset=utf-8")
+        self.assertIn("body", merged["requests"][0])
+        self.assertEqual(merged["requests"][1]["url"], "http://www.webservicex.com/globalweather.asmx")
+
+        self.assertEqual(len(split1["requests"]), 1)
+        self.assertEqual(split1["requests"][0]["url"], "http://www.webservicex.com/globalweather.asmx")
+
+        self.assertEqual(len(split2["requests"]), 1)
+        self.assertEqual(split2["requests"][0]["url"], "http://www.webservicex.com/globalweather.asmx")
