@@ -413,6 +413,93 @@ class TestResultsFromBZA(BZTestCase):
         percentiles_ = total[KPISet.PERCENTILES]
         self.assertEquals(1.05, percentiles_['99.0'])
 
+    def test_no_kpis_on_cloud_crash(self):
+        client = BlazeMeterClientEmul(logging.getLogger(""))
+        client.results.append({
+            "api_version": 2,
+            "error": None,
+            "result": [
+                {
+                    "sessions": [
+                        "r-t-5746a8e38569a"
+                    ],
+                    "id": "ALL",
+                    "name": "ALL"
+                },
+                {
+                    "sessions": [
+                        "r-t-5746a8e38569a"
+                    ],
+                    "id": "e843ff89a5737891a10251cbb0db08e5",
+                    "name": "http://blazedemo.com/"
+                }
+            ]
+        })
+        client.results.append({
+            "api_version": 2,
+            "error": None,
+            "result": [
+                {
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                }
+            ]
+        })
+        client.results.append({
+            "api_version": 2,
+            "error": None,
+            "result": [
+                {
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "samples": 152,
+                    "avgResponseTime": 786,
+                    "90line": 836,
+                    "95line": 912,
+                    "99line": 1050,
+                    "minResponseTime": 531,
+                    "maxResponseTime": 1148,
+                    "avgLatency": 81,
+                    "geoMeanResponseTime": None,
+                    "stDev": 108,
+                    "duration": 119,
+                    "avgBytes": 0,
+                    "avgThroughput": 1.2773109243697,
+                    "medianResponseTime": 0,
+                    "errorsCount": 0,
+                    "errorsRate": 0,
+                    "hasLabelPassedThresholds": None
+                },
+                {
+                    "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                    "labelName": "http://blazedemo.com/",
+                    "samples": 152,
+                    "avgResponseTime": 786,
+                    "90line": 836,
+                    "95line": 912,
+                    "99line": 1050,
+                    "minResponseTime": 531,
+                    "maxResponseTime": 1148,
+                    "avgLatency": 81,
+                    "geoMeanResponseTime": None,
+                    "stDev": 108,
+                    "duration": 119,
+                    "avgBytes": 0,
+                    "avgThroughput": 1.2773109243697,
+                    "medianResponseTime": 0,
+                    "errorsCount": 0,
+                    "errorsRate": 0,
+                    "hasLabelPassedThresholds": None
+                }
+            ]
+        })
+
+        obj = ResultsFromBZA(client)
+        obj.master_id = 0
+
+        res = list(obj.datapoints(True))
+        self.assertEqual(res, [])
+
 
 class TestMonitoringBuffer(BZTestCase):
     def to_rad(self, deg):
