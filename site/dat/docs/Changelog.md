@@ -18,6 +18,7 @@
  - fix passfail `rc404>10 within 1m` logic
  - fix overriding concurrency in case thread groups have non-int values inside
  - fix JMeter's treatment of resource files for cloud tests that have paths relative to the JMX
+ - fix crash on cloud test results handling caused by API changes
 
 
 [Changelog for Year 2016](Changelog2016.md)
