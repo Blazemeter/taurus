@@ -754,8 +754,8 @@ class CloudTaurusTest(BaseCloudTest):
             self.test_id = self.client.create_test(self.test_name, test_config, self.project_id)
         self.client.setup_test(self.test_id, taurus_config, rfiles)
 
-    def launch_test(self):
-        return self.client.start_cloud_test(self.test_id)
+    def launch_test(self, master_name):
+        return self.client.start_cloud_test(self.test_id, master_name)
 
     def start_if_ready(self):
         self._started = True
@@ -878,8 +878,8 @@ class CloudCollectionTest(BaseCloudTest):
             self.log.debug("Overriding cloud collection test")
             self.client.setup_collection(self.test_id, self.test_name, taurus_config, rfiles, self.project_id)
 
-    def launch_test(self):
-        return self.client.launch_cloud_collection(self.test_id)
+    def launch_test(self, master_name):
+        return self.client.launch_cloud_collection(self.test_id, master_name)
 
     def start_if_ready(self):
         if self._started:
@@ -1107,11 +1107,12 @@ class BlazeMeterClient(object):
             self.results_url = resp['result']['publicTokenUrl']
         return self.results_url
 
-    def start_cloud_test(self, test_id):
+    def start_cloud_test(self, test_id, master_name):
         """
         Start online test
 
         :type test_id: str
+        :type master_name: str
         :return:
         """
         self.log.info("Initiating cloud test with %s ...", self.address)
@@ -1124,9 +1125,15 @@ class BlazeMeterClient(object):
         self.log.debug("Response: %s", resp['result'])
         self.master_id = str(resp['result']['id'])
         self.results_url = self.address + '/app/#masters/%s' % self.master_id
+
+        if master_name:
+            url = self.address + "/api/latest/masters/%s" % self.master_id
+            self._request(url, to_json({"name": str(master_name)}),
+                      headers={"Content-Type": "application/json"}, method='PATCH')
+
         return self.results_url
 
-    def launch_cloud_collection(self, collection_id):
+    def launch_cloud_collection(self, collection_id, master_name):
         self.log.info("Initiating cloud test with %s ...", self.address)
         # NOTE: delayedStart=true means that BM will not start test until all instances are ready
         # if omitted - instances will start once ready (not simultaneously),
@@ -1694,6 +1701,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.check_interval = 5.0
         self.__last_check_time = None
         self.public_report = False
+        self.master_name = None
 
     def _merge_with_blazemeter_config(self):
         if 'blazemeter' not in self.engine.config.get('modules'):
@@ -1721,6 +1729,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.detach = self.settings.get("detach", self.detach)
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
         self.public_report = self.settings.get("public-report", self.public_report)
+        self.master_name = self.settings.get("report-name", self.master_name)
+
         self._configure_client()
         self._filter_reporting()
 
@@ -1766,7 +1776,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def startup(self):
         super(CloudProvisioning, self).startup()
-        self.test.launch_test()
+        self.test.launch_test(self.master_name)
         self.log.info("Started cloud test: %s", self.client.results_url)
         if self.client.results_url:
             if self.browser_open in ('start', 'both'):
