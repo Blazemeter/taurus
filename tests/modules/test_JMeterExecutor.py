@@ -2148,6 +2148,18 @@ class TestJMeterExecutor(BZTestCase):
         })
         self.obj.resource_files()
 
+    def test_resource_files_relpath(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "script": __dir__() + "/../jmeter/jmx/nested/directory/csv.jmx"
+                }
+            }
+        })
+        resources = self.obj.get_resource_files()
+        self.assertNotIn("a.csv", resources)
+        self.assertTrue(any(res.endswith(os.path.join("nested", "directory", "a.csv")) for res in resources))
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
