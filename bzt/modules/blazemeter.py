@@ -1878,23 +1878,23 @@ class ResultsFromBZA(ResultsProvider):
             aggr[label['labelName']] = label
 
         for label in data:
-            if label['kpis'] and not final_pass:
+            if label.get('kpis') and not final_pass:
                 label['kpis'].pop(-1)  # never take last second since it could be incomplete
 
         timestamps = []
         for label in data:
-            if label['label'] == 'ALL':
-                timestamps.extend([kpi['ts'] for kpi in label['kpis']])
+            if label.get('label') == 'ALL':
+                timestamps.extend([kpi['ts'] for kpi in label.get('kpis', [])])
 
         for tstmp in timestamps:
             point = DataPoint(tstmp)
             for label in data:
-                for kpi in label['kpis']:
+                for kpi in label.get('kpis', []):
                     if kpi['ts'] != tstmp:
                         continue
 
-                    label_str = label['label']
-                    if label_str not in aggr:
+                    label_str = label.get('label')
+                    if label_str is None or label_str not in aggr:
                         self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
                         continue
 
