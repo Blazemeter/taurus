@@ -724,6 +724,25 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if missed_files:
             self.log.warning("Files not found in JMX: %s", missed_files)
 
+    def _resolve_jmx_relpaths(self, resource_files_from_jmx):
+        """
+        Attempt to paths relative to JMX script itself.
+
+        :param resource_files_from_jmx:
+        :return:
+        """
+        resource_files = []
+        script_basedir = os.path.dirname(get_full_path(self.original_jmx))
+        for res_file in resource_files_from_jmx:
+            if not os.path.exists(res_file):
+                path_relative_to_jmx = os.path.join(script_basedir, res_file)
+                if os.path.exists(path_relative_to_jmx):
+                    self.log.info("Resolved resource file with path relative to JMX: %s", path_relative_to_jmx)
+                    resource_files.append(path_relative_to_jmx)
+                    continue
+            resource_files.append(res_file)
+        return resource_files
+
     def resource_files(self):
         """
         Get list of resource files, modify jmx file paths if necessary
@@ -738,17 +757,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
             if resource_files_from_jmx:
                 execution_files = self.execution.get('files', [])
-                script_basedir = os.path.dirname(get_full_path(self.original_jmx))
-                for res_file in resource_files_from_jmx:
-                    if not os.path.exists(res_file):
-                        path_relative_to_jmx = os.path.join(script_basedir, res_file)
-                        if os.path.exists(path_relative_to_jmx):
-                            self.log.info("Found resource file with path relative to JMX: %s", path_relative_to_jmx)
-                            execution_files.append(path_relative_to_jmx)
-                            continue
-                    execution_files.append(res_file)
-
-                # self.execution.get('files', []).extend(resource_files_from_jmx)
+                execution_files.extend(self._resolve_jmx_relpaths(resource_files_from_jmx))
                 self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
                 script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
                 self.original_jmx = self.engine.create_artifact(script_name, script_ext)
