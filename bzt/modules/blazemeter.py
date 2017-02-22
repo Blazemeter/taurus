@@ -1455,6 +1455,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.results_url:
             if self.browser_open in ('end', 'both'):
                 open_browser(self.results_url)
+        if self.router.master:
+            full = self.router.master.get_full()
+
 
     def get_widget(self):
         if not self.widget:
