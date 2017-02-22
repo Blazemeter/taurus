@@ -62,6 +62,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "TransactionController",
               "JSR223PreProcessor",
               "JSR223PostProcessor",
+              "BeanShellPreProcessor",
+              "BeanShellPostProcessor"
               ]
 
 
@@ -871,16 +873,19 @@ class JMXasDict(JMX):
 
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
+            processors = ("JSR223PreProcessor", "JSR223PostProcessor",
+                          "BeanShellPreProcessor", "BeanShellPostProcessor")
             elements = [element
                         for element in hashtree.iterchildren()
-                        if element.tag in ("JSR223PreProcessor", "JSR223PostProcessor")]
+                        if element.tag in processors]
             for element in elements:
                 if element is not None:
-                    language = self._get_string_prop(element, 'scriptLanguage')
+                    beanshell = element.tag.lower().startswith('beanshell')
+                    language = 'beanshell' if beanshell else self._get_string_prop(element, 'scriptLanguage')
                     filename = self._get_string_prop(element, 'filename')
                     params = self._get_string_prop(element, 'parameters')
                     script = self._get_string_prop(element, 'script')
-                    execute = "before" if element.tag == "JSR223PreProcessor" else "after"
+                    execute = "before" if element.tag.lower().endswith == "preprocessor" else "after"
                     if filename:
                         jsr = {
                             "language": language,

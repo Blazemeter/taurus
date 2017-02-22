@@ -58,7 +58,7 @@
             <stringProp name="cacheKey"></stringProp>
             <stringProp name="filename"></stringProp>
             <stringProp name="parameters">a b c</stringProp>
-            <stringProp name="script">console.log(&quot;ПРИВЕТ&quot;);</stringProp>
+            <stringProp name="script">console.log(&quot;hello&quot;);</stringProp>
             <stringProp name="scriptLanguage">javascript</stringProp>
           </JSR223PostProcessor>
           <hashTree/>
@@ -69,6 +69,13 @@
             <stringProp name="cacheKey"></stringProp>
             <stringProp name="script">log.info(&quot;bye&quot;);</stringProp>
           </JSR223PostProcessor>
+          <hashTree/>
+          <BeanShellPreProcessor guiclass="TestBeanGUI" testclass="BeanShellPreProcessor" testname="BeanShell PreProcessor" enabled="true">
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters"></stringProp>
+            <boolProp name="resetInterpreter">false</boolProp>
+            <stringProp name="script">console.log(&quot;beanshell aka jsr223&quot;);</stringProp>
+          </BeanShellPreProcessor>
           <hashTree/>
         </hashTree>
       </hashTree>
