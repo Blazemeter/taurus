@@ -88,33 +88,43 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             return scenario_obj
 
         if "script" in scenario_obj and scenario_obj["script"] is not None:
-            script_path = scenario_obj["script"]
+            script_path = self.engine.find_file(scenario_obj["script"])
             with open(script_path) as fds:
                 script_content = fds.read()
             if "con:soapui-project" in script_content:
                 self.log.info("SoapUI project detected")
-                test_case = scenario_obj.get("test-case", None)
-                converter = SoapUIScriptConverter(self.log)
-                conv_config = converter.convert_script(script_path)
-                conv_scenarios = conv_config["scenarios"]
-                scenario_name, conv_scenario = converter.find_soapui_test_case(test_case, conv_scenarios)
-
-                new_name = scenario_name
-                counter = 1
-                while new_name in self.engine.config["scenarios"]:
-                    new_name = scenario_name + ("-%s" % counter)
-                    counter += 1
-
-                if new_name != scenario_name:
-                    self.log.info("Scenario name '%s' is already taken, renaming to '%s'", scenario_name, new_name)
-                    scenario_name = new_name
-
-                self.engine.config["scenarios"].merge({scenario_name: conv_scenario})
+                scenario_name, merged_scenario = self._extract_scenario_from_soapui(scenario_obj, script_path)
+                self.engine.config["scenarios"].merge({scenario_name: merged_scenario})
                 self.execution["scenario"] = scenario_name
-
                 return super(JMeterExecutor, self).get_scenario(name=scenario_name)
 
         return scenario_obj
+
+    def _extract_scenario_from_soapui(self, base_scenario, script_path):
+        test_case = base_scenario.get("test-case", None)
+        converter = SoapUIScriptConverter(self.log)
+        conv_config = converter.convert_script(script_path)
+        conv_scenarios = conv_config["scenarios"]
+        scenario_name, conv_scenario = converter.find_soapui_test_case(test_case, conv_scenarios)
+
+        new_name = scenario_name
+        counter = 1
+        while new_name in self.engine.config["scenarios"]:
+            new_name = scenario_name + ("-%s" % counter)
+            counter += 1
+
+        if new_name != scenario_name:
+            self.log.info("Scenario name '%s' is already taken, renaming to '%s'", scenario_name, new_name)
+            scenario_name = new_name
+
+        merged_scenario = BetterDict()
+        merged_scenario.merge(conv_scenario)
+        merged_scenario.merge(base_scenario.data)
+        for field in ["script", "test-case"]:
+            if field in merged_scenario:
+                merged_scenario.pop(field)
+
+        return scenario_name, merged_scenario
 
     def prepare(self):
         """

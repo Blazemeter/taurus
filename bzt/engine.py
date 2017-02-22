@@ -40,6 +40,7 @@ from bzt.six import build_opener, install_opener, urlopen, numeric_types, iterit
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
+from bzt.utils import str_representer
 
 SETTINGS = "settings"
 
@@ -661,6 +662,7 @@ yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
 yaml.add_representer(BetterDict, SafeRepresenter.represent_dict)
 if PY2:
     yaml.add_representer(text_type, SafeRepresenter.represent_unicode)
+yaml.add_representer(str, str_representer)
 
 # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
 encoder.FLOAT_REPR = lambda o: format(o, '.3g')
