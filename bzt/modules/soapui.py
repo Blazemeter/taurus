@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import os
 
 from bzt import TaurusInternalException
@@ -199,7 +200,7 @@ class SoapUIScriptConverter(object):
             for entry in config.findall('./con:restRequest/con:parameters/con:entry', namespaces=self.NAMESPACES)
         })
 
-        for param_name in params.keys()[:]:
+        for param_name in copy.copy(list(params.keys())):
             template = "{" + param_name + "}"
             if template in url:
                 param_value = params.pop(param_name)
