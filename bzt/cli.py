@@ -103,6 +103,8 @@ class CLI(object):
 
         logger.addHandler(console_handler)
 
+        logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
+
     def __close_log(self):
         """
         Close log handlers, move log to artifacts dir
