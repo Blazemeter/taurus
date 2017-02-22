@@ -658,6 +658,7 @@ class TestCloudProvisioning(BZTestCase):
                     {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
                 ],
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": []}},
                 'https://a.blazemeter.com/api/v4/masters/1': {"result": {"id": 1, "note": "msg"}}
             },
             post={
@@ -682,7 +683,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(16, len(self.mock.requests))
+        self.assertEqual(17, len(self.mock.requests))
 
     def test_cloud_paths(self):
         """

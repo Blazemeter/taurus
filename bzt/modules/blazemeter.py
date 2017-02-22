@@ -1440,7 +1440,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             if 'note' in status and status['note']:
                 self.log.warning("Cloud test has probably failed with message: %s", status['note'])
 
-            self.router.master = None
             self.test_ended = True
             return True
 
