@@ -88,7 +88,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             return scenario_obj
 
         if "script" in scenario_obj and scenario_obj["script"] is not None:
-            script_path = scenario_obj["script"]
+            script_path = self.engine.find_file(scenario_obj["script"])
             with open(script_path) as fds:
                 script_content = fds.read()
             if "con:soapui-project" in script_content:
