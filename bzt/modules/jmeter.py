@@ -638,7 +638,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.log.debug("Load: %s", load)
         jmx = JMX(original)
 
-        if self.get_scenario().get("disable-listeners", True):
+        if self.get_scenario().get("disable-listeners", not self.settings.get("gui", False)):
             JMeterExecutor.__disable_listeners(jmx)
 
         user_def_vars = self.get_scenario().get("variables")
