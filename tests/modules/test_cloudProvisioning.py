@@ -6,7 +6,7 @@ import time
 
 import yaml
 
-from bzt import TaurusConfigError
+from bzt import TaurusConfigError, TaurusException
 from bzt.bza import Master, Test, MultiTest
 from bzt.engine import ScenarioExecutor, ManualShutdown
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
@@ -77,6 +77,7 @@ class TestCloudProvisioning(BZTestCase):
             get={
                 'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1}},
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
             },
             post={
             }
@@ -91,6 +92,42 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
+    def test_no_results(self):
+        self.configure(
+            engine_cfg={
+                ScenarioExecutor.EXEC: {
+                    "executor": "mock",
+                    "concurrency": 5500,
+                    "locations": {
+                        "us-east-1": 1,
+                        "us-west": 2}}},
+
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": [{
+                    "errors": [
+                        {
+                            "code": 70404,
+                            "message": "Session ended without load report data",
+                            "details": None
+                        }
+                    ],
+                }]}},
+            },
+            post={
+            }
+        )  # terminate
+
+        self.obj.prepare()
+        self.assertEquals(1, self.obj.executors[0].execution['locations']['us-east-1'])
+        self.assertEquals(2, self.obj.executors[0].execution['locations']['us-west'])
+
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.assertRaises(TaurusException, self.obj.post_process)
+
     def test_detach(self):
         self.configure(
             engine_cfg={
@@ -100,6 +137,9 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2}}},
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
+            }
         )
 
         self.obj.settings["detach"] = True
@@ -321,6 +361,7 @@ class TestCloudProvisioning(BZTestCase):
             get={
                 'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED"}},
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
@@ -567,6 +608,7 @@ class TestCloudProvisioning(BZTestCase):
                             {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
                 ],
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": []}},
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
@@ -971,6 +1013,7 @@ class TestCloudProvisioning(BZTestCase):
             get={
                 'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED"}},
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
             }
         )
 

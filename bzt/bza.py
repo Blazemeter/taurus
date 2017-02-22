@@ -468,7 +468,7 @@ class Master(BZAObject):
 
     def get_full(self):
         url = self.address + "/api/v4/masters/%s/full" % self['id']
-        return self._request(url)
+        return self._request(url)['result']
 
 
 class Session(BZAObject):
