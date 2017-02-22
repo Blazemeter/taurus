@@ -152,3 +152,16 @@ class TestSoapUIConverter(BZTestCase):
 
         self.assertEqual(len(split2["requests"]), 1)
         self.assertEqual(split2["requests"][0]["url"], "http://www.webservicex.com/globalweather.asmx")
+
+    def test_rest_templated_params_interpolation(self):
+        obj = SoapUIScriptConverter(logging.getLogger(''))
+        config = obj.convert_script(__dir__() + "/../soapui/gmaps-sample.xml")
+        self.assertEqual(len(config["scenarios"]), 9)
+        scenario = config["scenarios"]["Directions API TestSuite-Simple Tests"]
+
+        for request in scenario["requests"]:
+            self.assertNotIn("{format}", request["url"])
+
+        self.assertEqual(scenario["requests"][0]["url"], "http://maps.googleapis.com/maps/api/directions/json")
+        self.assertEqual(scenario["requests"][1]["url"], "http://maps.googleapis.com/maps/api/directions/json")
+        self.assertEqual(scenario["requests"][2]["url"], "http://maps.googleapis.com/maps/api/directions/xml")

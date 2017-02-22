@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import os
 
 from bzt import TaurusInternalException
@@ -175,7 +176,7 @@ class SoapUIScriptConverter(object):
 
         method_name = config.get('methodName')
         method_obj = self.interface.find('.//con:method[@name="%s"]' % method_name, namespaces=self.NAMESPACES)
-        default_params = {}
+        params = BetterDict()
         if method_obj is not None:
             parent = method_obj.getparent()
             while parent.tag.endswith('resource'):
@@ -184,9 +185,9 @@ class SoapUIScriptConverter(object):
                     param_value = param.findtext('./con:value', namespaces=self.NAMESPACES)
                     def_value = param.findtext('./con:default', namespaces=self.NAMESPACES)
                     if param_value:
-                        default_params[param_name] = param_value
+                        params[param_name] = param_value
                     elif def_value:
-                        default_params[param_name] = def_value
+                        params[param_name] = def_value
 
                 parent = parent.getparent()
 
@@ -194,7 +195,16 @@ class SoapUIScriptConverter(object):
         headers = self._extract_headers(config)
         assertions = self._extract_assertions(config)
 
-        parameters = config.findall('./con:restRequest/con:parameters/con:entry', namespaces=self.NAMESPACES)
+        params.merge({
+            entry.get("key"): entry.get("value")
+            for entry in config.findall('./con:restRequest/con:parameters/con:entry', namespaces=self.NAMESPACES)
+        })
+
+        for param_name in copy.copy(list(params.keys())):
+            template = "{" + param_name + "}"
+            if template in url:
+                param_value = params.pop(param_name)
+                url = url.replace(template, param_value)
 
         request = {"url": url, "label": label}
 
@@ -208,10 +218,9 @@ class SoapUIScriptConverter(object):
             request["assert"] = assertions
 
         body = {}
-        for key, value in iteritems(default_params):
+        for key, value in iteritems(params):
             body[key] = value
-        for entry in parameters:
-            body[entry.get("key")] = entry.get("value")
+
         if body:
             request["body"] = body
 
