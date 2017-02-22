@@ -792,12 +792,14 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert):
+    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert, regexp=True):
         """
         :type jsonpath: str
         :type expected_value: str
         :type json_validation: bool
         :type expect_null: bool
+        :type invert: bool
+        :type regexp: bool
         :return: lxml.etree.Element
         """
         package = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion"
@@ -810,6 +812,7 @@ class JMX(object):
         element.append(JMX._bool_prop("JSONVALIDATION", json_validation))
         element.append(JMX._bool_prop("EXPECT_NULL", expect_null))
         element.append(JMX._bool_prop("INVERT", invert))
+        element.append(JMX._bool_prop("ISREGEX", regexp))
 
         return element
 
@@ -901,14 +904,15 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_jsr223_element(language, script_file, parameters, execute):
+    def _get_jsr223_element(language, script_file, parameters, execute, script_text=None):
         if execute == "before":
             element = etree.Element("JSR223PreProcessor", guiclass="TestBeanGUI",
                                     testclass="JSR223PreProcessor", testname="JSR223 PreProcessor")
         else:
             element = etree.Element("JSR223PostProcessor", guiclass="TestBeanGUI",
                                     testclass="JSR223PostProcessor", testname="JSR223 PostProcessor")
-        element.append(JMX._string_prop("filename", script_file))
+        element.append(JMX._string_prop("filename", script_file if script_file else ''))
+        element.append(JMX._string_prop("script", script_text if script_text else ''))
         element.append(JMX._string_prop("parameters", parameters))
         element.append(JMX._string_prop("scriptLanguage", language))
         return element
@@ -920,7 +924,6 @@ class JMX(object):
         :type path: str
         :type delimiter: str
         :type is_quoted: bool
-        :type is_recycle: bool
         :return:
         """
         element = etree.Element("CSVDataSet", guiclass="TestBeanGUI",

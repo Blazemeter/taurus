@@ -45,10 +45,11 @@ class GatlingScriptBuilder(object):
             return addr
 
     def _get_http(self):
-        http_str = ''
         default_address = self.scenario.get('default-address', None)
-        if default_address:
-            http_str += 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
+        if default_address is None:
+            default_address = ''
+
+        http_str = 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
 
         scenario_headers = self.scenario.get_headers()
         for key in scenario_headers:
@@ -329,8 +330,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         load = self.get_load()
         scenario = self.get_scenario()
 
-        if scenario.get('timeout', None) is not None:
-            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout')) * 1000)
+        timeout = scenario.get('timeout', None)
+        if timeout is not None:
+            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
         if scenario.get('keepalive', True):
             params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'true'
             params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'true'

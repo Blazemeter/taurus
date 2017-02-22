@@ -37,7 +37,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             'files': [
                 'tests/grinder/fake_grinder.jar',
-                'tests/selenium/jar'],
+                'tests/selenium/junit/jar'],
             'scenario': 'tests/gatling/bs'})
         self.assertRaises(ToolError, obj.prepare)
 
@@ -47,7 +47,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             'files': [
                 'tests/grinder/fake_grinder.jar',
-                'tests/selenium/jar'],
+                'tests/selenium/junit/jar'],
             'scenario': {
                 "script": __dir__() + "/../gatling/BasicSimulation.scala",
                 "simulation": "mytest.BasicSimulation"}})
@@ -211,8 +211,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             "iterations": 55,
             "scenario": {
-                "default-address": "blazedemo.com",
-                "requests": [{'url': '/reserve.php',
+                "requests": [{'url': 'http://site.com/reserve.php',
                               'assert': [{
                                   'contains': [200],
                                   'subject': 'http-code',
@@ -229,8 +228,8 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             "iterations": 55,
             "scenario": {
-                "default-address": "blazedemo.com",
-                "requests": [{'url': '/reserve.php',
+                "default-address": "",
+                "requests": [{'url': 'site.com/reserve.php',
                               'assert': [{
                                   'subject': 'body',
                                   'contains': 'boot(.*)strap.min',

@@ -2,11 +2,11 @@
 
 # Rules for Contributing
  1. All contributions go via pull requests and code review
- 1. Most of pylint warnings should be fixed [](https://scrutinizer-ci.com/g/Blazemeter/taurus/badges/quality-score.png?b=master&ext=.svg)
+ 1. Most of pylint warnings should be fixed ![](https://api.codacy.com/project/badge/Grade/9ed495a3e5df4ba2ad05e19a690121d2?ext=.svg)
  1. All new files must contain Apache License header (unit test files may not have it)
  1. All changes must be reflected in [Changelog](Changelog)
  1. All changes must be properly documented 
- 1. All changes must be covered with unit tests, no broken tests in master [](https://api.travis-ci.org/Blazemeter/taurus.svg?branch=master&ext=.svg)  [](https://ci.appveyor.com/api/projects/status/github/Blazemeter/taurus?svg=true&ext=.svg) 
+ 1. All changes must be covered with unit tests, no broken tests in master ![](https://api.travis-ci.org/Blazemeter/taurus.svg?branch=master&ext=.svg)  ![](https://ci.appveyor.com/api/projects/status/github/Blazemeter/taurus?svg=true&ext=.svg) 
  
 # Release Process
  - Modify [Changelog.md](Changelog), set version and date

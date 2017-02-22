@@ -185,6 +185,17 @@
             $(".yaml-json-switch").append(toYAML.click()).append(toJSON);
         });
     </script>
+
+    <button class="js-gitter-toggle-chat-button gitter-button">
+        <i class="fa fa-comments-o" aria-hidden="true"></i> Users Chat
+    </button>
+    <script>
+        ((window.gitter = {}).chat = {}).options = {
+            room: 'Blazemeter/taurus',
+            activationElement: false
+        };
+    </script>
+    <script src="https://sidecar.gitter.im/dist/sidecar.v1.js" async defer></script>
 </footer>
 
 </body>

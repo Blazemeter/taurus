@@ -17,7 +17,7 @@ from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJ
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -558,6 +558,13 @@ class TestJMeterExecutor(BZTestCase):
                 'variables': {'my_var': 'http://demo.blazemeter.com/api/user', 'myvar2': 'val2'},
                 'properties': {'log_level.jmeter': 'DEBUG'}, 'script': __dir__() + '/../jmeter/jmx/http.jmx'}}})
         self.obj.prepare()
+
+        # no new properties in scenario properties list
+        self.assertEqual(1, len(self.obj.engine.config['scenarios']['http.jmx']['properties']))
+
+        # no properties in module properties list
+        self.assertEqual(0, len(self.obj.settings.get('properties')))
+
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
@@ -587,6 +594,21 @@ class TestJMeterExecutor(BZTestCase):
         writers = xml_tree.findall(".//ResultCollector[@testname='KPI Writer']")
         for writer in writers:
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
+
+    def test_distributed_props(self):
+        handler = RecordingHandler()
+        self.obj.log.addHandler(handler)
+
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
+        self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
+        self.obj.settings['properties'] = BetterDict()
+        self.obj.settings['properties'].merge({"a": 1})
+
+        self.obj.prepare()
+        self.obj.startup()
+
+        self.obj.log.removeHandler(handler)
+        self.assertIn("', '-G', '", handler.debug_buff.getvalue())
 
     def test_distributed_th_hostnames_complex(self):
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
@@ -812,9 +834,6 @@ class TestJMeterExecutor(BZTestCase):
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
 
     def test_css_jquery_extractor(self):
-        handler = RecordingHandler()
-        self.obj.log.addHandler(handler)
-
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
@@ -835,11 +854,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
-        self.obj.log.removeHandler(handler)
 
     def test_xpath_extractor(self):
-        handler = RecordingHandler()
-        self.obj.log.addHandler(handler)
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
@@ -864,11 +880,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.validate']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "true")
-        self.obj.log.removeHandler(handler)
 
     def test_xpath_assertion(self):
-        handler = RecordingHandler()
-        self.obj.log.addHandler(handler)
         self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
@@ -889,7 +902,34 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.whitespace']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.tolerant']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.negate']").text, "true")
-        self.obj.log.removeHandler(handler)
+
+    def test_jsonpath_assertion(self):
+        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.obj.prepare()
+        target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
+        modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
+        path = ".//com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion"
+        assertions = modified_xml_tree.findall(path)
+        self.assertEqual(4, len(assertions))
+
+        vals = [
+            {'path': '$.', 'exp_val': None, 'valid': 'false',
+             'null': 'false', 'invert': 'false', 'regexp': 'true'},
+            {'path': '$.res[0].type', 'exp_val': 'some_value.1', 'valid': 'true',
+             'null': 'false', 'invert': 'false', 'regexp': 'true'},
+            {'path': '$.res[1].ip', 'exp_val': 'some_value.2', 'valid': 'true',
+             'null': 'false', 'invert': 'true', 'regexp': 'false'},
+            {'path': '$.res[2].default', 'exp_val': None, 'valid': 'false',
+             'null': 'true', 'invert': 'false', 'regexp': 'true'}]
+        for num in range(len(assertions)):
+            assertion = assertions[num]
+            val = vals[num]
+            self.assertEqual(val['path'], assertion.find(".//stringProp[@name='JSON_PATH']").text)
+            self.assertEqual(val['exp_val'], assertion.find(".//stringProp[@name='EXPECTED_VALUE']").text)
+            self.assertEqual(val['valid'], assertion.find(".//boolProp[@name='JSONVALIDATION']").text)
+            self.assertEqual(val['null'], assertion.find(".//boolProp[@name='EXPECT_NULL']").text)
+            self.assertEqual(val['invert'], assertion.find(".//boolProp[@name='INVERT']").text)
+            self.assertEqual(val['regexp'], assertion.find(".//boolProp[@name='ISREGEX']").text)
 
     def test_shutdown_soft(self):
         log_recorder = RecordingHandler()
@@ -1876,21 +1916,6 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
 
-    def test_jsr223_exceptions_1(self):
-        self.configure({
-            "execution": {
-                "scenario": {
-                    "requests": [{
-                        "url": "http://blazedemo.com/",
-                        "jsr223": {
-                            "script-file": "something.js",
-                        }
-                    }]
-                }
-            }
-        })
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
-
     def test_jsr223_exceptions_2(self):
         self.configure({
             "execution": {
@@ -1922,7 +1947,8 @@ class TestJMeterExecutor(BZTestCase):
                             "language": "beanshell",
                             "script-file": post_script,
                             "execute": "after",
-                        }]
+                        },
+                            'vars.put("a", 1)']
                     }]
                 }
             }
@@ -1932,7 +1958,7 @@ class TestJMeterExecutor(BZTestCase):
         pre_procs = xml_tree.findall(".//JSR223PreProcessor[@testclass='JSR223PreProcessor']")
         post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
         self.assertEqual(1, len(pre_procs))
-        self.assertEqual(1, len(post_procs))
+        self.assertEqual(2, len(post_procs))
 
         pre = pre_procs[0]
         self.assertEqual(pre_script, pre.find(".//stringProp[@name='filename']").text)
@@ -1943,6 +1969,12 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(post_script, pre.find(".//stringProp[@name='filename']").text)
         self.assertEqual("beanshell", pre.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+
+        pre = post_procs[1]
+        self.assertEqual(None, pre.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("groovy", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+        self.assertEqual('vars.put("a", 1)', pre.find(".//stringProp[@name='script']").text)
 
     def test_request_content_encoding(self):
         self.configure({
@@ -2085,6 +2117,48 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn("TestSuite 1-index", self.obj.engine.config["scenarios"])
         self.assertIn("TestSuite 1-index-1", self.obj.engine.config["scenarios"])
         self.assertIn("TestSuite 1-index-2", self.obj.engine.config["scenarios"])
+
+    def test_include_scenario_mutual_recursion(self):
+        self.configure({
+            "execution": {
+                "scenario": "scen",
+            },
+            "scenarios": {
+                "scen": {
+                    "requests": [{"include-scenario": "subroutine"},
+                                 {"include-scenario": "subroutine"}]
+                },
+                "subroutine": {"requests": ["http://blazedemo.com"]},
+            },
+        })
+        self.obj.prepare()
+
+    def test_include_scenario_mutual_recursion_resources(self):
+        self.configure({
+            "execution": {
+                "scenario": "scen",
+            },
+            "scenarios": {
+                "scen": {
+                    "requests": [{"include-scenario": "subroutine"},
+                                 {"include-scenario": "subroutine"}]
+                },
+                "subroutine": {"requests": ["http://blazedemo.com"]},
+            },
+        })
+        self.obj.resource_files()
+
+    def test_resource_files_relpath(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "script": __dir__() + "/../jmeter/jmx/nested/directory/csv.jmx"
+                }
+            }
+        })
+        resources = self.obj.get_resource_files()
+        self.assertNotIn("a.csv", resources)
+        self.assertTrue(any(res.endswith(os.path.join("nested", "directory", "a.csv")) for res in resources))
 
 
 class TestJMX(BZTestCase):

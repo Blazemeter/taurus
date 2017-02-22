@@ -92,7 +92,7 @@ scenarios:
   some_scenario:
     script: my-test.jmx
 ```
-For accurate load calculation don't forget to choose different hostname values for slave hosts. 
+For accurate load calculation don't forget to choose different hostname values for slave hosts. If you have any properties specified in settings, they will be sent to remote nodes. 
 
 ## Shutdown Delay
 By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutdown port (this works only for non-GUI). There is option to wait for JMeter to exit before killing it forcefully, called `shutdown-wait`. By default, its value is 5 seconds.
@@ -374,7 +374,8 @@ scenarios:
       assert-jsonpath:
       - jsonpath: "$." # path to value, validation fails if path not exists
         validate: true # validate against expected value
-        expected-value: "value" # the value we are expecting to validate
+        expected-value: "value" # the value we are expecting to validate, default: false
+        regexp: true  # if the value is regular expression, default: true
         expect-null: false  # expected value is null
         invert: false # invert condition
 ```
@@ -420,14 +421,16 @@ scenarios:
   jsr-example:
     requests:
     - url: http://blazedemo.com/
-      jsr223:
-        language: javascript  # required field
-        script-file: postproc.js  # required field
+      jsr223: 'vars.put("varname", "somevalue")'  # inline script to execute, unless script-file is specified
 ```
+
+The example above uses defaults and inline script. If you want to use language different from groovy or use separate
+script file, please use extended form of `jsr223` with key-value options.
 
 Each jsr223 element can define the following fields:
 - `language` - script language ('beanshell', 'bsh', 'ecmascript', 'groovy', 'java', 'javascript', 'jexl', 'jexl2')
 - `script-file` - path to script file
+- `script-text` - inline code, specified directly in config file
 - `parameters` - string of parameters to pass to script, empty by default
 - `execute` - whether to execute script before or after the request
 

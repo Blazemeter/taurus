@@ -25,6 +25,7 @@ import socket
 import subprocess
 import tempfile
 import time
+import copy
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
@@ -177,8 +178,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self._env["JVM_ARGS"] = jvm_args + "-Xmx%s" % heap_size
 
     def __set_jmeter_properties(self, scenario):
-        props = self.settings.get("properties")
-        props_local = scenario.get("properties")
+        props = copy.deepcopy(self.settings.get("properties"))
+        props_local = copy.deepcopy(scenario.get("properties"))
         if self.distributed_servers and self.settings.get("gui", False):
             props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
         props_local.update({"jmeterengine.nongui.port": self.management_port})
@@ -210,6 +211,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         if self.properties_file:
             cmdline += ["-q", os.path.abspath(self.properties_file)]
+            if self.distributed_servers:
+                cmdline += ["-G", os.path.abspath(self.properties_file)]
 
         if self.sys_properties_file:
             cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
@@ -721,6 +724,25 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if missed_files:
             self.log.warning("Files not found in JMX: %s", missed_files)
 
+    def _resolve_jmx_relpaths(self, resource_files_from_jmx):
+        """
+        Attempt to paths relative to JMX script itself.
+
+        :param resource_files_from_jmx:
+        :return:
+        """
+        resource_files = []
+        script_basedir = os.path.dirname(get_full_path(self.original_jmx))
+        for res_file in resource_files_from_jmx:
+            if not os.path.exists(res_file):
+                path_relative_to_jmx = os.path.join(script_basedir, res_file)
+                if os.path.exists(path_relative_to_jmx):
+                    self.log.info("Resolved resource file with path relative to JMX: %s", path_relative_to_jmx)
+                    resource_files.append(path_relative_to_jmx)
+                    continue
+            resource_files.append(res_file)
+        return resource_files
+
     def resource_files(self):
         """
         Get list of resource files, modify jmx file paths if necessary
@@ -734,7 +756,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx = JMX(self.original_jmx)
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
             if resource_files_from_jmx:
-                self.execution.get('files', []).extend(resource_files_from_jmx)
+                execution_files = self.execution.get('files', [])
+                execution_files.extend(self._resolve_jmx_relpaths(resource_files_from_jmx))
                 self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
                 script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
                 self.original_jmx = self.engine.create_artifact(script_name, script_ext)
@@ -791,6 +814,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         requests = requests_parser.extract_requests(scenario)
         for req in requests:
             files.extend(self.res_files_from_request(req))
+            self.resource_files_collector.clear_path_cache()
         return files
 
     def res_files_from_request(self, request):
@@ -1482,17 +1506,20 @@ class JMeterScenarioBuilder(JMX):
                                                     assertion['contains'],
                                                     assertion.get('regexp', True),
                                                     assertion.get('not', False),
-                                                    assertion.get('assume-success', False)), )
+                                                    assertion.get('assume-success', False)))
             children.append(etree.Element("hashTree"))
 
         jpath_assertions = req.config.get("assert-jsonpath", [])
         for idx, assertion in enumerate(jpath_assertions):
             assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
 
-            component = JMX._get_json_path_assertion(assertion['jsonpath'], assertion.get('expected-value', ''),
+            exc = TaurusConfigError('JSON Path not found in assertion: %s' % assertion)
+            component = JMX._get_json_path_assertion(assertion.get('jsonpath', exc),
+                                                     assertion.get('expected-value', ''),
                                                      assertion.get('validate', False),
                                                      assertion.get('expect-null', False),
-                                                     assertion.get('invert', False), )
+                                                     assertion.get('invert', False),
+                                                     assertion.get('regexp', True))
             children.append(component)
             children.append(etree.Element("hashTree"))
 
@@ -1500,7 +1527,8 @@ class JMeterScenarioBuilder(JMX):
         for idx, assertion in enumerate(xpath_assertions):
             assertion = ensure_is_dict(xpath_assertions, idx, "xpath")
 
-            component = JMX._get_xpath_assertion(assertion['xpath'],
+            exc = TaurusConfigError('XPath not found in assertion: %s' % assertion)
+            component = JMX._get_xpath_assertion(assertion.get('xpath', exc),
                                                  assertion.get('validate-xml', False),
                                                  assertion.get('ignore-whitespace', True),
                                                  assertion.get('use-tolerant-parser', False),
@@ -1509,17 +1537,23 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __add_jsr_elements(self, children, req):
-        jsrs = req.config.get("jsr223", None)
-        if not jsrs:
-            return
-        if isinstance(jsrs, dict):
+        """
+        :type children: etree.Element
+        :type req: Request
+        """
+        jsrs = req.config.get("jsr223", [])
+        if not isinstance(jsrs, list):
             jsrs = [jsrs]
-        for jsr in jsrs:
-            lang = jsr.get("language", TaurusConfigError("jsr223 element should specify 'language'"))
-            script = jsr.get("script-file", TaurusConfigError("jsr223 element should specify 'script-file'"))
+        for idx, _ in enumerate(jsrs):
+            jsr = ensure_is_dict(jsrs, idx, default_key='script-text')
+            lang = jsr.get("language", "groovy")
+            script_file = jsr.get("script-file", None)
+            script_text = jsr.get("script-text", None)
+            if not script_file and not script_text:
+                raise TaurusConfigError("jsr223 element must specify one of 'script-file' or 'script-text'")
             parameters = jsr.get("parameters", "")
             execute = jsr.get("execute", "after")
-            children.append(JMX._get_jsr223_element(lang, script, parameters, execute))
+            children.append(JMX._get_jsr223_element(lang, script_file, parameters, execute, script_text))
             children.append(etree.Element("hashTree"))
 
     def _get_merged_ci_headers(self, req, header):
@@ -1702,12 +1736,18 @@ class JMeterScenarioBuilder(JMX):
         if block.duration is not None:
             duration = int(block.duration * 1000)
         test_action = JMX._get_action_block(action, target, duration)
-        return [test_action, etree.Element("hashTree")]
+        children = etree.Element("hashTree")
+        self.__add_jsr_elements(children, block)
+        return [test_action, children]
 
     def compile_requests(self, requests):
         if self.request_compiler is None:
             self.request_compiler = RequestCompiler(self)
-        return [self.request_compiler.visit(request) for request in requests]
+        compiled = []
+        for request in requests:
+            compiled.append(self.request_compiler.visit(request))
+            self.request_compiler.clear_path_cache()
+        return compiled
 
     def __generate(self):
         """
@@ -2142,6 +2182,12 @@ class RequestVisitor(object):
     def __init__(self):
         self.path = []
 
+    def clear_path_cache(self):
+        self.path = []
+
+    def record_path(self, path):
+        self.path.append(path)
+
     def visit(self, node):
         class_name = node.__class__.__name__.lower()
         visitor = getattr(self, 'visit_' + class_name, None)
@@ -2209,7 +2255,7 @@ class ResourceFilesCollector(RequestVisitor):
         if scenario_name in self.path:
             msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
             raise TaurusConfigError(msg % scenario_name)
-        self.path.append(scenario_name)
+        self.record_path(scenario_name)
         scenario = self.executor.get_scenario(name=block.scenario_name)
         return self.executor.res_files_from_scenario(scenario)
 
@@ -2245,7 +2291,7 @@ class RequestCompiler(RequestVisitor):
         if scenario_name in self.path:
             msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
             raise TaurusConfigError(msg % scenario_name)
-        self.path.append(scenario_name)
+        self.record_path(scenario_name)
         return self.jmx_builder.compile_include_scenario_block(block)
 
     def visit_actionblock(self, block):

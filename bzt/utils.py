@@ -680,12 +680,13 @@ class RequiredTool(object):
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
-        self.log = None
+        self.log = logging.getLogger('')
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
             self.already_installed = True
             return True
+        self.log.debug("File not exists: %s", self.tool_path)
         return False
 
     def install(self):
@@ -693,6 +694,7 @@ class RequiredTool(object):
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
             downloader = ExceptionalDownloader()
+            self.log.info("Downloading %s", self.download_link)
             downloader.get(self.download_link, self.tool_path, reporthook=pbar.download_callback)
 
             if self.check_if_installed():

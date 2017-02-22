@@ -91,7 +91,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             "junit": {"path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")}
         }})
 
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"},
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/junit/jar/"},
                                   "runner": "junit"})
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, JUnitTester)
@@ -108,7 +108,9 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         Check if script exists in working dir
         :return:
         """
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
+        self.obj.execution.merge({
+            "scenario": {"script": __dir__() + "/../selenium/junit/java/TestBlazemeterFail.java"}
+        })
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertFalse(os.path.exists(os.path.join(self.obj.runner.working_dir, "TestBlazemeterFail.java")))
@@ -120,7 +122,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         Check if scripts exist in working dir
         :return:
         """
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/"}})
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/junit/java/"}})
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
         prepared_files = os.listdir(self.obj.runner.working_dir)
@@ -136,7 +138,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         Check if scripts exist in working dir
         :return:
         """
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java_package/"}})
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/junit/java_package/"}})
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
@@ -148,7 +150,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.configure({
             'execution': {
-                'scenario': {'script': __dir__() + '/../selenium/java_package/src'},
+                'scenario': {'script': __dir__() + '/../selenium/junit/java_package/src'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
@@ -162,11 +164,11 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
 
     def test_prepare_jar_single(self):
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/dummy.jar"}})
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/junit/jar/dummy.jar"}})
         self.obj.prepare()
 
     def test_prepare_jar_folder(self):
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/jar/"}})
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/junit/jar/"}})
         self.obj.prepare()
 
     def test_selenium_startup_shutdown_jar_single(self):
@@ -176,7 +178,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.configure({
             'execution': {
-                'scenario': {'script': __dir__() + '/../selenium/jar/'},
+                'scenario': {'script': __dir__() + '/../selenium/junit/jar/'},
                 'runner': 'junit',
                 'executor': 'selenium'
             },
@@ -206,7 +208,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.configure({
             'execution': {
-                'scenario': {'script': __dir__() + '/../selenium/jar/'},
+                'scenario': {'script': __dir__() + '/../selenium/junit/jar/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
@@ -234,12 +236,14 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.obj.engine.config.merge({
             'execution': {
-                'scenario': {'script': __dir__() + '/../selenium/java/'},
+                'scenario': {'script': __dir__() + '/../selenium/junit/java/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
         })
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/java/TestBlazemeterFail.java"}})
+        self.obj.execution.merge({
+            "scenario": {"script": __dir__() + "/../selenium/junit/java/TestBlazemeterFail.java"}
+        })
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -264,7 +268,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         """
         self.configure({
             'execution': {
-                'scenario': {'script': __dir__() + '/../selenium/java/'},
+                'scenario': {'script': __dir__() + '/../selenium/junit/java/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
@@ -310,7 +314,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
     def test_resource_files_collection_remote_java(self):
         self.configure({
             'execution': {
-                'scenario': {'script': __dir__() + '/../selenium/java/'},
+                'scenario': {'script': __dir__() + '/../selenium/junit/java/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
@@ -323,7 +327,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    'script': __dir__() + '/../selenium/java/',
+                    'script': __dir__() + '/../selenium/junit/java/',
                     'additional-classpath': [scenario_cp]},
                 'executor': 'selenium', },
             'modules': {
@@ -337,7 +341,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
     def test_resource_files_collection_remote_jar(self):
         self.configure({
             'execution': {
-                'scenario': {'script': __dir__() + '/../selenium/jar/'},
+                'scenario': {'script': __dir__() + '/../selenium/junit/jar/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
@@ -374,7 +378,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.execution.merge({
             "runner": "testng",
             "scenario": {
-                "script": __dir__() + "/../selenium/jar/testng-suite.jar",
+                "script": __dir__() + "/../selenium/testng/jars/testng-suite.jar",
                 'testng-xml': None,
             },
         })
@@ -390,7 +394,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'script': __dir__() + '/../selenium/testng/jars/testng-suite.jar',
                     'testng-xml': None,
                 },
                 'runner': 'testng',
@@ -409,7 +413,8 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    'script': __dir__() + '/../selenium/java/TestNGSuite.java',
+                    'script': __dir__() + '/../selenium/testng/TestNGSuite.java',
+                    'testng-xml': None
                 },
                 'runner': 'testng',
             },
@@ -424,7 +429,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.assertEqual(len(lines), 3)
 
     def test_resource_files(self):
-        script_jar = __dir__() + '/../selenium/jar/testng-suite.jar'
+        script_jar = __dir__() + '/../selenium/testng/jars/testng-suite.jar'
         self.configure({
             'execution': {
                 'scenario': {
@@ -438,7 +443,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.assertEqual(resources, [script_jar, 'testng.xml'])
 
     def test_resource_files_detect_config(self):
-        script_jar = __dir__() + '/../selenium/jar/testng-suite.jar'
+        script_jar = __dir__() + '/../selenium/testng/jars/testng-suite.jar'
         self.configure({
             'execution': {
                 'scenario': {
@@ -449,14 +454,14 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         })
         resources = self.obj.get_resource_files()
         self.assertEqual(resources, [script_jar,
-                                     get_full_path(__dir__() + '/../selenium/jar/testng.xml')])
+                                     get_full_path(__dir__() + '/../selenium/testng/jars/testng.xml')])
 
     def test_hold(self):
         self.configure({
             'execution': {
                 'hold-for': '5s',
                 'scenario': {
-                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'script': __dir__() + '/../selenium/testng/jars/testng-suite.jar',
                     'testng-xml': None,
                 },
                 'runner': 'testng',
@@ -476,7 +481,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
             'execution': {
                 'iterations': 3,
                 'scenario': {
-                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'script': __dir__() + '/../selenium/testng/jars/testng-suite.jar',
                     'testng-xml': None,
                 },
                 'runner': 'testng',
@@ -495,8 +500,8 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
-                    'testng-xml': __dir__() + '/../selenium/jar/testng.xml',
+                    'script': __dir__() + '/../selenium/testng/jars/testng-suite.jar',
+                    'testng-xml': __dir__() + '/../selenium/testng/jars/testng.xml',
                 },
             },
         })
@@ -510,11 +515,11 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.assertEqual(len(lines), 6)
 
     def test_testng_config_autodetect(self):
-        testng_xml_path = get_full_path(__dir__() + '/../selenium/jar/testng.xml')
+        testng_xml_path = get_full_path(__dir__() + '/../selenium/testng/jars/testng.xml')
         self.configure({
             'execution': {
                 'scenario': {
-                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'script': __dir__() + '/../selenium/testng/jars/testng-suite.jar',
                 },
             },
         })
@@ -532,7 +537,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    'script': __dir__() + '/../selenium/jar/testng-suite.jar',
+                    'script': __dir__() + '/../selenium/testng/jars/testng-suite.jar',
                 },
             },
         })
@@ -1101,7 +1106,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
     def test_force_runner(self):
         self.obj.execution.merge({
-            'scenario': {'script': __dir__() + '/../selenium/jar/'},
+            'scenario': {'script': __dir__() + '/../selenium/junit/jar/'},
             'runner': 'nose',
         })
         self.obj.prepare()
@@ -1110,16 +1115,17 @@ class TestSeleniumStuff(SeleniumTestCase):
     def test_additional_classpath_resource_files(self):
         self.obj.execution.merge({
             'scenario': {
-                'script': __dir__() + '/../selenium/jar/dummy.jar',
+                'script': __dir__() + '/../selenium/junit/jar/dummy.jar',
                 'runner': 'junit',
-                'additional-classpath': [__dir__() + '/../selenium/jar/another_dummy.jar'],
+                'additional-classpath': [__dir__() + '/../selenium/junit/jar/another_dummy.jar'],
             },
         })
         self.obj.settings.merge({
-            'additional-classpath': [__dir__() + '/../selenium/jar/testng-suite.jar'],
+            'additional-classpath': [__dir__() + '/../selenium/testng/jars/testng-suite.jar'],
         })
         resources = self.obj.resource_files()
-        self.assertEqual(len(resources), 4)
+        # scenario.script, scenario.additional-classpath, settings.additional-classpath
+        self.assertEqual(len(resources), 3)
 
     def test_required_tools(self):
         self.obj.install_required_tools()
@@ -1149,6 +1155,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
                             "clickByXPath(//div[3]/form/select[2]//option[6])",
                             "clickByXPath(//input[@type='submit'])",
+                            "clickByLinkText(destination of the week! The Beach!)"
                         ],
 
                     }, {
@@ -1164,9 +1171,6 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             gen_contents = generated.readlines()
         with open(__dir__() + "/../selenium/generated_from_requests.py") as sample:
             sample_contents = sample.readlines()
-
-        # with open(__dir__() + "/../selenium/generated_from_requests.py", "w+") as sample:
-        #    sample.write(''.join(gen_contents))
 
         # strip line terminator and exclude specific build path
         gen_contents = [line.rstrip() for line in gen_contents if 'webdriver' not in line]
