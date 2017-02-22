@@ -6,6 +6,7 @@ python:
   - "2.7"
   - "3.3"
   - "3.4"
+  - "3.5"
 addons:
   firefox: "51.0.1"
   apt:
