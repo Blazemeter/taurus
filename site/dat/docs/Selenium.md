@@ -6,12 +6,14 @@ Allows to run functional tests locally with Selenium WebDriver. Currently suppor
 - Ruby + RSpec
 - JavaScript + Mocha
 
-Selenium Grid isn't supported for tests described with Taurus language, but if you have your own test suite that uses Selenium Grid to manage browser instances - Taurus will run these tests just fine.
+Selenium Grid isn't supported for tests described with Taurus language, but if you have your own test suite that uses
+Selenium Grid to manage browser instances - Taurus will run these tests just fine.
 
-Selenium executor uses multiple test runners (JUnit, TestNG, Mocha, etc), test type is detected automatically. If automatic detection
-fails - you can use `runner` option described below.
+Selenium executor uses multiple test runners (JUnit, TestNG, Mocha, etc), test type is detected automatically.
+If automatic detection fails - you can use `runner` option described below.
 
-Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time will be exceeded.
+Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
+will be exceeded.
 
 ## Supported file types:
 
@@ -31,7 +33,8 @@ Test scenario may be presented not only as single file but as a folder (or, in c
 
 ## Specifying Test Runner Explicitly
 
-By default, Taurus tries to automatically detect the language your tests are written in. If, for some reason, the autodetection fails - you can specify test runner explicitly with `runner` execution-level option.
+By default, Taurus tries to automatically detect the language your tests are written in. If, for some reason,
+the autodetection fails - you can specify test runner explicitly with `runner` execution-level option.
 
 Supported values:
 - `nose` - nosetests-based Python tests
@@ -55,7 +58,8 @@ execution:
 
 JUnit runner corresponds to 'junit' `runner` value.
 
-All `.java` files will be compiled and packed into jar file before running tests. All necessary tools will be downloaded and installed automatically into `~/.bzt/selenium-taurus`.
+All `.java` files will be compiled and packed into jar file before running tests. All necessary tools will be
+downloaded and installed automatically into `~/.bzt/selenium-taurus`.
 
 Configuration options:
 
@@ -74,7 +78,9 @@ modules:
         compile-target-java: 1.7  # -source and -target option value for javac
 ```
 
-When running tests, Taurus will automatically add `selenium-server`, `json-jar`, `hamcrest-core`, along with JUnit jar to the classpath. If your test suite requires additional libraries - you can specify them as a list of jars with `additional-classpath` option.
+When running tests, Taurus will automatically add `selenium-server`, `json-jar`, `hamcrest-core`, along with JUnit jar
+to the classpath. If your test suite requires additional libraries - you can specify them as a list of jars with
+`additional-classpath` option.
 
 ```yaml
 scenarios:
@@ -91,7 +97,9 @@ TestNG runner corresponds to 'testng' `runner` value.
 
 Just like with JUnit runner, all `.java` files will be compiled and packed into the jar before running the tests. 
 
-TestNG configuration file (testng.xml) can be specified with `testng-xml` option. If the options isn't specified — Taurus will attempt to find TestNG config automatically by looking for 'testng.xml' file in current directory and in the script directory.
+TestNG configuration file (testng.xml) can be specified with `testng-xml` option. If the options isn't specified —
+Taurus will attempt to find TestNG config automatically by looking for 'testng.xml' file in current directory and
+in the script directory.
 If no TestNG configuration is found — Taurus will launch all tests from the test suite.
 
 Just like JUnit runner, TestNG runner supports the `additional-classpath` option.
@@ -117,7 +125,8 @@ modules:
 
 Python unittests are launched using NoseTest runner. It's `runner` value is 'nose'.
 
-It is valid to specify both single Python module (single .py file) and a Python package (folder with Python modules and packages).
+It is valid to specify both single Python module (single .py file) and a Python package (folder with Python modules
+and packages).
 
 Configuration options:
 
@@ -147,7 +156,8 @@ execution:
   scenario: rspec-suite
 ```
 
-Just like other runners, RSpec runner supports `iterations` and `hold-for` options, in case you want to loop your test execution.
+Just like other runners, RSpec runner supports `iterations` and `hold-for` options, in case you want to loop your test
+execution.
 
 Also, you can specify the path to Ruby interpreter, if you don't have it in $PATH:
 ```yaml
@@ -197,7 +207,8 @@ folder of Taurus's repo.
 
 ## About
 [Appium](http://appium.io) is a tool for testing naitive mobile applications.
-Taurus supports only python scripts for appium in Selenium executor. Additionally, you can use taurus services to run [Appium server](Services.md#Appium-Loader) and [Android emulator](Services.md#Android-Emulator-Loader).
+Taurus supports only python scripts for appium in Selenium executor. Additionally, you can use taurus services to run
+[Appium server](Services.md#Appium-Loader) and [Android emulator](Services.md#Android-Emulator-Loader).
 There is typical example of usage:
  
 ```yaml
@@ -221,8 +232,8 @@ modules:
 
 ## Requests Scenario
 
-Selenium executor supports building test script from the `requests` option of `scenario`. In that case Taurus will generate a Python script
-that will be launched with `nose`.
+Selenium executor supports building test script from the `requests` option of `scenario`. In that case Taurus will
+generate a Python script that will be launched with `nose`.
 
 Supported features:
   - select browser
@@ -232,9 +243,12 @@ Supported features:
   - send keys, wait for items, click on items selected by ID/Name/CSS/XPath
    
 Action names are built as `<action>By<selector type>(<selector>)`. Sometimes actions can have value. Options are:
-  - `waitByID`, `waitByName`, `waitByCSS` and `waitByXPath` - to wait until desired option becomes present on page. Timeout is taken from scenario-level `timeout` option. Optionally, you can specify parameter `visible` to wait for visibility rather than presence (like `waitByName(elmName): visible`)
-  - `clickByID`, `clickByName`, `clickByCSS` and `clickByXPath` - no parameter, just click on object 
-  - `keysByID`, `keysByName`, `keysByCSS` and `keysByXPath` - to enter keys into input items, requires parameter. Like this: `keysByName(MyFormInputName): Value To Enter` 
+  - `waitByID`, `waitByName`, `waitByLinkText`, `waitByCSS` and `waitByXPath` - to wait until desired option becomes present on page.
+  Timeout is taken from scenario-level `timeout` option. Optionally, you can specify parameter `visible` to wait
+  for visibility rather than presence (like `waitByName(elmName): visible`)
+  - `clickByID`, `clickByName`, `clickByLinkText`, `clickByCSS` and `clickByXPath` - no parameter, just click on object
+  - `keysByID`, `keysByName`, `keysByLinkText`, `keysByCSS` and `keysByXPath` - to enter keys into input items, requires parameter.
+  Like this: `keysByName(MyFormInputName): Value To Enter`
 
 Sample request scenario:
 ```yaml
@@ -317,7 +331,8 @@ reporting:
 
 ## Using Virtual Display on Linux
 
-If you want to run headless tests on Linux using virtual framebuffer (Xvfb), you can tell Taurus to run virtual display by using following config piece:
+If you want to run headless tests on Linux using virtual framebuffer (Xvfb), you can tell Taurus to run virtual
+display by using following config piece:
 
 ```yaml
 ---
@@ -331,4 +346,5 @@ Note: SeleniumExecutor uses shared virtual display for all executions.
 
 ## Conversion of Tests into JMeter format
 
-You can convert your Selenium tests into JMX files by using a Proxy2JMX Converter module, as described [here](Proxy2JMX.md#Proxy2JMX-Converter).
+You can convert your Selenium tests into JMX files by using a Proxy2JMX Converter module, as described
+[here](Proxy2JMX.md#Proxy2JMX-Converter).

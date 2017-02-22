@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import time
 
@@ -215,7 +216,7 @@ class TestLocustIOExecutor(BZTestCase):
 
         with open(self.obj.script) as generated:
             gen_contents = generated.readlines()
-        with open(__dir__() + "/../locust/generated_from_requests.py") as sample:
+        with open(__dir__() + "/../locust/generated_from_requests_1.py") as sample:
             sample_contents = sample.readlines()
 
         # strip line terminators
@@ -223,3 +224,57 @@ class TestLocustIOExecutor(BZTestCase):
         sample_contents = [line.rstrip() for line in sample_contents]
 
         self.assertEqual(gen_contents, sample_contents)
+
+    def test_build_script_none_def_addr(self):
+        self.obj.engine.config.merge({
+            "execution": [{
+                "executor": "locust",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "requests": [{
+                        "url": "http://blazedemo.com"}]}}})
+
+        self.obj.execution = self.obj.engine.config.get('execution')[0]
+        self.obj.prepare()
+
+        with open(self.obj.script) as generated:
+            gen_contents = generated.readlines()
+        with open(__dir__() + "/../locust/generated_from_requests_2.py") as sample:
+            sample_contents = sample.readlines()
+
+        # strip line terminators
+        gen_contents = [line.rstrip() for line in gen_contents]
+        sample_contents = [line.rstrip() for line in sample_contents]
+
+        self.assertEqual(gen_contents, sample_contents)
+
+    def test_jtl_key_order(self):
+        self.obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 1,
+            "hold-for": 30,
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "requests": [
+                    "/"
+                ]
+            }
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+
+        kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
+        if os.path.exists(kpi_path):
+            with open(kpi_path) as fds:
+                jtl = fds.readlines()
+
+            header_line = jtl[0].strip()
+            expected_header = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
+            self.assertEqual(header_line, expected_header)

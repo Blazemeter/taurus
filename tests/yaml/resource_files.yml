@@ -14,7 +14,7 @@ execution:
     testng-xml: selenium/testng/testng.xml
     script: data/BlazeDemo.java
     additional-classpath:
-    - selenium/jar/dummy.jar
+    - selenium/junit/jar/dummy.jar
     - ~/file-in-home-05.jar
 - executor: selenium
   scenario:

@@ -20,6 +20,7 @@ import os
 import re
 import time
 import traceback
+import copy
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools
@@ -382,17 +383,17 @@ class TsungConfig(object):
     def __gen_options(self, scenario):
         options = etree.Element("options")
 
-        global_think_time = scenario.data.get('think-time', None)
+        global_think_time = scenario.get('think-time', None)
         if global_think_time:
             think_time = int(dehumanize_time(global_think_time))
             options.append(etree.Element("option", name="thinktime", value=str(think_time), random="false"))
 
-        global_tcp_timeout = scenario.data.get('timeout')
+        global_tcp_timeout = scenario.get('timeout', None)
         if global_tcp_timeout:
             timeout = int(dehumanize_time(global_tcp_timeout)) * 1000
             options.append(etree.Element("option", name="connect_timeout", value=str(timeout)))
 
-        global_max_retries = scenario.data.get('max-retries', 1)
+        global_max_retries = scenario.get('max-retries', 1)
         options.append(etree.Element("option", name="max_retries", value=str(global_max_retries)))
         return options
 
@@ -405,9 +406,8 @@ class TsungConfig(object):
             if request.body:
                 http_elem.set('contents', request.body)
 
-            headers = {}
-            headers.update(scenario.data.get('headers', {}))
-            headers.update(request.headers)
+            headers = copy.deepcopy(scenario.get_headers())
+            headers.update(copy.deepcopy(request.headers))
             for header_name, header_value in iteritems(headers):
                 http_elem.append(etree.Element("http_header", name=header_name, value=header_value))
 

@@ -23,6 +23,7 @@ import logging
 import os
 import shutil
 import sys
+import threading
 import time
 import traceback
 from abc import abstractmethod
@@ -38,7 +39,7 @@ from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusIntern
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
 
 SETTINGS = "settings"
 
@@ -97,7 +98,9 @@ class Engine(object):
 
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
-        self._check_updates()
+
+        thread = threading.Thread(target=self._check_updates) # intentionally non-daemon thread
+        thread.start()
 
         return merged_config
 
@@ -518,7 +521,7 @@ class Engine(object):
                 params = (bzt.VERSION, self.config.get("install-id", "N/A"))
                 req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
                 self.log.debug("Requesting updates info: %s", req)
-                response = urlopen(req, timeout=1)
+                response = urlopen(req, timeout=10)
                 resp = response.read()
 
                 if not isinstance(resp, str):
@@ -530,7 +533,9 @@ class Engine(object):
                 mine = LooseVersion(bzt.VERSION)
                 latest = LooseVersion(data['latest'])
                 if mine < latest or data['needsUpgrade']:
-                    self.log.warning("There is newer version of Taurus %s available, consider upgrading", latest)
+                    msg = "There is newer version of Taurus %s available, consider upgrading. " \
+                          "What's new: http://gettaurus.org/docs/Changelog/"
+                    self.log.warning(msg, latest)
                 else:
                     self.log.debug("Installation is up-to-date")
 
@@ -674,8 +679,8 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
-        self.delay = None
-        self.start_time = None
+        self.delay = None  # FIXME: why here? Why not in ScenarioExecutor?
+        self.start_time = None  # FIXME: why here? Why not in ScenarioExecutor?
 
     def prepare(self):
         """
@@ -944,6 +949,17 @@ class ScenarioExecutor(EngineModule):
         if aliases:
             environ["HOSTALIASES"] = hosts_file
         if env is not None:
+            if is_windows:
+                # as variables in windows are case insensitive we should provide correct merging
+                cur_env = {name.upper(): environ[name] for name in environ}
+                old_keys = set(env.keys())
+                env = {name.upper(): env[name] for name in env}
+                new_keys = set(env.keys())
+                if old_keys != new_keys:
+                    msg = 'Some taurus environment variables has been lost: %s'
+                    self.log.warning(msg, list(old_keys - new_keys))
+                environ = BetterDict()
+                environ.merge(cur_env)
             environ.merge(env)
 
         environ.merge({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})

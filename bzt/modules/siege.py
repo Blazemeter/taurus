@@ -106,9 +106,9 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         else:
             raise TaurusConfigError("Siege: You must specify either 'hold-for' or 'iterations'")
 
-        if self.scenario.get('think-time'):
-            think_time = dehumanize_time(self.scenario.get('think-time'))
-            args += ['--delay', str(think_time)]
+        think_time = self.scenario.get('think-time', None)
+        if think_time is not None:
+            args += ['--delay', str(dehumanize_time(think_time))]
         else:
             args += ['--benchmark']
 
