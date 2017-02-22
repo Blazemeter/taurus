@@ -791,11 +791,14 @@ class JMXasDict(JMX):
                     json_path_assertion["expected-value"] = expected_value_element
 
                 validate_element = self._get_bool_prop(json_path_assertion_element, 'JSONVALIDATION')
-                json_path_assertion["validate"] = validate_element if validate_element else False
+                json_path_assertion["validate"] = False if validate_element is None else validate_element
                 expect_null_element = self._get_bool_prop(json_path_assertion_element, 'EXPECT_NULL')
-                json_path_assertion["expect-null"] = expect_null_element if expect_null_element else False
+                json_path_assertion["expect-null"] = False if expect_null_element is None else expect_null_element
                 invert_elem = self._get_bool_prop(json_path_assertion_element, 'INVERT')
-                json_path_assertion["invert"] = invert_elem if invert_elem else False
+                json_path_assertion["invert"] = False if invert_elem is None else invert_elem
+                regexp = self._get_bool_prop(json_path_assertion_element, 'ISREGEX')
+                json_path_assertion["regexp"] = True if regexp is None else regexp
+
                 json_path_assertions.append(json_path_assertion)
 
         return json_path_assertions
