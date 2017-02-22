@@ -998,3 +998,10 @@ class PythonGenerator(object):
 
     def gen_new_line(self, indent=8):
         return self.gen_statement("", indent=indent)
+
+
+def str_representer(dumper, data):
+    "Representer for PyYAML that dumps multiline strings as | scalars"
+    if len(data.splitlines()) > 1:
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
