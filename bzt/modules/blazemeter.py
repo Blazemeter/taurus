@@ -31,7 +31,7 @@ from ssl import SSLError
 import yaml
 from urwid import Pile, Text
 
-from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError
+from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -1440,7 +1440,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             if 'note' in status and status['note']:
                 self.log.warning("Cloud test has probably failed with message: %s", status['note'])
 
-            self.router.master = None
             self.test_ended = True
             return True
 
@@ -1452,9 +1451,16 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def post_process(self):
         if not self.detach and self.router and not self.test_ended:
             self.router.stop_test()
+
         if self.results_url:
             if self.browser_open in ('end', 'both'):
                 open_browser(self.results_url)
+
+        if self.router and self.router.master:
+            full = self.router.master.get_full()
+            for session in full.get('sessions', ()):
+                for error in session.get("errors", ()):
+                    raise TaurusException(to_json(error))
 
     def get_widget(self):
         if not self.widget:

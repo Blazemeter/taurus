@@ -98,6 +98,7 @@ class TestCloudProvisioningOld(BZTestCase):
 
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+            'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": []}},
             'https://a.blazemeter.com/api/v4/masters/1': {"result": {"note": "message"}},
             'https://a.blazemeter.com/api/v4/masters/1/status': [
                 {"result": {"id": 1, "status": "CREATE"}},

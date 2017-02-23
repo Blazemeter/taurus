@@ -466,6 +466,10 @@ class Master(BZAObject):
         url = self.address + "/api/v4/masters/%s/stop"
         self._request(url % self['id'], method='POST')
 
+    def get_full(self):
+        url = self.address + "/api/v4/masters/%s/full" % self['id']
+        return self._request(url)['result']
+
 
 class Session(BZAObject):
     def __init__(self, proto=None, data=None):
