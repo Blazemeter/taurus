@@ -704,16 +704,84 @@ class JMXasDict(JMX):
         self.log.debug('Got %s for assertions in %s (%s)', assertions, element.tag, element.get("testname"))
         return assertions
 
+    def _extract_test_field(self, jmx_assertion):
+        subjects = {"Assertion.response_data": "body",  # "Text Response"
+                    "Assertion.response_headers": "headers",    # "Response Headers"
+                    "Assertion.response_code": "http-code"} # "Response Code"
+        # unsupported subjects (Assertion.test_field):
+        #   Assertion.response_data_as_document ("Document (text)"),
+        #   Assertion.sample_label ("URL Sampled"),
+        #   Assertion.response_message("Response Message")
+        test_field_prop = self._get_string_prop(jmx_assertion, 'Assertion.test_field')
+
+        if test_field_prop:
+            return subjects.get(test_field_prop, "body")
+        else:
+            self.log.warning("No test subject provided in %s, skipping", jmx_assertion.tag)
+
+    def _extract_assertion_strings(self, jmx_assertion, test_string_props):
+        test_strings = []
+        for string_prop in test_string_props:
+            if string_prop is not None and string_prop.text:
+                test_strings.append(string_prop.text)
+
+        if test_strings:
+            return test_strings
+        else:
+            self.log.warning("No test strings in %s, skipping", jmx_assertion.tag)
+
+    def _extract_test_type(self, jmx_element):
+        test_types = {2,    # Contains
+                      1,    # Matches
+                      8,    # Equals
+                      16}   # Substring
+
+        assertion = {}
+        test_type_element = jmx_element.find(".//*[@name='Assertion.test_type']")
+
+        if test_type_element is None or not test_type_element.text:
+            self.log.warning("No test subject provided in %s, skipping", jmx_element.tag)
+            return
+
+        test_type = int(test_type_element.text)
+
+        assertion["not"] = test_type in test_types
+
+        if test_type not in test_types:
+            test_type -= 4
+
+        if test_type == 2:  # contains
+            assertion["regexp"] = False
+        elif test_type == 1:  # matches
+            assertion["regexp"] = True
+        elif test_type == 8:  # equal
+            self.log.warning("Unsupported rule 'Equals' in %s", jmx_element.tag)
+            return
+        elif test_type == 16:  # substring
+            self.log.warning("Unsupported rule 'Substring' in %s", jmx_element.tag)
+            return
+        else:
+            self.log.warning("Unknown test type in %s, skipping", jmx_element.tag)
+            return
+        return assertion
+
     def _get_response_assertions(self, element):
         """
+        Convert JMeter Response Assertion to Taurus config format
+
+        partially supported:
+            Assertion.test_type ("Pattern Matching Rules")
+            Assertion.test_field ("Response Field to test")
+
+        unsupported:
+            Assertion.scope ("Apply to:")
+            Assertion.assume_sucdess ("Ignore Status")
+
         :param element:
         :return: list of dicts
         """
         response_assertions = []
-        subjects = {"Assertion.response_data": "body", "Assertion.response_headers": "headers",
-                    "Assertion.response_code": "http-code"}
-        test_types = {'6': (True, True), '2': (True, False), '20': (False, True),
-                      '16': (False, False)}  # (is_regexp, is_inverted)
+
         hashtree = element.getnext()
 
         if hashtree is not None and hashtree.tag == "hashTree":
@@ -721,46 +789,25 @@ class JMXasDict(JMX):
                                            element.tag == "ResponseAssertion"]
 
             for response_assertion_element in response_assertion_elements:
-                response_assertion = {}
+
                 selector = ".//collectionProp[@name='Asserion.test_strings']"
                 assertion_collection = response_assertion_element.find(selector)
 
                 if assertion_collection is None:
                     self.log.warning("Collection not found in %s, skipping", response_assertion_element.tag)
                     continue
+
                 test_string_props = assertion_collection.findall(".//stringProp")
-                test_strings = []
-                for string_prop in test_string_props:
-                    if string_prop is not None and string_prop.text:
-                        test_strings.append(string_prop.text)
 
-                if not test_strings:
-                    self.log.warning("No test strings in %s, skipping", response_assertion_element.tag)
-                    continue
-                response_assertion["contains"] = test_strings
-                test_field_prop = self._get_string_prop(response_assertion_element, 'Assertion.test_field')
+                response_assertion = self._extract_test_type(response_assertion_element)
+                assertion_strings = self._extract_assertion_strings(response_assertion_element, test_string_props)
+                subject_name = self._extract_test_field(response_assertion_element)
 
-                if test_field_prop:
-                    test_subject = subjects.get(test_field_prop, "body")
-                else:
-                    self.log.warning("No test subject provided in %s, skipping", response_assertion_element.tag)
-                    continue
-                response_assertion["subject"] = test_subject
-                test_type_element = response_assertion_element.find(".//*[@name='Assertion.test_type']")
+                if assertion_strings and subject_name and response_assertion:
+                    response_assertion['subject'] = subject_name
+                    response_assertion['contains'] = assertion_strings
+                    response_assertions.append(response_assertion)
 
-                if test_type_element is not None and test_type_element.text:
-                    test_type = test_types.get(test_type_element.text)
-                    if test_type:
-                        is_regexp, is_inverted = test_type
-                        response_assertion["regexp"] = is_regexp
-                        response_assertion["not"] = is_inverted
-                    else:
-                        self.log.warning("Unknown test type in %s, skipping", response_assertion_element.tag)
-                        continue
-                else:
-                    self.log.warning("No test subject provided in %s, skipping", response_assertion_element.tag)
-                    continue
-                response_assertions.append(response_assertion)
         return response_assertions
 
     def _get_jsonpath_assertions(self, element):
@@ -876,11 +923,11 @@ class JMXasDict(JMX):
 
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
-            processors = ("JSR223PreProcessor", "JSR223PostProcessor",
-                          "BeanShellPreProcessor", "BeanShellPostProcessor")
+            preprocessors = ["JSR223PreProcessor", "BeanShellPreProcessor"]
+            postprocessors = ["JSR223PostProcessor", "BeanShellPostProcessor"]
             elements = [element
                         for element in hashtree.iterchildren()
-                        if element.tag in processors]
+                        if element.tag in preprocessors + postprocessors]
             for element in elements:
                 if element is not None:
                     beanshell = element.tag.lower().startswith('beanshell')
@@ -888,7 +935,7 @@ class JMXasDict(JMX):
                     filename = self._get_string_prop(element, 'filename')
                     params = self._get_string_prop(element, 'parameters')
                     script = self._get_string_prop(element, 'script')
-                    execute = "before" if element.tag.lower().endswith == "preprocessor" else "after"
+                    execute = "before" if element.tag in preprocessors else "after"
                     if filename:
                         jsr = {
                             "language": language,

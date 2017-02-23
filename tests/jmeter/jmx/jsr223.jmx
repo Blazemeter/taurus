@@ -58,7 +58,7 @@
             <stringProp name="cacheKey"></stringProp>
             <stringProp name="filename"></stringProp>
             <stringProp name="parameters">a b c</stringProp>
-            <stringProp name="script">console.log(&quot;hello&quot;);</stringProp>
+            <stringProp name="script">console.log(&quot;ПРИВЕТ&quot;);</stringProp>
             <stringProp name="scriptLanguage">javascript</stringProp>
           </JSR223PostProcessor>
           <hashTree/>
