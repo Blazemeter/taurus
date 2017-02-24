@@ -3,7 +3,7 @@ scenarios:
   req:
     browser: Chrome
     requests:
-    - https://http2.akamai.com/demo
+    - http://ca.com
 
 execution:
   - scenario: req
