@@ -3,12 +3,12 @@ scenarios:
   req:
     browser: Chrome
     requests:
-    - https://nytimes.com
+    - https://http2.akamai.com/demo
 
 execution:
   - scenario: req
     executor: selenium
-    iterations: 2
+    iterations: 1
 
 services:
 - capturehar
