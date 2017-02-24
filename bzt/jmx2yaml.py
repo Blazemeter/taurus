@@ -775,7 +775,7 @@ class JMXasDict(JMX):
 
         unsupported:
             Assertion.scope ("Apply to:")
-            Assertion.assume_sucdess ("Ignore Status")
+            Assertion.assume_success ("Ignore Status")
 
         :param element:
         :return: list of dicts
