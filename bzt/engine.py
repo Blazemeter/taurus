@@ -570,7 +570,7 @@ class Configuration(BetterDict):
         for config_file in configs:
             try:
                 config = self.__read_file(config_file)
-            except IOError as exc:
+            except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
             self.merge(config)
