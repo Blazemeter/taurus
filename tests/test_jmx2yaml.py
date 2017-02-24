@@ -207,10 +207,10 @@ class TestConverter(BZTestCase):
         tg_two_assertions = tg_two.get("assert")
         self.assertEqual(len(tg_two_assertions), 1)  # global only assertion
         tg_one_req_one_assertion = tg_one.get("requests")[0].get("assert")[0]
-        expected = {'subject': 'headers', 'contains': ["tg1httpreq1", "tg1httpreq12"], "not": False, 'regexp': True}
+        expected = {'subject': 'headers', 'contains': ["tg1httpreq1", "tg1httpreq12"], "not": False, 'regexp': False}
         self.assertEqual(tg_one_req_one_assertion, expected)
         tg_one_assertion = tg_one.get("assert")[0]
-        expected = {'subject': 'body', 'contains': ["tg1body_text_not_contains"], "not": True, 'regexp': True}
+        expected = {'subject': 'body', 'contains': ["tg1body_text_not_contains"], "not": True, 'regexp': False}
         self.assertEqual(tg_one_assertion, expected)
 
     def test_copy_global_json_assertions(self):
@@ -228,7 +228,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(tg_one_req_one_jp), 0)
         tg_two_req_one_jp = tg_two.get("requests")[0].get("assert-jsonpath", [])
         self.assertEqual(len(tg_two_req_one_jp), 1)
-        expected = {"expect-null": True, "invert": True, "jsonpath": '$(":input")', "validate": True}
+        expected = {"expect-null": True, "invert": True, "jsonpath": '$(":input")', "validate": True, "regexp": True}
         self.assertEqual(expected, tg_two_req_one_jp[0])
         #  test concurrency, ramp-up, iterations in execution
         tg_one_exec = yml.get(ScenarioExecutor.EXEC)[0]
@@ -345,6 +345,7 @@ class TestConverter(BZTestCase):
         obj = self._get_jmx2yaml("/yaml/converter/disabled.jmx", self._get_tmp())
         obj.process()
         yml = yaml.load(open(__dir__() + "/yaml/converter/disabled.yml").read())
+        self.maxDiff = None
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
 
     def test_param_null(self):
@@ -414,7 +415,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(jsrs[2]["script-file"], "script-1.js")
         self.assertEqual(jsrs[2]["parameters"], None)
         self.assertEqual(jsrs[3]["language"], "beanshell")
-        self.assertEqual(jsrs[3]["execute"], "after")
+        self.assertEqual(jsrs[3]["execute"], "before")
 
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.bsh')))
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.js')))

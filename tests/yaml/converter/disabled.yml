@@ -28,13 +28,14 @@ scenarios:
         - '123'
         - '567'
         not: false
-        regexp: true
+        regexp: false
         subject: body
       assert-jsonpath:
       - expect-null: false
         expected-value: '*'
         invert: false
         jsonpath: $.
+        regexp: true
         validate: true
       body: one-two
       follow-redirects: true
@@ -45,7 +46,7 @@ scenarios:
       - contains:
         - test
         not: true
-        regexp: true
+        regexp: false
         subject: headers
       body:
         param1: value1
@@ -72,6 +73,7 @@ scenarios:
       - expect-null: false
         invert: false
         jsonpath: $.
+        regexp: true
         validate: false
       extract-regexp:
         reg_two:
@@ -112,7 +114,7 @@ scenarios:
       - contains:
         - '123123'
         not: true
-        regexp: true
+        regexp: false
         subject: body
       follow-redirects: true
       label: request

@@ -745,7 +745,7 @@ class JMXasDict(JMX):
 
         test_type = int(test_type_element.text)
 
-        assertion["not"] = test_type in test_types
+        assertion["not"] = test_type not in test_types
 
         if test_type not in test_types:
             test_type -= 4
@@ -799,9 +799,9 @@ class JMXasDict(JMX):
 
                 test_string_props = assertion_collection.findall(".//stringProp")
 
-                response_assertion = self._extract_test_type(response_assertion_element)
                 assertion_strings = self._extract_assertion_strings(response_assertion_element, test_string_props)
                 subject_name = self._extract_test_field(response_assertion_element)
+                response_assertion = self._extract_test_type(response_assertion_element)
 
                 if assertion_strings and subject_name and response_assertion:
                     response_assertion['subject'] = subject_name
