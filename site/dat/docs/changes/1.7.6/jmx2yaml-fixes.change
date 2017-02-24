@@ -1,0 +1,2 @@
+1. Fix response and jsonpath assertions accordingly to actual state of jmx format
+2. Treat BeanShell processors as rs223
