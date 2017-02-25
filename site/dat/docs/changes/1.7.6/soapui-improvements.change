@@ -1,3 +1,0 @@
-- Dump multiline strings (request bodies) the right way
-- Interpolate REST request templated parameters with real values
-- Apply JMeter modifications to the scenario extracted from SoapUI project

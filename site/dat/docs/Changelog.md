@@ -1,11 +1,11 @@
 # Changelog
 
-## 1.8.0 <sup>next</sup>
+## 1.8.0 <sup>25 feb 2017</sup>
+ - Added a capability to specify SoapUI scripts for JMeter executor
  - add services to start/stop appium server and android emulator
  - fix `default-address` handling for multi-execution use of single scenario
  - Used ENTRYPOINT in docker to allow command-line parameters passing
  - bump up autoinstalled selenium version to 3.0.1
- - Added a capability to specify SoapUI scripts for JMeter executor
  - Added a converter utility `soapui2yaml` for converting SoapUI projects into Taurus configs
  - add selector by link text to selenium actions
  - Support for auto setup of proxy server under Microsoft Windows for jmx recording purposes.
@@ -20,6 +20,7 @@
  - fix JMeter's treatment of resource files for cloud tests that have paths relative to the JMX
  - fix crash on cloud test results handling caused by API changes
  - migrate to v4 API of BlazeMeter
+ - report non-zero exit code if cloud test has errors
 
 
 [Changelog for Year 2016](Changelog2016.md)
