@@ -716,7 +716,7 @@ class JMXasDict(JMX):
         test_field_prop = self._get_string_prop(jmx_assertion, 'Assertion.test_field')  # "Response Field to test"
 
         if not test_field_prop:
-            self.log.warning("No test subject provided in %s, skipping", jmx_assertion.tag)
+            self.log.warning("No test subject (test_field) provided in %s, skipping", jmx_assertion.tag)
         elif test_field_prop in supported_subjects:
             return supported_subjects[test_field_prop]
         elif test_field_prop in unsupported_subjects:
