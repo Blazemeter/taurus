@@ -637,7 +637,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
                 'https://a.blazemeter.com/api/v4/multi-tests': {"result": {"id": 1}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}},
-                'https://a.blazemeter.com/api/v4/masters/1/forceStart': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/force-start': {"result": {"id": 1}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/stop': {"result": {"id": 1}}
             }
         )
@@ -652,7 +652,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertIn('masters/1/forceStart', ''.join([x['url'] for x in self.mock.requests]))
+        self.assertIn('masters/1/force-start', ''.join([x['url'] for x in self.mock.requests]))
 
     def test_terminate_only(self):
         """  test is terminated only when it was started and didn't finished """
@@ -688,7 +688,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
                 'https://a.blazemeter.com/api/v4/multi-tests': {"result": {'id': 1}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}},
-                'https://a.blazemeter.com/api/v4/masters/1/forceStart': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/force-start': {"result": {"id": 1}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/stop': {"result": {"id": 1}}
             }
         )
