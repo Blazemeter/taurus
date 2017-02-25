@@ -459,7 +459,7 @@ class Master(BZAObject):
         return res['result']
 
     def force_start(self):
-        url = self.address + "/api/v4/masters/%s/forceStart" % self['id']
+        url = self.address + "/api/v4/masters/%s/force-start" % self['id']
         self._request(url, method="POST")
 
     def stop(self):

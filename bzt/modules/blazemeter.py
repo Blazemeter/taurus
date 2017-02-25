@@ -1000,9 +1000,6 @@ class CloudTaurusTest(BaseCloudTest):
                 }
             }
 
-            if not self._project:
-                raise TaurusInternalException()  # TODO: build unit test to catch this situation
-
             self._test = self._project.create_test(self._test_name, test_config)
 
         if delete_old_files:
