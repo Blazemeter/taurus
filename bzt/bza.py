@@ -531,7 +531,8 @@ class Session(BZAObject):
         :type contents: str
         :raise TaurusNetworkError:
         """
-        body = MultiPartForm()  # TODO: can we migrate off it, and use something native to requests lib? http://stackoverflow.com/questions/12385179/how-to-send-a-multipart-form-data-with-requests-in-python
+        body = MultiPartForm()  # TODO: can we migrate off it, and use something native to requests lib?
+        # maybe http://stackoverflow.com/questions/12385179/how-to-send-a-multipart-form-data-with-requests-in-python
 
         if contents is None:
             body.add_file('file', filename)

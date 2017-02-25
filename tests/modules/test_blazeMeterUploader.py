@@ -150,6 +150,8 @@ class TestBlazeMeterUploader(BZTestCase):
                 {"result": True},
                 {"result": True},
                 {"result": True},
+                {"result": True},
+                {"result": True},
             ],
             'https://a.blazemeter.com/api/v4/data/masters/1/custom-metrics': [
                 IOError("custom metric push expected fail"),
@@ -187,7 +189,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.log.parent.handlers.append(logging.FileHandler(log_file))
         obj.engine.config.get('modules').get('shellexec').get('env')['TAURUS_INDEX_ALL'] = 1
         obj.post_process()
-        self.assertEqual(20, len(mock.requests))
+        self.assertEqual(22, len(mock.requests))
 
     def test_monitoring_buffer_limit_option(self):
         obj = BlazeMeterUploader()
@@ -305,7 +307,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.check()
         obj.shutdown()
         obj.post_process()
-        self.assertEqual(14, len(mock.requests))
+        self.assertEqual(16, len(mock.requests))
 
         log_buff = log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"

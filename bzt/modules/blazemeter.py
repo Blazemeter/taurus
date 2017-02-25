@@ -22,13 +22,12 @@ import platform
 import sys
 import time
 import traceback
+import yaml
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from functools import wraps
 from ssl import SSLError
-
-import yaml
 
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
@@ -42,7 +41,7 @@ from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError
-from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
+from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
 
 
@@ -196,9 +195,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     def __get_jtls_and_more(self):
         """
         Compress all files in artifacts dir to single zipfile
-        :return: BytesIO
+        :rtype: (bzt.six.BytesIO,dict)
         """
         mfile = BytesIO()
+        listing = {}
 
         logs = set()
         for handler in self.engine.log.parent.handlers:
@@ -213,15 +213,18 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                     if full_path in logs:
                         logs.remove(full_path)
 
-                    if os.path.getsize(full_path) <= max_file_size:
+                    fsize = os.path.getsize(full_path)
+                    if fsize <= max_file_size:
                         zfh.write(full_path, os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
+                        listing[full_path] = fsize
                     else:
                         msg = "File %s exceeds maximum size quota of %s and won't be included into upload"
                         self.log.warning(msg, filename, max_file_size)
 
             for filename in logs:  # upload logs unconditionally
                 zfh.write(filename, os.path.basename(filename))
-        return mfile
+                listing[filename] = os.path.getsize(filename)
+        return mfile, listing
 
     def __upload_artifacts(self):
         """
@@ -236,9 +239,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         else:
             suffix = ''
         artifacts_zip = "artifacts%s.zip" % suffix
-        mfile = self.__get_jtls_and_more()
+        mfile, zip_listing = self.__get_jtls_and_more()
         self.log.info("Uploading all artifacts as %s ...", artifacts_zip)
         self._session.upload_file(artifacts_zip, mfile.getvalue())
+        self._session.upload_file(artifacts_zip + '.tail.bz', self.__format_listing(zip_listing))
 
         for handler in self.engine.log.parent.handlers:
             if isinstance(handler, logging.FileHandler):
@@ -248,6 +252,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 modified_name = fhead + suffix + ftail
                 with open(fname) as _file:
                     self._session.upload_file(modified_name, _file.read())
+                    _file.seek(-4096, 2)
+                    tail = _file.read()
+                    tail = tail[tail.index("\n") + 1:]
+                    self._session.upload_file(modified_name + ".tail.bz", tail)
 
     def post_process(self):
         """
@@ -259,6 +267,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
         self.log.debug("KPI bulk buffer len in post-proc: %s", len(self.kpi_buffer))
         try:
+            self.log.info("Sending remaining KPI data to server...")
             self.__send_data(self.kpi_buffer, False, True)
             self.kpi_buffer = []
             if self.send_monitoring:
@@ -458,6 +467,15 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         for module in self.engine.services:
             if isinstance(module, ChromeProfiler):
                 return module.get_custom_tables_json()
+
+    def __format_listing(self, zip_listing):
+        lines = []
+        for fname in sorted(zip_listing.keys()):
+            bytestr = humanize_bytes(zip_listing[fname])
+            if fname.startswith(self.engine.artifacts_dir):
+                fname = fname[len(self.engine.artifacts_dir) + 1:]
+            lines.append(bytestr + " " + fname)
+        return "\n".join(lines)
 
 
 class MonitoringBuffer(object):
