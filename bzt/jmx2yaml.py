@@ -810,7 +810,7 @@ class JMXasDict(JMX):
         assertion["not"], test_type = test_type
 
         assume_success = self._extract_assume_success(jmx_element)
-        if not assume_success:
+        if assume_success is None:
             return
         assertion["assume-success"] = assume_success
 

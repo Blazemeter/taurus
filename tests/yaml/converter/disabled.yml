@@ -30,6 +30,7 @@ scenarios:
         not: false
         regexp: false
         subject: body
+        assume-success: false
       assert-jsonpath:
       - expect-null: false
         expected-value: '*'
@@ -48,6 +49,7 @@ scenarios:
         not: true
         regexp: false
         subject: headers
+        assume-success: false
       body:
         param1: value1
         param2: value2
@@ -116,6 +118,7 @@ scenarios:
         not: true
         regexp: false
         subject: body
+        assume-success: false
       follow-redirects: true
       label: request
       method: GET

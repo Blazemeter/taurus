@@ -207,10 +207,12 @@ class TestConverter(BZTestCase):
         tg_two_assertions = tg_two.get("assert")
         self.assertEqual(len(tg_two_assertions), 1)  # global only assertion
         tg_one_req_one_assertion = tg_one.get("requests")[0].get("assert")[0]
-        expected = {'subject': 'headers', 'contains': ["tg1httpreq1", "tg1httpreq12"], "not": False, 'regexp': False}
+        expected = {"subject": "headers", "contains": ["tg1httpreq1", "tg1httpreq12"],
+                    "assume-success": False, "not": False, "regexp": False}
         self.assertEqual(tg_one_req_one_assertion, expected)
         tg_one_assertion = tg_one.get("assert")[0]
-        expected = {'subject': 'body', 'contains': ["tg1body_text_not_contains"], "not": True, 'regexp': False}
+        expected = {"subject": "body", "contains": ["tg1body_text_not_contains"],
+                    "assume-success": False, "not": True, 'regexp': False}
         self.assertEqual(tg_one_assertion, expected)
 
     def test_copy_global_json_assertions(self):
@@ -345,7 +347,6 @@ class TestConverter(BZTestCase):
         obj = self._get_jmx2yaml("/yaml/converter/disabled.jmx", self._get_tmp())
         obj.process()
         yml = yaml.load(open(__dir__() + "/yaml/converter/disabled.yml").read())
-        self.maxDiff = None
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
 
     def test_param_null(self):
