@@ -29,6 +29,8 @@ from functools import wraps
 from ssl import SSLError
 
 import yaml
+
+from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
 from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException
@@ -1415,7 +1417,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         try:
             master = self.router.get_master_status()
-        except (URLError, SSLError):
+        except (URLError, SSLError, ReadTimeout):
             self.log.warning("Failed to get test status, will retry in %s seconds...", self.user.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.user.timeout)
