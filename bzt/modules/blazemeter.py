@@ -802,9 +802,11 @@ class ProjectFinder(object):
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
         proj_name = self.parameters.get("project", self.settings.get("project", None))
-        project = self._find_project(proj_name)
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
+        project = self._find_project(proj_name)
+
+        test_class = None
         test = self._ws_proj_switch(project).multi_tests(name=test_name).first()
         self.log.debug("Looked for collection: %s", test)
         if test:
@@ -816,25 +818,19 @@ class ProjectFinder(object):
             if test:
                 self.log.debug("Detected test type: old")
                 test_class = CloudTaurusTest
-            else:
-                project = self._default_or_create_project(proj_name)
-                if use_deprecated:
-                    self.log.debug("Will create old-style test")
-                    test_class = CloudTaurusTest
-                else:
-                    self.log.debug("Will create new-style test")
-                    test_class = CloudCollectionTest
-                test = None
 
         if not project:
-            if not test:
-                project = self._default_or_create_project(proj_name)
-            else:
-                project = self.workspaces.projects(proj_id=test['projectId']).first()
-                if not project:
-                    msg = "Failed to find project with id %s for existing test %s"
-                    raise TaurusInternalException(msg % (test['projectId'], test['id']))
+            project = self._default_or_create_project(proj_name)
 
+        if not test:
+            if use_deprecated:
+                self.log.debug("Will create old-style test")
+                test_class = CloudTaurusTest
+            else:
+                self.log.debug("Will create new-style test")
+                test_class = CloudCollectionTest
+
+        assert test_class is not None
         return test_class(self.user, test, project, test_name, default_location, self.log)
 
     def _default_or_create_project(self, proj_name):

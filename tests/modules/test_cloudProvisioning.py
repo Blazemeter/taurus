@@ -391,6 +391,23 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[5]['url'])
         self.assertEquals('POST', self.mock.requests[5]['method'])
 
+    def test_create_project_test_exists(self):
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
+                {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
+            ]},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': [
+                {'result': []},
+                {'result': [{'id': 1}]}
+            ],
+            'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+        })
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
+        self.obj.prepare()
+        self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[5]['url'])
+        self.assertEquals('POST', self.mock.requests[5]['method'])
+
     def test_reuse_project(self):
         self.obj.user.token = object()
         self.configure(
