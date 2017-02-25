@@ -40,7 +40,7 @@ from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
-from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError
+from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
 
@@ -244,17 +244,18 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self._session.upload_file(artifacts_zip, mfile.getvalue())
         self._session.upload_file(artifacts_zip + '.tail.bz', self.__format_listing(zip_listing))
 
-        for handler in self.engine.log.parent.handlers:
+        handlers = self.engine.log.parent.handlers
+        for handler in handlers:
             if isinstance(handler, logging.FileHandler):
                 fname = handler.baseFilename
                 self.log.info("Uploading %s", fname)
                 fhead, ftail = os.path.splitext(os.path.split(fname)[-1])
                 modified_name = fhead + suffix + ftail
-                with open(fname) as _file:
+                with open(fname, 'rb') as _file:
                     self._session.upload_file(modified_name, _file.read())
                     _file.seek(-4096, 2)
                     tail = _file.read()
-                    tail = tail[tail.index("\n") + 1:]
+                    tail = tail[tail.index(b("\n")) + 1:]
                     self._session.upload_file(modified_name + ".tail.bz", tail)
 
     def post_process(self):

@@ -187,10 +187,12 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.aggregated_second(random_datapoint(10))
         obj.shutdown()
         log_file = obj.engine.create_artifact('log', '.tmp')
-        obj.engine.log.parent.handlers.append(logging.FileHandler(log_file))
+        handler = logging.FileHandler(log_file)
+        obj.engine.log.parent.addHandler(handler)
         obj.engine.config.get('modules').get('shellexec').get('env')['TAURUS_INDEX_ALL'] = 1
         obj.post_process()
         self.assertEqual(22, len(mock.requests))
+        obj.engine.log.parent.removeHandler(handler)
 
     def test_monitoring_buffer_limit_option(self):
         obj = BlazeMeterUploader()
@@ -312,7 +314,8 @@ class TestBlazeMeterUploader(BZTestCase):
         log_buff = log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
         self.assertIn(log_line, log_buff)
-        self.assertEqual(16, len(mock.requests))
+        logging.warning("\n".join([x['url'] for x in mock.requests]))
+        self.assertEqual(14, len(mock.requests))
 
     def test_new_project_existing_test(self):
         obj = BlazeMeterUploader()
