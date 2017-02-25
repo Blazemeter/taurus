@@ -1028,7 +1028,7 @@ class TestCloudProvisioning(BZTestCase):
                         "us-west": 2
                     }}},
             post={
-                'https://a.blazemeter.com/api/v4/masters/1/publicToken': {"result": {"publicToken": "publicToken"}}
+                'https://a.blazemeter.com/api/v4/masters/1/public-token': {"result": {"publicToken": "publicToken"}}
             },
             get={
                 'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED"}},
