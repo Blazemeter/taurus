@@ -391,7 +391,7 @@ class MultiTest(BZAObject):
 
 class Master(BZAObject):
     def make_report_public(self):
-        url = self.address + "/api/v4/masters/%s/publicToken" % self['id']
+        url = self.address + "/api/v4/masters/%s/public-token" % self['id']
         res = self._request(url, {"publicToken": None}, method="POST")
         public_token = res['result']['publicToken']
         report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self['id'])
