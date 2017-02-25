@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 import requests
 
-from bzt import TaurusNetworkError, ManualShutdown
+from bzt import TaurusNetworkError, ManualShutdown, VERSION
 from bzt.six import cookielib
 from bzt.six import text_type
 from bzt.six import urlencode
@@ -51,6 +51,9 @@ class BZAObject(dict):
         """
         if not headers:
             headers = {}
+
+        headers["X-Client-Id"] = "Taurus"
+        headers["X-Client-Version"] = VERSION
 
         if self.token:
             headers["X-Api-Key"] = self.token
