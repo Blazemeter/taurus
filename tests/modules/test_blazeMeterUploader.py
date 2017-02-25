@@ -21,7 +21,7 @@ class TestBlazeMeterUploader(BZTestCase):
     def test_some_errors(self):
         mock = BZMock()
         mock.mock_get.update({
-            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/sessions/1': {"result": {'id': 1, "note": "somenote"}},
             'https://a.blazemeter.com/api/v4/masters/1': {"result": {'id': 1, "note": "somenote"}},
         })
@@ -122,13 +122,14 @@ class TestBlazeMeterUploader(BZTestCase):
     def test_check(self):
         mock = BZMock()
         mock.mock_get.update({
-            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {"result": []}
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test': {"result": []}
         })
         mock.mock_post.update({
             'https://a.blazemeter.com/api/v4/projects': {"result": {
-                "id": time.time(),
+                "id": 1,
                 "name": "boo",
-                "userId": time.time(),
+                "userId": 2,
                 "description": None,
                 "created": time.time(),
                 "updated": time.time(),
@@ -146,6 +147,8 @@ class TestBlazeMeterUploader(BZTestCase):
             ],
             'https://a.blazemeter.com/api/v4/image/1/files?signature=sign': [
                 IOError("monitoring push expected fail"),
+                {"result": True},
+                {"result": True},
                 {"result": True},
                 {"result": True},
                 {"result": True},
@@ -184,10 +187,12 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.aggregated_second(random_datapoint(10))
         obj.shutdown()
         log_file = obj.engine.create_artifact('log', '.tmp')
-        obj.engine.log.parent.handlers.append(logging.FileHandler(log_file))
+        handler = logging.FileHandler(log_file)
+        obj.engine.log.parent.addHandler(handler)
         obj.engine.config.get('modules').get('shellexec').get('env')['TAURUS_INDEX_ALL'] = 1
         obj.post_process()
-        self.assertEqual(20, len(mock.requests))
+        self.assertEqual(22, len(mock.requests))
+        obj.engine.log.parent.removeHandler(handler)
 
     def test_monitoring_buffer_limit_option(self):
         obj = BlazeMeterUploader()
@@ -283,7 +288,7 @@ class TestBlazeMeterUploader(BZTestCase):
                 'master': {'id': 'master1', 'userId': 1},
                 'signature': ''
             }},
-            'https://a.blazemeter.com/api/v4/masters/master1/publicToken': {'result': {'publicToken': 'publicToken'}},
+            'https://a.blazemeter.com/api/v4/masters/master1/public-token': {'result': {'publicToken': 'publicToken'}},
             'https://data.blazemeter.com/submit.php?session_id=sess1&signature=&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {
                 "result": {'session': {}}},
             'https://a.blazemeter.com/api/v4/image/sess1/files?signature=': {'result': True},
@@ -305,11 +310,83 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.check()
         obj.shutdown()
         obj.post_process()
-        self.assertEqual(14, len(mock.requests))
 
         log_buff = log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
         self.assertIn(log_line, log_buff)
+        logging.warning("\n".join([x['url'] for x in mock.requests]))
+        self.assertEqual(14, len(mock.requests))
+
+    def test_new_project_existing_test(self):
+        obj = BlazeMeterUploader()
+        mock = BZMock(obj._user)
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {'result': [
+                {'id': 1, 'name': 'Taurus Test', 'configuration': {"type": 'external'}}
+            ]},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test': {'result': []}
+        })
+
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
+        })
+
+        obj.parameters['project'] = 'Proj name'
+        obj.settings['token'] = '123'
+        obj.settings['browser-open'] = 'none'
+        obj.engine = EngineEmul()
+        obj.prepare()
+        self.assertEquals('https://a.blazemeter.com/api/v4/projects', mock.requests[4]['url'])
+        self.assertEquals('POST', mock.requests[4]['method'])
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests', mock.requests[6]['url'])
+        self.assertEquals('POST', mock.requests[6]['method'])
+
+
+    def test_new_project_new_test(self):
+        obj = BlazeMeterUploader()
+        mock = BZMock(obj._user)
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {'result': []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {'result': []}
+        })
+
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
+        })
+
+        obj.settings['token'] = '123'
+        obj.settings['browser-open'] = 'none'
+        obj.engine = EngineEmul()
+        obj.prepare()
+        self.assertEquals('https://a.blazemeter.com/api/v4/projects', mock.requests[6]['url'])
+        self.assertEquals('POST', mock.requests[6]['method'])
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests', mock.requests[7]['url'])
+        self.assertEquals('POST', mock.requests[7]['method'])
+
+    def test_existing_project_new_test(self):
+        obj = BlazeMeterUploader()
+        mock = BZMock(obj._user)
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test': {'result': []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {'result': [
+                {'id': 1, 'name': 'Proj name'}
+            ]}
+        })
+
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
+        })
+
+        obj.parameters['project'] = 'Proj name'
+        obj.settings['token'] = '123'
+        obj.settings['browser-open'] = 'none'
+        obj.engine = EngineEmul()
+        obj.prepare()
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests', mock.requests[5]['url'])
+        self.assertEquals('POST', mock.requests[5]['method'])
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):

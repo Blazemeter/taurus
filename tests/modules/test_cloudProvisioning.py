@@ -391,6 +391,25 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[5]['url'])
         self.assertEquals('POST', self.mock.requests[5]['method'])
 
+    def test_create_project_test_exists(self):
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
+                {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
+            ]},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': [
+                {'result': []},
+                {'result': [{'id': 1}]}
+            ],
+            'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+        })
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
+        self.obj.prepare()
+        self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[5]['url'])
+        self.assertEquals('POST', self.mock.requests[5]['method'])
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests', self.mock.requests[7]['url'])
+        self.assertEquals('POST', self.mock.requests[7]['method'])
+
     def test_reuse_project(self):
         self.obj.user.token = object()
         self.configure(
@@ -618,7 +637,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
                 'https://a.blazemeter.com/api/v4/multi-tests': {"result": {"id": 1}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}},
-                'https://a.blazemeter.com/api/v4/masters/1/forceStart': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/force-start': {"result": {"id": 1}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/stop': {"result": {"id": 1}}
             }
         )
@@ -633,7 +652,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertIn('masters/1/forceStart', ''.join([x['url'] for x in self.mock.requests]))
+        self.assertIn('masters/1/force-start', ''.join([x['url'] for x in self.mock.requests]))
 
     def test_terminate_only(self):
         """  test is terminated only when it was started and didn't finished """
@@ -669,7 +688,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
                 'https://a.blazemeter.com/api/v4/multi-tests': {"result": {'id': 1}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}},
-                'https://a.blazemeter.com/api/v4/masters/1/forceStart': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/force-start': {"result": {"id": 1}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/stop': {"result": {"id": 1}}
             }
         )
@@ -1009,7 +1028,7 @@ class TestCloudProvisioning(BZTestCase):
                         "us-west": 2
                     }}},
             post={
-                'https://a.blazemeter.com/api/v4/masters/1/publicToken': {"result": {"publicToken": "publicToken"}}
+                'https://a.blazemeter.com/api/v4/masters/1/public-token': {"result": {"publicToken": "publicToken"}}
             },
             get={
                 'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED"}},
