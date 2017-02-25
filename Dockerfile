@@ -54,7 +54,7 @@ RUN apt-get -y update \
   && unzip -d /usr/bin /tmp/chromedriver_linux64.zip \
   && wget https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz -P /tmp \
   && tar -xzf /tmp/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz --directory /usr/local/bin \
-  && rm -rf /var/lib/apt/lists/* \
+  && apt-get clean \
   && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
 
 COPY bzt/resources/chrome_launcher.sh /tmp
