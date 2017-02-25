@@ -806,14 +806,17 @@ class ProjectFinder(object):
 
     def resolve_external_test(self):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
-        project = self._find_project(proj_name)
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
+        project = self._find_project(proj_name)
+        if not project and proj_name:
+            project = self._default_or_create_project(proj_name)
+
         test = self._ws_proj_switch(project).tests(name=test_name, test_type='external').first()
+
         if not test:
             if not project:
                 project = self._default_or_create_project(proj_name)
-
             test = project.create_test(test_name, {"type": "external"})
 
         return test
