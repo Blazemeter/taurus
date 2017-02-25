@@ -407,6 +407,8 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[5]['url'])
         self.assertEquals('POST', self.mock.requests[5]['method'])
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests', self.mock.requests[7]['url'])
+        self.assertEquals('POST', self.mock.requests[7]['method'])
 
     def test_reuse_project(self):
         self.obj.user.token = object()

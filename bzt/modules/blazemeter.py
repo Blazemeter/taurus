@@ -821,6 +821,8 @@ class ProjectFinder(object):
 
         if not project:
             project = self._default_or_create_project(proj_name)
+            if proj_name:
+                test = None  # we have to create another test under this project
 
         if not test:
             if use_deprecated:
