@@ -1,0 +1,254 @@
+---
+execution:
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_1_1
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_1_2
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_1_3
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_1_4
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_2_1
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_2_2
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_2_3
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_2_4
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_3_1
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_3_2
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_4_1
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_4_2
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_4_3
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_4_4
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_4_5
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_4_6
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_5_1
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: tg_5_2
+scenarios:
+  tg_1_1:
+    assert:
+    - assume-success: false
+      contains:
+      - ss
+      not: false
+      regexp: false
+      subject: body
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_1_2:
+    assert:
+    - assume-success: false
+      contains:
+      - ss
+      not: false
+      regexp: false
+      subject: body
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_1_3:
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_1_4:
+    assert:
+    - assume-success: false
+      contains:
+      - ss
+      not: false
+      regexp: false
+      subject: body
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_2_1:
+    assert:
+    - assume-success: false
+      contains:
+      - ss
+      not: false
+      regexp: false
+      subject: headers
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_2_2:
+    assert:
+    - assume-success: false
+      contains:
+      - ss
+      not: false
+      regexp: false
+      subject: body
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_2_3:
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_2_4:
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_3_1:
+    assert:
+    - assume-success: true
+      contains:
+      - ss
+      not: false
+      regexp: false
+      subject: body
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_3_2:
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_4_1:
+    assert:
+    - assume-success: false
+      contains:
+      - tt*tt
+      not: false
+      regexp: true
+      subject: body
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_4_2:
+    assert:
+    - assume-success: false
+      contains:
+      - ^tt\*tt$
+      not: false
+      regexp: true
+      subject: body
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_4_3:
+    assert:
+    - assume-success: false
+      contains:
+      - ss
+      not: false
+      regexp: false
+      subject: body
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_4_4:
+    assert:
+    - assume-success: false
+      contains:
+      - ss
+      not: true
+      regexp: false
+      subject: body
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_4_5:
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_4_6:
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_5_1:
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+  tg_5_2:
+    requests: []
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+

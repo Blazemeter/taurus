@@ -215,6 +215,18 @@ class TestConverter(BZTestCase):
                     "assume-success": False, "not": True, 'regexp': False}
         self.assertEqual(tg_one_assertion, expected)
 
+    def test_broken_request_assertions(self):
+        # see comments in broken_resp_asserts.jmx for explanation of cases
+        # don't save broken_resp_asserts.jmx by jmeter
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/yaml/converter/broken_resp_asserts.jmx", yml)
+        obj.process()
+        yml_tested = yaml.load(open(yml).read())
+        assertions = {}
+        scenarios = yml_tested.get("scenarios")
+        yml_original = yaml.load(open(__dir__() + "/yaml/converter/broken_resp_asserts.yml").read())
+        self.assertEqual(yml_tested, yml_original)
+
     def test_copy_global_json_assertions(self):
         yml = self._get_tmp()
         obj = self._get_jmx2yaml("/yaml/converter/assertions.jmx", yml)

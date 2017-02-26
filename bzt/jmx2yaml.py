@@ -723,7 +723,7 @@ class JMXasDict(JMX):
             msg = 'Unsupported test_field ("Response Field to test"): '
             msg += '%s, replace it with Assertion.response_data ("Text response")'
             self.log.warning(msg, test_field_prop)
-            return supported_subjects[test_field_prop]
+            return 'body'
         else:
             self.log.warning('Unknown test_field ("Response Field to test"): %s, skipping', test_field_prop)
 
@@ -782,7 +782,7 @@ class JMXasDict(JMX):
         scope = jmx_element.find(".//*[@name='Assertion.scope']")   # "Apply to:"
         if scope is None:
             return "main"
-        elif scope in ("all", "children", "variable"):
+        elif scope.text in ("all", "children", "variable"):
             self.log.warning("Unsupported scope '%s' in %s, change to 'Main sample only", scope, jmx_element.tag)
             return "main"
         else:
