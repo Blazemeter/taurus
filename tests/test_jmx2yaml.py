@@ -29,14 +29,13 @@ class TestConverter(BZTestCase):
     def _get_tmp(self, prefix='test', suffix='.yml'):
         return self.engine.create_artifact(prefix, suffix)
 
-    def test_aobjprop(self):
+    def test_objprop(self):
         log_recorder = RecordingHandler()
         obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", self._get_tmp())
         obj.log.addHandler(log_recorder)
         obj.process()
         self.assertNotIn("Removing unknown element: name (None)", log_recorder.warn_buff.getvalue())
         self.assertNotIn("Removing unknown element: value (None)", log_recorder.warn_buff.getvalue())
-
         obj.log.removeHandler(log_recorder)
 
     def test_loadjmx1(self):
