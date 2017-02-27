@@ -157,11 +157,25 @@ scenarios:
     store-cookie: false
     use-dns-cache-mgr: false
   tg_2_3:
+    assert:
+    - assume-success: false
+      contains:
+      - ss
+      not: false
+      regexp: false
+      subject: body
     requests: []
     store-cache: false
     store-cookie: false
     use-dns-cache-mgr: false
   tg_2_4:
+    assert:
+    - assume-success: false
+      contains:
+      - ss
+      not: false
+      regexp: false
+      subject: body
     requests: []
     store-cache: false
     store-cookie: false

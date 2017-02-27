@@ -721,11 +721,12 @@ class JMXasDict(JMX):
             return supported_subjects[test_field_prop]
         elif test_field_prop in unsupported_subjects:
             msg = 'Unsupported test_field ("Response Field to test"): '
-            msg += '%s, replace it with Assertion.response_data ("Text response")'
+            msg += '%s, replaced with Assertion.response_data ("Text response")'
             self.log.warning(msg, test_field_prop)
-            return 'body'
         else:
             self.log.warning('Unknown test_field ("Response Field to test"): %s, skipping', test_field_prop)
+
+        return 'body'
 
     def _extract_test_strings(self, jmx_element):
         selector = ".//collectionProp[@name='Asserion.test_strings']"
