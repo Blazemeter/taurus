@@ -1163,7 +1163,8 @@ class JMXasDict(JMX):
                 self._remove_element(subelement)
                 self._clean_jmx_tree(element)
                 return
-            self._clean_jmx_tree(subelement)
+            if subelement.tag.lower() == 'hashtree':
+                self._clean_jmx_tree(subelement)
 
     def _record_additional_file(self, base_filename, extension, content):
         filename = base_filename + extension
