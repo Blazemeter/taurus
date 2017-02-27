@@ -1253,7 +1253,7 @@ class JMXasDict(JMX):
         Removes all unknown elements
         :return:
         """
-        for subelement in element.iter():
+        for subelement in element.findall('./'):
             if subelement.tag.lower().endswith("prop"):
                 continue
             if subelement.tag not in KNOWN_TAGS and not subelement.tag.endswith("Controller"):
@@ -1261,6 +1261,8 @@ class JMXasDict(JMX):
                 self._remove_element(subelement)
                 self._clean_jmx_tree(element)
                 return
+            if subelement.tag.lower() == 'hashtree':
+                self._clean_jmx_tree(subelement)
 
     def _record_additional_file(self, base_filename, extension, content):
         filename = base_filename + extension
