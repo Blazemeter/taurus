@@ -784,7 +784,7 @@ class JMXasDict(JMX):
         if scope is None:
             return "main"
         elif scope.text in ("all", "children", "variable"):
-            self.log.warning("Unsupported scope '%s' in %s, change to 'Main sample only", scope, jmx_element.tag)
+            self.log.warning("Unsupported scope '%s' in %s, changed to 'Main sample only", scope, jmx_element.tag)
             return "main"
         else:
             self.log.warning("Unknown scope '%s' in %s", scope, jmx_element.tag)
@@ -825,7 +825,7 @@ class JMXasDict(JMX):
         elif test_type == 1:  # matches
             assertion["regexp"] = True
         elif test_type == 8:  # equal
-            self.log.warning("Unsupported rule 'Equals' in %s, convert assertion to 'Matches'", jmx_element.tag)
+            self.log.warning("Unsupported rule 'Equals' in %s, converted to 'Matches'", jmx_element.tag)
             assertion["regexp"] = True
             modified_strings = ['^' + re.escape(string) + '$' for string in assertion_strings]
             assertion["contains"] = modified_strings

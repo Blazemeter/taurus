@@ -167,7 +167,7 @@ class Engine(object):
         for module in modules:
             if module in self.started:
                 self.log.debug("Checking %s", module)
-                finished |= module.check()
+                finished |= bool(module.check())
         return finished
 
     def _wait(self):
