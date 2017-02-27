@@ -715,16 +715,16 @@ class JMXasDict(JMX):
 
         test_field_prop = self._get_string_prop(jmx_assertion, 'Assertion.test_field')  # "Response Field to test"
 
+        msg = 'in %s, replaced with Assertion.response_data ("Text response")' % jmx_assertion.tag
+        msg = '%s test_field ("Response Field to test") %s ' + msg
         if not test_field_prop:
-            self.log.warning("No test subject (test_field) provided in %s, skipping", jmx_assertion.tag)
+            self.log.warning(msg, 'Empty', 'provided')
         elif test_field_prop in supported_subjects:
             return supported_subjects[test_field_prop]
         elif test_field_prop in unsupported_subjects:
-            msg = 'Unsupported test_field ("Response Field to test"): '
-            msg += '%s, replaced with Assertion.response_data ("Text response")'
-            self.log.warning(msg, test_field_prop)
+            self.log.warning(msg, 'Unsupported', test_field_prop)
         else:
-            self.log.warning('Unknown test_field ("Response Field to test"): %s, skipping', test_field_prop)
+            self.log.warning(msg, 'Unknown', test_field_prop)
 
         return 'body'
 
