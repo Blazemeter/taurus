@@ -31,7 +31,6 @@ from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
 from bzt.utils import get_full_path
-from bzt.six import etree
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
