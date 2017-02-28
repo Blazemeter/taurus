@@ -30,6 +30,7 @@ class EngineEmul(Engine):
         self.config.get('settings')['check-updates'] = False
         self.create_artifacts_dir()
         self.config.merge({"provisioning": "local"})
+        self.config.merge({"modules": {"mock": ModuleMock.__module__ + "." + ModuleMock.__name__}})
         self.finalize_exc = None
         self.was_finalize = False
 

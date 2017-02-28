@@ -28,6 +28,8 @@ Shows engine health
 ## Common Ground for Different Testing Tools
 In large orgs, frequently different teams use different tools. Taurus can help having common ground on reporting and scaling for these groups, while keeping their favorite scripting approaches.
 
+## Heterogenous Testing
+
 ## Automation-Oriented Approach
 Automation-oriented approach, 
 VCS-friendly

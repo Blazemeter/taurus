@@ -70,6 +70,13 @@
             <stringProp name="script">log.info(&quot;bye&quot;);</stringProp>
           </JSR223PostProcessor>
           <hashTree/>
+          <BeanShellPreProcessor guiclass="TestBeanGUI" testclass="BeanShellPreProcessor" testname="BeanShell PreProcessor" enabled="true">
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters"></stringProp>
+            <boolProp name="resetInterpreter">false</boolProp>
+            <stringProp name="script">console.log(&quot;beanshell aka jsr223&quot;);</stringProp>
+          </BeanShellPreProcessor>
+          <hashTree/>
         </hashTree>
       </hashTree>
     </hashTree>

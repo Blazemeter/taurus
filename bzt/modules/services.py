@@ -75,7 +75,7 @@ class InstallChecker(Service):
         mod = self.engine.instantiate_module(mod_name)
 
         if not isinstance(mod, HavingInstallableTools):
-            self.log.debug("Module %s has no install needs")
+            self.log.debug("Module %s has no install needs", mod_name)
             return
 
         self.log.info("Checking installation needs for: %s", mod_name)

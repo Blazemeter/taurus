@@ -100,7 +100,7 @@ class TestJUnitXML(BZTestCase):
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
         rep = BlazeMeterUploader()
-        rep.client.results_url = "http://report/123"
+        rep.results_url = "http://report/123"
         obj.engine.reporters.append(rep)
         obj.parameters = BetterDict()
 
@@ -234,7 +234,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
         obj.engine.provisioning = CloudProvisioning()
-        obj.engine.provisioning.client.results_url = "http://test/report/123"
+        obj.engine.provisioning.results_url = "http://test/report/123"
 
         pass_fail1 = PassFailStatus()
 
@@ -300,7 +300,8 @@ class TestJUnitXML(BZTestCase):
         pass_fail = PassFailStatus()
 
         criteria = DataCriterion({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
-                                  'condition': '<', 'subject': 'avg-rt'}, pass_fail)
+                                  'condition': '<', 'subject': 'avg-rt'},
+                                 pass_fail)
         pass_fail.criteria.append(criteria)
         criteria.is_triggered = True
 

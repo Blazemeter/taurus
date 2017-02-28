@@ -1,7 +1,7 @@
 ---
 execution:
 - scenario: simple
-  concurrency: 50
+  concurrency: 5
   throughput: 25
   ramp-up: 2m
   steps: 5
@@ -13,7 +13,10 @@ scenarios:
     requests:
     - http://blazedemo.com
 
-services:
+
+reporting:
 - module: passfail
   criteria:
-  - avg-rt>5ms for 10s, stop as failed
+  - avg-rt>5000ms for 5s, stop as failed
+- module: junit-xml
+  data-source: pass-fail

@@ -66,6 +66,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         """
         Just store the latest info
 
+        :type cumulative_results: bzt.modules.functional.ResultsTree
         :type results: bzt.modules.functional.ResultsTree
         """
         self.cumulative_results = cumulative_results
@@ -383,15 +384,16 @@ class XUnitFileWriter(object):
         result = []
         if isinstance(self.engine.provisioning, CloudProvisioning):
             cloud_prov = self.engine.provisioning
-            report_url = "Cloud report link: %s\n" % cloud_prov.client.results_url
+            report_url = "Cloud report link: %s\n" % cloud_prov.results_url
             test_name = cloud_prov.settings.get('test', None)
             result.append((report_url, test_name if test_name is not None else report_url))
         else:
+            # FIXME: reworking it all
             bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
-            """:type bza_reporters: list[BlazeMeterUploader]"""
+            """:type : list[bzt.modules.blazemeter.BlazeMeterUploader]"""
             for bza_reporter in bza_reporters:
-                if bza_reporter.client.results_url:
-                    report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
+                if bza_reporter.results_url:
+                    report_url = "BlazeMeter report link: %s\n" % bza_reporter.results_url
                     test_name = bza_reporter.parameters.get("test", None)
 
                     result.append((report_url, test_name if test_name is not None else report_url))

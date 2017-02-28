@@ -1,0 +1,2583 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project xmlns:con="http://eviware.com/soapui/config" activeEnvironment="Default" name="Google Maps" resourceRoot="" soapui-version="5.2.1" id="f59c7575-5453-41c4-ab63-9d23c99f0e49" abortOnError="false" runType="SEQUENTIAL">
+  <con:settings/>
+  <con:interface xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="con:RestService" wadlVersion="http://wadl.dev.java.net/2009/02" name="Direction API" type="rest" basePath="" id="4c37ae44-3eab-49ad-ab2e-f54902af57fe">
+    <con:settings/>
+    <con:definitionCache type="TEXT" rootPart=""/>
+    <con:endpoints>
+      <con:endpoint>http://maps.googleapis.com</con:endpoint>
+    </con:endpoints>
+    <con:resource name="directions" path="/maps/api/directions/{format}" id="52e9b52d-c41d-416c-aec3-10a9279673e9">
+      <con:settings/>
+      <con:parameters>
+        <con:parameter required="true">
+          <con:name>origin</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>destination</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>sensor</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>format</con:name>
+          <con:value>json</con:value>
+          <con:style>TEMPLATE</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>json</con:default>
+          <con:path xsi:nil="true"/>
+          <con:option>json</con:option>
+          <con:option>xml</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>mode</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+          <con:option>driving</con:option>
+          <con:option>walking</con:option>
+          <con:option>bicycling</con:option>
+          <con:option>transit</con:option>
+        </con:parameter>
+        <con:parameter>
+          <con:name>waypoints</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>alternatives</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>avoid</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+          <con:option>tolls</con:option>
+          <con:option>highways</con:option>
+        </con:parameter>
+        <con:parameter>
+          <con:name>language</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>units</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+          <con:option>metric</con:option>
+          <con:option>imperial</con:option>
+        </con:parameter>
+        <con:parameter>
+          <con:name>region</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>departure_time</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>arrival_time</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+      </con:parameters>
+      <con:method name="GET" method="GET" id="851f96f7-6994-43ca-a17f-a418af39a441">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element xmlns:json="http://maps.googleapis.com/maps/api/directions/json">json:Response</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/xml; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>DirectionsResponse</con:element>
+        </con:representation>
+        <con:request name="Sample Request" mediaType="application/xml" id="dc834444-59d7-4769-816b-144cb240d880">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="origin" value="Toronto"/>
+            <con:entry key="destination" value="Montreal"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Sample Request - no highways" mediaType="application/xml" id="e6e727fa-f7fa-45be-a752-e9e0779e209e">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="avoid" value="highways"/>
+            <con:entry key="origin" value="Toronto"/>
+            <con:entry key="mode" value="bicycling"/>
+            <con:entry key="destination" value="Montreal"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Transit with departure time" mediaType="application/xml" id="7175148f-7d74-4fb1-846e-90ad6b22d131">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="departure_time" value="${=(int)new java.util.Date().time/1000}"/>
+            <con:entry key="origin" value="Brooklyn"/>
+            <con:entry key="format" value="xml"/>
+            <con:entry key="destination" value="Queens"/>
+            <con:entry key="mode" value="transit"/>
+          </con:parameters>
+        </con:request>
+      </con:method>
+    </con:resource>
+  </con:interface>
+  <con:interface xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="con:RestService" wadlVersion="http://wadl.dev.java.net/2009/02" name="Distance Matrix API" type="rest" basePath="" id="c01f60d6-68bb-49fd-bf01-7b85cfabdebb">
+    <con:settings/>
+    <con:definitionCache type="TEXT" rootPart=""/>
+    <con:endpoints>
+      <con:endpoint>http://maps.googleapis.com</con:endpoint>
+    </con:endpoints>
+    <con:resource name="distancematrix" path="/maps/api/distancematrix/{format}" id="6bd85109-019a-4d15-a7a7-3116cb4d33a5">
+      <con:settings/>
+      <con:parameters>
+        <con:parameter required="true">
+          <con:name>format</con:name>
+          <con:value>json</con:value>
+          <con:style>TEMPLATE</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>json</con:default>
+          <con:path xsi:nil="true"/>
+          <con:option>json</con:option>
+          <con:option>xml</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>origins</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>destinations</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>sensor</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>mode</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+          <con:option>driving</con:option>
+          <con:option>walking</con:option>
+          <con:option>bicycling</con:option>
+        </con:parameter>
+        <con:parameter>
+          <con:name>language</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>avoid</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+          <con:option>tolls</con:option>
+          <con:option>highways</con:option>
+        </con:parameter>
+        <con:parameter>
+          <con:name>units</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+          <con:option>metric</con:option>
+          <con:option>imperial</con:option>
+        </con:parameter>
+      </con:parameters>
+      <con:method name="GET" method="GET" id="77c9a126-13f7-4a5f-b648-78e9eaf7e5d2">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="FAULT">
+          <con:mediaType>text/html; charset=UTF-8</con:mediaType>
+          <con:status>404</con:status>
+          <con:params/>
+          <con:element>html</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element xmlns:json="http://maps.googleapis.com/maps/api/distancematrix/json">json:Response</con:element>
+        </con:representation>
+        <con:request name="Sample Request" mediaType="application/xml" id="723fa7d7-bdc9-4706-9f59-34a6153ffadb">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="destinations" value="Darling Harbour NSW Australia|24 Sussex Drive Ottawa ON|Capitola CA"/>
+            <con:entry key="origins" value="Bobcaygeon ON|41.43206,-81.38992"/>
+          </con:parameters>
+        </con:request>
+      </con:method>
+    </con:resource>
+  </con:interface>
+  <con:interface xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="con:RestService" wadlVersion="http://wadl.dev.java.net/2009/02" name="Elevation API" type="rest" basePath="" id="7c70a285-8eee-48a6-8f43-66494d099764">
+    <con:settings/>
+    <con:definitionCache type="TEXT" rootPart=""/>
+    <con:endpoints>
+      <con:endpoint>http://maps.googleapis.com</con:endpoint>
+    </con:endpoints>
+    <con:resource name="elevation" path="/maps/api/elevation/{format}" id="87a6684f-f103-4ce3-be55-6805ad0dc397">
+      <con:settings/>
+      <con:parameters>
+        <con:parameter required="false">
+          <con:name>locations</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>sensor</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>format</con:name>
+          <con:value>json</con:value>
+          <con:style>TEMPLATE</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>json</con:default>
+          <con:path xsi:nil="true"/>
+          <con:option>json</con:option>
+          <con:option>xml</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>path</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>samples</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+      </con:parameters>
+      <con:method name="GET" method="GET" id="aa938f8c-2a95-45c5-9408-1435e2070162">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element xmlns:json="http://maps.googleapis.com/maps/api/elevation/json">json:Response</con:element>
+        </con:representation>
+        <con:request name="Sample Request" mediaType="application/xml" id="9481fee5-31ac-4dab-8b72-5a45633fd655">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="locations" value="39.7391536,-104.9847034"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Sample Request - Multiple Responses" mediaType="application/xml" id="8bed20bc-2efe-40b1-ab75-542188983fd8">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="locations" value="39.7391536,-104.9847034|36.455556,-116.866667"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Path Elevation Sample" mediaType="application/xml" id="3bc11172-8445-4da8-b45e-5ddee760bcfa">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="path" value="36.578581,-118.291994|36.23998,-116.83171"/>
+            <con:entry key="samples" value="3"/>
+          </con:parameters>
+        </con:request>
+      </con:method>
+    </con:resource>
+  </con:interface>
+  <con:interface xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="con:RestService" wadlVersion="http://wadl.dev.java.net/2009/02" name="Geocoding API" type="rest" basePath="" id="deaff161-43e7-451b-9455-92d3bfe47845">
+    <con:settings/>
+    <con:definitionCache type="TEXT" rootPart=""/>
+    <con:endpoints>
+      <con:endpoint>http://maps.googleapis.com</con:endpoint>
+    </con:endpoints>
+    <con:resource name="geocode" path="/maps/api/geocode/{format}" id="a292f7b1-6ac3-4713-8689-6850fc261310">
+      <con:settings/>
+      <con:parameters>
+        <con:parameter required="false">
+          <con:name>address</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>sensor</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>format</con:name>
+          <con:value>json</con:value>
+          <con:style>TEMPLATE</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>json</con:default>
+          <con:path xsi:nil="true"/>
+          <con:option>json</con:option>
+          <con:option>xml</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>latlng</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>components</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>bounds</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>language</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>region</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+      </con:parameters>
+      <con:method name="GET" method="GET" id="4cdc94ac-863b-41ae-a0da-43d0073e1055">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element xmlns:json="http://maps.googleapis.com/maps/api/geocode/json">json:Response</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/xml; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>GeocodeResponse</con:element>
+        </con:representation>
+        <con:request name="Sample Request" mediaType="application/xml" id="7e848a36-20c8-4172-b9a1-fc3898fbf0a5">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="address" value="1600 Amphitheatre Parkway, Mountain View, CA"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Reverse Lookup Sample" mediaType="application/xml" id="f9bcb75b-7069-4c12-93cb-04fe3a8af247">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="latlng" value="40.714224,-73.961452"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Viewport Biasing Sample" mediaType="application/xml" id="9a3f9904-61f8-4dde-84ec-229eb0b0b777">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="bounds" value="34.172684,-118.604794|34.236144,-118.500938"/>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="address" value="Winnetka"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Region Biasing Sample" mediaType="application/xml" id="c170d130-4fe1-4dd4-991a-281b3c288a85">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="region" value="es"/>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="address" value="Toledo"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Component Filtering Sample" mediaType="application/xml" id="43215fb2-55c7-4547-80eb-8128b646e332">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="address" value="santa cruz"/>
+            <con:entry key="components" value="country:ES"/>
+            <con:entry key="format" value="xml"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Component Filtering only Sample" mediaType="application/xml" id="0809958a-f47d-4e3d-a1dc-4328efefbe62">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="components" value="route:Annegatan|administrative_area:Helsinki|country:Finland"/>
+          </con:parameters>
+        </con:request>
+      </con:method>
+    </con:resource>
+  </con:interface>
+  <con:interface xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="con:RestService" wadlVersion="http://wadl.dev.java.net/2009/02" name="Time Zone API" type="rest" basePath="" id="fb4bc407-3ada-4af7-b555-ddaf05e2d5c4">
+    <con:settings/>
+    <con:definitionCache type="TEXT" rootPart=""/>
+    <con:endpoints>
+      <con:endpoint>https://maps.googleapis.com</con:endpoint>
+    </con:endpoints>
+    <con:resource name="json" path="/maps/api/timezone/{format}" id="d014eb34-dd25-4654-86f3-ed7ca444089a">
+      <con:settings/>
+      <con:parameters>
+        <con:parameter>
+          <con:name>location</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>timestamp</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>sensor</con:name>
+          <con:value>false</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default>false</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>format</con:name>
+          <con:value>json</con:value>
+          <con:style>TEMPLATE</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>json</con:default>
+          <con:path xsi:nil="true"/>
+          <con:option>json</con:option>
+          <con:option>xml</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>language</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+      </con:parameters>
+      <con:method name="GET" method="GET" id="f23cabac-802e-4a5e-8922-91724ae9b53b">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element xmlns:json="https://maps.googleapis.com/maps/api/timezone/json">json:Response</con:element>
+        </con:representation>
+        <con:request name="Sample Request" mediaType="application/xml" id="9224cac9-4920-4be9-9301-10c8063fefc2">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="timestamp" value="1331161200"/>
+            <con:entry key="location" value="39.6034810,-119.6822510"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Sample Request with DST offset" mediaType="application/xml" id="c15965a7-e76d-4bd2-ae71-ffa3686e23e9">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="timestamp" value="1331766000"/>
+            <con:entry key="location" value="39.6034810,-119.6822510"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Sample Request with localized response" mediaType="application/xml" id="7c46faaf-0bb0-4be2-a2e5-da9dd4e0e944">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="timestamp" value="1331766000"/>
+            <con:entry key="location" value="39.6034810,-119.6822510"/>
+            <con:entry key="language" value="es"/>
+          </con:parameters>
+        </con:request>
+      </con:method>
+    </con:resource>
+  </con:interface>
+  <con:interface xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="con:RestService" wadlVersion="http://wadl.dev.java.net/2009/02" name="Places API" type="rest" basePath="/maps/api/place" id="9ddbe330-2e50-4f80-8f4d-b05adfd64a0f">
+    <con:settings/>
+    <con:definitionCache type="TEXT" rootPart=""/>
+    <con:endpoints>
+      <con:endpoint>https://maps.googleapis.com</con:endpoint>
+    </con:endpoints>
+    <con:resource name="nearbysearch" path="/nearbysearch/{format}" id="9607b99f-b29b-4fd7-b523-5764667d88e1">
+      <con:settings/>
+      <con:parameters>
+        <con:parameter required="true">
+          <con:name>location</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="false">
+          <con:name>radius</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>types</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>name</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>sensor</con:name>
+          <con:value>false</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default>false</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>key</con:name>
+          <con:value>${#Project#PlacesAPIKey}</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>${#Project#PlacesAPIKey}</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>format</con:name>
+          <con:value>json</con:value>
+          <con:style>TEMPLATE</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>json</con:default>
+          <con:path xsi:nil="true"/>
+          <con:option>json</con:option>
+          <con:option>xml</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>keyword</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>language</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>rankby</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+          <con:option>prominence</con:option>
+          <con:option>distance</con:option>
+        </con:parameter>
+        <con:parameter>
+          <con:name>pagetoken</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>query</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+      </con:parameters>
+      <con:method name="GET" method="GET" id="cc873fa8-fbb8-44ab-b061-865c89614daf">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element xmlns:json="https://maps.googleapis.com/maps/api/place/nearbysearch/json">json:Response</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/xml; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>PlaceSearchResponse</con:element>
+        </con:representation>
+        <con:request name="Nearby Search Sample" mediaType="application/xml" id="97fc246f-8a9e-4164-831a-3466b56a4c50">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="location" value="-33.8670522,151.1957362"/>
+            <con:entry key="name" value="harbour"/>
+            <con:entry key="radius" value="500"/>
+            <con:entry key="types" value="food"/>
+          </con:parameters>
+        </con:request>
+      </con:method>
+    </con:resource>
+    <con:resource name="textsearch" path="/textsearch/{format}" id="56d8359c-d9da-4a52-b425-9d84a13062c5">
+      <con:settings/>
+      <con:parameters>
+        <con:parameter required="true">
+          <con:name>query</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>sensor</con:name>
+          <con:value>false</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default>false</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>key</con:name>
+          <con:value>${#Project#PlacesAPIKey}</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>${#Project#PlacesAPIKey}</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>format</con:name>
+          <con:value>json</con:value>
+          <con:style>TEMPLATE</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>json</con:default>
+          <con:path xsi:nil="true"/>
+          <con:option>json</con:option>
+          <con:option>xml</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>location</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>radius</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>language</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>types</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+      </con:parameters>
+      <con:method name="GET" method="GET" id="531b6426-de94-40e0-b1b5-c01453ef71bc">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="FAULT">
+          <con:mediaType>text/html; charset=UTF-8</con:mediaType>
+          <con:status>404</con:status>
+          <con:params/>
+          <con:element>html</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element xmlns:json="https://maps.googleapis.com/maps/api/place/textsearch/json">json:Response</con:element>
+        </con:representation>
+        <con:request name="Sample Text Search" mediaType="application/xml" id="9f18c8f3-2b59-45b5-9b4a-3e40f2b4ee64">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <entry xmlns="http://eviware.com/soapui/config" key="query" value="restaurants in Sydney"/>
+          </con:parameters>
+        </con:request>
+      </con:method>
+    </con:resource>
+    <con:resource name="details" path="/details/{format}" id="8bcc4f93-2b2d-40ab-aef2-f4587c03596d">
+      <con:settings/>
+      <con:parameters>
+        <con:parameter required="true">
+          <con:name>reference</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>sensor</con:name>
+          <con:value>true</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default>true</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>key</con:name>
+          <con:value>${#Project#PlacesAPIKey}</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>${#Project#PlacesAPIKey}</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>format</con:name>
+          <con:value>json</con:value>
+          <con:style>TEMPLATE</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>json</con:default>
+          <con:path xsi:nil="true"/>
+          <con:option>json</con:option>
+          <con:option>xml</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>language</con:name>
+          <con:style>QUERY</con:style>
+        </con:parameter>
+      </con:parameters>
+      <con:method name="GET" method="GET" id="8d7eea84-716c-434d-9db1-f597b76346ba">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element xmlns:json="https://maps.googleapis.com/maps/api/place/details/json">json:Response</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/xml; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>PlaceDetailsResponse</con:element>
+        </con:representation>
+        <con:request name="Sample Details Request" mediaType="application/xml" id="f080c044-f5d3-4ee7-ae7b-474a65dff6cd">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="false"/>
+            <con:entry key="reference" value="CmRYAAAAciqGsTRX1mXRvuXSH2ErwW-jCINE1aLiwP64MCWDN5vkXvXoQGPKldMfmdGyqWSpm7BEYCgDm-iv7Kc2PF7QA7brMAwBbAcqMr5i1f4PwTpaovIZjysCEZTry8Ez30wpEhCNCXpynextCld2EBsDkRKsGhSLayuRyFsex6JA6NPh9dyupoTH3g"/>
+          </con:parameters>
+        </con:request>
+      </con:method>
+    </con:resource>
+    <con:resource name="autocomplete" path="/autocomplete/{format}" id="ddcd974c-6ba3-4f2d-bc80-9e887332c043">
+      <con:settings/>
+      <con:parameters>
+        <con:parameter required="true">
+          <con:name>input</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>types</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:option>geocode</con:option>
+          <con:option>establishment</con:option>
+          <con:option>regions</con:option>
+          <con:option>cities</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>location</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>radius</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>sensor</con:name>
+          <con:value>false</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default>false</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>key</con:name>
+          <con:value>${#Project#PlacesAPIKey}</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>${#Project#PlacesAPIKey}</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>format</con:name>
+          <con:value>json</con:value>
+          <con:style>TEMPLATE</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>json</con:default>
+          <con:path xsi:nil="true"/>
+          <con:option>json</con:option>
+          <con:option>xml</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>offset</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>components</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>language</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+      </con:parameters>
+      <con:method name="GET" method="GET" id="3ef3c7a3-dade-4173-bb3c-130e8825bbf4">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element xmlns:json="https://maps.googleapis.com/maps/api/place/autocomplete/json">json:Response</con:element>
+        </con:representation>
+        <con:request name="Sample Request" mediaType="application/xml" id="c8b344a3-bde5-48d6-bab7-4236cd5622af">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="sensor" value="true"/>
+            <con:entry key="input" value="Amoeba"/>
+            <con:entry key="location" value="37.76999,-122.44696"/>
+            <con:entry key="radius" value="500"/>
+            <con:entry key="types" value="establishment"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Sample Request in French" mediaType="application/xml" id="f2f5bee8-4904-4fc1-9664-a334ca4827f2">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="input" value="Vict"/>
+            <con:entry key="language" value="fr"/>
+          </con:parameters>
+        </con:request>
+      </con:method>
+    </con:resource>
+    <con:resource name="queryautocomplete" path="/queryautocomplete/{format}" id="913cb73e-14ef-4f5c-854b-1db5d8884801">
+      <con:settings/>
+      <con:parameters>
+        <con:parameter required="true">
+          <con:name>key</con:name>
+          <con:value>${#Project#PlacesAPIKey}</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>${#Project#PlacesAPIKey}</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>sensor</con:name>
+          <con:value>false</con:value>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:boolean</con:type>
+          <con:default>false</con:default>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>input</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default/>
+          <con:path xsi:nil="true"/>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter required="true">
+          <con:name>format</con:name>
+          <con:value>json</con:value>
+          <con:style>TEMPLATE</con:style>
+          <con:type xmlns:xs="http://www.w3.org/2001/XMLSchema">xs:string</con:type>
+          <con:default>json</con:default>
+          <con:path xsi:nil="true"/>
+          <con:option>json</con:option>
+          <con:option>xml</con:option>
+          <con:description xsi:nil="true"/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>offset</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>location</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>radius</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+        <con:parameter>
+          <con:name>language</con:name>
+          <con:value/>
+          <con:style>QUERY</con:style>
+          <con:default/>
+        </con:parameter>
+      </con:parameters>
+      <con:method name="GET" method="GET" id="0c70dbfe-bf73-44ea-8b51-1871b87e288f">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/json; charset=UTF-8</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element xmlns:json="https://maps.googleapis.com/maps/api/place/queryautocomplete/json">json:Response</con:element>
+        </con:representation>
+        <con:request name="Sample Request" mediaType="application/xml" id="e49838b5-0c16-4dca-8856-af61791cead9">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <entry xmlns="http://eviware.com/soapui/config" key="input" value="Pizza near Par"/>
+          </con:parameters>
+        </con:request>
+        <con:request name="Sample Request in French" mediaType="application/xml" id="dc2fe49a-db4d-4273-9926-ed3265a37ec6">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://maps.googleapis.com</con:endpoint>
+          <con:request/>
+          <con:credentials>
+            <con:authType>Global HTTP Settings</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters>
+            <con:entry key="input" value="Pizza near Par"/>
+            <con:entry key="language" value="fr"/>
+          </con:parameters>
+        </con:request>
+      </con:method>
+    </con:resource>
+  </con:interface>
+  <con:testSuite name="Directions API TestSuite" id="a135ad89-d559-44e6-9fc8-e280bef19adb">
+    <con:settings/>
+    <con:runType>SEQUENTIAL</con:runType>
+    <con:testCase failOnError="false" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="Simple Tests" searchProperties="true" id="98b8de39-fe2a-403d-9b79-23ee135182c5" timeout="0" wsrmEnabled="false" wsrmVersion="1.0" wsrmAckTo="" amfAuthorisation="false" amfEndpoint="" amfLogin="" amfPassword="">
+      <con:description>Basic route-planning test with both JSON and XML variants:
+- First request: route from Toronto to Montreal, response in JSON format - validates bounding coordinates and actual route steps
+- Second request: same route and validations but now with highways excluded
+- Third request: a transit from Brooklyn to Queens starting at time of test execution (using an inline groovy script). Validates the start and 
+end destinations and the number of steps needed. 
+
+see https://developers.google.com/maps/documentation/directions/</con:description>
+      <con:settings/>
+      <con:testStep type="restrequest" name="GET - Sample Request - JSON" id="cd97c881-6f2b-43aa-8c6a-a0f0c6eb6040">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Direction API" resourcePath="/maps/api/directions/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request - JSON" mediaType="application/xml" id="cc15968b-35f7-43de-be18-56fb1ffd0f3e">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/directions/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [bounds]" id="ac70acf0-cdd5-46da-b2cc-949aee3c7e79">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/directions/json';
+//ns1:Response[1]/ns1:routes[1]/ns1:e[1]/ns1:bounds[1]</path>
+                <content><![CDATA[<bounds xmlns="http://maps.googleapis.com/maps/api/directions/json">
+  <northeast>
+    <lat>45.5017123</lat>
+    <lng>-73.5652739</lng>
+  </northeast>
+  <southwest>
+    <lat>43.6533103</lat>
+    <lng>-79.3827675</lng>
+  </southwest>
+</bounds>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:assertion type="XPath Match" name="Check number of steps [12]" id="36bcce9d-9a83-443a-9a6e-0ec940c57c65">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/directions/json';
+count( //ns1:Response/ns1:routes/ns1:e/ns1:legs/ns1:e/ns1:steps/ns1:e)</path>
+                <content>19</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="origin" value="Toronto"/>
+              <con:entry key="destination" value="Montreal"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Sample Request - no highways - JSON" id="92555d8b-c6d6-432e-b3b3-d070d2a813b1">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Direction API" resourcePath="/maps/api/directions/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request - no highways - JSON" mediaType="application/xml" id="1f460a50-6d35-4adc-8140-74a4bc516c9f">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/directions/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [bounds]" id="ca8968fe-45d5-44d3-a214-4de52b8fa13d">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/directions/json';
+//ns1:Response[1]/ns1:routes[1]/ns1:e[1]/ns1:bounds[1]</path>
+                <content><![CDATA[<bounds xmlns="http://maps.googleapis.com/maps/api/directions/json">
+  <northeast>
+    <lat>45.5017123</lat>
+    <lng>-73.563532</lng>
+  </northeast>
+  <southwest>
+    <lat>43.6513486</lat>
+    <lng>-79.38306299999999</lng>
+  </southwest>
+</bounds>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:assertion type="XPath Match" name="Check number of steps [281]" id="b13888c8-cd75-46e9-984c-ddc85cd0cbbe">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/directions/json';
+count( //ns1:Response/ns1:routes/ns1:e/ns1:legs/ns1:e/ns1:steps/ns1:e) &gt; 200</path>
+                <content>true</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="avoid" value="highways"/>
+              <con:entry key="origin" value="Toronto"/>
+              <con:entry key="mode" value="bicycling"/>
+              <con:entry key="destination" value="Montreal"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Transit with departure time - XML" id="89fb4235-5385-4797-8c6d-a5601dd2ded7">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Direction API" resourcePath="/maps/api/directions/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Transit with departure time - XML" mediaType="application/xml" id="5c4f9168-0acf-40b5-8a79-84990b44110f">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/directions/xml</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [start_location]" id="332700f9-2e94-4599-8df4-550ada686a94">
+              <con:configuration>
+                <path>//DirectionsResponse[1]/route[1]/leg[1]/step[1]/start_location[1]</path>
+                <content><![CDATA[<start_location>
+  <lat>40.6781830</lat>
+  <lng>-73.9441613</lng>
+</start_location>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:assertion type="XPath Match" name="Match content of [end_location]" id="22174ae4-c01c-4983-a49c-7606a2343602">
+              <con:configuration>
+                <path>//DirectionsResponse[1]/route[1]/leg[1]/step[1]/end_location[1]</path>
+                <content><![CDATA[<end_location>
+  <lat>*</lat>
+  <lng>*</lng>
+</end_location>]]></content>
+                <allowWildcards>true</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:assertion type="XPath Match" name="Check number of steps [7]" id="f9c33650-7f9a-464e-a12c-a37e2615e2fa">
+              <con:configuration>
+                <path>count( //DirectionsResponse/route/leg/step/step) &gt; 5</path>
+                <content>true</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="departure_time" value="${=(int)new java.util.Date().time/1000}"/>
+              <con:entry key="origin" value="Brooklyn"/>
+              <con:entry key="format" value="xml"/>
+              <con:entry key="mode" value="transit"/>
+              <con:entry key="destination" value="Queens"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:properties/>
+      <con:reportParameters/>
+    </con:testCase>
+    <con:properties/>
+    <con:reportParameters/>
+  </con:testSuite>
+  <con:testSuite name="Distance Matrix API TestSuite" id="615c44bc-939a-4a74-8f00-f168e52dac80">
+    <con:settings/>
+    <con:runType>SEQUENTIAL</con:runType>
+    <con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="Simple Tests" searchProperties="true" id="6fd92de6-1d56-4dbe-a104-cdfe9bfed908">
+      <con:description>Request that calculates a destination matrix for the specified origin and target and validates that the response contains the expected origins, destinations, distances and times.
+
+see https://developers.google.com/maps/documentation/distancematrix/ </con:description>
+      <con:settings/>
+      <con:testStep type="restrequest" name="GET - Sample Request" id="724d5072-8e93-4b02-9544-ccc5cba58dce">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Distance Matrix API" resourcePath="/maps/api/distancematrix/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request" mediaType="application/xml" id="00ec7d65-c78f-42f3-bcb9-99e2644783d5">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/distancematrix/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [destination_addresses]" id="05a584db-7b36-4495-9871-acac64d48624">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/distancematrix/json';
+//ns1:Response[1]/ns1:destination_addresses[1]</path>
+                <content><![CDATA[<destination_addresses xmlns="http://maps.googleapis.com/maps/api/distancematrix/json">
+  <e>Sydney NSW 2000, Australia</e>
+  <e>24 Sussex Dr, Ottawa, ON K1M 1M4, Canada</e>
+  <e>Capitola, CA, USA</e>
+</destination_addresses>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:assertion type="XPath Match" name="Match content of [origin_addresses]" id="d2e79cbb-2377-4fec-801e-b9b27d269c9f">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/distancematrix/json';
+//ns1:Response[1]/ns1:origin_addresses[1]</path>
+                <content><![CDATA[<origin_addresses xmlns="http://maps.googleapis.com/maps/api/distancematrix/json">
+  <e>Bobcaygeon, Kawartha Lakes, ON, Canada</e>
+  <e>41.43206,-81.38992</e>
+</origin_addresses>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:assertion type="XPath Match" name="Check number of items [6]" id="457cc165-4b29-441b-b719-60794208a751">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/distancematrix/json';
+count( //ns1:Response/ns1:rows/ns1:e/ns1:elements/ns1:e)</path>
+                <content>6</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="destinations" value="Darling Harbour NSW Australia|24 Sussex Drive Ottawa ON|Capitola CA"/>
+              <con:entry key="origins" value="Bobcaygeon ON|41.43206,-81.38992"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:properties/>
+      <con:reportParameters/>
+    </con:testCase>
+    <con:properties/>
+    <con:reportParameters/>
+  </con:testSuite>
+  <con:testSuite name="Elevation API TestSuite" id="5368c528-b028-4cd7-9aa5-6ecca63469b6">
+    <con:settings/>
+    <con:runType>SEQUENTIAL</con:runType>
+    <con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="Simple Tests" searchProperties="true" id="a268648f-bcfa-4147-af49-77a38fcae8f5">
+      <con:description>Elevation API samples:
+- First request validates that the response elevation for a specified location is correct
+- Second request specifies multiple locations and validates that the corresponding response elevations are correct
+- Third request specifies a path fo locations and validates the response elevations.
+
+see https://developers.google.com/maps/documentation/elevation/</con:description>
+      <con:settings/>
+      <con:testStep type="restrequest" name="GET - Sample Request" id="3e19ff83-a0b2-4be3-ba04-6efe32a55eda">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Elevation API" resourcePath="/maps/api/elevation/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request" mediaType="application/xml" id="ede2ecbe-a465-49d9-9ef4-63a3a82d0548">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/elevation/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [results]" id="188ce73c-a778-4424-8f13-b088fa08c607">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/elevation/json';
+//ns1:Response[1]/ns1:results[1]</path>
+                <content><![CDATA[<results xmlns="http://maps.googleapis.com/maps/api/elevation/json">
+  <e>
+    <elevation>1608.637939453125</elevation>
+    <location>
+      <lat>39.7391536</lat>
+      <lng>-104.9847034</lng>
+    </location>
+    <resolution>4.771975994110107</resolution>
+  </e>
+</results>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="locations" value="39.7391536,-104.9847034"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Sample Request - Multiple Responses" id="bc68d444-3b53-4524-a71f-4ec8560977e1">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Elevation API" resourcePath="/maps/api/elevation/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request - Multiple Responses" mediaType="application/xml" id="0c3da7c4-1c59-48b0-bd7c-3059d6c067fa">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/elevation/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [results]" id="50dbfb3a-87d4-46f1-a3a7-d25f588cabe3">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/elevation/json';
+//ns1:Response[1]/ns1:results[1]</path>
+                <content><![CDATA[<results xmlns="http://maps.googleapis.com/maps/api/elevation/json">
+  <e>
+    <elevation>1608.637939453125</elevation>
+    <location>
+      <lat>39.7391536</lat>
+      <lng>-104.9847034</lng>
+    </location>
+    <resolution>4.771975994110107</resolution>
+  </e>
+  <e>
+    <elevation>-50.78903961181641</elevation>
+    <location>
+      <lat>36.455556</lat>
+      <lng>-116.866667</lng>
+    </location>
+    <resolution>19.08790397644043</resolution>
+  </e>
+</results>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="locations" value="39.7391536,-104.9847034|36.455556,-116.866667"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Path Elevation Sample" id="ffb4ff0b-1962-4749-81cb-a0dbd32dd8fe">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Elevation API" resourcePath="/maps/api/elevation/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Path Elevation Sample" mediaType="application/xml" id="bc5dc1e9-752d-4ede-9cdc-0bb55b5ae3ef">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/elevation/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [results]" id="4040c6b5-d9ec-4b9b-90a6-31d4fee0477c">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/elevation/json';
+//ns1:Response[1]/ns1:results[1]</path>
+                <content><![CDATA[<results xmlns="http://maps.googleapis.com/maps/api/elevation/json">
+  <e>
+    <elevation>4411.94189453125</elevation>
+    <location>
+      <lat>36.578581</lat>
+      <lng>-118.291994</lng>
+    </location>
+    <resolution>19.08790397644043</resolution>
+  </e>
+  <e>
+    <elevation>1372.8359375</elevation>
+    <location>
+      <lat>36.41150289067028</lat>
+      <lng>-117.5602607523847</lng>
+    </location>
+    <resolution>9.543951988220215</resolution>
+  </e>
+  <e>
+    <elevation>-84.61699676513672</elevation>
+    <location>
+      <lat>36.23998</lat>
+      <lng>-116.83171</lng>
+    </location>
+    <resolution>19.08790397644043</resolution>
+  </e>
+</results>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="path" value="36.578581,-118.291994|36.23998,-116.83171"/>
+              <con:entry key="samples" value="3"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:properties/>
+      <con:reportParameters/>
+    </con:testCase>
+    <con:properties/>
+    <con:reportParameters/>
+  </con:testSuite>
+  <con:testSuite name="Geocoding API TestSuite" id="7c99d169-bbdf-44c6-9f05-320456443483">
+    <con:settings/>
+    <con:runType>SEQUENTIAL</con:runType>
+    <con:testCase failOnError="false" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="Simple Tests" searchProperties="true" id="153f03eb-aeb6-4c1d-a609-20de8a4b8048" timeout="0" wsrmEnabled="false" wsrmVersion="1.0" wsrmAckTo="" amfAuthorisation="false" amfEndpoint="" amfLogin="" amfPassword="">
+      <con:description>Geocoding sample requests:
+- First request validates the geometry response of a specified location
+- Second request validates the geometry response of a specified coordinate location
+- Third request validates the geometry response of a bounds restricted request
+- Fourth request validates the geometry response of a region restrictioned request
+- Fifth request validates the geometry response of a request filtered by country
+- Sixth request validates the geometry response of a request specifying only a content filter
+
+see https://developers.google.com/maps/documentation/geocoding/</con:description>
+      <con:settings/>
+      <con:testStep type="restrequest" name="GET - Sample Request" id="68c2f8ff-63fd-4629-9464-66c30789e223">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Geocoding API" resourcePath="/maps/api/geocode/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request" mediaType="application/xml" id="de34e9bb-edff-4b29-8563-0fa1d7cc44c1">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/geocode/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [geometry]" id="6cec95ab-ab86-4944-bb65-a3fd86dc9866">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/geocode/json';
+//ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:geometry[1]</path>
+                <content><![CDATA[<geometry xmlns="http://maps.googleapis.com/maps/api/geocode/json">
+  <location>
+    <lat>37.4219493</lat>
+    <lng>-122.0847727</lng>
+  </location>
+  <location_type>ROOFTOP</location_type>
+  <viewport>
+    <northeast>
+      <lat>37.4232982802915</lat>
+      <lng>-122.0834237197085</lng>
+    </northeast>
+    <southwest>
+      <lat>37.42060031970851</lat>
+      <lng>-122.0861216802915</lng>
+    </southwest>
+  </viewport>
+</geometry>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="address" value="1600 Amphitheatre Parkway, Mountain View, CA"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Reverse Lookup Sample" id="4a4e1f33-a026-4fb2-ac63-9826b066b5e3">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Geocoding API" resourcePath="/maps/api/geocode/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Reverse Lookup Sample" mediaType="application/xml" id="9e3cce9c-8ffe-4acf-9331-be95889712b3">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/geocode/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [geometry]" id="0b84d7d4-5764-4607-9a9b-12600362b7b3">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/geocode/json';
+//ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:geometry[1]</path>
+                <content><![CDATA[<geometry xmlns="http://maps.googleapis.com/maps/api/geocode/json">
+  <location>
+    <lat>40.7142205</lat>
+    <lng>-73.9612903</lng>
+  </location>
+  <location_type>ROOFTOP</location_type>
+  <viewport>
+    <northeast>
+      <lat>40.71556948029149</lat>
+      <lng>-73.95994131970849</lng>
+    </northeast>
+    <southwest>
+      <lat>40.7128715197085</lat>
+      <lng>-73.9626392802915</lng>
+    </southwest>
+  </viewport>
+</geometry>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="latlng" value="40.714224,-73.961452"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Viewport Biasing Sample" id="c75b7af3-538f-4b38-84e3-4f5fdc966863">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Geocoding API" resourcePath="/maps/api/geocode/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Viewport Biasing Sample" mediaType="application/xml" id="fe34f5a1-0266-4c46-97f3-a9c8c09e680c">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/geocode/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [geometry]" id="216f1ccf-94d4-42be-aa54-b9bbba914dbf">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/geocode/json';
+//ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:geometry[1]</path>
+                <content><![CDATA[<geometry xmlns="http://maps.googleapis.com/maps/api/geocode/json">
+  <bounds>
+    <northeast>
+      <lat>34.2355209</lat>
+      <lng>-118.5534191</lng>
+    </northeast>
+    <southwest>
+      <lat>34.1854649</lat>
+      <lng>-118.588536</lng>
+    </southwest>
+  </bounds>
+  <location>
+    <lat>34.2048586</lat>
+    <lng>-118.5739621</lng>
+  </location>
+  <location_type>APPROXIMATE</location_type>
+  <viewport>
+    <northeast>
+      <lat>34.2355209</lat>
+      <lng>-118.5534191</lng>
+    </northeast>
+    <southwest>
+      <lat>34.1854649</lat>
+      <lng>-118.588536</lng>
+    </southwest>
+  </viewport>
+</geometry>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="bounds" value="34.172684,-118.604794|34.236144,-118.500938"/>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="address" value="Winnetka"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Region Biasing Sample" id="81adc37f-a15b-456f-939c-7720ee72e949">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Geocoding API" resourcePath="/maps/api/geocode/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Region Biasing Sample" mediaType="application/xml" id="ae5b120e-ad07-4627-824b-324992942809">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/geocode/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [geometry]" id="97287a1a-2ff8-49a2-ba58-2c5e41ac5212">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/geocode/json';
+//ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:geometry[1]</path>
+                <content><![CDATA[<geometry xmlns="http://maps.googleapis.com/maps/api/geocode/json">
+  <bounds>
+    <northeast>
+      <lat>39.88605099999999</lat>
+      <lng>-3.9192423</lng>
+    </northeast>
+    <southwest>
+      <lat>39.8383676</lat>
+      <lng>-4.0796176</lng>
+    </southwest>
+  </bounds>
+  <location>
+    <lat>39.8628316</lat>
+    <lng>-4.027323099999999</lng>
+  </location>
+  <location_type>APPROXIMATE</location_type>
+  <viewport>
+    <northeast>
+      <lat>39.88605099999999</lat>
+      <lng>-3.9192423</lng>
+    </northeast>
+    <southwest>
+      <lat>39.8383676</lat>
+      <lng>-4.0796176</lng>
+    </southwest>
+  </viewport>
+</geometry>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="region" value="es"/>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="address" value="Toledo"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Component Filtering Sample" id="94e10441-1e2d-4a60-a5c1-898e0be9a9df">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Geocoding API" resourcePath="/maps/api/geocode/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Component Filtering Sample" mediaType="application/xml" id="ded8ee3e-0eda-495b-9a23-b0f4575e3c1d">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/geocode/xml</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [geometry]" id="96d6bb38-d684-4713-ba59-55a21ca0aa74">
+              <con:configuration>
+                <path>//GeocodeResponse[1]/result[1]/geometry[1]</path>
+                <content><![CDATA[<geometry>
+  <location>
+    <lat>28.4636296</lat>
+    <lng>-16.2518467</lng>
+  </location>
+  <location_type>APPROXIMATE</location_type>
+  <viewport>
+    <southwest>
+      <lat>28.4280248</lat>
+      <lng>-16.3370045</lng>
+    </southwest>
+    <northeast>
+      <lat>28.4876160</lat>
+      <lng>-16.2356646</lng>
+    </northeast>
+  </viewport>
+  <bounds>
+    <southwest>
+      <lat>28.4280248</lat>
+      <lng>-16.3370045</lng>
+    </southwest>
+    <northeast>
+      <lat>28.4876160</lat>
+      <lng>-16.2356646</lng>
+    </northeast>
+  </bounds>
+</geometry>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="address" value="santa cruz"/>
+              <con:entry key="components" value="country:ES"/>
+              <con:entry key="format" value="xml"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Component Filtering only Sample" id="e238777d-9aaf-4016-99ff-fe7362e6117c">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Geocoding API" resourcePath="/maps/api/geocode/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Component Filtering only Sample" mediaType="application/xml" id="d2ee0cc1-815e-461f-a95f-807eb85ea533">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>http://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>http://maps.googleapis.com/maps/api/geocode/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [geometry]" id="eecc446d-ffe5-41d4-b879-1d334ca1c67a">
+              <con:configuration>
+                <path>declare namespace ns1='http://maps.googleapis.com/maps/api/geocode/json';
+//ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:geometry[1]</path>
+                <content><![CDATA[<geometry xmlns="http://maps.googleapis.com/maps/api/geocode/json">
+  <bounds>
+    <northeast>
+      <lat>60.168997</lat>
+      <lng>24.9433353</lng>
+    </northeast>
+    <southwest>
+      <lat>60.16226160000001</lat>
+      <lng>24.9332897</lng>
+    </southwest>
+  </bounds>
+  <location>
+    <lat>60.1654023</lat>
+    <lng>24.9389816</lng>
+  </location>
+  <location_type>GEOMETRIC_CENTER</location_type>
+  <viewport>
+    <northeast>
+      <lat>60.168997</lat>
+      <lng>24.9433353</lng>
+    </northeast>
+    <southwest>
+      <lat>60.16226160000001</lat>
+      <lng>24.9332897</lng>
+    </southwest>
+  </viewport>
+</geometry>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="components" value="route:Annegatan|administrative_area:Helsinki|country:Finland"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:properties/>
+      <con:reportParameters/>
+    </con:testCase>
+    <con:properties/>
+    <con:reportParameters/>
+  </con:testSuite>
+  <con:testSuite name="Time Zone API TestSuite" id="14fe4353-d781-4fa8-8938-349be4e1f640">
+    <con:settings/>
+    <con:runType>SEQUENTIAL</con:runType>
+    <con:testCase failOnError="false" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="Simple Tests" searchProperties="true" id="7eb01803-12ae-4ad9-9ba2-baa9ce3a2811" timeout="0" wsrmEnabled="false" wsrmVersion="1.0" wsrmAckTo="" amfAuthorisation="false" amfEndpoint="" amfLogin="" amfPassword="">
+      <con:description>Simple tests for validation the Timezone API - 
+- First request validates that the correct timezone is returned for specified coordinates and time
+- Second request validates that the correst DST offset is returned for specified coordindates and time
+- Third request validates that the correct localized (spanish) response is returned.
+
+see https://developers.google.com/maps/documentation/timezone/</con:description>
+      <con:settings/>
+      <con:testStep type="restrequest" name="GET - Sample Request" id="7199ed3d-ef07-4bea-a653-6d34a181eb52">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Time Zone API" resourcePath="/maps/api/timezone/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request" mediaType="application/xml" id="131932b6-6fdc-4a3c-b875-82d377cbf4e4">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>https://maps.googleapis.com/maps/api/timezone/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [Response]" id="11979953-0802-43d7-9502-3ce42d94f844">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/timezone/json';
+//ns1:Response[1]</path>
+                <content><![CDATA[<Response xmlns="https://maps.googleapis.com/maps/api/timezone/json">
+  <dstOffset>0</dstOffset>
+  <rawOffset>-28800</rawOffset>
+  <status>OK</status>
+  <timeZoneId>America/Los_Angeles</timeZoneId>
+  <timeZoneName>Pacific Standard Time</timeZoneName>
+</Response>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="timestamp" value="1331161200"/>
+              <con:entry key="location" value="39.6034810,-119.6822510"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Sample Request with DST offset" id="9d4002a1-29c0-4960-afa0-9832d255777b">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Time Zone API" resourcePath="/maps/api/timezone/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request with DST offset" mediaType="application/xml" id="4ef8b4a4-2113-4709-9452-bb66211ee12a">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>https://maps.googleapis.com/maps/api/timezone/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [Response]" id="0965b8c3-33de-4bb8-baf5-607259b4b1fc">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/timezone/json';
+//ns1:Response[1]</path>
+                <content><![CDATA[<Response xmlns="https://maps.googleapis.com/maps/api/timezone/json">
+  <dstOffset>3600</dstOffset>
+  <rawOffset>-28800</rawOffset>
+  <status>OK</status>
+  <timeZoneId>America/Los_Angeles</timeZoneId>
+  <timeZoneName>Pacific Daylight Time</timeZoneName>
+</Response>]]></content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="timestamp" value="1331766000"/>
+              <con:entry key="location" value="39.6034810,-119.6822510"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Sample Request with localized response" id="809f1958-e486-4b99-99d3-c78cc39edc52">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Time Zone API" resourcePath="/maps/api/timezone/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request with localized response" mediaType="application/xml" id="f0bb3ddd-0d1c-4820-bd71-397daf3ed142">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>https://maps.googleapis.com/maps/api/timezone/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Match content of [Response]" id="bebc5f05-6dd0-4c17-b207-6cff8a429291">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/timezone/json';
+//ns1:Response[1]</path>
+                <content><![CDATA[<Response xmlns="https://maps.googleapis.com/maps/api/timezone/json">
+  <dstOffset>3600</dstOffset>
+  <rawOffset>-28800</rawOffset>
+  <status>OK</status>
+  <timeZoneId>America/Los_Angeles</timeZoneId>
+  <timeZoneName>hora de verano del Pacífico</timeZoneName>
+</Response>]]></content>
+                <allowWildcards>true</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="timestamp" value="1331766000"/>
+              <con:entry key="location" value="39.6034810,-119.6822510"/>
+              <con:entry key="language" value="es"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:properties/>
+      <con:reportParameters/>
+    </con:testCase>
+    <con:properties/>
+    <con:reportParameters/>
+  </con:testSuite>
+  <con:testSuite name="Places API TestSuite" id="da482619-768b-4cf0-af19-84e43265be9c">
+    <con:description>Testsuite of tests for different Places API endpoints - see https://developers.google.com/places/documentation/</con:description>
+    <con:settings/>
+    <con:runType>SEQUENTIAL</con:runType>
+    <con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="nearbysearch Tests" searchProperties="true" id="67a37888-943c-491a-abdd-d1ca06b4ff72">
+      <con:description>Performs a nearby search for a specified location and transfers the reference to the first found location as input to get its details. Validates the detail response coordinates.
+
+https://developers.google.com/places/documentation/search#PlaceSearchRequests</con:description>
+      <con:settings/>
+      <con:testStep type="restrequest" name="GET - Nearby Search Sample" id="dc3b9812-39e7-42f0-84fe-38c5ab69c9dd">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Places API" resourcePath="/maps/api/place/nearbysearch/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Nearby Search Sample" mediaType="application/xml" id="e752e95d-11e3-48e2-8b0a-4968efa4924f">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>https://maps.googleapis.com/maps/api/place/nearbysearch/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Check for [Darling Harbour]" id="4f1d2d62-3558-471a-8927-df453950761d">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+exists(//ns1:name[text()='Pancakes on the Rocks'])</path>
+                <content>true</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:selectedAuthProfile>Basic</con:selectedAuthProfile>
+              <con:addedBasicAuthenticationTypes>Basic</con:addedBasicAuthenticationTypes>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="location" value="-33.8670522,151.1957362"/>
+              <con:entry key="name" value="harbour"/>
+              <con:entry key="radius" value="500"/>
+              <con:entry key="format" value="json"/>
+              <con:entry key="types" value="food"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="transfer" name="Reference Transfer" id="1290047c-1054-4661-92d3-69c5e1f80b1b">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="con:PropertyTransfersStep">
+          <con:transfers setNullOnMissingSource="true" transferTextContent="true" failOnError="true" ignoreEmpty="false" transferToAll="false" useXQuery="false" entitize="false" transferChildNodes="false">
+            <con:name>Reference</con:name>
+            <con:sourceType>ResponseAsXml</con:sourceType>
+            <con:sourceStep>GET - Nearby Search Sample</con:sourceStep>
+            <con:sourcePath>declare namespace ns1='https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+//ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:reference[1]</con:sourcePath>
+            <con:targetType>reference</con:targetType>
+            <con:targetStep>GET - Details</con:targetStep>
+            <con:upgraded>true</con:upgraded>
+          </con:transfers>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Details" id="f85f4757-09ce-4657-8b12-d000ae3da05c">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Places API" resourcePath="/maps/api/place/details/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Details" mediaType="application/xml" id="a6a859fb-d38e-43bd-a522-9ac0bd219183">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:assertion type="XPath Match" name="Match content of [lat] in search response" id="4b098dba-26c3-466c-aaed-df0d18cb8082">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/place/details/json';
+//ns1:Response[1]/ns1:result[1]/ns1:geometry[1]/ns1:location[1]/ns1:lat[1]/text()</path>
+                <content>${GET - Nearby Search Sample#ResponseAsXml#declare namespace ns1='https://maps.googleapis.com/maps/api/place/nearbysearch/json'; //ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:geometry[1]/ns1:location[1]/ns1:lat[1]}</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:assertion type="XPath Match" name="Match content of [lng] in search response" id="a27d27f7-e445-418b-b803-be35fd164a15">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/place/details/json';
+//ns1:Response[1]/ns1:result[1]/ns1:geometry[1]/ns1:location[1]/ns1:lng[1]/text()</path>
+                <content>${GET - Nearby Search Sample#ResponseAsXml#declare namespace ns1='https://maps.googleapis.com/maps/api/place/nearbysearch/json'; //ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:geometry[1]/ns1:location[1]/ns1:lng[1]}</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="reference" value="CoQBcgAAAB0KU4UfUSSM0TSM7Xst43CcuafxIOxUd6vejdLv2UJbxa0MCQjTKt9iEA2tu-K5_59WBw80CyYhDD3n-oo-sHCXn7PwQWfrCLIoN7gbXaZ-A9aULFvAMP9hPJaiTa0iD2b-ww4_bdXpyVpFS4xzGeYiu_m6pOUsKWxq_J_4utolEhDV8Uy4xeCumN5gHpMsKeZiGhS29n5jMUc06tjJBbqAjhNX2N74zQ"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:properties/>
+      <con:reportParameters/>
+      <con:breakPoints>
+        <con:testStepId>1290047c-1054-4661-92d3-69c5e1f80b1b</con:testStepId>
+        <con:status>NONE</con:status>
+        <con:properties/>
+      </con:breakPoints>
+    </con:testCase>
+    <con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="textsearch Tests" searchProperties="true" id="c4c187cf-6bf0-4f80-bfc2-0a82a4db2a4e">
+      <con:description>Performs a nearby search with a specified query string and transfers the reference to the first found location as input to get its details. Validates the detail response coordinates.
+
+see https://developers.google.com/places/documentation/search#TextSearchRequests</con:description>
+      <con:settings/>
+      <con:testStep type="restrequest" name="GET - Sample Text Search" id="14e59c9a-f071-419a-9e06-92ad0977f0b8">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Places API" resourcePath="/maps/api/place/textsearch/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Text Search" mediaType="application/xml" id="a7e0d343-28c3-435e-84bf-96446cb081d5">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>https://maps.googleapis.com/maps/api/place/textsearch/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Check for existance of [next_page_token]" id="aec73f0a-d4ba-4332-ab60-75d906283a8e">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/place/textsearch/json';
+exists( //ns1:Response/ns1:next_page_token)</path>
+                <content>true</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <entry xmlns="http://eviware.com/soapui/config" key="query" value="restaurants in Sydney"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="transfer" name="Reference Transfer" id="f64404dd-6b18-44e5-bb02-2e474934ea6a">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="con:PropertyTransfersStep">
+          <con:transfers setNullOnMissingSource="true" transferTextContent="true" failOnError="true" ignoreEmpty="false" transferToAll="false" useXQuery="false" entitize="false" transferChildNodes="false">
+            <con:name>Reference</con:name>
+            <con:sourceType>ResponseAsXml</con:sourceType>
+            <con:sourceStep>GET - Sample Text Search</con:sourceStep>
+            <con:sourcePath>declare namespace ns1='https://maps.googleapis.com/maps/api/place/textsearch/json';
+//ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:reference[1]</con:sourcePath>
+            <con:targetType>reference</con:targetType>
+            <con:targetStep>GET - Details</con:targetStep>
+            <con:upgraded>true</con:upgraded>
+          </con:transfers>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Details" id="cd24e9b7-1bac-4d1f-8c3f-3911924d5c33">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Places API" resourcePath="/maps/api/place/details/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Details" mediaType="application/xml" id="8651260a-8b6e-4a6e-a625-e51c00b8a3e4">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:assertion type="XPath Match" name="Match content of [lat] in search response" id="99bc45e5-61d4-4e27-aeaa-382297c51a6f">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/place/details/json';
+//ns1:Response[1]/ns1:result[1]/ns1:geometry[1]/ns1:location[1]/ns1:lat[1]</path>
+                <content>${GET - Sample Text Search#ResponseAsXml#declare namespace ns1='https://maps.googleapis.com/maps/api/place/textsearch/json'; //ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:geometry[1]/ns1:location[1]/ns1:lat[1]}</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:assertion type="XPath Match" name="Match content of [lng] in search response" id="67950d65-3ca8-42eb-868c-e03ec6d0c2d4">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/place/details/json';
+//ns1:Response[1]/ns1:result[1]/ns1:geometry[1]/ns1:location[1]/ns1:lng[1]</path>
+                <content>${GET - Sample Text Search#ResponseAsXml#declare namespace ns1='https://maps.googleapis.com/maps/api/place/textsearch/json'; //ns1:Response[1]/ns1:results[1]/ns1:e[1]/ns1:geometry[1]/ns1:location[1]/ns1:lng[1]}</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="false"/>
+              <con:entry key="reference" value="CoQBdAAAAENgbPCbZMjmlRezxBWdwENZaA7aEQ8UQmKoOCo1cDUznmAVAFzyxTqxgSR-D9UZCA7Oz5nw7eETmY_unKmHx7SbCZbm2cIx8gj1b6OqKJH70r4KTO3fTXpG3KLcA3iHtEIKb8JQWpGxKYPD9-Tq3Nw4OfBV92xv4QuREu32qwRYEhCGXEMA1P6VUiuxk93av274GhSFB8Kls8P1k0rS6kMYO8cGw6AO0w"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:properties/>
+      <con:reportParameters/>
+    </con:testCase>
+    <con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="autocomplete Tests" searchProperties="true" id="1c88bfa1-bd2c-4750-a002-2d586d52ca2c">
+      <con:description>Performes autocomplete requests for a place string with bounding coordinates, validates that the expected number of possible options is returned. The second request also specifies french as language.
+
+see https://developers.google.com/places/documentation/autocomplete</con:description>
+      <con:settings/>
+      <con:testStep type="restrequest" name="GET - Sample Request" id="2a283108-994b-4942-b60f-d4e594aee822">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Places API" resourcePath="/maps/api/place/autocomplete/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request" mediaType="application/xml" id="75ed4baa-6c3a-45fc-a0bd-bd494266bedf">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>https://maps.googleapis.com/maps/api/place/autocomplete/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Check count of [e]" id="a5feef7e-f940-4b08-8d67-cfdaa1007448">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/place/autocomplete/json';
+count( //ns1:Response/ns1:predictions/ns1:e)</path>
+                <content>5</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="sensor" value="true"/>
+              <con:entry key="input" value="Amoeba"/>
+              <con:entry key="location" value="37.76999,-122.44696"/>
+              <con:entry key="radius" value="500"/>
+              <con:entry key="types" value="establishment"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Sample Request in French" id="b5949102-9132-4846-9047-6bb02c75b8f0">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Places API" resourcePath="/maps/api/place/autocomplete/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request in French" mediaType="application/xml" id="ca6d9dcb-bde6-4613-afd7-2d1f47b32f47">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:assertion type="XPath Match" name="Check count of [e]" id="70b40938-53d0-44b7-8235-e3136df50ddd">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/place/autocomplete/json';
+count( //ns1:Response/ns1:predictions/ns1:e)</path>
+                <content>5</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="input" value="Vict"/>
+              <con:entry key="language" value="fr"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:properties/>
+      <con:reportParameters/>
+    </con:testCase>
+    <con:testCase failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="queryautocomplete Tests" searchProperties="true" id="5c47ff0c-4f1d-42f1-8033-cbca010456dd">
+      <con:description>Performes autocomplete requests for a query string with a specified text and bounding coordinates, validates that the expected number of possible options is returned. The second request also specifies french as language.
+
+see https://developers.google.com/places/documentation/query</con:description>
+      <con:settings/>
+      <con:testStep type="restrequest" name="GET - Sample Request" id="18eccfc5-21a3-40f4-a22c-f9c48c37567e">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Places API" resourcePath="/maps/api/place/queryautocomplete/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request" mediaType="application/xml" id="53fb7133-18fa-4a52-af38-56884b9299b9">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:originalUri>https://maps.googleapis.com/maps/api/place/queryautocomplete/json</con:originalUri>
+            <con:assertion type="XPath Match" name="Check count of [e]" id="85cf6351-8118-4f45-ab43-ed348780dd68">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/place/queryautocomplete/json';
+count( //ns1:Response/ns1:predictions/ns1:e)</path>
+                <content>5</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <entry xmlns="http://eviware.com/soapui/config" key="input" value="Pizza near Par"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="restrequest" name="GET - Sample Request in French" id="2cd6c506-bf28-4104-b389-90440e80b349">
+        <con:settings/>
+        <con:config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" service="Places API" resourcePath="/maps/api/place/queryautocomplete/{format}" methodName="GET" xsi:type="con:RestRequestStep">
+          <con:restRequest name="GET - Sample Request in French" mediaType="application/xml" id="9468daa2-5470-4155-afb5-1dce5bc05205">
+            <con:settings>
+              <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+            </con:settings>
+            <con:endpoint>https://maps.googleapis.com</con:endpoint>
+            <con:request/>
+            <con:assertion type="XPath Match" name="Check count of [e]" id="5444ae04-c2a9-41bb-844c-75f969e10570">
+              <con:configuration>
+                <path>declare namespace ns1='https://maps.googleapis.com/maps/api/place/queryautocomplete/json';
+count( //ns1:Response/ns1:predictions/ns1:e)</path>
+                <content>5</content>
+                <allowWildcards>false</allowWildcards>
+                <ignoreNamspaceDifferences>false</ignoreNamspaceDifferences>
+                <ignoreComments>false</ignoreComments>
+              </con:configuration>
+            </con:assertion>
+            <con:credentials>
+              <con:authType>Global HTTP Settings</con:authType>
+            </con:credentials>
+            <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+            <con:jmsPropertyConfig/>
+            <con:parameters>
+              <con:entry key="input" value="Pizza near Par"/>
+              <con:entry key="language" value="fr"/>
+            </con:parameters>
+          </con:restRequest>
+        </con:config>
+      </con:testStep>
+      <con:properties/>
+      <con:reportParameters/>
+    </con:testCase>
+    <con:properties/>
+    <con:reportParameters/>
+  </con:testSuite>
+  <con:requirements/>
+  <con:properties>
+    <con:property>
+      <con:name>PlacesAPIKey</con:name>
+      <con:value/>
+    </con:property>
+  </con:properties>
+  <con:wssContainer/>
+  <con:databaseConnectionContainer/>
+  <con:oAuth2ProfileContainer/>
+  <con:reporting>
+    <con:reportTemplates/>
+    <con:xmlTemplates/>
+    <con:parameters/>
+  </con:reporting>
+  <con:sensitiveInformation/>
+</con:soapui-project>

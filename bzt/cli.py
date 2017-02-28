@@ -106,6 +106,8 @@ class CLI(object):
 
         logger.addHandler(console_handler)
 
+        logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
+
     def __close_log(self):
         """
         Close log handlers, move log to artifacts dir
@@ -231,8 +233,7 @@ class CLI(object):
         elif isinstance(exc, TaurusNetworkError):
             self.log.log(log_level, "Network Error: %s", exc)
         else:
-            msg = "Unknown Taurus exception %s: %s\n%s"
-            raise ValueError(msg % (type(exc), exc, get_stacktrace(exc)))
+            self.log.log(log_level, "Generic Taurus Error: %s", exc)
 
     def __get_jmx_shorthands(self, configs):
         """

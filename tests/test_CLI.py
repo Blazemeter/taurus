@@ -1,4 +1,3 @@
-""" test """
 import logging
 import os
 import shutil

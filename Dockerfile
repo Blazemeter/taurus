@@ -54,7 +54,7 @@ RUN apt-get -y update \
   && unzip -d /usr/bin /tmp/chromedriver_linux64.zip \
   && wget https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz -P /tmp \
   && tar -xzf /tmp/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz --directory /usr/local/bin \
-  && rm -rf /var/lib/apt/lists/* \
+  && apt-get clean \
   && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
 
 COPY bzt/resources/chrome_launcher.sh /tmp
@@ -69,7 +69,7 @@ RUN pip install /tmp/bzt-src \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json
 
-RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (cat /tmp/all-executors-artifacts/webdriver-1.log; exit 1)
+RUN bzt -install-tools && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (cat /tmp/all-executors-artifacts/webdriver-1.log; exit 1)
 
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/* \

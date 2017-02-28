@@ -28,7 +28,7 @@ import urllib.error
 import urllib.request
 import urllib.parse
 import configparser
-from http import server
+from http import server, cookiejar
 import socketserver
 
 string_types = str,
@@ -45,6 +45,7 @@ UserDict = collections.UserDict
 StringIO = io.StringIO
 BytesIO = io.BytesIO
 
+cookielib=cookiejar
 request = urllib.request
 parse = urllib.parse
 urlopen = request.urlopen
