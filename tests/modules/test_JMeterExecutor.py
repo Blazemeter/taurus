@@ -1260,10 +1260,11 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
         self.obj._env['TEST_MODE'] = 'heap'
         self.obj.startup()
-        stdout, _ = self.obj.process.communicate()
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertIn("-Xmx2G", str(stdout))
+        with open(os.path.join(self.obj.engine.artifacts_dir, "jmeter.out")) as fds:
+            stdout = fds.read()
+        self.assertIn("-Xmx2G", stdout)
 
     def test_data_sources_in_artifacts(self):
         self.configure({
