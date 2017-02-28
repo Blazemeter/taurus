@@ -2160,6 +2160,21 @@ class TestJMeterExecutor(BZTestCase):
         self.assertNotIn("a.csv", resources)
         self.assertTrue(any(res.endswith(os.path.join("nested", "directory", "a.csv")) for res in resources))
 
+    def test_stdout_stderr_capture(self):
+        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                self.obj.log.debug("Check...")
+                time.sleep(1)
+            self.obj.shutdown()
+            self.obj.post_process()
+        except:
+            pass
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "jmeter.out")))
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "jmeter.err")))
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
