@@ -80,6 +80,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.management_port = None
         self._env = {}
         self.resource_files_collector = None
+        self.stdout_file = None
+        self.stderr_file = None
 
     def get_scenario(self, name=None, cache_scenario=True):
         scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
@@ -161,6 +163,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__set_system_properties()
         self.__set_jvm_properties()
 
+        out = self.engine.create_artifact("jmeter", ".out")
+        err = self.engine.create_artifact("jmeter", ".err")
+        self.stdout_file = open(out, "w")
+        self.stderr_file = open(err, "w")
+
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
             self.reader.is_distributed = len(self.distributed_servers) > 0
@@ -231,8 +238,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self.start_time = time.time()
         try:
-            # FIXME: muting stderr and stdout is bad
-            self.process = self.execute(cmdline, stderr=None, env=self._env)
+            self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=self._env)
         except BaseException as exc:
             ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
 
@@ -286,6 +292,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def post_process(self):
         self.engine.existing_artifact(self.modified_jmx, True)
+        if self.stdout_file:
+            self.stdout_file.close()
+        if self.stderr_file:
+            self.stderr_file.close()
 
     def has_results(self):
         if self.reader and self.reader.read_records:
