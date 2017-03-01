@@ -19,6 +19,7 @@ import itertools
 import logging
 import os
 import re
+import json
 import sys
 import traceback
 from collections import namedtuple
@@ -1024,6 +1025,26 @@ class JMXasDict(JMX):
 
         if ht_element.tag == "hashTree":
             requests = self.__extract_requests(ht_element)
+
+            # convert json-body to string
+            scenario_json = \
+                'headers' in tg_scenario_settings and \
+                'content-type' in tg_scenario_settings['headers'] and \
+                isinstance(tg_scenario_settings['headers']['content-type'], str) and \
+                tg_scenario_settings['headers']['content-type'].lower() == 'application/json'
+
+            for request in requests:
+                if not ('body' in request and isinstance(request['body'], str)):
+                    continue
+                request_content_header = 'headers' in request and 'content-type' in request['headers'] and \
+                    isinstance(request['headers']['content-type'], str)
+
+                if request_content_header:
+                    if request['headers']['content-type'].lower() == 'application/json':
+                        request['body'] = json.loads(request['body'])
+                elif scenario_json:     # check scenario only if request content header not found
+                    request['body'] = json.loads(request['body'])
+
             self.log.debug("Total requests in tg groups: %d", len(requests))
             if not requests:
                 self.log.warning("No requests in %s (%s)", tg_etree_element.tag, tg_etree_element.get("testname"))
