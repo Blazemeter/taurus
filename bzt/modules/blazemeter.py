@@ -1517,7 +1517,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                         with zipfile.ZipFile(dest) as zipf:
                             for name in zipf.namelist():
                                 ext = name.split('.')[-1].lower()
-                                if ext in ('har', 'jpg', 'js', 'html'):
+                                if ext in ('har', 'jpg', 'js', 'html', 'css'):
                                     self.log.debug("Extracting %s to %s", name, cloud_dir)
                                     zipf.extract(name, cloud_dir)
 
