@@ -34,7 +34,7 @@ from urwid import Pile, Text
 
 from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException
 from bzt.bza import User, Session, Test
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Engine
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
@@ -1516,7 +1516,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                     if log['filename'].startswith('artifacts') and log['filename'].endswith('.zip'):
                         with zipfile.ZipFile(dest) as zipf:
                             for name in zipf.namelist():
-                                if name.split('.')[-1].lower() in ('har', 'jpg', 'js', 'html'):
+                                ext = name.split('.')[-1].lower()
+                                if ext in ('har', 'jpg', 'js', 'html'):
                                     self.log.debug("Extracting %s to %s", name, cloud_dir)
                                     zipf.extract(name, cloud_dir)
 
