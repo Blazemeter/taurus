@@ -110,6 +110,19 @@ class CLI(object):
 
         logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
 
+    def __close_log(self):
+        """
+        Close log handlers
+        :return:
+        """
+        if self.options.log:
+            # need to finalize the logger before finishing
+            for handler in self.log.handlers:
+                if issubclass(handler.__class__, logging.FileHandler):
+                    self.log.debug("Closing log handler: %s", handler.baseFilename)
+                    handler.close()
+                    self.log.handlers.remove(handler)
+
     def __move_log_to_artifacts(self):
         """
         Close log handlers, move log to artifacts dir, recreate file handlers
@@ -186,6 +199,8 @@ class CLI(object):
             self.log.warning("Done performing with code: %s", self.exit_code)
         else:
             self.log.info("Done performing with code: %s", self.exit_code)
+
+        self.__close_log()
 
         return self.exit_code
 
