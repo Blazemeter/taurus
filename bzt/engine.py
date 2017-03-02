@@ -71,7 +71,7 @@ class Engine(object):
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
         self.provisioning = Provisioning()
-        self.aggregator = Aggregator(is_functional=False)  # FIXME: have issues with non-aggregator object set here
+        self.aggregator = Aggregator(is_functional=False)
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
