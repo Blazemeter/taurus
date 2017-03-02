@@ -21,8 +21,8 @@ scenarios:
       - http://example.com/
 
 reporting:
-  - module: final_stats
-  - module: console
+- module: final_stats
+- module: console
 
 settings:
   check-interval: 5s
@@ -135,6 +135,17 @@ episodes: [1, 2, 3, 4, 5, 6, 7]
 best-jedi: {name: Obi-Wan, side: light} 
 ```
 
+## YAML Multi Documents
+
+YAML format allows multiple documents to be embedded in a single file. They only have to be separated with a line containing triple-dash separator `---`.
+
+```yaml
+document: this is document 1
+---
+document: this is document 2
+```
+
+When reading multi-document YAML, Taurus will treat multiple documents as multiple configs and will load them one by one.
 
 ## YAML Debugging tips
 
