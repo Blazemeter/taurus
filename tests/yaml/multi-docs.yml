@@ -8,9 +8,14 @@ execution:
 
 ---
 
-execution:
-- executor: gatling
-  concurrency: 1
-  scenario:
-    requests:
-    - http://blazedemo.com/?runner=gatling
+{
+  "execution": [{
+    "executor": "gatling",
+    "concurrency": 1,
+    "scenario": {
+      "requests": [
+        "http://blazedemo.com/?runner=gatling"
+      ]
+    }
+  }]
+}
