@@ -1,0 +1,16 @@
+execution:
+- executor: jmeter
+  concurrency: 1
+  scenario:
+    retrieve-resources: false
+    requests:
+    - http://blazedemo.com/?runner=jmeter
+
+---
+
+execution:
+- executor: gatling
+  concurrency: 1
+  scenario:
+    requests:
+    - http://blazedemo.com/?runner=gatling
