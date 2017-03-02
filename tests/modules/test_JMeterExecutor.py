@@ -586,6 +586,11 @@ class TestJMeterExecutor(BZTestCase):
         values = [x for x in obj.datapoints(True)]
         self.assertEquals(1, len(values))
 
+    def test_tabs_jtl(self):
+        obj = JTLReader(__dir__() + "/../jmeter/jtl/tabs.jtl", logging.getLogger(''), None)
+        values = [x for x in obj.datapoints(True)]
+        self.assertEquals(4, len(values))
+
     def test_distributed_th_hostnames(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
