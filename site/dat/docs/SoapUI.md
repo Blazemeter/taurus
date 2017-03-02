@@ -7,7 +7,6 @@ and convert it to Taurus scenario.
 
 Example:
 ```yaml
----
 execution:
 - executor: jmeter
   concurrency: 20

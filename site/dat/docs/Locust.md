@@ -10,7 +10,6 @@ Taurus appends `PYTHONPATH` with path to artifacts directory and current working
 Here's example config that uses existing locust file:
 
 ```yaml
----
 execution:
 - executor: locust
   concurrency: 10
@@ -55,7 +54,6 @@ LocustIO executor partially supports building scenario from requests. Supported 
  - set timeout/think-time on both scenario/request levels
  - assertions (for body and http-code)
 ```yaml
----
 scenarios:
   request_example:
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default

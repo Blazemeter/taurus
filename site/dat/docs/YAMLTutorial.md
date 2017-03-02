@@ -8,7 +8,6 @@ it because of its readability, simplicity and good support for many programming 
 Here’s an example of YAML document (which is actually a Taurus config):
 
 ```yaml
----
 execution:
 - concurrency: 10
   hold-for: 5m
@@ -71,8 +70,6 @@ braces). Other than that, JSON and YAML are very similar. Here's the same YAML d
 
 
 ## YAML Syntax
-
-All Taurus YAML files should begin with `---`. This is a part of the YAML format and indicates the start of a document.
 
 YAML document consists of the following elements.
 
