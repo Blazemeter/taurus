@@ -123,9 +123,9 @@ class CLI(object):
                     handler.close()
                     self.log.handlers.remove(handler)
 
-    def __move_log_to_artifacts(self):
+    def __copy_log_to_artifacts(self):
         """
-        Close log handlers, move log to artifacts dir, recreate file handlers
+        Close log handlers, copy log to artifacts dir, recreate file handlers
         :return:
         """
         if self.options.log:
@@ -134,14 +134,18 @@ class CLI(object):
                     self.log.debug("Closing log handler: %s", handler.baseFilename)
                     handler.close()
                     self.log.handlers.remove(handler)
-            self.log.debug("Moving log to artifacts")
+
+            self.log.debug("Moving log file to artifacts dir")
             if os.path.exists(self.options.log):
-                self.engine.existing_artifact(self.options.log, target_filename="bzt.log")
-            file_handler = logging.FileHandler(os.path.join(self.engine.artifacts_dir, "bzt.log"))
+                self.engine.existing_artifact(self.options.log, move=False, target_filename="bzt.log")
+            self.options.log = os.path.join(self.engine.artifacts_dir, "bzt.log")
+
+            file_handler = logging.FileHandler(self.options.log)
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s"))
-            self.log.debug("Attaching log handler pointed to artifacts dir")
+
             self.log.addHandler(file_handler)
+            self.log.debug("Switched writing logs to %s", self.options.log)
 
     def __configure(self, configs):
         self.log.info("Starting with configs: %s", configs)
@@ -179,7 +183,7 @@ class CLI(object):
             configs.extend(jmx_shorthands)
 
             self.__configure(configs)
-            self.__move_log_to_artifacts()
+            self.__copy_log_to_artifacts()
 
             self.engine.prepare()
             self.engine.run()
@@ -194,6 +198,7 @@ class CLI(object):
                 self.handle_exception(exc)
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
+        self.log.info("Log file: %s", self.options.log)
 
         if self.exit_code:
             self.log.warning("Done performing with code: %s", self.exit_code)
