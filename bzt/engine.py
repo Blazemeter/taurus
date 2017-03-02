@@ -71,7 +71,7 @@ class Engine(object):
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
         self.provisioning = Provisioning()
-        self.aggregator = Aggregator(is_functional=False)  # FIXME: have issues with non-aggregator object set here
+        self.aggregator = Aggregator(is_functional=False)
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
@@ -494,7 +494,6 @@ class Engine(object):
         cls = self.config.get(SETTINGS).get("aggregator", "")
         if not cls:
             self.log.warning("Proceeding without aggregator, no results analysis")
-            self.aggregator = EngineModule()
         else:
             self.aggregator = self.instantiate_module(cls)
         self.prepared.append(self.aggregator)

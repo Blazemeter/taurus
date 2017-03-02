@@ -67,6 +67,22 @@ class TestEngine(BZTestCase):
 
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
+    def test_null_aggregator(self):
+        self.obj.config.merge({
+            "execution": [{
+                "scenario": {
+                    "requests": [{"url": "http://example.com/"}],
+                }}],
+            "settings": {
+                "aggregator": None,
+                "default-executor": "jmeter",
+            },
+            "modules": {
+                "local": "bzt.modules.provisioning.Local",
+                "jmeter": "bzt.modules.jmeter.JMeterExecutor",
+            }})
+        self.obj.prepare()
+
 
 class TestScenarioExecutor(BZTestCase):
     def setUp(self):
