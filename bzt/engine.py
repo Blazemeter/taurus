@@ -494,7 +494,6 @@ class Engine(object):
         cls = self.config.get(SETTINGS).get("aggregator", "")
         if not cls:
             self.log.warning("Proceeding without aggregator, no results analysis")
-            self.aggregator = EngineModule()
         else:
             self.aggregator = self.instantiate_module(cls)
         self.prepared.append(self.aggregator)
