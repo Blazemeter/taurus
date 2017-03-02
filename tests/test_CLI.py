@@ -13,6 +13,7 @@ class TestCLI(BZTestCase):
         super(TestCLI, self).setUp()
         self.log = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
         self.verbose = True
+        self.quiet = False
         self.no_system_configs = True
         self.option = []
         self.datadir = os.path.join(os.path.dirname(__file__), "..", "build", "acli")

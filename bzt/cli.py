@@ -84,7 +84,10 @@ class CLI(object):
         # log everything to file
         if options.log:
             file_handler = logging.FileHandler(options.log)
-            file_handler.setLevel(logging.DEBUG)
+            if options.quiet:
+                file_handler.setLevel(logging.INFO)
+            else:
+                file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(fmt_file)
             logger.addHandler(file_handler)
 
