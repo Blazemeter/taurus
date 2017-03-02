@@ -559,45 +559,28 @@ class Configuration(BetterDict):
         self.log = logging.getLogger('')
         self.dump_filename = None
 
-    def load(self, configs, callback=None):
+    def load(self, config_files, callback=None):
         """
         Load and merge JSON/YAML files into current dict
 
         :type callback: callable
-        :type configs: list[str]
+        :type config_files: list[str]
         """
-        self.log.debug("Configs: %s", configs)
-        for config_file in configs:
+        self.log.debug("Configs: %s", config_files)
+        for config_file in config_files:
             try:
-                config = self.__read_file(config_file)
+                configs = []
+                self.log.debug("Reading %s", config_file)
+                with open(config_file) as fds:
+                    configs.extend(yaml.load_all(fds))
             except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
-            self.merge(config)
+            for config in configs:
+                self.merge(config)
 
             if callback is not None:
                 callback(config_file)
-
-    def __read_file(self, filename):
-        """
-        Read and parse config file
-        :param filename: str
-        :return: list
-        """
-        with open(filename) as fds:
-            first_line = "#"
-            while first_line.startswith("#"):
-                first_line = fds.readline().strip()
-            fds.seek(0)
-
-            if first_line.startswith('---'):
-                self.log.debug("Reading %s as YAML", filename)
-                return yaml.load(fds)
-            elif first_line.strip().startswith('{'):
-                self.log.debug("Reading %s as JSON", filename)
-                return json.loads(fds.read())
-            else:
-                raise TaurusConfigError("Cannot detect file format for %s" % filename)
 
     def set_dump_file(self, filename):
         """

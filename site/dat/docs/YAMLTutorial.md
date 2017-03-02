@@ -8,7 +8,6 @@ it because of its readability, simplicity and good support for many programming 
 Here’s an example of YAML document (which is actually a Taurus config):
 
 ```yaml
----
 execution:
 - concurrency: 10
   hold-for: 5m
@@ -22,8 +21,8 @@ scenarios:
       - http://example.com/
 
 reporting:
-  - module: final_stats
-  - module: console
+- module: final_stats
+- module: console
 
 settings:
   check-interval: 5s
@@ -71,8 +70,6 @@ braces). Other than that, JSON and YAML are very similar. Here's the same YAML d
 
 
 ## YAML Syntax
-
-All Taurus YAML files should begin with `---`. This is a part of the YAML format and indicates the start of a document.
 
 YAML document consists of the following elements.
 
@@ -138,6 +135,17 @@ episodes: [1, 2, 3, 4, 5, 6, 7]
 best-jedi: {name: Obi-Wan, side: light} 
 ```
 
+## YAML Multi Documents
+
+YAML format allows multiple documents to be embedded in a single file. They only have to be separated with a line containing triple-dash separator `---`.
+
+```yaml
+document: this is document 1
+---
+document: this is document 2
+```
+
+When reading multi-document YAML, Taurus will treat multiple documents as multiple configs and will load them one by one.
 
 ## YAML Debugging tips
 

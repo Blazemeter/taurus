@@ -7,7 +7,6 @@ top-level section of config with list of service module configs:
 Services are configured with `services` toplevel section. `services` section contains a list of
 services to run:
 ```yaml
----
 services:
 - module: shellexec:
   post-process: ...
@@ -32,7 +31,6 @@ Taurus provides hooks to all Taurus [test execution phases](Lifecycle.md).
 
 Sample configuration:
 ```yaml
----
 services:
 - module: shellexec
   prepare:  
@@ -98,7 +96,6 @@ You can learn more about `chrome-profiler` service at its [own page](ChromeProfi
 You can ask Taurus to unzip some of your files into artifacts directory before test starts (only zip format is supported). It's easy with `unpacker` service:
    
 ```yaml
----
 services:
 - module: unpacker
   files:
@@ -121,7 +118,6 @@ To invoke this service, just run Taurus like this `bzt -install-tools`.
 Useful for start/stop appium server automatically. This service doesn't provide installation ability so use [official documentation](http://appium.io) to get appium. You can specify path to appium through the appropriate setting:
 
 ```yaml
----
 services:
 - appium
 modules:
@@ -135,7 +131,6 @@ modules:
 It used to start/stop android emulator. For that purpose you have to get Android SDK by yourself and tell Taurus where it placed with path to emulator (usualy it can be found in <sdk_directory>/tools) in config or environment variable ANDROID_HOME, which contains SDK location. Moreover, you should choose one of your android emulators with `avd` option. 
 
 ```yaml
-----
 services:
 - android-emulator
 modules:

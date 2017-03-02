@@ -45,7 +45,6 @@ Supported values:
 
 Usage:
 ```yaml
----
 execution:
 - executor: selenium
   runner: nose
@@ -64,7 +63,6 @@ downloaded and installed automatically into `~/.bzt/selenium-taurus`.
 Configuration options:
 
 ```yaml
----
 modules:
   selenium:
     selenium-tools:
@@ -107,7 +105,6 @@ Just like JUnit runner, TestNG runner supports the `additional-classpath` option
 Configuration options:
 
 ```yaml
----
 modules:
   selenium:
     selenium-tools:
@@ -131,7 +128,6 @@ and packages).
 Configuration options:
 
 ```yaml
----
 modules:
   selenium:
     selenium-tools:
@@ -212,7 +208,6 @@ Taurus supports only python scripts for appium in Selenium executor. Additionall
 There is typical example of usage:
  
 ```yaml
----
 execution:
 - executor: selenium
   scenario: ap_scen
@@ -252,7 +247,6 @@ Action names are built as `<action>By<selector type>(<selector>)`. Sometimes act
 
 Sample request scenario:
 ```yaml
----
 scenarios:
   request_example:
     browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
@@ -280,7 +274,6 @@ scenarios:
 
 JUnit-based test with single .java file:
 ```yaml
----
 execution:
 - executor: selenium
   scenario: simple
@@ -292,7 +285,6 @@ scenarios:
 
 Running folder of test scripts with automatic runner detection:
 ```yaml
----
 execution:
 - executor: selenium
   scenario: simple
@@ -304,7 +296,6 @@ scenarios:
 
 Extended scenario with runner options:
 ```yaml
----
 execution:
 - executor: selenium
   iterations: 5  # loop over test suite for 5 times
@@ -335,7 +326,6 @@ If you want to run headless tests on Linux using virtual framebuffer (Xvfb), you
 display by using following config piece:
 
 ```yaml
----
 modules:
   selenium:
     virtual-display:

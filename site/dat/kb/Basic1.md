@@ -40,7 +40,6 @@ If you aren’t familiar with JMeter, you can also use Taurus’ simple configur
 Take a look at the following example:
 
 ```yaml
----
 execution:
 - concurrency: 5
   ramp-up: 20s
@@ -70,7 +69,6 @@ There are two places to specify JMeter properties:
 Global properties are set like this:
 
 ```yaml
----
 modules:
   jmeter:
     properties:
@@ -84,7 +82,6 @@ modules:
 
 Scenario-level properties are set like this:
 ```yaml
----
 execution:
 - scenario: 
     properties:
@@ -108,14 +105,12 @@ The easiest way to do this is to simply use the `-report` command line switch. T
 One of the big disadvantages of running JMeter scripts on your local computer is that it’s not really scalable – you’re limited to the resources of your local computer. Taurus gives you the option of cloud provisioning – meaning you can run your JMX scripts on the cloud with your BlazeMeter account. Again, you don’t have to be a paying customer as free accounts can also execute cloud tests. To use cloud provisioning, you have to set the following:
 
 ```yaml
----
 provisioning: cloud
 ```
 
 To access the BlazeMeter cloud, Taurus needs to have API key set inside the cloud module settings. Like this:
 
 ```yaml
----
 modules:
   cloud:
    token: ******* # API Key
@@ -128,7 +123,6 @@ Regarding the cloud locations, you can choose from all the locations provided by
 If you specify multiple cloud locations for the same execution, Taurus will distribute the concurrency and/or throughput amongst the locations. In order to use cloud locations you have to specify a location and its relative weight - the relative weight determines the amount of concurrent users and throughput that will run in this location.
 
 ```yaml
----
 execution:
 - locations:
     us-west-1: 1

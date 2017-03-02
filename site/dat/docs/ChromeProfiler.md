@@ -12,7 +12,6 @@ calculated metrics to the terminal at the end of the test.
 
 Here's an example of Taurus configuration that uses profiler service:
 ```yaml
----
 execution:
 - executor: selenium
   scenario: simple

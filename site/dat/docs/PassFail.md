@@ -7,7 +7,6 @@ resources.
 
 Pass/fail criteria are specified as array of `criteria`, set through `reporting` item in config:
 ```yaml
----
 reporting:
 - module: passfail
   criteria:
@@ -57,7 +56,6 @@ The full form of the criteria is conducted by Taurus automatically from short fo
 specify it as this:
 
 ```yaml
----
 reporting:
 - module: passfail
   criteria:
@@ -82,7 +80,6 @@ to change the message, you can do one of:
  - use dictionary instead of array to specify message and criteria, like this:
  
 ```yaml
----
 reporting:
 - module: passfail
   criteria:
@@ -98,7 +95,6 @@ for metric specification because of the need to specify metric class `bzt.module
 For example, to stop test once local CPU is exhausted, use:
 
 ```yaml
----
 reporting:
 - module: passfail
   criteria:

@@ -44,7 +44,6 @@ Let me show you an easier way to handle your pre/post test actions from a single
 Taurus is an open source tool that lets you run many open-source testing tools (such as JMeter, Gatling, The Grinder, Apache Benchmark, Locust.io and more) using YAML/JSON format. Taurus has a module called [“Shell Executor Service Module”](/docs/ShellExec/) that enables you to divide your test script into different logical steps we talked about and properly set your desired pre/post test actions in a single configuration file:
  
 ```yaml
----
 services:
 - module: shellexec
   prepare:  

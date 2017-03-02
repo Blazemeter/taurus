@@ -4,7 +4,6 @@ It's possible to convert existing Selenium scripts into JMeter JMX file. Keep in
 For this purpose Taurus uses [BlazeMeter Recorder](https://guide.blazemeter.com/hc/en-us/articles/207420545-BlazeMeter-Recorder-Mobile-Recorder-) so you need valid token. This service starts proxy for logging requests and build jmx file based on the requests when test is finished. You will need [BlazeMeter API key configured](BlazemeterReporter/#Personalized-Usage) for this approach to work. Lets see example config:
 
 ```yaml
----
 execution:
 - executor: selenium
   iterations: 1

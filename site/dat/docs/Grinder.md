@@ -18,7 +18,6 @@ All parameters are passed with .properties file, so they will work for your scri
 ## Running Grinder
 Running Grinder with existing script and properties file.
 ```yaml
----
 execution:
 - executor: grinder
   concurrency: 3

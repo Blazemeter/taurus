@@ -7,7 +7,6 @@ This executor type is used by default, it uses [Apache JMeter](http://jmeter.apa
 If there is no JMeter installed at the configured `path`, Taurus will attempt to install latest JMeter and Plugins into
 this location, by default `~/.bzt/jmeter-taurus/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
 ```yaml
----
 modules:
   jmeter:
     path: ~/.bzt/jmeter-taurus/bin/jmeter
@@ -22,7 +21,6 @@ modules:
     
 ## Run Existing JMX File
 ```yaml
----
 execution:
 - scenario: simple
 
@@ -42,7 +40,6 @@ You may also specify system properties for JMeter in system-properties section. 
 Global properties are set like this:
 
 ```yaml
----
 modules:
   jmeter:
     properties:
@@ -56,7 +53,6 @@ modules:
 Scenario-level properties are set like this:
 
 ```yaml
----
 scenarios:
   prop_example: 
     properties:
@@ -68,7 +64,6 @@ scenarios:
 When you want to verify or debug the JMX file that were generated from your requests scenario, you don't need to search for the file on disk, just enable GUI mode for JMeter module:
 
 ```yaml
----
 modules:
   jmeter:
     gui: false  # set it to true to open JMeter GUI instead of running non-GUI test
@@ -80,7 +75,6 @@ For the command-line, use alias `-gui` or option `-o modules.jmeter.gui=true`, w
 Distributed mode for JMeter is enabled with simple option `distributed` under execution settings, listing JMeter servers under it:
 
 ```yaml
----
 execution:
 - distributed: 
   - host1.mynet.com
@@ -102,7 +96,6 @@ By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutd
 JMeter executor allows you to apply some modifications to the JMX file before running JMeter (this affects both existing JMXes and generated from requests):
 
 ```yaml
----
 scenarios:
   modification_example:
     script: tests/jmx/dummy.jmx
@@ -132,7 +125,6 @@ Scenario is the sequence of steps and some settings that will be used by underly
 Scenarios are listed in top-level `scenarios` element and referred from executions by their alias:
 
 ```yaml
----
 scenarios:
   get-requests:  # the alias for scenario
     requests:
@@ -148,7 +140,6 @@ execution:
 Scenario has some global settings:
 
 ```yaml
----
 scenarios:
   get-requests:  
     store-cache: true  # browser cache simulation, enabled by default
@@ -193,7 +184,6 @@ Request objects can be of two kinds:
 The base element for requests scenario is HTTP Request. In its simplest form it contains just the URL as string:
 
 ```yaml
----
 scenarios:
   get-requests:  
     requests:
@@ -204,7 +194,6 @@ scenarios:
 The full form for request is dictionary, all fields except `url` are optional:
 
 ```yaml
----
 scenarios:
   my-req: 
     requests:
@@ -250,7 +239,6 @@ The concept is based on JMeter's extractors. The following types of extractors a
 To specify extractors in shorthand form, use following configuration:
 
 ```yaml
----
 scenarios:
   my-req: 
     requests:
@@ -271,7 +259,6 @@ scenarios:
 The full form for extractors is:
 
 ```yaml
----
 scenarios:
   my-req: 
     requests:
@@ -318,7 +305,6 @@ Currently three types of response assertions are available.
 First one checks http response fields, its short form looks like this:
 
 ```yaml
----
 scenarios:
   my-req: 
     requests:
@@ -330,7 +316,6 @@ scenarios:
 The full form has following format:
 
 ```yaml
----
 scenarios:
   my-req: 
     requests:
@@ -353,7 +338,6 @@ Possible subjects are:
 The second assertion type is used to perform validation of JSON response against JSONPath expression.
 
 ```yaml
----
 scenarios:
   my-req:
     requests:
@@ -366,7 +350,6 @@ scenarios:
 Full form:
 
 ```yaml
----
 scenarios:
   my-req:
     requests:
@@ -383,7 +366,6 @@ scenarios:
 And the third assertion type uses XPath query to validate XML response.
 
 ```yaml
----
 scenarios:
   assertion-demo:
     requests:
@@ -396,7 +378,6 @@ scenarios:
 Full form:
 
 ```yaml
----
 scenarios:
   my-req:
     requests:
@@ -416,7 +397,6 @@ after each request. Taurus allows that with `jsr223` block.
 
 Minimal example that will generate one JSR223 Post Processor.
 ```yaml
----
 scenarios:
   jsr-example:
     requests:
@@ -439,7 +419,6 @@ By default it's set to `after`.
 
 Full form:
 ```yaml
----
 scenarios:
   jsr-example:
     requests:
@@ -671,7 +650,6 @@ scenarios:
 ## JMeter Test Log
 You can tune JTL file content with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max `full` logging can seriously load your system.
 ```yaml
----
 execution:
 - write-xml-jtl: full
   scenario: simple_script
@@ -683,7 +661,6 @@ scenarios:
 ```
 Another way to adjust verbosity is to change flags in `xml-jtl-flags` dictionary. Next example shows all flags with default values (you don't have to use full dictionary if you want to change some from them):
 ```yaml
----
 modules:
   jmeter:
     xml-jtl-flags:
@@ -721,7 +698,6 @@ Use `K`, `M` or `G` suffixes to specify memory limit in kilobytes, megabytes or 
 
 Example:
 ```yaml
----
 modules:
   jmeter:
     memory-xmx: 4G  # allow JMeter to use up to 4G of memory
@@ -734,7 +710,6 @@ Taurus scenarios and execute them with JMeter.
 
 Example:
 ```yaml
----
 execution:
 - concurrency: 10
   hold-for: 5m

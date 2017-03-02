@@ -14,7 +14,6 @@ Configuration dictionary has several top-level keys:
 Example for config that touches all sections:
 
 ```yaml
----
 execution:
 - concurrency: 10
   hold-for: 5m
@@ -70,7 +69,6 @@ Module settings section is dictionary, having module aliases as keys and setting
 The shorthand is to specify module class string instead of settings dictionary, Taurus will expand it into dict automatically. For example,
 
 ```yaml
----
 modules:
   final_stats: bzt.modules.reporting.FinalStatus
 ```
@@ -78,7 +76,6 @@ modules:
 is equivalent to
 
 ```yaml
----
 modules:
   final_stats:
     class: bzt.modules.reporting.FinalStatus
@@ -97,7 +94,6 @@ Available settings are:
 See default settings below:
 
 ```yaml
----
 settings:
   artifacts-dir: /tmp/%H%M%S # path where to save artifacts, default is %Y-%m-%d_%H-%M-%S.%f
   aggregator: consolidator
@@ -165,7 +161,6 @@ engine will perfectly deal with it. For example, following JSON file:
 is equivalent to YAML:
 
 ```yaml
----
 aggregator: aggregator
 
 execution:
@@ -198,7 +193,6 @@ Hint: YAML config files on Linux/MacOS allows a trick of self-executing config. 
 
 ```yaml
 #! /usr/local/bin/bzt
----
 execution:
 - hold-for: 1m
   scenario: simple
@@ -225,7 +219,6 @@ Now you are able to start this file on its own:
 After all config files loaded, Taurus will also merge into resulting configuration any `included-configs` from the list. Example syntax piece:
 
 ```yaml
----
 included-configs:  # it must be a list of string values
 - additional-local-file.yml  # to add local file just set its path
 - http://central.host/mystorage/remote.yml  # you can also download config from http/https location
@@ -245,7 +238,6 @@ There are a few limitations about using `hostaliases` setting:
 
 Here's an example of using `hostaliases`:
 ```yaml
----
 execution:
 - scenario: host_sample
 
