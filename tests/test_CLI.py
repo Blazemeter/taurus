@@ -108,7 +108,7 @@ class TestCLI(BZTestCase):
     def test_override_artifacts_dir(self):
         # because EngineEmul sets up its own artifacts_dir
         self.obj.engine.artifacts_dir = None
-        artifacts_dir = "/tmp/taurus-test-artifacts"
+        artifacts_dir = "build/tmp-test-artifacts"
 
         self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
         self.option.append("provisioning=mock")

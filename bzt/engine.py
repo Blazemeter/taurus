@@ -256,7 +256,7 @@ class Engine(object):
         self.log.debug("New artifact filename: %s", filename)
         return filename
 
-    def existing_artifact(self, filename, move=False):
+    def existing_artifact(self, filename, move=False, target_filename=None):
         """
         Add existing artifact, it will be collected into artifact_dir. If
         move=True, the original file will be deleted
@@ -269,10 +269,11 @@ class Engine(object):
             self.log.warning("Artifacts dir has not been set, will not copy %s", filename)
             return
 
-        newname = os.path.join(self.artifacts_dir, os.path.basename(filename))
-        self.__artifacts.append(newname)
+        new_filename = os.path.basename(filename) if target_filename is None else target_filename
+        new_name = os.path.join(self.artifacts_dir, new_filename)
+        self.__artifacts.append(new_name)
 
-        if os.path.realpath(filename) == os.path.realpath(newname):
+        if os.path.realpath(filename) == os.path.realpath(new_name):
             self.log.debug("No need to copy %s", filename)
             return
 
@@ -281,11 +282,11 @@ class Engine(object):
             return
 
         if move:
-            self.log.debug("Moving %s to %s", filename, newname)
-            shutil.move(filename, newname)
+            self.log.debug("Moving %s to %s", filename, new_name)
+            shutil.move(filename, new_name)
         else:
-            self.log.debug("Copying %s to %s", filename, newname)
-            shutil.copy(filename, newname)
+            self.log.debug("Copying %s to %s", filename, new_name)
+            shutil.copy(filename, new_name)
 
     def create_artifacts_dir(self, existing_artifacts=(), merged_config=None):
         """
