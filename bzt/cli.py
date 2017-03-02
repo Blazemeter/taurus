@@ -198,7 +198,8 @@ class CLI(object):
                 self.handle_exception(exc)
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
-        self.log.info("Log file: %s", self.options.log)
+        if self.engine.artifacts_dir is None:
+            self.log.info("Log file: %s", self.options.log)
 
         if self.exit_code:
             self.log.warning("Done performing with code: %s", self.exit_code)
