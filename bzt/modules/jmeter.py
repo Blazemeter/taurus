@@ -1139,7 +1139,7 @@ class IncrementalCSVReader(object):
 
     def __init__(self, parent_logger, filename):
         self.buffer = StringIO()
-        self.csv_reader = csv.DictReader(self.buffer, [])
+        self.csv_reader = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
@@ -1181,8 +1181,9 @@ class IncrementalCSVReader(object):
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
 
-            if not self.csv_reader.fieldnames:
-                self.csv_reader.dialect = guess_csv_dialect(line)
+            if self.csv_reader is None:
+                dialect = guess_csv_dialect(line)
+                self.csv_reader = csv.DictReader(self.buffer, [], dialect=dialect)
                 self.csv_reader.fieldnames += line.strip().split(self.csv_reader.dialect.delimiter)
                 self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)
                 continue
