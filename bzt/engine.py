@@ -100,7 +100,7 @@ class Engine(object):
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
 
-        thread = threading.Thread(target=self._check_updates) # intentionally non-daemon thread
+        thread = threading.Thread(target=self._check_updates)  # intentionally non-daemon thread
         thread.start()
 
         return merged_config
@@ -990,7 +990,7 @@ class Service(EngineModule):
 
     def should_run(self):
         prov = self.engine.config.get(Provisioning.PROV)
-        runat = self.parameters.get("run-at", "local")
+        runat = self.parameters.get("run-at", "local")  # weird to have "local" hardcoded here
         if prov != runat:
             self.log.debug("Should not run because of non-matching prov: %s != %s", prov, runat)
             return False
