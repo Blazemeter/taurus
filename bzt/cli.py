@@ -135,7 +135,6 @@ class CLI(object):
                     handler.close()
                     self.log.handlers.remove(handler)
 
-            self.log.debug("Moving log file to artifacts dir")
             if os.path.exists(self.options.log):
                 self.engine.existing_artifact(self.options.log, move=False, target_filename="bzt.log")
             self.options.log = os.path.join(self.engine.artifacts_dir, "bzt.log")

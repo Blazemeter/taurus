@@ -263,6 +263,7 @@ class Engine(object):
 
         :type filename: str
         :type move: bool
+        :type target_filename: str
         """
         self.log.debug("Add existing artifact (move=%s): %s", move, filename)
         if self.artifacts_dir is None:
