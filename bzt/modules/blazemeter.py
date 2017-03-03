@@ -1512,7 +1512,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                         dwn.get(log['dataUrl'], dest, reporthook=pbar.download_callback)
                     except BaseException:
                         self.log.debug("Error is: %s", traceback.format_exc())
-                        self.log.warning("Failed to download from %s: %s", log['dataUrl'])
+                        self.log.warning("Failed to download from %s", log['dataUrl'])
                         continue
 
                     if log['filename'].startswith('artifacts') and log['filename'].endswith('.zip'):
