@@ -548,3 +548,7 @@ class Session(BZAObject):
         response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
             raise TaurusNetworkError("Upload failed: %s" % response)
+
+    def get_logs(self):
+        url = self.address + "/api/v4/sessions/%s/reports/logs" % self['id']
+        return self._request(url)['result']['data']

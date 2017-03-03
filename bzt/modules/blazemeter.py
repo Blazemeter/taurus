@@ -41,8 +41,11 @@ from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b
-from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
+from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes, \
+    ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
+
+TAURUS_TEST_TYPE = "taurus"
 
 
 def send_with_retry(method):
@@ -837,7 +840,7 @@ class ProjectFinder(object):
             self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
         else:
-            test = self._ws_proj_switch(project).tests(name=test_name, test_type='taurus').first()
+            test = self._ws_proj_switch(project).tests(name=test_name, test_type=TAURUS_TEST_TYPE).first()
             self.log.debug("Looked for test: %s", test)
             if test:
                 self.log.debug("Detected test type: old")
@@ -1016,7 +1019,7 @@ class CloudTaurusTest(BaseCloudTest):
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
         if self._test is None:
             test_config = {
-                "type": "taurus",
+                "type": TAURUS_TEST_TYPE,
                 "plugins": {
                     "taurus": {
                         "filename": ""  # without this line it does not work
@@ -1230,7 +1233,7 @@ class CloudCollectionTest(BaseCloudTest):
                 if location not in scenario_item:
                     scenario_item[location] = 0
                 scenario_item[location] += servers_count
-            except KeyError:
+            except (KeyError, TypeError):
                 self._sessions = None
 
         txt = "%s #%s\n" % (self._test['name'], self.master['id'])
@@ -1480,6 +1483,45 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             for session in full.get('sessions', ()):
                 for error in session.get("errors", ()):
                     raise TaurusException(to_json(error))
+
+            # if we have captured HARs, let's download them
+            self.log.info("Services: %s", self.engine.services)
+            for service in self.engine.config.get(Service.SERV):
+                # not good to reproduce what is done inside engine
+                # but no good way to get knowledge of the service in config
+                if not isinstance(service, dict):
+                    service = {"module": service}
+                mod = service.get('module', TaurusConfigError("No 'module' specified for service"))
+                module = self.engine.instantiate_module(mod)
+                if isinstance(module, ServiceStubCaptureHAR):
+                    self._download_logs()
+                    break
+
+    def _download_logs(self):
+        for session in self.router.master.sessions():
+            assert isinstance(session, Session)
+            for log in session.get_logs():
+                self.log.info("Downloading %s from the cloud", log['filename'])
+                cloud_dir = os.path.join(self.engine.artifacts_dir, 'cloud-artifacts')
+                if not os.path.exists(cloud_dir):
+                    os.makedirs(cloud_dir)
+                dest = os.path.join(cloud_dir, log['filename'])
+                dwn = ExceptionalDownloader()
+                with ProgressBarContext() as pbar:
+                    try:
+                        dwn.get(log['dataUrl'], dest, reporthook=pbar.download_callback)
+                    except BaseException:
+                        self.log.debug("Error is: %s", traceback.format_exc())
+                        self.log.warning("Failed to download from %s", log['dataUrl'])
+                        continue
+
+                    if log['filename'].startswith('artifacts') and log['filename'].endswith('.zip'):
+                        with zipfile.ZipFile(dest) as zipf:
+                            for name in zipf.namelist():
+                                ext = name.split('.')[-1].lower()
+                                if ext in ('har', 'jpg', 'js', 'html', 'css'):
+                                    self.log.debug("Extracting %s to %s", name, cloud_dir)
+                                    zipf.extract(name, cloud_dir)
 
     def get_widget(self):
         if not self.widget:

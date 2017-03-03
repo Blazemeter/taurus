@@ -21,17 +21,17 @@ import signal
 import sys
 import tempfile
 import traceback
+import yaml
 from logging import Formatter
 from optparse import OptionParser, Option
 from tempfile import NamedTemporaryFile
 
-import yaml
 from colorlog import ColoredFormatter
 
 import bzt
+from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt import TaurusException, ToolError
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b, get_stacktrace
 from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
@@ -157,10 +157,9 @@ class CLI(object):
         # apply aliases
         for alias in self.options.aliases:
             cli_aliases = self.engine.config.get('cli-aliases')
-            al_config = cli_aliases.get(alias, None)
-            if al_config is None:
-                raise TaurusConfigError("'%s' not found in aliases: %s" % (alias, cli_aliases.keys()))
-            self.engine.config.merge(al_config)
+            keys = sorted(cli_aliases.keys())
+            err = TaurusConfigError("'%s' not found in aliases. Available aliases are: %s" % (alias, ", ".join(keys)))
+            self.engine.config.merge(cli_aliases.get(alias, err))
 
         if self.options.option:
             overrider = ConfigOverrider(self.log)

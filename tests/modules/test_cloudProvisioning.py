@@ -8,9 +8,9 @@ import yaml
 
 from bzt import TaurusConfigError, TaurusException
 from bzt.bza import Master, Test, MultiTest
-from bzt.engine import ScenarioExecutor, ManualShutdown
+from bzt.engine import ScenarioExecutor, ManualShutdown, Service
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA
+from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from bzt.utils import get_full_path
 from tests import BZTestCase, __dir__
@@ -672,13 +672,19 @@ class TestCloudProvisioning(BZTestCase):
                     {"result": {
                         "id": id(self.obj),
                         "sessions": [
-                            {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT", "locationId": "some"},
                             {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
                     {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
                 ],
-                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
-                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": []}},
-                'https://a.blazemeter.com/api/v4/masters/1': {"result": {"id": 1, "note": "msg"}}
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": [{'id': "s1"}]}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": [{'id': "s1"}]}},
+                'https://a.blazemeter.com/api/v4/masters/1': {"result": {"id": 1, "note": "msg"}},
+                'https://a.blazemeter.com/api/v4/sessions/s1/reports/logs': {"result": {"data": [
+                    {
+                        'filename': "artifacts.zip",
+                        'dataUrl': "file://" + __dir__() + '/../data/artifacts-1.zip'
+                    }
+                ]}}
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
@@ -686,7 +692,7 @@ class TestCloudProvisioning(BZTestCase):
                     "name": "Taurus Collection", "items": []
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
-                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {'id': 1}},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {'id': 1, 'name': 'testname'}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}},
                 'https://a.blazemeter.com/api/v4/masters/1/force-start': {"result": {"id": 1}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/stop': {"result": {"id": 1}}
@@ -695,6 +701,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.settings["check-interval"] = "0ms"  # do not skip checks
         self.obj.settings["use-deprecated-api"] = False
+        cls = ServiceStubCaptureHAR.__module__ + "." + ServiceStubCaptureHAR.__name__
+        self.obj.engine.config.get("modules").get('capturehar')['class'] = cls
+        self.obj.engine.config.get(Service.SERV, []).append('capturehar')
 
         self.obj.prepare()
         self.obj.startup()
@@ -702,7 +711,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(17, len(self.mock.requests))
+        self.assertEqual(19, len(self.mock.requests))
 
     def test_cloud_paths(self):
         """
