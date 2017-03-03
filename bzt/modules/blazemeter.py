@@ -1491,7 +1491,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 # but no good way to get knowledge of the service in config
                 if not isinstance(service, dict):
                     service = {"module": service}
-                module = self.engine.instantiate_module(service.get('module', ValueError()))
+                mod = service.get('module', TaurusConfigError("No 'module' specified for service"))
+                module = self.engine.instantiate_module(mod)
                 if isinstance(module, ServiceStubCaptureHAR):
                     self._download_logs()
                     break
@@ -1510,7 +1511,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                     try:
                         dwn.get(log['dataUrl'], dest, reporthook=pbar.download_callback)
                     except BaseException:
-                        logging.warning("Failed to download from %s: %s", log['dataUrl'], traceback.format_exc())
+                        self.log.debug("Error is: %s", traceback.format_exc())
+                        self.log.warning("Failed to download from %s: %s", log['dataUrl'])
                         continue
 
                     if log['filename'].startswith('artifacts') and log['filename'].endswith('.zip'):
