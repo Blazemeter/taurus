@@ -1047,10 +1047,23 @@ class JMXasDict(JMX):
 
                 if (request_content_header and self._get_content_type(request['headers']) == 'application/json') or \
                         (not request_content_header and scenario_json):
+
+                    # quote jmeter variables
+                    body = request['body']
+                    pattern = re.compile(r'[^"]{1}\${[a-zA-Z0-9_]+}[^"]{1}')
+                    search_res = pattern.search(body)
+                    while search_res:
+                        body = body[:search_res.start() + 1] + \
+                               '"%s"' % search_res.group()[1: -1] + \
+                               body[search_res.end()-1:]
+                        search_res = pattern.search(body)
+                    if body != request['body']:
+                        self.log.debug("Body conversation: '%s' => '%s'", request['body'], body)
+
                     try:
-                        request['body'] = json.loads(request['body'])
-                    except ValueError:
-                        raise TaurusInternalException("Next body cannot be converted into JSON:\n%s", request['body'])
+                        request['body'] = json.loads(body)
+                    except (ValueError, TypeError):
+                        raise TaurusInternalException("Next body cannot be converted into JSON:\n%s", body)
 
             self.log.debug("Total requests in tg groups: %d", len(requests))
             if not requests:
