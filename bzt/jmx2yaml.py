@@ -1058,12 +1058,12 @@ class JMXasDict(JMX):
                                body[search_res.end()-1:]
                         search_res = pattern.search(body)
                     if body != request['body']:
-                        self.log.debug("Body conversation: '%s' => '%s'", request['body'], body)
+                        self.log.debug("Body convertion: '%s' => '%s'", request['body'], body)
 
                     try:
                         request['body'] = json.loads(body)
                     except (ValueError, TypeError):
-                        raise TaurusInternalException("Next body cannot be converted into JSON:\n%s", body)
+                        raise TaurusInternalException("Following body cannot be converted into JSON:\n%s", body)
 
             self.log.debug("Total requests in tg groups: %d", len(requests))
             if not requests:
