@@ -89,6 +89,14 @@ line(&quot;11&quot;);
             <stringProp name="script">console.log(&quot;beanshell aka jsr223&quot;);</stringProp>
           </BeanShellPreProcessor>
           <hashTree/>
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="JSR223 PreProcessor" enabled="true">
+            <stringProp name="scriptLanguage">java</stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="filename">tests/data/BlazeDemo.java</stringProp>
+            <stringProp name="cacheKey"></stringProp>
+            <stringProp name="script"></stringProp>
+          </JSR223PreProcessor>
+          <hashTree/>
         </hashTree>
       </hashTree>
     </hashTree>

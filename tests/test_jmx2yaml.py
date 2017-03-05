@@ -439,7 +439,7 @@ class TestConverter(BZTestCase):
         self.assertIn("jsr223", request)
         jsrs = request["jsr223"]
         self.assertIsInstance(jsrs, list)
-        self.assertEqual(len(jsrs), 4)
+        self.assertEqual(len(jsrs), 5)
         self.assertEqual(jsrs[0]["language"], "beanshell")
         self.assertEqual(jsrs[0]["script-text"], "scripty")
         self.assertEqual(jsrs[0]["parameters"], "parames")
@@ -457,6 +457,11 @@ class TestConverter(BZTestCase):
         self.assertEqual(jsrs[3]["parameters"], None)
         self.assertEqual(jsrs[3]['script-text'], 'console.log("beanshell aka jsr223");')
         self.assertNotIn('script-file', jsrs[3])
+        self.assertEqual(jsrs[4]["language"], "java")
+        self.assertEqual(jsrs[4]["execute"], "before")
+        self.assertEqual(jsrs[4]["parameters"], None)
+        self.assertIn('BlazeDemo.java', jsrs[4]['script-file'])
+        self.assertNotIn('script-text', jsrs[4])
 
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.js')))
 
