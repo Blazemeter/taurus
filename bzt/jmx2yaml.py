@@ -34,6 +34,8 @@ from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
 from bzt.utils import get_full_path
 
+INLINE_JSR223_MAX_LEN = 10
+
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
               "ThreadGroup",
@@ -981,24 +983,18 @@ class JMXasDict(JMX):
                     params = self._get_string_prop(element, 'parameters')
                     script = self._get_string_prop(element, 'script')
                     execute = "before" if element.tag in preprocessors else "after"
+
+                    jsr = {"language": language, "parameters": params, "execute": execute}
                     if filename:
-                        jsr = {
-                            "language": language,
-                            "script-file": filename,
-                            "parameters": params,
-                            "execute": execute,
-                        }
+                        jsr["script-file"] = filename
                     elif script:
-                        # TODO: extract script to filename
-                        ext = extensions.get(language, '.js')
-                        filename = self._record_additional_file('script', ext, script)
-                        self.additional_files[filename] = script
-                        jsr = {
-                            "language": language,
-                            "script-file": filename,
-                            "parameters": params,
-                            "execute": execute,
-                        }
+                        if len(script.strip().split('\n')) > INLINE_JSR223_MAX_LEN:
+                            ext = extensions.get(language, '.js')
+                            filename = self._record_additional_file('script', ext, script)
+                            self.additional_files[filename] = script
+                            jsr['script-file'] = filename
+                        else:
+                            jsr['script-text'] = script
                     else:
                         tmpl = "%s element doesn't have neither script nor script-file, skipping"
                         self.log.warning(tmpl, element.tag)

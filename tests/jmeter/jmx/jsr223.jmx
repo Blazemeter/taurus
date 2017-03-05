@@ -58,7 +58,8 @@
             <stringProp name="cacheKey"></stringProp>
             <stringProp name="filename"></stringProp>
             <stringProp name="parameters">a b c</stringProp>
-            <stringProp name="script">console.log(&quot;ПРИВЕТ&quot;);</stringProp>
+            <stringProp name="script">console.log(&quot;ПРИВЕТ&quot;);
+line(&quot;2&quot;);</stringProp>
             <stringProp name="scriptLanguage">javascript</stringProp>
           </JSR223PostProcessor>
           <hashTree/>
@@ -67,7 +68,18 @@
             <stringProp name="parameters"></stringProp>
             <stringProp name="filename"></stringProp>
             <stringProp name="cacheKey"></stringProp>
-            <stringProp name="script">log.info(&quot;bye&quot;);</stringProp>
+            <stringProp name="script">log.info(&quot;bye&quot;);
+line(&quot;2&quot;);
+line(&quot;3&quot;);
+line(&quot;4&quot;);
+line(&quot;5&quot;);
+line(&quot;6&quot;);
+line(&quot;7&quot;);
+line(&quot;8&quot;);
+line(&quot;9&quot;);
+line(&quot;10&quot;);
+line(&quot;11&quot;);
+</stringProp>
           </JSR223PostProcessor>
           <hashTree/>
           <BeanShellPreProcessor guiclass="TestBeanGUI" testclass="BeanShellPreProcessor" testname="BeanShell PreProcessor" enabled="true">
