@@ -1009,6 +1009,15 @@ class JMXasDict(JMX):
         else:
             return {}
 
+    @staticmethod
+    def _get_content_type(headers):
+        for header in headers:
+            if header.lower() == 'content-type':
+                if isinstance(headers[header], str):
+                    return headers[header].lower()
+                else:
+                    return headers[header]
+
     def process_tg(self, tg_etree_element):
         """
         Get execution and scenario settings for TG
@@ -1027,23 +1036,34 @@ class JMXasDict(JMX):
             requests = self.__extract_requests(ht_element)
 
             # convert json-body to string
-            scenario_json = \
-                'headers' in tg_scenario_settings and \
-                'content-type' in tg_scenario_settings['headers'] and \
-                isinstance(tg_scenario_settings['headers']['content-type'], str) and \
-                tg_scenario_settings['headers']['content-type'].lower() == 'application/json'
+            scenario_json = False
+            if 'headers' in tg_scenario_settings:
+                scenario_json = self._get_content_type(tg_scenario_settings['headers']) == 'application/json'
 
             for request in requests:
                 if not ('body' in request and isinstance(request['body'], str)):
                     continue
-                request_content_header = 'headers' in request and 'content-type' in request['headers'] and \
-                    isinstance(request['headers']['content-type'], str)
+                request_content_header = 'headers' in request and self._get_content_type(request['headers'])
 
-                if request_content_header:
-                    if request['headers']['content-type'].lower() == 'application/json':
-                        request['body'] = json.loads(request['body'])
-                elif scenario_json:     # check scenario only if request content header not found
-                    request['body'] = json.loads(request['body'])
+                if (request_content_header and self._get_content_type(request['headers']) == 'application/json') or \
+                        (not request_content_header and scenario_json):
+
+                    # quote jmeter variables
+                    body = request['body']
+                    pattern = re.compile(r'[^"]{1}\${[a-zA-Z0-9_]+}[^"]{1}')
+                    search_res = pattern.search(body)
+                    while search_res:
+                        body = body[:search_res.start() + 1] + \
+                               '"%s"' % search_res.group()[1: -1] + \
+                               body[search_res.end()-1:]
+                        search_res = pattern.search(body)
+                    if body != request['body']:
+                        self.log.debug("Body convertion: '%s' => '%s'", request['body'], body)
+
+                    try:
+                        request['body'] = json.loads(body)
+                    except (ValueError, TypeError):
+                        raise TaurusInternalException("Following body cannot be converted into JSON:\n%s", body)
 
             self.log.debug("Total requests in tg groups: %d", len(requests))
             if not requests:

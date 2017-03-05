@@ -68,7 +68,7 @@
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
-                <stringProp name="Argument.value">{&quot;a1&quot;: &quot;p1&quot;, &quot;a2&quot;: &quot;p2&quot;}</stringProp>
+                <stringProp name="Argument.value">{&quot;a1&quot;: ${var1}, &quot;a2&quot;: &quot;${var2}&quot;}</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>
@@ -97,6 +97,21 @@
               </elementProp>
             </collectionProp>
           </HeaderManager>
+          <hashTree/>
+          <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables" enabled="true">
+            <collectionProp name="Arguments.arguments">
+              <elementProp name="var1" elementType="Argument">
+                <stringProp name="Argument.name">var1</stringProp>
+                <stringProp name="Argument.value">val1</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+              <elementProp name="var2" elementType="Argument">
+                <stringProp name="Argument.name">var2</stringProp>
+                <stringProp name="Argument.value">val2</stringProp>
+                <stringProp name="Argument.metadata">=</stringProp>
+              </elementProp>
+            </collectionProp>
+          </Arguments>
           <hashTree/>
         </hashTree>
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="r1_3" enabled="true">
@@ -236,7 +251,7 @@
           <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
-                <stringProp name="Header.name">content-type</stringProp>
+                <stringProp name="Header.name">Content-Type</stringProp>
                 <stringProp name="Header.value">application/json</stringProp>
               </elementProp>
             </collectionProp>
