@@ -83,7 +83,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.browser_open = 'start'
         self.kpi_buffer = []
         self.send_interval = 30
-        self.sess_name = None
         self._last_status_check = time.time()
         self.send_monitoring = True
         self.monitoring_buffer = None
@@ -146,10 +145,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             else:
                 self._test = Test(self._user, {'id': None})
 
-        self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
-        if self.sess_name == 'ask' and sys.stdin.isatty():
-            self.sess_name = r_input("Please enter report-name: ")
-
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
@@ -165,7 +160,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self._user.log = self.log.getChild(self.__class__.__name__)
 
         if not self._session:
-            url = self._start_online(self.sess_name)
+            url = self._start_online()
             self.log.info("Started data feeding: %s", url)
             if self.browser_open in ('start', 'both'):
                 open_browser(url)
@@ -174,11 +169,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 report_link = self._master.make_report_public()
                 self.log.info("Public report link: %s", report_link)
 
-    def _start_online(self, session_name):
+    def _start_online(self):
         """
         Start online test
 
-        :type session_name: str
         """
         self.log.info("Initiating data feeding...")
 
@@ -190,8 +184,13 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
         if self._test.token:
             self.results_url = self._master.address + '/app/#/masters/%s' % self._master['id']
-            if session_name:
-                self._session.set({"name": str(session_name)})
+
+        report_name = self.parameters.get("report-name", self.settings.get("report-name", None))
+        if report_name == 'ask' and sys.stdin.isatty():
+            report_name = r_input("Please enter report-name: ")
+
+        if report_name:
+            self._session.set({"name": str(report_name)})
 
         return self.results_url
 
@@ -1419,6 +1418,13 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.user.token and self.public_report:
             public_link = self.router.master.make_report_public()
             self.log.info("Public report link: %s", public_link)
+
+        report_name = self.settings.get("report-name", None)
+        if report_name == 'ask' and sys.stdin.isatty():
+            report_name = r_input("Please enter report-name: ")
+
+        if report_name:
+            self.router.master.set({"name": str(report_name)})
 
     def _should_skip_check(self):
         now = time.time()
