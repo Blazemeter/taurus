@@ -2,7 +2,6 @@
 
 Sample configuration:
 ```yaml
----
 services:
 - module: shellexec
   prepare:  
@@ -28,7 +27,6 @@ scenarios:
 
 Extended task configuration sample:
 ```yaml
----
 services:
 - module: shellexec
   prepare: # stage names: [prepare, startup, check]
@@ -47,7 +45,6 @@ services:
 
 Minimum task configuration sample:
 ```yaml
----
 services:
 - module: shellexec
   prepare: ls -la
@@ -65,7 +62,6 @@ Notes:
  - There is module setting `env` which contains dictionary for additional environment variables for commands
 
 ```yaml
----
 modules:
   shellexec:
     default-cwd: /tmp

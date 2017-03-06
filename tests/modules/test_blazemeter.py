@@ -98,6 +98,7 @@ class TestCloudProvisioningOld(BZTestCase):
 
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+            'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": []}},
             'https://a.blazemeter.com/api/v4/masters/1': {"result": {"note": "message"}},
             'https://a.blazemeter.com/api/v4/masters/1/status': [
                 {"result": {"id": 1, "status": "CREATE"}},
@@ -111,7 +112,7 @@ class TestCloudProvisioningOld(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": None},
             'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": None},
-            'https://a.blazemeter.com/api/v4/masters/1/publicToken': {"result": {"publicToken": "token"}},
+            'https://a.blazemeter.com/api/v4/masters/1/public-token': {"result": {"publicToken": "token"}},
         }
 
         prov = CloudProvisioning()

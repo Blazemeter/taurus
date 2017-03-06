@@ -103,7 +103,6 @@ Taurus is a free and open-source framework under the Apache 2.0 License. Taurus 
 The simplest script looks like this (TaurusScriptExample.yml):
 
 ```yaml
----
 execution:
 - concurrency: 100
   ramp-up: 1m
@@ -163,7 +162,6 @@ scenarios:
 We can do the same to run Selenium scripts on Taurus with the Selenium executor. Note that if the Selenium test script has a dependency on a class outside of the test section, we need to specify the path to the compiled project jar file:
 
 ```yaml
----
 execution:
 - executor: selenium
   ramp-up: 40m
@@ -227,7 +225,6 @@ In addition to running existing test scenarios, the Taurus framework also allows
 ### JMeter Config 
 
 ```yaml
----
 execution:
 - concurrency: 5
   ramp-up: 1m
@@ -264,7 +261,6 @@ scenarios:
 ### Selenium Config
 
 ```yaml
----
 execution:
 - concurrency: 5
   ramp-up: 1m

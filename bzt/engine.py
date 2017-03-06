@@ -40,6 +40,7 @@ from bzt.six import build_opener, install_opener, urlopen, numeric_types, iterit
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
+from bzt.utils import str_representer
 
 SETTINGS = "settings"
 
@@ -70,7 +71,7 @@ class Engine(object):
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
         self.provisioning = Provisioning()
-        self.aggregator = Aggregator(is_functional=False)  # FIXME: have issues with non-aggregator object set here
+        self.aggregator = Aggregator(is_functional=False)
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
@@ -99,7 +100,7 @@ class Engine(object):
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
 
-        thread = threading.Thread(target=self._check_updates) # intentionally non-daemon thread
+        thread = threading.Thread(target=self._check_updates)  # intentionally non-daemon thread
         thread.start()
 
         return merged_config
@@ -166,7 +167,7 @@ class Engine(object):
         for module in modules:
             if module in self.started:
                 self.log.debug("Checking %s", module)
-                finished |= module.check()
+                finished |= bool(module.check())
         return finished
 
     def _wait(self):
@@ -255,23 +256,25 @@ class Engine(object):
         self.log.debug("New artifact filename: %s", filename)
         return filename
 
-    def existing_artifact(self, filename, move=False):
+    def existing_artifact(self, filename, move=False, target_filename=None):
         """
         Add existing artifact, it will be collected into artifact_dir. If
         move=True, the original file will be deleted
 
         :type filename: str
         :type move: bool
+        :type target_filename: str
         """
         self.log.debug("Add existing artifact (move=%s): %s", move, filename)
         if self.artifacts_dir is None:
             self.log.warning("Artifacts dir has not been set, will not copy %s", filename)
             return
 
-        newname = os.path.join(self.artifacts_dir, os.path.basename(filename))
-        self.__artifacts.append(newname)
+        new_filename = os.path.basename(filename) if target_filename is None else target_filename
+        new_name = os.path.join(self.artifacts_dir, new_filename)
+        self.__artifacts.append(new_name)
 
-        if os.path.realpath(filename) == os.path.realpath(newname):
+        if os.path.realpath(filename) == os.path.realpath(new_name):
             self.log.debug("No need to copy %s", filename)
             return
 
@@ -280,11 +283,11 @@ class Engine(object):
             return
 
         if move:
-            self.log.debug("Moving %s to %s", filename, newname)
-            shutil.move(filename, newname)
+            self.log.debug("Moving %s to %s", filename, new_name)
+            shutil.move(filename, new_name)
         else:
-            self.log.debug("Copying %s to %s", filename, newname)
-            shutil.copy(filename, newname)
+            self.log.debug("Copying %s to %s", filename, new_name)
+            shutil.copy(filename, new_name)
 
     def create_artifacts_dir(self, existing_artifacts=(), merged_config=None):
         """
@@ -493,7 +496,6 @@ class Engine(object):
         cls = self.config.get(SETTINGS).get("aggregator", "")
         if not cls:
             self.log.warning("Proceeding without aggregator, no results analysis")
-            self.aggregator = EngineModule()
         else:
             self.aggregator = self.instantiate_module(cls)
         self.prepared.append(self.aggregator)
@@ -558,45 +560,28 @@ class Configuration(BetterDict):
         self.log = logging.getLogger('')
         self.dump_filename = None
 
-    def load(self, configs, callback=None):
+    def load(self, config_files, callback=None):
         """
         Load and merge JSON/YAML files into current dict
 
         :type callback: callable
-        :type configs: list[str]
+        :type config_files: list[str]
         """
-        self.log.debug("Configs: %s", configs)
-        for config_file in configs:
+        self.log.debug("Configs: %s", config_files)
+        for config_file in config_files:
             try:
-                config = self.__read_file(config_file)
-            except IOError as exc:
+                configs = []
+                self.log.debug("Reading %s", config_file)
+                with open(config_file) as fds:
+                    configs.extend(yaml.load_all(fds))
+            except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
-            self.merge(config)
+            for config in configs:
+                self.merge(config)
 
             if callback is not None:
                 callback(config_file)
-
-    def __read_file(self, filename):
-        """
-        Read and parse config file
-        :param filename: str
-        :return: list
-        """
-        with open(filename) as fds:
-            first_line = "#"
-            while first_line.startswith("#"):
-                first_line = fds.readline().strip()
-            fds.seek(0)
-
-            if first_line.startswith('---'):
-                self.log.debug("Reading %s as YAML", filename)
-                return yaml.load(fds)
-            elif first_line.strip().startswith('{'):
-                self.log.debug("Reading %s as JSON", filename)
-                return json.loads(fds.read())
-            else:
-                raise TaurusConfigError("Cannot detect file format for %s" % filename)
 
     def set_dump_file(self, filename):
         """
@@ -661,6 +646,7 @@ yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
 yaml.add_representer(BetterDict, SafeRepresenter.represent_dict)
 if PY2:
     yaml.add_representer(text_type, SafeRepresenter.represent_unicode)
+yaml.add_representer(str, str_representer)
 
 # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
 encoder.FLOAT_REPR = lambda o: format(o, '.3g')
@@ -988,7 +974,7 @@ class Service(EngineModule):
 
     def should_run(self):
         prov = self.engine.config.get(Provisioning.PROV)
-        runat = self.parameters.get("run-at", "local")
+        runat = self.parameters.get("run-at", "local")  # weird to have "local" hardcoded here
         if prov != runat:
             self.log.debug("Should not run because of non-matching prov: %s != %s", prov, runat)
             return False

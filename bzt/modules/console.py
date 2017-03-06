@@ -97,7 +97,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         if screen_type == "console":
             if ConsoleScreen is DummyScreen or is_windows():
-                self.log.debug("Can't use console' screen, trying 'gui'")
+                self.log.debug("Can't use 'console' screen, trying 'gui'")
                 screen_type = "gui"
 
         if screen_type == "gui" and GUIScreen is DummyScreen:

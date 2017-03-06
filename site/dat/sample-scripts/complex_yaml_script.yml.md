@@ -1,5 +1,4 @@
 ```yaml
----
 execution:
 - concurrency: 250
   throughput: 500

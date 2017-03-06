@@ -16,7 +16,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import csv
 import fnmatch
 import itertools
@@ -39,6 +38,7 @@ import webbrowser
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
+from math import log
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
@@ -998,3 +998,24 @@ class PythonGenerator(object):
 
     def gen_new_line(self, indent=8):
         return self.gen_statement("", indent=indent)
+
+
+def str_representer(dumper, data):
+    "Representer for PyYAML that dumps multiline strings as | scalars"
+    if len(data.splitlines()) > 1:
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+
+def humanize_bytes(byteval):
+    # from http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size/
+    #   25613067#25613067
+    _suffixes = [' ', 'K', 'M', 'G', 'T', 'P']
+
+    # determine binary order in steps of size 10
+    # (coerce to int, // still returns a float)
+    order = int(log(byteval, 2) / 10) if byteval else 0
+    # format file size
+    # (.4g results in rounded numbers for exact matches and max 3 decimals,
+    # should never resort to exponent values)
+    return '{:.4g}{}'.format(byteval / (1 << (order * 10)), _suffixes[order])

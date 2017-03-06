@@ -27,7 +27,6 @@ under your [Settings => API Key](https://a.blazemeter.com/app/#settings/api-key)
 into `token` option:
 
 ```yaml
----
 modules:
   blazemeter:
     token: TDknBxu0hmVnJ7NqtG2F
@@ -47,7 +46,6 @@ Now you can use `-report` command-line switch, or you can set BlazeMeter reporti
 your config, the `test` option specifies test name to use, `project` names group of tests:
 
 ```yaml
----
 reporting:
 - module: blazemeter
   report-name: Jenkins Build 1
@@ -58,7 +56,6 @@ reporting:
 Advanced settings:
 
 ```yaml
----
 modules:
   blazemeter:
     address: https://a.blazemeter.com  # reporting service address

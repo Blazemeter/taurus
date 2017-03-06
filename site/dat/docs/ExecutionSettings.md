@@ -3,7 +3,6 @@
 Execution objects represent actual underlying tool executions. You can launch unlimited number of JMeter's, Gatling Tool's, Grinder Tools, etc. Executions are configured under top-level config key `execution`. Specifying single execution config is equivalent to specifying array of executions with single element, for example:
 
 ```yaml
----
 execution:
   scenario: scenario_name    
 ```
@@ -11,7 +10,6 @@ execution:
 is equivalent for 
 
 ```yaml
----
 execution:
 - scenario: scenario_name
 ```
@@ -36,7 +34,6 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
 
 Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
 ```yaml
----
 settings:
   default-executor: jmeter
 ```
@@ -56,7 +53,6 @@ Execution has several options to set load profile settings. Support for options 
  - `scenario` - name of scenario that described in `scenarios` part (see below)
 
 ```yaml
----
 execution: 
 - concurrency: 10
   ramp-up: 15s
@@ -71,7 +67,6 @@ execution:
 Scenario is a sequence of steps that is used to build script for underlying tool (e.g. generate JMX file for JMeter). It is described in special `scenarios` top-level config element. There are three examples of scenario syntax:
 
 ```yaml
----
 scenarios:
   get-requests:                     # normal form: scenario is dictionary
     requests:
@@ -95,7 +90,6 @@ execution:
 
 You can run different executions at different times with `delay` option:
 ```yaml
----
 execution:
 - concurrency: 10
   hold-for: 20s
@@ -114,7 +108,6 @@ By this way, the first execution works 10 seconds, then two executions will work
 
 Another way to schedule is usage of `start-at`:
 ```yaml
----
 execution:
 - concurrency: 10
   hold-for: 20s
@@ -141,7 +134,6 @@ When your execution requires additional files (e.g. JARs, certificates etc.) and
 By default, Taurus runs items under `execution` in parallel. To switch it into sequential mode, run it with `-sequential` command-line option. This is an alias for this setting:
 
 ```yaml
----
 modules:
   local:
     sequential: true

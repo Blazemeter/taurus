@@ -19,18 +19,19 @@ import os
 import platform
 import signal
 import sys
+import tempfile
 import traceback
+import yaml
 from logging import Formatter
 from optparse import OptionParser, Option
 from tempfile import NamedTemporaryFile
 
-import yaml
 from colorlog import ColoredFormatter
 
 import bzt
+from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt import TaurusException, ToolError
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b, get_stacktrace
 from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
@@ -82,11 +83,15 @@ class CLI(object):
         logger.setLevel(logging.DEBUG)
 
         # log everything to file
-        if options.log:
-            file_handler = logging.FileHandler(options.log)
-            file_handler.setLevel(logging.DEBUG)
-            file_handler.setFormatter(fmt_file)
-            logger.addHandler(file_handler)
+        if options.log is None:
+            tf = tempfile.NamedTemporaryFile(prefix="bzt_", suffix=".log", delete=False)
+            tf.close()
+            options.log = tf.name
+
+        file_handler = logging.FileHandler(options.log)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(fmt_file)
+        logger.addHandler(file_handler)
 
         # log something to console
         console_handler = logging.StreamHandler(sys.stdout)
@@ -107,22 +112,39 @@ class CLI(object):
 
     def __close_log(self):
         """
-        Close log handlers, move log to artifacts dir
+        Close log handlers
         :return:
         """
         if self.options.log:
-            if is_windows():
-                # need to finalize the logger before moving file
-                for handler in self.log.handlers:
-                    if issubclass(handler.__class__, logging.FileHandler):
-                        self.log.debug("Closing log handler: %s", handler.baseFilename)
-                        handler.close()
-                        self.log.handlers.remove(handler)
-                if os.path.exists(self.options.log):
-                    self.engine.existing_artifact(self.options.log)
-                    os.remove(self.options.log)
-            else:
-                self.engine.existing_artifact(self.options.log, True)
+            # need to finalize the logger before finishing
+            for handler in self.log.handlers:
+                if issubclass(handler.__class__, logging.FileHandler):
+                    self.log.debug("Closing log handler: %s", handler.baseFilename)
+                    handler.close()
+                    self.log.handlers.remove(handler)
+
+    def __copy_log_to_artifacts(self):
+        """
+        Close log handlers, copy log to artifacts dir, recreate file handlers
+        :return:
+        """
+        if self.options.log:
+            for handler in self.log.handlers:
+                if issubclass(handler.__class__, logging.FileHandler):
+                    self.log.debug("Closing log handler: %s", handler.baseFilename)
+                    handler.close()
+                    self.log.handlers.remove(handler)
+
+            if os.path.exists(self.options.log):
+                self.engine.existing_artifact(self.options.log, move=False, target_filename="bzt.log")
+            self.options.log = os.path.join(self.engine.artifacts_dir, "bzt.log")
+
+            file_handler = logging.FileHandler(self.options.log)
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s"))
+
+            self.log.addHandler(file_handler)
+            self.log.debug("Switched writing logs to %s", self.options.log)
 
     def __configure(self, configs):
         self.log.info("Starting with configs: %s", configs)
@@ -135,10 +157,9 @@ class CLI(object):
         # apply aliases
         for alias in self.options.aliases:
             cli_aliases = self.engine.config.get('cli-aliases')
-            al_config = cli_aliases.get(alias, None)
-            if al_config is None:
-                raise TaurusConfigError("'%s' not found in aliases: %s" % (alias, cli_aliases.keys()))
-            self.engine.config.merge(al_config)
+            keys = sorted(cli_aliases.keys())
+            err = TaurusConfigError("'%s' not found in aliases. Available aliases are: %s" % (alias, ", ".join(keys)))
+            self.engine.config.merge(cli_aliases.get(alias, err))
 
         if self.options.option:
             overrider = ConfigOverrider(self.log)
@@ -160,6 +181,8 @@ class CLI(object):
             configs.extend(jmx_shorthands)
 
             self.__configure(configs)
+            self.__copy_log_to_artifacts()
+
             self.engine.prepare()
             self.engine.run()
         except BaseException as exc:
@@ -173,6 +196,8 @@ class CLI(object):
                 self.handle_exception(exc)
 
         self.log.info("Artifacts dir: %s", self.engine.artifacts_dir)
+        if self.engine.artifacts_dir is None:
+            self.log.info("Log file: %s", self.options.log)
 
         if self.exit_code:
             self.log.warning("Done performing with code: %s", self.exit_code)
@@ -230,8 +255,7 @@ class CLI(object):
         elif isinstance(exc, TaurusNetworkError):
             self.log.log(log_level, "Network Error: %s", exc)
         else:
-            msg = "Unknown Taurus exception %s: %s\n%s"
-            raise ValueError(msg % (type(exc), exc, get_stacktrace(exc)))
+            self.log.log(log_level, "Generic Taurus Error: %s", exc)
 
     def __get_jmx_shorthands(self, configs):
         """
@@ -409,7 +433,7 @@ def main():
     usage = "Usage: bzt [options] [configs] [-aliases]"
     dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % bzt.VERSION
     parser = OptionParserWithAliases(usage=usage, description=dsc, prog="bzt")
-    parser.add_option('-l', '--log', action='store', default="bzt.log",
+    parser.add_option('-l', '--log', action='store', default=None,
                       help="Log file location")
     parser.add_option('-o', '--option', action='append',
                       help="Override option in config")

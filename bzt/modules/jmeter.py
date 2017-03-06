@@ -80,6 +80,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.management_port = None
         self._env = {}
         self.resource_files_collector = None
+        self.stdout_file = None
+        self.stderr_file = None
 
     def get_scenario(self, name=None, cache_scenario=True):
         scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
@@ -88,33 +90,43 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             return scenario_obj
 
         if "script" in scenario_obj and scenario_obj["script"] is not None:
-            script_path = scenario_obj["script"]
+            script_path = self.engine.find_file(scenario_obj["script"])
             with open(script_path) as fds:
                 script_content = fds.read()
             if "con:soapui-project" in script_content:
                 self.log.info("SoapUI project detected")
-                test_case = scenario_obj.get("test-case", None)
-                converter = SoapUIScriptConverter(self.log)
-                conv_config = converter.convert_script(script_path)
-                conv_scenarios = conv_config["scenarios"]
-                scenario_name, conv_scenario = converter.find_soapui_test_case(test_case, conv_scenarios)
-
-                new_name = scenario_name
-                counter = 1
-                while new_name in self.engine.config["scenarios"]:
-                    new_name = scenario_name + ("-%s" % counter)
-                    counter += 1
-
-                if new_name != scenario_name:
-                    self.log.info("Scenario name '%s' is already taken, renaming to '%s'", scenario_name, new_name)
-                    scenario_name = new_name
-
-                self.engine.config["scenarios"].merge({scenario_name: conv_scenario})
+                scenario_name, merged_scenario = self._extract_scenario_from_soapui(scenario_obj, script_path)
+                self.engine.config["scenarios"].merge({scenario_name: merged_scenario})
                 self.execution["scenario"] = scenario_name
-
                 return super(JMeterExecutor, self).get_scenario(name=scenario_name)
 
         return scenario_obj
+
+    def _extract_scenario_from_soapui(self, base_scenario, script_path):
+        test_case = base_scenario.get("test-case", None)
+        converter = SoapUIScriptConverter(self.log)
+        conv_config = converter.convert_script(script_path)
+        conv_scenarios = conv_config["scenarios"]
+        scenario_name, conv_scenario = converter.find_soapui_test_case(test_case, conv_scenarios)
+
+        new_name = scenario_name
+        counter = 1
+        while new_name in self.engine.config["scenarios"]:
+            new_name = scenario_name + ("-%s" % counter)
+            counter += 1
+
+        if new_name != scenario_name:
+            self.log.info("Scenario name '%s' is already taken, renaming to '%s'", scenario_name, new_name)
+            scenario_name = new_name
+
+        merged_scenario = BetterDict()
+        merged_scenario.merge(conv_scenario)
+        merged_scenario.merge(base_scenario.data)
+        for field in ["script", "test-case"]:
+            if field in merged_scenario:
+                merged_scenario.pop(field)
+
+        return scenario_name, merged_scenario
 
     def prepare(self):
         """
@@ -150,6 +162,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__set_jmeter_properties(scenario)
         self.__set_system_properties()
         self.__set_jvm_properties()
+
+        out = self.engine.create_artifact("jmeter", ".out")
+        err = self.engine.create_artifact("jmeter", ".err")
+        self.stdout_file = open(out, "w")
+        self.stderr_file = open(err, "w")
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
@@ -221,8 +238,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self.start_time = time.time()
         try:
-            # FIXME: muting stderr and stdout is bad
-            self.process = self.execute(cmdline, stderr=None, env=self._env)
+            self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=self._env)
         except BaseException as exc:
             ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
 
@@ -276,6 +292,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def post_process(self):
         self.engine.existing_artifact(self.modified_jmx, True)
+        if self.stdout_file:
+            self.stdout_file.close()
+        if self.stderr_file:
+            self.stderr_file.close()
 
     def has_results(self):
         if self.reader and self.reader.read_records:
@@ -638,7 +658,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.log.debug("Load: %s", load)
         jmx = JMX(original)
 
-        if self.get_scenario().get("disable-listeners", True):
+        if self.get_scenario().get("disable-listeners", not self.settings.get("gui", False)):
             JMeterExecutor.__disable_listeners(jmx)
 
         user_def_vars = self.get_scenario().get("variables")
@@ -1119,7 +1139,7 @@ class IncrementalCSVReader(object):
 
     def __init__(self, parent_logger, filename):
         self.buffer = StringIO()
-        self.csv_reader = csv.DictReader(self.buffer, [])
+        self.csv_reader = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
@@ -1161,8 +1181,9 @@ class IncrementalCSVReader(object):
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
 
-            if not self.csv_reader.fieldnames:
-                self.csv_reader.dialect = guess_csv_dialect(line)
+            if self.csv_reader is None:
+                dialect = guess_csv_dialect(line)
+                self.csv_reader = csv.DictReader(self.buffer, [], dialect=dialect)
                 self.csv_reader.fieldnames += line.strip().split(self.csv_reader.dialect.delimiter)
                 self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)
                 continue

@@ -22,16 +22,17 @@ import platform
 import sys
 import time
 import traceback
+import yaml
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from functools import wraps
 from ssl import SSLError
 
-import yaml
+from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
-from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError
+from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -39,9 +40,12 @@ from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
-from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError
-from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config
+from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b
+from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes, \
+    ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
+
+TAURUS_TEST_TYPE = "taurus"
 
 
 def send_with_retry(method):
@@ -194,9 +198,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     def __get_jtls_and_more(self):
         """
         Compress all files in artifacts dir to single zipfile
-        :return: BytesIO
+        :rtype: (bzt.six.BytesIO,dict)
         """
         mfile = BytesIO()
+        listing = {}
 
         logs = set()
         for handler in self.engine.log.parent.handlers:
@@ -211,15 +216,18 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                     if full_path in logs:
                         logs.remove(full_path)
 
-                    if os.path.getsize(full_path) <= max_file_size:
+                    fsize = os.path.getsize(full_path)
+                    if fsize <= max_file_size:
                         zfh.write(full_path, os.path.join(os.path.relpath(root, self.engine.artifacts_dir), filename))
+                        listing[full_path] = fsize
                     else:
                         msg = "File %s exceeds maximum size quota of %s and won't be included into upload"
                         self.log.warning(msg, filename, max_file_size)
 
             for filename in logs:  # upload logs unconditionally
                 zfh.write(filename, os.path.basename(filename))
-        return mfile
+                listing[filename] = os.path.getsize(filename)
+        return mfile, listing
 
     def __upload_artifacts(self):
         """
@@ -234,18 +242,24 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         else:
             suffix = ''
         artifacts_zip = "artifacts%s.zip" % suffix
-        mfile = self.__get_jtls_and_more()
+        mfile, zip_listing = self.__get_jtls_and_more()
         self.log.info("Uploading all artifacts as %s ...", artifacts_zip)
         self._session.upload_file(artifacts_zip, mfile.getvalue())
+        self._session.upload_file(artifacts_zip + '.tail.bz', self.__format_listing(zip_listing))
 
-        for handler in self.engine.log.parent.handlers:
+        handlers = self.engine.log.parent.handlers
+        for handler in handlers:
             if isinstance(handler, logging.FileHandler):
                 fname = handler.baseFilename
                 self.log.info("Uploading %s", fname)
                 fhead, ftail = os.path.splitext(os.path.split(fname)[-1])
                 modified_name = fhead + suffix + ftail
-                with open(fname) as _file:
+                with open(fname, 'rb') as _file:
                     self._session.upload_file(modified_name, _file.read())
+                    _file.seek(-4096, 2)
+                    tail = _file.read()
+                    tail = tail[tail.index(b("\n")) + 1:]
+                    self._session.upload_file(modified_name + ".tail.bz", tail)
 
     def post_process(self):
         """
@@ -257,6 +271,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
         self.log.debug("KPI bulk buffer len in post-proc: %s", len(self.kpi_buffer))
         try:
+            self.log.info("Sending remaining KPI data to server...")
             self.__send_data(self.kpi_buffer, False, True)
             self.kpi_buffer = []
             if self.send_monitoring:
@@ -456,6 +471,15 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         for module in self.engine.services:
             if isinstance(module, ChromeProfiler):
                 return module.get_custom_tables_json()
+
+    def __format_listing(self, zip_listing):
+        lines = []
+        for fname in sorted(zip_listing.keys()):
+            bytestr = humanize_bytes(zip_listing[fname])
+            if fname.startswith(self.engine.artifacts_dir):
+                fname = fname[len(self.engine.artifacts_dir) + 1:]
+            lines.append(bytestr + " " + fname)
+        return "\n".join(lines)
 
 
 class MonitoringBuffer(object):
@@ -786,14 +810,17 @@ class ProjectFinder(object):
 
     def resolve_external_test(self):
         proj_name = self.parameters.get("project", self.settings.get("project", None))
-        project = self._find_project(proj_name)
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
+        project = self._find_project(proj_name)
+        if not project and proj_name:
+            project = self._default_or_create_project(proj_name)
+
         test = self._ws_proj_switch(project).tests(name=test_name, test_type='external').first()
+
         if not test:
             if not project:
                 project = self._default_or_create_project(proj_name)
-
             test = project.create_test(test_name, {"type": "external"})
 
         return test
@@ -802,39 +829,37 @@ class ProjectFinder(object):
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
         proj_name = self.parameters.get("project", self.settings.get("project", None))
-        project = self._find_project(proj_name)
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
+        project = self._find_project(proj_name)
+
+        test_class = None
         test = self._ws_proj_switch(project).multi_tests(name=test_name).first()
         self.log.debug("Looked for collection: %s", test)
         if test:
             self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
         else:
-            test = self._ws_proj_switch(project).tests(name=test_name, test_type='taurus').first()
+            test = self._ws_proj_switch(project).tests(name=test_name, test_type=TAURUS_TEST_TYPE).first()
             self.log.debug("Looked for test: %s", test)
             if test:
                 self.log.debug("Detected test type: old")
                 test_class = CloudTaurusTest
-            else:
-                project = self._default_or_create_project(proj_name)
-                if use_deprecated:
-                    self.log.debug("Will create old-style test")
-                    test_class = CloudTaurusTest
-                else:
-                    self.log.debug("Will create new-style test")
-                    test_class = CloudCollectionTest
-                test = None
 
         if not project:
-            if not test:
-                project = self._default_or_create_project(proj_name)
-            else:
-                project = self.workspaces.projects(proj_id=test['projectId']).first()
-                if not project:
-                    msg = "Failed to find project with id %s for existing test %s"
-                    raise TaurusInternalException(msg % (test['projectId'], test['id']))
+            project = self._default_or_create_project(proj_name)
+            if proj_name:
+                test = None  # we have to create another test under this project
 
+        if not test:
+            if use_deprecated:
+                self.log.debug("Will create old-style test")
+                test_class = CloudTaurusTest
+            else:
+                self.log.debug("Will create new-style test")
+                test_class = CloudCollectionTest
+
+        assert test_class is not None
         return test_class(self.user, test, project, test_name, default_location, self.log)
 
     def _default_or_create_project(self, proj_name):
@@ -994,16 +1019,13 @@ class CloudTaurusTest(BaseCloudTest):
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
         if self._test is None:
             test_config = {
-                "type": "taurus",
+                "type": TAURUS_TEST_TYPE,
                 "plugins": {
                     "taurus": {
                         "filename": ""  # without this line it does not work
                     }
                 }
             }
-
-            if not self._project:
-                raise TaurusInternalException()  # TODO: build unit test to catch this situation
 
             self._test = self._project.create_test(self._test_name, test_config)
 
@@ -1211,7 +1233,7 @@ class CloudCollectionTest(BaseCloudTest):
                 if location not in scenario_item:
                     scenario_item[location] = 0
                 scenario_item[location] += servers_count
-            except KeyError:
+            except (KeyError, TypeError):
                 self._sessions = None
 
         txt = "%s #%s\n" % (self._test['name'], self.master['id'])
@@ -1420,7 +1442,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         try:
             master = self.router.get_master_status()
-        except (URLError, SSLError):
+        except (URLError, SSLError, ReadTimeout):
             self.log.warning("Failed to get test status, will retry in %s seconds...", self.user.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.user.timeout)
@@ -1440,7 +1462,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             if 'note' in status and status['note']:
                 self.log.warning("Cloud test has probably failed with message: %s", status['note'])
 
-            self.router.master = None
             self.test_ended = True
             return True
 
@@ -1452,9 +1473,55 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def post_process(self):
         if not self.detach and self.router and not self.test_ended:
             self.router.stop_test()
+
         if self.results_url:
             if self.browser_open in ('end', 'both'):
                 open_browser(self.results_url)
+
+        if self.router and self.router.master:
+            full = self.router.master.get_full()
+            for session in full.get('sessions', ()):
+                for error in session.get("errors", ()):
+                    raise TaurusException(to_json(error))
+
+            # if we have captured HARs, let's download them
+            self.log.info("Services: %s", self.engine.services)
+            for service in self.engine.config.get(Service.SERV):
+                # not good to reproduce what is done inside engine
+                # but no good way to get knowledge of the service in config
+                if not isinstance(service, dict):
+                    service = {"module": service}
+                mod = service.get('module', TaurusConfigError("No 'module' specified for service"))
+                module = self.engine.instantiate_module(mod)
+                if isinstance(module, ServiceStubCaptureHAR):
+                    self._download_logs()
+                    break
+
+    def _download_logs(self):
+        for session in self.router.master.sessions():
+            assert isinstance(session, Session)
+            for log in session.get_logs():
+                self.log.info("Downloading %s from the cloud", log['filename'])
+                cloud_dir = os.path.join(self.engine.artifacts_dir, 'cloud-artifacts')
+                if not os.path.exists(cloud_dir):
+                    os.makedirs(cloud_dir)
+                dest = os.path.join(cloud_dir, log['filename'])
+                dwn = ExceptionalDownloader()
+                with ProgressBarContext() as pbar:
+                    try:
+                        dwn.get(log['dataUrl'], dest, reporthook=pbar.download_callback)
+                    except BaseException:
+                        self.log.debug("Error is: %s", traceback.format_exc())
+                        self.log.warning("Failed to download from %s", log['dataUrl'])
+                        continue
+
+                    if log['filename'].startswith('artifacts') and log['filename'].endswith('.zip'):
+                        with zipfile.ZipFile(dest) as zipf:
+                            for name in zipf.namelist():
+                                ext = name.split('.')[-1].lower()
+                                if ext in ('har', 'jpg', 'js', 'html', 'css'):
+                                    self.log.debug("Extracting %s to %s", name, cloud_dir)
+                                    zipf.extract(name, cloud_dir)
 
     def get_widget(self):
         if not self.widget:

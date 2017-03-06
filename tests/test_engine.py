@@ -67,6 +67,32 @@ class TestEngine(BZTestCase):
 
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
+    def test_null_aggregator(self):
+        self.obj.config.merge({
+            "execution": [{
+                "scenario": {
+                    "requests": [{"url": "http://example.com/"}],
+                }}],
+            "settings": {
+                "aggregator": None,
+                "default-executor": "jmeter",
+            },
+            "modules": {
+                "local": "bzt.modules.provisioning.Local",
+                "jmeter": "bzt.modules.jmeter.JMeterExecutor",
+            }})
+        self.obj.prepare()
+
+    def test_yaml_multi_docs(self):
+        configs = [
+            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/yaml/multi-docs.yml",
+            self.paths
+        ]
+        self.obj.configure(configs)
+        self.obj.prepare()
+        self.assertEqual(len(self.obj.config["execution"]), 2)
+
 
 class TestScenarioExecutor(BZTestCase):
     def setUp(self):

@@ -5,13 +5,11 @@ The default mode for taurus is to use `local` provisioning, which means all the 
 It is done by setting `cloud` provisioning like this:
 
 ```yaml
----
 provisioning: cloud
 ```
 
 To access BlazeMeter cloud, Taurus would require to have API key set inside `cloud` module settings:
 ```yaml
----
 modules:
   cloud:
     token: ******  # API key
@@ -38,7 +36,6 @@ being logged and collected in artifacts.
 By default, cloud-provisioned execution will read `concurrency` and `throughput` options normally. There's a notation that allows configuring values for `local` and `cloud` at once, to remove the need to edit load settings when switching `provisioning` during test debugging from `local` to `cloud` and back:
 
 ```yaml
----
 execution:
 - scenario: my-scen
   concurrency:
@@ -55,7 +52,6 @@ The `concurrency` and `througput` are always *total* value for execution, no mat
 ## Detach Mode
 You can start Cloud test and stop Taurus without waiting for test results with attribute `detach`:
 ```yaml
----
 modules:
   cloud:
     token: ******    
@@ -68,7 +64,6 @@ or use appropriate alias for this: `bzt config.yml -cloud -detach`
 Cloud locations are specified per-execution. Specifying multiple cloud locations for execution means that its `concurrency` and/or `throughput` will be distributed among the locations. Locations is the map of location id's and their relative weights. Relative weight determines how much value from `concurrency` and `throughput` will be put into corresponding location. 
 
 ```yaml
----
 execution:
 - locations:
     us-west-1: 1
@@ -80,7 +75,6 @@ If no locations specified for cloud execution, default value from `modules.cloud
 By default, Taurus will calculate machines count for each location based on their limits obtained from *User API Call*. To switch to manual machines count just set option `locations-weighted` into `false`. Exact numbers of machines for each location will be used in that case:
 
 ```yaml
----
 execution:
 - locations:
     us-west-1: 2
@@ -89,7 +83,6 @@ execution:
 ```
 
 ```yaml
----
 execution: 
   - scenario: dummy 
     concurrency:
@@ -113,7 +106,6 @@ scenarios:
 ## Reporting Settings
 
 ```yaml
----
 modules:
   cloud:
     test: Taurus Test  # test name
@@ -127,7 +119,6 @@ this behaviour by setting `delete-test-files` module setting to `false`.
 
 Example:
 ```yaml
----
 modules:
   cloud:
     delete-test-files: false
@@ -137,7 +128,6 @@ modules:
 If you need some additional files as part of your test and Taurus fails to detect them automatically, you can attach them to execution using `files` section:
 
 ```yaml
----
 execution:
 - locations:
     us-east-1: 1
@@ -162,7 +152,6 @@ In shellexec service, the `run-at` parameter allows to set where commands will b
 If you need to install additional python modules via `pip`, you can do it by using `shellexec` service and running `pip install <package>` command at `prepare` stage:
 
 ```yaml
----
 services:
 - module: shellexec
   prepare: 
@@ -172,7 +161,6 @@ services:
 You can even upload your proprietary python eggs into workers by specifying them in `files` option and then installing by shellexec:
 
 ```yaml
----
 execution:
 - executor: locust
   scenario: locust-scen

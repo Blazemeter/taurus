@@ -21,7 +21,6 @@ Please keep in mind these rules when using Siege test executor:
 
 Simplest working example - use it to get taste of the tool.
 ```yaml
----
 execution:
 - executor: siege
   concurrency: 3 
@@ -36,7 +35,6 @@ scenarios:
 
 Five repeats by hundred of users without any delay (might hurt the server):
 ```yaml
----
 execution:
 - executor: siege
   concurrency: 100
@@ -51,7 +49,6 @@ scenarios:
 
 Test URLs from `nodes.list` file with 50 users, hold load for 5 minutes
 ```yaml
----
 execution:
 - executor: siege
   concurrency: 50
@@ -66,7 +63,6 @@ scenarios:
 
 Variables example:
 ```yaml
----
 scenarios:
   variables_usage:
     requests:
@@ -81,7 +77,6 @@ scenarios:
 If you have Siege in non-standard location, please use `path` option to point Taurus to `siege` binary:
 
 ```yaml
----
 modules:
   siege:
     path: /home/user/sources/siege/bin/siege

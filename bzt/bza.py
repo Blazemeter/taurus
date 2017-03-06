@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 import requests
 
-from bzt import TaurusNetworkError, ManualShutdown
+from bzt import TaurusNetworkError, ManualShutdown, VERSION
 from bzt.six import cookielib
 from bzt.six import text_type
 from bzt.six import urlencode
@@ -51,6 +51,9 @@ class BZAObject(dict):
         """
         if not headers:
             headers = {}
+
+        headers["X-Client-Id"] = "Taurus"
+        headers["X-Client-Version"] = VERSION
 
         if self.token:
             headers["X-Api-Key"] = self.token
@@ -390,7 +393,7 @@ class MultiTest(BZAObject):
 
 class Master(BZAObject):
     def make_report_public(self):
-        url = self.address + "/api/v4/masters/%s/publicToken" % self['id']
+        url = self.address + "/api/v4/masters/%s/public-token" % self['id']
         res = self._request(url, {"publicToken": None}, method="POST")
         public_token = res['result']['publicToken']
         report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self['id'])
@@ -458,12 +461,16 @@ class Master(BZAObject):
         return res['result']
 
     def force_start(self):
-        url = self.address + "/api/v4/masters/%s/forceStart" % self['id']
+        url = self.address + "/api/v4/masters/%s/force-start" % self['id']
         self._request(url, method="POST")
 
     def stop(self):
         url = self.address + "/api/v4/masters/%s/stop"
         self._request(url % self['id'], method='POST')
+
+    def get_full(self):
+        url = self.address + "/api/v4/masters/%s/full" % self['id']
+        return self._request(url)['result']
 
 
 class Session(BZAObject):
@@ -526,7 +533,8 @@ class Session(BZAObject):
         :type contents: str
         :raise TaurusNetworkError:
         """
-        body = MultiPartForm()  # TODO: can we migrate off it, and use something native to requests lib? http://stackoverflow.com/questions/12385179/how-to-send-a-multipart-form-data-with-requests-in-python
+        body = MultiPartForm()  # TODO: can we migrate off it, and use something native to requests lib?
+        # maybe http://stackoverflow.com/questions/12385179/how-to-send-a-multipart-form-data-with-requests-in-python
 
         if contents is None:
             body.add_file('file', filename)
@@ -539,3 +547,7 @@ class Session(BZAObject):
         response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
             raise TaurusNetworkError("Upload failed: %s" % response)
+
+    def get_logs(self):
+        url = self.address + "/api/v4/sessions/%s/reports/logs" % self['id']
+        return self._request(url)['result']['data']
