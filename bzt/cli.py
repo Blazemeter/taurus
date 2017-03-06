@@ -88,10 +88,11 @@ class CLI(object):
             tf.close()
             options.log = tf.name
 
-        file_handler = logging.FileHandler(options.log)
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(fmt_file)
-        logger.addHandler(file_handler)
+        if options.log:
+            file_handler = logging.FileHandler(options.log)
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(fmt_file)
+            logger.addHandler(file_handler)
 
         # log something to console
         console_handler = logging.StreamHandler(sys.stdout)
