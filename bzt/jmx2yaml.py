@@ -34,6 +34,8 @@ from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
 from bzt.utils import get_full_path
 
+INLINE_JSR223_MAX_LEN = 10
+
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
               "ThreadGroup",
@@ -981,24 +983,18 @@ class JMXasDict(JMX):
                     params = self._get_string_prop(element, 'parameters')
                     script = self._get_string_prop(element, 'script')
                     execute = "before" if element.tag in preprocessors else "after"
+
+                    jsr = {"language": language, "parameters": params, "execute": execute}
                     if filename:
-                        jsr = {
-                            "language": language,
-                            "script-file": filename,
-                            "parameters": params,
-                            "execute": execute,
-                        }
+                        jsr["script-file"] = filename
                     elif script:
-                        # TODO: extract script to filename
-                        ext = extensions.get(language, '.js')
-                        filename = self._record_additional_file('script', ext, script)
-                        self.additional_files[filename] = script
-                        jsr = {
-                            "language": language,
-                            "script-file": filename,
-                            "parameters": params,
-                            "execute": execute,
-                        }
+                        if len(script.strip().split('\n')) > INLINE_JSR223_MAX_LEN:
+                            ext = extensions.get(language, '.js')
+                            filename = self._record_additional_file('script', ext, script)
+                            self.additional_files[filename] = script
+                            jsr['script-file'] = filename
+                        else:
+                            jsr['script-text'] = script
                     else:
                         tmpl = "%s element doesn't have neither script nor script-file, skipping"
                         self.log.warning(tmpl, element.tag)
@@ -1008,6 +1004,15 @@ class JMXasDict(JMX):
             return {"jsr223": jsrs}
         else:
             return {}
+
+    @staticmethod
+    def _get_content_type(headers):
+        for header in headers:
+            if header.lower() == 'content-type':
+                if isinstance(headers[header], str):
+                    return headers[header].lower()
+                else:
+                    return headers[header]
 
     def process_tg(self, tg_etree_element):
         """
@@ -1027,23 +1032,34 @@ class JMXasDict(JMX):
             requests = self.__extract_requests(ht_element)
 
             # convert json-body to string
-            scenario_json = \
-                'headers' in tg_scenario_settings and \
-                'content-type' in tg_scenario_settings['headers'] and \
-                isinstance(tg_scenario_settings['headers']['content-type'], str) and \
-                tg_scenario_settings['headers']['content-type'].lower() == 'application/json'
+            scenario_json = False
+            if 'headers' in tg_scenario_settings:
+                scenario_json = self._get_content_type(tg_scenario_settings['headers']) == 'application/json'
 
             for request in requests:
                 if not ('body' in request and isinstance(request['body'], str)):
                     continue
-                request_content_header = 'headers' in request and 'content-type' in request['headers'] and \
-                    isinstance(request['headers']['content-type'], str)
+                request_content_header = 'headers' in request and self._get_content_type(request['headers'])
 
-                if request_content_header:
-                    if request['headers']['content-type'].lower() == 'application/json':
-                        request['body'] = json.loads(request['body'])
-                elif scenario_json:     # check scenario only if request content header not found
-                    request['body'] = json.loads(request['body'])
+                if (request_content_header and self._get_content_type(request['headers']) == 'application/json') or \
+                        (not request_content_header and scenario_json):
+
+                    # quote jmeter variables
+                    body = request['body']
+                    pattern = re.compile(r'[^"]{1}\${[a-zA-Z0-9_]+}[^"]{1}')
+                    search_res = pattern.search(body)
+                    while search_res:
+                        body = body[:search_res.start() + 1] + \
+                               '"%s"' % search_res.group()[1: -1] + \
+                               body[search_res.end()-1:]
+                        search_res = pattern.search(body)
+                    if body != request['body']:
+                        self.log.debug("Body convertion: '%s' => '%s'", request['body'], body)
+
+                    try:
+                        request['body'] = json.loads(body)
+                    except (ValueError, TypeError):
+                        raise TaurusInternalException("Following body cannot be converted into JSON:\n%s", body)
 
             self.log.debug("Total requests in tg groups: %d", len(requests))
             if not requests:

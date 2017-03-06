@@ -1,3 +1,4 @@
+# coding=utf-8
 import os
 import yaml
 
@@ -343,7 +344,7 @@ class TestConverter(BZTestCase):
         tg_two_req_one_body = tg_two.get("requests")[0].get("body")
         self.assertEqual(tg_two_req_one_body, None)
 
-    def test_json_body(self):
+    def test_ajson_body(self):
         yml = self._get_tmp()
         obj = self._get_jmx2yaml("/yaml/converter/json_body.jmx", yml)
         obj.process()
@@ -438,23 +439,31 @@ class TestConverter(BZTestCase):
         self.assertIn("jsr223", request)
         jsrs = request["jsr223"]
         self.assertIsInstance(jsrs, list)
-        self.assertEqual(len(jsrs), 4)
+        self.assertEqual(len(jsrs), 5)
         self.assertEqual(jsrs[0]["language"], "beanshell")
-        self.assertEqual(jsrs[0]["script-file"], "script.bsh")
+        self.assertEqual(jsrs[0]["script-text"], "scripty")
         self.assertEqual(jsrs[0]["parameters"], "parames")
+        self.assertNotIn('script-file', jsrs[0])
         self.assertEqual(jsrs[1]["language"], "javascript")
-        self.assertEqual(jsrs[1]["script-file"], "script.js")
+        self.assertEqual(jsrs[1]["script-text"], u'console.log("ПРИВЕТ");\nline("2");')
         self.assertEqual(jsrs[1]["parameters"], "a b c")
+        self.assertNotIn('script-file', jsrs[1])
         self.assertEqual(jsrs[2]["language"], "javascript")
-        self.assertEqual(jsrs[2]["script-file"], "script-1.js")
+        self.assertEqual(jsrs[2]["script-file"], "script.js")
         self.assertEqual(jsrs[2]["parameters"], None)
+        self.assertNotIn('script-text', jsrs[2])
         self.assertEqual(jsrs[3]["language"], "beanshell")
         self.assertEqual(jsrs[3]["execute"], "before")
+        self.assertEqual(jsrs[3]["parameters"], None)
+        self.assertEqual(jsrs[3]['script-text'], 'console.log("beanshell aka jsr223");')
+        self.assertNotIn('script-file', jsrs[3])
+        self.assertEqual(jsrs[4]["language"], "java")
+        self.assertEqual(jsrs[4]["execute"], "before")
+        self.assertEqual(jsrs[4]["parameters"], None)
+        self.assertIn('BlazeDemo.java', jsrs[4]['script-file'])
+        self.assertNotIn('script-text', jsrs[4])
 
-        self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.bsh')))
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.js')))
-        self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script-1.js')))
-        self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script-1.bsh')))
 
     def test_unicode(self):
         obj = self._get_jmx2yaml("/yaml/converter/unicode.jmx", self._get_tmp())
