@@ -109,6 +109,7 @@ scenarios:
 modules:
   cloud:
     test: Taurus Test  # test name
+    report-name: full report    # name of report
     project: Project Name  # project name or id
 ```
 
