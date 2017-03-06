@@ -122,6 +122,27 @@ class TestCLI(BZTestCase):
             if os.path.exists(artifacts_dir):
                 shutil.rmtree(artifacts_dir)
 
+    def test_logging_verbosity_adjustment(self):
+        try:
+            was_verbose = self.verbose
+            self.verbose = False
+            ret = self.obj.perform([
+                __dir__() + "/json/mock_normal.json",
+            ])
+            self.assertEquals(0, ret)
+            log_lines = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).readlines()
+            checking = False
+            for line in log_lines:
+                if "Leveling down" in line:
+                    checking = True
+                elif "Leveling up" in line:
+                    checking = False
+                else:
+                    if checking:
+                        self.assertNotIn("DEBUG", line)
+        finally:
+            self.verbose = was_verbose
+
 
 class TestConfigOverrider(BZTestCase):
     def setUp(self):
