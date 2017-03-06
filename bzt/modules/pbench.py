@@ -31,9 +31,10 @@ import datetime
 import psutil
 
 from bzt import resources, TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.provisioning import HavingInstallableTools
 from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b, viewvalues
 from bzt.utils import RequiredTool, IncrementableProgressBar
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
@@ -50,7 +51,6 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.pbench = None
 
     def prepare(self):
-        self.install_required_tools()
         self._generate_files()
         self.reader = self.pbench.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -116,6 +116,9 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
 
 class PBenchTool(object):
+    """
+    :type schedule_file: str
+    """
     SSL_STR = "transport_t ssl_transport = transport_ssl_t { timeout = 1s }\n transport = ssl_transport"
 
     def __init__(self, executor, base_logger):

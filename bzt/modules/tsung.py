@@ -23,9 +23,10 @@ import traceback
 import copy
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools
+from bzt.engine import FileLister, Scenario, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.provisioning import HavingInstallableTools
 from bzt.six import etree, parse, iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
 
@@ -49,7 +50,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
 
     def prepare(self):
         scenario = self.get_scenario()
-        self.tool_path = self.install_required_tools()
+        self.tool_path = self.install_required_tools() # TODO: make it not call installer
 
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
             script = self.get_script_path()

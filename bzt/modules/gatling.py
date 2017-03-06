@@ -21,9 +21,10 @@ import subprocess
 import time
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.provisioning import HavingInstallableTools
 from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -77,7 +78,7 @@ class GatlingScriptBuilder(object):
             if req.body is not None:
                 if isinstance(req.body, str):
                     exec_str += '\t\t\t\t.body(%(method)s(""""%(body)s"""))\n'
-                    exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
+                    exec_str %= {'method': 'StringBody', 'body': req.body}
                 else:
                     self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
 
@@ -218,7 +219,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return modified_launcher
 
     def prepare(self):
-        self.install_required_tools()
         scenario = self.get_scenario()
 
         jar_files = []
@@ -636,7 +636,7 @@ class Gatling(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying Gatling: %s", self.tool_path)
         try:
-            gatling_proc = shell_exec([self.tool_path, '--help'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            gatling_proc = shell_exec([self.tool_path, '--help'], stderr=subprocess.STDOUT)
             gatling_output = gatling_proc.communicate()
             self.log.debug("Gatling check is successful: %s", gatling_output)
             return True

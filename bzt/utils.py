@@ -95,12 +95,12 @@ def run_once(func):
     return wrapper
 
 
-def replace_in_config(config, samples, substitutes, log=None):
+def replace_in_config(config, samples, substitutes, logger=None):
     def file_replacer(value, key, container):
         if value in samples:
             container[key] = substitutes[samples.index(value)]
-            if container[key] != value and log:
-                log.debug("Replaced %s with %s", value, container[key])
+            if container[key] != value and logger:
+                logger.debug("Replaced %s with %s", value, container[key])
 
     BetterDict.traverse(config, file_replacer)
 
@@ -116,7 +116,7 @@ def dehumanize_time(str_time):
     if not str_time:
         return 0
 
-    parser = re.compile(r'([\d\.]+)([a-zA-Z]*)')
+    parser = re.compile(r'([\d.]+)([a-zA-Z]*)')
     parts = parser.findall(str(str_time).replace(' ', ''))
 
     if len(parts) == 0:

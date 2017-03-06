@@ -1283,7 +1283,7 @@ class MasterProvisioning(Provisioning):
         old_full_names = self.__pack_dirs(old_full_names)
         new_base_names = [os.path.basename(f) for f in old_full_names]
         self.log.debug('Replace file names in config: %s with %s', old_names, new_base_names)
-        replace_in_config(self.engine.config, old_names, new_base_names, log=self.log)
+        replace_in_config(self.engine.config, old_names, new_base_names, logger=self.log)
         old_full_names = list(set(old_full_names))
         return old_full_names
 

@@ -34,12 +34,12 @@ from math import ceil
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
-from bzt.modules.provisioning import Local
+from bzt.modules.provisioning import Local, HavingInstallableTools
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
@@ -141,7 +141,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
-        self.install_required_tools()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
 
         is_jmx_generated = False

@@ -24,7 +24,8 @@ import zipfile
 import json
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError
-from bzt.engine import Service, HavingInstallableTools
+from bzt.engine import Service
+from bzt.modules.provisioning import HavingInstallableTools
 from bzt.modules.selenium import Node
 from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
@@ -51,7 +52,7 @@ class Unpacker(Service):
             archive = os.path.basename(archive)
             unpacked_list.append(archive[:-4])  # TODO: replace with top-level archive content
 
-        replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)
+        replace_in_config(self.engine.config, packed_list, unpacked_list, logger=self.log)
 
 
 class InstallChecker(Service):

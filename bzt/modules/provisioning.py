@@ -20,6 +20,7 @@ import datetime
 import sys
 import time
 import traceback
+from abc import abstractmethod
 
 from bzt import ToolError
 from bzt.engine import Provisioning
@@ -67,6 +68,9 @@ class Local(Provisioning):
         super(Local, self).prepare()
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
+            if isinstance(executor, HavingInstallableTools):
+                executor.install_required_tools()
+
             executor.prepare()
             self.engine.prepared.append(executor)
 
@@ -166,3 +170,9 @@ class Local(Provisioning):
                         exc_info = sys.exc_info()
         if exc_info:
             reraise(exc_info)
+
+
+class HavingInstallableTools(object):
+    @abstractmethod
+    def install_required_tools(self):
+        pass

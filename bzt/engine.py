@@ -1081,9 +1081,3 @@ class HTTPRequest(Request):
                     body = fhd.read()
 
         self.body = body
-
-
-class HavingInstallableTools(object):
-    @abstractmethod
-    def install_required_tools(self):
-        pass
