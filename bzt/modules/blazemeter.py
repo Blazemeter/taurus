@@ -97,6 +97,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self._session = None
         self.first_ts = sys.maxsize
         self.last_ts = 0
+        self.report_name = None
 
     def prepare(self):
         """
@@ -115,6 +116,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
         self._user.token = token
+
+        self.report_name = self.parameters.get("report-name", self.settings.get("report-name", self.report_name))
+        if self.report_name == 'ask' and sys.stdin.isatty():
+            self.report_name = r_input("Please enter report-name: ")
 
         # usual fields
         self._user.logger_limit = self.settings.get("request-logging-limit", self._user.logger_limit)
@@ -185,12 +190,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if self._test.token:
             self.results_url = self._master.address + '/app/#/masters/%s' % self._master['id']
 
-        report_name = self.parameters.get("report-name", self.settings.get("report-name", None))
-        if report_name == 'ask' and sys.stdin.isatty():
-            report_name = r_input("Please enter report-name: ")
-
-        if report_name:
-            self._session.set({"name": str(report_name)})
+        if self.report_name:
+            self._session.set({"name": str(self.report_name)})
 
         return self.results_url
 
@@ -1336,6 +1337,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.check_interval = 5.0
         self._last_check_time = None
         self.public_report = False
+        self.report_name = None
 
     def _merge_with_blazemeter_config(self):
         if 'blazemeter' not in self.engine.config.get('modules'):
@@ -1378,6 +1380,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         del_files = self.settings.get("delete-test-files", True)
         self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
 
+        self.report_name = self.settings.get("report-name", self.report_name)
+        if self.report_name == 'ask' and sys.stdin.isatty():
+            self.report_name = r_input("Please enter report-name: ")
+
         self.widget = self.get_widget()
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -1419,12 +1425,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             public_link = self.router.master.make_report_public()
             self.log.info("Public report link: %s", public_link)
 
-        report_name = self.settings.get("report-name", None)
-        if report_name == 'ask' and sys.stdin.isatty():
-            report_name = r_input("Please enter report-name: ")
-
-        if report_name:
-            self.router.master.set({"name": str(report_name)})
+        if self.report_name:
+            self.router.master.set({"name": str(self.report_name)})
 
     def _should_skip_check(self):
         now = time.time()
