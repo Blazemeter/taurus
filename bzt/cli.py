@@ -169,6 +169,18 @@ class CLI(object):
         self.engine.create_artifacts_dir(configs, merged_config)
         self.engine.default_cwd = os.getcwd()
 
+    def _level_down_logging(self):
+        self.log.debug("Leveling down log file verbosity")
+        for handler in self.log.handlers:
+            if issubclass(handler.__class__, logging.FileHandler):
+                handler.setLevel(logging.INFO)
+
+    def _level_up_logging(self):
+        for handler in self.log.handlers:
+            if issubclass(handler.__class__, logging.FileHandler):
+                handler.setLevel(logging.DEBUG)
+        self.log.debug("Leveled up log file verbosity")
+
     def perform(self, configs):
         """
         Run the tool
@@ -181,6 +193,9 @@ class CLI(object):
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
 
+            if not self.options.verbose:
+                self.engine.post_startup_hook = self._level_down_logging
+                self.engine.pre_shutdown_hook = self._level_up_logging
             self.__configure(configs)
             self.__move_log_to_artifacts()
 
