@@ -64,7 +64,9 @@ class BZAObject(dict):
             log_method = 'GET' if data is None else 'POST'
 
         url = str(url)
-        data = data.encode("utf8") if isinstance(data, text_type) else data
+
+        if isinstance(data, text_type):
+            data = data.encode("utf8")
 
         if isinstance(data, dict):
             data = to_json(data)
@@ -145,15 +147,14 @@ class User(BZAObject):
         locations = {}
         for loc in self['locations']:
             loc_id = str(loc['id'])
-            if loc_id.startswith('harbor-') and not include_harbors:
-                continue
-            locations[str(loc['id'])] = loc
+            if not loc_id.startswith('harbor-') or include_harbors:
+                locations[loc_id] = loc
         return locations
 
     def collection_draft(self, name, taurus_config, resource_files):
         if resource_files:
             draft_id = "taurus_%s" % id(self.token)
-            self.upload_collection_resources(resource_files, draft_id)
+            self._upload_collection_resources(resource_files, draft_id)
             taurus_config.merge({"dataFiles": {"draftId": draft_id}})
 
         collection_draft = self._import_config(taurus_config)
@@ -165,7 +166,8 @@ class User(BZAObject):
         resp = self._request(url, data=config, method="POST")
         return resp['result']
 
-    def upload_collection_resources(self, resource_files, draft_id):
+    def _upload_collection_resources(self, resource_files, draft_id):
+        self.log.debug('Uploading resource files: %s', resource_files)
         url = self.address + "/api/v4/web/elfinder/%s" % draft_id
         body = MultiPartForm()
         body.add_field("cmd", "upload")
@@ -176,10 +178,7 @@ class User(BZAObject):
             body.add_file('upload[]', rfile)
 
         hdr = {"Content-Type": str(body.get_content_type())}
-        resp = self._request(url, body.form_as_bytes(), headers=hdr)
-        if "error" in resp:
-            self.log.debug('Response: %s', resp)
-            raise TaurusNetworkError("Can't upload resource files")
+        self._request(url, body.form_as_bytes(), headers=hdr)
 
 
 class Account(BZAObject):
