@@ -34,7 +34,7 @@ from bzt import TaurusException, ToolError
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b, get_stacktrace
-from bzt.utils import run_once, is_int, BetterDict, is_windows, is_piped
+from bzt.utils import run_once, is_int, BetterDict, is_piped
 
 
 class CLI(object):

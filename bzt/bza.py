@@ -12,7 +12,7 @@ from bzt import TaurusNetworkError, ManualShutdown, VERSION
 from bzt.six import cookielib
 from bzt.six import text_type
 from bzt.six import urlencode
-from bzt.utils import to_json, MultiPartForm
+from bzt.utils import to_json, MultiPartForm, log_stdout
 
 
 class BZAObject(dict):
@@ -71,8 +71,9 @@ class BZAObject(dict):
             headers["Content-Type"] = "application/json"
 
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
-        response = self.http_request(method=log_method, url=url, data=data, headers=headers, cookies=self._cookies,
-                                     timeout=self.timeout)
+        with log_stdout(log=self.log, err_level=logging.DEBUG):
+            response = self.http_request(method=log_method, url=url, data=data,
+                                         headers=headers, cookies=self._cookies, timeout=self.timeout)
 
         resp = response.content
         if not isinstance(resp, str):

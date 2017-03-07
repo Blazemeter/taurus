@@ -42,6 +42,7 @@ from math import log
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
+from contextlib import contextmanager
 
 import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
@@ -865,17 +866,53 @@ class MirrorsManager(object):
         return (mirror for mirror in mirrors)
 
 
+class ListStream(object):
+    def __init__(self):
+        self.data = []
+
+    def write(self, s):
+        self.data.append(s)
+
+    def read(self):
+        return '\n'.join(self.data)
+
+@contextmanager
+def log_stdout(out_level=logging.DEBUG, err_level=logging.WARNING, log=None):
+    """
+    redirect standard output/error to taurus logger
+    """
+    if log:
+        stdout = ListStream()
+        stderr = ListStream()
+        sys.stdout = stdout
+        sys.stderr = stderr
+        try:
+            yield
+        finally:
+            stdout_str = stdout.read()
+            stderr_str = stderr.read()
+            if stdout_str:
+                log.log(out_level, stdout_str)
+            if stderr_str:
+                log.log(err_level, stderr_str)
+            sys.stdout = sys.__stdout__
+            sys.stderr = sys.__stderr__
+    else:
+        saved_out = os.dup(1)
+        os.close(1)
+        os.open(os.devnull, os.O_RDWR)
+        try:
+            yield
+        finally:
+            os.dup2(saved_out, 1)
+
+
 def open_browser(url):
     try:
         browser = webbrowser.get()
         if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-            saved_out = os.dup(1)
-            os.close(1)
-            os.open(os.devnull, os.O_RDWR)
-            try:
+            with log_stdout():
                 browser.open(url)
-            finally:
-                os.dup2(saved_out, 1)
     except BaseException as exc:
         logging.warning("Can't open link in browser: %s", exc)
 
