@@ -189,9 +189,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
         if self._test.token:
             self.results_url = self._master.address + '/app/#/masters/%s' % self._master['id']
-
-        if self.report_name:
-            self._session.set({"name": str(self.report_name)})
+            if self.report_name:
+                self._session.set({"name": str(self.report_name)})
 
         return self.results_url
 
