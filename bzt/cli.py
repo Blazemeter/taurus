@@ -175,10 +175,10 @@ class CLI(object):
                 handler.setLevel(logging.INFO)
 
     def _level_up_logging(self):
-        self.log.debug("Leveling up log file verbosity")
         for handler in self.log.handlers:
             if issubclass(handler.__class__, logging.FileHandler):
                 handler.setLevel(logging.DEBUG)
+        self.log.debug("Leveled up log file verbosity")
 
     def perform(self, configs):
         """
