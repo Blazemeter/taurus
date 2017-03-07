@@ -117,10 +117,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
         self._user.token = token
 
-        self.report_name = self.parameters.get("report-name", self.settings.get("report-name", self.report_name))
-        if self.report_name == 'ask' and sys.stdin.isatty():
-            self.report_name = r_input("Please enter report-name: ")
-
         # usual fields
         self._user.logger_limit = self.settings.get("request-logging-limit", self._user.logger_limit)
         self._user.address = self.settings.get("address", self._user.address)
@@ -149,6 +145,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 self._test = finder.resolve_external_test()
             else:
                 self._test = Test(self._user, {'id': None})
+
+        self.report_name = self.parameters.get("report-name", self.settings.get("report-name", self.report_name))
+        if self.report_name == 'ask' and sys.stdin.isatty():
+            self.report_name = r_input("Please enter report-name: ")
 
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
