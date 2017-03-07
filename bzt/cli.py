@@ -170,7 +170,7 @@ class CLI(object):
         self.engine.default_cwd = os.getcwd()
 
     def _level_down_logging(self):
-        self.log.debug("Leveling down log file verbosity")
+        self.log.debug("Leveling down log file verbosity, use -v option to have DEBUG messages enabled")
         for handler in self.log.handlers:
             if issubclass(handler.__class__, logging.FileHandler):
                 handler.setLevel(logging.INFO)
