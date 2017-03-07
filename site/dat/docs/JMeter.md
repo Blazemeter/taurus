@@ -167,7 +167,7 @@ scenarios:
       delimiter: ';'  # CSV delimiter, auto-detected by default
       quoted: false  # allow quoted data
       loop: true  # loop over in case of end-of-file reached if true, stop thread if false
-      variable-names: id,name  # comma-separated list of variable names, empty by default
+      variable-names: id,name  # delimiter-separated list of variable names, empty by default
 ```
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
