@@ -36,11 +36,11 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
-from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
+from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems, StringIO
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
-from bzt.utils import str_representer
+from bzt.utils import str_representer, replace_leading_tabs
 
 SETTINGS = "settings"
 
@@ -563,6 +563,7 @@ class Configuration(BetterDict):
         super(Configuration, self).__init__()
         self.log = logging.getLogger('')
         self.dump_filename = None
+        self.replace_tabs = True
 
     def load(self, config_files, callback=None):
         """
@@ -577,7 +578,11 @@ class Configuration(BetterDict):
                 configs = []
                 self.log.debug("Reading %s", config_file)
                 with open(config_file) as fds:
-                    configs.extend(yaml.load_all(fds))
+                    config_contents = fds.read()
+                    if self.replace_tabs:
+                        config_contents = replace_leading_tabs(config_contents)
+                    config_stream = StringIO(config_contents)
+                    configs.extend(yaml.load_all(config_stream))
             except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 

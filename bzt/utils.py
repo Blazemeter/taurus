@@ -30,6 +30,7 @@ import shlex
 import signal
 import socket
 import stat
+import string
 import subprocess
 import sys
 import tempfile
@@ -1019,3 +1020,12 @@ def humanize_bytes(byteval):
     # (.4g results in rounded numbers for exact matches and max 3 decimals,
     # should never resort to exponent values)
     return '{:.4g}{}'.format(byteval / (1 << (order * 10)), _suffixes[order])
+
+
+def replace_leading_tabs(text, spaces=4):
+    replacement = ' '*spaces
+    replaced_lines = []
+    regex = re.compile('^ *(\t+) *')
+    for line in text.split('\n'):
+        replaced_lines.append(regex.sub(lambda x: len(x.group(0))*replacement, line))
+    return '\n'.join(replaced_lines)
