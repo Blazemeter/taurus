@@ -123,8 +123,8 @@ class TestCLI(BZTestCase):
                 shutil.rmtree(artifacts_dir)
 
     def test_logging_verbosity_adjustment(self):
+        was_verbose = self.verbose
         try:
-            was_verbose = self.verbose
             self.verbose = False
             ret = self.obj.perform([
                 __dir__() + "/json/mock_normal.json",
@@ -132,14 +132,17 @@ class TestCLI(BZTestCase):
             self.assertEquals(0, ret)
             log_lines = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).readlines()
             checking = False
+            found_line = False
             for line in log_lines:
                 if "Leveling down" in line:
+                    found_line = True
                     checking = True
-                elif "Leveling up" in line:
+                elif "Leveled up" in line:
                     checking = False
                 else:
                     if checking:
                         self.assertNotIn("DEBUG", line)
+            self.assertTrue(found_line)
         finally:
             self.verbose = was_verbose
 
