@@ -88,10 +88,11 @@ class CLI(object):
             tf.close()
             options.log = tf.name
 
-        file_handler = logging.FileHandler(options.log)
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(fmt_file)
-        logger.addHandler(file_handler)
+        if options.log:
+            file_handler = logging.FileHandler(options.log)
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(fmt_file)
+            logger.addHandler(file_handler)
 
         # log something to console
         console_handler = logging.StreamHandler(sys.stdout)
@@ -123,7 +124,7 @@ class CLI(object):
                     handler.close()
                     self.log.handlers.remove(handler)
 
-    def __copy_log_to_artifacts(self):
+    def __move_log_to_artifacts(self):
         """
         Close log handlers, copy log to artifacts dir, recreate file handlers
         :return:
@@ -136,7 +137,7 @@ class CLI(object):
                     self.log.handlers.remove(handler)
 
             if os.path.exists(self.options.log):
-                self.engine.existing_artifact(self.options.log, move=False, target_filename="bzt.log")
+                self.engine.existing_artifact(self.options.log, move=True, target_filename="bzt.log")
             self.options.log = os.path.join(self.engine.artifacts_dir, "bzt.log")
 
             file_handler = logging.FileHandler(self.options.log)
@@ -181,7 +182,7 @@ class CLI(object):
             configs.extend(jmx_shorthands)
 
             self.__configure(configs)
-            self.__copy_log_to_artifacts()
+            self.__move_log_to_artifacts()
 
             self.engine.prepare()
             self.engine.run()
