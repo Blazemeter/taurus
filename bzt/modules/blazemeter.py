@@ -1492,7 +1492,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                     raise TaurusException(to_json(error))
 
             # if we have captured HARs, let's download them
-            self.log.info("Services: %s", self.engine.services)
             for service in self.engine.config.get(Service.SERV):
                 # not good to reproduce what is done inside engine
                 # but no good way to get knowledge of the service in config
