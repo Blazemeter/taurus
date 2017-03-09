@@ -83,7 +83,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.browser_open = 'start'
         self.kpi_buffer = []
         self.send_interval = 30
-        self.sess_name = None
         self._last_status_check = time.time()
         self.send_monitoring = True
         self.monitoring_buffer = None
@@ -98,6 +97,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self._session = None
         self.first_ts = sys.maxsize
         self.last_ts = 0
+        self.report_name = None
 
     def prepare(self):
         """
@@ -146,9 +146,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             else:
                 self._test = Test(self._user, {'id': None})
 
-        self.sess_name = self.parameters.get("report-name", self.settings.get("report-name", self.sess_name))
-        if self.sess_name == 'ask' and sys.stdin.isatty():
-            self.sess_name = r_input("Please enter report-name: ")
+        self.report_name = self.parameters.get("report-name", self.settings.get("report-name", self.report_name))
+        if self.report_name == 'ask' and sys.stdin.isatty():
+            self.report_name = r_input("Please enter report-name: ")
 
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
@@ -165,7 +165,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self._user.log = self.log.getChild(self.__class__.__name__)
 
         if not self._session:
-            url = self._start_online(self.sess_name)
+            url = self._start_online()
             self.log.info("Started data feeding: %s", url)
             if self.browser_open in ('start', 'both'):
                 open_browser(url)
@@ -174,11 +174,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 report_link = self._master.make_report_public()
                 self.log.info("Public report link: %s", report_link)
 
-    def _start_online(self, session_name):
+    def _start_online(self):
         """
         Start online test
 
-        :type session_name: str
         """
         self.log.info("Initiating data feeding...")
 
@@ -190,8 +189,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
         if self._test.token:
             self.results_url = self._master.address + '/app/#/masters/%s' % self._master['id']
-            if session_name:
-                self._session.set({"name": str(session_name)})
+            if self.report_name:
+                self._session.set({"name": str(self.report_name)})
 
         return self.results_url
 
@@ -1337,6 +1336,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.check_interval = 5.0
         self._last_check_time = None
         self.public_report = False
+        self.report_name = None
 
     def _merge_with_blazemeter_config(self):
         if 'blazemeter' not in self.engine.config.get('modules'):
@@ -1379,6 +1379,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         del_files = self.settings.get("delete-test-files", True)
         self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
 
+        self.report_name = self.settings.get("report-name", self.report_name)
+        if self.report_name == 'ask' and sys.stdin.isatty():
+            self.report_name = r_input("Please enter report-name: ")
+
         self.widget = self.get_widget()
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -1419,6 +1423,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.user.token and self.public_report:
             public_link = self.router.master.make_report_public()
             self.log.info("Public report link: %s", public_link)
+
+        if self.report_name:
+            self.router.master.set({"name": str(self.report_name)})
 
     def _should_skip_check(self):
         now = time.time()
@@ -1485,7 +1492,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                     raise TaurusException(to_json(error))
 
             # if we have captured HARs, let's download them
-            self.log.info("Services: %s", self.engine.services)
             for service in self.engine.config.get(Service.SERV):
                 # not good to reproduce what is done inside engine
                 # but no good way to get knowledge of the service in config
