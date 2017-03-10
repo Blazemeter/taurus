@@ -12,7 +12,7 @@ from bzt import TaurusNetworkError, ManualShutdown, VERSION
 from bzt.six import cookielib
 from bzt.six import text_type
 from bzt.six import urlencode
-from bzt.utils import to_json, MultiPartForm, log_std_streams
+from bzt.utils import to_json, MultiPartForm
 
 
 class BZAObject(dict):
