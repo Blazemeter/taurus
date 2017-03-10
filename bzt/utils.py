@@ -871,6 +871,8 @@ def log_std_streams(logger=None, stdout_level=logging.DEBUG, stderr_level=loggin
     """
     redirect standard output/error to taurus logger
     """
+    out_descriptor = os.dup(1)
+    err_descriptor = os.dup(2)
     stdout = tempfile.TemporaryFile()
     stderr = tempfile.TemporaryFile()
     sys.stdout = stdout
@@ -888,8 +890,10 @@ def log_std_streams(logger=None, stdout_level=logging.DEBUG, stderr_level=loggin
         stderr.close()
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
-        os.dup2(sys.__stdout__.fileno(), 1)
-        os.dup2(sys.__stderr__.fileno(), 2)
+        os.dup2(out_descriptor, 1)
+        os.dup2(err_descriptor, 2)
+        os.close(out_descriptor)
+        os.close(err_descriptor)
         if logger:
             if stdout_str:
                 logger.log(stdout_level, "STDOUT: " + stdout_str.strip())
@@ -901,7 +905,7 @@ def open_browser(url):
     try:
         browser = webbrowser.get()
         if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-            with log_std_streams(loger=logging):
+            with log_std_streams(logger=logging):
                 browser.open(url)
     except BaseException as exc:
         logging.warning("Can't open link in browser: %s", exc)

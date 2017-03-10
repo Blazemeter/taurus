@@ -41,4 +41,3 @@ class TestLogStreams(BZTestCase):
         self.assertNotIn('test3', debug_buf)
         self.assertIn('test4', debug_buf)
         self.assertTrue(len(warn_buf) > 0)
-
