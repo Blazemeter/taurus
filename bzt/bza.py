@@ -522,8 +522,8 @@ class Session(BZAObject):
                 self.log.info("Test was stopped through Web UI: %s", result['status'])
                 raise ManualShutdown("The test was interrupted through Web UI")
 
-    def send_monitoring_data(self, src_name, data):
-        self.upload_file('%s.monitoring.json' % src_name, to_json(data))
+    def send_monitoring_data(self, engine_id, data):
+        self.upload_file('%s-%s-c.monitoring.json' % (self['id'], engine_id), to_json(data))
 
     def upload_file(self, filename, contents=None):
         """

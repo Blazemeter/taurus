@@ -392,7 +392,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
     def __send_monitoring(self):
         src_name = platform.node()
         data = self.monitoring_buffer.get_monitoring_json(self._session)
-        self._session.send_monitoring_data(src_name, data)
+        self._session.send_monitoring_data(id(self.engine), data)
 
     @send_with_retry
     def __send_custom_metrics(self):
