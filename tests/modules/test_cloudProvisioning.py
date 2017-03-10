@@ -677,7 +677,10 @@ class TestCloudProvisioning(BZTestCase):
                     {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
                 ],
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": [{'id': "s1"}]}},
-                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": [{'id': "s1"}]}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {
+                    "note": "msg",
+                    "sessions": [{'id': "s1"}]}
+                },
                 'https://a.blazemeter.com/api/v4/masters/1': {"result": {"id": 1, "note": "msg"}},
                 'https://a.blazemeter.com/api/v4/sessions/s1/reports/logs': {"result": {"data": [
                     {
@@ -705,13 +708,16 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.engine.config.get("modules").get('capturehar')['class'] = cls
         self.obj.engine.config.get(Service.SERV, []).append('capturehar')
 
+        log_recorder = RecordingHandler()
+        self.obj.log.addHandler(log_recorder)
         self.obj.prepare()
         self.obj.startup()
         self.obj.check()  # this one should trigger force start
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(19, len(self.mock.requests))
+        self.assertEqual(18, len(self.mock.requests))
+        self.assertIn("Cloud test has probably failed with message: msg", log_recorder.warn_buff.getvalue())
 
     def test_cloud_paths(self):
         """
