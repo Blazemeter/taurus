@@ -17,7 +17,7 @@ from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJ
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, to_json
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -1077,7 +1077,8 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
         selector += '>elementProp>stringProp[name="Argument.value"]'
-        self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
+        res = jmx.get(selector)[0].text
+        self.assertNotEqual(res.find('store_id'), -1)
 
     def test_json_body_app_dic(self):
         self.obj.execution.merge({
@@ -1092,7 +1093,26 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
         selector += '>elementProp>stringProp[name="Argument.value"]'
-        self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
+        res = jmx.get(selector)[0].text
+        self.assertNotEqual(res.find('store_id'), -1)
+        self.assertTrue(isinstance(json.loads(res), dict))
+
+    def test_json_body_app_list(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "headers": {"Content-Type": "application/json"},
+                    "body": [
+                        {"store_id": "${store_id}"},
+                        {"display_name": "${display_name}"}]}]}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.original_jmx)
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
+        selector += '>elementProp>stringProp[name="Argument.value"]'
+        res = jmx.get(selector)[0].text
+        self.assertNotEqual(res.find('store_id'), -1)
+        self.assertTrue(isinstance(json.loads(res), list))
 
     def test_json_body_requires_header(self):
         self.obj.execution.merge({

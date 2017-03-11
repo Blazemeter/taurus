@@ -344,7 +344,7 @@ class TestConverter(BZTestCase):
         tg_two_req_one_body = tg_two.get("requests")[0].get("body")
         self.assertEqual(tg_two_req_one_body, None)
 
-    def test_ajson_body(self):
+    def test_json_body(self):
         yml = self._get_tmp()
         obj = self._get_jmx2yaml("/yaml/converter/json_body.jmx", yml)
         obj.process()
@@ -352,7 +352,7 @@ class TestConverter(BZTestCase):
         reqs1 = yml.get("scenarios").get("tg1")['requests']
         reqs2 = yml.get("scenarios").get("tg2")['requests']
         bodies = {req['label']: req.get('body', None) for req in reqs1 + reqs2}
-        targets = {'r1_1': None, 'r1_2': dict, 'r1_3': str, 'r1_4': dict,
+        targets = {'r1_1': None, 'r1_2': list, 'r1_3': str, 'r1_4': dict,
                    'r2_1': None, 'r2_2': dict, 'r2_3': str, 'r2_4': str}
         for label in targets:
             self.assertTrue((bodies[label] is None and targets[label] is None)
