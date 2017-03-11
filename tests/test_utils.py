@@ -1,4 +1,5 @@
 """ unit test """
+import sys
 import logging
 
 from psutil import Popen
@@ -22,11 +23,14 @@ class TestLogStreams(BZTestCase):
         with log_std_streams(stdout_level=logging.DEBUG):
             print('test3')
 
+        with log_std_streams(stdout_level=logging.DEBUG):
+            sys.stdout.write('test3')
+
         with log_std_streams(logger=self.log, stdout_level=logging.DEBUG):
-            process = Popen(['echo', '"test4"'])
+            process = Popen(['echo', '"test5"'])
             process.wait()
 
-        missed_file = get_uniq_name('.', 'test5', '')
+        missed_file = get_uniq_name('.', 'test6', '')
 
         with log_std_streams(logger=self.log, stderr_level=logging.WARNING):
             process = Popen(['dir', missed_file])
@@ -39,5 +43,5 @@ class TestLogStreams(BZTestCase):
         self.assertNotIn('test1', debug_buf)
         self.assertIn('test2', debug_buf)
         self.assertNotIn('test3', debug_buf)
-        self.assertIn('test4', debug_buf)
+        self.assertIn('test5', debug_buf)
         self.assertTrue(len(warn_buf) > 0)

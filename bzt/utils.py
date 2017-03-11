@@ -873,8 +873,8 @@ def log_std_streams(logger=None, stdout_level=logging.DEBUG, stderr_level=loggin
     """
     out_descriptor = os.dup(1)
     err_descriptor = os.dup(2)
-    stdout = tempfile.TemporaryFile()
-    stderr = tempfile.TemporaryFile()
+    stdout = tempfile.SpooledTemporaryFile(mode='w+')
+    stderr = tempfile.SpooledTemporaryFile(mode='w+')
     sys.stdout = stdout
     sys.stderr = stderr
     os.dup2(stdout.fileno(), 1)
@@ -884,8 +884,8 @@ def log_std_streams(logger=None, stdout_level=logging.DEBUG, stderr_level=loggin
     finally:
         stdout.seek(0)
         stderr.seek(0)
-        stdout_str = stdout.read()
-        stderr_str = stderr.read()
+        stdout_str = stdout.read().strip()
+        stderr_str = stderr.read().strip()
         stdout.close()
         stderr.close()
         sys.stdout = sys.__stdout__
@@ -896,9 +896,9 @@ def log_std_streams(logger=None, stdout_level=logging.DEBUG, stderr_level=loggin
         os.close(err_descriptor)
         if logger:
             if stdout_str:
-                logger.log(stdout_level, "STDOUT: " + stdout_str.strip())
+                logger.log(stdout_level, "STDOUT: " + stdout_str)
             if stderr_str:
-                logger.log(stderr_level, "STDERR: " + stderr_str.strip())
+                logger.log(stderr_level, "STDERR: " + stderr_str)
 
 
 def open_browser(url):
