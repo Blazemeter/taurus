@@ -73,6 +73,7 @@ class BZAObject(dict):
             headers["Content-Type"] = "application/json"
 
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
+
         response = self.http_request(method=log_method, url=url, data=data, headers=headers, cookies=self._cookies,
                                      timeout=self.timeout)
 
