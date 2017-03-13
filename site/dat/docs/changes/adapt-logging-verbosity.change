@@ -1,0 +1,3 @@
+Level up logging verbosity after `startup()` phase
+
+(And level it down before performing `shutdown()`).

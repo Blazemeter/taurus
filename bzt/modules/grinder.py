@@ -60,7 +60,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         :param fds: fds
         :return:
         """
-        base_props_file = self.settings.get("properties-file", "")
+        base_props_file = self.settings.get("properties-file", None)
         if base_props_file:
             fds.write("# Base Properies File Start: %s\n" % base_props_file)
             with open(base_props_file) as bpf:
@@ -82,7 +82,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         :param scenario: dict
         :return:
         """
-        script_props_file = scenario.get("properties-file", "")
+        script_props_file = scenario.get("properties-file", None)
         if script_props_file:
             fds.write("# Script Properies File Start: %s\n" % script_props_file)
             with open(script_props_file) as spf:
@@ -463,7 +463,7 @@ from HTTPClient import NVPair
 
         self.root.append(self.gen_new_line(indent=0))
 
-        default_address = self.scenario.get("default-address", "")
+        default_address = self.scenario.get("default-address", None)
         url_arg = "url=%r" % default_address if default_address else ""
         self.root.append(self.gen_statement('request = HTTPRequest(%s)' % url_arg, indent=0))
         self.root.append(self.gen_statement('test = Test(1, "BZT Requests")', indent=0))

@@ -1,0 +1,5 @@
+Allow YAML multi-docs in configs
+
+Also:
+- As YAML is a superset of JSON, we can load JSON configs with YAML parser
+- Do not require user to prepend '---\n' to her configuration

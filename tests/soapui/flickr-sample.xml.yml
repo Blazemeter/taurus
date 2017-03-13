@@ -1,0 +1,46 @@
+---
+execution:
+- concurrency: 1
+  scenario: TestSuite-TestCase
+scenarios:
+  TestSuite-TestCase:
+    requests:
+    - body:
+        api_key: ${#Project#ApiKey}
+        format: json
+        method: flickr.interestingness.getList
+        nojsoncallback: '1'
+      label: Interestingness Request - JSON
+      url: https://api.flickr.com/services/rest
+    - body:
+        api_key: ${#Project#ApiKey}
+        format: rest
+        method: flickr.people.findByUsername
+        username: olensmar
+      label: Find User Request - REST
+      url: https://api.flickr.com/services/rest
+    - assert:
+      - contains:
+        - <brand id="nikon" name="Nikon" />
+        not: false
+        regexp: false
+        subject: body
+      body:
+        api_key: ${#Project#ApiKey}
+        format: soap
+        method: flickr.cameras.getBrands
+        nojsoncallback: '1'
+      label: Get Cameras - SOAP
+      url: https://api.flickr.com/services/rest
+    - body:
+        api_key: ${#Project#ApiKey}
+        format: json
+        method: flickr.places.find
+        nojsoncallback: '1'
+        query: stockholm
+      label: Find Places - JSON
+      url: https://api.flickr.com/services/rest
+    variables:
+      '#Project#ApiKey': MY_API_KEY
+      '#TestCase#temp': ''
+

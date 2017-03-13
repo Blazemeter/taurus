@@ -48,7 +48,6 @@ The last and most convenient and detailed reporting option is by integrating wit
 There are two ways to specify this BlazeMeter API key for your reporting. You can either do it in YAML script, which is not secured, or create a ‘.bzt-rc’ file in your home folder and put the config in it:
 
 ```yaml
----
 modules:
   blazemeter:
     token: <Put your token here>

@@ -7,7 +7,6 @@ resources.
 
 Pass/fail criteria are specified as array of `criteria`, set through `reporting` item in config:
 ```yaml
----
 reporting:
 - module: passfail
   criteria:
@@ -32,7 +31,7 @@ The above example use short form for criteria, its general format is
 
   - `subject` is the KPI that will be compared, listed below
   - `label` is sample label, empty for overall
-  - `{condition}` is the comparison operator, one of `>`, `<`, `>=`, `<=`, `=`, `==` (same as `=`)
+  - `{condition}` is the comparison operator, one of `>`, `\<`, `>=`, `\<=`, `=`, `==` (same as `=`)
   - `threshold` is the value to compare with, some KPIs allow percentage thresholds
   - `{logic}` is the way value aggregated withing timeframe, `for` means taking latest value, `within` means aggregating as average or sum (depends on criteria nature)
   - `timeframe` is number of seconds the comparison must be valid; if `timeframe` is omitted, then the cumulative value for whole test will be used for comparison.
@@ -57,7 +56,6 @@ The full form of the criteria is conducted by Taurus automatically from short fo
 specify it as this:
 
 ```yaml
----
 reporting:
 - module: passfail
   criteria:
@@ -82,7 +80,6 @@ to change the message, you can do one of:
  - use dictionary instead of array to specify message and criteria, like this:
  
 ```yaml
----
 reporting:
 - module: passfail
   criteria:
@@ -98,7 +95,6 @@ for metric specification because of the need to specify metric class `bzt.module
 For example, to stop test once local CPU is exhausted, use:
 
 ```yaml
----
 reporting:
 - module: passfail
   criteria:

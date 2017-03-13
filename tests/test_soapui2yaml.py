@@ -34,3 +34,12 @@ class TestConverter(BZTestCase):
         actual = yaml.load(open(result).read())
         expected = yaml.load(open(__dir__() + "/soapui/project.xml.yml").read())
         self.assertEqual(actual, expected)
+
+    def test_flickr(self):
+        source = __dir__() + "/soapui/flickr-sample.xml"
+        result = self._get_tmp()
+        options = FakeOptions(file_name=result)
+        process(options, [source])
+        actual = yaml.load(open(result).read())
+        expected = yaml.load(open(__dir__() + "/soapui/flickr-sample.xml.yml").read())
+        self.assertEqual(actual, expected)

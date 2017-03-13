@@ -7,7 +7,6 @@ In Taurus you have two way for run it: with native gatling script or with usual 
 ## Run Gatling Tool
 
 ```yaml
----
 execution:
 - executor: gatling
   scenario: sample
@@ -69,7 +68,6 @@ class BasicSimulation extends Simulation {
 If your Gatling test suite is really huge or has dependencies on other files - you can bundle it in a jar (with the help of sbt or Maven) and then run this jar with Taurus. Just specify it as a `script` value in scenario.
 
 ```yaml
----
 execution:
 - executor: gatling
   scenario: sample
@@ -89,7 +87,6 @@ Some asserts can be added to request. Assert describes templates and area for se
  Next yaml example shows the way these features can be used and ready to conversion to scala automatically:
 
 ```yaml
----
 execution:
 - executor: gatling
   iterations: 15
@@ -144,7 +141,6 @@ scenarios:
  - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling documentation) and sending your own variables into Scala program:
 
 ```yaml
----
 modules:
   gatling:
     properties:
@@ -164,7 +160,6 @@ class BasicSimulation extends Simulation {
 Thanks to Taurus you can use additional Java classes in your scala code. For this add required jar files or contained dir to `files` list:
 
 ```yaml
----
 execution:
 - executor: gatling
   concurrency: 10

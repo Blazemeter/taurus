@@ -7,7 +7,6 @@ Reporters are specified as list under top-level config key `reporting`, by defau
 configured with two reporters:
 
 ```yaml
----
 reporting:
 - final_stats
 - console
@@ -17,7 +16,6 @@ The example above uses a shorthand form for specifying reporters. Full form is u
 and allows specifying some additional settings for reporters:
 
 ```yaml
----
 reporting:
 - module: final_stats
 - module: console
@@ -61,7 +59,6 @@ for example:
 This reporter is enabled by default. You can tweak its behaviour with the following options:
 
 ```yaml
----
 reporting:
 - module: final_stats
   summary: true  # overall samples count and percent of failures
@@ -106,7 +103,6 @@ If `pass-fail` used as source data, report will contain [Pass/Fail](PassFail.md)
 Sample configuration:
 
 ```yaml
----
 reporting:
 - module: junit-xml
   filename: /path_to_file/file.xml
@@ -119,7 +115,6 @@ Aggregating facility module is set through general settings, by default
 it is: 
 
 ```yaml
----
 settings:
   aggregator: consolidator
 ```
@@ -127,7 +122,6 @@ settings:
 The `consolidator` has several settings:
 
 ```yaml
----
 modules:
   consolidator:
     generalize-labels: false  # replace digits and UUID sequences 
@@ -161,7 +155,6 @@ modules:
  Here's a sample:
  
  ```yaml
- ---
  reporting:
  - module: passfail
    criteria:

@@ -16,7 +16,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import csv
 import fnmatch
 import itertools
@@ -39,9 +38,11 @@ import webbrowser
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
+from math import log
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
+from contextlib import contextmanager
 
 import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
@@ -865,17 +866,47 @@ class MirrorsManager(object):
         return (mirror for mirror in mirrors)
 
 
+@contextmanager
+def log_std_streams(logger=None, stdout_level=logging.DEBUG, stderr_level=logging.DEBUG):
+    """
+    redirect standard output/error to taurus logger
+    """
+    out_descriptor = os.dup(1)
+    err_descriptor = os.dup(2)
+    stdout = tempfile.SpooledTemporaryFile(mode='w+')
+    stderr = tempfile.SpooledTemporaryFile(mode='w+')
+    sys.stdout = stdout
+    sys.stderr = stderr
+    os.dup2(stdout.fileno(), 1)
+    os.dup2(stderr.fileno(), 2)
+    try:
+        yield
+    finally:
+        stdout.seek(0)
+        stderr.seek(0)
+        stdout_str = stdout.read().strip()
+        stderr_str = stderr.read().strip()
+        stdout.close()
+        stderr.close()
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        os.dup2(out_descriptor, 1)
+        os.dup2(err_descriptor, 2)
+        os.close(out_descriptor)
+        os.close(err_descriptor)
+        if logger:
+            if stdout_str:
+                logger.log(stdout_level, "STDOUT: " + stdout_str)
+            if stderr_str:
+                logger.log(stderr_level, "STDERR: " + stderr_str)
+
+
 def open_browser(url):
     try:
         browser = webbrowser.get()
         if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-            saved_out = os.dup(1)
-            os.close(1)
-            os.open(os.devnull, os.O_RDWR)
-            try:
+            with log_std_streams(logger=logging):
                 browser.open(url)
-            finally:
-                os.dup2(saved_out, 1)
     except BaseException as exc:
         logging.warning("Can't open link in browser: %s", exc)
 
@@ -998,3 +1029,24 @@ class PythonGenerator(object):
 
     def gen_new_line(self, indent=8):
         return self.gen_statement("", indent=indent)
+
+
+def str_representer(dumper, data):
+    "Representer for PyYAML that dumps multiline strings as | scalars"
+    if len(data.splitlines()) > 1:
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+
+def humanize_bytes(byteval):
+    # from http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size/
+    #   25613067#25613067
+    _suffixes = [' ', 'K', 'M', 'G', 'T', 'P']
+
+    # determine binary order in steps of size 10
+    # (coerce to int, // still returns a float)
+    order = int(log(byteval, 2) / 10) if byteval else 0
+    # format file size
+    # (.4g results in rounded numbers for exact matches and max 3 decimals,
+    # should never resort to exponent values)
+    return '{:.4g}{}'.format(byteval / (1 << (order * 10)), _suffixes[order])

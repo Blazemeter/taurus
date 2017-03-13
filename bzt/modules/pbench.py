@@ -153,7 +153,10 @@ class PBenchTool(object):
 
         instances = load.concurrency if load.concurrency else 1
 
-        timeout = int(dehumanize_time(scenario.get("timeout", "10s")) * 1000)
+        timeout = scenario.get("timeout", None)
+        if timeout is None:
+            timeout = '10s'
+        timeout = int(dehumanize_time(timeout) * 1000)
 
         threads = 1 if psutil.cpu_count() < 2 else (psutil.cpu_count() - 1)
         threads = int(self.execution.get("worker-threads", threads))
@@ -339,7 +342,10 @@ class PBenchTool(object):
             if request.method == "GET" and isinstance(request.body, dict):
                 path += "?" + urlencode(request.body)
         if not parsed_url.netloc:
-            parsed_url = parse.urlparse(scenario.get("default-address", ""))
+            default_addr = scenario.get('default-address', None)
+            if default_addr is None:
+                default_addr = ''
+            parsed_url = parse.urlparse(default_addr)
         self.hostname = parsed_url.netloc.split(':')[0] if ':' in parsed_url.netloc else parsed_url.netloc
         self.use_ssl = parsed_url.scheme == 'https'
         if parsed_url.port:

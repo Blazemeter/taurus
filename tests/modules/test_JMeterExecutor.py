@@ -17,7 +17,7 @@ from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJ
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, to_json
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -586,6 +586,11 @@ class TestJMeterExecutor(BZTestCase):
         values = [x for x in obj.datapoints(True)]
         self.assertEquals(1, len(values))
 
+    def test_tabs_jtl(self):
+        obj = JTLReader(__dir__() + "/../jmeter/jtl/tabs.jtl", logging.getLogger(''), None)
+        values = [x for x in obj.datapoints(True)]
+        self.assertEquals(4, len(values))
+
     def test_distributed_th_hostnames(self):
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/http.jmx"}})
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
@@ -828,7 +833,7 @@ class TestJMeterExecutor(BZTestCase):
                 "script": __dir__() + "/../jmeter/jmx/variable_csv.jmx"}})
         self.obj.prepare()
         artifacts = os.listdir(self.obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 3)  # 2*effective, .properties, jmx
+        self.assertEqual(len(artifacts), 5)  # 2*effective, .properties, .out, .err
         with open(self.obj.modified_jmx) as fds:
             jmx = fds.read()
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
@@ -1072,7 +1077,8 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
         selector += '>elementProp>stringProp[name="Argument.value"]'
-        self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
+        res = jmx.get(selector)[0].text
+        self.assertNotEqual(res.find('store_id'), -1)
 
     def test_json_body_app_dic(self):
         self.obj.execution.merge({
@@ -1087,7 +1093,26 @@ class TestJMeterExecutor(BZTestCase):
         jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
         selector += '>elementProp>stringProp[name="Argument.value"]'
-        self.assertNotEqual(jmx.get(selector)[0].text.find('store_id'), -1)
+        res = jmx.get(selector)[0].text
+        self.assertNotEqual(res.find('store_id'), -1)
+        self.assertTrue(isinstance(json.loads(res), dict))
+
+    def test_json_body_app_list(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "headers": {"Content-Type": "application/json"},
+                    "body": [
+                        {"store_id": "${store_id}"},
+                        {"display_name": "${display_name}"}]}]}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.original_jmx)
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
+        selector += '>elementProp>stringProp[name="Argument.value"]'
+        res = jmx.get(selector)[0].text
+        self.assertNotEqual(res.find('store_id'), -1)
+        self.assertTrue(isinstance(json.loads(res), list))
 
     def test_json_body_requires_header(self):
         self.obj.execution.merge({
@@ -1260,10 +1285,11 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
         self.obj._env['TEST_MODE'] = 'heap'
         self.obj.startup()
-        stdout, _ = self.obj.process.communicate()
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertIn("-Xmx2G", str(stdout))
+        with open(os.path.join(self.obj.engine.artifacts_dir, "jmeter.out")) as fds:
+            stdout = fds.read()
+        self.assertIn("-Xmx2G", stdout)
 
     def test_data_sources_in_artifacts(self):
         self.configure({
@@ -2147,6 +2173,33 @@ class TestJMeterExecutor(BZTestCase):
             },
         })
         self.obj.resource_files()
+
+    def test_resource_files_relpath(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "script": __dir__() + "/../jmeter/jmx/nested/directory/csv.jmx"
+                }
+            }
+        })
+        resources = self.obj.get_resource_files()
+        self.assertNotIn("a.csv", resources)
+        self.assertTrue(any(res.endswith(os.path.join("nested", "directory", "a.csv")) for res in resources))
+
+    def test_stdout_stderr_capture(self):
+        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                self.obj.log.debug("Check...")
+                time.sleep(1)
+            self.obj.shutdown()
+            self.obj.post_process()
+        except:
+            pass
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "jmeter.out")))
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "jmeter.err")))
 
 
 class TestJMX(BZTestCase):

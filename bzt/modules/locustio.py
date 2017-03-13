@@ -107,7 +107,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         host = self.get_scenario().get("default-address", None)
         if host is None:
             host = ''
-        args.append('--host="%s"' % host)
+        args.append('--host=%s' % host)
 
         self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
         self.process = self.execute(args, stderr=STDOUT, stdout=self.__out, env=env)
@@ -333,7 +333,6 @@ from locust import HttpLocust, TaskSet, task
         task = self.gen_method_definition("generated_task", ['self'])
 
         think_time = dehumanize_time(self.scenario.get('think-time', None))
-        timeout = dehumanize_time(self.scenario.get("timeout", 30))
         global_headers = self.scenario.get("headers", None)
         if not self.scenario.get("keepalive", True):
             global_headers['Connection'] = 'close'
@@ -344,10 +343,15 @@ from locust import HttpLocust, TaskSet, task
                 raise TaurusConfigError("Wrong Locust request type: %s" % method)
 
             if req.timeout:
-                local_timeout = dehumanize_time(req.timeout)
+                timeout = req.timeout
             else:
-                local_timeout = timeout
-            self.__gen_check(method, req, task, local_timeout, global_headers)
+                scenario_timeout = self.scenario.get("timeout", None)
+                if scenario_timeout:
+                    timeout = scenario_timeout
+                else:
+                    timeout = '30s'
+
+            self.__gen_check(method, req, task, dehumanize_time(timeout), global_headers)
 
             if req.think_time:
                 task.append(self.gen_statement("sleep(%s)" % dehumanize_time(req.think_time)))

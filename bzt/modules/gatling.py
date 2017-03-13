@@ -330,8 +330,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         load = self.get_load()
         scenario = self.get_scenario()
 
-        if scenario.get('timeout', None) is not None:
-            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout')) * 1000)
+        timeout = scenario.get('timeout', None)
+        if timeout is not None:
+            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
         if scenario.get('keepalive', True):
             params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'true'
             params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
