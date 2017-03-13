@@ -1091,10 +1091,21 @@ class FuncJTLReader(FunctionalResultsReader):
         if error_msg.startswith("The operation lasted too long"):
             error_msg = "The operation lasted too long"
 
+        # TODO: we'd probably need to read XML-based JTL file with all the flags
+        # to extract items like 'response body' or 'request headers'
+        extras = {
+            "responseCode": elem.get("rc"),
+            "responseMessage": elem.get("rm"),
+            "responseTime": elem.get("ts"),
+            "connectTime": elem.get("ct"),
+            "latency": elem.get("lt"),
+            "responseSize": elem.get("by"),
+        }
+
         return FunctionalSample(test_case=label, test_suite=suite_name, status=status,
                                 start_time=tstmp, duration=duration,
                                 error_msg=error_msg, error_trace=error_trace,
-                                extras=None)
+                                extras=extras)
 
     def get_failure(self, element):
         """
