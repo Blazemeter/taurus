@@ -1629,7 +1629,7 @@ class JMeterScenarioBuilder(JMX):
             follow_redirects = global_follow_redirects
 
         content_type = self._get_merged_ci_headers(request, 'content-type')
-        if content_type == 'application/json' and isinstance(request.body, dict):
+        if content_type == 'application/json' and isinstance(request.body, (dict, list)):
             body = json.dumps(request.body)
         else:
             body = request.body
