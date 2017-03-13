@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.8.1 <sup>13 mar 2017</sup>
+ - make `---` not required for YAML files
+ - enable YAML multi-doc files support, now `---` divides several configs per file (by YAML standard)
+ - use less verbose logging in the middle of run, can be overridden with `-v` option
+ - don't write bzt.log into current dir, use temp dir instead, then move to artifacts
+ - support arrays as JSON body of requests
+ - capture jmeter's stderr/stdout into artifact files
+ - allow setting `report-name` for cloud tests
+ - download HAR+Screenshots report automatically from the cloud
+ - improve JSON body extraction for jmx2yaml tool, inline short JSR223's into config, convert BeanShell into JSR233
+ - allow changing kpi.jtl delimiter through JMeter properties
+
 ## 1.8.0 <sup>25 feb 2017</sup>
  - Added a capability to specify SoapUI scripts for JMeter executor
  - add services to start/stop appium server and android emulator
