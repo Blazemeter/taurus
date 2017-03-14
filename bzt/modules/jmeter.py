@@ -173,7 +173,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.engine.aggregator.add_underling(self.reader)
         elif isinstance(self.engine.aggregator, FunctionalAggregator):
-            self.reader = FuncJTLReader(self.log_jtl, self.log)
+            self.reader = FuncJTLReader(self.log_jtl, self.engine.artifacts_dir, self.log)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.engine.aggregator.add_underling(self.reader)
 
@@ -1010,15 +1010,17 @@ class FuncJTLReader(FunctionalResultsReader):
     :type parent_logger: logging.Logger
     """
 
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, artifacts_dir, parent_logger):
         super(FuncJTLReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
         self.offset = 0
         self.filename = filename
+        self.artifacts_dir = artifacts_dir
         self.fds = None
         self.failed_processing = False
         self.read_records = 0
+        self.__sample_cnt = 0
 
     def __del__(self):
         if self.fds:
@@ -1067,6 +1069,10 @@ class FuncJTLReader(FunctionalResultsReader):
 
                 yield sample
 
+    def __write_sample_data(self, filename, contents):
+        with open(os.path.join(self.artifacts_dir, filename), 'wb') as fds:
+            fds.write(contents.encode('utf-8'))
+
     def __extract_sample(self, sample_elem):
         tstmp = int(float(sample_elem.get("ts")) / 1000)
         label = sample_elem.get("lb")
@@ -1091,17 +1097,12 @@ class FuncJTLReader(FunctionalResultsReader):
         if error_msg.startswith("The operation lasted too long"):
             error_msg = "The operation lasted too long"
 
-        request_body = sample_elem.findtext("queryString")
-        response_body = sample_elem.findtext("responseData")
-        request_cookies = sample_elem.findtext("cookies")
-        response_cookies = ""  # TODO: filter out `Set-Cookie` headers from response headers?
-        request_headers = sample_elem.findtext("requestHeader")
-        response_headers = sample_elem.findtext("responseHeader")
         method = sample_elem.findtext("method")
         uri = sample_elem.findtext("java.net.URL")  # smells like Java automarshalling
 
+        sample_extras = {
+            "id": self.__sample_cnt,
 
-        extras = {
             "responseCode": sample_elem.get("rc"),
             "responseMessage": sample_elem.get("rm"),
             "responseTime": sample_elem.get("ts"),
@@ -1113,27 +1114,34 @@ class FuncJTLReader(FunctionalResultsReader):
             "requestURI": uri,
 
             "assertions": [],  # TODO
-
-            "responseBodySize": len(response_body),
-            "requestBodySize": len(request_body),
-            "requestCookiesSize": len(request_cookies),
-            "responseCookiesSize": len(response_cookies),
-            "requestHeadersSize": len(request_headers),
-            "responseHeadersSize": len(response_headers),
-
-            # dump to files
-            "requestBody": request_body,
-            "responseBody": response_body,
-            "requestCookies": request_cookies,
-            "responseCookies": response_cookies,
-            "requestHeaders": request_headers,
-            "responseHeaders": response_headers,
         }
+
+        sample_extras["requestBody"] = sample_elem.findtext("queryString")
+        sample_extras["responseBody"] = sample_elem.findtext("responseData")
+        sample_extras["requestCookies"] = sample_elem.findtext("cookies")
+        sample_extras["responseCookies"] = ""  # TODO: filter out `Set-Cookie` headers from response headers?
+        sample_extras["requestHeaders"] = sample_elem.findtext("requestHeader")
+        sample_extras["responseHeaders"] = sample_elem.findtext("responseHeader")
+
+        sample_extras["requestBodySize"] = len(sample_extras["requestBody"])
+        sample_extras["responseBodySize"] = len(sample_extras["responseBody"])
+        sample_extras["requestCookiesSize"] = len(sample_extras["requestCookies"])
+        sample_extras["responseCookiesSize"] = len(sample_extras["responseCookies"])
+        sample_extras["requestHeadersSize"] = len(sample_extras["requestHeaders"])
+        sample_extras["responseHeadersSize"] = len(sample_extras["responseHeaders"])
+
+        for file_field in ["requestBody", "responseBody", "requestCookies",
+                           "responseCookies", "requestHeaders", "responseHeaders"]:
+            if sample_extras[file_field]:
+                filename = "sample-%d-%s.bin" % (self.__sample_cnt, file_field)
+                self.__write_sample_data(filename, sample_extras[file_field])
+
+        self.__sample_cnt += 1
 
         return FunctionalSample(test_case=label, test_suite=suite_name, status=status,
                                 start_time=tstmp, duration=duration,
                                 error_msg=error_msg, error_trace=error_trace,
-                                extras=extras)
+                                extras=sample_extras)
 
     def get_failure(self, element):
         """
