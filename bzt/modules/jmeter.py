@@ -1025,7 +1025,6 @@ class FuncJTLReader(FunctionalResultsReader):
         self.fds = None
         self.failed_processing = False
         self.read_records = 0
-        self.__sample_cnt = 0
 
     def __del__(self):
         if self.fds:
@@ -1096,8 +1095,6 @@ class FuncJTLReader(FunctionalResultsReader):
         uri = sample_elem.findtext("java.net.URL")  # smells like Java automarshalling
 
         sample_extras = {
-            "id": self.__sample_cnt,
-
             "responseCode": sample_elem.get("rc"),
             "responseMessage": sample_elem.get("rm"),
             "responseTime": int(sample_elem.get("t") or 0),
@@ -1129,7 +1126,7 @@ class FuncJTLReader(FunctionalResultsReader):
         for file_field in self.FILE_EXTRACTED_FIELDS:
             contents = sample_extras.pop(file_field)
             if contents:
-                filename = "sample-%d-%s" % (self.__sample_cnt, file_field)
+                filename = "sample-%s" % file_field
                 artifact = self._write_sample_data(filename, contents)
                 sample_extras[file_field] = artifact
 
@@ -1159,7 +1156,6 @@ class FuncJTLReader(FunctionalResultsReader):
 
         sample_extras = self._extract_sample_extras(sample_elem)
         self.__write_sample_data_to_artifacts(sample_extras)
-        self.__sample_cnt += 1
 
         return FunctionalSample(test_case=label, test_suite=suite_name, status=status,
                                 start_time=tstmp, duration=duration,
