@@ -1879,7 +1879,10 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(functional_switch.text, "true")
 
     def test_functional_reader_pass(self):
-        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/resource-errors-no-fail.jtl", logging.getLogger(''))
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/resource-errors-no-fail.jtl",
+                            engine_obj.artifacts_dir,
+                            logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(2, len(samples))
         first = samples[0]
@@ -1892,7 +1895,10 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(first.error_trace, "")
 
     def test_functional_reader_failed(self):
-        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl", logging.getLogger(''))
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl",
+                            engine_obj.artifacts_dir,
+                            logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(185, len(samples))
         first = samples[0]
@@ -1904,7 +1910,10 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(first.error_msg, "The operation lasted too long")
 
     def test_functional_reader_broken(self):
-        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl", logging.getLogger(''))
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl",
+                            engine_obj.artifacts_dir,
+                            logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(185, len(samples))
         sample = samples[8]
