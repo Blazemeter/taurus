@@ -1010,6 +1010,8 @@ class FuncJTLReader(FunctionalResultsReader):
     :type parent_logger: logging.Logger
     """
 
+    FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookies", "requestHeaders", "responseHeaders"]
+
     def __init__(self, filename, artifacts_dir, parent_logger):
         super(FuncJTLReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -1108,7 +1110,7 @@ class FuncJTLReader(FunctionalResultsReader):
         return sample_extras
 
     def __write_sample_data_to_artifacts(self, sample_extras):
-        for file_field in ["requestBody", "responseBody", "requestCookies", "requestHeaders", "responseHeaders"]:
+        for file_field in self.FILE_EXTRACTED_FIELDS:
             if sample_extras[file_field]:
                 filename = "sample-%d-%s.bin" % (self.__sample_cnt, file_field)
                 self._write_sample_data(filename, sample_extras[file_field])

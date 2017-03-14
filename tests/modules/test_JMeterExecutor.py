@@ -1925,6 +1925,40 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(sample.error_msg, "Non HTTP response message: Read timed out")
         self.assertTrue(sample.error_trace.startswith("java.net.SocketTimeoutException: Read timed out"))
 
+    def test_functional_reader_extras(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/trace.jtl",
+                            engine_obj.artifacts_dir,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(2, len(samples))
+        sample = samples[0]
+        self.assertIsNotNone(sample.extras)
+        fields = [
+            'id', 'assertions', 'connectTime', 'latency',
+            'requestBody', 'requestBodySize', 'requestCookies', 'requestCookiesSize', 'requestHeaders',
+            'requestHeadersSize', 'requestMethod', 'requestSize', 'requestURI',
+            'responseBody', 'responseBodySize', 'responseCode', 'responseHeaders', 'responseHeadersSize',
+            'responseMessage', 'responseSize', 'responseTime'
+        ]
+        for field in fields:
+            self.assertIn(field, sample.extras)
+        self.assertEqual(sample.extras["requestURI"], "http://blazedemo.com/")
+        self.assertEqual(sample.extras["requestMethod"], "GET")
+
+    def test_functional_reader_artifact_files(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/trace.jtl",
+                            engine_obj.artifacts_dir,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(2, len(samples))
+        for i, sample in enumerate(samples):
+            for field in FuncJTLReader.FILE_EXTRACTED_FIELDS:
+                if sample.extras[field]:
+                    filename = os.path.join(engine_obj.artifacts_dir, "sample-%d-%s.bin" % (i, field))
+                    self.assertTrue(os.path.exists(filename))
+
     def test_jsr223_block(self):
         script = __dir__() + "/../jmeter/jsr223_script.js"
         self.configure({
