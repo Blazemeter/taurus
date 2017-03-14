@@ -1095,11 +1095,11 @@ class FuncJTLReader(FunctionalResultsReader):
 
             "responseCode": sample_elem.get("rc"),
             "responseMessage": sample_elem.get("rm"),
-            "responseTime": sample_elem.get("ts"),
-            "connectTime": sample_elem.get("ct"),
-            "latency": sample_elem.get("lt"),
-            "responseSize": sample_elem.get("by"),
-            "requestSize": sample_elem.get("sby"),
+            "responseTime": int(sample_elem.get("t")),
+            "connectTime": int(sample_elem.get("ct")),
+            "latency": int(sample_elem.get("lt")),
+            "responseSize": int(sample_elem.get("by")),
+            "requestSize": int(sample_elem.get("sby")),
             "requestMethod": method,
             "requestURI": uri,
 
