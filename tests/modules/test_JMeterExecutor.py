@@ -1941,7 +1941,7 @@ class TestJMeterExecutor(BZTestCase):
             'responseBody', 'responseBodySize', 'responseCode', 'responseHeaders', 'responseHeadersSize',
             'responseMessage', 'responseSize', 'responseTime'
         ]
-        for field in fields:
+        for field in set(fields) - set(FuncJTLReader.FILE_EXTRACTED_FIELDS):
             self.assertIn(field, sample.extras)
         self.assertEqual(sample.extras["requestURI"], "http://blazedemo.com/")
         self.assertEqual(sample.extras["requestMethod"], "GET")
@@ -1953,11 +1953,9 @@ class TestJMeterExecutor(BZTestCase):
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(1, len(samples))
-        for i, sample in enumerate(samples):
-            for field in FuncJTLReader.FILE_EXTRACTED_FIELDS:
-                if sample.extras[field]:
-                    filename = os.path.join(engine_obj.artifacts_dir, "sample-%d-%s.bin" % (i, field))
-                    self.assertTrue(os.path.exists(filename))
+        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-0-requestHeaders.bin")))
+        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-0-responseHeaders.bin")))
+        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-0-responseBody.bin")))
 
     def test_functional_reader_extras_assertions(self):
         engine_obj = EngineEmul()

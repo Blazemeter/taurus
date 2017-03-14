@@ -1122,9 +1122,10 @@ class FuncJTLReader(FunctionalResultsReader):
 
     def __write_sample_data_to_artifacts(self, sample_extras):
         for file_field in self.FILE_EXTRACTED_FIELDS:
-            if sample_extras[file_field]:
+            contents = sample_extras.pop(file_field)
+            if contents:
                 filename = "sample-%d-%s.bin" % (self.__sample_cnt, file_field)
-                self._write_sample_data(filename, sample_extras[file_field])
+                self._write_sample_data(filename, contents)
 
     def _extract_sample(self, sample_elem):
         tstmp = int(float(sample_elem.get("ts")) / 1000)
