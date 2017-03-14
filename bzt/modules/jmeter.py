@@ -176,7 +176,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.engine.aggregator.add_underling(self.reader)
         elif isinstance(self.engine.aggregator, FunctionalAggregator):
-            self.reader = FuncJTLReader(self.log_jtl, self.engine.artifacts_dir, self.log)
+            self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.engine.aggregator.add_underling(self.reader)
 
@@ -1015,13 +1015,13 @@ class FuncJTLReader(FunctionalResultsReader):
 
     FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookies", "requestHeaders", "responseHeaders"]
 
-    def __init__(self, filename, artifacts_dir, parent_logger):
+    def __init__(self, filename, engine, parent_logger):
         super(FuncJTLReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
         self.offset = 0
         self.filename = filename
-        self.artifacts_dir = artifacts_dir
+        self.engine = engine
         self.fds = None
         self.failed_processing = False
         self.read_records = 0
@@ -1075,8 +1075,10 @@ class FuncJTLReader(FunctionalResultsReader):
                 yield sample
 
     def _write_sample_data(self, filename, contents):
-        with open(os.path.join(self.artifacts_dir, filename), 'wb') as fds:
+        artifact = self.engine.create_artifact(filename, ".bin")
+        with open(artifact, 'wb') as fds:
             fds.write(contents.encode('utf-8'))
+        return artifact
 
     def _extract_sample_assertions(self, sample_elem):
         assertions = []
@@ -1127,8 +1129,9 @@ class FuncJTLReader(FunctionalResultsReader):
         for file_field in self.FILE_EXTRACTED_FIELDS:
             contents = sample_extras.pop(file_field)
             if contents:
-                filename = "sample-%d-%s.bin" % (self.__sample_cnt, file_field)
-                self._write_sample_data(filename, contents)
+                filename = "sample-%d-%s" % (self.__sample_cnt, file_field)
+                artifact = self._write_sample_data(filename, contents)
+                sample_extras[file_field] = artifact
 
     def _extract_sample(self, sample_elem):
         tstmp = int(float(sample_elem.get("ts")) / 1000)
