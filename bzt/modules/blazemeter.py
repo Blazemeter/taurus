@@ -45,7 +45,7 @@ from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_
     ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
 
-TAURUS_TEST_TYPE = "taurus engine"
+TAURUS_TEST_TYPE = "taurus"
 
 
 def send_with_retry(method):
