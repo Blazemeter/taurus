@@ -1067,39 +1067,67 @@ class FuncJTLReader(FunctionalResultsReader):
 
                 yield sample
 
-    def __extract_sample(self, elem):
-        tstmp = int(float(elem.get("ts")) / 1000)
-        label = elem.get("lb")
+    def __extract_sample(self, sample_elem):
+        tstmp = int(float(sample_elem.get("ts")) / 1000)
+        label = sample_elem.get("lb")
         suite_name = "JMeter"  # FIXME: we have better thing to put here, such as JMX name/executor label
-        duration = float(elem.get("t")) / 1000.0
-        success = elem.get("s") == "true"
+        duration = float(sample_elem.get("t")) / 1000.0
+        success = sample_elem.get("s") == "true"
 
         if success:
             status = "PASSED"
             error_msg = ""
             error_trace = ""
         else:
-            assertion = self.__get_failed_assertion(elem)
+            assertion = self.__get_failed_assertion(sample_elem)
             if assertion is not None:
                 status = "FAILED"
                 error_msg = assertion.find("failureMessage").text
                 error_trace = ""
             else:
                 status = "BROKEN"
-                error_msg, error_trace = self.get_failure(elem)
+                error_msg, error_trace = self.get_failure(sample_elem)
 
         if error_msg.startswith("The operation lasted too long"):
             error_msg = "The operation lasted too long"
 
-        # TODO: we'd probably need to read XML-based JTL file with all the flags
-        # to extract items like 'response body' or 'request headers'
+        request_body = sample_elem.findtext("queryString")
+        response_body = sample_elem.findtext("responseData")
+        request_cookies = sample_elem.findtext("cookies")
+        response_cookies = ""  # TODO: filter out `Set-Cookie` headers from response headers?
+        request_headers = sample_elem.findtext("requestHeader")
+        response_headers = sample_elem.findtext("responseHeader")
+        method = sample_elem.findtext("method")
+        uri = sample_elem.findtext("java.net.URL")  # smells like Java automarshalling
+
+
         extras = {
-            "responseCode": elem.get("rc"),
-            "responseMessage": elem.get("rm"),
-            "responseTime": elem.get("ts"),
-            "connectTime": elem.get("ct"),
-            "latency": elem.get("lt"),
-            "responseSize": elem.get("by"),
+            "responseCode": sample_elem.get("rc"),
+            "responseMessage": sample_elem.get("rm"),
+            "responseTime": sample_elem.get("ts"),
+            "connectTime": sample_elem.get("ct"),
+            "latency": sample_elem.get("lt"),
+            "responseSize": sample_elem.get("by"),
+            "requestSize": sample_elem.get("sby"),
+            "requestMethod": method,
+            "requestURI": uri,
+
+            "assertions": [],  # TODO
+
+            "responseBodySize": len(response_body),
+            "requestBodySize": len(request_body),
+            "requestCookiesSize": len(request_cookies),
+            "responseCookiesSize": len(response_cookies),
+            "requestHeadersSize": len(request_headers),
+            "responseHeadersSize": len(response_headers),
+
+            # dump to files
+            "requestBody": request_body,
+            "responseBody": response_body,
+            "requestCookies": request_cookies,
+            "responseCookies": response_cookies,
+            "requestHeaders": request_headers,
+            "responseHeaders": response_headers,
         }
 
         return FunctionalSample(test_case=label, test_suite=suite_name, status=status,
