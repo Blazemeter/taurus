@@ -1881,7 +1881,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_functional_reader_pass(self):
         engine_obj = EngineEmul()
         obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/resource-errors-no-fail.jtl",
-                            engine_obj.artifacts_dir,
+                            engine_obj,
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(2, len(samples))
@@ -1897,7 +1897,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_functional_reader_failed(self):
         engine_obj = EngineEmul()
         obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl",
-                            engine_obj.artifacts_dir,
+                            engine_obj,
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(185, len(samples))
@@ -1912,7 +1912,7 @@ class TestJMeterExecutor(BZTestCase):
     def test_functional_reader_broken(self):
         engine_obj = EngineEmul()
         obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl",
-                            engine_obj.artifacts_dir,
+                            engine_obj,
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(185, len(samples))
@@ -1928,18 +1928,18 @@ class TestJMeterExecutor(BZTestCase):
     def test_functional_reader_extras(self):
         engine_obj = EngineEmul()
         obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/trace.jtl",
-                            engine_obj.artifacts_dir,
+                            engine_obj,
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(1, len(samples))
         sample = samples[0]
         self.assertIsNotNone(sample.extras)
         fields = [
-            'id', 'assertions', 'connectTime', 'latency',
+            'assertions', 'connectTime', 'latency', 'responseTime',
             'requestBody', 'requestBodySize', 'requestCookies', 'requestCookiesSize', 'requestHeaders',
             'requestHeadersSize', 'requestMethod', 'requestSize', 'requestURI',
             'responseBody', 'responseBodySize', 'responseCode', 'responseHeaders', 'responseHeadersSize',
-            'responseMessage', 'responseSize', 'responseTime'
+            'responseMessage', 'responseSize',
         ]
         for field in set(fields) - set(FuncJTLReader.FILE_EXTRACTED_FIELDS):
             self.assertIn(field, sample.extras)
@@ -1949,18 +1949,18 @@ class TestJMeterExecutor(BZTestCase):
     def test_functional_reader_artifact_files(self):
         engine_obj = EngineEmul()
         obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/trace.jtl",
-                            engine_obj.artifacts_dir,
+                            engine_obj,
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(1, len(samples))
-        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-0-requestHeaders.bin")))
-        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-0-responseHeaders.bin")))
-        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-0-responseBody.bin")))
+        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-requestHeaders.bin")))
+        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-responseHeaders.bin")))
+        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-responseBody.bin")))
 
     def test_functional_reader_extras_assertions(self):
         engine_obj = EngineEmul()
         obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/trace.jtl",
-                            engine_obj.artifacts_dir,
+                            engine_obj,
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(1, len(samples))
