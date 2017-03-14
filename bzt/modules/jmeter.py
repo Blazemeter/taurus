@@ -1060,7 +1060,7 @@ class FuncJTLReader(FunctionalResultsReader):
 
         for _, elem in self.parser.read_events():
             if elem.getparent() is not None and elem.getparent().tag == 'testResults':
-                sample = self.__extract_sample(elem)
+                sample = self._extract_sample(elem)
                 self.read_records += 1
 
                 elem.clear()
@@ -1069,34 +1069,11 @@ class FuncJTLReader(FunctionalResultsReader):
 
                 yield sample
 
-    def __write_sample_data(self, filename, contents):
+    def _write_sample_data(self, filename, contents):
         with open(os.path.join(self.artifacts_dir, filename), 'wb') as fds:
             fds.write(contents.encode('utf-8'))
 
-    def __extract_sample(self, sample_elem):
-        tstmp = int(float(sample_elem.get("ts")) / 1000)
-        label = sample_elem.get("lb")
-        suite_name = "JMeter"  # FIXME: we have better thing to put here, such as JMX name/executor label
-        duration = float(sample_elem.get("t")) / 1000.0
-        success = sample_elem.get("s") == "true"
-
-        if success:
-            status = "PASSED"
-            error_msg = ""
-            error_trace = ""
-        else:
-            assertion = self.__get_failed_assertion(sample_elem)
-            if assertion is not None:
-                status = "FAILED"
-                error_msg = assertion.find("failureMessage").text
-                error_trace = ""
-            else:
-                status = "BROKEN"
-                error_msg, error_trace = self.get_failure(sample_elem)
-
-        if error_msg.startswith("The operation lasted too long"):
-            error_msg = "The operation lasted too long"
-
+    def _extract_sample_extras(self, sample_elem):
         method = sample_elem.findtext("method")
         uri = sample_elem.findtext("java.net.URL")  # smells like Java automarshalling
 
@@ -1128,11 +1105,40 @@ class FuncJTLReader(FunctionalResultsReader):
         sample_extras["requestHeadersSize"] = len(sample_extras["requestHeaders"])
         sample_extras["responseHeadersSize"] = len(sample_extras["responseHeaders"])
 
+        return sample_extras
+
+    def __write_sample_data_to_artifacts(self, sample_extras):
         for file_field in ["requestBody", "responseBody", "requestCookies", "requestHeaders", "responseHeaders"]:
             if sample_extras[file_field]:
                 filename = "sample-%d-%s.bin" % (self.__sample_cnt, file_field)
-                self.__write_sample_data(filename, sample_extras[file_field])
+                self._write_sample_data(filename, sample_extras[file_field])
 
+    def _extract_sample(self, sample_elem):
+        tstmp = int(float(sample_elem.get("ts")) / 1000)
+        label = sample_elem.get("lb")
+        suite_name = "JMeter"  # FIXME: we have better thing to put here, such as JMX name/executor label
+        duration = float(sample_elem.get("t")) / 1000.0
+        success = sample_elem.get("s") == "true"
+
+        if success:
+            status = "PASSED"
+            error_msg = ""
+            error_trace = ""
+        else:
+            assertion = self.__get_failed_assertion(sample_elem)
+            if assertion is not None:
+                status = "FAILED"
+                error_msg = assertion.find("failureMessage").text
+                error_trace = ""
+            else:
+                status = "BROKEN"
+                error_msg, error_trace = self.get_failure(sample_elem)
+
+        if error_msg.startswith("The operation lasted too long"):
+            error_msg = "The operation lasted too long"
+
+        sample_extras = self._extract_sample_extras(sample_elem)
+        self.__write_sample_data_to_artifacts(sample_extras)
         self.__sample_cnt += 1
 
         return FunctionalSample(test_case=label, test_suite=suite_name, status=status,
