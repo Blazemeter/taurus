@@ -1119,19 +1119,16 @@ class FuncJTLReader(FunctionalResultsReader):
         sample_extras["requestBody"] = sample_elem.findtext("queryString")
         sample_extras["responseBody"] = sample_elem.findtext("responseData")
         sample_extras["requestCookies"] = sample_elem.findtext("cookies")
-        sample_extras["responseCookies"] = ""  # TODO: filter out `Set-Cookie` headers from response headers?
         sample_extras["requestHeaders"] = sample_elem.findtext("requestHeader")
         sample_extras["responseHeaders"] = sample_elem.findtext("responseHeader")
 
         sample_extras["requestBodySize"] = len(sample_extras["requestBody"])
         sample_extras["responseBodySize"] = len(sample_extras["responseBody"])
         sample_extras["requestCookiesSize"] = len(sample_extras["requestCookies"])
-        sample_extras["responseCookiesSize"] = len(sample_extras["responseCookies"])
         sample_extras["requestHeadersSize"] = len(sample_extras["requestHeaders"])
         sample_extras["responseHeadersSize"] = len(sample_extras["responseHeaders"])
 
-        for file_field in ["requestBody", "responseBody", "requestCookies",
-                           "responseCookies", "requestHeaders", "responseHeaders"]:
+        for file_field in ["requestBody", "responseBody", "requestCookies", "requestHeaders", "responseHeaders"]:
             if sample_extras[file_field]:
                 filename = "sample-%d-%s.bin" % (self.__sample_cnt, file_field)
                 self.__write_sample_data(filename, sample_extras[file_field])
