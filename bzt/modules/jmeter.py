@@ -1472,15 +1472,11 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     def __add_think_time(self, children, req):
-        global_ttime = self.scenario.get("think-time", None)
-        if req.think_time is not None:
-            ttime = self.smart_time(req.think_time)
-        elif global_ttime is not None:
-            ttime = self.smart_time(global_ttime)
-        else:
-            ttime = None
-        if ttime is not None:
-            children.append(JMX._get_constant_timer(ttime))
+        think_time = req.think_time
+        if think_time is None:  # request option is a priority
+            think_time = self.scenario.get("think-time", None)
+        if think_time is not None:
+            children.append(JMX._get_constant_timer(self.smart_time(think_time)))
             children.append(etree.Element("hashTree"))
 
     def __add_extractors(self, children, req):
@@ -1517,7 +1513,8 @@ class JMeterScenarioBuilder(JMX):
                                                      cfg.get('use-tolerant-parser', False)))
             children.append(etree.Element("hashTree"))
 
-    def __add_assertions(self, children, req):
+    @staticmethod
+    def __add_assertions(children, req):
         assertions = req.config.get("assert", [])
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
@@ -1557,7 +1554,8 @@ class JMeterScenarioBuilder(JMX):
             children.append(component)
             children.append(etree.Element("hashTree"))
 
-    def __add_jsr_elements(self, children, req):
+    @staticmethod
+    def __add_jsr_elements(children, req):
         """
         :type children: etree.Element
         :type req: Request
@@ -1613,20 +1611,19 @@ class JMeterScenarioBuilder(JMX):
         :type request: HierarchicHTTPRequest
         :return:
         """
-        global_timeout = self.scenario.get("timeout", None)
-        global_keepalive = self.scenario.get("keepalive", True)
-        global_follow_redirects = self.scenario.get("follow-redirects", True)
-
-        if request.timeout is not None:
-            timeout = self.smart_time(request.timeout)
-        elif global_timeout is not None:
-            timeout = self.smart_time(global_timeout)
-        else:
-            timeout = None
+        timeout = request.timeout
+        if timeout is None:                 # request option is a priority
+            timeout = self.scenario.get("timeout", None)
+        if timeout is not None:
+            timeout = self.smart_time(timeout)
 
         follow_redirects = request.follow_redirects
+        if follow_redirects is None:        # request option is a priority
+            follow_redirects = self.scenario.get("follow-redirects", None)
         if follow_redirects is None:
-            follow_redirects = global_follow_redirects
+            follow_redirects = True
+
+        keepalive = self.scenario.get("keepalive", True)
 
         content_type = self._get_merged_ci_headers(request, 'content-type')
         if content_type == 'application/json' and isinstance(request.body, (dict, list)):
@@ -1634,7 +1631,7 @@ class JMeterScenarioBuilder(JMX):
         else:
             body = request.body
 
-        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, global_keepalive,
+        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, keepalive,
                                      request.upload_files, request.content_encoding, follow_redirects)
 
         children = etree.Element("hashTree")
