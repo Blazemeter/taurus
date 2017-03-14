@@ -1075,6 +1075,17 @@ class FuncJTLReader(FunctionalResultsReader):
         with open(os.path.join(self.artifacts_dir, filename), 'wb') as fds:
             fds.write(contents.encode('utf-8'))
 
+    def _extract_sample_assertions(self, sample_elem):
+        assertions = []
+        for result in sample_elem.findall("assertionResult"):
+            name = result.findtext("name")
+            failed = result.findtext("failure") == "true" or result.findtext("error") == "true"
+            error_message = ""
+            if failed:
+                error_message = result.findtext("failureMessage")
+            assertions.append({"name": name, "isFailed": failed, "errorMessage": error_message})
+        return assertions
+
     def _extract_sample_extras(self, sample_elem):
         method = sample_elem.findtext("method")
         uri = sample_elem.findtext("java.net.URL")  # smells like Java automarshalling
@@ -1092,7 +1103,7 @@ class FuncJTLReader(FunctionalResultsReader):
             "requestMethod": method,
             "requestURI": uri,
 
-            "assertions": [],  # TODO
+            "assertions": self._extract_sample_assertions(sample_elem),
         }
 
         sample_extras["requestBody"] = sample_elem.findtext("queryString")

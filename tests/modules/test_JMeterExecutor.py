@@ -1931,7 +1931,7 @@ class TestJMeterExecutor(BZTestCase):
                             engine_obj.artifacts_dir,
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
-        self.assertEqual(2, len(samples))
+        self.assertEqual(1, len(samples))
         sample = samples[0]
         self.assertIsNotNone(sample.extras)
         fields = [
@@ -1952,12 +1952,30 @@ class TestJMeterExecutor(BZTestCase):
                             engine_obj.artifacts_dir,
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
-        self.assertEqual(2, len(samples))
+        self.assertEqual(1, len(samples))
         for i, sample in enumerate(samples):
             for field in FuncJTLReader.FILE_EXTRACTED_FIELDS:
                 if sample.extras[field]:
                     filename = os.path.join(engine_obj.artifacts_dir, "sample-%d-%s.bin" % (i, field))
                     self.assertTrue(os.path.exists(filename))
+
+    def test_functional_reader_extras_assertions(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/trace.jtl",
+                            engine_obj.artifacts_dir,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(1, len(samples))
+        sample = samples[0]
+        self.assertIsNotNone(sample.extras)
+        self.assertEqual(len(sample.extras["assertions"]), 2)
+        first, second = sample.extras["assertions"]
+        self.assertEqual(first, {"name": 'Passing Assertion',
+                                 "isFailed": False,
+                                 "errorMessage": ""})
+        self.assertEqual(second, {"name": 'Failing Assertion',
+                                 "isFailed": True,
+                                 "errorMessage": "Test failed: text expected to contain /something/"})
 
     def test_jsr223_block(self):
         script = __dir__() + "/../jmeter/jsr223_script.js"
