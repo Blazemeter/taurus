@@ -1974,8 +1974,8 @@ class TestJMeterExecutor(BZTestCase):
                                  "isFailed": False,
                                  "errorMessage": ""})
         self.assertEqual(second, {"name": 'Failing Assertion',
-                                 "isFailed": True,
-                                 "errorMessage": "Test failed: text expected to contain /something/"})
+                                  "isFailed": True,
+                                  "errorMessage": "Test failed: text expected to contain /something/"})
 
     def test_jsr223_block(self):
         script = __dir__() + "/../jmeter/jsr223_script.js"
