@@ -1098,22 +1098,22 @@ class FuncJTLReader(FunctionalResultsReader):
 
             "responseCode": sample_elem.get("rc"),
             "responseMessage": sample_elem.get("rm"),
-            "responseTime": int(sample_elem.get("t")),
-            "connectTime": int(sample_elem.get("ct")),
-            "latency": int(sample_elem.get("lt")),
-            "responseSize": int(sample_elem.get("by")),
-            "requestSize": int(sample_elem.get("sby")),
+            "responseTime": int(sample_elem.get("t") or 0),
+            "connectTime": int(sample_elem.get("ct") or 0),
+            "latency": int(sample_elem.get("lt") or 0),
+            "responseSize": int(sample_elem.get("by") or 0),
+            "requestSize": int(sample_elem.get("sby") or 0),
             "requestMethod": method,
             "requestURI": uri,
 
             "assertions": self._extract_sample_assertions(sample_elem),
-        }
 
-        sample_extras["requestBody"] = sample_elem.findtext("queryString")
-        sample_extras["responseBody"] = sample_elem.findtext("responseData")
-        sample_extras["requestCookies"] = sample_elem.findtext("cookies")
-        sample_extras["requestHeaders"] = sample_elem.findtext("requestHeader")
-        sample_extras["responseHeaders"] = sample_elem.findtext("responseHeader")
+            "requestBody": sample_elem.findtext("queryString"),
+            "responseBody": sample_elem.findtext("responseData"),
+            "requestCookies": sample_elem.findtext("cookies"),
+            "requestHeaders": sample_elem.findtext("requestHeader"),
+            "responseHeaders": sample_elem.findtext("responseHeader")
+        }
 
         sample_extras["requestBodySize"] = len(sample_extras["requestBody"])
         sample_extras["responseBodySize"] = len(sample_extras["responseBody"])

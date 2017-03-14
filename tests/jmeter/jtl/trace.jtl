@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testResults version="1.2">
-<httpSample t="388" lt="388" ts="1489492771539" s="false" lb="blazedemo-index" rc="200" rm="OK" tn="ThreadGroup 1-1" dt="text" de="UTF-8" by="7876" ng="1" na="1">
+<httpSample t="388" lt="388" ts="1489492771539" s="false" lb="blazedemo-index" rc="200" rm="OK" tn="ThreadGroup 1-1" dt="text" de="UTF-8" by="7876" sby="123" ct="123" ng="1" na="1">
   <assertionResult>
     <name>Passing Assertion</name>
     <failure>false</failure>
