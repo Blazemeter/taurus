@@ -2,7 +2,8 @@
 
 Gatling is load testing tool which most famous as choice for testing of HTTP servers.
 
-In Taurus you have two way for run it: with native gatling script or with usual Taurus features: `requests`, `iterations`, etc. In last case scala script will be generated automatically.
+In Taurus you have two way for run it: with native gatling script or with usual Taurus features: `requests`,
+`iterations`, etc. In last case scala script will be generated automatically.
 
 ## Run Gatling Tool
 
@@ -18,12 +19,16 @@ scenarios:
     keepalive: true
 ```
 
-The `simulation` option is canonical class name for main simulation class. It will be passed as-is to gatling with `-s` option.
-Also you can use `keepalive` scenario attribute to set appropriate HTTP feature. 
+The `simulation` option is canonical class name for main simulation class. It will be passed as-is to gatling
+with `-s` option.
+Also you can use `keepalive` and `timeout` scenario attributes to set appropriate HTTP feature and
+limit request time accordingly.
 
 ## Load Configuration
 
-Taurus supports possibility to send values of execution options `concurrency`, `iterations`, `ramp-up` `hold-for` and `throughput` to Gatling test script. Below you can see how you can use these parameters on the Gatling side to set up your test:
+Taurus supports possibility to send values of execution options `concurrency`, `iterations`, `ramp-up` `hold-for`
+and `throughput` to Gatling test script. Below you can see how you can use these parameters on the Gatling side
+to set up your test:
 
 ```scala
 package tests.gatling
@@ -65,7 +70,8 @@ class BasicSimulation extends Simulation {
 
 ## Running Complex Gatling Test Suites
 
-If your Gatling test suite is really huge or has dependencies on other files - you can bundle it in a jar (with the help of sbt or Maven) and then run this jar with Taurus. Just specify it as a `script` value in scenario.
+If your Gatling test suite is really huge or has dependencies on other files - you can bundle it in a jar
+(with the help of sbt or Maven) and then run this jar with Taurus. Just specify it as a `script` value in scenario.
 
 ```yaml
 execution:
@@ -80,10 +86,16 @@ scenarios:
 
 ## Building Test Script from Config
 
-If your scenario don't contains `script` parameter and contains at least one element of `requests` Taurus will build scala script for test. This script will be placed in `[artifact-dir](ConfigSyntax/#Top-Level-Settings)`: you can modify it and use with Gatling later.
+If your scenario don't contains `script` parameter and contains at least one element of `requests` Taurus will build
+scala script for test. This script will be placed in `[artifact-dir](ConfigSyntax/#Top-Level-Settings)`:
+you can modify it and use with Gatling later.
 
-Following features are supported: `default-address`, `requests`, `headers` on scenario and request levels, `body` of request, `think-time` and params that described in `[Load Configuration](#Load-Configuration)`.
-Some asserts can be added to request. Assert describes templates and area for search (`contains` and `subject` accordingly), regexp and inverse marks. You can look for particular response code in `http-code` part or for string and regular expression in `body` of request.
+Following features are supported: request generation, `default-address`, `follow-redirect`, `headers`, `think-time`
+on scenario and request levels, `body` of request and params that described in
+`[Load Configuration](#Load-Configuration)`.
+Some asserts can be added to request. Assert describes templates and area for search (`contains` and `subject`
+accordingly), regexp and inverse marks. You can look for particular response code in `http-code` part or for string
+and regular expression in `body` of request.
  Next yaml example shows the way these features can be used and ready to conversion to scala automatically:
 
 ```yaml
@@ -110,6 +122,7 @@ scenarios:
         contains: # expression list for assertion (mandatory)
         - .+sometext.+  
       body: 'Some Body Data'
+      follow-redirect: false    #   true by default
       headers:
         HEADER_11: VALUE_11
     - url: /reserve.php
@@ -123,7 +136,8 @@ scenarios:
 
 ## Configuration Options
 
- Similar to other modules there is possibility of global configuration Gatling Executor by write some lines in `gatling` branch of modules setting. Next options can be set:
+ Similar to other modules there is possibility of global configuration Gatling Executor by write some lines in
+ `gatling` branch of modules setting. Next options can be set:
  - `path`: "/somepath/folder/bin/gatling_executable"
     Path to Gatling executable.
     If no Gatling executable found, it will be automatically downloaded and installed in "path".
@@ -138,7 +152,8 @@ scenarios:
  -  `version`: "2.1.7"
     Gatling version, 2.1.7 by default
 
- - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling documentation) and sending your own variables into Scala program:
+ - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling
+ documentation) and sending your own variables into Scala program:
 
 ```yaml
 modules:
@@ -157,7 +172,8 @@ class BasicSimulation extends Simulation {
 
 ## External Java Libraries Usage
 
-Thanks to Taurus you can use additional Java classes in your scala code. For this add required jar files or contained dir to `files` list:
+Thanks to Taurus you can use additional Java classes in your scala code. For this add required jar files or
+contained dir to `files` list:
 
 ```yaml
 execution:
