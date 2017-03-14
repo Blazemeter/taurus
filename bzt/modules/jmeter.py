@@ -154,6 +154,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         else:
             raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
+        if isinstance(self.engine.aggregator, FunctionalAggregator):
+            self.settings.merge({"xml-jtl-flags": {"connectTime": True, "sentBytes": True}})
+
         load = self.get_load()
 
         modified = self.__get_modified_jmx(self.original_jmx, load)
@@ -173,7 +176,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.engine.aggregator.add_underling(self.reader)
         elif isinstance(self.engine.aggregator, FunctionalAggregator):
-            self.reader = FuncJTLReader(self.log_jtl, self.log)
+            self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.engine.aggregator.add_underling(self.reader)
 
@@ -1010,12 +1013,15 @@ class FuncJTLReader(FunctionalResultsReader):
     :type parent_logger: logging.Logger
     """
 
-    def __init__(self, filename, parent_logger):
+    FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookies", "requestHeaders", "responseHeaders"]
+
+    def __init__(self, filename, engine, parent_logger):
         super(FuncJTLReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
         self.offset = 0
         self.filename = filename
+        self.engine = engine
         self.fds = None
         self.failed_processing = False
         self.read_records = 0
@@ -1058,7 +1064,7 @@ class FuncJTLReader(FunctionalResultsReader):
 
         for _, elem in self.parser.read_events():
             if elem.getparent() is not None and elem.getparent().tag == 'testResults':
-                sample = self.__extract_sample(elem)
+                sample = self._extract_sample(elem)
                 self.read_records += 1
 
                 elem.clear()
@@ -1067,34 +1073,94 @@ class FuncJTLReader(FunctionalResultsReader):
 
                 yield sample
 
-    def __extract_sample(self, elem):
-        tstmp = int(float(elem.get("ts")) / 1000)
-        label = elem.get("lb")
+    def _write_sample_data(self, filename, contents):
+        artifact = self.engine.create_artifact(filename, ".bin")
+        with open(artifact, 'wb') as fds:
+            fds.write(contents.encode('utf-8'))
+        return artifact
+
+    def _extract_sample_assertions(self, sample_elem):
+        assertions = []
+        for result in sample_elem.findall("assertionResult"):
+            name = result.findtext("name")
+            failed = result.findtext("failure") == "true" or result.findtext("error") == "true"
+            error_message = ""
+            if failed:
+                error_message = result.findtext("failureMessage")
+            assertions.append({"name": name, "isFailed": failed, "errorMessage": error_message})
+        return assertions
+
+    def _extract_sample_extras(self, sample_elem):
+        method = sample_elem.findtext("method")
+        uri = sample_elem.findtext("java.net.URL")  # smells like Java automarshalling
+
+        sample_extras = {
+            "responseCode": sample_elem.get("rc"),
+            "responseMessage": sample_elem.get("rm"),
+            "responseTime": int(sample_elem.get("t") or 0),
+            "connectTime": int(sample_elem.get("ct") or 0),
+            "latency": int(sample_elem.get("lt") or 0),
+            "responseSize": int(sample_elem.get("by") or 0),
+            "requestSize": int(sample_elem.get("sby") or 0),
+            "requestMethod": method,
+            "requestURI": uri,
+
+            "assertions": self._extract_sample_assertions(sample_elem),
+
+            "requestBody": sample_elem.findtext("queryString"),
+            "responseBody": sample_elem.findtext("responseData"),
+            "requestCookies": sample_elem.findtext("cookies"),
+            "requestHeaders": sample_elem.findtext("requestHeader"),
+            "responseHeaders": sample_elem.findtext("responseHeader")
+        }
+
+        sample_extras["requestBodySize"] = len(sample_extras["requestBody"])
+        sample_extras["responseBodySize"] = len(sample_extras["responseBody"])
+        sample_extras["requestCookiesSize"] = len(sample_extras["requestCookies"])
+        sample_extras["requestHeadersSize"] = len(sample_extras["requestHeaders"])
+        sample_extras["responseHeadersSize"] = len(sample_extras["responseHeaders"])
+
+        return sample_extras
+
+    def __write_sample_data_to_artifacts(self, sample_extras):
+        for file_field in self.FILE_EXTRACTED_FIELDS:
+            contents = sample_extras.pop(file_field)
+            if contents:
+                filename = "sample-%s" % file_field
+                artifact = self._write_sample_data(filename, contents)
+                sample_extras[file_field] = artifact
+
+    def _extract_sample(self, sample_elem):
+        tstmp = int(float(sample_elem.get("ts")) / 1000)
+        label = sample_elem.get("lb")
         suite_name = "JMeter"  # FIXME: we have better thing to put here, such as JMX name/executor label
-        duration = float(elem.get("t")) / 1000.0
-        success = elem.get("s") == "true"
+        duration = float(sample_elem.get("t")) / 1000.0
+        success = sample_elem.get("s") == "true"
 
         if success:
             status = "PASSED"
             error_msg = ""
             error_trace = ""
         else:
-            assertion = self.__get_failed_assertion(elem)
+            assertion = self.__get_failed_assertion(sample_elem)
             if assertion is not None:
                 status = "FAILED"
                 error_msg = assertion.find("failureMessage").text
                 error_trace = ""
             else:
                 status = "BROKEN"
-                error_msg, error_trace = self.get_failure(elem)
+                error_msg, error_trace = self.get_failure(sample_elem)
 
         if error_msg.startswith("The operation lasted too long"):
             error_msg = "The operation lasted too long"
 
+        sample_extras = self._extract_sample_extras(sample_elem)
+        self.__write_sample_data_to_artifacts(sample_extras)
+
         return FunctionalSample(test_case=label, test_suite=suite_name, status=status,
                                 start_time=tstmp, duration=duration,
                                 error_msg=error_msg, error_trace=error_trace,
-                                extras=None)
+                                extras=sample_extras)
 
     def get_failure(self, element):
         """

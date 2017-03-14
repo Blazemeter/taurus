@@ -1879,7 +1879,10 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(functional_switch.text, "true")
 
     def test_functional_reader_pass(self):
-        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/resource-errors-no-fail.jtl", logging.getLogger(''))
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/resource-errors-no-fail.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(2, len(samples))
         first = samples[0]
@@ -1892,7 +1895,10 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(first.error_trace, "")
 
     def test_functional_reader_failed(self):
-        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl", logging.getLogger(''))
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(185, len(samples))
         first = samples[0]
@@ -1904,7 +1910,10 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(first.error_msg, "The operation lasted too long")
 
     def test_functional_reader_broken(self):
-        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl", logging.getLogger(''))
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/standard-errors.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(185, len(samples))
         sample = samples[8]
@@ -1915,6 +1924,56 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(sample.duration, 0.01)
         self.assertEqual(sample.error_msg, "Non HTTP response message: Read timed out")
         self.assertTrue(sample.error_trace.startswith("java.net.SocketTimeoutException: Read timed out"))
+
+    def test_functional_reader_extras(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/trace.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(1, len(samples))
+        sample = samples[0]
+        self.assertIsNotNone(sample.extras)
+        fields = [
+            'assertions', 'connectTime', 'latency', 'responseTime',
+            'requestBody', 'requestBodySize', 'requestCookies', 'requestCookiesSize', 'requestHeaders',
+            'requestHeadersSize', 'requestMethod', 'requestSize', 'requestURI',
+            'responseBody', 'responseBodySize', 'responseCode', 'responseHeaders', 'responseHeadersSize',
+            'responseMessage', 'responseSize',
+        ]
+        for field in set(fields) - set(FuncJTLReader.FILE_EXTRACTED_FIELDS):
+            self.assertIn(field, sample.extras)
+        self.assertEqual(sample.extras["requestURI"], "http://blazedemo.com/")
+        self.assertEqual(sample.extras["requestMethod"], "GET")
+
+    def test_functional_reader_artifact_files(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/trace.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(1, len(samples))
+        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-requestHeaders.bin")))
+        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-responseHeaders.bin")))
+        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-responseBody.bin")))
+
+    def test_functional_reader_extras_assertions(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/trace.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(1, len(samples))
+        sample = samples[0]
+        self.assertIsNotNone(sample.extras)
+        self.assertEqual(len(sample.extras["assertions"]), 2)
+        first, second = sample.extras["assertions"]
+        self.assertEqual(first, {"name": 'Passing Assertion',
+                                 "isFailed": False,
+                                 "errorMessage": ""})
+        self.assertEqual(second, {"name": 'Failing Assertion',
+                                  "isFailed": True,
+                                  "errorMessage": "Test failed: text expected to contain /something/"})
 
     def test_jsr223_block(self):
         script = __dir__() + "/../jmeter/jsr223_script.js"
