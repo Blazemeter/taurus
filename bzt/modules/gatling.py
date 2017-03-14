@@ -98,7 +98,10 @@ class GatlingScriptBuilder(object):
                 think_time = int(dehumanize_time(think_time))
             else:
                 think_time = 0
-            exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
+
+            exec_str += '\t\t)'
+            if think_time:
+                exec_str += '.pause(%(think_time)s)' % {'think_time': think_time}
 
         return exec_str
 
