@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import csv
 import fnmatch
 import json
@@ -25,7 +26,6 @@ import socket
 import subprocess
 import tempfile
 import time
-import copy
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
@@ -1070,7 +1070,7 @@ class FuncJTLReader(FunctionalResultsReader):
     def __extract_sample(self, elem):
         tstmp = int(float(elem.get("ts")) / 1000)
         label = elem.get("lb")
-        suite_name = "JMeter"
+        suite_name = "JMeter"  # FIXME: we have better thing to put here, such as JMX name/executor label
         duration = float(elem.get("t")) / 1000.0
         success = elem.get("s") == "true"
 
