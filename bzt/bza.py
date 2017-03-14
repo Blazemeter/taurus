@@ -219,7 +219,7 @@ class Workspace(BZAObject):
         res = []
         for loc in self['locations']:
             if not loc['id'].startswith('harbor-') or include_private:
-                res.append(loc)
+                res.append(Location(self, loc))
 
         return BZAObjectsList(res)
 

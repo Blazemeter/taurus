@@ -193,7 +193,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.log.parent.addHandler(handler)
         obj.engine.config.get('modules').get('shellexec').get('env')['TAURUS_INDEX_ALL'] = 1
         obj.post_process()
-        self.assertEqual(24, len(mock.requests))
+        self.assertEqual(22, len(mock.requests))
         obj.engine.log.parent.removeHandler(handler)
 
     def test_monitoring_buffer_limit_option(self):

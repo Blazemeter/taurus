@@ -935,7 +935,7 @@ class BaseCloudTest(object):
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
         available_locations = {}
-        for loc in self._workspaces.locations(include_private=TAURUS_TEST_TYPE == 'taurus'):  # FIXME: weird
+        for loc in self._workspaces.locations(include_private=TAURUS_TEST_TYPE != 'taurus'):  # FIXME: weird
             available_locations[loc['id']] = loc
 
         if CloudProvisioning.LOC in engine_config:
