@@ -153,6 +153,8 @@ class TestBlazeMeterUploader(BZTestCase):
                 {"result": True},
                 {"result": True},
                 {"result": True},
+                {"result": True},
+                {"result": True},
             ],
             'https://a.blazemeter.com/api/v4/data/masters/1/custom-metrics': [
                 IOError("custom metric push expected fail"),
@@ -191,7 +193,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.log.parent.addHandler(handler)
         obj.engine.config.get('modules').get('shellexec').get('env')['TAURUS_INDEX_ALL'] = 1
         obj.post_process()
-        self.assertEqual(22, len(mock.requests))
+        self.assertEqual(24, len(mock.requests))
         obj.engine.log.parent.removeHandler(handler)
 
     def test_monitoring_buffer_limit_option(self):
@@ -315,7 +317,7 @@ class TestBlazeMeterUploader(BZTestCase):
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
         self.assertIn(log_line, log_buff)
         logging.warning("\n".join([x['url'] for x in mock.requests]))
-        self.assertEqual(14, len(mock.requests))
+        self.assertEqual(16, len(mock.requests))
 
     def test_new_project_existing_test(self):
         obj = BlazeMeterUploader()
@@ -385,8 +387,8 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings['browser-open'] = 'none'
         obj.engine = EngineEmul()
         obj.prepare()
-        self.assertEquals('https://a.blazemeter.com/api/v4/tests', mock.requests[5]['url'])
-        self.assertEquals('POST', mock.requests[5]['method'])
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests', mock.requests[6]['url'])
+        self.assertEquals('POST', mock.requests[6]['method'])
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):

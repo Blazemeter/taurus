@@ -22,13 +22,13 @@ import platform
 import sys
 import time
 import traceback
-import yaml
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from functools import wraps
 from ssl import SSLError
 
+import yaml
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
@@ -45,7 +45,7 @@ from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_
     ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
 
-TAURUS_TEST_TYPE = "taurus"
+TAURUS_TEST_TYPE = "taurus engine"
 
 
 def send_with_retry(method):
@@ -141,7 +141,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
                 raise
 
             if token:
-                finder = ProjectFinder(self.parameters, self.settings, self._user, self.log)
+                wsp = self._user.accounts().workspaces()
+                finder = ProjectFinder(self.parameters, self.settings, self._user, wsp, self.log)
                 self._test = finder.resolve_external_test()
             else:
                 self._test = Test(self._user, {'id': None})
@@ -776,14 +777,14 @@ class ProjectFinder(object):
     :type user: User
     """
 
-    def __init__(self, parameters, settings, user, parent_log):
+    def __init__(self, parameters, settings, user, workspaces, parent_log):
         super(ProjectFinder, self).__init__()
         self.default_test_name = "Taurus Test"
         self.parameters = parameters
         self.settings = settings
         self.log = parent_log.getChild(self.__class__.__name__)
         self.user = user
-        self.workspaces = self.user.accounts().workspaces()  # TODO: would be better to get it from outside
+        self.workspaces = workspaces
 
     def _find_project(self, proj_name):
         """
@@ -859,7 +860,9 @@ class ProjectFinder(object):
                 test_class = CloudCollectionTest
 
         assert test_class is not None
-        return test_class(self.user, test, project, test_name, default_location, self.log)
+        router = test_class(self.user, test, project, test_name, default_location, self.log)
+        router._workspaces = self.workspaces
+        return router
 
     def _default_or_create_project(self, proj_name):
         if proj_name:
@@ -892,6 +895,7 @@ class BaseCloudTest(object):
         self._project = project
         self._test = test
         self.master = None
+        self._workspaces = None
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -930,10 +934,12 @@ class BaseCloudTest(object):
 
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        available_locations = self._user.available_locations()
+        available_locations = {}
+        for loc in self._workspaces.locations(include_private=TAURUS_TEST_TYPE == 'taurus'):  # FIXME: weird
+            available_locations[loc['id']] = loc
 
         if CloudProvisioning.LOC in engine_config:
-            self.log.warning("Deprecated test API doesn't support global locations")
+            self.log.warning("Deprecated test API doesn't support global locations")  # FIXME: not true for taurus3
 
         for executor in executors:
             if CloudProvisioning.LOC in executor.execution:
@@ -1317,6 +1323,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     :type user: bzt.bza.User
     :type results_reader: ResultsFromBZA
     :type router: BaseCloudTest
+    :type _workspaces: bzt.bza.BZAObjectsList[bzt.bza.Workspace]
     """
 
     LOC = "locations"
@@ -1337,6 +1344,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self._last_check_time = None
         self.public_report = False
         self.report_name = None
+        self._workspaces = []
 
     def _merge_with_blazemeter_config(self):
         if 'blazemeter' not in self.engine.config.get('modules'):
@@ -1349,25 +1357,18 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def prepare(self):
         self._merge_with_blazemeter_config()
-        if self.settings.get("dump-locations", False):
-            self.log.warning("Dumping available locations instead of running the test")
-            self._configure_client()
-            use_deprecated = self.settings.get("use-deprecated-api", True)
-            locations = self.user.available_locations(include_harbors=not use_deprecated)
-            for location_id in sorted(locations):
-                location = locations[location_id]
-                self.log.info("Location: %s\t%s", location_id, location['title'])
-            raise ManualShutdown("Done listing locations")
+        self._configure_client()
+        self._workspaces = self.user.accounts().workspaces()
+        self.__dump_locations_if_needed()
 
         super(CloudProvisioning, self).prepare()
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.detach = self.settings.get("detach", self.detach)
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
         self.public_report = self.settings.get("public-report", self.public_report)
-        self._configure_client()
         self._filter_reporting()
 
-        finder = ProjectFinder(self.parameters, self.settings, self.user, self.log)
+        finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
         self.router = finder.resolve_test_type()
         self.router.prepare_locations(self.executors, self.engine.config)
@@ -1389,6 +1390,19 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.results_reader = ResultsFromBZA()
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
+
+    def __dump_locations_if_needed(self):
+        if self.settings.get("dump-locations", False):
+            self.log.warning("Dumping available locations instead of running the test")
+            use_deprecated = self.settings.get("use-deprecated-api", True)
+            locations = {}
+            for loc in self._workspaces.locations(include_private=not use_deprecated):
+                locations[loc['id']] = loc
+
+            for location_id in sorted(locations):
+                location = locations[location_id]
+                self.log.info("Location: %s\t%s", location_id, location['title'])
+            raise ManualShutdown("Done listing locations")
 
     def _filter_reporting(self):
         reporting = self.engine.config.get(Reporter.REP, [])
@@ -1497,6 +1511,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 if not isinstance(service, dict):
                     service = {"module": service}
                 mod = service.get('module', TaurusConfigError("No 'module' specified for service"))
+                assert isinstance(mod, str)
                 module = self.engine.instantiate_module(mod)
                 if isinstance(module, ServiceStubCaptureHAR):
                     self._download_logs()
