@@ -1357,7 +1357,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def prepare(self):
         self._merge_with_blazemeter_config()
-        global TAURUS_TEST_TYPE # FIXME: remove temporary solution
+        global TAURUS_TEST_TYPE  # FIXME: remove temporary solution
         TAURUS_TEST_TYPE = self.settings.get("cloud-test-type", TAURUS_TEST_TYPE)
         self._configure_client()
         self._workspaces = self.user.accounts().workspaces()
