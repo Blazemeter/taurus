@@ -11,6 +11,7 @@ import psutil
 from urwid import Pile, Text
 from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service
+from bzt.modules.aggregator import DataPoint
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
 from bzt.six import iteritems, urlopen, urlencode
@@ -163,6 +164,8 @@ class LocalClient(MonitoringClient):
                 item['disk-read'] = metric_values.dru
             elif metric_name == 'disk-write':
                 item['disk-write'] = metric_values.dwu
+            elif metric_name == 'connections':
+                item['connections'] = metric_values.conn
             else:
                 self.log.warning('Wrong metric: %s', metric_name)
 
@@ -217,7 +220,7 @@ class LocalMonitor(object):
         :return: namedtuple
         """
         stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
-                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop'))
+                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop', 'conn'))
 
         net = psutil.net_io_counters()
         tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
@@ -236,12 +239,18 @@ class LocalMonitor(object):
             engine_loop = None
             disk_usage = None
 
+        conn = 0
+        buff = self.engine.aggregator.buffer
+        if buff:
+            last_kpi = buff[max(buff.keys())][-1][DataPoint.CURRENT]['']
+            conn = last_kpi.get_active_users()
+
         return stats(
             cpu=psutil.cpu_percent(),
             disk_usage=disk_usage,
             mem_usage=psutil.virtual_memory().percent,
             rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-            engine_loop=engine_loop
+            engine_loop=engine_loop, conn=conn
         )
 
     def __get_disk_counters(self):

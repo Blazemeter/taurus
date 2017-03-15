@@ -84,6 +84,11 @@ class KPISet(BetterDict):
             mycopy[key] = copy.deepcopy(val, memo)
         return mycopy
 
+    def get_active_users(self):
+        calculated_active = int(math.floor(self[KPISet.SAMPLE_COUNT] * self[KPISet.AVG_RESP_TIME]))
+        max_active = self[KPISet.CONCURRENCY]
+        return min(max_active, calculated_active)
+
     @staticmethod
     def error_item_skel(error, ret_c, cnt, errtype, urls):
         """

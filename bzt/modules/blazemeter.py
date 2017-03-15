@@ -571,9 +571,9 @@ class MonitoringBuffer(object):
                     }
 
                 for field, value in iteritems(item):
-                    if field in ('ts', 'interval'):
-                        continue
-                    if field.lower().startswith('cpu'):
+                    if field.lower().startswith('connections'):
+                        field = 'Connections'
+                    elif field.lower().startswith('cpu'):
                         field = 'CPU'
                     elif field.lower().startswith('mem'):
                         field = 'Memory'
@@ -598,7 +598,7 @@ class MonitoringBuffer(object):
                         "n": 1
                     }
 
-        kpis = {"Network I/O": "Network I/O", "Memory": "Memory", "CPU": "CPU"}
+        kpis = {"Network I/O": "Network I/O", "Memory": "Memory", "CPU": "CPU", "Connections": "Connections"}
         return {
             "reportInfo": {
                 "sessionId": session['id'],
