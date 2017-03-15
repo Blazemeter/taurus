@@ -93,6 +93,14 @@ class TestEngine(BZTestCase):
         self.obj.prepare()
         self.assertEqual(len(self.obj.config["execution"]), 2)
 
+    def test_json_format_regression(self):
+        configs = [
+            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/json/json-but-not-yaml.json"
+        ]
+        self.obj.configure(configs)
+        self.obj.prepare()
+
 
 class TestScenarioExecutor(BZTestCase):
     def setUp(self):
