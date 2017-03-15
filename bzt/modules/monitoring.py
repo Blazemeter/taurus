@@ -11,7 +11,6 @@ import psutil
 from urwid import Pile, Text
 from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service
-from bzt.modules.aggregator import DataPoint
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
 from bzt.six import iteritems, urlopen, urlencode
@@ -239,18 +238,12 @@ class LocalMonitor(object):
             engine_loop = None
             disk_usage = None
 
-        conn = 0
-        buff = self.engine.aggregator.buffer
-        if buff:
-            last_kpi = buff[max(buff.keys())][-1][DataPoint.CURRENT]['']
-            conn = last_kpi.get_active_users()
-
         return stats(
             cpu=psutil.cpu_percent(),
             disk_usage=disk_usage,
             mem_usage=psutil.virtual_memory().percent,
             rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-            engine_loop=engine_loop, conn_all=psutil.net_connections(kind="all")
+            engine_loop=engine_loop, conn_all=len(psutil.net_connections(kind="all"))
         )
 
     def __get_disk_counters(self):
