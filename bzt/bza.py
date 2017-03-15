@@ -35,8 +35,10 @@ class BZAObject(dict):
 
         # copy infrastructure from prototype
         if isinstance(proto, BZAObject):
-            attrs = set(dir(BZAObject())) - set(dir(super(BZAObject)))  # get only BZAObject attrs
-            for attr in attrs:
+            attrs_own = set(dir(BZAObject()))
+            attrs_parent = set(dir(BZAObject.__bases__[0]()))
+            attrs_diff = attrs_own - attrs_parent  # get only BZAObject attrs
+            for attr in attrs_diff:
                 if attr.startswith('__') or attr in (self._request.__name__,):
                     continue
                 self.__setattr__(attr, proto.__getattribute__(attr))
@@ -138,7 +140,11 @@ class User(BZAObject):
 
     def fetch(self):
         res = self._request(self.address + '/api/v4/user')
-        self.update(res)
+        if 'result' in res:
+            self.update(res['result'])
+        else:
+            self.update(res)
+
         return self
 
     def available_locations(self, include_harbors=False):
@@ -197,7 +203,9 @@ class Workspace(BZAObject):
         """
         :rtype: BZAObjectsList[Project]
         """
-        params = {"workspaceId": self['id']}
+        params = OrderedDict()
+        params.update({"workspaceId": self['id']})
+        params.update({"limit": 99999})
         res = self._request(self.address + '/api/v4/projects?' + urlencode(params))
 
         projects = BZAObjectsList()
@@ -210,6 +218,16 @@ class Workspace(BZAObject):
 
             projects.append(Project(self, item))
         return projects
+
+    def locations(self, include_private=False):
+        if 'locations' not in self:
+            self.fetch()
+        res = []
+        for loc in self['locations']:
+            if not loc['id'].startswith('harbor-') or include_private:
+                res.append(Location(self, loc))
+
+        return BZAObjectsList(res)
 
     def private_locations(self):
         """
@@ -260,6 +278,15 @@ class Workspace(BZAObject):
         params = {"name": str(proj_name), "workspaceId": self['id']}
         data = self._request(self.address + '/api/v4/projects', params)
         return Project(self, data['result'])
+
+    def fetch(self):
+        res = self._request(self.address + '/api/v4/workspaces/%s' % self['id'])
+        self.update(res['result'])
+        return self
+
+
+class Location(BZAObject):
+    pass
 
 
 class Project(BZAObject):

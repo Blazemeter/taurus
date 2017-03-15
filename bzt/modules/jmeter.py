@@ -1515,7 +1515,7 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     @staticmethod
-    def smart_time(any_time):
+    def smart_time(any_time):  # FIXME: bad name for the function, does not reflect what it does
         try:
             smart_time = int(1000 * dehumanize_time(any_time))
         except TaurusInternalException:
