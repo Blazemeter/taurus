@@ -577,7 +577,18 @@ class Configuration(BetterDict):
                 configs = []
                 self.log.debug("Reading %s", config_file)
                 with open(config_file) as fds:
-                    configs.extend(yaml.load_all(fds))
+                    contents = fds.read()
+                    try:
+                        self.log.debug("Reading %s as YAML", config_file)
+                        configs.extend(yaml.load_all(contents))
+                    except BaseException as exc:
+                        self.log.debug("Error when reading config file as YAML '%s': %s", config_file, exc)
+                        try:
+                            self.log.debug("Reading %s as JSON", config_file)
+                            configs.append(json.loads(contents))
+                        except BaseException as exc:
+                            self.log.debug("Error when reading config file as JSON '%s': %s", config_file, exc)
+                            raise TaurusConfigError("Cannot detect file format for %s" % config_file)
             except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
