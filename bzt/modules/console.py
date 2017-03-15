@@ -408,8 +408,10 @@ class TaurusConsole(Columns):
         overall = data[DataPoint.CURRENT].get('', KPISet())
         # self.log.debug("Got data for second: %s", to_json(data))
 
+        active = int(math.floor(overall[KPISet.SAMPLE_COUNT] * overall[
+            KPISet.AVG_RESP_TIME]))
         self.graphs.append(overall[KPISet.CONCURRENCY],
-                           overall.get_active_users(),
+                           min(overall[KPISet.CONCURRENCY], active),
                            overall[KPISet.SAMPLE_COUNT],
                            overall[KPISet.FAILURES],
                            overall[KPISet.AVG_RESP_TIME],

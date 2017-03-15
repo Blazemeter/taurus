@@ -165,7 +165,7 @@ class LocalClient(MonitoringClient):
             elif metric_name == 'disk-write':
                 item['disk-write'] = metric_values.dwu
             elif metric_name == 'connections':
-                item['connections'] = metric_values.conn
+                item['connections'] = metric_values.conn_all
             else:
                 self.log.warning('Wrong metric: %s', metric_name)
 
@@ -220,7 +220,7 @@ class LocalMonitor(object):
         :return: namedtuple
         """
         stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
-                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop', 'conn'))
+                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop', 'conn_all'))
 
         net = psutil.net_io_counters()
         tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
@@ -250,7 +250,7 @@ class LocalMonitor(object):
             disk_usage=disk_usage,
             mem_usage=psutil.virtual_memory().percent,
             rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-            engine_loop=engine_loop, conn=conn
+            engine_loop=engine_loop, conn_all=psutil.net_connections(kind="all")
         )
 
     def __get_disk_counters(self):
