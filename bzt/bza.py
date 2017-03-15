@@ -140,7 +140,11 @@ class User(BZAObject):
 
     def fetch(self):
         res = self._request(self.address + '/api/v4/user')
-        self.update(res)
+        if 'result' in res:
+            self.update(res['result'])
+        else:
+            self.update(res)
+
         return self
 
     def available_locations(self, include_harbors=False):

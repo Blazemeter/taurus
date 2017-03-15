@@ -1398,7 +1398,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.log.warning("Dumping available locations instead of running the test")
             use_deprecated = self.settings.get("use-deprecated-api", True)
             locations = {}
-            for loc in self._workspaces.locations(include_private=not use_deprecated):
+            for loc in self._workspaces.locations(include_private=not use_deprecated or TAURUS_TEST_TYPE != 'taurus'):
                 locations[loc['id']] = loc
 
             for location_id in sorted(locations):
