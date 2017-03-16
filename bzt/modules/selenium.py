@@ -450,7 +450,7 @@ class JavaTestRunner(AbstractTestRunner):
         """
         super(JavaTestRunner, self).__init__(config, executor)
         self.working_dir = self.settings.get("working-dir")
-        self.target_java = str(config.get("compile-target-java", "1.7"))
+        self.target_java = str(config.get("compile-target-java", "1.8"))
         self.base_class_path = base_class_path
         self.base_class_path.extend(executor.settings.get("additional-classpath", []))
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
