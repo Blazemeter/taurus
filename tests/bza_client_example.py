@@ -20,11 +20,13 @@ def test_flow():
     user.fetch()
     accounts = user.accounts()
     workspaces = accounts.workspaces()
-    # opls = workspaces.private_locations()
-    # sel_test = workspaces.tests(name='Selenium')
-    projects = workspaces.projects()
-    tests = projects.multi_tests()
-    # tests2 = workspaces.tests()
+    for wsp in workspaces:
+        wsp.fetch()
+        # opls = workspaces.private_locations()
+        # sel_test = workspaces.tests(name='Selenium')
+        # projects = workspaces.projects()
+        # tests = projects.multi_tests()
+        # tests2 = workspaces.tests()
 
 
 def test_external():
@@ -37,4 +39,4 @@ def test_external():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    test_external()
+    test_flow()

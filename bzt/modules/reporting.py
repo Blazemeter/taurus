@@ -132,7 +132,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 status_counter[case.status] += 1
 
         total = sum(count for _, count in iteritems(status_counter))
-        self.log.info("Total: %s %s", total, self.__plural(total, 'test'))
+        self.log.info("Total: %s %s", total, self.__plural(total, 'test')) # FIXME: it's actually not tests, but test cases
 
     def __report_samples_count(self, summary_kpi_set):
         """

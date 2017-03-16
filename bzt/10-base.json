@@ -12,7 +12,8 @@
             "disk-read",
             "disk-write",
             "disk-space",
-            "engine-loop"
+            "engine-loop",
+            "conn-all"
           ]
         }
       ]

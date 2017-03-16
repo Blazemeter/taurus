@@ -145,9 +145,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["detach"] = True
 
         self.obj.prepare()
-        self.assertEqual(9, len(self.mock.requests))
-        self.obj.startup()
         self.assertEqual(10, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(11, len(self.mock.requests))
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
@@ -261,7 +261,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.obj.log.info("Made requests: %s", self.mock.requests)
         self.assertEquals('https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1',
-                          self.mock.requests[9]['url'])
+                          self.mock.requests[10]['url'])
 
     def test_cloud_config_cleanup(self):
         self.configure(
@@ -294,7 +294,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {'result': [{'id': 1}]},
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': {'result': [{'id': 1}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
                     "projectId": 1,
@@ -320,7 +320,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {'result': [{'id': 1}]},
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': {'result': [{'id': 1}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
                     "projectId": 1,
@@ -396,7 +396,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': [
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
@@ -416,7 +416,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
-                "https://a.blazemeter.com/api/v4/projects?workspaceId=1": {"result": [{"id": 1, "name": "myproject"}]},
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999": {"result": [{"id": 1, "name": "myproject"}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
                     "projectId": 1,
@@ -444,7 +444,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
-                "https://a.blazemeter.com/api/v4/projects?workspaceId=1": {"result": [{"id": 1, "name": "myproject"}]},
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999": {"result": [{"id": 1, "name": "myproject"}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {
                     "result": [{"id": 1, "name": "Taurus Cloud Test"}]
                 }
@@ -677,7 +677,10 @@ class TestCloudProvisioning(BZTestCase):
                     {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
                 ],
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": [{'id': "s1"}]}},
-                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": [{'id': "s1"}]}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {
+                    "note": "msg",
+                    "sessions": [{'id': "s1"}]}
+                },
                 'https://a.blazemeter.com/api/v4/masters/1': {"result": {"id": 1, "note": "msg"}},
                 'https://a.blazemeter.com/api/v4/sessions/s1/reports/logs': {"result": {"data": [
                     {
@@ -705,13 +708,16 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.engine.config.get("modules").get('capturehar')['class'] = cls
         self.obj.engine.config.get(Service.SERV, []).append('capturehar')
 
+        log_recorder = RecordingHandler()
+        self.obj.log.addHandler(log_recorder)
         self.obj.prepare()
         self.obj.startup()
         self.obj.check()  # this one should trigger force start
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(19, len(self.mock.requests))
+        self.assertEqual(18, len(self.mock.requests))
+        self.assertIn("Cloud test has probably failed with message: msg", log_recorder.warn_buff.getvalue())
 
     def test_cloud_paths(self):
         """
@@ -960,7 +966,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.results_reader.min_ts = 0  # to make it request same URL
         self.obj.engine.aggregator.check()
 
-        self.assertEqual(20, len(self.mock.requests))
+        self.assertEqual(21, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()
@@ -1025,7 +1031,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(self.obj.browser_open, "both")
         self.assertEqual(self.obj.user.token, "bmtoken")
         self.assertEqual(self.obj.check_interval, 20.0)
-        self.assertEqual(9, len(self.mock.requests))
+        self.assertEqual(10, len(self.mock.requests))
 
     def test_public_report(self):
         self.configure(

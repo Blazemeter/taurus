@@ -871,7 +871,8 @@ class JMX(object):
         :type is_invert:  bool
         :rtype: lxml.etree.Element
         """
-        tname = "Assert %s has %s" % ("not" if is_invert else "", [text_type(x) for x in contains])
+        tname = "Assert %s %s" % ("hasn't" if is_invert else "has",
+                                  "[" + ", ".join('"' + text_type(x) + '"' for x in contains) + "]")
         element = etree.Element("ResponseAssertion", guiclass="AssertionGui",
                                 testclass="ResponseAssertion", testname=tname)
         if field == Scenario.FIELD_HEADERS:

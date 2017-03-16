@@ -4,7 +4,7 @@ import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 import scala.concurrent.duration._
 
-class TaurusSimulation_139847733971792 extends Simulation {
+class TaurusSimulation_140130467712208 extends Simulation {
     val _t_concurrency = Integer.getInteger("concurrency", 1).toInt
     val _t_ramp_up = Integer.getInteger("ramp-up", 0).toInt
     val _t_hold_for = Integer.getInteger("hold-for", 0).toInt
@@ -24,9 +24,10 @@ class TaurusSimulation_139847733971792 extends Simulation {
 				.body(StringBody(""""Body Content"""))
 				.check(
 					substring("""bootstrap.min""").notExists)
-		).pause(0).exec(
+			.disableFollowRedirect
+		).pause(1).exec(
 			http("/").get("/")
-		).pause(0)
+		).pause(2)
 
     if (_t_iterations == null)
         _scn = _scn.forever{_exec}

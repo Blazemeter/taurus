@@ -153,6 +153,8 @@ class TestBlazeMeterUploader(BZTestCase):
                 {"result": True},
                 {"result": True},
                 {"result": True},
+                {"result": True},
+                {"result": True},
             ],
             'https://a.blazemeter.com/api/v4/data/masters/1/custom-metrics': [
                 IOError("custom metric push expected fail"),
@@ -385,8 +387,8 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings['browser-open'] = 'none'
         obj.engine = EngineEmul()
         obj.prepare()
-        self.assertEquals('https://a.blazemeter.com/api/v4/tests', mock.requests[5]['url'])
-        self.assertEquals('POST', mock.requests[5]['method'])
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests', mock.requests[6]['url'])
+        self.assertEquals('POST', mock.requests[6]['method'])
 
 
 class TestBlazeMeterClientUnicode(BZTestCase):

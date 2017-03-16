@@ -578,11 +578,19 @@ class Configuration(BetterDict):
                 configs = []
                 self.log.debug("Reading %s", config_file)
                 with open(config_file) as fds:
-                    config_contents = fds.read()
+                    contents = fds.read()
                     if self.replace_tabs:
-                        config_contents = replace_leading_tabs(config_contents)
-                    config_stream = StringIO(config_contents)
-                    configs.extend(yaml.load_all(config_stream))
+                        contents = replace_leading_tabs(contents)
+                    try:
+                        self.log.debug("Reading %s as YAML", config_file)
+                        configs.extend(yaml.load_all(contents))
+                    except BaseException as yaml_load_exc:
+                        self.log.debug("Error when reading config file as YAML '%s': %s", config_file, yaml_load_exc)
+                        if contents.lstrip().startswith('{'):
+                            self.log.debug("Reading %s as JSON", config_file)
+                            configs.append(json.loads(contents))
+                        else:
+                            raise
             except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 

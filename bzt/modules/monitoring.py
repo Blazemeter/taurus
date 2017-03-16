@@ -1,5 +1,4 @@
 """ Monitoring service subsystem """
-import datetime
 import json
 import select
 import socket
@@ -7,8 +6,10 @@ import time
 import traceback
 from abc import abstractmethod
 from collections import OrderedDict, namedtuple
+
 import psutil
 from urwid import Pile, Text
+
 from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
@@ -118,6 +119,7 @@ class LocalClient(MonitoringClient):
     """
     :type monitor: LocalMonitor
     """
+
     def __init__(self, parent_logger, label, config):
         super(LocalClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -163,6 +165,8 @@ class LocalClient(MonitoringClient):
                 item['disk-read'] = metric_values.dru
             elif metric_name == 'disk-write':
                 item['disk-write'] = metric_values.dwu
+            elif metric_name == 'conn-all':
+                item['conn-all'] = metric_values.conn_all
             else:
                 self.log.warning('Wrong metric: %s', metric_name)
 
@@ -197,11 +201,11 @@ class LocalMonitor(object):
         if not self.__counters_ts:
             self.__disk_counters = self.__get_disk_counters()
             self.__net_counters = psutil.net_io_counters()
-            self.__counters_ts = datetime.datetime.now()
+            self.__counters_ts = time.time()
             time.sleep(0.2)  # small enough for human, big enough for machine
 
-        now = datetime.datetime.now()
-        interval = (now - self.__counters_ts).total_seconds()
+        now = time.time()
+        interval = now - self.__counters_ts
 
         # don't recalculate stats too frequently
         if interval >= self.engine.check_interval or self.__cached_stats is None:
@@ -217,7 +221,7 @@ class LocalMonitor(object):
         :return: namedtuple
         """
         stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
-                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop'))
+                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop', 'conn_all'))
 
         net = psutil.net_io_counters()
         tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
@@ -236,12 +240,15 @@ class LocalMonitor(object):
             engine_loop = None
             disk_usage = None
 
+        connections = psutil.net_connections(kind="all")
+        count_conn = lambda x: x.family == 2 and x.status not in ('TIME_WAIT', 'LISTEN')
+        connections = [y for y in connections if count_conn(y)]
         return stats(
             cpu=psutil.cpu_percent(),
             disk_usage=disk_usage,
             mem_usage=psutil.virtual_memory().percent,
             rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-            engine_loop=engine_loop
+            engine_loop=engine_loop, conn_all=len(connections)
         )
 
     def __get_disk_counters(self):
@@ -249,6 +256,7 @@ class LocalMonitor(object):
             return psutil.disk_io_counters()
         except RuntimeError as exc:
             self.log.debug("Failed to get disk metrics: %s", exc)
+            # noinspection PyProtectedMember
             return psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
 
 

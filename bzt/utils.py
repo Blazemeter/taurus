@@ -43,6 +43,7 @@ from math import log
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
+from contextlib import contextmanager
 
 import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
@@ -866,17 +867,47 @@ class MirrorsManager(object):
         return (mirror for mirror in mirrors)
 
 
+@contextmanager
+def log_std_streams(logger=None, stdout_level=logging.DEBUG, stderr_level=logging.DEBUG):
+    """
+    redirect standard output/error to taurus logger
+    """
+    out_descriptor = os.dup(1)
+    err_descriptor = os.dup(2)
+    stdout = tempfile.SpooledTemporaryFile(mode='w+')
+    stderr = tempfile.SpooledTemporaryFile(mode='w+')
+    sys.stdout = stdout
+    sys.stderr = stderr
+    os.dup2(stdout.fileno(), 1)
+    os.dup2(stderr.fileno(), 2)
+    try:
+        yield
+    finally:
+        stdout.seek(0)
+        stderr.seek(0)
+        stdout_str = stdout.read().strip()
+        stderr_str = stderr.read().strip()
+        stdout.close()
+        stderr.close()
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        os.dup2(out_descriptor, 1)
+        os.dup2(err_descriptor, 2)
+        os.close(out_descriptor)
+        os.close(err_descriptor)
+        if logger:
+            if stdout_str:
+                logger.log(stdout_level, "STDOUT: " + stdout_str)
+            if stderr_str:
+                logger.log(stderr_level, "STDERR: " + stderr_str)
+
+
 def open_browser(url):
     try:
         browser = webbrowser.get()
         if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-            saved_out = os.dup(1)
-            os.close(1)
-            os.open(os.devnull, os.O_RDWR)
-            try:
+            with log_std_streams(logger=logging):
                 browser.open(url)
-            finally:
-                os.dup2(saved_out, 1)
     except BaseException as exc:
         logging.warning("Can't open link in browser: %s", exc)
 

@@ -142,6 +142,8 @@ pip install --upgrade bzt
 
 ### CentOS
 
+Taurus requires Python 2.7 or higher.
+
 Use `uname -a` to verify the system if it's 32 bit or 64 bit machine. [http://www.tecmint.com/enable-rpmforge-repository/](http://www.tecmint.com/enable-rpmforge-repository/)
 
 Get corresponding EPEL (Extra Package for Enterprise Linux) for CentOS (Community Enterprise OS) 7, and enable it.
