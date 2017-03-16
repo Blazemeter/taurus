@@ -203,9 +203,12 @@ class LocalMonitor(object):
             time.sleep(0.2)  # small enough for human, big enough for machine
 
         now = time.time()
+        interval = now - self.__counters_ts
 
-        self.__cached_stats = self.calc_resource_stats(now - self.__counters_ts)
-        self.__counters_ts = now
+        # don't recalculate stats too frequently
+        if interval >= self.engine.check_interval or self.__cached_stats is None:
+            self.__cached_stats = self.calc_resource_stats(interval)
+            self.__counters_ts = now
 
         return self.__cached_stats
 
