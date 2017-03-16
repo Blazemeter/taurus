@@ -163,8 +163,8 @@ class LocalClient(MonitoringClient):
                 item['disk-read'] = metric_values.dru
             elif metric_name == 'disk-write':
                 item['disk-write'] = metric_values.dwu
-            elif metric_name == 'connections':
-                item['connections'] = metric_values.conn_all
+            elif metric_name == 'conn-all':
+                item['conn-all'] = metric_values.conn_all
             else:
                 self.log.warning('Wrong metric: %s', metric_name)
 
@@ -199,16 +199,13 @@ class LocalMonitor(object):
         if not self.__counters_ts:
             self.__disk_counters = self.__get_disk_counters()
             self.__net_counters = psutil.net_io_counters()
-            self.__counters_ts = datetime.datetime.now()
+            self.__counters_ts = time.time()
             time.sleep(0.2)  # small enough for human, big enough for machine
 
-        now = datetime.datetime.now()
-        interval = (now - self.__counters_ts).total_seconds()
+        now = time.time()
 
-        # don't recalculate stats too frequently
-        if interval >= self.engine.check_interval or self.__cached_stats is None:
-            self.__cached_stats = self.calc_resource_stats(interval)
-            self.__counters_ts = now
+        self.__cached_stats = self.calc_resource_stats(now - self.__counters_ts)
+        self.__counters_ts = now
 
         return self.__cached_stats
 
@@ -237,6 +234,11 @@ class LocalMonitor(object):
         else:
             engine_loop = None
             disk_usage = None
+
+        start_time = time.time()
+        for i in range(10):
+            b = psutil.net_connections(kind='all')
+        self.log.warning('10*time(net_connections): %s', time.time() - start_time)
 
         return stats(
             cpu=psutil.cpu_percent(),

@@ -17,6 +17,7 @@ Following metrics are collected locally:
 - `disk-read`/`disk-write` - disk I/O rate
 - `disk-space` - % disk space used for artifacts storage
 - `engine-loop` - Taurus "check loop" utilization, values higher than 1.0 means you should increase `settings.check-interval`
+- `conn-all` - quantity of network connections
 
 ```yaml
 services:

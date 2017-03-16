@@ -571,7 +571,7 @@ class MonitoringBuffer(object):
                     }
 
                 for field, value in iteritems(item):
-                    if field.lower().startswith('connections'):
+                    if field.lower().startswith('conn-all'):
                         field = 'Connections'
                     elif field.lower().startswith('cpu'):
                         field = 'CPU'

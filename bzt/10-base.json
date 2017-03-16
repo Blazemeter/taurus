@@ -13,7 +13,7 @@
             "disk-write",
             "disk-space",
             "engine-loop",
-            "connections"
+            "conn-all"
           ]
         }
       ]
