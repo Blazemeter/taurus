@@ -391,7 +391,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     @send_with_retry
     def __send_monitoring(self):
-        engine_id = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '0')
+        engine_id = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
+        if not engine_id:
+            engine_id = "0"
         data = self.monitoring_buffer.get_monitoring_json(self._session)
         self._session.send_monitoring_data(engine_id, data)
 
