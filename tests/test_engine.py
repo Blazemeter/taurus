@@ -101,6 +101,13 @@ class TestEngine(BZTestCase):
         self.obj.configure(configs)
         self.obj.prepare()
 
+    def test_invalid_format(self):
+        configs = [
+            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/data/jmeter-dist-3.0.zip"
+        ]
+        self.assertRaises(TaurusConfigError, lambda: self.obj.configure(configs))
+
 
 class TestScenarioExecutor(BZTestCase):
     def setUp(self):
