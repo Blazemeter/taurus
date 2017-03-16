@@ -93,6 +93,21 @@ class TestEngine(BZTestCase):
         self.obj.prepare()
         self.assertEqual(len(self.obj.config["execution"]), 2)
 
+    def test_json_format_regression(self):
+        configs = [
+            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/json/json-but-not-yaml.json"
+        ]
+        self.obj.configure(configs)
+        self.obj.prepare()
+
+    def test_invalid_format(self):
+        configs = [
+            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/data/jmeter-dist-3.0.zip"
+        ]
+        self.assertRaises(TaurusConfigError, lambda: self.obj.configure(configs))
+
 
 class TestScenarioExecutor(BZTestCase):
     def setUp(self):
