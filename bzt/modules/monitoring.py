@@ -238,11 +238,6 @@ class LocalMonitor(object):
             engine_loop = None
             disk_usage = None
 
-        start_time = time.time()
-        for i in range(10):
-            b = psutil.net_connections(kind='all')
-        self.log.warning('10*time(net_connections): %s', time.time() - start_time)
-
         return stats(
             cpu=psutil.cpu_percent(),
             disk_usage=disk_usage,
