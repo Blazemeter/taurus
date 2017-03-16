@@ -59,7 +59,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=' \
-                      'kg/apc/jmeter-plugins-manager/0.11/jmeter-plugins-manager-0.11.jar'
+                      'kg/apc/jmeter-plugins-manager/0.12/jmeter-plugins-manager-0.12.jar'
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
     JMETER_VER = "3.1"
     UDP_PORT_NUMBER = None
