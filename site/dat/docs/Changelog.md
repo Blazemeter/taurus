@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.2 <sup>16 mar 2017</sup>
+ - support `follow-redirects` option for Gatling
+ - add connections count to local monitoring, send it to BlazeMeter API also
+ - fix JSON configs with extra characters support
+ - fix BlazeMeter API usage
+ - bump up Java Selenium to 3.3.0 (will require latest geckodriver installed)
+ - bump up JMeter plugins manager to 0.12
+ - grab more details for JMeter's functional samples
+
 ## 1.8.1 <sup>13 mar 2017</sup>
  - make `---` not required for YAML files
  - enable YAML multi-doc files support, now `---` divides several configs per file (by YAML standard)
