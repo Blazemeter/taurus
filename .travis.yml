@@ -13,7 +13,7 @@ matrix:
   - os: osx
     language: generic
 
-#addons:
+addons:
 #  firefox: "51.0.1"
   apt:
     packages:
