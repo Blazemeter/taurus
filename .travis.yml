@@ -22,12 +22,15 @@ addons:
 
 before_install: |
   if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
+
     echo Display is "$DISPLAY"
     #sh -e Xvfb :99 -ac -screen 0 1024x768x8
     mkdir /tmp/.X11-unix
     sudo chown root /tmp/.X11-unix
     ls -la /tmp
     Xvfb -br -nolisten tcp -screen 0 1024x768x24 :1005
+    /Users/travis/build/Blazemeter/taurus/tests/modules/../phantom.sh
+    /Users/travis/build/Blazemeter/taurus/tests/modules/../tsung/tsung.sh
 
     wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-macos.tar.gz -O geckodriver.tar.gz
   else
