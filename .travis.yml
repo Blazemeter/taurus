@@ -11,7 +11,6 @@ matrix:
 #  - os: linux
 #    python: 3.5
   - os: osx
-    sudo: required
     language: generic
 
 addons:
@@ -22,17 +21,12 @@ addons:
 
 before_install: |
   if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-
-    echo Display is "$DISPLAY"
-    #sh -e Xvfb :99 -ac -screen 0 1024x768x8
+    sudo sysctl -w kern.maxfiles=20480
+    sudo sysctl -w kern.maxfilesperproc=18000
+    sudo ulimit -S -n 2048
     mkdir /tmp/.X11-unix
     sudo chown root /tmp/.X11-unix
     sudo chmod 1777 /tmp/.X11-unix
-    ls -la /tmp
-    sh -e Xvfb -br -nolisten tcp -screen 0 1024x768x24 :1005
-    /Users/travis/build/Blazemeter/taurus/tests/modules/../phantom.sh
-    /Users/travis/build/Blazemeter/taurus/tests/modules/../tsung/tsung.sh
-
     wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-macos.tar.gz -O geckodriver.tar.gz
   else
     wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-linux64.tar.gz -O geckodriver.tar.gz
