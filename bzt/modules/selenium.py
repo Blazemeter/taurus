@@ -1257,9 +1257,8 @@ from selenium.webdriver.support.wait import WebDriverWait
                     for elm in self.gen_assertion(assert_config):
                         test_method.append(elm)
 
-            think_time = req.think_time if req.think_time else self.scenario.get("think-time", None)
-            if think_time is not None:
-                test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
+            if req.think_time is not None:
+                test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(req.think_time)))
 
             test_method.append(self.gen_statement("pass"))  # just to stub empty case
             test_method.append(self.gen_new_line())

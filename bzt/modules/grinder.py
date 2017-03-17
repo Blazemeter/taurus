@@ -501,12 +501,10 @@ from HTTPClient import NVPair
         runner_classdef = self.gen_class_definition("TestRunner", ["object"], indent=0)
         main_method = self.gen_method_definition("__call__", ["self"], indent=4)
 
-        global_think_time = self.scenario.get('think-time', None)
-
         for req in self.scenario.get_requests():
             method = req.method.upper()
             url = req.url
-            think_time = dehumanize_time(req.think_time or global_think_time)
+            think_time = dehumanize_time(req.think_time)
             local_headers = req.config.get("headers", {})
 
             params = "[]"
