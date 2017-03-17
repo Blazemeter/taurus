@@ -169,8 +169,7 @@ execution:
   
 scenarios:
   jmx_sample:
-    jmx:
-      path: tests/jmx/dummy.jmx
+    script: tests/jmx/dummy.jmx
       
 modules:
   jmeter:
