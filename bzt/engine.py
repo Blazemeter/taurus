@@ -1062,29 +1062,45 @@ class Request(object):
 
 
 class HTTPRequest(Request):
-    def __init__(self, config, engine):
-        super(HTTPRequest, self).__init__(config)
+    def __init__(self, config, scenario, engine):
         self.engine = engine
+        self.log = self.engine.log.getChild(self.__class__.__name__)
+        super(HTTPRequest, self).__init__(config)
+        self.scenario = scenario
         msg = "Option 'url' is mandatory for request but not found in %s" % config
-        self.url = config.get("url", TaurusConfigError(msg))
-        self.label = config.get("label", self.url)
-        self.method = config.get("method", "GET")
-        self.headers = config.get("headers", {})
-        self.timeout = config.get("timeout", None)
-        self.think_time = config.get("think-time", None)
+        self.url = self.config.get("url", TaurusConfigError(msg))
+        self.label = self.config.get("label", self.url)
+        self.method = self.config.get("method", "GET")
 
-        body = config.get('body', None)
-        body_file = config.get('body-file', None)
+        # TODO: add method to join dicts/lists from scenario/request level?
+        self.headers = self.config.get("headers", {})
+
+        self.keepalive = self.__get_priority_option('keepalive', default=True)
+        self.timeout = self.__get_priority_option('timeout')
+        self.think_time = self.__get_priority_option('think-time')
+        self.follow_redirects = self.__get_priority_option('follow-redirects', default=True)
+        self.body = self.__get_body()
+
+    def __get_priority_option(self, name, default=None):
+        val = self.config.get(name, None)
+        if val is None:
+            val = self.scenario.get(name, None)
+        if val is None and default is not None:
+            val = default
+        return val
+
+    def __get_body(self):
+        body = self.config.get('body', None)
+        body_file = self.config.get('body-file', None)
         if body_file:
             if body:
-                # todo: add own logger?
-                self.engine.log.warning('body and body-file fields are found, only first will take effect')
+                self.log.warning('body and body-file fields are found, only first will take effect')
             else:
-                bodyfile_path = self.engine.find_file(body_file)
-                with open(bodyfile_path) as fhd:
+                body_file_path = self.engine.find_file(body_file)
+                with open(body_file_path) as fhd:
                     body = fhd.read()
 
-        self.body = body
+        return body
 
 
 class HavingInstallableTools(object):

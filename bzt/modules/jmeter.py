@@ -830,8 +830,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                     files.append(data_source)
                 elif isinstance(data_source, dict):
                     files.append(data_source['path'])
-        requests_parser = RequestsParser(self.engine)
-        requests = requests_parser.extract_requests(scenario)
+        requests_parser = RequestsParser(scenario, self.engine)
+        requests = requests_parser.extract_requests()
         for req in requests:
             files.extend(self.res_files_from_request(req))
             self.resource_files_collector.clear_path_cache()
@@ -1472,11 +1472,8 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     def __add_think_time(self, children, req):
-        think_time = req.think_time
-        if think_time is None:  # request option is a priority
-            think_time = self.scenario.get("think-time", None)
-        if think_time is not None:
-            children.append(JMX._get_constant_timer(self.smart_time(think_time)))
+        if req.think_time is not None:
+            children.append(JMX._get_constant_timer(self.smart_time(req.think_time)))
             children.append(etree.Element("hashTree"))
 
     def __add_extractors(self, children, req):
@@ -1590,8 +1587,8 @@ class JMeterScenarioBuilder(JMX):
             return None
 
     def __gen_requests(self, scenario):
-        requests_parser = RequestsParser(self.engine)
-        requests = list(requests_parser.extract_requests(scenario))
+        requests_parser = RequestsParser(scenario, self.engine)
+        requests = (requests_parser.extract_requests())
         elements = []
         for compiled in self.compile_requests(requests):
             elements.extend(compiled)
@@ -1612,18 +1609,8 @@ class JMeterScenarioBuilder(JMX):
         :return:
         """
         timeout = request.timeout
-        if timeout is None:                 # request option is a priority
-            timeout = self.scenario.get("timeout", None)
         if timeout is not None:
             timeout = self.smart_time(timeout)
-
-        follow_redirects = request.follow_redirects
-        if follow_redirects is None:        # request option is a priority
-            follow_redirects = self.scenario.get("follow-redirects", None)
-        if follow_redirects is None:
-            follow_redirects = True
-
-        keepalive = self.scenario.get("keepalive", True)
 
         content_type = self._get_merged_ci_headers(request, 'content-type')
         if content_type == 'application/json' and isinstance(request.body, (dict, list)):
@@ -1631,8 +1618,8 @@ class JMeterScenarioBuilder(JMX):
         else:
             body = request.body
 
-        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, keepalive,
-                                     request.upload_files, request.content_encoding, follow_redirects)
+        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, request.keepalive,
+                                     request.upload_files, request.content_encoding, request.follow_redirects)
 
         children = etree.Element("hashTree")
 
@@ -2105,12 +2092,14 @@ class IncludeScenarioBlock(Request):
 
 
 class RequestsParser(object):
-    def __init__(self, engine):
+    def __init__(self, scenario, engine):
         self.engine = engine
+        self.scenario = scenario
 
     def __parse_request(self, req):
         if 'if' in req:
             condition = req.get("if")
+
             # TODO: apply some checks to `condition`?
             then_clause = req.get("then", TaurusConfigError("'then' clause is mandatory for 'if' blocks"))
             then_requests = self.__parse_requests(then_clause)
@@ -2158,7 +2147,7 @@ class RequestsParser(object):
                 duration = dehumanize_time(duration)
             return ActionBlock(action, target, duration, req)
         else:
-            return HierarchicHTTPRequest(req, self.engine)
+            return HierarchicHTTPRequest(req, self.scenario, self.engine)
 
     def __parse_requests(self, raw_requests):
         requests = []
@@ -2170,22 +2159,21 @@ class RequestsParser(object):
             requests.append(self.__parse_request(req))
         return requests
 
-    def extract_requests(self, scenario):
-        requests = scenario.get("requests", [])
-        return list(self.__parse_requests(requests))
+    def extract_requests(self):
+        requests = self.scenario.get("requests", [])
+        return self.__parse_requests(requests)
 
 
 class HierarchicHTTPRequest(HTTPRequest):
-    def __init__(self, config, engine):
-        super(HierarchicHTTPRequest, self).__init__(config, engine)
-        self.upload_files = config.get("upload-files", [])
+    def __init__(self, config, scenario, engine):
+        super(HierarchicHTTPRequest, self).__init__(config, scenario, engine)
+        self.upload_files = self.config.get("upload-files", [])
         for file_dict in self.upload_files:
             file_dict.get("param", TaurusConfigError("Items from upload-files must specify parameter name"))
             path = file_dict.get('path', TaurusConfigError("Items from upload-files must specify path to file"))
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
-        self.content_encoding = config.get('content-encoding', None)
-        self.follow_redirects = config.get('follow-redirects', None)
+        self.content_encoding = self.config.get('content-encoding', None)
 
 
 class ActionBlock(Request):
