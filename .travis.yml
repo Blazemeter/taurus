@@ -21,9 +21,9 @@ addons:
 
 before_install: |
   if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-    sudo sysctl -w kern.maxfiles=20480
-    sudo sysctl -w kern.maxfilesperproc=18000
-    sudo ulimit -S -n 12048
+    sudo sysctl -w kern.maxfiles=65530
+    sudo sysctl -w kern.maxfilesperproc=65530
+    sudo ulimit -S -n 65530
     mkdir /tmp/.X11-unix
     sudo chown root /tmp/.X11-unix
     sudo chmod 1777 /tmp/.X11-unix

@@ -429,7 +429,7 @@ class Tsung(RequiredTool):
 
     def __init__(self, tool_path, parent_logger):
         super(Tsung, self).__init__("Tsung", tool_path)
-        self.tool_path = os.path.realpath(tool_path)
+        self.tool_path = tool_path
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
