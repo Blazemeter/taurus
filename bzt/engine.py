@@ -1053,7 +1053,7 @@ class Scenario(UserDict, object):
             req = ensure_is_dict(requests, key, "url")
             if not require_url and "url" not in req:
                 req["url"] = None
-            yield HTTPRequest(config=req, engine=self.engine)
+            yield HTTPRequest(config=req, scenario=self, engine=self.engine)
 
 
 class Request(object):
