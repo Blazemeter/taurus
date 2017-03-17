@@ -1,7 +1,7 @@
 language: python
 os:
   - linux
-  # - osx  # TravisCI isn't ready for this
+  - osx  # TravisCI isn't ready for this
 python:
   - "2.7"
   - "3.3"
