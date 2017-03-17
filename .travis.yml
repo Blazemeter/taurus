@@ -27,7 +27,6 @@ before_install: |
     mkdir /tmp/.X11-unix
     sudo chown root /tmp/.X11-unix
     sudo chmod 1777 /tmp/.X11-unix
-    ln -sf `which ls` /Users/travis/build/Blazemeter/taurus/tests/tsung/tsung.sh
     wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-macos.tar.gz -O geckodriver.tar.gz
   else
     wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-linux64.tar.gz -O geckodriver.tar.gz
@@ -47,5 +46,4 @@ script: coverage run -m nose
 after_success:
   - codecov
 after_failure:
-- ps auxff
-- lsof -b
+- ps aux
