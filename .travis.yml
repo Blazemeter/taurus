@@ -15,9 +15,9 @@ matrix:
 
 #addons:
 #  firefox: "51.0.1"
-#  apt:
-#    packages:
-#      - oracle-java8-set-default
+  apt:
+    packages:
+      - oracle-java8-set-default
 
 before_install: |
   if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
@@ -29,7 +29,7 @@ before_install: |
   fi
   mkdir geckodriver
   tar -xzf geckodriver.tar.gz -C /usr/bin
-  export DISPLAY=:99.0
+#  export DISPLAY=:99.0
 
 install:
 - nvm install 4.2
