@@ -27,7 +27,7 @@ from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import etree, parse, iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which, is_macos
 
 
 class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
@@ -435,7 +435,7 @@ class Tsung(RequiredTool):
     def check_if_installed(self):
         self.log.debug('Checking Tsung at %s' % self.tool_path)
         try:
-            shell_exec([self.tool_path, '-v'])
+            shell_exec([self.tool_path, '-v'], shell=is_macos())
         except OSError:
             return False
         return True

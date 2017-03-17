@@ -23,7 +23,7 @@ before_install: |
   if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
     sudo sysctl -w kern.maxfiles=20480
     sudo sysctl -w kern.maxfilesperproc=18000
-    sudo ulimit -S -n 2048
+    sudo ulimit -S -n 12048
     mkdir /tmp/.X11-unix
     sudo chown root /tmp/.X11-unix
     sudo chmod 1777 /tmp/.X11-unix
@@ -45,3 +45,6 @@ install:
 script: coverage run -m nose
 after_success:
   - codecov
+after_failure:
+- ps auxff
+- lsof -b
