@@ -86,6 +86,7 @@ class CLI(object):
         if options.log is None:
             tf = tempfile.NamedTemporaryFile(prefix="bzt_", suffix=".log", delete=False)
             tf.close()
+            os.chmod(tf.name, 0o644)
             options.log = tf.name
 
         if options.log:
