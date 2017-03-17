@@ -13,29 +13,29 @@ matrix:
   - os: osx
     language: generic
 
-addons:
-  firefox: "51.0.1"
-  apt:
-    packages:
-      - oracle-java8-set-default
+#addons:
+#  firefox: "51.0.1"
+#  apt:
+#    packages:
+#      - oracle-java8-set-default
 before_install:
 #  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
 #  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python; fi
 #  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then virtualenv venv -p python; fi
 #  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source venv/bin/activate; fi
 #  - "export DISPLAY=:99.0"
-  - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then sh -e /etc/init.d/xvfb start; fi
   - pip install codecov
   - mkdir geckodriver
   - wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-linux64.tar.gz -O geckodriver.tar.gz
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-macos.tar.gz -O geckodriver.tar.gz; fi
   - tar -xzf geckodriver.tar.gz -C geckodriver
   - export PATH=$PATH:$PWD/geckodriver
+  - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then sh -e /etc/init.d/xvfb start; fi
 install:
 - nvm install 4.2
 - nvm use 4.2
 - gem install rspec
 - pip install colorlog pyyaml psutil!=4.4.0 lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay
-script: coverage run `which nosetests`
+script: coverage run -m nose
 after_success:
   - codecov
