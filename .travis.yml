@@ -26,7 +26,8 @@ before_install: |
     wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-macos.tar.gz -O geckodriver.tar.gz
     ls -la /tmp
     #sh -e Xvfb :99 -ac -screen 0 1024x768x8
-    Xvfb -br -nolisten tcp -screen 0 1024x768x24 :1005
+    sudo mkdir /tmp/.X11-unix
+    #Xvfb -br -nolisten tcp -screen 0 1024x768x24 :1005
   else
     wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-linux64.tar.gz -O geckodriver.tar.gz
     export DISPLAY=:99
