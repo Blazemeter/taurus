@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.3 <sup>17 mar 2017</sup>
+ - fix broken on MacOS due to security restrictions
+ - use Java 8 as default compile target for Java
+
 ## 1.8.2 <sup>16 mar 2017</sup>
  - support `follow-redirects` option for Gatling
  - add connections count to local monitoring, send it to BlazeMeter API also
@@ -10,7 +14,7 @@
  - grab more details for JMeter's functional samples
 
 ## 1.8.1 <sup>13 mar 2017</sup>
- - make `---` not required for YAML files
+ - make `---` not required for YAML files anymore
  - enable YAML multi-doc files support, now `---` divides several configs per file (by YAML standard)
  - use less verbose logging in the middle of run, can be overridden with `-v` option
  - don't write bzt.log into current dir, use temp dir instead, then move to artifacts
