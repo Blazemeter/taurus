@@ -32,7 +32,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.six import string_types, parse, iteritems
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, PythonGenerator, is_macos
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, PythonGenerator
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path, get_files_recursive
 
 try:
@@ -122,8 +122,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         if display_conf:
             if is_windows():
                 self.log.warning("Cannot have virtual display on Windows, ignoring")
-            #elif is_macos():
-            #    self.log.warning("Cannot have virtual display on Mac OS, ignoring")
             else:
                 if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY:
                     self.virtual_display = SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
