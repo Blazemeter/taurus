@@ -15,19 +15,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import logging
 import os
 import re
 import time
 import traceback
-import copy
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.six import etree, parse, iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which, is_macos
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
 
 
 class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
@@ -351,9 +351,6 @@ class TsungConfig(object):
 
         Tsung load progression is scenario-based. Virtual users are erlang processes which are spawned according to
         load profile. Each user executes assigned session (requests + think-time + logic) and then dies.
-        :param scenario:
-        :param load:
-        :return:
         """
         concurrency = load.concurrency if load.concurrency is not None else 1
         load_elem = etree.Element("load")
@@ -474,7 +471,7 @@ class Tsung(RequiredTool):
         return prefix
 
     def get_dtd_path(self):
-        "Get path of DTD validation file for Tsung."
+        """Get path of DTD validation file for Tsung."""
         tsung_abspath = self.get_tool_abspath()
         prefix = self.get_tool_prefix(tsung_abspath)
         if not prefix:
