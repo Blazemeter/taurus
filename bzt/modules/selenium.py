@@ -122,8 +122,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         if display_conf:
             if is_windows():
                 self.log.warning("Cannot have virtual display on Windows, ignoring")
-            elif is_macos():
-                self.log.warning("Cannot have virtual display on Mac OS, ignoring")
+            #elif is_macos():
+            #    self.log.warning("Cannot have virtual display on Mac OS, ignoring")
             else:
                 if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY:
                     self.virtual_display = SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]

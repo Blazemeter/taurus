@@ -29,7 +29,7 @@ before_install: |
     sudo chown root /tmp/.X11-unix
     sudo chmod 1777 /tmp/.X11-unix
     ls -la /tmp
-    Xvfb -br -nolisten tcp -screen 0 1024x768x24 :1005
+    sh -e Xvfb -br -nolisten tcp -screen 0 1024x768x24 :1005
     /Users/travis/build/Blazemeter/taurus/tests/modules/../phantom.sh
     /Users/travis/build/Blazemeter/taurus/tests/modules/../tsung/tsung.sh
 
