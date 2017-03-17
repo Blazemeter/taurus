@@ -8,6 +8,7 @@
  1. [Creating JMeter and Selenium Scripts with Taurus](Scripting)
  1. [Reporting and Results Analysis on Taurus](Reporting)
  1. [Integrating Taurus with Jenkins](Jenkins)
+ 1. [How to Quickly and Easily Write Selenium Scripts on Taurus](SeleniumActions)
 
 
 # Third-Party Articles
