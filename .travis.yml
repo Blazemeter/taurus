@@ -8,8 +8,8 @@ matrix:
 #    python: 3.3
 #  - os: linux
 #    python: 3.3
-  - os: linux
-    python: 3.5
+#  - os: linux
+#    python: 3.5
   - os: osx
     sudo: required
     language: generic
