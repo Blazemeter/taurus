@@ -8,8 +8,8 @@ matrix:
 #    python: 3.3
 #  - os: linux
 #    python: 3.3
-#  - os: linux
-#    python: 3.5
+  - os: linux
+    python: 3.5
   - os: osx
     language: generic
 
@@ -24,12 +24,12 @@ before_install: |
     wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-macos.tar.gz -O geckodriver.tar.gz
   else
       wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-linux64.tar.gz -O geckodriver.tar.gz
-      # export DISPLAY=:99.0
-      sh -e /etc/init.d/xvfb start
+      #
+      #sh -e /etc/init.d/xvfb start
   fi
   mkdir geckodriver
-  tar -xzf geckodriver.tar.gz -C geckodriver
-  export PATH=$PATH:$PWD/geckodriver
+  tar -xzf geckodriver.tar.gz -C /usr/bin
+  export DISPLAY=:99.0
 
 install:
 - nvm install 4.2
