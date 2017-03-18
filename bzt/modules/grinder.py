@@ -20,9 +20,10 @@ import re
 import subprocess
 import time
 
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.provisioning import HavingInstallableTools
 from bzt.six import iteritems
 from bzt import TaurusConfigError, ToolError
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
@@ -122,8 +123,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         fds.write("# BZT Properies End\n")
 
     def prepare(self):
-        self.install_required_tools()
-
         scenario = self.get_scenario()
 
         if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
@@ -310,7 +309,7 @@ class DataLogReader(ResultsReader):
             source_id = ''
 
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
-                    latency, r_code, error_msg, source_id, bytes_count
+                  latency, r_code, error_msg, source_id, bytes_count
 
     def __split(self, line):
         if not line.endswith("\n"):

@@ -25,10 +25,11 @@ from imp import find_module
 from subprocess import STDOUT
 
 from bzt import ToolError, TaurusConfigError
-from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, FileLister, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
+from bzt.modules.provisioning import HavingInstallableTools
 from bzt.six import PY3, iteritems
 from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time, ensure_is_dict, PythonGenerator
 
@@ -46,7 +47,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.script = None
 
     def prepare(self):
-        self.install_required_tools()
         self.scenario = self.get_scenario()
         self.__setup_script()
 
@@ -428,11 +428,11 @@ from locust import HttpLocust, TaskSet, task
             expression = 'str(val) in %s' % content
 
         statement = 'if%(not)s %(func)s(%(expression)s for val in %(values)s):'
-        statement = statement % {'not': attr_not, 'func': func_name, 'expression': expression, 'values': values}
+        statement %= {'not': attr_not, 'func': func_name, 'expression': expression, 'values': values}
         if not is_first:
             statement = 'el' + statement
         task.append(self.gen_statement(statement, indent=12))
 
         statement = 'response.failure("%(values)s%(not)s found in %(subject)s")'
-        statement = statement % {'values': values, 'not': attr_not, 'subject': subject}
+        statement %= {'values': values, 'not': attr_not, 'subject': subject}
         task.append(self.gen_statement(statement, indent=16))

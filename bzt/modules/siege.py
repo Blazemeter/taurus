@@ -22,9 +22,10 @@ from math import ceil
 from os import path
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.provisioning import HavingInstallableTools
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
@@ -43,7 +44,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
 
     def prepare(self):
         self.scenario = self.get_scenario()
-        self.tool_path = self.install_required_tools()
+        self.tool_path = self.install_required_tools() # TODO: make it not call installer
 
         config_params = ('verbose = true',
                          'csv = true',
