@@ -1085,13 +1085,13 @@ class HTTPRequest(Request):
         # TODO: add method to join dicts/lists from scenario/request level?
         self.headers = self.config.get("headers", {})
 
-        self.keepalive = self.__get_priority_option('keepalive', default=True)
-        self.timeout = self.__get_priority_option('timeout')
-        self.think_time = self.__get_priority_option('think-time')
-        self.follow_redirects = self.__get_priority_option('follow-redirects', default=True)
+        self.keepalive = self.config.get('keepalive', None)
+        self.timeout = self.config.get('timeout', None)
+        self.think_time = self.config.get('think-time', None)
+        self.follow_redirects = self.config.get('follow-redirects', None)
         self.body = self.__get_body()
 
-    def __get_priority_option(self, name, default=None):
+    def by_priority(self, name, default=None):
         val = self.config.get(name, None)
         if val is None:
             val = self.scenario.get(name, None)

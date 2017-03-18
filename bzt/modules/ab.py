@@ -104,7 +104,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         if request.method != 'GET':
             raise TaurusConfigError("ab supports only GET requests, but '%s' is found" % request.method)
 
-        if request.keepalive:
+        if request.by_priority('keepalive', default=True):
             args += ['-k']
 
         args += [request.url]

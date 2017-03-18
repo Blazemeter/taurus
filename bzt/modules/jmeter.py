@@ -1528,6 +1528,7 @@ class JMeterScenarioBuilder(JMX):
         retrieve_resources = scenario.get("retrieve-resources", True)
         resources_regex = scenario.get("retrieve-resources-regex", None)
         concurrent_pool_size = scenario.get("concurrent-pool-size", 4)
+
         content_encoding = scenario.get("content-encoding", None)
 
         timeout = scenario.get("timeout", None)
@@ -1538,7 +1539,7 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     def __add_think_time(self, children, req):
-        if req.think_time is not None:
+        if req.by_priority('think-time') is not None:
             children.append(JMX._get_constant_timer(self.smart_time(req.think_time)))
             children.append(etree.Element("hashTree"))
 
@@ -1684,8 +1685,9 @@ class JMeterScenarioBuilder(JMX):
         else:
             body = request.body
 
-        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, request.keepalive,
-                                     request.upload_files, request.content_encoding, request.follow_redirects)
+        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body,
+                                     request.by_priority('keepalive', default=True), request.upload_files,
+                                     request.content_encoding, request.by_priority('follow-redirects', default=True))
 
         children = etree.Element("hashTree")
 
