@@ -83,7 +83,7 @@ class GatlingScriptBuilder(object):
 
             exec_str += self.__get_assertions(req.config.get('assert', []))
 
-            if not req.by_priority('follow-redirects'):
+            if not req.by_priority('follow-redirects', default=True):
                 exec_str += '\t\t\t.disableFollowRedirect\n'
 
             exec_str += '\t\t)'
