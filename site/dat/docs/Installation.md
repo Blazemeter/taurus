@@ -69,6 +69,8 @@ To upgrade Taurus, open Command Prompt as administrator and run
  pip install --upgrade bzt
 ```
 
+----
+
 ## Mac OS
 
 You will need python 2.7 or higher and Java Runtime installed. 
@@ -79,16 +81,27 @@ If you're on _El Capitan_, please execute first:
 brew install python
 ```
 
-Most likely you also need to upgrade `setuptools`:
-
-```bash
-sudo pip install --upgrade setuptools
-```
-
-Then install Taurus:
+Then try to install Taurus:
 
 ```bash
 sudo pip install bzt
+```
+
+Upgrading Taurus to latest on Mac OS is suggested as:
+
+```bash
+sudo pip uninstall bzt && sudo pip install bzt
+```
+
+We suggest to avoid using `--upgrade` command with `pip` on Mac OS, since it does not work as expected for Taurus.
+
+### In Case of Failures 
+_Try the suggestions below that apply to your case, then repeat `sudo pip install bzt`._
+
+If your Mac OS is older than El Capitan, most likely you also need to upgrade `setuptools`:
+
+```bash
+sudo pip install --upgrade setuptools
 ```
 
 If you experience `libxml/xmlversion.h missing` error, try running:
@@ -97,17 +110,8 @@ If you experience `libxml/xmlversion.h missing` error, try running:
 brew install libxml2
 brew install libxslt
 ```
-then try installing Taurus again.
 
-
-Upgrading Taurus to latest on Mac OS is suggested as:
-
-```bash
-sudo pip uninstall bzt
-sudo pip install bzt
-```
-
-We suggest to avoid using `--upgrade` command with `pip` on Mac OS, since it does not work as expected for Taurus.
+----
 
 ## Linux
 
@@ -141,6 +145,8 @@ pip install --upgrade bzt
 ```
 
 ### CentOS
+
+Taurus requires Python 2.7 or higher.
 
 Use `uname -a` to verify the system if it's 32 bit or 64 bit machine. [http://www.tecmint.com/enable-rpmforge-repository/](http://www.tecmint.com/enable-rpmforge-repository/)
 

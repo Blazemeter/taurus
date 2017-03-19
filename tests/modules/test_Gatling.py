@@ -150,24 +150,27 @@ class TestGatlingExecutor(BZTestCase):
             lines = fds.readlines()
         self.assertNotIn('throughput', lines[-1])
 
-    def test_requests_1(self):
+    def test_arequests_1(self):
         obj = self.getGatling()
         obj.execution.merge({
             "concurrency": 10,
             "iterations": 5,
             "scenario": {
                 "think-time": 1,
+                "follow-redirects": False,
                 "default-address": "blazedemo.com",
-                "headers": {'H1': 'V1'},
-                "requests": [{'url': '/reserve.php',
-                              'headers': {'H2': 'V2'},
-                              'method': 'POST',
-                              'body': 'Body Content',
-                              'assert': [{
-                                  'contains': ['bootstrap.min'],
-                                  'not': True
+                "headers": {"H1": "V1"},
+                "requests": [{"url": "/reserve.php",
+                              "headers": {"H2": "V2"},
+                              "method": "POST",
+                              "body": "Body Content",
+                              "assert": [{
+                                  "contains": ["bootstrap.min"],
+                                  "not": True
                               }]},
-                             {'url': '/'}]
+                             {"url": "/",
+                              "think-time": 2,
+                              "follow-redirects": True}]
             }
         })
         obj.prepare()

@@ -1,3 +1,0 @@
-Capture JMeter's stdout/stderr streams and save them to artifacts dir
-
-This fixes "JMeter threads stuck on `System.out.println()` call".
