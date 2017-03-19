@@ -888,7 +888,7 @@ class LDJSONReaderEmul(object):
             yield line
 
 
-class TestASeleniumStuff(SeleniumTestCase):
+class TestSeleniumStuff(SeleniumTestCase):
     def test_empty_scenario(self):
         """
         Raise runtime error when no scenario provided
@@ -966,7 +966,7 @@ class TestASeleniumStuff(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
-    def test_arequests(self):
+    def test_requests(self):
         self.configure(yaml.load(open(__dir__() + "/../yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
