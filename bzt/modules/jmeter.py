@@ -1539,8 +1539,9 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     def __add_think_time(self, children, req):
-        if req.by_priority('think-time') is not None:
-            children.append(JMX._get_constant_timer(self.smart_time(req.think_time)))
+        think_time = req.by_priority('think-time')
+        if think_time is not None:
+            children.append(JMX._get_constant_timer(self.smart_time(think_time)))
             children.append(etree.Element("hashTree"))
 
     def __add_extractors(self, children, req):
@@ -1675,7 +1676,7 @@ class JMeterScenarioBuilder(JMX):
         :type request: HierarchicHTTPRequest
         :return:
         """
-        timeout = request.timeout
+        timeout = request.by_priority('timeout')
         if timeout is not None:
             timeout = self.smart_time(timeout)
 
