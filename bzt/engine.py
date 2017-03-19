@@ -1037,6 +1037,8 @@ class Scenario(UserDict, object):
         """
         scenario = self
         headers = scenario.get("headers", {})
+        if headers is None:
+            headers = {}
         return headers
 
     def get_requests(self, require_url=True):
@@ -1068,6 +1070,8 @@ class HTTPRequest(Request):
         self.label = config.get("label", self.url)
         self.method = config.get("method", "GET")
         self.headers = config.get("headers", {})
+        if self.headers is None:
+            self.headers = {}
         self.timeout = config.get("timeout", None)
         self.think_time = config.get("think-time", None)
 

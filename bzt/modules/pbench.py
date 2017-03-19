@@ -316,7 +316,7 @@ class PBenchTool(object):
         if body:
             headers.merge({"Content-Length": len(body)})
 
-        headers.merge(scenario.get("headers"))
+        headers.merge(scenario.get_headers())
         headers.merge(request.headers)
         for header, value in iteritems(headers):
             http += "%s: %s\r\n" % (header, value)

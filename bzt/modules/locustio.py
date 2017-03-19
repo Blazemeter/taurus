@@ -333,7 +333,7 @@ from locust import HttpLocust, TaskSet, task
         task = self.gen_method_definition("generated_task", ['self'])
 
         think_time = dehumanize_time(self.scenario.get('think-time', None))
-        global_headers = self.scenario.get("headers", None)
+        global_headers = self.scenario.get_headers()
         if not self.scenario.get("keepalive", True):
             global_headers['Connection'] = 'close'
 
