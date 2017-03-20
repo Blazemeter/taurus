@@ -134,16 +134,14 @@ engine will perfectly deal with it. For example, following JSON file:
   ],
   "scenarios": {
      "sample": {
-       "script": {
-         "path": "tests/jmx/dummy.jmx"
-       }
+       "script": "tests/jmx/dummy.jmx"
      }
   }
   "provisioning": "local",
   "aggregator": "aggregator",
   "reporting": [
     {
-      "module": "status"
+      "module": "final_stats"
     }
   ],
   "modules": {
