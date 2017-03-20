@@ -328,6 +328,11 @@ class Project(BZAObject):
         return tests
 
     def create_test(self, name, configuration):
+        """
+        :param name:
+        :param configuration:
+        :rtype: Test
+        """
         self.log.debug("Creating new test")
         url = self.address + '/api/v4/tests'
         data = {"name": name, "projectId": self['id'], "configuration": configuration}
@@ -399,6 +404,11 @@ class Test(BZAObject):
 
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)
+
+    def update_test(self, coll):
+        url = self.address + "/api/v4/tests/%s" % self['id']
+        res = self._request(url, data=coll, method="PATCH")
+        return res['result']
 
 
 class MultiTest(BZAObject):
