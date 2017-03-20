@@ -34,13 +34,14 @@ from math import ceil
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
+from bzt.requests_model import RequestVisitor, ResourceFilesCollector
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
@@ -833,8 +834,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                     files.append(data_source)
                 elif isinstance(data_source, dict):
                     files.append(data_source['path'])
-        requests_parser = RequestsParser(scenario, self.engine)
-        requests = requests_parser.extract_requests()
+        requests = scenario.get_requests()
         for req in requests:
             files.extend(self.res_files_from_request(req))
             self.resource_files_collector.clear_path_cache()
@@ -1655,8 +1655,7 @@ class JMeterScenarioBuilder(JMX):
             return None
 
     def __gen_requests(self, scenario):
-        requests_parser = RequestsParser(scenario, self.engine)
-        requests = (requests_parser.extract_requests())
+        requests = scenario.get_requests()
         elements = []
         for compiled in self.compile_requests(requests):
             elements.extend(compiled)
@@ -2093,250 +2092,6 @@ class JMeterMirrorsManager(MirrorsManager):
         # place HTTPS links first, preserving the order of HTTP links
         sorted_links = sorted(links, key=lambda l: l.startswith("https"), reverse=True)
         return sorted_links
-
-
-class IfBlock(Request):
-    def __init__(self, condition, then_clause, else_clause, config):
-        super(IfBlock, self).__init__(config)
-        self.condition = condition
-        self.then_clause = then_clause
-        self.else_clause = else_clause
-
-    def __repr__(self):
-        then_clause = [repr(req) for req in self.then_clause]
-        else_clause = [repr(req) for req in self.else_clause]
-        return "IfBlock(condition=%s, then=%s, else=%s)" % (self.condition, then_clause, else_clause)
-
-
-class LoopBlock(Request):
-    def __init__(self, loops, requests, config):
-        super(LoopBlock, self).__init__(config)
-        self.loops = loops
-        self.requests = requests
-
-    def __repr__(self):
-        requests = [repr(req) for req in self.requests]
-        return "LoopBlock(loops=%s, requests=%s)" % (self.loops, requests)
-
-
-class WhileBlock(Request):
-    def __init__(self, condition, requests, config):
-        super(WhileBlock, self).__init__(config)
-        self.condition = condition
-        self.requests = requests
-
-    def __repr__(self):
-        requests = [repr(req) for req in self.requests]
-        return "WhileBlock(condition=%s, requests=%s)" % (self.condition, requests)
-
-
-class ForEachBlock(Request):
-    def __init__(self, input_var, loop_var, requests, config):
-        super(ForEachBlock, self).__init__(config)
-        self.input_var = input_var
-        self.loop_var = loop_var
-        self.requests = requests
-
-    def __repr__(self):
-        requests = [repr(req) for req in self.requests]
-        fmt = "ForEachBlock(input=%s, loop_var=%s, requests=%s)"
-        return fmt % (self.input_var, self.loop_var, requests)
-
-
-class TransactionBlock(Request):
-    def __init__(self, name, requests, config):
-        super(TransactionBlock, self).__init__(config)
-        self.name = name
-        self.requests = requests
-
-    def __repr__(self):
-        requests = [repr(req) for req in self.requests]
-        fmt = "TransactionBlock(name=%s, requests=%s)"
-        return fmt % (self.name, requests)
-
-
-class IncludeScenarioBlock(Request):
-    def __init__(self, scenario_name, config):
-        super(IncludeScenarioBlock, self).__init__(config)
-        self.scenario_name = scenario_name
-
-
-class RequestsParser(object):
-    def __init__(self, scenario, engine):
-        self.engine = engine
-        self.scenario = scenario
-
-    def __parse_request(self, req):
-        if 'if' in req:
-            condition = req.get("if")
-
-            # TODO: apply some checks to `condition`?
-            then_clause = req.get("then", TaurusConfigError("'then' clause is mandatory for 'if' blocks"))
-            then_requests = self.__parse_requests(then_clause)
-            else_clause = req.get("else", [])
-            else_requests = self.__parse_requests(else_clause)
-            return IfBlock(condition, then_requests, else_requests, req)
-        elif 'loop' in req:
-            loops = req.get("loop")
-            do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'loop' blocks"))
-            do_requests = self.__parse_requests(do_block)
-            return LoopBlock(loops, do_requests, req)
-        elif 'while' in req:
-            condition = req.get("while")
-            do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'while' blocks"))
-            do_requests = self.__parse_requests(do_block)
-            return WhileBlock(condition, do_requests, req)
-        elif 'foreach' in req:
-            iteration_str = req.get("foreach")
-            match = re.match(r'(.+) in (.+)', iteration_str)
-            if not match:
-                msg = "'foreach' value should be in format '<elementName> in <collection>' but '%s' found"
-                raise TaurusConfigError(msg % iteration_str)
-            loop_var, input_var = match.groups()
-            do_block = req.get("do", TaurusConfigError("'do' field is mandatory for 'foreach' blocks"))
-            do_requests = self.__parse_requests(do_block)
-            return ForEachBlock(input_var, loop_var, do_requests, req)
-        elif 'transaction' in req:
-            name = req.get('transaction')
-            do_block = req.get('do', TaurusConfigError("'do' field is mandatory for transaction blocks"))
-            do_requests = self.__parse_requests(do_block)
-            return TransactionBlock(name, do_requests, req)
-        elif 'include-scenario' in req:
-            name = req.get('include-scenario')
-            return IncludeScenarioBlock(name, req)
-        elif 'action' in req:
-            action = req.get('action')
-            if action not in ('pause', 'stop', 'stop-now', 'continue'):
-                raise TaurusConfigError("Action should be either 'pause', 'stop', 'stop-now' or 'continue'")
-            target = req.get('target', 'current-thread')
-            if target not in ('current-thread', 'all-threads'):
-                msg = "Target for action should be either 'current-thread' or 'all-threads' but '%s' found"
-                raise TaurusConfigError(msg % target)
-            duration = req.get('pause-duration', None)
-            if duration is not None:
-                duration = dehumanize_time(duration)
-            return ActionBlock(action, target, duration, req)
-        else:
-            return HierarchicHTTPRequest(req, self.scenario, self.engine)
-
-    def __parse_requests(self, raw_requests):
-        requests = []
-        for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
-            if not isinstance(raw_requests[key], dict):
-                req = ensure_is_dict(raw_requests, key, "url")
-            else:
-                req = raw_requests[key]
-            requests.append(self.__parse_request(req))
-        return requests
-
-    def extract_requests(self):
-        requests = self.scenario.get("requests", [])
-        return self.__parse_requests(requests)
-
-
-class HierarchicHTTPRequest(HTTPRequest):
-    def __init__(self, config, scenario, engine):
-        super(HierarchicHTTPRequest, self).__init__(config, scenario, engine)
-        self.upload_files = self.config.get("upload-files", [])
-        for file_dict in self.upload_files:
-            file_dict.get("param", TaurusConfigError("Items from upload-files must specify parameter name"))
-            path = file_dict.get('path', TaurusConfigError("Items from upload-files must specify path to file"))
-            mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
-            file_dict.get('mime-type', mime)
-        self.content_encoding = self.config.get('content-encoding', None)
-
-
-class ActionBlock(Request):
-    def __init__(self, action, target, duration, config):
-        super(ActionBlock, self).__init__(config)
-        self.action = action
-        self.target = target
-        self.duration = duration
-
-
-class RequestVisitor(object):
-    def __init__(self):
-        self.path = []
-
-    def clear_path_cache(self):
-        self.path = []
-
-    def record_path(self, path):
-        self.path.append(path)
-
-    def visit(self, node):
-        class_name = node.__class__.__name__.lower()
-        visitor = getattr(self, 'visit_' + class_name, None)
-        if visitor is not None:
-            return visitor(node)
-        raise TaurusInternalException("Visitor for class %s not found" % class_name)
-
-
-class ResourceFilesCollector(RequestVisitor):
-    def __init__(self, executor):
-        """
-        :param executor: JMeterExecutor
-        """
-        super(ResourceFilesCollector, self).__init__()
-        self.executor = executor
-
-    def visit_hierarchichttprequest(self, request):
-        files = []
-        body_file = request.config.get('body-file')
-        if body_file:
-            files.append(body_file)
-        if 'jsr223' in request.config:
-            jsrs = request.config.get('jsr223')
-            if isinstance(jsrs, dict):
-                jsrs = [jsrs]
-            for jsr in jsrs:
-                if 'script-file' in jsr:
-                    files.append(jsr.get('script-file'))
-        return files
-
-    def visit_ifblock(self, block):
-        files = []
-        for request in block.then_clause:
-            files.extend(self.visit(request))
-        for request in block.else_clause:
-            files.extend(self.visit(request))
-        return files
-
-    def visit_loopblock(self, block):
-        files = []
-        for request in block.requests:
-            files.extend(self.visit(request))
-        return files
-
-    def visit_whileblock(self, block):
-        files = []
-        for request in block.requests:
-            files.extend(self.visit(request))
-        return files
-
-    def visit_foreachblock(self, block):
-        files = []
-        for request in block.requests:
-            files.extend(self.visit(request))
-        return files
-
-    def visit_transactionblock(self, block):
-        files = []
-        for request in block.requests:
-            files.extend(self.visit(request))
-        return files
-
-    def visit_includescenarioblock(self, block):
-        scenario_name = block.scenario_name
-        if scenario_name in self.path:
-            msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
-            raise TaurusConfigError(msg % scenario_name)
-        self.record_path(scenario_name)
-        scenario = self.executor.get_scenario(name=block.scenario_name)
-        return self.executor.res_files_from_scenario(scenario)
-
-    def visit_actionblock(self, _):
-        return []
 
 
 class RequestCompiler(RequestVisitor):
