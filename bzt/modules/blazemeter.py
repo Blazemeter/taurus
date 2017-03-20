@@ -864,7 +864,7 @@ class ProjectFinder(object):
         assert test_class is not None
         router = test_class(self.user, test, project, test_name, default_location, self.log)
         router._workspaces = self.workspaces
-        router.cloud_mode = self.settings.get("cloud-mode", "taurus1")
+        router.cloud_mode = self.settings.get("cloud-mode", None)
         return router
 
     def _default_or_create_project(self, proj_name):
