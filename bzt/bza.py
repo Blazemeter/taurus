@@ -405,7 +405,7 @@ class Test(BZAObject):
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)
 
-    def update_test(self, coll):
+    def update_props(self, coll):
         url = self.address + "/api/v4/tests/%s" % self['id']
         res = self._request(url, data=coll, method="PATCH")
         return res['result']

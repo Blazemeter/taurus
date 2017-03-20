@@ -1048,7 +1048,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
-        self._test.update_test({'configuration': {'executionType': self.cloud_mode}})
+        self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
