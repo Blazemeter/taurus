@@ -619,6 +619,11 @@ scenarios:
 
 Taurus translates each `include-scenario` block to a JMeter's `Simple Controller` and puts all scenario-level
 settings and requests there.
+Keep in mind: the following scenario-level parameters of including scenario have no effect for included ones:
+- `keepalive`
+- `timeout`
+- `think-time`
+- `follow-redirects`
 
 ##### Action Blocks
 
