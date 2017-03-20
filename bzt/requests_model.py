@@ -193,10 +193,10 @@ class RequestsParser(object):
         for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
             if not isinstance(raw_requests[key], dict):
                 req = ensure_is_dict(raw_requests, key, "url")
-                if not require_url and "url" not in req:
-                    req["url"] = None
             else:
                 req = raw_requests[key]
+            if not require_url and "url" not in req:
+                req["url"] = None
             requests.append(self.__parse_request(req))
         return requests
 
