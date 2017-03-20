@@ -511,7 +511,7 @@ from HTTPClient import NVPair
 
             main_method.append(self.gen_statement("request.%s(%r, %s, %s)" % (method, url, params, headers), indent=8))
 
-            think_time = dehumanize_time(req.by_priority('think-time'))
+            think_time = dehumanize_time(req.priority_option('think-time'))
             if think_time:
                 main_method.append(self.gen_statement("grinder.sleep(%s)" % int(think_time * 1000), indent=8))
 

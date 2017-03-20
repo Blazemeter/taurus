@@ -1257,7 +1257,7 @@ from selenium.webdriver.support.wait import WebDriverWait
                     for elm in self.gen_assertion(assert_config):
                         test_method.append(elm)
 
-            think_time = req.by_priority('think-time')
+            think_time = req.priority_option('think-time')
             if think_time is not None:
                 test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
 

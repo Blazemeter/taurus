@@ -83,12 +83,12 @@ class GatlingScriptBuilder(object):
 
             exec_str += self.__get_assertions(req.config.get('assert', []))
 
-            if not req.by_priority('follow-redirects', default=True):
+            if not req.priority_option('follow-redirects', default=True):
                 exec_str += '\t\t\t.disableFollowRedirect\n'
 
             exec_str += '\t\t)'
 
-            think_time = int(dehumanize_time(req.by_priority('think-time')))
+            think_time = int(dehumanize_time(req.priority_option('think-time')))
             if think_time:
                 exec_str += '.pause(%(think_time)s)' % {'think_time': think_time}
 

@@ -1091,7 +1091,7 @@ class HTTPRequest(Request):
         self.follow_redirects = self.config.get('follow-redirects', None)
         self.body = self.__get_body()
 
-    def by_priority(self, name, default=None):
+    def priority_option(self, name, default=None):
         val = self.config.get(name, None)
         if val is None:
             val = self.scenario.get(name, None)
