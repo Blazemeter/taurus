@@ -1687,8 +1687,9 @@ class JMeterScenarioBuilder(JMX):
             body = request.body
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body,
-                                     request.priority_option('keepalive', default=True), request.upload_files,
-                                     request.content_encoding, request.priority_option('follow-redirects', default=True))
+                                     request.priority_option('keepalive', default=True),
+                                     request.upload_files, request.content_encoding,
+                                     request.priority_option('follow-redirects', default=True))
 
         children = etree.Element("hashTree")
 
