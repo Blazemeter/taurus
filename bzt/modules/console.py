@@ -653,7 +653,7 @@ class CumulativeStats(LineBox):
     """
     Cumulative stats block
     """
-    title = " Cumulative Stats "
+    title = " Cumulative Stats"
 
     def __init__(self):
         self.data = DataPoint(0)
@@ -688,7 +688,7 @@ class CumulativeStats(LineBox):
             self._start_time = data.get('ts')
         duration = humanize_time(time.time() - self._start_time)
 
-        self.title_widget.set_text(self.title + " %s" % duration)
+        self.title_widget.set_text(self.title + " %s " % duration)
 
 
 class PercentilesList(ListBox):
