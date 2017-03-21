@@ -653,7 +653,7 @@ class CumulativeStats(LineBox):
     """
     Cumulative stats block
     """
-    title = "Cumulative Stats"
+    title = " Cumulative Stats "
 
     def __init__(self):
         self.data = DataPoint(0)

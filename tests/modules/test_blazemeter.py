@@ -19,10 +19,10 @@ class BZMock(object):
         """
         super(BZMock, self).__init__()
         locs = [{'id': 'aws', 'sandbox': False, 'title': 'AWS'},
-                          {'id': 'us-east-1', 'sandbox': False, 'title': 'East'},
-                          {'id': 'us-west', 'sandbox': False, 'title': 'Dallas (Rackspace)'},
-                          {'id': 'harbor-sandbox', 'sandbox': True, 'title': 'Sandbox'},
-                          {'id': 'non-harbor-sandbox', 'sandbox': True, 'title': 'Sandbox Neverexisting'}, ]
+                {'id': 'us-east-1', 'sandbox': False, 'title': 'East'},
+                {'id': 'us-west', 'sandbox': False, 'title': 'Dallas (Rackspace)'},
+                {'id': 'harbor-sandbox', 'sandbox': True, 'title': 'Sandbox'},
+                {'id': 'non-harbor-sandbox', 'sandbox': True, 'title': 'Sandbox Neverexisting'}, ]
         self.mock_get = {
             'https://a.blazemeter.com/api/v4/web/version': {},
             'https://a.blazemeter.com/api/v4/user': {'defaultProject': {'id': None}, "locations": locs},
@@ -113,6 +113,10 @@ class TestCloudProvisioningOld(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": None},
             'https://a.blazemeter.com/api/v4/masters/1/public-token': {"result": {"publicToken": "token"}},
+        }
+
+        mock.mock_patch = {
+            'https://a.blazemeter.com/api/v4/tests/1': {"result": {}}
         }
 
         prov = CloudProvisioning()
