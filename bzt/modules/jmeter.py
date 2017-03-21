@@ -146,13 +146,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         is_jmx_generated = False
 
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.original_jmx = self.get_script_path()
-        elif scenario.get("requests"):
-            self.original_jmx = self.__jmx_from_requests()
-            is_jmx_generated = True
-        else:
-            raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
+        self.original_jmx = self.get_script_path()
+        if not self.original_jmx:
+            if scenario.get("requests"):
+                self.original_jmx = self.__jmx_from_requests()
+                is_jmx_generated = True
+            else:
+                raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
         if isinstance(self.engine.aggregator, FunctionalAggregator):
             self.settings.merge({"xml-jtl-flags": {"connectTime": True, "sentBytes": True}})

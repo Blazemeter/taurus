@@ -30,7 +30,8 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, Dat
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.six import PY3, iteritems
-from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time, ensure_is_dict, PythonGenerator
+from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time
+from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
@@ -82,17 +83,14 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         else:
             hatch = concurrency
 
-        wrapper = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                               os.pardir,
-                               "resources",
-                               "locustio-taurus-wrapper.py")
+        wrapper = os.path.join(get_full_path(__file__, step_up=2), "resources", "locustio-taurus-wrapper.py")
 
         env = BetterDict()
         env.merge({"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()})
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
 
-        args = [sys.executable, os.path.realpath(wrapper), '-f', os.path.realpath(self.script)]
+        args = [sys.executable, wrapper, '-f', self.script]
         args += ['--logfile=%s' % self.engine.create_artifact("locust", ".log")]
         args += ["--no-web", "--only-summary", ]
         args += ["--clients=%d" % concurrency, "--hatch-rate=%d" % hatch]
@@ -335,7 +333,7 @@ from locust import HttpLocust, TaskSet, task
         task = self.gen_method_definition("generated_task", ['self'])
 
         think_time = dehumanize_time(self.scenario.get('think-time', None))
-        global_headers = self.scenario.get("headers", None)
+        global_headers = self.scenario.get_headers()
         if not self.scenario.get("keepalive", True):
             global_headers['Connection'] = 'close'
 
