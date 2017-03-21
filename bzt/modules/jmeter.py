@@ -178,6 +178,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         elif isinstance(self.engine.aggregator, FunctionalAggregator):
             self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
             self.reader.is_distributed = len(self.distributed_servers) > 0
+            self.reader.executor_label = self.label
             self.engine.aggregator.add_underling(self.reader)
 
     def __set_system_properties(self):
@@ -1017,6 +1018,7 @@ class FuncJTLReader(FunctionalResultsReader):
 
     def __init__(self, filename, engine, parent_logger):
         super(FuncJTLReader, self).__init__()
+        self.executor_label = "JMeter"
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
         self.offset = 0
@@ -1046,6 +1048,20 @@ class FuncJTLReader(FunctionalResultsReader):
                 self.log.debug("File not exists: %s", self.filename)
                 return
 
+        self.__read_next_chunk(last_pass)
+
+        for _, elem in self.parser.read_events():
+            if elem.getparent() is not None and elem.getparent().tag == 'testResults':
+                sample = self._extract_sample(elem)
+                self.read_records += 1
+
+                elem.clear()
+                while elem.getprevious() is not None:
+                    del elem.getparent()[0]
+
+                yield sample
+
+    def __read_next_chunk(self, last_pass):
         self.fds.seek(self.offset)
         while True:
             read = self.fds.read(1024 * 1024)
@@ -1061,17 +1077,6 @@ class FuncJTLReader(FunctionalResultsReader):
             if not last_pass:
                 continue
         self.offset = self.fds.tell()
-
-        for _, elem in self.parser.read_events():
-            if elem.getparent() is not None and elem.getparent().tag == 'testResults':
-                sample = self._extract_sample(elem)
-                self.read_records += 1
-
-                elem.clear()
-                while elem.getprevious() is not None:
-                    del elem.getparent()[0]
-
-                yield sample
 
     def _write_sample_data(self, filename, contents):
         artifact = self.engine.create_artifact(filename, ".bin")
@@ -1133,7 +1138,6 @@ class FuncJTLReader(FunctionalResultsReader):
     def _extract_sample(self, sample_elem):
         tstmp = int(float(sample_elem.get("ts")) / 1000)
         label = sample_elem.get("lb")
-        suite_name = "JMeter"  # FIXME: we have better thing to put here, such as JMX name/executor label
         duration = float(sample_elem.get("t")) / 1000.0
         success = sample_elem.get("s") == "true"
 
@@ -1157,7 +1161,7 @@ class FuncJTLReader(FunctionalResultsReader):
         sample_extras = self._extract_sample_extras(sample_elem)
         self.__write_sample_data_to_artifacts(sample_extras)
 
-        return FunctionalSample(test_case=label, test_suite=suite_name, status=status,
+        return FunctionalSample(test_case=label, test_suite=self.executor_label, status=status,
                                 start_time=tstmp, duration=duration,
                                 error_msg=error_msg, error_trace=error_trace,
                                 extras=sample_extras)
