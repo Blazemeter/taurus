@@ -13,11 +13,12 @@ from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint
 from bzt.modules.blazemeter import CloudProvisioning
+from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, to_json
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, RecordingHandler
 
@@ -2259,6 +2260,12 @@ class TestJMeterExecutor(BZTestCase):
             pass
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "jmeter.out")))
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "jmeter.err")))
+
+    def test_func_aggregator_chosen(self):
+        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.obj.engine.aggregator = FunctionalAggregator()
+        self.obj.prepare()
+        self.assertEquals('get-post', self.obj.reader.executor_label)
 
 
 class TestJMX(BZTestCase):

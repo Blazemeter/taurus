@@ -290,7 +290,7 @@ class TestJUnitXML(BZTestCase):
 
         sys_out = test_cases[0].getchildren()[0]
         self.assertEqual('system-out', sys_out.tag)
-        self.assertIn('Cloud report link: http://test/report/123', sys_out.text)
+        self.assertIn('BlazeMeter report link: http://test/report/123', sys_out.text)
 
     def test_report_criteria_without_label(self):
         obj = JUnitXMLReporter()

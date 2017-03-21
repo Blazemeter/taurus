@@ -105,8 +105,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         fds.write("# BZT Properies Start\n")
         fds.write("grinder.hostID=%s\n" % self.exec_id)
-        fds.write("grinder.script=%s\n" % os.path.realpath(self.script).replace(os.path.sep, "/"))
-        dirname = os.path.realpath(self.engine.artifacts_dir)
+        fds.write("grinder.script=%s\n" % self.script.replace(os.path.sep, "/"))
+        dirname = self.engine.artifacts_dir
         fds.write("grinder.logDirectory=%s\n" % dirname.replace(os.path.sep, "/"))
 
         load = self.get_load()
@@ -126,8 +126,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         scenario = self.get_scenario()
 
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
+        self.script = self.get_script_path()
+        if self.script:
             self.engine.existing_artifact(self.script)
         elif "requests" in scenario:
             self.script = self.__scenario_from_requests()
@@ -150,9 +150,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.engine.aggregator.add_underling(self.reader)
 
         # add logback configurations used by worker processes (logback-worker.xml)
-        classpath = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, 'resources')
+        classpath = os.path.join(get_full_path(__file__, step_up=2), 'resources')
 
-        classpath += os.path.pathsep + os.path.realpath(self.settings.get("path"))
+        path = self.settings.get("path", None)
+        if path:
+            classpath += os.path.pathsep + path
 
         self.cmd_line = ["java", "-classpath", classpath]
         self.cmd_line += ["net.grinder.Grinder", self.properties_file]

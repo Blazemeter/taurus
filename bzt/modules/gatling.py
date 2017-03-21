@@ -248,14 +248,14 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.log.debug("Will not build Gatling launcher")
             self.launcher = self.settings["path"]
 
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.script = self.get_script_path()
-        elif "requests" in scenario:
-            self.get_scenario()['simulation'], self.script = self.__generate_script()
-        else:
-            msg = "There must be a script file or requests for its generation "
-            msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
-            raise TaurusConfigError(msg)
+        self.script = self.get_script_path()
+        if not self.script:
+            if "requests" in scenario:
+                self.get_scenario()['simulation'], self.script = self.__generate_script()
+            else:
+                msg = "There must be a script file or requests for its generation "
+                msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
+                raise TaurusConfigError(msg)
 
         self.dir_prefix = 'gatling-%s' % id(self)
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)

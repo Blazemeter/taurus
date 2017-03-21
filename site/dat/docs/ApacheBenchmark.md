@@ -50,7 +50,7 @@ execution:
   concurrency: 20
   iterations: 1000
   headers:
-    - Content-Type: text/plain
+    Content-Type: text/plain
   scenario: complex
   
 
@@ -58,9 +58,9 @@ scenarios:
   complex:  
     keepalive: false
     requests:
-      - url: http://blazedemo.com/
+    - url: http://blazedemo.com/
         headers:
-          - X-Answer: 42
+          X-Answer: 42
 ```
 
 

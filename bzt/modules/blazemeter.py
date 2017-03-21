@@ -864,6 +864,7 @@ class ProjectFinder(object):
         assert test_class is not None
         router = test_class(self.user, test, project, test_name, default_location, self.log)
         router._workspaces = self.workspaces
+        router.cloud_mode = self.settings.get("cloud-mode", None)
         return router
 
     def _default_or_create_project(self, proj_name):
@@ -883,6 +884,7 @@ class BaseCloudTest(object):
     :type _project: bzt.bza.Project
     :type _test: bzt.bza.Test
     :type master: bzt.bza.Master
+    :type cloud_mode: str
     """
 
     def __init__(self, user, test, project, test_name, default_location, parent_log):
@@ -898,6 +900,7 @@ class BaseCloudTest(object):
         self._test = test
         self.master = None
         self._workspaces = None
+        self.cloud_mode = None
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -935,13 +938,17 @@ class BaseCloudTest(object):
 
 
 class CloudTaurusTest(BaseCloudTest):
+    def __init__(self, user, test, project, test_name, default_location, parent_log):
+        super(CloudTaurusTest, self).__init__(user, test, project, test_name, default_location, parent_log)
+
     def prepare_locations(self, executors, engine_config):
         available_locations = {}
-        for loc in self._workspaces.locations(include_private=TAURUS_TEST_TYPE != 'taurus'):  # FIXME: weird
+        is_taurus3 = self.cloud_mode == 'taurusCloud'
+        for loc in self._workspaces.locations(include_private=is_taurus3):
             available_locations[loc['id']] = loc
 
         if CloudProvisioning.LOC in engine_config:
-            self.log.warning("Deprecated test API doesn't support global locations")  # FIXME: not true for taurus3
+            self.log.warning("Deprecated test API doesn't support global locations")
 
         for executor in executors:
             if CloudProvisioning.LOC in executor.execution:
@@ -1041,6 +1048,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
+        self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
@@ -1359,8 +1367,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def prepare(self):
         self._merge_with_blazemeter_config()
-        global TAURUS_TEST_TYPE  # FIXME: remove temporary solution
-        TAURUS_TEST_TYPE = self.settings.get("cloud-test-type", TAURUS_TEST_TYPE)
         self._configure_client()
         self._workspaces = self.user.accounts().workspaces()
         self.__dump_locations_if_needed()
@@ -1399,8 +1405,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.settings.get("dump-locations", False):
             self.log.warning("Dumping available locations instead of running the test")
             use_deprecated = self.settings.get("use-deprecated-api", True)
+            is_taurus3 = self.settings.get("cloud-mode", None) == 'taurusCloud'
             locations = {}
-            for loc in self._workspaces.locations(include_private=not use_deprecated or TAURUS_TEST_TYPE != 'taurus'):
+            for loc in self._workspaces.locations(include_private=not use_deprecated or is_taurus3):
                 locations[loc['id']] = loc
 
             for location_id in sorted(locations):
