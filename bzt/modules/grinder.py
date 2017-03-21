@@ -501,19 +501,17 @@ from HTTPClient import NVPair
         runner_classdef = self.gen_class_definition("TestRunner", ["object"], indent=0)
         main_method = self.gen_method_definition("__call__", ["self"], indent=4)
 
-        global_think_time = self.scenario.get('think-time', None)
-
         for req in self.scenario.get_requests():
             method = req.method.upper()
             url = req.url
-            think_time = dehumanize_time(req.think_time or global_think_time)
-            local_headers = req.config.get("headers", {})
+            local_headers = req.headers
 
             params = "[]"
             headers = self.__list_to_nvpair_list(iteritems(local_headers))
 
             main_method.append(self.gen_statement("request.%s(%r, %s, %s)" % (method, url, params, headers), indent=8))
 
+            think_time = dehumanize_time(req.priority_option('think-time'))
             if think_time:
                 main_method.append(self.gen_statement("grinder.sleep(%s)" % int(think_time * 1000), indent=8))
 

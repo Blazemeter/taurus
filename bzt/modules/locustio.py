@@ -344,14 +344,7 @@ from locust import HttpLocust, TaskSet, task
             if method not in ('get', 'delete', 'head', 'options', 'path', 'put', 'post'):
                 raise TaurusConfigError("Wrong Locust request type: %s" % method)
 
-            if req.timeout:
-                timeout = req.timeout
-            else:
-                scenario_timeout = self.scenario.get("timeout", None)
-                if scenario_timeout:
-                    timeout = scenario_timeout
-                else:
-                    timeout = '30s'
+            timeout = req.priority_option('timeout', default='30s')
 
             self.__gen_check(method, req, task, dehumanize_time(timeout), global_headers)
 

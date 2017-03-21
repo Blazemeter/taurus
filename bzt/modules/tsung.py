@@ -390,7 +390,7 @@ class TsungConfig(object):
 
         global_tcp_timeout = scenario.get('timeout', None)
         if global_tcp_timeout:
-            timeout = int(dehumanize_time(global_tcp_timeout)) * 1000
+            timeout = int(dehumanize_time(global_tcp_timeout) * 1000)
             options.append(etree.Element("option", name="connect_timeout", value=str(timeout)))
 
         global_max_retries = scenario.get('max-retries', 1)

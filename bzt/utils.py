@@ -843,6 +843,30 @@ class TclLibrary(RequiredTool):
             self.log.warning("No Tcl library was found")
 
 
+class Node(RequiredTool):
+    def __init__(self, parent_logger):
+        super(Node, self).__init__("Node.js", "")
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.executable = None
+
+    def check_if_installed(self):
+        node_candidates = ["node", "nodejs"]
+        for candidate in node_candidates:
+            try:
+                self.log.debug("Trying %r", candidate)
+                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                self.log.debug("%s output: %s", candidate, output)
+                self.executable = candidate
+                return True
+            except (CalledProcessError, OSError):
+                self.log.debug("%r is not installed", candidate)
+                continue
+        return False
+
+    def install(self):
+        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
+
+
 class MirrorsManager(object):
     def __init__(self, base_link, parent_logger):
         self.base_link = base_link

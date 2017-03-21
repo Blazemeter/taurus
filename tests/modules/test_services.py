@@ -46,6 +46,7 @@ class TestZipFolder(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/tests/1/files': {}
         })
+        mock.mock_patch.update({'https://a.blazemeter.com/api/v4/tests/1': {"result": {}}})
         obj.prepare()
 
         unpack_cfgs = obj.engine.config.get(Service.SERV)
