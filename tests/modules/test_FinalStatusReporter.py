@@ -249,7 +249,6 @@ class TestFinalStatusReporter(BZTestCase):
 
         rep = BlazeMeterUploader()
         rep.results_url = "http://report/link"
-        rep.parameters.merge({"test": "My Test"})
         obj.engine.reporters.append(rep)
 
         obj.aggregated_second(self.__get_datapoint())
@@ -258,7 +257,7 @@ class TestFinalStatusReporter(BZTestCase):
         self.assertTrue(os.path.exists(xml_report))
         with open(xml_report) as fds:
             report_content = fds.read()
-        self.assertIn('<BlazeMeterReport link="http://report/link" name="My Test"/>', report_content)
+        self.assertIn('<ReportURL>http://report/link</ReportURL>', report_content)
 
     def test_blazemeter_cloud_report_link(self):
         obj = FinalStatus()
@@ -271,7 +270,6 @@ class TestFinalStatusReporter(BZTestCase):
 
         prov = CloudProvisioning()
         prov.results_url = "http://report/link"
-        prov.settings.merge({"test": "My Test"})
         obj.engine.provisioning = prov
 
         obj.aggregated_second(self.__get_datapoint())
@@ -280,4 +278,4 @@ class TestFinalStatusReporter(BZTestCase):
         self.assertTrue(os.path.exists(xml_report))
         with open(xml_report) as fds:
             report_content = fds.read()
-        self.assertIn('<BlazeMeterReport link="http://report/link" name="My Test"/>', report_content)
+        self.assertIn('<ReportURL>http://report/link</ReportURL>', report_content)

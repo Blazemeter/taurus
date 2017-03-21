@@ -180,8 +180,9 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         root = etree.Element("FinalStatus")
         report_info = get_bza_report_info(self.engine, self.log)
         if report_info:
-            link, text = report_info[0]
-            report_element = etree.Element("BlazeMeterReport", link=link, name=text)
+            link, _ = report_info[0]
+            report_element = etree.Element("ReportURL")
+            report_element.text = link
             root.append(report_element)
         if self.last_sec:
             for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
