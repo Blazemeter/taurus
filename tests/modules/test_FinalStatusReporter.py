@@ -1,8 +1,10 @@
+import os
 from collections import Counter
 import time
 
 from tests import BZTestCase, random_datapoint
 from tests.mocks import EngineEmul, RecordingHandler
+from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -235,3 +237,47 @@ class TestFinalStatusReporter(BZTestCase):
                                          start_time=time.time(), duration=0.33,
                                          error_msg="something is badly broken", error_trace="stacktrace3", extras=None))
         return tree, tree
+
+    def test_blazemeter_report_link(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        xml_report = obj.engine.create_artifact("status", ".xml")
+        obj.parameters.merge({
+            "dump-xml": xml_report,
+        })
+
+        rep = BlazeMeterUploader()
+        rep.results_url = "http://report/link"
+        rep.parameters.merge({"test": "My Test"})
+        obj.engine.reporters.append(rep)
+
+        obj.aggregated_second(self.__get_datapoint())
+        obj.post_process()
+
+        self.assertTrue(os.path.exists(xml_report))
+        with open(xml_report) as fds:
+            report_content = fds.read()
+        self.assertIn('<BlazeMeterReport link="http://report/link" name="My Test"/>', report_content)
+
+    def test_blazemeter_cloud_report_link(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        xml_report = obj.engine.create_artifact("status", ".xml")
+        obj.parameters.merge({
+            "dump-xml": xml_report,
+        })
+
+        prov = CloudProvisioning()
+        prov.results_url = "http://report/link"
+        prov.settings.merge({"test": "My Test"})
+        obj.engine.provisioning = prov
+
+        obj.aggregated_second(self.__get_datapoint())
+        obj.post_process()
+
+        self.assertTrue(os.path.exists(xml_report))
+        with open(xml_report) as fds:
+            report_content = fds.read()
+        self.assertIn('<BlazeMeterReport link="http://report/link" name="My Test"/>', report_content)
