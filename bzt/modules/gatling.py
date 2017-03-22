@@ -24,6 +24,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -59,6 +60,11 @@ class GatlingScriptBuilder(object):
     def _get_exec(self):
         exec_str = ''
         for req in self.scenario.get_requests():
+            if not isinstance(req, HTTPRequest):
+                msg = "Gatling simulation generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+
             if len(exec_str) > 0:
                 exec_str += '.'
 

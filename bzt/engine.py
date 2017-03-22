@@ -36,6 +36,7 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
+from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
@@ -1056,64 +1057,10 @@ class Scenario(UserDict, object):
         Generator object to read requests
 
         :type require_url: bool
-        :rtype: list[HTTPRequest]
+        :rtype: list[bzt.requests_model.Request]
         """
-        requests = self.get("requests", [])
-        for key in range(len(requests)):
-            req = ensure_is_dict(requests, key, "url")
-            if not require_url and "url" not in req:
-                req["url"] = None
-            yield HTTPRequest(config=req, scenario=self, engine=self.engine)
-
-
-class Request(object):
-    def __init__(self, config):
-        self.config = config
-
-
-class HTTPRequest(Request):
-    def __init__(self, config, scenario, engine):
-        self.engine = engine
-        super(HTTPRequest, self).__init__(config)
-        self.scenario = scenario
-        self.log = self.engine.log.getChild(self.__class__.__name__)
-
-        msg = "Option 'url' is mandatory for request but not found in %s" % self.config
-        self.url = self.config.get("url", TaurusConfigError(msg))
-        self.label = self.config.get("label", self.url)
-        self.method = self.config.get("method", "GET")
-
-        # TODO: add method to join dicts/lists from scenario/request level?
-        self.headers = self.config.get("headers", {})
-        if self.headers is None:
-            self.headers = {}
-
-        self.keepalive = self.config.get('keepalive', None)
-        self.timeout = self.config.get('timeout', None)
-        self.think_time = self.config.get('think-time', None)
-        self.follow_redirects = self.config.get('follow-redirects', None)
-        self.body = self.__get_body()
-
-    def priority_option(self, name, default=None):
-        val = self.config.get(name, None)
-        if val is None:
-            val = self.scenario.get(name, None)
-        if val is None and default is not None:
-            val = default
-        return val
-
-    def __get_body(self):
-        body = self.config.get('body', None)
-        body_file = self.config.get('body-file', None)
-        if body_file:
-            if body:
-                self.log.warning('body and body-file fields are found, only first will take effect')
-            else:
-                body_file_path = self.engine.find_file(body_file)
-                with open(body_file_path) as fhd:
-                    body = fhd.read()
-
-        return body
+        requests_parser = RequestsParser(self, self.engine)
+        return requests_parser.extract_requests(require_url=require_url)
 
 
 class HavingInstallableTools(object):

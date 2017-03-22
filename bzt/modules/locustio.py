@@ -29,6 +29,7 @@ from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
+from bzt.requests_model import HTTPRequest
 from bzt.six import PY3, iteritems
 from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time
 from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator
@@ -338,6 +339,11 @@ from locust import HttpLocust, TaskSet, task
             global_headers['Connection'] = 'close'
 
         for req in self.scenario.get_requests():
+            if not isinstance(req, HTTPRequest):
+                msg = "Locust script generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+
             method = req.method.lower()
             if method not in ('get', 'delete', 'head', 'options', 'path', 'put', 'post'):
                 raise TaurusConfigError("Wrong Locust request type: %s" % method)

@@ -1199,7 +1199,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
         counter = 0
         methods = {}
-        requests = self.scenario.get_requests(False)
+        requests = self.scenario.get_requests(require_url=False)
         default_address = self.scenario.get("default-address", None)
 
         for req in requests:
