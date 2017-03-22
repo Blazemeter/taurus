@@ -6,11 +6,15 @@ from bzt.utils import ensure_is_dict, dehumanize_time
 
 
 class Request(object):
+    NAME = "request"
+
     def __init__(self, config):
         self.config = config
 
 
 class HTTPRequest(Request):
+    NAME = "request"
+
     def __init__(self, config, scenario, engine):
         self.engine = engine
         self.log = self.engine.log.getChild(self.__class__.__name__)
@@ -65,6 +69,8 @@ class HierarchicHTTPRequest(HTTPRequest):
 
 
 class IfBlock(Request):
+    NAME = "if"
+
     def __init__(self, condition, then_clause, else_clause, config):
         super(IfBlock, self).__init__(config)
         self.condition = condition
@@ -78,6 +84,8 @@ class IfBlock(Request):
 
 
 class LoopBlock(Request):
+    NAME = "loop"
+
     def __init__(self, loops, requests, config):
         super(LoopBlock, self).__init__(config)
         self.loops = loops
@@ -89,6 +97,8 @@ class LoopBlock(Request):
 
 
 class WhileBlock(Request):
+    NAME = "while"
+
     def __init__(self, condition, requests, config):
         super(WhileBlock, self).__init__(config)
         self.condition = condition
@@ -100,6 +110,8 @@ class WhileBlock(Request):
 
 
 class ForEachBlock(Request):
+    NAME = "foreach"
+
     def __init__(self, input_var, loop_var, requests, config):
         super(ForEachBlock, self).__init__(config)
         self.input_var = input_var
@@ -113,6 +125,8 @@ class ForEachBlock(Request):
 
 
 class TransactionBlock(Request):
+    NAME = "transaction"
+
     def __init__(self, name, requests, config):
         super(TransactionBlock, self).__init__(config)
         self.name = name
@@ -125,6 +139,8 @@ class TransactionBlock(Request):
 
 
 class IncludeScenarioBlock(Request):
+    NAME = "include-scenario"
+
     def __init__(self, scenario_name, config):
         super(IncludeScenarioBlock, self).__init__(config)
         self.scenario_name = scenario_name

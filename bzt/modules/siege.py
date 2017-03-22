@@ -25,6 +25,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
@@ -87,9 +88,15 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         user_vars = self.scenario.get('variables')
         user_vars = ["%s=%s" % (key, val) for (key, val) in iteritems(user_vars)]
 
+        url_list = []
+        for req in self.scenario.get_requests():
+            if not isinstance(req, HTTPRequest):
+                msg = "Siege executor doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+            url_list.append(req.url)
+
         with open(url_file_name, 'w') as url_file:
-            url_list = list(self.scenario.get_requests())
-            url_list = [req.url for req in url_list]
             url_file.writelines('\n'.join(user_vars + url_list))
             url_file.close()
         return url_file_name

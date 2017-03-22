@@ -1057,7 +1057,7 @@ class Scenario(UserDict, object):
         Generator object to read requests
 
         :type require_url: bool
-        :rtype: list[HTTPRequest]
+        :rtype: list[bzt.requests_model.Request]
         """
         requests_parser = RequestsParser(self, self.engine)
         return requests_parser.extract_requests(require_url=require_url)

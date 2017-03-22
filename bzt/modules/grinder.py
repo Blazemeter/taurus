@@ -20,11 +20,12 @@ import re
 import subprocess
 import time
 
+from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt import TaurusConfigError, ToolError
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
@@ -504,6 +505,11 @@ from HTTPClient import NVPair
         main_method = self.gen_method_definition("__call__", ["self"], indent=4)
 
         for req in self.scenario.get_requests():
+            if not isinstance(req, HTTPRequest):
+                msg = "Grinder script generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+
             method = req.method.upper()
             url = req.url
             local_headers = req.headers
