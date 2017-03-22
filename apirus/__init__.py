@@ -2,7 +2,7 @@ from unittest import TestCase
 import requests
 
 
-class ApiTestCase(TestCase):
+class APITestCase(TestCase):
     """
     Base class for API test cases.
 

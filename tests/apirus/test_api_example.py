@@ -1,7 +1,7 @@
-from apirus import ApiTestCase
+from apirus import APITestCase
 
 
-class MyTest(ApiTestCase):
+class MyTest(APITestCase):
     def test_index(self):
         response = self.request('http://example.com')
         self.assertOk(response)

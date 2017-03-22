@@ -190,8 +190,8 @@
     "android-emulator": {
       "class": "bzt.modules.services.AndroidEmulatorLoader"
     },
-    "nose-api": {
-      "class": "bzt.modules.nose_api.NoseAPIExecutor"
+    "apirus": {
+      "class": "bzt.modules.apirus.ApirusExecutor"
     }
   },
   "settings": {

@@ -14,19 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+import re
 import sys
 
-from bzt import ToolError
+from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import ScenarioExecutor
-from bzt.utils import get_full_path, shutdown_process
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.selenium import FuncSamplesReader, LoadSamplesReader, SeleniumWidget
+from bzt.six import string_types, iteritems, parse
+from bzt.utils import get_full_path, shutdown_process, PythonGenerator, dehumanize_time
 
 
-class NoseAPIExecutor(ScenarioExecutor):
+class ApirusExecutor(ScenarioExecutor):
     def __init__(self):
-        super(NoseAPIExecutor, self).__init__()
+        super(ApirusExecutor, self).__init__()
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
         self.process = None
         self.stdout_path = None
@@ -35,9 +37,19 @@ class NoseAPIExecutor(ScenarioExecutor):
         self.stderr_file = None
         self.script = None
         self.report_path = None
+        self.generated_script = None
 
     def prepare(self):
-        self.script = self.get_script_path()
+        scenario = self.get_scenario()
+        if "requests" in scenario:
+            self.script = self._generate_script(scenario)
+            self.generated_script = True
+        elif "script" in scenario:
+            self.script = self.get_script_path()
+            self.generated_script = False
+        else:
+            raise TaurusConfigError("You must specify either 'requests' or 'script' for Apirus")
+
         self.stdout_path = self.engine.create_artifact("nose", ".out")
         self.stderr_path = self.engine.create_artifact("nose", ".err")
         self.report_path = self.engine.create_artifact("report", ".ldjson")
@@ -102,3 +114,46 @@ class NoseAPIExecutor(ScenarioExecutor):
         if not self.widget:
             self.widget = SeleniumWidget(self.script, self.stdout_path)
         return self.widget
+
+    def _generate_script(self, scenario):
+        test_file = self.engine.create_artifact("test_api", ".py")
+        test_gen = ApirusScriptBuilder(scenario, self.log)
+        test_gen.build_source_code()
+        test_gen.save(test_file)
+        return test_file
+
+
+class ApirusScriptBuilder(PythonGenerator):
+    IMPORTS = """\
+import apirus
+
+"""
+
+    def __init__(self, scenario, parent_logger):
+        super(ApirusScriptBuilder, self).__init__(scenario, parent_logger)
+
+    def build_source_code(self):
+        self.log.debug("Generating Test Case test methods")
+        imports = self.add_imports()
+        self.root.append(imports)
+        test_class = self.gen_class_definition("TestRequests", ["apirus.APITestCase"])
+        self.root.append(test_class)
+
+        for index, req in enumerate(self.scenario.get_requests()):
+            mod_label = re.sub('[^0-9a-zA-Z]+', '_', req.url[:30])
+            method_name = 'test_%05d_%s' % (index, mod_label)
+            test_method = self.gen_test_method(method_name)
+
+            self._add_url_request(req, test_method)
+
+            test_class.append(test_method)
+            test_method.append(self.gen_new_line())
+
+    def _add_url_request(self, req, test_method):
+        test_method.append(self.gen_statement("response = self.get(%r)" % req.url))
+        test_method.append(self.gen_statement("self.assertOk(response)"))
+
+    def gen_test_method(self, name):
+        self.log.debug("Generating test method %s", name)
+        test_method = self.gen_method_definition(name, ["self"])
+        return test_method
