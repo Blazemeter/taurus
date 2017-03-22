@@ -129,12 +129,39 @@ class BZTPlugin(Plugin):
         self.test_dict["status"] = "PASSED"
         self.success_count += 1
 
+    def _record_request_info(self, test):
+        test_obj = test.test
+        request_log = getattr(test_obj, 'request_log', [])
+        if not request_log:
+            return
+        request = request_log[0]
+        response = request["response"]
+        record = {
+            'responseCode': response.status_code,
+            'responseMessage': response.reason,
+            'responseTime': response.elapsed.total_seconds(),
+            'connectTime': 0,
+            'latency': 0,
+            'responseSize': len(response.text),
+            'requestSize': 0,
+            'requestMethod': response.request.method,
+            'requestURI': response.request.url,
+            'assertions': [],
+            'responseBodySize': 0,
+            'requestBodySize': 0,
+            'requestCookiesSize': 0,
+            'requestHeadersSize': 0,
+            'responseHeadersSize': 0,
+        }
+        self.test_dict["extras"].update(record)
+
     def stopTest(self, test):  # pylint: disable=invalid-name
         """
         after the test has been run
         :param test:
         :return:
         """
+        self._record_request_info(test)
         self.test_count += 1
         self.test_dict["duration"] = time.time() - self.test_dict["start_time"]
         self.out_stream.write("%s\n" % json.dumps(self.test_dict))

@@ -8,8 +8,16 @@ class ApiTestCase(TestCase):
 
     Contains a bunch of utility functions (request, get, post, etc) and a few helpful assertions.
     """
+    def setUp(self):
+        self.request_log = []
+
+    def tearDown(self):
+        pass
+
     def request(self, url, method='GET'):
-        return requests.request(method, url)
+        response = requests.request(method, url)
+        self.request_log.append({"url": url, "method": method, "response": response})
+        return response
 
     def head(self, url):
         return self.request(url, method='HEAD')
