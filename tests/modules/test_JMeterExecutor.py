@@ -1976,6 +1976,17 @@ class TestJMeterExecutor(BZTestCase):
                                   "isFailed": True,
                                   "errorMessage": "Test failed: text expected to contain /something/"})
 
+    def test_functional_reader_extras_empty_body(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/trace-no-response-body.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(1, len(samples))
+        sample = samples[0]
+        self.assertIsNotNone(sample.extras)
+        self.assertEqual(sample.extras["responseCode"], '200')
+
     def test_jsr223_block(self):
         script = __dir__() + "/../jmeter/jsr223_script.js"
         self.configure({
