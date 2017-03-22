@@ -180,7 +180,10 @@ class Proxy2JMX(Service):
         # copy chrome loader into artifacts/chrome-loader/chrome.exe
         old_file = join(get_full_path(__file__, step_up=2), 'resources', 'chrome.exe', 'loader.exe')
         new_file = join(loader_dir, 'chrome.exe')
-        shutil.copy2(old_file, new_file)
+        try:
+            shutil.copy2(old_file, new_file)
+        except IOError as exc:
+            raise TaurusInternalException("Can't copy loader: %s" % exc.message)
 
     def shutdown(self):
         super(Proxy2JMX, self).shutdown()

@@ -36,6 +36,7 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
+from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
@@ -278,7 +279,7 @@ class Engine(object):
         new_name = os.path.join(self.artifacts_dir, new_filename)
         self.__artifacts.append(new_name)
 
-        if os.path.realpath(filename) == os.path.realpath(new_name):
+        if get_full_path(filename) == get_full_path(new_name):
             self.log.debug("No need to copy %s", filename)
             return
 
@@ -297,14 +298,12 @@ class Engine(object):
         """
         Create directory for artifacts, directory name based on datetime.now()
         """
-        if self.artifacts_dir:
-            self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
-        else:
+        if not self.artifacts_dir:
             default = "%Y-%m-%d_%H-%M-%S.%f"
             artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", default)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
-            self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
-            self.artifacts_dir = os.path.abspath(self.artifacts_dir)
+
+        self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
 
@@ -441,7 +440,7 @@ class Engine(object):
         return user_config
 
     def __config_loaded(self, config):
-        self.file_search_paths.append(os.path.dirname(os.path.realpath(config)))
+        self.file_search_paths.append(get_full_path(config, step_up=1))
 
     def __prepare_provisioning(self):
         """
@@ -1048,69 +1047,20 @@ class Scenario(UserDict, object):
         :rtype: dict[str,str]
         """
         scenario = self
-        headers = scenario.get("headers")
-        return headers if headers else {}
+        headers = scenario.get("headers", {})
+        if headers is None:
+            headers = {}
+        return headers
 
     def get_requests(self, require_url=True):
         """
         Generator object to read requests
 
         :type require_url: bool
-        :rtype: list[HTTPRequest]
+        :rtype: list[bzt.requests_model.Request]
         """
-        requests = self.get("requests", [])
-        for key in range(len(requests)):
-            req = ensure_is_dict(requests, key, "url")
-            if not require_url and "url" not in req:
-                req["url"] = None
-            yield HTTPRequest(config=req, scenario=self, engine=self.engine)
-
-
-class Request(object):
-    def __init__(self, config):
-        self.config = config
-
-
-class HTTPRequest(Request):
-    def __init__(self, config, scenario, engine):
-        self.engine = engine
-        self.log = self.engine.log.getChild(self.__class__.__name__)
-        super(HTTPRequest, self).__init__(config)
-        self.scenario = scenario
-        msg = "Option 'url' is mandatory for request but not found in %s" % config
-        self.url = self.config.get("url", TaurusConfigError(msg))
-        self.label = self.config.get("label", self.url)
-        self.method = self.config.get("method", "GET")
-
-        # TODO: add method to join dicts/lists from scenario/request level?
-        self.headers = self.config.get("headers", {})
-
-        self.keepalive = self.config.get('keepalive', None)
-        self.timeout = self.config.get('timeout', None)
-        self.think_time = self.config.get('think-time', None)
-        self.follow_redirects = self.config.get('follow-redirects', None)
-        self.body = self.__get_body()
-
-    def priority_option(self, name, default=None):
-        val = self.config.get(name, None)
-        if val is None:
-            val = self.scenario.get(name, None)
-        if val is None and default is not None:
-            val = default
-        return val
-
-    def __get_body(self):
-        body = self.config.get('body', None)
-        body_file = self.config.get('body-file', None)
-        if body_file:
-            if body:
-                self.log.warning('body and body-file fields are found, only first will take effect')
-            else:
-                body_file_path = self.engine.find_file(body_file)
-                with open(body_file_path) as fhd:
-                    body = fhd.read()
-
-        return body
+        requests_parser = RequestsParser(self, self.engine)
+        return requests_parser.extract_requests(require_url=require_url)
 
 
 class HavingInstallableTools(object):

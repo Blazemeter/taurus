@@ -25,10 +25,9 @@ import json
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, HavingInstallableTools
-from bzt.modules.selenium import Node
 from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
-from bzt.utils import replace_in_config, JavaVM
+from bzt.utils import replace_in_config, JavaVM, Node
 
 
 class Unpacker(Service):

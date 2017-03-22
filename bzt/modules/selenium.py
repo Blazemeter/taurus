@@ -32,7 +32,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.six import string_types, parse, iteritems
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, PythonGenerator
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, PythonGenerator, Node
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path, get_files_recursive
 
 try:
@@ -580,8 +580,7 @@ class JUnitTester(JavaTestRunner):
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
         self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
-                                                os.pardir,
+        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=2),
                                                 "resources",
                                                 "taurus-junit-1.0.jar")
 
@@ -658,8 +657,7 @@ class TestNGTester(JavaTestRunner):
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar")
         self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/testng/json.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                               os.pardir,
+        self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                                "resources",
                                                "taurus-testng-1.0.jar")
 
@@ -725,8 +723,7 @@ class NoseTester(AbstractTestRunner):
 
     def __init__(self, nose_config, executor):
         super(NoseTester, self).__init__(nose_config, executor)
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                        os.pardir,
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "nose_plugin.py")
 
@@ -778,8 +775,7 @@ class RSpecTester(AbstractTestRunner):
 
     def __init__(self, rspec_config, executor):
         super(RSpecTester, self).__init__(rspec_config, executor)
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                        os.pardir,
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "rspec_taurus_plugin.rb")
 
@@ -846,8 +842,7 @@ class MochaTester(AbstractTestRunner):
 
     def __init__(self, rspec_config, executor):
         super(MochaTester, self).__init__(rspec_config, executor)
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                        os.pardir,
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "mocha-taurus-plugin.js")
         self.tools_dir = get_full_path(self.settings.get("tools-dir", "~/.bzt/selenium-taurus/mocha"))
@@ -1047,30 +1042,6 @@ class Ruby(RequiredTool):
         raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
-class Node(RequiredTool):
-    def __init__(self, parent_logger):
-        super(Node, self).__init__("Node.js", "")
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.executable = None
-
-    def check_if_installed(self):
-        node_candidates = ["node", "nodejs"]
-        for candidate in node_candidates:
-            try:
-                self.log.debug("Trying %r", candidate)
-                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
-                self.log.debug("%s output: %s", candidate, output)
-                self.executable = candidate
-                return True
-            except (CalledProcessError, OSError):
-                self.log.debug("%r is not installed", candidate)
-                continue
-        return False
-
-    def install(self):
-        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
-
-
 class NPM(RequiredTool):
     def __init__(self, parent_logger):
         super(NPM, self).__init__("NPM", "")
@@ -1228,7 +1199,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
         counter = 0
         methods = {}
-        requests = self.scenario.get_requests(False)
+        requests = self.scenario.get_requests(require_url=False)
         default_address = self.scenario.get("default-address", None)
 
         for req in requests:
