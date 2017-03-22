@@ -1112,11 +1112,11 @@ class FuncJTLReader(FunctionalResultsReader):
 
             "assertions": self._extract_sample_assertions(sample_elem),
 
-            "requestBody": sample_elem.findtext("queryString"),
-            "responseBody": sample_elem.findtext("responseData"),
-            "requestCookies": sample_elem.findtext("cookies"),
-            "requestHeaders": sample_elem.findtext("requestHeader"),
-            "responseHeaders": sample_elem.findtext("responseHeader")
+            "requestBody": sample_elem.findtext("queryString") or "",
+            "responseBody": sample_elem.findtext("responseData") or "",
+            "requestCookies": sample_elem.findtext("cookies") or "",
+            "requestHeaders": sample_elem.findtext("requestHeader") or "",
+            "responseHeaders": sample_elem.findtext("responseHeader") or "",
         }
 
         sample_extras["requestBodySize"] = len(sample_extras["requestBody"])
