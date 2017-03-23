@@ -3,6 +3,8 @@ import json
 import logging
 import tempfile
 
+from botocore.vendored.requests.packages.urllib3.packages.ordered_dict import OrderedDict
+
 from bzt import six
 from bzt.engine import Configuration
 from bzt.utils import BetterDict
@@ -113,4 +115,5 @@ class TestConfiguration(BZTestCase):
 
         })
         obj.filter({"but-keep": True, "and-also-keep": {"nested": True}})
-        self.assertEquals('{"and-also-keep": {"nested": "value"}, "but-keep": "value"}', json.dumps(obj))
+        ordered = OrderedDict(sorted(obj.items(), key=lambda t: t[0]))
+        self.assertEquals('{"and-also-keep": {"nested": "value"}, "but-keep": "value"}', json.dumps(ordered))
