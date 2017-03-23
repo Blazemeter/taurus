@@ -1,4 +1,5 @@
 # coding=utf-8
+import json
 import logging
 import tempfile
 
@@ -97,3 +98,19 @@ class TestConfiguration(BZTestCase):
         self.assertEquals(obj["my_password"], "*" * 8)
         self.assertEquals(obj["secret"], "*" * 8)
         self.assertEquals(obj["secret_story"], "story")
+
+    def test_filtering(self):
+        obj = Configuration()
+        obj.merge({
+            "drop": "me",
+            "also-drop": {"this": "drop"},
+            "and-also-drop": ["thelist"],
+            "but-keep": "value",
+            "and-also-keep": {
+                "nested": "value",
+                "while-dropping": "some"
+            }
+
+        })
+        obj.filter({"but-keep": True, "and-also-keep": {"nested": True}})
+        self.assertEquals('{"and-also-keep": {"nested": "value"}, "but-keep": "value"}', json.dumps(obj))

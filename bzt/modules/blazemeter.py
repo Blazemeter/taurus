@@ -46,6 +46,52 @@ from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
 
 TAURUS_TEST_TYPE = "taurus"
+CLOUD_CONFIG_FILTER_RULES = {
+    "execution": True,
+    "scenarios": True,
+    "services": True,
+
+    "locations": True,
+    "locations-weighted": True,
+
+    "modules": {
+        "jmeter": {
+            "version": True,
+            "properties": True,
+            "system-properties": True,
+        },
+        "gatling": {
+            "version": True,
+            "properties": True
+        },
+        "grinder": {
+            "properties": True,
+            "properties-file": True
+        },
+        "selenium": {
+            "additional-classpath": True,
+            "virtual-display": True,
+            "selenium-tools": {
+                "junit": {
+                    "compile-target-java": True
+                },
+                "testng": {
+                    "compile-target-java": True
+                }
+            }
+        },
+        "local": {
+            "sequential": True
+        },
+        "proxy2jmx": {
+            "token": True
+        },
+        "shellexec": {
+            "env": True
+        }
+        # TODO: aggregator has plenty of relevant settings
+    }
+}
 
 
 def send_with_retry(method):
@@ -987,17 +1033,14 @@ class CloudTaurusTest(BaseCloudTest):
         if not isinstance(config[ScenarioExecutor.EXEC], list):
             config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
 
-        provisioning = config.pop(Provisioning.PROV)
+        provisioning = config.get(Provisioning.PROV)
         for execution in config[ScenarioExecutor.EXEC]:
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
+        config.filter(CLOUD_CONFIG_FILTER_RULES)
         for key in list(config.keys()):
-            fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
-                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
-            if key not in fields:
-                config.pop(key)
-            elif not config[key]:
+            if not config[key]:
                 config.pop(key)
 
         self.cleanup_defaults(config)
