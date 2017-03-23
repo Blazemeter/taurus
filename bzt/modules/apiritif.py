@@ -125,6 +125,8 @@ class ApiritifExecutor(ScenarioExecutor):
 
 class ApiritifScriptBuilder(PythonGenerator):
     IMPORTS = """\
+import time
+
 import apiritif
 
 """
@@ -171,8 +173,12 @@ import apiritif
         """
         timeout = dehumanize_time(req.priority_option('timeout', default='30s'))
         method = req.method.lower()
+        think_time = dehumanize_time(req.priority_option('think-time', default=None))
         test_method.append(self.gen_statement("response = self.%s(%r, timeout=%r)" % (method, req.url, timeout)))
         test_method.append(self.gen_statement("self.assertOk(response)"))
+        if think_time:
+            test_method.append(self.gen_statement('time.sleep(%s)' % think_time))
+
 
     def gen_test_method(self, name):
         self.log.debug("Generating test method %s", name)
