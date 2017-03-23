@@ -19,7 +19,6 @@ import copy
 import csv
 import fnmatch
 import json
-import mimetypes
 import os
 import re
 import socket
@@ -455,7 +454,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
             new = int(round(concurrency * orig / orig_sum))
             if new < 1:
-                new = 1
+                new = 1  # TODO: cover with test
             leftover -= new
             othread.text = str(new)
         if leftover < 0:
