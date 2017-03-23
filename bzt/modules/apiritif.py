@@ -23,7 +23,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.selenium import FuncSamplesReader, LoadSamplesReader, SeleniumWidget
 from bzt.requests_model import HTTPRequest
-from bzt.utils import get_full_path, shutdown_process, PythonGenerator
+from bzt.utils import get_full_path, shutdown_process, PythonGenerator, dehumanize_time
 
 
 class ApiritifExecutor(ScenarioExecutor):
@@ -166,7 +166,11 @@ import apiritif
             test_method.append(self.gen_new_line())
 
     def _add_url_request(self, req, test_method):
-        test_method.append(self.gen_statement("response = self.get(%r)" % req.url))
+        """
+        :type req: bzt.requests_model.HTTPRequest
+        """
+        timeout = dehumanize_time(req.priority_option('timeout', default='30s'))
+        test_method.append(self.gen_statement("response = self.get(%r, timeout=%r)" % (req.url, timeout)))
         test_method.append(self.gen_statement("self.assertOk(response)"))
 
     def gen_test_method(self, name):

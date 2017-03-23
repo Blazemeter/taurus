@@ -16,35 +16,35 @@ class APITestCase(TestCase):
     def tearDown(self):
         pass
 
-    def request(self, url, method='GET'):
+    def request(self, url, method='GET', timeout=None):
         if self.keep_alive and self.session is None:
             self.session = requests.Session()
 
         if self.keep_alive:
-            response = self.session.request(method, url)
+            response = self.session.request(method, url, timeout=timeout)
         else:
-            response = requests.request(method, url)
+            response = requests.request(method, url, timeout=timeout)
 
-        self.request_log.append({"url": url, "method": method, "response": response})
+        self.request_log.append({"url": url, "method": method, "timeout": timeout, "response": response})
         return response
 
-    def head(self, url):
-        return self.request(url, method='HEAD')
+    def head(self, url, **kwargs):
+        return self.request(url, method='HEAD', **kwargs)
 
-    def get(self, url):
-        return self.request(url, method='GET')
+    def get(self, url, **kwargs):
+        return self.request(url, method='GET', **kwargs)
 
-    def post(self, url):
-        return self.request(url, method='POST')
+    def post(self, url, **kwargs):
+        return self.request(url, method='POST', **kwargs)
 
-    def put(self, url):
-        return self.request(url, method='PUT')
+    def put(self, url, **kwargs):
+        return self.request(url, method='PUT', **kwargs)
 
-    def patch(self, url):
-        return self.request(url, method='PATCH')
+    def patch(self, url, **kwargs):
+        return self.request(url, method='PATCH', **kwargs)
 
-    def delete(self, url):
-        return self.request(url, method='DELETE')
+    def delete(self, url, **kwargs):
+        return self.request(url, method='DELETE', **kwargs)
 
     def assertOk(self, response, msg=None):
         self.assertTrue(response.ok, msg=msg)
