@@ -997,7 +997,8 @@ class CloudTaurusTest(BaseCloudTest):
             self.log.warning("Deprecated test API doesn't support global locations")
 
         for executor in executors:
-            if CloudProvisioning.LOC in executor.execution:
+            if CloudProvisioning.LOC in executor.execution \
+                    and isinstance(executor.execution[CloudProvisioning.LOC], dict):
                 exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
             else:
@@ -1039,6 +1040,7 @@ class CloudTaurusTest(BaseCloudTest):
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
         config.filter(CLOUD_CONFIG_FILTER_RULES)
+        config['local-bzt-version'] = engine_config.get('version', 'N/A')
         for key in list(config.keys()):
             if not config[key]:
                 config.pop(key)
