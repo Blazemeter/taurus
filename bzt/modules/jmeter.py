@@ -454,6 +454,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 orig = 1
 
             new = int(round(concurrency * orig / orig_sum))
+            if new < 1:
+                new = 1
             leftover -= new
             othread.text = str(new)
         if leftover < 0:
