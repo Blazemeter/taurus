@@ -19,7 +19,6 @@ import copy
 import csv
 import fnmatch
 import json
-import mimetypes
 import os
 import re
 import socket
@@ -175,6 +174,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
             self.reader.is_distributed = len(self.distributed_servers) > 0
+            assert isinstance(self.reader, JTLReader)
             self.engine.aggregator.add_underling(self.reader)
         elif isinstance(self.engine.aggregator, FunctionalAggregator):
             self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
