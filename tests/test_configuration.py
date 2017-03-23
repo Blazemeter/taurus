@@ -2,8 +2,7 @@
 import json
 import logging
 import tempfile
-
-from botocore.vendored.requests.packages.urllib3.packages.ordered_dict import OrderedDict
+from collections import OrderedDict
 
 from bzt import six
 from bzt.engine import Configuration
