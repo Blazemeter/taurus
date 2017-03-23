@@ -170,7 +170,8 @@ import apiritif
         :type req: bzt.requests_model.HTTPRequest
         """
         timeout = dehumanize_time(req.priority_option('timeout', default='30s'))
-        test_method.append(self.gen_statement("response = self.get(%r, timeout=%r)" % (req.url, timeout)))
+        method = req.method.lower()
+        test_method.append(self.gen_statement("response = self.%s(%r, timeout=%r)" % (method, req.url, timeout)))
         test_method.append(self.gen_statement("self.assertOk(response)"))
 
     def gen_test_method(self, name):
