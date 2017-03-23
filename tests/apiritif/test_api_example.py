@@ -1,4 +1,4 @@
-from apirus import APITestCase
+from apiritif import APITestCase
 
 
 class MyTest(APITestCase):

@@ -17,18 +17,18 @@ import os
 import re
 import sys
 
-from bzt import ToolError, TaurusConfigError, TaurusInternalException
+from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.selenium import FuncSamplesReader, LoadSamplesReader, SeleniumWidget
-from bzt.six import string_types, iteritems, parse
-from bzt.utils import get_full_path, shutdown_process, PythonGenerator, dehumanize_time
+from bzt.requests_model import HTTPRequest
+from bzt.utils import get_full_path, shutdown_process, PythonGenerator
 
 
-class ApirusExecutor(ScenarioExecutor):
+class ApiritifExecutor(ScenarioExecutor):
     def __init__(self):
-        super(ApirusExecutor, self).__init__()
+        super(ApiritifExecutor, self).__init__()
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
         self.process = None
         self.stdout_path = None
@@ -48,7 +48,7 @@ class ApirusExecutor(ScenarioExecutor):
             self.script = self.get_script_path()
             self.generated_script = False
         else:
-            raise TaurusConfigError("You must specify either 'requests' or 'script' for Apirus")
+            raise TaurusConfigError("You must specify either 'requests' or 'script' for Apiritif")
 
         self.stdout_path = self.engine.create_artifact("nose", ".out")
         self.stderr_path = self.engine.create_artifact("nose", ".err")
@@ -117,29 +117,34 @@ class ApirusExecutor(ScenarioExecutor):
 
     def _generate_script(self, scenario):
         test_file = self.engine.create_artifact("test_api", ".py")
-        test_gen = ApirusScriptBuilder(scenario, self.log)
+        test_gen = ApiritifScriptBuilder(scenario, self.log)
         test_gen.build_source_code()
         test_gen.save(test_file)
         return test_file
 
 
-class ApirusScriptBuilder(PythonGenerator):
+class ApiritifScriptBuilder(PythonGenerator):
     IMPORTS = """\
-import apirus
+import apiritif
 
 """
 
     def __init__(self, scenario, parent_logger):
-        super(ApirusScriptBuilder, self).__init__(scenario, parent_logger)
+        super(ApiritifScriptBuilder, self).__init__(scenario, parent_logger)
 
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
         imports = self.add_imports()
         self.root.append(imports)
-        test_class = self.gen_class_definition("TestRequests", ["apirus.APITestCase"])
+        test_class = self.gen_class_definition("TestRequests", ["apiritif.APITestCase"])
         self.root.append(test_class)
 
         for index, req in enumerate(self.scenario.get_requests()):
+            if not isinstance(req, HTTPRequest):
+                msg = "Apiritif script generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+
             mod_label = re.sub('[^0-9a-zA-Z]+', '_', req.url[:30])
             method_name = 'test_%05d_%s' % (index, mod_label)
             test_method = self.gen_test_method(method_name)

@@ -1,18 +1,18 @@
 import os
 import time
 
-from bzt.modules.apirus import ApirusExecutor
+from bzt.modules.apiritif import ApiritifExecutor
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
 
-class TestApirusExecutor(BZTestCase):
+class TestApiritifExecutor(BZTestCase):
     def test_basic(self):
-        obj = ApirusExecutor()
+        obj = ApiritifExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
             "scenario": {
-                "script": __dir__() + "/../apirus/test_api_example.py"
+                "script": __dir__() + "/../apiritif/test_api_example.py"
             }
         })
         obj.prepare()
@@ -27,7 +27,7 @@ class TestApirusExecutor(BZTestCase):
         self.assertNotEquals(obj.process, None)
 
     def test_requests(self):
-        obj = ApirusExecutor()
+        obj = ApiritifExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
             "scenario": {
