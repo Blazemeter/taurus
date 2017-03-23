@@ -129,6 +129,9 @@ class BZTPlugin(Plugin):
         self.test_dict["status"] = "PASSED"
         self.success_count += 1
 
+    def _headers_from_dict(self, headers):
+        return "\n".join(key + ": " + value for key, value in headers.items())
+
     def _record_request_info(self, test):
         test_obj = test.test
         request_log = getattr(test_obj, 'request_log', [])
@@ -142,11 +145,16 @@ class BZTPlugin(Plugin):
             'responseTime': response.elapsed.total_seconds(),
             'connectTime': 0,
             'latency': 0,
-            'responseSize': len(response.text),
+            'responseSize': len(response.content),
             'requestSize': 0,
             'requestMethod': response.request.method,
             'requestURI': response.request.url,
             'assertions': [],
+            'responseBody': response.text,
+            'requestBody': '',
+            'requestCookies': '',
+            'requestHeaders': self._headers_from_dict(response.request.headers),
+            'responseHeaders': self._headers_from_dict(response.headers),
             'responseBodySize': 0,
             'requestBodySize': 0,
             'requestCookiesSize': 0,

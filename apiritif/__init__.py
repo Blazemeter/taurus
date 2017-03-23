@@ -10,12 +10,21 @@ class APITestCase(TestCase):
     """
     def setUp(self):
         self.request_log = []
+        self.keep_alive = True
+        self.session = None
 
     def tearDown(self):
         pass
 
     def request(self, url, method='GET'):
-        response = requests.request(method, url)
+        if self.keep_alive and self.session is None:
+            self.session = requests.Session()
+
+        if self.keep_alive:
+            response = self.session.request(method, url)
+        else:
+            response = requests.request(method, url)
+
         self.request_log.append({"url": url, "method": method, "response": response})
         return response
 

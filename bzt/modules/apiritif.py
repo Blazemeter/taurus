@@ -132,12 +132,23 @@ import apiritif
     def __init__(self, scenario, parent_logger):
         super(ApiritifScriptBuilder, self).__init__(scenario, parent_logger)
 
+    def gen_setup_method(self):
+        keepalive = self.scenario.get("keepalive", None)
+        if keepalive is None:
+            keepalive = True
+        setup_method_def = self.gen_method_definition('setUp', ['self'])
+        setup_method_def.append(self.gen_statement("super(TestRequests, self).setUp()", indent=8))
+        setup_method_def.append(self.gen_statement("self.keep_alive = %r" % keepalive, indent=8))
+        setup_method_def.append(self.gen_new_line())
+        return setup_method_def
+
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
         imports = self.add_imports()
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["apiritif.APITestCase"])
         self.root.append(test_class)
+        test_class.append(self.gen_setup_method())
 
         for index, req in enumerate(self.scenario.get_requests()):
             if not isinstance(req, HTTPRequest):
