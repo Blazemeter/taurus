@@ -113,5 +113,4 @@ class TestConfiguration(BZTestCase):
 
         })
         obj.filter({"but-keep": True, "and-also-keep": {"nested": True}})
-        ordered = OrderedDict(sorted(obj.items(), key=lambda t: t[0]))
-        self.assertEquals({"and-also-keep": {"nested": "value"}, "but-keep": "value"}, ordered)
+        self.assertEquals({"and-also-keep": {"nested": "value"}, "but-keep": "value"}, obj)
