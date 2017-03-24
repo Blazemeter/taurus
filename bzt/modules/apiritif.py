@@ -196,6 +196,20 @@ import apiritif
         if headers:
             named_args['headers'] = headers
 
+        merged_headers = dict([(key.lower(), value) for key, value in iteritems(headers)])
+        content_type = merged_headers.get('content-type', None)
+        if content_type == 'application/json' and isinstance(request.body, (dict, list)):  # json request body
+            named_args['json'] = {key: value for key, value in iteritems(request.body)}
+        elif method == "get" and isinstance(request.body, dict):  # request URL params (?a=b&c=d)
+            named_args['params'] = {key: value for key, value in iteritems(request.body)}
+        elif isinstance(request.body, dict):  # form data
+            named_args['data'] = list(iteritems(request.body))
+        elif isinstance(request.body, string_types):
+            named_args['data'] = request.body
+        elif request.body:
+            msg = "Cannot handle 'body' option of type %s: %s"
+            raise TaurusConfigError(msg % (type(request.body), request.body))
+
         kwargs = ", ".join("%s=%r" % (name, value) for name, value in iteritems(named_args))
 
         request_line = "response = self.{method}({url}, {kwargs})".format(

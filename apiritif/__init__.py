@@ -18,7 +18,7 @@ class APITestCase(TestCase):
     def tearDown(self):
         pass
 
-    def request(self, url, method='GET', timeout=None, headers=None):
+    def request(self, url, method='GET', **kwargs):
         if self.keep_alive and self.session is None:
             self.session = requests.Session()
 
@@ -30,17 +30,18 @@ class APITestCase(TestCase):
         address += url
 
         if self.keep_alive:
-            response = self.session.request(method, address, timeout=timeout, headers=headers)
+            response = self.session.request(method, address, **kwargs)
         else:
-            response = requests.request(method, address, timeout=timeout, headers=headers)
+            response = requests.request(method, address, **kwargs)
 
-        self.request_log.append({
+        log_item = {
             "url": address,
             "method": method,
-            "timeout": timeout,
-            "headers": headers,
-            "response": response,
-        })
+            "response": response
+        }
+        log_item.update(kwargs)
+
+        self.request_log.append(log_item)
         return response
 
     def head(self, url, **kwargs):

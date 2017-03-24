@@ -1,6 +1,7 @@
 import os
 import time
 
+from bzt import TaurusConfigError
 from bzt.modules.apiritif import ApiritifExecutor
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
@@ -240,3 +241,71 @@ class TestApiritifExecutor(BZTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("allow_redirects=False", test_script)
+
+    def test_body_params(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "body": {
+                            "foo": "bar",
+                        },
+                    }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("params={'foo': 'bar'}", test_script)
+
+    def test_body_json(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "headers": {
+                            "Content-Type": "application/json",
+                        },
+                        "body": {
+                            "foo": "bar",
+                        },
+                    }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("json={'foo': 'bar'}", test_script)
+
+    def test_body_string(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "body": "MY PERFECT BODY"
+                    }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("data='MY PERFECT BODY'", test_script)
+
+    def test_body_unknown(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "body": 123
+                    }]
+                }
+            }]
+        })
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
