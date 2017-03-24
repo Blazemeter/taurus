@@ -16,7 +16,6 @@ limitations under the License.
 import os
 import re
 import sys
-from collections import OrderedDict
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
