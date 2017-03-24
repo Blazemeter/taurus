@@ -13,16 +13,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import json
 import os
 import re
 import sys
+from collections import OrderedDict
 
-from bzt import ToolError, TaurusConfigError
+from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.selenium import FuncSamplesReader, LoadSamplesReader, SeleniumWidget
 from bzt.requests_model import HTTPRequest
+from bzt.six import string_types, iteritems
 from bzt.utils import get_full_path, shutdown_process, PythonGenerator, dehumanize_time
 
 
@@ -172,24 +175,35 @@ import apiritif
             test_class.append(test_method)
             test_method.append(self.gen_new_line())
 
-    def _add_url_request(self, req, test_method):
+    def _add_url_request(self, request, test_method):
         """
-        :type req: bzt.requests_model.HTTPRequest
+        :type request: bzt.requests_model.HTTPRequest
         """
-        timeout = dehumanize_time(req.priority_option('timeout', default='30s'))
-        method = req.method.lower()
-        think_time = dehumanize_time(req.priority_option('think-time', default=None))
-        follow_redirects = req.priority_option('follow-redirects', default=True)
+        named_args = OrderedDict()
+
+        method = request.method.lower()
+        think_time = dehumanize_time(request.priority_option('think-time', default=None))
+
+        named_args['timeout'] = dehumanize_time(request.priority_option('timeout', default='30s'))
+        named_args['allow_redirects'] = request.priority_option('follow-redirects', default=True)
 
         headers = {}
         scenario_headers = self.scenario.get("headers", None)
         if scenario_headers:
             headers.update(scenario_headers)
-        if req.headers:
-            headers.update(req.headers)
+        if request.headers:
+            headers.update(request.headers)
+        if headers:
+            named_args['headers'] = headers
 
-        request_tmpl = "response = self.%s(%r, timeout=%r, headers=%r, allow_redirects=%r)"
-        test_method.append(self.gen_statement(request_tmpl % (method, req.url, timeout, headers, follow_redirects)))
+        kwargs = ", ".join("%s=%r" % (name, value) for name, value in iteritems(named_args))
+
+        request_line = "response = self.{method}({url}, {kwargs})".format(
+            method=method,
+            url=repr(request.url),
+            kwargs=kwargs,
+        )
+        test_method.append(self.gen_statement(request_line))
         test_method.append(self.gen_statement("self.assertOk(response)"))
         if think_time:
             test_method.append(self.gen_statement('time.sleep(%s)' % think_time))
