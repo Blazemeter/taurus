@@ -99,7 +99,6 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             if self.parameters.get("dump-csv", None):
                 self.__dump_csv(self.parameters.get("dump-csv"))
         elif self.cumulative_results:
-            self.log.info("Results: %s", self.cumulative_results)
             self.__report_summary()
             report_mode = self.parameters.get("report-tests", "failed")
             if report_mode == "failed":
