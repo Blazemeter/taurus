@@ -8,7 +8,7 @@ configured with two reporters:
 
 ```yaml
 reporting:
-- final_stats
+- final-stats
 - console
 ```
 
@@ -17,7 +17,7 @@ and allows specifying some additional settings for reporters:
 
 ```yaml
 reporting:
-- module: final_stats
+- module: final-stats
 - module: console
 ```
 
@@ -60,7 +60,7 @@ This reporter is enabled by default. You can tweak its behaviour with the follow
 
 ```yaml
 reporting:
-- module: final_stats
+- module: final-stats
   summary: true  # overall samples count and percent of failures
   percentiles: true  # display average times and percentiles
   failed-labels: false  # provides list of sample labels with failures

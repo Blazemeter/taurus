@@ -136,6 +136,9 @@
     "final_stats": {
       "class": "bzt.modules.reporting.FinalStatus"
     },
+    "final-stats": {
+      "class": "bzt.modules.reporting.FinalStatus"
+    },
     "passfail": {
       "class": "bzt.modules.passfail.PassFailStatus"
     },

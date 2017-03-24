@@ -28,7 +28,7 @@ scenarios:
     - http://localhost/
 
 reporting:
-- module: final_stats
+- module: final-stats
 - module: console
 
 modules:
@@ -70,14 +70,14 @@ The shorthand is to specify module class string instead of settings dictionary, 
 
 ```yaml
 modules:
-  final_stats: bzt.modules.reporting.FinalStatus
+  final-stats: bzt.modules.reporting.FinalStatus
 ```
 
 is equivalent to
 
 ```yaml
 modules:
-  final_stats:
+  final-stats:
     class: bzt.modules.reporting.FinalStatus
 ```
  
@@ -141,7 +141,7 @@ engine will perfectly deal with it. For example, following JSON file:
   "aggregator": "aggregator",
   "reporting": [
     {
-      "module": "final_stats"
+      "module": "final-stats"
     }
   ],
   "modules": {
