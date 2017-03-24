@@ -73,3 +73,24 @@ class APITestCase(TestCase):
 
     def assertStatusCode(self, response, code, msg=None):
         self.assertEqual(response.status_code, code, msg=msg)
+
+    def assertInBody(self, member, response, msg=None):
+        self.assertIn(member, response.text, msg=msg)
+
+    def assertNotInBody(self, member, response, msg=None):
+        self.assertNotIn(member, response, msg=msg)
+
+    def assertRegexIn(self, regex, text, msg=None):
+        raise AssertionError('')
+
+    def assertRegexInBody(self, member, response, msg=None):
+        self.assertIn(member, response.text, msg=msg)
+
+    def assertRegexNotInBody(self, member, response, msg=None):
+        pass
+
+    def assertInHeaders(self, member, response, msg=None):
+        pass
+
+    def assertNotInHeaders(self, member, response, msg=None):
+        pass
