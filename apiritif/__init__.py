@@ -12,6 +12,8 @@ class APITestCase(TestCase):
         self.request_log = []
         self.keep_alive = True
         self.session = None
+        self.default_address = None
+        self.path_prefix = None
 
     def tearDown(self):
         pass
@@ -20,12 +22,24 @@ class APITestCase(TestCase):
         if self.keep_alive and self.session is None:
             self.session = requests.Session()
 
-        if self.keep_alive:
-            response = self.session.request(method, url, timeout=timeout)
-        else:
-            response = requests.request(method, url, timeout=timeout)
+        address = ''
+        if self.default_address is not None:
+            address += self.default_address
+        if self.path_prefix is not None:
+            address += self.path_prefix
+        address += url
 
-        self.request_log.append({"url": url, "method": method, "timeout": timeout, "response": response})
+        if self.keep_alive:
+            response = self.session.request(method, address, timeout=timeout)
+        else:
+            response = requests.request(method, address, timeout=timeout)
+
+        self.request_log.append({
+            "url": address,
+            "method": method,
+            "timeout": timeout,
+            "response": response,
+        })
         return response
 
     def head(self, url, **kwargs):

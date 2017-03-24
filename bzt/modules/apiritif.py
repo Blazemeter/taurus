@@ -135,9 +135,17 @@ import apiritif
         keepalive = self.scenario.get("keepalive", None)
         if keepalive is None:
             keepalive = True
+
+        default_address = self.scenario.get("default-address", None)
+        path_prefix = self.scenario.get("path-prefix", None)
+
         setup_method_def = self.gen_method_definition('setUp', ['self'])
         setup_method_def.append(self.gen_statement("super(TestRequests, self).setUp()", indent=8))
         setup_method_def.append(self.gen_statement("self.keep_alive = %r" % keepalive, indent=8))
+        if default_address is not None:
+            setup_method_def.append(self.gen_statement("self.default_address = %r" % default_address, indent=8))
+        if path_prefix is not None:
+            setup_method_def.append(self.gen_statement("self.path_prefix = %r" % path_prefix, indent=8))
         setup_method_def.append(self.gen_new_line())
         return setup_method_def
 

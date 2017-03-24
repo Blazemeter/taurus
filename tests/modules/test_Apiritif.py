@@ -173,3 +173,21 @@ class TestApiritifExecutor(BZTestCase):
         self.assertIn("patch('http://blazedemo.com/?tag=patch'", test_script)
         self.assertIn("head('http://blazedemo.com/?tag=head'", test_script)
         self.assertIn("delete('http://blazedemo.com/?tag=delete'", test_script)
+
+    def test_default_address_path_prefix(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "default-address": "https://a.blazemeter.com",
+                    "path-prefix": "/api/latest",
+                    "requests": [
+                        "/user",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("self.default_address = 'https://a.blazemeter.com'", test_script)
+        self.assertIn("self.path_prefix = '/api/latest'", test_script)
