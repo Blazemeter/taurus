@@ -16,6 +16,7 @@ limitations under the License.
 import os
 import re
 import sys
+from collections import OrderedDict
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
@@ -179,11 +180,20 @@ import apiritif
         timeout = dehumanize_time(req.priority_option('timeout', default='30s'))
         method = req.method.lower()
         think_time = dehumanize_time(req.priority_option('think-time', default=None))
-        test_method.append(self.gen_statement("response = self.%s(%r, timeout=%r)" % (method, req.url, timeout)))
+        follow_redirects = req.priority_option('follow-redirects', default=True)
+
+        headers = {}
+        scenario_headers = self.scenario.get("headers", None)
+        if scenario_headers:
+            headers.update(scenario_headers)
+        if req.headers:
+            headers.update(req.headers)
+
+        request_tmpl = "response = self.%s(%r, timeout=%r, headers=%r, allow_redirects=%r)"
+        test_method.append(self.gen_statement(request_tmpl % (method, req.url, timeout, headers, follow_redirects)))
         test_method.append(self.gen_statement("self.assertOk(response)"))
         if think_time:
             test_method.append(self.gen_statement('time.sleep(%s)' % think_time))
-
 
     def gen_test_method(self, name):
         self.log.debug("Generating test method %s", name)

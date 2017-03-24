@@ -122,8 +122,8 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("get('http://blazedemo.com/?tag=1', timeout=10.0)", test_script)
-        self.assertIn("get('http://blazedemo.com/?tag=2', timeout=2.0)", test_script)
+        self.assertIn("get('http://blazedemo.com/?tag=1', timeout=10.0", test_script)
+        self.assertIn("get('http://blazedemo.com/?tag=2', timeout=2.0", test_script)
 
     def test_think_time(self):
         self.configure({
@@ -191,3 +191,52 @@ class TestApiritifExecutor(BZTestCase):
             test_script = fds.read()
         self.assertIn("self.default_address = 'https://a.blazemeter.com'", test_script)
         self.assertIn("self.path_prefix = '/api/latest'", test_script)
+
+    def test_headers(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "headers": {"X-Foo": "foo"},
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "headers": {"X-Bar": "bar"}
+                    }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("'X-Foo': 'foo'", test_script)
+        self.assertIn("'X-Bar': 'bar'", test_script)
+
+    def test_follow_redirects_default(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                    }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("allow_redirects=True", test_script)
+
+    def test_follow_redirects(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "follow-redirects": False,
+                    }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("allow_redirects=False", test_script)
