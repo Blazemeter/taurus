@@ -19,7 +19,9 @@ import sys
 import uuid
 from setuptools import setup
 from setuptools.command.install import install
+
 import bzt
+from bzt.utils import is_windows
 
 
 class InstallWithHook(install, object):
@@ -64,9 +66,10 @@ setup(
     docs_url='http://gettaurus.org/',
 
     install_requires=[
-        'pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama', 'lxml == 3.6.0',
-        'cssselect', 'urwid', 'six', 'nose',
-        'selenium', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', ],
+                         'pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama',
+                         'cssselect', 'urwid', 'six', 'nose',
+                         'selenium', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', ]
+                     + ['lxml == 3.6.0'] if is_windows() else ['lxml >= 3.6.0'],
     packages=['bzt', 'bzt.six', 'bzt.modules', 'bzt.resources'],
     entry_points={
         'console_scripts': [
