@@ -105,10 +105,7 @@ class ApiritifExecutor(ScenarioExecutor):
         pass
 
     def has_results(self):
-        if self.reader and self.reader.read_records:
-            return True
-        else:
-            return False
+        return bool(self.reader and self.reader.read_records)
 
     def get_widget(self):
         if not self.widget:
