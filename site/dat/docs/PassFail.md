@@ -21,7 +21,7 @@ The above example use short form for criteria, its general format is
   - `label` is sample label, empty for overall
   - `{condition}` is the comparison operator, one of `>`, `\<`, `>=`, `\<=`, `=`, `==` (same as `=`)
   - `threshold` is the value to compare with, some KPIs allow percentage thresholds
-  - `{logic}` is the way value aggregated withing timeframe, see more details [below](#Timeframe-Logic)
+  - `{logic}` is the way value aggregated within timeframe, see more details [below](#Timeframe-Logic)
   - `timeframe` is number of seconds the comparison must be valid; if `timeframe` is omitted, then the cumulative value for whole test will be used for comparison.
   - `action` is one of `stop` or `continue`, default is `stop`, if you have chosen to continue, the fail status will be applied at the end of the test execution
   - `status` is one of `failed` (default) or `non-failed`.
@@ -99,7 +99,7 @@ reporting:
     timeframe: 10s  # optional, default is none
     logic: for  # optional, logic to aggregate values within timeframe. 
                 # Default 'for' means take latest, 
-                # 'within' means take sum/avg of all values within interval
+                # 'within' and 'over' means take sum/avg of all values within interval
     fail: true  # optional, default is true
     stop: true  # optional, default is true
 ```
