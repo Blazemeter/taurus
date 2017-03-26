@@ -12,18 +12,6 @@ reporting:
   criteria:
   - avg-rt of IndexPage>150ms for 10s, stop as failed
   - fail of CheckoutPage>50% for 10s, stop as failed
-
-scenarios:
-  simple:
-    requests:
-    - label: IndexPage
-      url: http://blazedemo.com/
-    - label: CheckoutPage
-      url: http://blazedemo.com/checkout.php
-
-execution:
-  scenario: simple
-  hold-for: 1m
 ```
 
 The above example use short form for criteria, its general format is
@@ -33,7 +21,7 @@ The above example use short form for criteria, its general format is
   - `label` is sample label, empty for overall
   - `{condition}` is the comparison operator, one of `>`, `\<`, `>=`, `\<=`, `=`, `==` (same as `=`)
   - `threshold` is the value to compare with, some KPIs allow percentage thresholds
-  - `{logic}` is the way value aggregated withing timeframe, `for` means taking latest value, `within` means aggregating as average or sum (depends on criteria nature)
+  - `{logic}` is the way value aggregated withing timeframe, see more details [below](#Timeframe-Logic)
   - `timeframe` is number of seconds the comparison must be valid; if `timeframe` is omitted, then the cumulative value for whole test will be used for comparison.
   - `action` is one of `stop` or `continue`, default is `stop`, if you have chosen to continue, the fail status will be applied at the end of the test execution
   - `status` is one of `failed` (default) or `non-failed`.
@@ -51,6 +39,51 @@ Possible subjects are:
  - `fail` or `failures` - failed responses, supports percentage threshold, e.g. `failures>50% for 5s, stop as failed`
  - `rc...` - response codes criteria, supports percentage threshold, response code may be specified using wildcards `?` and `\*`, e.g. `rc500>20 for 5s, stop as failed`, `rc4??>20%`, `rc\*>=10 for 1m`, `rcException>99% for 1m, continue as failed`, 
 
+
+## Timeframe Logic 
+
+If no timeframe logic is present, the pass/fail rule is processed at the very end of test, against total aggregate data. 
+To apply checks in the middle of the test, please use one of possible timeframe logics:
+
+- `for` means each value inside timeframe has to trigger the condition, for example `avg-rt>1s for 5s` means each of consecutive 5 seconds has average response time greater that 1 second
+- `within` means all values inside timeframe gets aggregated as average or sum (depends on KPI nature), then comparison is made
+- `over` is very similar to `within`, but the comparison is made only if full timeframe available (`within` will trigger even if partial timeframe matches the criteria)
+
+## Custom Messages for Criteria
+
+By default, Taurus uses criteria string to present it in messages. If you want
+to change the message, you can do one of:
+ - set `message` field for full form of criteria
+ - set message by prepending it to criteria string, like this: `My message: avg-rt>10s`
+ - use dictionary instead of array to specify message and criteria, like this:
+ 
+```yaml
+reporting:
+- module: passfail
+  criteria:
+    My Message: avg-rt of Sample Label>150ms for 10s, stop as failed
+    Sample Label fails too much: fail of Sample Label>50% for 10s, stop as failed
+```
+
+## Monitoring-Based Failure Criteria 
+
+You can use special failure criteria based on [monitoring data](Monitoring) from target servers. Most of
+parameters for criteria are same like in other fail criteria. You'll have to use full format
+for metric specification because of the need to specify metric class `bzt.modules.monitoring.MonitoringCriteria`.
+For example, to stop test once local CPU is exhausted, use:
+
+```yaml
+reporting:
+- module: passfail
+  criteria:
+  - class: bzt.modules.monitoring.MonitoringCriteria
+    subject: local/cpu
+    condition: '>'
+    threshold: 90
+    timeframe: 5s
+```
+
+## Internal Criteria Representation 
 
 The full form of the criteria is conducted by Taurus automatically from short form. You can also
 specify it as this:
@@ -71,36 +104,3 @@ reporting:
     stop: true  # optional, default is true
 ```
 
-## Custom Messages for Criteria
-
-By default, Taurus uses criteria string to present it in messages. If you want
-to change the message, you can do one of:
- - set `message` field for full form of criteria
- - set message by prepending it to criteria string, like this: `My message: avg-rt>10s`
- - use dictionary instead of array to specify message and criteria, like this:
- 
-```yaml
-reporting:
-- module: passfail
-  criteria:
-    My Message: avg-rt of Sample Label>150ms for 10s, stop as failed
-    Sample Label fails too much: fail of Sample Label>50% for 10s, stop as failed
-```
-
-## Monitoring-Based Failure Criteria 
-
-You can use special failure criteria based on monitoring data from target servers. Most of
-parameters for criteria are same like in other fail criteria. You'll have to use full format
-for metric specification because of the need to specify metric class `bzt.modules.monitoring.MonitoringCriteria`.
-For example, to stop test once local CPU is exhausted, use:
-
-```yaml
-reporting:
-- module: passfail
-  criteria:
-  - class: bzt.modules.monitoring.MonitoringCriteria
-    subject: local/cpu
-    condition: '>'
-    threshold: 90
-    timeframe: 5s
-```
