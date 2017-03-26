@@ -136,8 +136,6 @@ class FailCriterion(object):
         self.counting = 0
         self.is_candidate = False
         self.is_triggered = False
-        self.started = None
-        self.ended = None
 
     def __repr__(self):
         if self.is_triggered:
@@ -162,24 +160,32 @@ class FailCriterion(object):
     def process_criteria_logic(self, tstmp, get_value):
         value = self.agg_logic(tstmp, get_value)
         state = self.condition(value, self.threshold)
-        if state:
-            if self.window_logic == 'within':
+
+        if self.window_logic == 'for':
+            if state:
+                self.counting += 1
+                if self.counting >= self.window:
+                    if not self.is_triggered:
+                        logging.warning("%s", self)
+                    self.is_triggered = True
+            else:
+                self.counting = 0
+        else:
+            self.counting += 1
+            if self.window_logic == 'within' and state:
+                self.is_triggered = True
+            elif self.window_logic == 'over' and state and self.counting >= self.window:
                 self.counting = self.window
                 self.is_triggered = True
-            else:
-                self._count(tstmp)
-        else:
-            self.counting = 0
-            if not self.is_triggered:
-                self.started = None
+            elif not state:
+                self.counting = self.window
 
         logging.debug("%s %s: %s", tstmp, self, state)
 
     def check(self):
         """
         Interrupt the execution if desired condition occured
-
-        :return: :raise AutomatedShutdown:
+        :raise AutomatedShutdown:
         """
         if self.stop and self.is_triggered:
             if self.fail:
@@ -210,7 +216,7 @@ class FailCriterion(object):
     def _get_aggregator_functor(self, logic, _subject):
         if logic == 'for':
             return lambda tstmp, value: value
-        elif logic == 'within':
+        elif logic in ('within', 'over'):
             return self._within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong
         else:
             raise TaurusConfigError("Unsupported window logic: %s" % logic)
@@ -232,14 +238,6 @@ class FailCriterion(object):
     def _within_aggregator_avg(self, tstmp, value):
         points = self._get_windowed_points(tstmp, value)
         return sum(points) / len(points)
-
-    def _count(self, tstmp):
-        self.ended = tstmp
-        self.counting += 1
-        if self.counting >= self.window:
-            if not self.is_triggered:
-                logging.warning("%s", self)
-            self.is_triggered = True
 
 
 class DataCriterion(FailCriterion):
@@ -331,7 +329,7 @@ class DataCriterion(FailCriterion):
             raise TaurusConfigError("Unsupported fail criteria subject: %s" % subject)
 
     def _get_aggregator_functor(self, logic, subj):
-        if logic == 'within' and not self.percentage:
+        if logic in ('within', "over") and not self.percentage:
             if subj in ('hits',) or subj.startswith('succ') or subj.startswith('fail') or subj.startswith('rc'):
                 return self._within_aggregator_sum
 
@@ -369,7 +367,7 @@ class DataCriterion(FailCriterion):
             crit_str = crit_config
             action_str = ""
 
-        crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+(for|within)\s+(\S+))?")
+        crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+(for|within|over)\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
             raise TaurusConfigError("Criteria string is mailformed in its condition part: %s" % crit_str)
@@ -408,7 +406,7 @@ class PassFailWidget(Pile, PrioritizedWidget):
         self.failing_criteria = []
         self.text_widget = Text("")
         super(PassFailWidget, self).__init__([self.text_widget])
-        PrioritizedWidget.__init__(self, priority=0)
+        PrioritizedWidget.__init__(self)
 
     def __prepare_colors(self):
         """

@@ -266,3 +266,31 @@ class TestPassFailStatus(BZTestCase):
         obj.post_process()
         self.assertFalse(obj.criteria[0].is_triggered)
         self.assertTrue(obj.criteria[1].is_triggered)
+
+    def test_rc_over(self):
+        obj = PassFailStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = {"criteria": [
+            "rc200<8 over 3s",
+            "rc200>8 over 3s",
+        ]}
+        obj.prepare()
+        self.assertEquals(len(obj.criteria), 2)
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            rcs = point[DataPoint.CURRENT][''][KPISet.RESP_CODES]
+            rcs['200'] = 3
+            logging.debug("Datapoint %s: %s", n, point)
+            obj.aggregated_second(point)
+            try:
+                obj.check()
+            except AutomatedShutdown:
+                break
+
+            self.assertLess(n, 3)
+
+        obj.shutdown()
+        obj.post_process()
+        self.assertFalse(obj.criteria[0].is_triggered)
+        self.assertTrue(obj.criteria[1].is_triggered)
