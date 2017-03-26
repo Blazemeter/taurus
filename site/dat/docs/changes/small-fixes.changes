@@ -1,3 +1,0 @@
-remove realpath, use get_full_path instead
-use get_script_path in checking for script/requests
-fix docs (‘jmx:’ insead ‘script:’, list of headers)

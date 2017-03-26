@@ -21,7 +21,7 @@
   ],
   "provisioning": "local",
   "reporting": [
-    "final_stats",
+    "final-stats",
     "console"
   ],
   "modules": {
