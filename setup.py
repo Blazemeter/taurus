@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+import platform
 import shutil
 import sys
 import uuid
@@ -21,7 +22,6 @@ from setuptools import setup
 from setuptools.command.install import install
 
 import bzt
-from bzt.utils import is_windows
 
 
 class InstallWithHook(install, object):
@@ -53,6 +53,11 @@ class InstallWithHook(install, object):
                 fhd.write("---\ninstall-id: %x" % uuid.getnode())
 
 
+requires = ['pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama',
+            'cssselect', 'urwid', 'six', 'nose',
+            'selenium', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', ]
+
+requires += ['lxml == 3.6.0'] if platform.system() == 'Windows' else ['lxml >= 3.6.0']
 setup(
     name="bzt",
     version=bzt.VERSION,
@@ -65,11 +70,7 @@ setup(
     platform='any',
     docs_url='http://gettaurus.org/',
 
-    install_requires=[
-                         'pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama',
-                         'cssselect', 'urwid', 'six', 'nose',
-                         'selenium', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', ]
-                     + ['lxml == 3.6.0'] if is_windows() else ['lxml >= 3.6.0'],
+    install_requires=requires,
     packages=['bzt', 'bzt.six', 'bzt.modules', 'bzt.resources'],
     entry_points={
         'console_scripts': [
