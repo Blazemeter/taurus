@@ -58,7 +58,7 @@ class BZAObject(dict):
         headers["X-Client-Id"] = "Taurus"
         headers["X-Client-Version"] = VERSION
 
-        if ':' in self.token:
+        if self.token and ':' in self.token:
             headers['Authorization'] = 'Basic ' + base64.b64encode(self.token)
         elif self.token:
             headers["X-Api-Key"] = self.token
