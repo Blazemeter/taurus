@@ -6,6 +6,7 @@
  - include report URL into `final-stats` module's `dump-xml`
  - send some more config options to for cloud test
  - documentation fixes
+ - support new-style Blazemeter API keys
 
 ## 1.8.3 <sup>17 mar 2017</sup>
  - fix broken on MacOS due to security restrictions
