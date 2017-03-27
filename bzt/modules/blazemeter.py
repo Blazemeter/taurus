@@ -702,7 +702,7 @@ class DatapointSerializer(object):
                     report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
         report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
-        data = {"labels": report_items, "sourceID": id(self)}
+        data = {"labels": report_items, "sourceID": id(self.owner)}
         if is_final:
             data['final'] = True
 
