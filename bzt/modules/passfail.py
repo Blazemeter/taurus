@@ -174,9 +174,9 @@ class FailCriterion(object):
             if self.get_counting() >= self.window:
                 self.trigger()
         elif self.window_logic == 'within' and state:
-            self.trigger()
             self._start = tstmp - self.window + 1
             self._end = tstmp
+            self.trigger()
         elif self.window_logic == 'over' and state:
             min_buffer_tstmp = min(self.agg_buffer.keys())
             self._start = min_buffer_tstmp
