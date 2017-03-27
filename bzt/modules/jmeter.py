@@ -1102,7 +1102,7 @@ class FuncJTLReader(FunctionalResultsReader):
         for line in header_str.split("\n"):
             clean_line = line.strip()
             if ":" in clean_line:
-                key, value = clean_line.split(":", maxsplit=1)
+                key, value = clean_line.split(":", 1)
                 headers[key] = value
         return headers
 
