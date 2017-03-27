@@ -1938,8 +1938,8 @@ class TestJMeterExecutor(BZTestCase):
         fields = [
             'assertions', 'connectTime', 'latency', 'responseTime',
             'requestBody', 'requestBodySize', 'requestCookies', 'requestCookiesSize', 'requestHeaders',
-            'requestHeadersSize', 'requestMethod', 'requestSize', 'requestURI',
-            'responseBody', 'responseBodySize', 'responseCode', 'responseHeaders', 'responseHeadersSize',
+            'requestMethod', 'requestSize', 'requestURI',
+            'responseBody', 'responseBodySize', 'responseCode', 'responseHeaders',
             'responseMessage', 'responseSize',
         ]
         for field in set(fields) - set(FuncJTLReader.FILE_EXTRACTED_FIELDS):
@@ -1954,8 +1954,6 @@ class TestJMeterExecutor(BZTestCase):
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(1, len(samples))
-        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-requestHeaders.bin")))
-        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-responseHeaders.bin")))
         self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-responseBody.bin")))
 
     def test_functional_reader_extras_assertions(self):
