@@ -18,6 +18,7 @@ limitations under the License.
 import fnmatch
 import logging
 import re
+import sys
 from abc import abstractmethod
 from collections import OrderedDict
 
@@ -133,7 +134,8 @@ class FailCriterion(object):
         self.fail = config.get('fail', True)
         self.message = config.get('message', None)
         self.window = dehumanize_time(config.get('timeframe', 0))
-        self.counting = 0
+        self._start = sys.maxsize
+        self._end = 0
         self.is_candidate = False
         self.is_triggered = False
 
@@ -154,8 +156,8 @@ class FailCriterion(object):
                     self.config['condition'],
                     self.config['threshold'],
                     self.window_logic,
-                    self.counting)
-            return "%s: %s%s%s %s %s sec" % data
+                    self.get_counting())
+            return "%s: %s%s%s %s %d sec" % data
 
     def process_criteria_logic(self, tstmp, get_value):
         value = self.agg_logic(tstmp, get_value)
@@ -163,24 +165,31 @@ class FailCriterion(object):
 
         if self.window_logic == 'for':
             if state:
-                self.counting += 1
-                if self.counting >= self.window:
-                    if not self.is_triggered:
-                        logging.warning("%s", self)
-                    self.is_triggered = True
+                self._start = min(self._start, tstmp)
+                self._end = tstmp
             else:
-                self.counting = 0
-        else:
-            self.counting += 1
-            if self.window_logic == 'within' and state:
-                self.is_triggered = True
-            elif self.window_logic == 'over' and state and self.counting >= self.window:
-                self.counting = self.window
-                self.is_triggered = True
-            elif not state:
-                self.counting = self.window
+                self._start = sys.maxsize
+                self._end = 0
+
+            if self.get_counting() >= self.window:
+                self.trigger()
+        elif self.window_logic == 'within' and state:
+            self.trigger()
+            self._start = tstmp - self.window + 1
+            self._end = tstmp
+        elif self.window_logic == 'over' and state:
+            min_buffer_tstmp = min(self.agg_buffer.keys())
+            self._start = min_buffer_tstmp
+            self._end = tstmp
+            if self.get_counting() >= self.window:
+                self.trigger()
 
         logging.debug("%s %s: %s", tstmp, self, state)
+
+    def trigger(self):
+        if not self.is_triggered:
+            logging.warning("%s", self)
+        self.is_triggered = True
 
     def check(self):
         """
@@ -238,6 +247,9 @@ class FailCriterion(object):
     def _within_aggregator_avg(self, tstmp, value):
         points = self._get_windowed_points(tstmp, value)
         return sum(points) / len(points)
+
+    def get_counting(self):
+        return self._end - self._start + 1
 
 
 class DataCriterion(FailCriterion):
@@ -399,6 +411,7 @@ class PassFailWidget(Pile, PrioritizedWidget):
     Represents console widget for pass/fail criteria visualisation
     If criterion is failing, it will be displayed on the widget
     return urwid widget
+    :type failing_criteria: list[FailCriterion]
     """
 
     def __init__(self, pass_fail_reporter):
@@ -416,7 +429,7 @@ class PassFailWidget(Pile, PrioritizedWidget):
         result = []
         for failing_criterion in self.failing_criteria:
             if failing_criterion.window:
-                percent = failing_criterion.counting / failing_criterion.window
+                percent = failing_criterion.get_counting() / failing_criterion.window
             else:
                 percent = 1
             color = 'stat-txt'
@@ -436,7 +449,7 @@ class PassFailWidget(Pile, PrioritizedWidget):
         :return:
         """
         self.text_widget.set_text("")
-        self.failing_criteria = [x for x in self.pass_fail_reporter.criteria if x.counting > 0]
+        self.failing_criteria = [x for x in self.pass_fail_reporter.criteria if x.get_counting() > 0]
         if self.failing_criteria:
             widget_text = self.__prepare_colors()
             self.text_widget.set_text(widget_text)

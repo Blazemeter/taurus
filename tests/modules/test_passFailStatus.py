@@ -75,11 +75,10 @@ class TestPassFailStatus(BZTestCase):
         start_time = time.time()
 
         for _n in range(0, 10):
-            point = random_datapoint(start_time)
+            point = random_datapoint(start_time + _n)
             point[DataPoint.CURRENT]['']["avg_rt"] = 1.0
             obj.aggregated_second(point)
             obj.check()
-            start_time += 1
 
         self.assertEqual(obj.widget.text_widget.text, "Failed: avg-rt>10ms for 10 sec\n")
 
@@ -267,21 +266,38 @@ class TestPassFailStatus(BZTestCase):
         self.assertFalse(obj.criteria[0].is_triggered)
         self.assertTrue(obj.criteria[1].is_triggered)
 
-    def test_rc_over(self):
+    def test_rc_over1(self):
         obj = PassFailStatus()
         obj.engine = EngineEmul()
         obj.parameters = {"criteria": [
-            "rc200<8 over 3s",
-            "rc200>8 over 3s",
+            "rc200<8 over 5s",
         ]}
         obj.prepare()
-        self.assertEquals(len(obj.criteria), 2)
 
         for n in range(0, 10):
             point = random_datapoint(n)
             rcs = point[DataPoint.CURRENT][''][KPISet.RESP_CODES]
             rcs['200'] = 3
-            logging.debug("Datapoint %s: %s", n, point)
+            obj.aggregated_second(point)
+            obj.check()
+            self.assertFalse(obj.criteria[0].is_triggered)
+
+        obj.shutdown()
+        obj.post_process()
+
+    def test_rc_over2(self):
+        obj = PassFailStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = {"criteria": [
+            "rc200>8 over 3s",
+        ]}
+        obj.prepare()
+
+        for n in range(0, 10):
+            point = random_datapoint(n)
+            rcs = point[DataPoint.CURRENT][''][KPISet.RESP_CODES]
+            rcs['200'] = 5
+            # logging.debug("Datapoint %s: %s", n, point)
             obj.aggregated_second(point)
             try:
                 obj.check()
@@ -290,7 +306,6 @@ class TestPassFailStatus(BZTestCase):
 
             self.assertLess(n, 3)
 
+        self.assertTrue(obj.criteria[0].is_triggered)
         obj.shutdown()
         obj.post_process()
-        self.assertFalse(obj.criteria[0].is_triggered)
-        self.assertTrue(obj.criteria[1].is_triggered)
