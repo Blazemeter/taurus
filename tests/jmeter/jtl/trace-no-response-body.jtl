@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<sample t="124" lt="4" ct="0" ts="1490196113146" s="true" lb="Request#01 Response Code 200" rc="200" rm="OK" tn="Thread Group constant response 1-1" dt="text" de="" by="415" sby="0" ng="1" na="1">
+  <assertionResult>
+    <name>assertion 1 should not be visiable</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">{
+	&quot;api_version&quot;: 1,
+	&quot;error&quot;: null,
+	&quot;result&quot;: [{
+		&quot;id&quot;: &quot;r-op-beta53c3bdd960f23&quot;,
+		&quot;created&quot;: 1405337049,
+		&quot;updated&quot;: 1405337114,
+		&quot;ended&quot;: null,
+		&quot;testId&quot;: 5000199,
+		&quot;name&quot;: &quot;6\/30\/2014 1:52:12 PM Test jmeter&quot;,
+		&quot;type&quot;: &quot;jmeter&quot;,
+		&quot;status&quot;: &quot;DATA_RECIEVED&quot;,
+		&quot;dataUrl&quot;: &quot;https:\/\/a.blazemeter.com\/api\/latest\/sessions\/r-op-beta53c3bdd960f23&quot;,
+		&quot;signature&quot;: &quot;a82801bd1902e7345b5952cb5a5cee86&quot;
+	}]
+}</responseData>
+  <samplerData class="java.lang.String">https://a.blazemeter.com/api/latest/sessions/?active=true
+</samplerData>
+</sample>
+</testResults>

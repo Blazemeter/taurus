@@ -21,7 +21,7 @@ scenarios:
       - http://example.com/
 
 reporting:
-- module: final_stats
+- module: final-stats
 - module: console
 
 settings:
@@ -54,7 +54,7 @@ braces). Other than that, JSON and YAML are very similar. Here's the same YAML d
     },
     "reporting": [
         {
-            "module": "final_stats"
+            "module": "final-stats"
         },
         {
             "module": "console"

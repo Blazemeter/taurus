@@ -2,6 +2,7 @@
 The idea for this module is to keep it separate from bzt codebase as much as possible,
 it may become separate library in the future. Things like imports and logging should be minimal.
 """
+import base64
 import json
 import logging
 from collections import OrderedDict
@@ -10,6 +11,7 @@ import requests
 
 from bzt import TaurusNetworkError, ManualShutdown, VERSION
 from bzt.six import cookielib
+from bzt.six import string_types
 from bzt.six import text_type
 from bzt.six import urlencode
 from bzt.utils import to_json, MultiPartForm
@@ -57,7 +59,9 @@ class BZAObject(dict):
         headers["X-Client-Id"] = "Taurus"
         headers["X-Client-Version"] = VERSION
 
-        if self.token:
+        if isinstance(self.token, string_types) and ':' in self.token:
+            headers['Authorization'] = 'Basic ' + base64.b64encode(self.token)
+        elif self.token:
             headers["X-Api-Key"] = self.token
 
         if method:

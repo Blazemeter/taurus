@@ -10,7 +10,7 @@ modules:
 reporting:
   - module: junit-xml
   - module: blazemeter
-  - module: final_stats
+  - module: final-stats
     dump-csv: aggregate.csv
 
 services:

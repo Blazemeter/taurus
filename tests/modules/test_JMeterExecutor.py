@@ -1937,10 +1937,11 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(sample.extras)
         fields = [
             'assertions', 'connectTime', 'latency', 'responseTime',
-            'requestBody', 'requestBodySize', 'requestCookies', 'requestCookiesSize', 'requestHeaders',
-            'requestHeadersSize', 'requestMethod', 'requestSize', 'requestURI',
-            'responseBody', 'responseBodySize', 'responseCode', 'responseHeaders', 'responseHeadersSize',
+            'requestBody', 'requestBodySize', 'requestCookies', 'requestCookiesRaw', 'requestCookiesSize',
+            'requestHeaders', 'requestMethod', 'requestSize', 'requestURI',
+            'responseBody', 'responseBodySize', 'responseCode', 'responseHeaders',
             'responseMessage', 'responseSize',
+            "threadId", "threadGroup",
         ]
         for field in set(fields) - set(FuncJTLReader.FILE_EXTRACTED_FIELDS):
             self.assertIn(field, sample.extras)
@@ -1954,8 +1955,6 @@ class TestJMeterExecutor(BZTestCase):
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertEqual(1, len(samples))
-        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-requestHeaders.bin")))
-        self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-responseHeaders.bin")))
         self.assertTrue(os.path.exists(os.path.join(engine_obj.artifacts_dir, "sample-responseBody.bin")))
 
     def test_functional_reader_extras_assertions(self):
@@ -1975,6 +1974,17 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(second, {"name": 'Failing Assertion',
                                   "isFailed": True,
                                   "errorMessage": "Test failed: text expected to contain /something/"})
+
+    def test_functional_reader_extras_empty_body(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../jmeter/jtl/cookies.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertEqual(2, len(samples))
+        sample = samples[1]
+        self.assertIsNotNone(sample.extras)
+        self.assertEqual(sample.extras["requestCookies"], {'hello': 'world', 'visited': 'yes'})
 
     def test_jsr223_block(self):
         script = __dir__() + "/../jmeter/jsr223_script.js"

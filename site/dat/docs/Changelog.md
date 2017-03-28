@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.4 <sup>?</sup>
+ - fix concurrency values for many thread groups, when values are very low
+ - add `final-stats` alias to conform our naming standards
+ - include report URL into `final-stats` module's `dump-xml`
+ - send some more config options to for cloud test
+ - documentation fixes
+ - support new-style Blazemeter API keys
+
 ## 1.8.3 <sup>17 mar 2017</sup>
  - fix broken on MacOS due to security restrictions
  - use Java 8 as default compile target for Java

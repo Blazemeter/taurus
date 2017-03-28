@@ -32,7 +32,7 @@ import yaml
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
-from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException
+from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -46,6 +46,52 @@ from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
 
 TAURUS_TEST_TYPE = "taurus"
+CLOUD_CONFIG_FILTER_RULES = {
+    "execution": True,
+    "scenarios": True,
+    "services": True,
+
+    "locations": True,
+    "locations-weighted": True,
+
+    "modules": {
+        "jmeter": {
+            "version": True,
+            "properties": True,
+            "system-properties": True,
+        },
+        "gatling": {
+            "version": True,
+            "properties": True
+        },
+        "grinder": {
+            "properties": True,
+            "properties-file": True
+        },
+        "selenium": {
+            "additional-classpath": True,
+            "virtual-display": True,
+            "selenium-tools": {
+                "junit": {
+                    "compile-target-java": True
+                },
+                "testng": {
+                    "compile-target-java": True
+                }
+            }
+        },
+        "local": {
+            "sequential": True
+        },
+        "proxy2jmx": {
+            "token": True
+        },
+        "shellexec": {
+            "env": True
+        }
+        # TODO: aggregator has plenty of relevant settings
+    }
+}
 
 
 def send_with_retry(method):
@@ -56,14 +102,14 @@ def send_with_retry(method):
 
         try:
             method(self, *args, **kwargs)
-        except IOError:
+        except (IOError, TaurusNetworkError):
             self.log.debug("Error sending data: %s", traceback.format_exc())
             self.log.warning("Failed to send data, will retry in %s sec...", self._user.timeout)
             try:
                 time.sleep(self._user.timeout)
                 method(self, *args, **kwargs)
                 self.log.info("Succeeded with retry")
-            except IOError:
+            except (IOError, TaurusNetworkError):
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
@@ -656,7 +702,7 @@ class DatapointSerializer(object):
                     report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
         report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
-        data = {"labels": report_items, "sourceID": id(self)}
+        data = {"labels": report_items, "sourceID": id(self.owner)}
         if is_final:
             data['final'] = True
 
@@ -951,7 +997,8 @@ class CloudTaurusTest(BaseCloudTest):
             self.log.warning("Deprecated test API doesn't support global locations")
 
         for executor in executors:
-            if CloudProvisioning.LOC in executor.execution:
+            if CloudProvisioning.LOC in executor.execution \
+                    and isinstance(executor.execution[CloudProvisioning.LOC], dict):
                 exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
             else:
@@ -987,17 +1034,15 @@ class CloudTaurusTest(BaseCloudTest):
         if not isinstance(config[ScenarioExecutor.EXEC], list):
             config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
 
-        provisioning = config.pop(Provisioning.PROV)
+        provisioning = config.get(Provisioning.PROV)
         for execution in config[ScenarioExecutor.EXEC]:
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
+        config.filter(CLOUD_CONFIG_FILTER_RULES)
+        config['local-bzt-version'] = engine_config.get('version', 'N/A')
         for key in list(config.keys()):
-            fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
-                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
-            if key not in fields:
-                config.pop(key)
-            elif not config[key]:
+            if not config[key]:
                 config.pop(key)
 
         self.cleanup_defaults(config)

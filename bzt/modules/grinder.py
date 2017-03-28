@@ -15,12 +15,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
 import re
 import subprocess
 import time
 
+import os
 from bzt import TaurusConfigError, ToolError
+
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -129,7 +130,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         self.script = self.get_script_path()
         if self.script:
-            self.engine.existing_artifact(self.script)
+            self.script = os.path.abspath(self.engine.find_file(self.script))
         elif "requests" in scenario:
             self.script = self.__scenario_from_requests()
         else:
@@ -171,7 +172,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.stderr_file = open(err, "w")
 
         env = {"T_GRINDER_PREFIX": self.exec_id}
-        self.process = self.execute(self.cmd_line, cwd=self.engine.artifacts_dir,
+        self.process = self.execute(self.cmd_line,
                                     stdout=self.stdout_file,
                                     stderr=self.stderr_file,
                                     env=env)
@@ -313,7 +314,7 @@ class DataLogReader(ResultsReader):
             source_id = ''
 
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
-                    latency, r_code, error_msg, source_id, bytes_count
+                  latency, r_code, error_msg, source_id, bytes_count
 
     def __split(self, line):
         if not line.endswith("\n"):

@@ -19,7 +19,6 @@ import copy
 import csv
 import fnmatch
 import json
-import mimetypes
 import os
 import re
 import socket
@@ -175,6 +174,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
             self.reader.is_distributed = len(self.distributed_servers) > 0
+            assert isinstance(self.reader, JTLReader)
             self.engine.aggregator.add_underling(self.reader)
         elif isinstance(self.engine.aggregator, FunctionalAggregator):
             self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
@@ -454,6 +454,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 orig = 1
 
             new = int(round(concurrency * orig / orig_sum))
+            if new < 1:
+                new = 1  # TODO: cover with test
             leftover -= new
             othread.text = str(new)
         if leftover < 0:
@@ -1014,7 +1016,7 @@ class FuncJTLReader(FunctionalResultsReader):
     :type parent_logger: logging.Logger
     """
 
-    FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookies", "requestHeaders", "responseHeaders"]
+    FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookiesRaw"]
 
     def __init__(self, filename, engine, parent_logger):
         super(FuncJTLReader, self).__init__()
@@ -1095,9 +1097,34 @@ class FuncJTLReader(FunctionalResultsReader):
             assertions.append({"name": name, "isFailed": failed, "errorMessage": error_message})
         return assertions
 
+    def _parse_http_headers(self, header_str):
+        headers = {}
+        for line in header_str.split("\n"):
+            clean_line = line.strip()
+            if ":" in clean_line:
+                key, value = clean_line.split(":", 1)
+                headers[key] = value
+        return headers
+
+    def _parse_http_cookies(self, cookie_str):
+        cookies = {}
+        clean_line = cookie_str.strip()
+        if "; " in clean_line:
+            for item in clean_line.split("; "):
+                key, value = item.split("=", 1)
+                cookies[key] = value
+        return cookies
+
     def _extract_sample_extras(self, sample_elem):
         method = sample_elem.findtext("method")
         uri = sample_elem.findtext("java.net.URL")  # smells like Java automarshalling
+        req_headers = sample_elem.findtext("requestHeader") or ""
+        resp_headers = sample_elem.findtext("responseHeader") or ""
+        req_cookies = sample_elem.findtext("cookies") or ""
+
+        thread_id = sample_elem.get("tn")
+        split = thread_id.split("-")
+        thread_group = "-".join(split[:-1])
 
         sample_extras = {
             "responseCode": sample_elem.get("rc"),
@@ -1110,20 +1137,22 @@ class FuncJTLReader(FunctionalResultsReader):
             "requestMethod": method,
             "requestURI": uri,
 
-            "assertions": self._extract_sample_assertions(sample_elem),
+            "threadId": thread_id,
+            "threadGroup": thread_group,
 
-            "requestBody": sample_elem.findtext("queryString"),
-            "responseBody": sample_elem.findtext("responseData"),
-            "requestCookies": sample_elem.findtext("cookies"),
-            "requestHeaders": sample_elem.findtext("requestHeader"),
-            "responseHeaders": sample_elem.findtext("responseHeader")
+            "assertions": self._extract_sample_assertions(sample_elem),
+            "requestHeaders": self._parse_http_headers(req_headers),
+            "responseHeaders": self._parse_http_headers(resp_headers),
+            "requestCookies": self._parse_http_cookies(req_cookies),
+
+            "requestBody": sample_elem.findtext("queryString") or "",
+            "responseBody": sample_elem.findtext("responseData") or "",
+            "requestCookiesRaw": req_cookies,
         }
 
         sample_extras["requestBodySize"] = len(sample_extras["requestBody"])
         sample_extras["responseBodySize"] = len(sample_extras["responseBody"])
-        sample_extras["requestCookiesSize"] = len(sample_extras["requestCookies"])
-        sample_extras["requestHeadersSize"] = len(sample_extras["requestHeaders"])
-        sample_extras["responseHeadersSize"] = len(sample_extras["responseHeaders"])
+        sample_extras["requestCookiesSize"] = len(sample_extras["requestCookiesRaw"])
 
         return sample_extras
 

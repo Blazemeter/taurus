@@ -21,7 +21,7 @@
   ],
   "provisioning": "local",
   "reporting": [
-    "final_stats",
+    "final-stats",
     "console"
   ],
   "modules": {
@@ -134,6 +134,9 @@
       "use-deprecated-api": true
     },
     "final_stats": {
+      "class": "bzt.modules.reporting.FinalStatus"
+    },
+    "final-stats": {
       "class": "bzt.modules.reporting.FinalStatus"
     },
     "passfail": {

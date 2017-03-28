@@ -38,11 +38,11 @@ import webbrowser
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
+from contextlib import contextmanager
 from math import log
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
-from contextlib import contextmanager
 
 import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
@@ -254,6 +254,17 @@ class BetterDict(defaultdict):
             for idx, val in enumerate(obj):
                 visitor(val, idx, obj)
                 cls.traverse(obj[idx], visitor)
+
+    def filter(self, rules):
+        keys = set(self.keys())
+        for key in keys:
+            if key not in rules:
+                del self[key]
+            else:
+                if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
+                    self.get(key).filter(rules[key])
+                    if not self.get(key):  # clear empty
+                        del self[key]
 
 
 def get_uniq_name(directory, prefix, suffix, forbidden_names=()):
