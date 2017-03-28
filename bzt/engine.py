@@ -20,7 +20,6 @@ import datetime
 import hashlib
 import json
 import logging
-import os
 import shutil
 import sys
 import threading
@@ -29,13 +28,14 @@ import traceback
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
-from json import encoder
 
+import os
 import yaml
+from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
+from json import encoder
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
@@ -965,6 +965,7 @@ class ScenarioExecutor(EngineModule):
 
         environ = {key: environ[key] for key in environ.keys() if environ[key] is not None}
 
+        self.log.debug("Executing shell from %s: %s", cwd, args)
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
 
 
