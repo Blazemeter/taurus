@@ -1016,7 +1016,7 @@ class FuncJTLReader(FunctionalResultsReader):
     :type parent_logger: logging.Logger
     """
 
-    FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookies"]
+    FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookiesRaw"]
 
     def __init__(self, filename, engine, parent_logger):
         super(FuncJTLReader, self).__init__()
@@ -1106,11 +1106,21 @@ class FuncJTLReader(FunctionalResultsReader):
                 headers[key] = value
         return headers
 
+    def _parse_http_cookies(self, cookie_str):
+        cookies = {}
+        clean_line = cookie_str.strip()
+        if "; " in clean_line:
+            for item in clean_line.split("; "):
+                key, value = item.split("=", 1)
+                cookies[key] = value
+        return cookies
+
     def _extract_sample_extras(self, sample_elem):
         method = sample_elem.findtext("method")
         uri = sample_elem.findtext("java.net.URL")  # smells like Java automarshalling
         req_headers = sample_elem.findtext("requestHeader") or ""
         resp_headers = sample_elem.findtext("responseHeader") or ""
+        req_cookies = sample_elem.findtext("cookies") or ""
 
         sample_extras = {
             "responseCode": sample_elem.get("rc"),
@@ -1124,17 +1134,18 @@ class FuncJTLReader(FunctionalResultsReader):
             "requestURI": uri,
 
             "assertions": self._extract_sample_assertions(sample_elem),
+            "requestHeaders": self._parse_http_headers(req_headers),
+            "responseHeaders": self._parse_http_headers(resp_headers),
+            "requestCookies": self._parse_http_cookies(req_cookies),
 
             "requestBody": sample_elem.findtext("queryString") or "",
             "responseBody": sample_elem.findtext("responseData") or "",
-            "requestCookies": sample_elem.findtext("cookies") or "",
-            "requestHeaders": self._parse_http_headers(req_headers),
-            "responseHeaders": self._parse_http_headers(resp_headers),
+            "requestCookiesRaw": req_cookies,
         }
 
         sample_extras["requestBodySize"] = len(sample_extras["requestBody"])
         sample_extras["responseBodySize"] = len(sample_extras["responseBody"])
-        sample_extras["requestCookiesSize"] = len(sample_extras["requestCookies"])
+        sample_extras["requestCookiesSize"] = len(sample_extras["requestCookiesRaw"])
 
         return sample_extras
 
