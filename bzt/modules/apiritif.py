@@ -255,8 +255,15 @@ import apiritif
         jpath_assertions = request.config.get("assert-jsonpath", [])
         for idx, assertion in enumerate(jpath_assertions):
             assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
-            method = "assertJSONPath" if not assertion.get('not', False) else "assertNotJSONPath"
-            line = "self.{method}({query}, response)".format(method=method, query=repr(assertion["jsonpath"]))
+            exc = TaurusConfigError('JSON Path not found in assertion: %s' % assertion)
+            query = assertion.get('jsonpath', exc)
+            expected = assertion.get('expected-value', '') or None
+            method = "assertNotJSONPath" if assertion.get('invert', False) else "assertJSONPath"
+            line = "self.{method}({query}, response, expected_value={expected})".format(
+                method=method,
+                query=repr(query),
+                expected=repr(expected) if expected else None
+            )
             test_method.append(self.gen_statement(line))
 
     def gen_test_method(self, name):

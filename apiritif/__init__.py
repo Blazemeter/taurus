@@ -147,18 +147,24 @@ class APITestCase(TestCase):
     def assertRegexNotInHeaders(self, member, response, msg=None):
         self.assertNotIn(member, headers_as_text(response.headers), msg=msg)
 
-    def assertJSONPath(self, jsonpath_query, response, msg=None):
+    def assertJSONPath(self, jsonpath_query, response, expected_value=None, msg=None):
         jsonpath_expr = jsonpath_rw.parse(jsonpath_query)
         body = response.json()
         matches = jsonpath_expr.find(body)
         if not matches:
             msg = msg or "JSONPath query %r didn't match response content" % jsonpath_query
             self.fail(msg=msg)
+        if expected_value is not None and matches[0].value != expected_value:
+            msg = msg or "Actual value at JSONPath query %r isn't equal to expected" % jsonpath_query
+            self.fail(msg)
 
-    def assertNotJSONPath(self, jsonpath_query, response, msg=None):
+    def assertNotJSONPath(self, jsonpath_query, response, expected_value=None, msg=None):
         jsonpath_expr = jsonpath_rw.parse(jsonpath_query)
         body = response.json()
         matches = jsonpath_expr.find(body)
         if matches:
             msg = msg or "JSONPath query %r didn't match response content" % jsonpath_query
             self.fail(msg=msg)
+        if expected_value is not None and matches[0].value == expected_value:
+            msg = msg or "Actual value at JSONPath query %r is equal to expected" % jsonpath_query
+            self.fail(msg)

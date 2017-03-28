@@ -382,5 +382,36 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertJSONPath('$.foo.bar', response)", test_script)
+        self.assertIn("assertJSONPath('$.foo.bar', response, expected_value=None)", test_script)
+
+    def test_jsonpath_assertions_kinds(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "https://api.github.com/",
+                        "assert-jsonpath": [
+                            {
+                                "jsonpath": "$.1",
+                                "invert": False,
+                            },
+                            {
+                                "jsonpath": "$.2",
+                                "invert": True,
+                            },
+                            {
+                                "jsonpath": "$.3",
+                                "expected-value": "value",
+                            }
+                        ]
+                     }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("assertJSONPath('$.1', response, expected_value=None)", test_script)
+        self.assertIn("assertNotJSONPath('$.2', response, expected_value=None)", test_script)
+        self.assertIn("assertJSONPath('$.3', response, expected_value='value')", test_script)
 
