@@ -309,3 +309,46 @@ class TestApiritifExecutor(BZTestCase):
             }]
         })
         self.assertRaises(TaurusConfigError, self.obj.prepare)
+
+    def test_assertion(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "assert": [
+                            "Welcome", "Simple Travel Agency"
+                        ]
+                     }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("assertRegexInBody('Welcome', response)", test_script)
+        self.assertIn("assertRegexInBody('Simple Travel Agency', response)", test_script)
+
+    def test_assertion_kinds(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "assert": [
+                            {"contains": ["1"], "regexp": False, "not": False},
+                            {"contains": ["2"], "regexp": False, "not": True},
+                            {"contains": ["3"], "regexp": True, "not": False},
+                            {"contains": ["4"], "regexp": True, "not": True},
+                        ]
+                     }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("assertInBody('1', response)", test_script)
+        self.assertIn("assertNotInBody('2', response)", test_script)
+        self.assertIn("assertRegexInBody('3', response)", test_script)
+        self.assertIn("assertRegexNotInBody('4', response)", test_script)

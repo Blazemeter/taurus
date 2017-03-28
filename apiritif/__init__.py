@@ -75,20 +75,24 @@ class APITestCase(TestCase):
     def assertRegex(self, regex, text, match=False, msg=None):
         if match:
             if re.match(regex, text) is None:
+                text = text[:100] + "..." if len(text) > 100 else text
                 msg = msg or "Regex %r didn't match expected value: %r" % (regex, text)
                 self.fail(msg)
         else:
             if not re.findall(regex, text):
+                text = text[:100] + "..." if len(text) > 100 else text
                 msg = msg or "Regex %r didn't find anything in string %r" % (regex, text)
                 self.fail(msg)
 
     def assertNotRegex(self, regex, text, match=False, msg=None):
         if match:
             if re.match(regex, text) is not None:
+                text = text[:100] + "..." if len(text) > 100 else text
                 msg = msg or "Regex %r unexpectedly matched expected value: %r" % (regex, text)
                 raise AssertionError(msg)
         else:
             if re.findall(regex, text):
+                text = text[:100] + "..." if len(text) > 100 else text
                 msg = msg or "Regex %r unexpectedly found something in string %r" % (regex, text)
                 raise AssertionError(msg)
 
@@ -106,6 +110,9 @@ class APITestCase(TestCase):
     # TODO: asserts for HTTP codes (assertWasRedirected, etc)
 
     def assertStatusCode(self, response, code, msg=None):
+        self.assertEqual(response.status_code, code, msg=msg)
+
+    def assertNotStatusCode(self, response, code, msg=None):
         self.assertEqual(response.status_code, code, msg=msg)
 
     def assertInBody(self, member, response, msg=None):
@@ -129,3 +136,12 @@ class APITestCase(TestCase):
 
     def assertInHeaders(self, member, response, msg=None):
         self.assertIn(member, headers_as_text(response.headers), msg=msg)
+
+    def assertNotInHeaders(self, member, response, msg=None):
+        self.assertNotIn(member, headers_as_text(response.headers), msg=msg)
+
+    def assertRegexInHeaders(self, member, response, msg=None):
+        self.assertIn(member, headers_as_text(response.headers), msg=msg)
+
+    def assertRegexNotInHeaders(self, member, response, msg=None):
+        self.assertNotIn(member, headers_as_text(response.headers), msg=msg)

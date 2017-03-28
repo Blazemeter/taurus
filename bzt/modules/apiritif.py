@@ -13,20 +13,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import json
 import os
 import re
 import sys
 from collections import OrderedDict
 
-from bzt import ToolError, TaurusConfigError, TaurusInternalException
-from bzt.engine import ScenarioExecutor
+from bzt import ToolError, TaurusConfigError
+from bzt.engine import ScenarioExecutor, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.selenium import FuncSamplesReader, LoadSamplesReader, SeleniumWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, iteritems
-from bzt.utils import get_full_path, shutdown_process, PythonGenerator, dehumanize_time
+from bzt.utils import get_full_path, shutdown_process, PythonGenerator, dehumanize_time, ensure_is_dict
 
 
 class ApiritifExecutor(ScenarioExecutor):
@@ -219,8 +218,32 @@ import apiritif
         )
         test_method.append(self.gen_statement(request_line))
         test_method.append(self.gen_statement("self.assertOk(response)"))
+        self._add_asserts(request, test_method)
         if think_time:
             test_method.append(self.gen_statement('time.sleep(%s)' % think_time))
+
+    def _add_asserts(self, request, test_method):
+        assertions = request.config.get("assert", [])
+        for idx, assertion in enumerate(assertions):
+            assertion = ensure_is_dict(assertions, idx, "contains")
+            if not isinstance(assertion['contains'], list):
+                assertion['contains'] = [assertion['contains']]
+            subject = assertion.get("subject", Scenario.FIELD_BODY)
+            if subject in (Scenario.FIELD_BODY, Scenario.FIELD_HEADERS):
+                for member in assertion["contains"]:
+                    func_table = {
+                        (Scenario.FIELD_BODY, False, False): "assertInBody",
+                        (Scenario.FIELD_BODY, False, True): "assertNotInBody",
+                        (Scenario.FIELD_BODY, True, False): "assertRegexInBody",
+                        (Scenario.FIELD_BODY, True, True): "assertRegexNotInBody",
+                        (Scenario.FIELD_HEADERS, False, False): "assertInHeaders",
+                        (Scenario.FIELD_HEADERS, False, True): "assertNotInHeaders",
+                        (Scenario.FIELD_HEADERS, True, False): "assertRegexInHeaders",
+                        (Scenario.FIELD_HEADERS, True, True): "assertRegexNotInHeaders",
+                    }
+                    method = func_table[(subject, assertion.get('regexp', True), assertion.get('not', False))]
+                    line = "self.{method}({member}, response)".format(method=method, member=repr(member))
+                    test_method.append(self.gen_statement(line))
 
     def gen_test_method(self, name):
         self.log.debug("Generating test method %s", name)
