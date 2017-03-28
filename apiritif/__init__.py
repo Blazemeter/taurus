@@ -75,7 +75,7 @@ class APITestCase(TestCase):
 
     # Utility asserts
 
-    def assertRegex(self, regex, text, match=False, msg=None):
+    def assertRegexp(self, regex, text, match=False, msg=None):
         if match:
             if re.match(regex, text) is None:
                 text = text[:100] + "..." if len(text) > 100 else text
@@ -87,7 +87,7 @@ class APITestCase(TestCase):
                 msg = msg or "Regex %r didn't find anything in string %r" % (regex, text)
                 self.fail(msg)
 
-    def assertNotRegex(self, regex, text, match=False, msg=None):
+    def assertNotRegexp(self, regex, text, match=False, msg=None):
         if match:
             if re.match(regex, text) is not None:
                 text = text[:100] + "..." if len(text) > 100 else text
@@ -134,10 +134,10 @@ class APITestCase(TestCase):
         self.assertNotIn(member, response, msg=msg)
 
     def assertRegexInBody(self, regex, response, match=False, msg=None):
-        self.assertRegex(regex, response.text, match=match, msg=msg)
+        self.assertRegexp(regex, response.text, match=match, msg=msg)
 
     def assertRegexNotInBody(self, regex, response, match=False, msg=None):
-        self.assertNotRegex(regex, response.text, match=match, msg=msg)
+        self.assertNotRegexp(regex, response.text, match=match, msg=msg)
 
     def assertHasHeader(self, header, response, msg=None):
         self.assertIn(header, response.headers, msg=msg)
