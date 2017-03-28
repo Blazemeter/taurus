@@ -1,8 +1,10 @@
 import re
+from io import BytesIO
 from unittest import TestCase
 
 import jsonpath_rw
 import requests
+from lxml import etree
 
 
 def headers_as_text(headers_dict):
@@ -163,8 +165,24 @@ class APITestCase(TestCase):
         body = response.json()
         matches = jsonpath_expr.find(body)
         if matches:
-            msg = msg or "JSONPath query %r didn't match response content" % jsonpath_query
+            msg = msg or "JSONPath query %r did match response content" % jsonpath_query
             self.fail(msg=msg)
         if expected_value is not None and matches[0].value == expected_value:
             msg = msg or "Actual value at JSONPath query %r is equal to expected" % jsonpath_query
             self.fail(msg)
+
+    def assertXPath(self, xpath_query, response, msg=None):
+        tree = etree.ElementTree()
+        tree.parse(BytesIO(response.content))
+        matches = tree.xpath(xpath_query)
+        if not matches:
+            msg = msg or "XPath query %r didn't match response content" % xpath_query
+            self.fail(msg=msg)
+
+    def assertNotXPath(self, xpath_query, response, msg=None):
+        tree = etree.ElementTree()
+        tree.parse(BytesIO(response.content))
+        matches = tree.xpath(xpath_query)
+        if matches:
+            msg = msg or "XPath query %r did match response content" % xpath_query
+            self.fail(msg=msg)

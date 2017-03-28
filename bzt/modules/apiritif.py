@@ -220,6 +220,7 @@ import apiritif
         test_method.append(self.gen_statement("self.assertOk(response)"))
         self._add_assertions(request, test_method)
         self._add_jsonpath_assertions(request, test_method)
+        self._add_xpath_assertions(request, test_method)
         if think_time:
             test_method.append(self.gen_statement('time.sleep(%s)' % think_time))
 
@@ -264,6 +265,16 @@ import apiritif
                 query=repr(query),
                 expected=repr(expected) if expected else None
             )
+            test_method.append(self.gen_statement(line))
+
+    def _add_xpath_assertions(self, request, test_method):
+        jpath_assertions = request.config.get("assert-xpath", [])
+        for idx, assertion in enumerate(jpath_assertions):
+            assertion = ensure_is_dict(jpath_assertions, idx, "xpath")
+            exc = TaurusConfigError('XPath not found in assertion: %s' % assertion)
+            query = assertion.get('xpath', exc)
+            method = "assertNotXPath" if assertion.get('invert', False) else "assertXPath"
+            line = "self.{method}({query}, response)".format(method=method, query=repr(query))
             test_method.append(self.gen_statement(line))
 
     def gen_test_method(self, name):

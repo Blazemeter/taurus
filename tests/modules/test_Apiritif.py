@@ -415,3 +415,46 @@ class TestApiritifExecutor(BZTestCase):
         self.assertIn("assertNotJSONPath('$.2', response, expected_value=None)", test_script)
         self.assertIn("assertJSONPath('$.3', response, expected_value='value')", test_script)
 
+    def test_xpath_assertions(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "https://api.github.com/",
+                        "assert-xpath": [
+                            "//head/title"
+                        ]
+                     }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("assertXPath('//head/title', response)", test_script)
+
+    def test_xpath_assertions_kinds(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "https://api.github.com/",
+                        "assert-xpath": [
+                            {
+                                "xpath": "//1",
+                                "invert": False,
+                            },
+                            {
+                                "xpath": "//2",
+                                "invert": True,
+                            }
+                        ]
+                     }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("assertXPath('//1', response)", test_script)
+        self.assertIn("assertNotXPath('//2', response)", test_script)
