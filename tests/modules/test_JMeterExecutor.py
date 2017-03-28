@@ -1941,6 +1941,7 @@ class TestJMeterExecutor(BZTestCase):
             'requestHeaders', 'requestMethod', 'requestSize', 'requestURI',
             'responseBody', 'responseBodySize', 'responseCode', 'responseHeaders',
             'responseMessage', 'responseSize',
+            "threadId", "threadGroup",
         ]
         for field in set(fields) - set(FuncJTLReader.FILE_EXTRACTED_FIELDS):
             self.assertIn(field, sample.extras)
