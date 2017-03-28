@@ -344,6 +344,9 @@ class TestApiritifExecutor(BZTestCase):
                             {"contains": ["6"], "regexp": False, "not": True, "subject": "headers"},
                             {"contains": ["7"], "regexp": True, "not": False, "subject": "headers"},
                             {"contains": ["8"], "regexp": True, "not": True, "subject": "headers"},
+                            {"contains": ["8"], "regexp": True, "not": True, "subject": "headers"},
+                            {"contains": ["9"], "not": False, "subject": "http-code"},
+                            {"contains": ["10"], "not": True, "subject": "http-code"},
                         ]
                      }]
                 }
@@ -360,4 +363,7 @@ class TestApiritifExecutor(BZTestCase):
         self.assertIn("assertNotInHeaders('6', response)", test_script)
         self.assertIn("assertRegexInHeaders('7', response)", test_script)
         self.assertIn("assertRegexNotInHeaders('8', response)", test_script)
+        self.assertIn("assertStatusCode('9', response)", test_script)
+        self.assertIn("assertNotStatusCode('10', response)", test_script)
+
 

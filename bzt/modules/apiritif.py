@@ -244,6 +244,11 @@ import apiritif
                     method = func_table[(subject, assertion.get('regexp', True), assertion.get('not', False))]
                     line = "self.{method}({member}, response)".format(method=method, member=repr(member))
                     test_method.append(self.gen_statement(line))
+            elif subject == Scenario.FIELD_RESP_CODE:
+                for member in assertion["contains"]:
+                    method = "assertStatusCode" if not assertion.get('not', False) else "assertNotStatusCode"
+                    line = "self.{method}({member}, response)".format(method=method, member=repr(member))
+                    test_method.append(self.gen_statement(line))
 
     def gen_test_method(self, name):
         self.log.debug("Generating test method %s", name)
