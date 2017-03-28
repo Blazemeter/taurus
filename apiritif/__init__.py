@@ -107,8 +107,17 @@ class APITestCase(TestCase):
     def assertFailed(self, response, msg=None):
         self.assertTrue(response.status_code >= 400, msg=msg)
 
-    def assert200(self, response, msg=None):
-        self.assertEqual(response.status_code, 200, msg=msg)
+    def assert2xx(self, response, msg=None):
+        self.assertTrue(200 <= response.status_code < 300, msg=msg)
+
+    def assert3xx(self, response, msg=None):
+        self.assertTrue(300 <= response.status_code < 400, msg=msg)
+
+    def assert4xx(self, response, msg=None):
+        self.assertTrue(400 <= response.status_code < 500, msg=msg)
+
+    def assert5xx(self, response, msg=None):
+        self.assertTrue(500 <= response.status_code < 600, msg=msg)
 
     # TODO: asserts for HTTP codes (assertWasRedirected, etc)
 
