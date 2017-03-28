@@ -1,5 +1,11 @@
+import re
 from unittest import TestCase
+
 import requests
+
+
+def headers_as_text(headers_dict):
+    return "\n".join("%s: %s" % (key, value) for key, value in headers_dict.items())
 
 
 class APITestCase(TestCase):
@@ -17,6 +23,8 @@ class APITestCase(TestCase):
 
     def tearDown(self):
         pass
+
+    # Utility functions
 
     def request(self, url, method='GET', **kwargs):
         if self.keep_alive and self.session is None:
@@ -62,7 +70,31 @@ class APITestCase(TestCase):
     def delete(self, url, **kwargs):
         return self.request(url, method='DELETE', **kwargs)
 
-    def assertOk(self, response, msg=None):
+    # Utility asserts
+
+    def assertRegex(self, regex, text, match=False, msg=None):
+        if match:
+            if re.match(regex, text) is None:
+                msg = msg or "Regex %r didn't match expected value: %r" % (regex, text)
+                self.fail(msg)
+        else:
+            if not re.findall(regex, text):
+                msg = msg or "Regex %r didn't find anything in string %r" % (regex, text)
+                self.fail(msg)
+
+    def assertNotRegex(self, regex, text, match=False, msg=None):
+        if match:
+            if re.match(regex, text) is not None:
+                msg = msg or "Regex %r unexpectedly matched expected value: %r" % (regex, text)
+                raise AssertionError(msg)
+        else:
+            if re.findall(regex, text):
+                msg = msg or "Regex %r unexpectedly found something in string %r" % (regex, text)
+                raise AssertionError(msg)
+
+    # Asserts for HTTP responses
+
+    def assertOk(self, response, msg=None):  # NOTE: should we make 'response' parameter implicit?
         self.assertTrue(response.ok, msg=msg)
 
     def assertFailed(self, response, msg=None):
@@ -70,6 +102,8 @@ class APITestCase(TestCase):
 
     def assert200(self, response, msg=None):
         self.assertEqual(response.status_code, 200, msg=msg)
+
+    # TODO: asserts for HTTP codes (assertWasRedirected, etc)
 
     def assertStatusCode(self, response, code, msg=None):
         self.assertEqual(response.status_code, code, msg=msg)
@@ -80,17 +114,18 @@ class APITestCase(TestCase):
     def assertNotInBody(self, member, response, msg=None):
         self.assertNotIn(member, response, msg=msg)
 
-    def assertRegexIn(self, regex, text, msg=None):
-        raise AssertionError('')
+    def assertRegexInBody(self, regex, response, match=False, msg=None):
+        self.assertRegex(regex, response.text, match=match, msg=msg)
 
-    def assertRegexInBody(self, member, response, msg=None):
-        self.assertIn(member, response.text, msg=msg)
+    def assertRegexNotInBody(self, regex, response, match=False, msg=None):
+        self.assertNotRegex(regex, response.text, match=match, msg=msg)
 
-    def assertRegexNotInBody(self, member, response, msg=None):
-        pass
+    def assertHasHeader(self, header, response, msg=None):
+        self.assertIn(header, response.headers, msg=msg)
+
+    def assertHeaderValue(self, header, value, response, msg=None):
+        self.assertIn(header, response.headers, msg=msg)
+        self.assertEqual(response.headers[header], value, msg=msg)
 
     def assertInHeaders(self, member, response, msg=None):
-        pass
-
-    def assertNotInHeaders(self, member, response, msg=None):
-        pass
+        self.assertIn(member, headers_as_text(response.headers), msg=msg)
