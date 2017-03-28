@@ -218,11 +218,12 @@ import apiritif
         )
         test_method.append(self.gen_statement(request_line))
         test_method.append(self.gen_statement("self.assertOk(response)"))
-        self._add_asserts(request, test_method)
+        self._add_assertions(request, test_method)
+        self._add_jsonpath_assertions(request, test_method)
         if think_time:
             test_method.append(self.gen_statement('time.sleep(%s)' % think_time))
 
-    def _add_asserts(self, request, test_method):
+    def _add_assertions(self, request, test_method):
         assertions = request.config.get("assert", [])
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
@@ -249,6 +250,14 @@ import apiritif
                     method = "assertStatusCode" if not assertion.get('not', False) else "assertNotStatusCode"
                     line = "self.{method}({member}, response)".format(method=method, member=repr(member))
                     test_method.append(self.gen_statement(line))
+
+    def _add_jsonpath_assertions(self, request, test_method):
+        jpath_assertions = request.config.get("assert-jsonpath", [])
+        for idx, assertion in enumerate(jpath_assertions):
+            assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
+            method = "assertJSONPath" if not assertion.get('not', False) else "assertNotJSONPath"
+            line = "self.{method}({query}, response)".format(method=method, query=repr(assertion["jsonpath"]))
+            test_method.append(self.gen_statement(line))
 
     def gen_test_method(self, name):
         self.log.debug("Generating test method %s", name)

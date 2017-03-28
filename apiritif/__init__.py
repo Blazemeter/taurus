@@ -1,6 +1,7 @@
 import re
 from unittest import TestCase
 
+import jsonpath_rw
 import requests
 
 
@@ -145,3 +146,19 @@ class APITestCase(TestCase):
 
     def assertRegexNotInHeaders(self, member, response, msg=None):
         self.assertNotIn(member, headers_as_text(response.headers), msg=msg)
+
+    def assertJSONPath(self, jsonpath_query, response, msg=None):
+        jsonpath_expr = jsonpath_rw.parse(jsonpath_query)
+        body = response.json()
+        matches = jsonpath_expr.find(body)
+        if not matches:
+            msg = msg or "JSONPath query %r didn't match response content" % jsonpath_query
+            self.fail(msg=msg)
+
+    def assertNotJSONPath(self, jsonpath_query, response, msg=None):
+        jsonpath_expr = jsonpath_rw.parse(jsonpath_query)
+        body = response.json()
+        matches = jsonpath_expr.find(body)
+        if matches:
+            msg = msg or "JSONPath query %r didn't match response content" % jsonpath_query
+            self.fail(msg=msg)

@@ -310,7 +310,7 @@ class TestApiritifExecutor(BZTestCase):
         })
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
-    def test_assertion(self):
+    def test_plain_assertions(self):
         self.configure({
             "execution": [{
                 "scenario": {
@@ -329,7 +329,7 @@ class TestApiritifExecutor(BZTestCase):
         self.assertIn("assertRegexInBody('Welcome', response)", test_script)
         self.assertIn("assertRegexInBody('Simple Travel Agency', response)", test_script)
 
-    def test_assertion_kinds(self):
+    def test_plain_assertion_kinds(self):
         self.configure({
             "execution": [{
                 "scenario": {
@@ -366,4 +366,21 @@ class TestApiritifExecutor(BZTestCase):
         self.assertIn("assertStatusCode('9', response)", test_script)
         self.assertIn("assertNotStatusCode('10', response)", test_script)
 
+    def test_jsonpath_assertions(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "requests": [{
+                        "url": "https://api.github.com/",
+                        "assert-jsonpath": [
+                            "$.foo.bar"
+                        ]
+                     }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("assertJSONPath('$.foo.bar', response)", test_script)
 
