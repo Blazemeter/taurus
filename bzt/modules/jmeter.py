@@ -1122,6 +1122,10 @@ class FuncJTLReader(FunctionalResultsReader):
         resp_headers = sample_elem.findtext("responseHeader") or ""
         req_cookies = sample_elem.findtext("cookies") or ""
 
+        thread_id = sample_elem.get("tn")
+        split = thread_id.split("-")
+        thread_group = "-".join(split[:-1])
+
         sample_extras = {
             "responseCode": sample_elem.get("rc"),
             "responseMessage": sample_elem.get("rm"),
@@ -1132,6 +1136,9 @@ class FuncJTLReader(FunctionalResultsReader):
             "requestSize": int(sample_elem.get("sby") or 0),
             "requestMethod": method,
             "requestURI": uri,
+
+            "threadId": thread_id,
+            "threadGroup": thread_group,
 
             "assertions": self._extract_sample_assertions(sample_elem),
             "requestHeaders": self._parse_http_headers(req_headers),
