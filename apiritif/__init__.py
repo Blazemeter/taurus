@@ -109,10 +109,10 @@ class APITestCase(TestCase):
 
     # TODO: asserts for HTTP codes (assertWasRedirected, etc)
 
-    def assertStatusCode(self, response, code, msg=None):
+    def assertStatusCode(self, code, response, msg=None):
         self.assertEqual(str(response.status_code), str(code), msg=msg)
 
-    def assertNotStatusCode(self, response, code, msg=None):
+    def assertNotStatusCode(self, code, response, msg=None):
         self.assertNotEqual(str(response.status_code), str(code), msg=msg)
 
     def assertInBody(self, member, response, msg=None):
