@@ -32,7 +32,7 @@ import yaml
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
-from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException
+from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -102,14 +102,14 @@ def send_with_retry(method):
 
         try:
             method(self, *args, **kwargs)
-        except IOError:
+        except (IOError, TaurusNetworkError):
             self.log.debug("Error sending data: %s", traceback.format_exc())
             self.log.warning("Failed to send data, will retry in %s sec...", self._user.timeout)
             try:
                 time.sleep(self._user.timeout)
                 method(self, *args, **kwargs)
                 self.log.info("Succeeded with retry")
-            except IOError:
+            except (IOError, TaurusNetworkError):
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
