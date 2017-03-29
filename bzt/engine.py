@@ -421,7 +421,7 @@ class Engine(object):
                     base_configs.append(fname)
         else:
             self.log.info("No machine configs dir: %s", machine_dir)
-        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))
+        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))  # FIXME: this is CLI specifics
         if os.path.isfile(user_file):
             self.log.debug("Adding personal config: %s", user_file)
             base_configs.append(user_file)
@@ -532,7 +532,7 @@ class Engine(object):
                 if not isinstance(resp, str):
                     resp = resp.decode()
 
-                self.log.debug("Result: %s", resp)
+                self.log.debug("Taurus updates info: %s", resp)
 
                 data = json.loads(resp)
                 mine = LooseVersion(bzt.VERSION)
