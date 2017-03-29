@@ -391,18 +391,9 @@ class TestApiritifExecutor(BZTestCase):
                     "requests": [{
                         "url": "https://api.github.com/",
                         "assert-jsonpath": [
-                            {
-                                "jsonpath": "$.1",
-                                "invert": False,
-                            },
-                            {
-                                "jsonpath": "$.2",
-                                "invert": True,
-                            },
-                            {
-                                "jsonpath": "$.3",
-                                "expected-value": "value",
-                            }
+                            {"jsonpath": "$.1", "invert": False},
+                            {"jsonpath": "$.2", "invert": True},
+                            {"jsonpath": "$.3", "expected-value": "value"},
                         ]
                      }]
                 }
