@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.5 <sup></sup>
+ - use BZA workspace's `enabled` flag to filter 
+
 ## 1.8.4 <sup>29 mar 2017</sup>
  - support new-style Blazemeter API keys
  - introduce `over` timeframe logic to passfail
