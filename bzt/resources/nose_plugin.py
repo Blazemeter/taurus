@@ -149,7 +149,7 @@ class BZTPlugin(Plugin):
             'requestSize': 0,
             'requestMethod': response.request.method,
             'requestURI': response.request.url,
-            'assertions': [],
+            'assertions': request.get("assertions", []),
             'responseBody': response.text,
             'requestBody': '',
             'requestCookies': '',
