@@ -1,10 +1,12 @@
 import json
 import logging
 import math
-import os
 import shutil
 import time
 from io import BytesIO
+
+import os
+from tests import BZTestCase, random_datapoint, __dir__
 
 from bzt.bza import Master, Session
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -12,9 +14,7 @@ from bzt.modules.blazemeter import BlazeMeterUploader, ResultsFromBZA
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.six import HTTPError
 from bzt.six import iteritems, viewvalues
-from tests import BZTestCase, random_datapoint, __dir__
-from tests.mocks import EngineEmul, RecordingHandler
-from tests.modules.test_blazemeter import BZMock
+from tests.mocks import EngineEmul, RecordingHandler, BZMock
 
 
 class TestBlazeMeterUploader(BZTestCase):
@@ -343,7 +343,6 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEquals('POST', mock.requests[4]['method'])
         self.assertEquals('https://a.blazemeter.com/api/v4/tests', mock.requests[6]['url'])
         self.assertEquals('POST', mock.requests[6]['method'])
-
 
     def test_new_project_new_test(self):
         obj = BlazeMeterUploader()
