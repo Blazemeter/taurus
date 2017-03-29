@@ -1,5 +1,6 @@
 import re
 from io import BytesIO
+from functools import wraps
 from unittest import TestCase
 
 import jsonpath_rw
@@ -9,6 +10,14 @@ from lxml import etree
 
 def headers_as_text(headers_dict):
     return "\n".join("%s: %s" % (key, value) for key, value in headers_dict.items())
+
+
+def record_assertion(assertion_method):
+    @wraps(assertion_method)
+    def _impl(self, *method_args, **method_kwargs):
+        self._record_assertion(getattr(assertion_method, '__name__' , 'assertion'))
+        return assertion_method(self, *method_args, **method_kwargs)
+    return _impl
 
 
 class APITestCase(TestCase):
@@ -78,6 +87,23 @@ class APITestCase(TestCase):
             return self.request_log[-1]["response"]
         raise ValueError("Can't take last response because no requests were made")
 
+    def failureException(self, msg):
+        if self.request_log:
+            last_record = self.request_log[-1]
+            if last_record.get("assertions"):
+                last_record["assertions"][-1].update(isFailed=True, errorMessage=msg)
+
+        exc = super(APITestCase, self).failureException
+        return exc(msg)
+
+    def _record_assertion(self, assertion_name):
+        if not self.request_log:
+            return
+        last_record = self.request_log[-1]
+        if "assertions" not in last_record:
+            last_record["assertions"] = []
+        last_record["assertions"].append({"name": assertion_name, "isFailed": False, "errorMessage": ''})
+
     # Utility asserts
 
     def assertRegexp(self, regex, text, match=False, msg=None):
@@ -106,81 +132,98 @@ class APITestCase(TestCase):
 
     # Asserts for HTTP responses
 
+    @record_assertion
     def assertOk(self, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertTrue(response.ok, msg=msg)
 
+    @record_assertion
     def assertFailed(self, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertTrue(response.status_code >= 400, msg=msg)
 
+    @record_assertion
     def assert2xx(self, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertTrue(200 <= response.status_code < 300, msg=msg)
 
+    @record_assertion
     def assert3xx(self, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertTrue(300 <= response.status_code < 400, msg=msg)
 
+    @record_assertion
     def assert4xx(self, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertTrue(400 <= response.status_code < 500, msg=msg)
 
+    @record_assertion
     def assert5xx(self, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertTrue(500 <= response.status_code < 600, msg=msg)
 
-    # TODO: asserts for HTTP codes (assertWasRedirected, etc)
-
+    @record_assertion
     def assertStatusCode(self, code, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertEqual(str(response.status_code), str(code), msg=msg)
 
+    @record_assertion
     def assertNotStatusCode(self, code, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertNotEqual(str(response.status_code), str(code), msg=msg)
 
+    @record_assertion
     def assertInBody(self, member, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertIn(member, response.text, msg=msg)
 
+    @record_assertion
     def assertNotInBody(self, member, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertNotIn(member, response, msg=msg)
 
+    @record_assertion
     def assertRegexInBody(self, regex, response=None, match=False, msg=None):
         response = response or self._get_last_response()
         self.assertRegexp(regex, response.text, match=match, msg=msg)
 
+    @record_assertion
     def assertRegexNotInBody(self, regex, response=None, match=False, msg=None):
         response = response or self._get_last_response()
         self.assertNotRegexp(regex, response.text, match=match, msg=msg)
 
+    @record_assertion
     def assertHasHeader(self, header, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertIn(header, response.headers, msg=msg)
 
+    @record_assertion
     def assertHeaderValue(self, header, value, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertIn(header, response.headers, msg=msg)
         self.assertEqual(response.headers[header], value, msg=msg)
 
+    @record_assertion
     def assertInHeaders(self, member, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertIn(member, headers_as_text(response.headers), msg=msg)
 
+    @record_assertion
     def assertNotInHeaders(self, member, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertNotIn(member, headers_as_text(response.headers), msg=msg)
 
+    @record_assertion
     def assertRegexInHeaders(self, member, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertIn(member, headers_as_text(response.headers), msg=msg)
 
+    @record_assertion
     def assertRegexNotInHeaders(self, member, response=None, msg=None):
         response = response or self._get_last_response()
         self.assertNotIn(member, headers_as_text(response.headers), msg=msg)
 
+    @record_assertion
     def assertJSONPath(self, jsonpath_query, response=None, expected_value=None, msg=None):
         response = response or self._get_last_response()
         jsonpath_expr = jsonpath_rw.parse(jsonpath_query)
@@ -193,6 +236,7 @@ class APITestCase(TestCase):
             msg = msg or "Actual value at JSONPath query %r isn't equal to expected" % jsonpath_query
             self.fail(msg)
 
+    @record_assertion
     def assertNotJSONPath(self, jsonpath_query, response=None, expected_value=None, msg=None):
         response = response or self._get_last_response()
         jsonpath_expr = jsonpath_rw.parse(jsonpath_query)
@@ -205,6 +249,7 @@ class APITestCase(TestCase):
             msg = msg or "Actual value at JSONPath query %r is equal to expected" % jsonpath_query
             self.fail(msg)
 
+    @record_assertion
     def assertXPath(self, xpath_query, response=None, parser_type='html', validate=False, msg=None):
         response = response or self._get_last_response()
         parser = etree.HTMLParser() if parser_type == 'html' else etree.XMLParser(dtd_validation=validate)
@@ -214,6 +259,7 @@ class APITestCase(TestCase):
             msg = msg or "XPath query %r didn't match response content" % xpath_query
             self.fail(msg=msg)
 
+    @record_assertion
     def assertNotXPath(self, xpath_query, response=None, parser_type='html', validate=False, msg=None):
         response = response or self._get_last_response()
         parser = etree.HTMLParser() if parser_type == 'html' else etree.XMLParser(dtd_validation=validate)
