@@ -431,7 +431,7 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertXPath('//head/title')", test_script)
+        self.assertIn("assertXPath('//head/title', parser_type='html', validate=False)", test_script)
 
     def test_xpath_assertions_kinds(self):
         self.configure({
@@ -440,23 +440,10 @@ class TestApiritifExecutor(BZTestCase):
                     "requests": [{
                         "url": "https://api.github.com/",
                         "assert-xpath": [
-                            {
-                                "xpath": "//1",
-                                "invert": False,
-                            },
-                            {
-                                "xpath": "//2",
-                                "invert": True,
-                            },
-                            {
-                                "xpath": "//3",
-                                "validate-xml": True,
-                            },
-                            {
-                                "xpath": "//4",
-                                "validate-xml": False,
-                                "use-tolerant-parser": False,
-                            }
+                            {"xpath": "//1", "invert": False},
+                            {"xpath": "//2", "invert": True},
+                            {"xpath": "//3", "validate-xml": True},
+                            {"xpath": "//4", "validate-xml": False, "use-tolerant-parser": False},
                         ]
                      }]
                 }
