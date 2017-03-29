@@ -949,6 +949,9 @@ def open_browser(url):
 def is_windows():
     return platform.system() == 'Windows'
 
+def is_macos():
+    return platform.system() == 'Darwin'
+
 
 EXE_SUFFIX = ".bat" if is_windows() else ".sh"
 
