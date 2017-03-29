@@ -129,8 +129,13 @@ class BZTPlugin(Plugin):
         self.test_dict["status"] = "PASSED"
         self.success_count += 1
 
-    def _headers_from_dict(self, headers):
+    @staticmethod
+    def _headers_from_dict(headers):
         return "\n".join(key + ": " + value for key, value in headers.items())
+
+    @staticmethod
+    def _cookies_from_dict(cookies):
+        return "; ".join(key + "=" + value for key, value in cookies.items())
 
     def _record_request_info(self, test):
         test_obj = test.test
@@ -139,6 +144,7 @@ class BZTPlugin(Plugin):
             return
         request = request_log[0]
         response = request["response"]
+
         record = {
             'responseCode': response.status_code,
             'responseMessage': response.reason,
@@ -151,16 +157,18 @@ class BZTPlugin(Plugin):
             'requestURI': response.request.url,
             'assertions': request.get("assertions", []),
             'responseBody': response.text,
-            'requestBody': '',
-            'requestCookies': '',
-            'requestHeaders': self._headers_from_dict(response.request.headers),
-            'responseHeaders': self._headers_from_dict(response.headers),
-            'responseBodySize': 0,
-            'requestBodySize': 0,
-            'requestCookiesSize': 0,
-            'requestHeadersSize': 0,
-            'responseHeadersSize': 0,
+            'requestBody': request.get("rawRequest", ""),
+            'requestCookies': request.get("requestCookies", {}),
+            'requestHeaders': dict(response.request.headers),
+            'responseHeaders': dict(response.headers),
         }
+
+        record["responseBodySize"] = len(record["responseBody"])
+        record["requestBodySize"] = len(record["requestBody"])
+        record["requestCookiesSize"] = len(self._cookies_from_dict(record["requestCookies"]))
+        record["requestHeadersSize"] = len(self._headers_from_dict(record["requestHeaders"]))
+        record["responseHeadersSize"] = len(self._headers_from_dict(record["responseHeaders"]))
+
         self.test_dict["extras"].update(record)
 
     def stopTest(self, test):  # pylint: disable=invalid-name

@@ -15,9 +15,17 @@ def headers_as_text(headers_dict):
 def record_assertion(assertion_method):
     @wraps(assertion_method)
     def _impl(self, *method_args, **method_kwargs):
-        self._record_assertion(getattr(assertion_method, '__name__' , 'assertion'))
+        self._record_assertion(getattr(assertion_method, '__name__', 'assertion'))
         return assertion_method(self, *method_args, **method_kwargs)
     return _impl
+
+
+def prepared_request_body(request):
+    return '{request}\r\n{headers}\r\n\r\n{body}'.format(
+        request=request.method + ' ' + request.url,
+        headers='\n'.join('{}: {}'.format(k, v) for k, v in request.headers.items()),
+        body=request.body or "",
+    )
 
 
 class APITestCase(TestCase):
@@ -49,17 +57,28 @@ class APITestCase(TestCase):
             address += self.path_prefix
         address += url
 
-        if self.keep_alive:
-            response = self.session.request(method, address, **kwargs)
-        else:
-            response = requests.request(method, address, **kwargs)
+        timeout = kwargs.pop('timeout', '30s')
+        allow_redirects = kwargs.pop('allow_redirects', True)
+
+        request = requests.Request(method, address, **kwargs)
+        prepared = request.prepare()
 
         log_item = {
             "url": address,
             "method": method,
-            "response": response
+            "rawRequest": prepared_request_body(prepared),
+            # TODO: merge kwargs["cookies"] into requestCookies
+            "requestCookies": dict(self.session.cookies) if self.session else kwargs.get("cookies", {}),
         }
         log_item.update(kwargs)
+
+        if self.keep_alive:
+            response = self.session.send(prepared, allow_redirects=allow_redirects, timeout=timeout)
+        else:
+
+            response = requests.Session().send(prepared, allow_redirects=allow_redirects, timeout=timeout)
+
+        log_item["response"] = response
 
         self.request_log.append(log_item)
         return response
@@ -135,7 +154,9 @@ class APITestCase(TestCase):
     @record_assertion
     def assertOk(self, response=None, msg=None):
         response = response or self._get_last_response()
-        self.assertTrue(response.ok, msg=msg)
+        if not response.ok:
+            msg = msg or "Request to %s didn't succeed" % response.url
+            self.fail(msg)
 
     @record_assertion
     def assertFailed(self, response=None, msg=None):

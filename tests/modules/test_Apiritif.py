@@ -1,8 +1,10 @@
+import logging
 import os
 import time
 
 from bzt import TaurusConfigError
 from bzt.modules.apiritif import ApiritifExecutor
+from bzt.modules.selenium import FuncSamplesReader
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
@@ -447,3 +449,37 @@ class TestApiritifExecutor(BZTestCase):
         self.assertIn("assertNotXPath('//2', parser_type='html', validate=False)", test_script)
         self.assertIn("assertXPath('//3', parser_type='html', validate=True)", test_script)
         self.assertIn("assertXPath('//4', parser_type='xml', validate=False)", test_script)
+
+    def test_assertions_exec(self):
+        self.configure({
+            'execution': [{
+                'iterations': 1,
+                'scenario': {
+                    'requests': [
+                        {'assert': [
+                            {'contains': [200],
+                             'subject': 'http-code'},
+                            {'contains': ['Welcome to the Simple Travel Agency!'],
+                             'subject': 'body'}],
+                         'url': 'http://blazedemo.com/'},
+                        {'assert-xpath': [{'use-tolerant-parser': True,
+                                           'validate-xml': False,
+                                           'xpath': '//head/title'}],
+                         'url': 'http://blazedemo.com/'},
+                        {'assert-jsonpath': [{'expected-value': 'Linus Gustav Larsson Thiel',
+                                              'jsonpath': '$.name'}],
+                         'url': 'https://api.github.com/users/linus'}]}}]})
+        self.obj.prepare()
+        self.obj.get_widget()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
+
+        reader = FuncSamplesReader(self.obj.report_path, logging.getLogger(''), [])
+        samples = list(reader.read(last_pass=True))
+        pass
