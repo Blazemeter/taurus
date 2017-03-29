@@ -211,13 +211,13 @@ import apiritif
 
         kwargs = ", ".join("%s=%r" % (name, value) for name, value in iteritems(named_args))
 
-        request_line = "response = self.{method}({url}, {kwargs})".format(
+        request_line = "self.{method}({url}, {kwargs})".format(
             method=method,
             url=repr(request.url),
             kwargs=kwargs,
         )
         test_method.append(self.gen_statement(request_line))
-        test_method.append(self.gen_statement("self.assertOk(response)"))
+        test_method.append(self.gen_statement("self.assertOk()"))
         self._add_assertions(request, test_method)
         self._add_jsonpath_assertions(request, test_method)
         self._add_xpath_assertions(request, test_method)
@@ -244,12 +244,12 @@ import apiritif
                         (Scenario.FIELD_HEADERS, True, True): "assertRegexNotInHeaders",
                     }
                     method = func_table[(subject, assertion.get('regexp', True), assertion.get('not', False))]
-                    line = "self.{method}({member}, response)".format(method=method, member=repr(member))
+                    line = "self.{method}({member})".format(method=method, member=repr(member))
                     test_method.append(self.gen_statement(line))
             elif subject == Scenario.FIELD_RESP_CODE:
                 for member in assertion["contains"]:
                     method = "assertStatusCode" if not assertion.get('not', False) else "assertNotStatusCode"
-                    line = "self.{method}({member}, response)".format(method=method, member=repr(member))
+                    line = "self.{method}({member})".format(method=method, member=repr(member))
                     test_method.append(self.gen_statement(line))
 
     def _add_jsonpath_assertions(self, request, test_method):
@@ -260,7 +260,7 @@ import apiritif
             query = assertion.get('jsonpath', exc)
             expected = assertion.get('expected-value', '') or None
             method = "assertNotJSONPath" if assertion.get('invert', False) else "assertJSONPath"
-            line = "self.{method}({query}, response, expected_value={expected})".format(
+            line = "self.{method}({query}, expected_value={expected})".format(
                 method=method,
                 query=repr(query),
                 expected=repr(expected) if expected else None
@@ -273,8 +273,15 @@ import apiritif
             assertion = ensure_is_dict(jpath_assertions, idx, "xpath")
             exc = TaurusConfigError('XPath not found in assertion: %s' % assertion)
             query = assertion.get('xpath', exc)
+            parser_type = 'html' if assertion.get('use-tolerant-parser', True) else 'xml'
+            validate = assertion.get('validate-xml', False)
             method = "assertNotXPath" if assertion.get('invert', False) else "assertXPath"
-            line = "self.{method}({query}, response)".format(method=method, query=repr(query))
+            line = "self.{method}({query}, parser_type={parser_type}, validate={validate})".format(
+                method=method,
+                query=repr(query),
+                validate=repr(validate),
+                parser_type=repr(parser_type),
+            )
             test_method.append(self.gen_statement(line))
 
     def gen_test_method(self, name):

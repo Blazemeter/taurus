@@ -326,8 +326,8 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertRegexInBody('Welcome', response)", test_script)
-        self.assertIn("assertRegexInBody('Simple Travel Agency', response)", test_script)
+        self.assertIn("assertRegexInBody('Welcome')", test_script)
+        self.assertIn("assertRegexInBody('Simple Travel Agency')", test_script)
 
     def test_plain_assertion_kinds(self):
         self.configure({
@@ -355,16 +355,16 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertInBody('1', response)", test_script)
-        self.assertIn("assertNotInBody('2', response)", test_script)
-        self.assertIn("assertRegexInBody('3', response)", test_script)
-        self.assertIn("assertRegexNotInBody('4', response)", test_script)
-        self.assertIn("assertInHeaders('5', response)", test_script)
-        self.assertIn("assertNotInHeaders('6', response)", test_script)
-        self.assertIn("assertRegexInHeaders('7', response)", test_script)
-        self.assertIn("assertRegexNotInHeaders('8', response)", test_script)
-        self.assertIn("assertStatusCode('9', response)", test_script)
-        self.assertIn("assertNotStatusCode('10', response)", test_script)
+        self.assertIn("assertInBody('1')", test_script)
+        self.assertIn("assertNotInBody('2')", test_script)
+        self.assertIn("assertRegexInBody('3')", test_script)
+        self.assertIn("assertRegexNotInBody('4')", test_script)
+        self.assertIn("assertInHeaders('5')", test_script)
+        self.assertIn("assertNotInHeaders('6')", test_script)
+        self.assertIn("assertRegexInHeaders('7')", test_script)
+        self.assertIn("assertRegexNotInHeaders('8')", test_script)
+        self.assertIn("assertStatusCode('9')", test_script)
+        self.assertIn("assertNotStatusCode('10')", test_script)
 
     def test_jsonpath_assertions(self):
         self.configure({
@@ -382,7 +382,7 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertJSONPath('$.foo.bar', response, expected_value=None)", test_script)
+        self.assertIn("assertJSONPath('$.foo.bar', expected_value=None)", test_script)
 
     def test_jsonpath_assertions_kinds(self):
         self.configure({
@@ -411,9 +411,9 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertJSONPath('$.1', response, expected_value=None)", test_script)
-        self.assertIn("assertNotJSONPath('$.2', response, expected_value=None)", test_script)
-        self.assertIn("assertJSONPath('$.3', response, expected_value='value')", test_script)
+        self.assertIn("assertJSONPath('$.1', expected_value=None)", test_script)
+        self.assertIn("assertNotJSONPath('$.2', expected_value=None)", test_script)
+        self.assertIn("assertJSONPath('$.3', expected_value='value')", test_script)
 
     def test_xpath_assertions(self):
         self.configure({
@@ -431,7 +431,7 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertXPath('//head/title', response)", test_script)
+        self.assertIn("assertXPath('//head/title')", test_script)
 
     def test_xpath_assertions_kinds(self):
         self.configure({
@@ -447,6 +447,15 @@ class TestApiritifExecutor(BZTestCase):
                             {
                                 "xpath": "//2",
                                 "invert": True,
+                            },
+                            {
+                                "xpath": "//3",
+                                "validate-xml": True,
+                            },
+                            {
+                                "xpath": "//4",
+                                "validate-xml": False,
+                                "use-tolerant-parser": False,
                             }
                         ]
                      }]
@@ -456,5 +465,7 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertXPath('//1', response)", test_script)
-        self.assertIn("assertNotXPath('//2', response)", test_script)
+        self.assertIn("assertXPath('//1', parser_type='html', validate=False)", test_script)
+        self.assertIn("assertNotXPath('//2', parser_type='html', validate=False)", test_script)
+        self.assertIn("assertXPath('//3', parser_type='html', validate=True)", test_script)
+        self.assertIn("assertXPath('//4', parser_type='xml', validate=False)", test_script)
