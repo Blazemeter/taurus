@@ -49,7 +49,7 @@ class APITestCase(TestCase):
             address += self.path_prefix
         address += url
 
-        timeout = kwargs.pop('timeout', '30s')
+        timeout = kwargs.pop('timeout', 30)
         allow_redirects = kwargs.pop('allow_redirects', True)
 
         request = requests.Request(method, address, **kwargs)
