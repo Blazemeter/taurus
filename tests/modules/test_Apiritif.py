@@ -483,5 +483,3 @@ class TestApiritifExecutor(BZTestCase):
         reader = ApiritifResultsReader(self.obj.report_path, self.obj.engine, logging.getLogger(''), [])
         samples = list(reader.read(last_pass=True))
         self.assertEqual(3, len(samples))
-        for sample in samples:
-            self.assertEqual(sample.status, "PASSED")
