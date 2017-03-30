@@ -20,14 +20,6 @@ def record_assertion(assertion_method):
     return _impl
 
 
-def prepared_request_body(request):
-    return '{request}\r\n{headers}\r\n\r\n{body}'.format(
-        request=request.method + ' ' + request.url,
-        headers='\n'.join('{}: {}'.format(k, v) for k, v in request.headers.items()),
-        body=request.body or "",
-    )
-
-
 class APITestCase(TestCase):
     """
     Base class for API test cases.
@@ -68,7 +60,7 @@ class APITestCase(TestCase):
         log_item = {
             "url": address,
             "method": method,
-            "rawRequest": prepared_request_body(prepared),
+            "rawRequest": prepared.body or "",
             # TODO: merge kwargs["cookies"] into requestCookies
             "requestCookies": session_cookies,
         }

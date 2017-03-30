@@ -57,7 +57,7 @@ class ApiritifExecutor(ScenarioExecutor):
         self.report_path = self.engine.create_artifact("report", ".ldjson")
 
         if self.engine.is_functional_mode():
-            self.reader = FuncSamplesReader(self.report_path, self.log, [])
+            self.reader = ApiritifResultsReader(self.report_path, self.engine, self.log, [])
             if isinstance(self.engine.aggregator, FunctionalAggregator):
                 self.engine.aggregator.add_underling(self.reader)
         else:
@@ -288,3 +288,26 @@ import apiritif
         self.log.debug("Generating test method %s", name)
         test_method = self.gen_method_definition(name, ["self"])
         return test_method
+
+
+class ApiritifResultsReader(FuncSamplesReader):
+    FIELDS_EXTRACTED_TO_ARTIFACTS = ["requestBody", "responseBody", "requestCookiesRaw"]
+
+    def __init__(self, filename, engine, parent_log, translation_table):
+        super(ApiritifResultsReader, self).__init__(filename, parent_log, translation_table)
+        self.engine = engine
+
+    def _write_sample_data_to_artifacts(self, sample_extras):
+        for file_field in self.FIELDS_EXTRACTED_TO_ARTIFACTS:
+            contents = sample_extras.pop(file_field)
+            if contents:
+                filename = "sample-%s" % file_field
+                artifact = self.engine.create_artifact(filename, ".bin")
+                with open(artifact, 'wb') as fds:
+                    fds.write(contents.encode('utf-8'))
+                sample_extras[file_field] = artifact
+
+    def read(self, last_pass=False):
+        for sample in super(ApiritifResultsReader, self).read(last_pass=last_pass):
+            self._write_sample_data_to_artifacts(sample.extras)
+            yield sample

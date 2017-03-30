@@ -163,9 +163,10 @@ class BZTPlugin(Plugin):
             'responseHeaders': dict(response.headers),
         }
 
+        record["requestCookiesRaw"] = self._cookies_from_dict(record["requestCookies"])
         record["responseBodySize"] = len(record["responseBody"])
         record["requestBodySize"] = len(record["requestBody"])
-        record["requestCookiesSize"] = len(self._cookies_from_dict(record["requestCookies"]))
+        record["requestCookiesSize"] = len(record["requestCookiesRaw"])
         record["requestHeadersSize"] = len(self._headers_from_dict(record["requestHeaders"]))
         record["responseHeadersSize"] = len(self._headers_from_dict(record["responseHeaders"]))
 
