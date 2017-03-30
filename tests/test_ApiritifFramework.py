@@ -26,5 +26,12 @@ class TestApiritif(unittest.TestCase):
         self.assertTrue(result.wasSuccessful())
         self.assertEqual(result.testsRun, 3)
 
-    # TODO: test body data
-    # TODO: test methods
+    def test_methods(self):
+        result = self.run_test_script(__dir__() + "/apiritif/test_methods.py")
+        self.assertTrue(result.wasSuccessful())
+        self.assertEqual(result.testsRun, 6)
+
+    def test_body(self):
+        result = self.run_test_script(__dir__() + "/apiritif/test_body_data.py")
+        self.assertTrue(result.wasSuccessful())
+        self.assertEqual(result.testsRun, 3)
