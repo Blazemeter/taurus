@@ -468,6 +468,7 @@ class TestApiritifExecutor(BZTestCase):
                          'url': 'http://blazedemo.com/'},
                         {'assert-jsonpath': [{'expected-value': 'Linus Gustav Larsson Thiel',
                                               'jsonpath': '$.name'}],
+                         'headers': {'User-Agent': "Biggie/Smalls"},
                          'url': 'https://api.github.com/users/linus'}]}}]})
         self.obj.prepare()
         self.obj.get_widget()
@@ -482,4 +483,6 @@ class TestApiritifExecutor(BZTestCase):
 
         reader = FuncSamplesReader(self.obj.report_path, logging.getLogger(''), [])
         samples = list(reader.read(last_pass=True))
-        pass
+        self.assertEqual(3, len(samples))
+        for sample in samples:
+            self.assertEqual(sample.status, "PASSED")
