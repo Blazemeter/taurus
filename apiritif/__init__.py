@@ -61,7 +61,6 @@ class APITestCase(TestCase):
             "url": address,
             "method": method,
             "rawRequest": prepared.body or "",
-            # TODO: merge kwargs["cookies"] into requestCookies
             "requestCookies": session_cookies,
         }
         log_item.update(kwargs)
