@@ -62,13 +62,15 @@ class APITestCase(TestCase):
 
         request = requests.Request(method, address, **kwargs)
         prepared = request.prepare()
+        session_cookies = dict(self.session.cookies) if self.session else {}
+        session_cookies.update(kwargs.get("cookies", {}))
 
         log_item = {
             "url": address,
             "method": method,
             "rawRequest": prepared_request_body(prepared),
             # TODO: merge kwargs["cookies"] into requestCookies
-            "requestCookies": dict(self.session.cookies) if self.session else kwargs.get("cookies", {}),
+            "requestCookies": session_cookies,
         }
         log_item.update(kwargs)
 
