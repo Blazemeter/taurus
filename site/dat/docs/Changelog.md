@@ -1,12 +1,17 @@
 # Changelog
 
-## 1.8.4 <sup>?</sup>
+## 1.8.5 <sup></sup>
+ - use BZA workspace's `enabled` flag to filter 
+
+## 1.8.4 <sup>29 mar 2017</sup>
+ - support new-style Blazemeter API keys
+ - introduce `over` timeframe logic to passfail
+ - include report URL into `final-stats` module's `dump-xml`
  - fix concurrency values for many thread groups, when values are very low
  - add `final-stats` alias to conform our naming standards
- - include report URL into `final-stats` module's `dump-xml`
  - send some more config options to for cloud test
  - documentation fixes
- - support new-style Blazemeter API keys
+ - fix Grinder working with multiple source files
 
 ## 1.8.3 <sup>17 mar 2017</sup>
  - fix broken on MacOS due to security restrictions

@@ -17,7 +17,6 @@ limitations under the License.
 """
 import copy
 import logging
-import os
 import platform
 import sys
 import time
@@ -28,11 +27,12 @@ from collections import defaultdict, OrderedDict
 from functools import wraps
 from ssl import SSLError
 
+import os
 import yaml
+from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
-from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -188,6 +188,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
             if token:
                 wsp = self._user.accounts().workspaces()
+                if not wsp:
+                    raise TaurusNetworkError("Your account has no active workspaces, please contact BlazeMeter support")
                 finder = ProjectFinder(self.parameters, self.settings, self._user, wsp, self.log)
                 self._test = finder.resolve_external_test()
             else:
@@ -1414,6 +1416,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self._merge_with_blazemeter_config()
         self._configure_client()
         self._workspaces = self.user.accounts().workspaces()
+        if not self._workspaces:
+            raise TaurusNetworkError("Your account has no active workspaces, please contact BlazeMeter support")
+
         self.__dump_locations_if_needed()
 
         super(CloudProvisioning, self).prepare()

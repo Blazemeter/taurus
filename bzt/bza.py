@@ -8,8 +8,8 @@ import logging
 from collections import OrderedDict
 
 import requests
-
 from bzt import TaurusNetworkError, ManualShutdown, VERSION
+
 from bzt.six import cookielib
 from bzt.six import string_types
 from bzt.six import text_type
@@ -199,7 +199,7 @@ class Account(BZAObject):
         """
         params = {"accountId": self['id']}
         res = self._request(self.address + '/api/v4/workspaces?' + urlencode(params))
-        return BZAObjectsList([Workspace(self, x) for x in res['result']])
+        return BZAObjectsList([Workspace(self, x) for x in res['result'] if x['enabled']])
 
 
 class Workspace(BZAObject):
