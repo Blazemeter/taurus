@@ -197,7 +197,8 @@ class Account(BZAObject):
         """
         :rtype: BZAObjectsList[Workspace]
         """
-        params = {"accountId": self['id']}
+        params = {"accountId": self['id'], 'enabled': 'true', 'limit': 100}
+        params = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
         res = self._request(self.address + '/api/v4/workspaces?' + urlencode(params))
         return BZAObjectsList([Workspace(self, x) for x in res['result'] if x['enabled']])
 
