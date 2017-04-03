@@ -32,7 +32,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.six import string_types, parse, iteritems
-from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, PythonGenerator
+from bzt.utils import RequiredTool, shell_exec, shutdown_process, JavaVM, TclLibrary, PythonGenerator, Node
 from bzt.utils import dehumanize_time, MirrorsManager, is_windows, BetterDict, get_full_path, get_files_recursive
 
 try:
@@ -73,9 +73,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     :type virtual_display: Display
     :type runner: AbstractTestRunner
     """
-    SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/{version}/" \
-                             "selenium-server-standalone-{version}.0.jar"
-    SELENIUM_VERSION = "2.53"
+    SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.3/" \
+                             "selenium-server-standalone-3.3.0.jar"
+    SELENIUM_VERSION = "3.0"  # FIXME: unused, remove it
 
     JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/" \
                           "{version}/junit-{version}.jar"
@@ -450,7 +450,7 @@ class JavaTestRunner(AbstractTestRunner):
         """
         super(JavaTestRunner, self).__init__(config, executor)
         self.working_dir = self.settings.get("working-dir")
-        self.target_java = str(config.get("compile-target-java", "1.7"))
+        self.target_java = str(config.get("compile-target-java", "1.8"))
         self.base_class_path = base_class_path
         self.base_class_path.extend(executor.settings.get("additional-classpath", []))
         self.base_class_path.extend(self.scenario.get("additional-classpath", []))
@@ -580,8 +580,7 @@ class JUnitTester(JavaTestRunner):
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
         self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=1),
-                                                os.pardir,
+        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=2),
                                                 "resources",
                                                 "taurus-junit-1.0.jar")
 
@@ -658,8 +657,7 @@ class TestNGTester(JavaTestRunner):
         self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar")
         self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/testng/json.jar")
         self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
-        self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                               os.pardir,
+        self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                                "resources",
                                                "taurus-testng-1.0.jar")
 
@@ -725,8 +723,7 @@ class NoseTester(AbstractTestRunner):
 
     def __init__(self, nose_config, executor):
         super(NoseTester, self).__init__(nose_config, executor)
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                        os.pardir,
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "nose_plugin.py")
 
@@ -778,8 +775,7 @@ class RSpecTester(AbstractTestRunner):
 
     def __init__(self, rspec_config, executor):
         super(RSpecTester, self).__init__(rspec_config, executor)
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                        os.pardir,
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "rspec_taurus_plugin.rb")
 
@@ -846,8 +842,7 @@ class MochaTester(AbstractTestRunner):
 
     def __init__(self, rspec_config, executor):
         super(MochaTester, self).__init__(rspec_config, executor)
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=1),
-                                        os.pardir,
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "mocha-taurus-plugin.js")
         self.tools_dir = get_full_path(self.settings.get("tools-dir", "~/.bzt/selenium-taurus/mocha"))
@@ -1047,30 +1042,6 @@ class Ruby(RequiredTool):
         raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
-class Node(RequiredTool):
-    def __init__(self, parent_logger):
-        super(Node, self).__init__("Node.js", "")
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.executable = None
-
-    def check_if_installed(self):
-        node_candidates = ["node", "nodejs"]
-        for candidate in node_candidates:
-            try:
-                self.log.debug("Trying %r", candidate)
-                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
-                self.log.debug("%s output: %s", candidate, output)
-                self.executable = candidate
-                return True
-            except (CalledProcessError, OSError):
-                self.log.debug("%r is not installed", candidate)
-                continue
-        return False
-
-    def install(self):
-        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
-
-
 class NPM(RequiredTool):
     def __init__(self, parent_logger):
         super(NPM, self).__init__("NPM", "")
@@ -1228,7 +1199,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
         counter = 0
         methods = {}
-        requests = self.scenario.get_requests(False)
+        requests = self.scenario.get_requests(require_url=False)
         default_address = self.scenario.get("default-address", None)
 
         for req in requests:
@@ -1257,7 +1228,7 @@ from selenium.webdriver.support.wait import WebDriverWait
                     for elm in self.gen_assertion(assert_config):
                         test_method.append(elm)
 
-            think_time = req.think_time if req.think_time else self.scenario.get("think-time", None)
+            think_time = req.priority_option('think-time')
             if think_time is not None:
                 test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
 
@@ -1277,7 +1248,10 @@ from selenium.webdriver.support.wait import WebDriverWait
         test_method.append(self.gen_statement("self.driver.get('%s')" % url))
 
     def gen_setup_method(self):
-        scenario_timeout = dehumanize_time(self.scenario.get("timeout", 30))
+        timeout = self.scenario.get("timeout", None)
+        if timeout is None:
+            timeout = '30s'
+        scenario_timeout = dehumanize_time(timeout)
         setup_method_def = self.gen_method_definition('setUp', ['self'])
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
         setup_method_def.append(self.gen_new_line())
@@ -1305,7 +1279,9 @@ from selenium.webdriver.support.wait import WebDriverWait
         else:
             setup_method_def.append(self.gen_statement("cls.driver = webdriver.%s()" % browser))
 
-        scenario_timeout = self.scenario.get("timeout", 30)
+        scenario_timeout = self.scenario.get("timeout", None)
+        if scenario_timeout is None:
+            scenario_timeout = '30s'
         setup_method_def.append(self.gen_impl_wait(scenario_timeout, target='cls'))
         if self.window_size:
             statement = self.gen_statement("cls.driver.set_window_size(%s, %s)" % self.window_size)
@@ -1372,6 +1348,7 @@ from selenium.webdriver.support.wait import WebDriverWait
             'bycss': "CSS_SELECTOR",
             'byname': "NAME",
             'byid': "ID",
+            'bylinktext': "LINK_TEXT"
         }
         if atype in ('click', 'keys'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
@@ -1384,7 +1361,7 @@ from selenium.webdriver.support.wait import WebDriverWait
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
-            exc = TaurusInternalException("Timeout value should be present")
+            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
             return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg))
@@ -1400,7 +1377,7 @@ from selenium.webdriver.support.wait import WebDriverWait
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath)\((.+)\)$", re.IGNORECASE)
+        expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath|byLinkText)\((.+)\)$", re.IGNORECASE)
         res = expr.match(name)
         if not res:
             raise TaurusConfigError("Unsupported action: %s" % name)

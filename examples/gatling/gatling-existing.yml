@@ -1,0 +1,18 @@
+---
+execution:
+- executor: gatling
+  scenario: existing
+
+  concurrency: 100
+  ramp-up: 30s
+  steps: 5
+  hold-for: 2m
+
+  locations:
+    us-east-1: 50
+    us-west-1: 50
+
+scenarios:
+  existing:
+    script: blazedemo.scala
+    simulation: examples.gatling.blazedemo

@@ -7,7 +7,6 @@ This executor type is used by default, it uses [Apache JMeter](http://jmeter.apa
 If there is no JMeter installed at the configured `path`, Taurus will attempt to install latest JMeter and Plugins into
 this location, by default `~/.bzt/jmeter-taurus/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
 ```yaml
----
 modules:
   jmeter:
     path: ~/.bzt/jmeter-taurus/bin/jmeter
@@ -22,7 +21,6 @@ modules:
     
 ## Run Existing JMX File
 ```yaml
----
 execution:
 - scenario: simple
 
@@ -42,7 +40,6 @@ You may also specify system properties for JMeter in system-properties section. 
 Global properties are set like this:
 
 ```yaml
----
 modules:
   jmeter:
     properties:
@@ -56,7 +53,6 @@ modules:
 Scenario-level properties are set like this:
 
 ```yaml
----
 scenarios:
   prop_example: 
     properties:
@@ -68,7 +64,6 @@ scenarios:
 When you want to verify or debug the JMX file that were generated from your requests scenario, you don't need to search for the file on disk, just enable GUI mode for JMeter module:
 
 ```yaml
----
 modules:
   jmeter:
     gui: false  # set it to true to open JMeter GUI instead of running non-GUI test
@@ -80,7 +75,6 @@ For the command-line, use alias `-gui` or option `-o modules.jmeter.gui=true`, w
 Distributed mode for JMeter is enabled with simple option `distributed` under execution settings, listing JMeter servers under it:
 
 ```yaml
----
 execution:
 - distributed: 
   - host1.mynet.com
@@ -92,7 +86,7 @@ scenarios:
   some_scenario:
     script: my-test.jmx
 ```
-For accurate load calculation don't forget to choose different hostname values for slave hosts. 
+For accurate load calculation don't forget to choose different hostname values for slave hosts. If you have any properties specified in settings, they will be sent to remote nodes. 
 
 ## Shutdown Delay
 By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutdown port (this works only for non-GUI). There is option to wait for JMeter to exit before killing it forcefully, called `shutdown-wait`. By default, its value is 5 seconds.
@@ -102,7 +96,6 @@ By default, Taurus tries to call graceful JMeter shutdown by using its UDP shutd
 JMeter executor allows you to apply some modifications to the JMX file before running JMeter (this affects both existing JMXes and generated from requests):
 
 ```yaml
----
 scenarios:
   modification_example:
     script: tests/jmx/dummy.jmx
@@ -113,7 +106,7 @@ scenarios:
     modifications:
       disable:  # Names of the tree elements to disable
       - Thread Group 1
-      enable:  # Names of the tree elements to ensable
+      enable:  # Names of the tree elements to enable
       - Thread Group 2
       set-prop:  # Set element properties, selected as [Element Name]>[property name]
         "HTTP Sampler>HTTPSampler.connect_timeout": "0"
@@ -132,7 +125,6 @@ Scenario is the sequence of steps and some settings that will be used by underly
 Scenarios are listed in top-level `scenarios` element and referred from executions by their alias:
 
 ```yaml
----
 scenarios:
   get-requests:  # the alias for scenario
     requests:
@@ -148,7 +140,6 @@ execution:
 Scenario has some global settings:
 
 ```yaml
----
 scenarios:
   get-requests:  
     store-cache: true  # browser cache simulation, enabled by default
@@ -176,12 +167,12 @@ scenarios:
       delimiter: ';'  # CSV delimiter, auto-detected by default
       quoted: false  # allow quoted data
       loop: true  # loop over in case of end-of-file reached if true, stop thread if false
-      variable-names: id,name  # comma-separated list of variable names, empty by default
+      variable-names: id,name  # delimiter-separated list of variable names, empty by default
 ```
 
 Note that `timeout` also sets duration assertion that will mark response failed if response time was more than timeout.
 
-If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${__P(hostname)}:${__P(port)}`.
+If you want to use JMeter properties in `default-address`, you'll have to specify mandatory scheme and separate address/port. Like this: `default-address: https://${\__P(hostname)}:${\__P(port)}`.
 
 ### Requests
 
@@ -193,7 +184,6 @@ Request objects can be of two kinds:
 The base element for requests scenario is HTTP Request. In its simplest form it contains just the URL as string:
 
 ```yaml
----
 scenarios:
   get-requests:  
     requests:
@@ -204,7 +194,6 @@ scenarios:
 The full form for request is dictionary, all fields except `url` are optional:
 
 ```yaml
----
 scenarios:
   my-req: 
     requests:
@@ -250,14 +239,12 @@ The concept is based on JMeter's extractors. The following types of extractors a
 To specify extractors in shorthand form, use following configuration:
 
 ```yaml
----
 scenarios:
   my-req: 
     requests:
     - url: http://blazedemo.com/  
       extract-regexp: # dictionary under it has form <var name>: <regular expression>
         page_title: <title>(\w+)</title>  #  must have at least one capture group
-        subject: body                     #  subject for search
       extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
         varname: $.jsonpath[0].expression
     - url: http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
@@ -268,15 +255,10 @@ scenarios:
         title: /html/head/title
 ```
 
-Possible subjects for regexp are:
-  - `body`
-  - `headers`
-  - `http-code`
 
 The full form for extractors is:
 
 ```yaml
----
 scenarios:
   my-req: 
     requests:
@@ -287,6 +269,7 @@ scenarios:
           default: NOT_FOUND  # default value to use when regexp not found
           match-no: 1  # if multiple values has matched, which match use (0=random)
           template: 1  # which capture group to take, integer or template string
+          subject: body  #  subject for search
       extract-jsonpath:   
         varname:
           jsonpath: $.jsonpath[0]  # jsonpath expression
@@ -308,6 +291,11 @@ scenarios:
           use-tolerant-parser: false
 ```
 
+Possible subjects for regexp are:
+  - `body`
+  - `headers`
+  - `http-code`
+
 ##### Assertions
 
 Assertions are attached to request elements and used to set fail status on the response. Fail status for the response is
@@ -317,7 +305,6 @@ Currently three types of response assertions are available.
 First one checks http response fields, its short form looks like this:
 
 ```yaml
----
 scenarios:
   my-req: 
     requests:
@@ -329,7 +316,6 @@ scenarios:
 The full form has following format:
 
 ```yaml
----
 scenarios:
   my-req: 
     requests:
@@ -352,7 +338,6 @@ Possible subjects are:
 The second assertion type is used to perform validation of JSON response against JSONPath expression.
 
 ```yaml
----
 scenarios:
   my-req:
     requests:
@@ -365,7 +350,6 @@ scenarios:
 Full form:
 
 ```yaml
----
 scenarios:
   my-req:
     requests:
@@ -373,7 +357,8 @@ scenarios:
       assert-jsonpath:
       - jsonpath: "$." # path to value, validation fails if path not exists
         validate: true # validate against expected value
-        expected-value: "value" # the value we are expecting to validate
+        expected-value: "value" # the value we are expecting to validate, default: false
+        regexp: true  # if the value is regular expression, default: true
         expect-null: false  # expected value is null
         invert: false # invert condition
 ```
@@ -381,7 +366,6 @@ scenarios:
 And the third assertion type uses XPath query to validate XML response.
 
 ```yaml
----
 scenarios:
   assertion-demo:
     requests:
@@ -394,7 +378,6 @@ scenarios:
 Full form:
 
 ```yaml
----
 scenarios:
   my-req:
     requests:
@@ -414,19 +397,20 @@ after each request. Taurus allows that with `jsr223` block.
 
 Minimal example that will generate one JSR223 Post Processor.
 ```yaml
----
 scenarios:
   jsr-example:
     requests:
     - url: http://blazedemo.com/
-      jsr223:
-        language: javascript  # required field
-        script-file: postproc.js  # required field
+      jsr223: 'vars.put("varname", "somevalue")'  # inline script to execute, unless script-file is specified
 ```
+
+The example above uses defaults and inline script. If you want to use language different from groovy or use separate
+script file, please use extended form of `jsr223` with key-value options.
 
 Each jsr223 element can define the following fields:
 - `language` - script language ('beanshell', 'bsh', 'ecmascript', 'groovy', 'java', 'javascript', 'jexl', 'jexl2')
 - `script-file` - path to script file
+- `script-text` - inline code, specified directly in config file
 - `parameters` - string of parameters to pass to script, empty by default
 - `execute` - whether to execute script before or after the request
 
@@ -435,7 +419,6 @@ By default it's set to `after`.
 
 Full form:
 ```yaml
----
 scenarios:
   jsr-example:
     requests:
@@ -636,6 +619,11 @@ scenarios:
 
 Taurus translates each `include-scenario` block to a JMeter's `Simple Controller` and puts all scenario-level
 settings and requests there.
+Keep in mind: the following scenario-level parameters of including scenario have no effect for included ones:
+- `keepalive`
+- `timeout`
+- `think-time`
+- `follow-redirects`
 
 ##### Action Blocks
 
@@ -667,7 +655,6 @@ scenarios:
 ## JMeter Test Log
 You can tune JTL file content with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max `full` logging can seriously load your system.
 ```yaml
----
 execution:
 - write-xml-jtl: full
   scenario: simple_script
@@ -679,7 +666,6 @@ scenarios:
 ```
 Another way to adjust verbosity is to change flags in `xml-jtl-flags` dictionary. Next example shows all flags with default values (you don't have to use full dictionary if you want to change some from them):
 ```yaml
----
 modules:
   jmeter:
     xml-jtl-flags:
@@ -717,8 +703,27 @@ Use `K`, `M` or `G` suffixes to specify memory limit in kilobytes, megabytes or 
 
 Example:
 ```yaml
----
 modules:
   jmeter:
     memory-xmx: 4G  # allow JMeter to use up to 4G of memory
 ```
+
+## SoapUI Integration
+
+You can specify SoapUI projects in place of JMX scripts for JMeter executor. The executor will convert them into
+Taurus scenarios and execute them with JMeter.
+
+Example:
+```yaml
+execution:
+- concurrency: 10
+  hold-for: 5m
+  scenario: soapui-project
+
+scenarios:
+  soapui-project:
+    script: project.xml
+    test-case: TestIndex
+```
+
+You can read more on that [here](SoapUI.md).

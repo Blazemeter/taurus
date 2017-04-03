@@ -34,6 +34,7 @@ from bzt import resources, TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b, viewvalues
 from bzt.utils import RequiredTool, IncrementableProgressBar
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
@@ -153,7 +154,10 @@ class PBenchTool(object):
 
         instances = load.concurrency if load.concurrency else 1
 
-        timeout = int(dehumanize_time(scenario.get("timeout", "10s")) * 1000)
+        timeout = scenario.get("timeout", None)
+        if timeout is None:
+            timeout = '10s'
+        timeout = int(dehumanize_time(timeout) * 1000)
 
         threads = 1 if psutil.cpu_count() < 2 else (psutil.cpu_count() - 1)
         threads = int(self.execution.get("worker-threads", threads))
@@ -286,6 +290,11 @@ class PBenchTool(object):
         num_requests = 0
         with open(self.payload_file, 'w') as fds:
             for request in requests:
+                if not isinstance(request, HTTPRequest):
+                    msg = "PBench payload generator doesn't support '%s' blocks, skipping"
+                    self.log.warning(msg, request.NAME)
+                    continue
+
                 http = self._build_request(request, scenario)
                 fds.write("%s %s\r\n%s\r\n" % (len(http), request.label.replace(' ', '_'), http))
                 num_requests += 1
@@ -313,7 +322,7 @@ class PBenchTool(object):
         if body:
             headers.merge({"Content-Length": len(body)})
 
-        headers.merge(scenario.get("headers"))
+        headers.merge(scenario.get_headers())
         headers.merge(request.headers)
         for header, value in iteritems(headers):
             http += "%s: %s\r\n" % (header, value)
@@ -339,7 +348,10 @@ class PBenchTool(object):
             if request.method == "GET" and isinstance(request.body, dict):
                 path += "?" + urlencode(request.body)
         if not parsed_url.netloc:
-            parsed_url = parse.urlparse(scenario.get("default-address", ""))
+            default_addr = scenario.get('default-address', None)
+            if default_addr is None:
+                default_addr = ''
+            parsed_url = parse.urlparse(default_addr)
         self.hostname = parsed_url.netloc.split(':')[0] if ':' in parsed_url.netloc else parsed_url.netloc
         self.use_ssl = parsed_url.scheme == 'https'
         if parsed_url.port:

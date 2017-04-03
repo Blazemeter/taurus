@@ -39,7 +39,6 @@ Rule for composing the override path is simple: it is built from dictionary keys
 
 Consider the following Taurus configuration:
 ```yaml
----
 execution:
 - concurrency: 100
   hold-for: 60s
@@ -81,7 +80,6 @@ There is a way to create some config chunks and apply them from command-line lik
 Those aliases then searched in the config, in the section `cli-aliases` and applied over the configuration. Example:
 
 ```yaml
----
 cli-aliases:
   gui-mode:
     modules:

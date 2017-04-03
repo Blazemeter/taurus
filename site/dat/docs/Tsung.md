@@ -41,7 +41,6 @@ process. User executes all requests from given scenario and then stops.
 
 Example of using constant `concurrency` and `hold-for`:
 ```yaml
----
 execution:
 - executor: tsung
   concurrency: 100
@@ -58,7 +57,6 @@ scenarios:
 
 Example of using user's Tsung config:
 ```yaml
----
 execution:
 - executor: tsung
   scenario: sample
@@ -73,7 +71,6 @@ configuration and overwrite `<load>` section. The rest of your Tsung config will
 
 Example:
 ```yaml
----
 execution:
 - executor: tsung
   concurrency: 100
@@ -90,7 +87,6 @@ Note that Tsung doesn't support `throughput` and `ramp-up` options.
 Here's the example of various HTTP requests features that Taurus supports:
 
 ```yaml
----
 scenarios:
   features:
     default-address: http://blazedemo.com  # base address for HTTP requests
@@ -132,7 +128,6 @@ If you have installed Tsung in non-standard location (i.e. `tsung` is not in you
 to point Taurus to the `tsung` executable.
 
 ```yaml
----
 modules:
   tsung:
     path: /usr/local/bin/tsung

@@ -97,7 +97,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         if screen_type == "console":
             if ConsoleScreen is DummyScreen or is_windows():
-                self.log.debug("Can't use console' screen, trying 'gui'")
+                self.log.debug("Can't use 'console' screen, trying 'gui'")
                 screen_type = "gui"
 
         if screen_type == "gui" and GUIScreen is DummyScreen:
@@ -114,8 +114,10 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
-        disable = str(self.settings.get('disable', 'auto')).lower()
-        if (disable == 'true') or ((disable == 'auto') and (not sys.stdout.isatty())):
+        disable = self.settings.get('disable', 'auto')
+        explicit_disable = isinstance(disable, (bool, int)) and disable
+        auto_disable = str(disable).lower() == 'auto' and not sys.stdout.isatty()
+        if explicit_disable or auto_disable:
             self.disabled = True
             return
 
@@ -651,7 +653,7 @@ class CumulativeStats(LineBox):
     """
     Cumulative stats block
     """
-    title = "Cumulative Stats"
+    title = " Cumulative Stats"
 
     def __init__(self):
         self.data = DataPoint(0)
@@ -686,7 +688,7 @@ class CumulativeStats(LineBox):
             self._start_time = data.get('ts')
         duration = humanize_time(time.time() - self._start_time)
 
-        self.title_widget.set_text(self.title + " %s" % duration)
+        self.title_widget.set_text(self.title + " %s " % duration)
 
 
 class PercentilesList(ListBox):

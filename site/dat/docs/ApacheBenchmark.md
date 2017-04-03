@@ -20,7 +20,6 @@ Keep in mind the following rules when using `executor: ab`:
 
 Simplest working example:
 ```yaml
----
 execution:
 - executor: ab
   scenario: simple
@@ -33,7 +32,6 @@ scenarios:
 
 Example of `hold-for` usage:
 ```yaml
----
 execution:
 - executor: ab
   hold-for: 30s
@@ -47,13 +45,12 @@ scenarios:
 
 Complex example:
 ```yaml
----
 execution:
 - executor: ab
   concurrency: 20
   iterations: 1000
   headers:
-    - Content-Type: text/plain
+    Content-Type: text/plain
   scenario: complex
   
 
@@ -61,9 +58,9 @@ scenarios:
   complex:  
     keepalive: false
     requests:
-      - url: http://blazedemo.com/
+    - url: http://blazedemo.com/
         headers:
-          - X-Answer: 42
+          X-Answer: 42
 ```
 
 
@@ -72,7 +69,6 @@ scenarios:
 If you have Apache Benchmark in non-standard location, use `path` option to point Taurus to the `ab`:
 
 ```yaml
----
 modules:
   ab:
     path: /home/john/build/apache2/bin/ab

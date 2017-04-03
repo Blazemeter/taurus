@@ -24,6 +24,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -45,8 +46,11 @@ class GatlingScriptBuilder(object):
             return addr
 
     def _get_http(self):
-        http_str = 'http.baseURL("%(addr)s")\n'
-        http_str = http_str % {'addr': self.fixed_addr(self.scenario.get('default-address', ''))}
+        default_address = self.scenario.get('default-address', None)
+        if default_address is None:
+            default_address = ''
+
+        http_str = 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
 
         scenario_headers = self.scenario.get_headers()
         for key in scenario_headers:
@@ -56,10 +60,16 @@ class GatlingScriptBuilder(object):
     def _get_exec(self):
         exec_str = ''
         for req in self.scenario.get_requests():
+            if not isinstance(req, HTTPRequest):
+                msg = "Gatling simulation generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+
             if len(exec_str) > 0:
                 exec_str += '.'
 
-            if len(self.scenario.get('default-address')) > 0:
+            default_address = self.scenario.get("default-address", None)
+            if default_address:
                 url = req.url
             else:
                 url = self.fixed_addr(req.url)
@@ -79,11 +89,14 @@ class GatlingScriptBuilder(object):
 
             exec_str += self.__get_assertions(req.config.get('assert', []))
 
-            if req.think_time is None:
-                think_time = 0
-            else:
-                think_time = int(dehumanize_time(req.think_time))
-            exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
+            if not req.priority_option('follow-redirects', default=True):
+                exec_str += '\t\t\t.disableFollowRedirect\n'
+
+            exec_str += '\t\t)'
+
+            think_time = int(dehumanize_time(req.priority_option('think-time')))
+            if think_time:
+                exec_str += '.pause(%(think_time)s)' % {'think_time': think_time}
 
         return exec_str
 
@@ -241,14 +254,14 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.log.debug("Will not build Gatling launcher")
             self.launcher = self.settings["path"]
 
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.script = self.get_script_path()
-        elif "requests" in scenario:
-            self.get_scenario()['simulation'], self.script = self.__generate_script()
-        else:
-            msg = "There must be a script file or requests for its generation "
-            msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
-            raise TaurusConfigError(msg)
+        self.script = self.get_script_path()
+        if not self.script:
+            if "requests" in scenario:
+                self.get_scenario()['simulation'], self.script = self.__generate_script()
+            else:
+                msg = "There must be a script file or requests for its generation "
+                msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
+                raise TaurusConfigError(msg)
 
         self.dir_prefix = 'gatling-%s' % id(self)
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
@@ -326,8 +339,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         load = self.get_load()
         scenario = self.get_scenario()
 
-        if scenario.get('timeout', None) is not None:
-            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout')) * 1000)
+        timeout = scenario.get('timeout', None)
+        if timeout is not None:
+            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
         if scenario.get('keepalive', True):
             params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'true'
             params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'true'

@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="388" lt="388" ts="1489492771539" s="false" lb="blazedemo-index" rc="200" rm="OK" tn="ThreadGroup 1-1" dt="text" de="UTF-8" by="7876" sby="123" ct="123" ng="1" na="1">
+  <assertionResult>
+    <name>Passing Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <assertionResult>
+    <name>Failing Assertion</name>
+    <failure>true</failure>
+    <error>false</error>
+    <failureMessage>Test failed: text expected to contain /something/</failureMessage>
+  </assertionResult>
+  <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Cache-Control: no-cache
+Content-Type: text/html; charset=UTF-8
+Date: Tue, 14 Mar 2017 11:59:30 GMT
+Server: Apache
+Content-Length: 7693
+Connection: keep-alive
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Content-Length: 0
+Content-Type: text/plain; charset=ISO-8859-1
+Host: blazedemo.com
+User-Agent: Apache-HttpClient/4.5.2 (Java/1.8.0_121)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;&lt;script type=&quot;text/javascript&quot;&gt;window.NREUM||(NREUM={}),__nr_require=function(e,n,t){function r(t){if(!n[t]){var o=n[t]={exports:{}};e[t][0].call(o.exports,function(n){var o=e[t][1][n];return r(o||n)},o,o.exports)}return n[t].exports}if(&quot;function&quot;==typeof __nr_require)return __nr_require;for(var o=0;o&lt;t.length;o++)r(t[o]);return r}({1:[function(e,n,t){function r(){}function o(e,n,t){return function(){return i(e,[c.now()].concat(u(arguments)),n?null:this,t),n?void 0:this}}var i=e(&quot;handle&quot;),a=e(2),u=e(3),f=e(&quot;ee&quot;).get(&quot;tracer&quot;),c=e(&quot;loader&quot;),s=NREUM;&quot;undefined&quot;==typeof window.newrelic&amp;&amp;(newrelic=s);var p=[&quot;setPageViewName&quot;,&quot;setCustomAttribute&quot;,&quot;setErrorHandler&quot;,&quot;finished&quot;,&quot;addToTrace&quot;,&quot;inlineHit&quot;,&quot;addRelease&quot;],d=&quot;api-&quot;,l=d+&quot;ixn-&quot;;a(p,function(e,n){s[n]=o(d+n,!0,&quot;api&quot;)}),s.addPageAction=o(d+&quot;addPageAction&quot;,!0),s.setCurrentRouteName=o(d+&quot;routeName&quot;,!0),n.exports=newrelic,s.interaction=function(){return(new r).get()};var m=r.prototype={createTracer:function(e,n){var t={},r=this,o=&quot;function&quot;==typeof n;return i(l+&quot;tracer&quot;,[c.now(),e,t],r),function(){if(f.emit((o?&quot;&quot;:&quot;no-&quot;)+&quot;fn-start&quot;,[c.now(),r,o],t),o)try{return n.apply(this,arguments)}finally{f.emit(&quot;fn-end&quot;,[c.now()],t)}}}};a(&quot;setName,setAttribute,save,ignore,onEnd,getContext,end,get&quot;.split(&quot;,&quot;),function(e,n){m[n]=o(l+n)}),newrelic.noticeError=function(e){&quot;string&quot;==typeof e&amp;&amp;(e=new Error(e)),i(&quot;err&quot;,[e,c.now()])}},{}],2:[function(e,n,t){function r(e,n){var t=[],r=&quot;&quot;,i=0;for(r in e)o.call(e,r)&amp;&amp;(t[i]=n(r,e[r]),i+=1);return t}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],3:[function(e,n,t){function r(e,n,t){n||(n=0),&quot;undefined&quot;==typeof t&amp;&amp;(t=e?e.length:0);for(var r=-1,o=t-n||0,i=Array(o&lt;0?0:o);++r&lt;o;)i[r]=e[n+r];return i}n.exports=r},{}],4:[function(e,n,t){n.exports={exists:&quot;undefined&quot;!=typeof window.performance&amp;&amp;window.performance.timing&amp;&amp;&quot;undefined&quot;!=typeof window.performance.timing.navigationStart}},{}],ee:[function(e,n,t){function r(){}function o(e){function n(e){return e&amp;&amp;e instanceof r?e:e?f(e,u,i):i()}function t(t,r,o,i){if(!d.aborted||i){e&amp;&amp;e(t,r,o);for(var a=n(o),u=m(t),f=u.length,c=0;c&lt;f;c++)u[c].apply(a,r);var p=s[y[t]];return p&amp;&amp;p.push([b,t,r,a]),a}}function l(e,n){v[e]=m(e).concat(n)}function m(e){return v[e]||[]}function w(e){return p[e]=p[e]||o(t)}function g(e,n){c(e,function(e,t){n=n||&quot;feature&quot;,y[t]=n,n in s||(s[n]=[])})}var v={},y={},b={on:l,emit:t,get:w,listeners:m,context:n,buffer:g,abort:a,aborted:!1};return b}function i(){return new r}function a(){(s.api||s.feature)&amp;&amp;(d.aborted=!0,s=d.backlog={})}var u=&quot;nr@context&quot;,f=e(&quot;gos&quot;),c=e(2),s={},p={},d=n.exports=o();d.backlog=s},{}],gos:[function(e,n,t){function r(e,n,t){if(o.call(e,n))return e[n];var r=t();if(Object.defineProperty&amp;&amp;Object.keys)try{return Object.defineProperty(e,n,{value:r,writable:!0,enumerable:!1}),r}catch(i){}return e[n]=r,r}var o=Object.prototype.hasOwnProperty;n.exports=r},{}],handle:[function(e,n,t){function r(e,n,t,r){o.buffer([e],r),o.emit(e,n,t)}var o=e(&quot;ee&quot;).get(&quot;handle&quot;);n.exports=r,r.ee=o},{}],id:[function(e,n,t){function r(e){var n=typeof e;return!e||&quot;object&quot;!==n&amp;&amp;&quot;function&quot;!==n?-1:e===window?0:a(e,i,function(){return o++})}var o=1,i=&quot;nr@id&quot;,a=e(&quot;gos&quot;);n.exports=r},{}],loader:[function(e,n,t){function r(){if(!x++){var e=h.info=NREUM.info,n=d.getElementsByTagName(&quot;script&quot;)[0];if(setTimeout(s.abort,3e4),!(e&amp;&amp;e.licenseKey&amp;&amp;e.applicationID&amp;&amp;n))return s.abort();c(y,function(n,t){e[n]||(e[n]=t)}),f(&quot;mark&quot;,[&quot;onload&quot;,a()+h.offset],null,&quot;api&quot;);var t=d.createElement(&quot;script&quot;);t.src=&quot;https://&quot;+e.agent,n.parentNode.insertBefore(t,n)}}function o(){&quot;complete&quot;===d.readyState&amp;&amp;i()}function i(){f(&quot;mark&quot;,[&quot;domContent&quot;,a()+h.offset],null,&quot;api&quot;)}function a(){return E.exists&amp;&amp;performance.now?Math.round(performance.now()):(u=Math.max((new Date).getTime(),u))-h.offset}var u=(new Date).getTime(),f=e(&quot;handle&quot;),c=e(2),s=e(&quot;ee&quot;),p=window,d=p.document,l=&quot;addEventListener&quot;,m=&quot;attachEvent&quot;,w=p.XMLHttpRequest,g=w&amp;&amp;w.prototype;NREUM.o={ST:setTimeout,CT:clearTimeout,XHR:w,REQ:p.Request,EV:p.Event,PR:p.Promise,MO:p.MutationObserver};var v=&quot;&quot;+location,y={beacon:&quot;bam.nr-data.net&quot;,errorBeacon:&quot;bam.nr-data.net&quot;,agent:&quot;js-agent.newrelic.com/nr-1026.min.js&quot;},b=w&amp;&amp;g&amp;&amp;g[l]&amp;&amp;!/CriOS/.test(navigator.userAgent),h=n.exports={offset:u,now:a,origin:v,features:{},xhrWrappable:b};e(1),d[l]?(d[l](&quot;DOMContentLoaded&quot;,i,!1),p[l](&quot;load&quot;,r,!1)):(d[m](&quot;onreadystatechange&quot;,o),p[m](&quot;onload&quot;,r)),f(&quot;mark&quot;,[&quot;firstbyte&quot;,u],null,&quot;api&quot;);var x=0,E=e(4)},{}]},{},[&quot;loader&quot;]);&lt;/script&gt;
+    &lt;title&gt; BlazeDemo&lt;/title&gt;
+    &lt;meta name=&quot;description&quot; content=&quot;BlazeMeter demo app&quot;&gt;
+    &lt;meta name=&quot;sage&quot; content=&quot;flights app&quot;&gt;
+
+    &lt;script src=&quot;http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;assets/bootstrap.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;assets/bootstrap-table.js&quot;&gt;&lt;/script&gt;
+    &lt;link href=&quot;assets/bootstrap.min.css&quot; rel=&quot;stylesheet&quot; media=&quot;screen&quot;&gt;
+    &lt;link href=&quot;assets/bootstrap-table.css&quot; rel=&quot;stylesheet&quot; media=&quot;screen&quot;&gt;
+    &lt;style type=&quot;text/css&quot;&gt;
+        body {
+            background: #f5f5f5);
+        }
+
+        .hero-unit {
+            background-color: #fff;
+        }
+
+        .center {
+            display: block;
+            margin: 0 auto;
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+        &lt;div class=&quot;navbar navbar-inverse&quot;&gt;
+        &lt;div class=&quot;navbar-inner&quot;&gt;
+            &lt;div class=&quot;container&quot;&gt;
+                &lt;a class=&quot;btn btn-navbar&quot; data-toggle=&quot;collapse&quot; data-target=&quot;.nav-collapse&quot;&gt;
+                    &lt;span class=&quot;icon-bar&quot;&gt;&lt;/span&gt;
+                    &lt;span class=&quot;icon-bar&quot;&gt;&lt;/span&gt;
+                    &lt;span class=&quot;icon-bar&quot;&gt;&lt;/span&gt;
+                &lt;/a&gt;
+                &lt;a class=&quot;brand&quot; href=&quot;index.php&quot;&gt;Travel The World&lt;/a&gt;
+                &lt;a class=&quot;brand&quot; href=&quot;home&quot;&gt;home&lt;/a&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+
+    &lt;div class=&quot;jumbotron&quot;&gt;
+        &lt;div class=&quot;container&quot;&gt;
+            &lt;h1&gt;Welcome to the Simple Travel Agency!&lt;/h1&gt;
+            &lt;p&gt;The is a sample site you can test with BlazeMeter! &lt;/p&gt;
+            &lt;p&gt;Check out our &lt;a href=&quot;vacation.html&quot;&gt;destination of the week! The Beach!&lt;/a&gt;&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;div class=&quot;container&quot;&gt;
+        &lt;h2&gt;Choose your departure city:&lt;/h2&gt;
+    &lt;form action=&quot;reserve.php&quot; method=&quot;post&quot;&gt;
+        &lt;select name=&quot;fromPort&quot; class=&quot;form-inline&quot;&gt;
+            &lt;option value=&quot;Paris&quot;&gt;Paris&lt;/option&gt;
+            &lt;option value=&quot;Philadelphia&quot;&gt;Philadelphia&lt;/option&gt;
+            &lt;option value=&quot;Boston&quot;&gt;Boston&lt;/option&gt;
+            &lt;option value=&quot;Portland&quot;&gt;Portland&lt;/option&gt;
+            &lt;option value=&quot;San Diego&quot;&gt;San Diego&lt;/option&gt;
+            &lt;option value=&quot;Mexico City&quot;&gt;Mexico City&lt;/option&gt;
+            &lt;option value=&quot;São Paolo&quot;&gt;São Paolo&lt;/option&gt;
+        &lt;/select&gt;
+        &lt;p&gt;
+        &lt;h2&gt;Choose your destination city:&lt;/h2&gt;
+        &lt;select name=&quot;toPort&quot; class=&quot;form-inline&quot;&gt;
+            &lt;option value=&quot;Buenos Aires&quot;&gt;Buenos Aires&lt;/option&gt;
+            &lt;option value=&quot;Rome&quot;&gt;Rome&lt;/option&gt;
+            &lt;option value=&quot;London&quot;&gt;London&lt;/option&gt;
+            &lt;option value=&quot;Berlin&quot;&gt;Berlin&lt;/option&gt;
+            &lt;option value=&quot;New York&quot;&gt;New York&lt;/option&gt;
+            &lt;option value=&quot;Dublin&quot;&gt;Dublin&lt;/option&gt;
+            &lt;option value=&quot;Cairo&quot;&gt;Cairo&lt;/option&gt;
+        &lt;/select&gt;
+        &lt;p&gt;&lt;/p&gt;
+        &lt;div class=&quot;container&quot;&gt;
+            &lt;input type=&quot;submit&quot; class=&quot;btn btn-primary&quot; value=&quot;Find Flights&quot;/&gt;
+        &lt;/div&gt;
+    &lt;/form&gt;
+&lt;/div&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;window.NREUM||(NREUM={});NREUM.info={&quot;beacon&quot;:&quot;bam.nr-data.net&quot;,&quot;licenseKey&quot;:&quot;338cffe5d3&quot;,&quot;applicationID&quot;:&quot;6657625&quot;,&quot;transactionName&quot;:&quot;YVxSYxACCxcEVRFfWlgWcVQWCgoKSg==&quot;,&quot;queueTime&quot;:0,&quot;applicationTime&quot;:7,&quot;atts&quot;:&quot;TRtRFVgYGBk=&quot;,&quot;errorBeacon&quot;:&quot;bam.nr-data.net&quot;,&quot;agent&quot;:&quot;&quot;}&lt;/script&gt;&lt;/body&gt;
+&lt;/html&gt;</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://blazedemo.com/</java.net.URL>
+</httpSample>
+
+</testResults>

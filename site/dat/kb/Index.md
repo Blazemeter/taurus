@@ -8,12 +8,14 @@
  1. [Creating JMeter and Selenium Scripts with Taurus](Scripting)
  1. [Reporting and Results Analysis on Taurus](Reporting)
  1. [Integrating Taurus with Jenkins](Jenkins)
+ 1. [How to Quickly and Easily Write Selenium Scripts on Taurus](SeleniumActions)
 
 
 # Third-Party Articles
  1. [Taurus Overview](https://blazemeter.com/blog/taurus-new-star-test-automation-tools-constellation) 
  1. [Taurus First Steps](https://blazemeter.com/blog/navigating-your-first-steps-using-taurus)
  1. [Taurus - Working with Multiple JMeter Tests](https://blazemeter.com/blog/taurus-working-multiple-jmeter-tests)
+ 1. [How to Execute a Load Test Using the Taurus Docker Image](https://www.blazemeter.com/blog/how-execute-load-test-using-taurus-docker-image)
 
 
 # Videos

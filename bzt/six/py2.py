@@ -17,6 +17,7 @@ limitations under the License.
 """
 # pylint: skip-file
 
+import cookielib
 import types
 import traceback
 import urllib
@@ -42,6 +43,7 @@ UserDict = UserDict.UserDict
 BytesIO = StringIO.StringIO
 StringIO = StringIO.StringIO
 
+cookielib=cookielib
 parse = urlparse
 request = urllib
 urlopen = urllib2.urlopen

@@ -132,6 +132,9 @@ entry_point=bzt.cli:main
 [Command jmx2yaml]
 entry_point=bzt.jmx2yaml:main
 
+[Command soapui2yaml]
+entry_point=bzt.soapui2yaml:main
+
 [Python]
 version=2.7.12
 bitness=64

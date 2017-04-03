@@ -1,0 +1,5 @@
+timeStamp	elapsed	label	responseCode	responseMessage	threadName	success	bytes	grpThreads	allThreads	Latency	Hostname
+1488473413202	1008	http://localhost:8080	200	OK	ThreadGroup 1-1	true	1228181	1	1	132	undera-laptop
+1488473414911	268	http://localhost:8080	200	OK	ThreadGroup 1-1	true	1228180	1	1	88	undera-laptop
+1488473415682	296	http://localhost:8080	200	OK	ThreadGroup 1-1	true	1215774	1	1	47	undera-laptop
+1488473416509	253	http://localhost:8080	200	OK	ThreadGroup 1-1	true	1228181	1	1	87	undera-laptop

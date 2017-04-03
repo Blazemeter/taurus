@@ -20,25 +20,28 @@ import datetime
 import hashlib
 import json
 import logging
-import os
 import shutil
 import sys
+import threading
 import time
 import traceback
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
-from json import encoder
 
+import os
 import yaml
+from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
+from json import encoder
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
+from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
+from bzt.utils import str_representer
 
 SETTINGS = "settings"
 
@@ -48,7 +51,7 @@ class Engine(object):
     Core entity of the technology, used to coordinate whole process
 
     :type reporters: list[Reporter]
-    :type services: list[EngineModule]
+    :type services: list[Service]
     :type log: logging.Logger
     :type aggregator: bzt.modules.aggregator.ConsolidatingAggregator
     :type stopping_reason: BaseException
@@ -69,7 +72,7 @@ class Engine(object):
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
         self.provisioning = Provisioning()
-        self.aggregator = Aggregator(is_functional=False)  # FIXME: have issues with non-aggregator object set here
+        self.aggregator = Aggregator(is_functional=False)
         self.interrupted = False
         self.check_interval = 1
         self.stopping_reason = None
@@ -77,6 +80,8 @@ class Engine(object):
         self.prepared = []
         self.started = []
         self.default_cwd = None
+        self.post_startup_hook = lambda: None
+        self.pre_shutdown_hook = lambda: None
 
     def configure(self, user_configs, read_config_files=True):
         """
@@ -97,7 +102,9 @@ class Engine(object):
 
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
-        self._check_updates()
+
+        thread = threading.Thread(target=self._check_updates)  # intentionally non-daemon thread
+        thread.start()
 
         return merged_config
 
@@ -122,7 +129,7 @@ class Engine(object):
             raise
 
     def _startup(self):
-        modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]
+        modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]  # order matters
         for module in modules:
             self.log.debug("Startup %s", module)
             self.started.append(module)
@@ -138,6 +145,7 @@ class Engine(object):
         exc_info = None
         try:
             self._startup()
+            self.post_startup_hook()
             self._wait()
         except BaseException as exc:
             self.log.debug("%s:\n%s", exc, traceback.format_exc())
@@ -146,6 +154,7 @@ class Engine(object):
         finally:
             self.log.warning("Please wait for graceful shutdown...")
             try:
+                self.pre_shutdown_hook()
                 self._shutdown()
             except BaseException as exc:
                 self.log.debug("%s:\n%s", exc, traceback.format_exc())
@@ -159,11 +168,11 @@ class Engine(object):
 
     def _check_modules_list(self):
         finished = False
-        modules = [self.provisioning, self.aggregator] + self.services + self.reporters
+        modules = [self.provisioning, self.aggregator] + self.services + self.reporters  # order matters
         for module in modules:
             if module in self.started:
                 self.log.debug("Checking %s", module)
-                finished |= module.check()
+                finished |= bool(module.check())
         return finished
 
     def _wait(self):
@@ -193,7 +202,7 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         exc_info = None
-        modules = [self.provisioning, self.aggregator] + self.reporters + self.services
+        modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
             try:
                 if module in self.started:
@@ -214,7 +223,8 @@ class Engine(object):
         self.log.info("Post-processing...")
         # :type exception: BaseException
         exc_info = None
-        modules = [self.provisioning, self.aggregator] + self.reporters + self.services
+        modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
+        # services are last because of shellexec which is "final-final" action
         for module in modules:
             if module in self.prepared:
                 try:
@@ -251,23 +261,25 @@ class Engine(object):
         self.log.debug("New artifact filename: %s", filename)
         return filename
 
-    def existing_artifact(self, filename, move=False):
+    def existing_artifact(self, filename, move=False, target_filename=None):
         """
         Add existing artifact, it will be collected into artifact_dir. If
         move=True, the original file will be deleted
 
         :type filename: str
         :type move: bool
+        :type target_filename: str
         """
         self.log.debug("Add existing artifact (move=%s): %s", move, filename)
         if self.artifacts_dir is None:
             self.log.warning("Artifacts dir has not been set, will not copy %s", filename)
             return
 
-        newname = os.path.join(self.artifacts_dir, os.path.basename(filename))
-        self.__artifacts.append(newname)
+        new_filename = os.path.basename(filename) if target_filename is None else target_filename
+        new_name = os.path.join(self.artifacts_dir, new_filename)
+        self.__artifacts.append(new_name)
 
-        if os.path.realpath(filename) == os.path.realpath(newname):
+        if get_full_path(filename) == get_full_path(new_name):
             self.log.debug("No need to copy %s", filename)
             return
 
@@ -276,24 +288,22 @@ class Engine(object):
             return
 
         if move:
-            self.log.debug("Moving %s to %s", filename, newname)
-            shutil.move(filename, newname)
+            self.log.debug("Moving %s to %s", filename, new_name)
+            shutil.move(filename, new_name)
         else:
-            self.log.debug("Copying %s to %s", filename, newname)
-            shutil.copy(filename, newname)
+            self.log.debug("Copying %s to %s", filename, new_name)
+            shutil.copy(filename, new_name)
 
     def create_artifacts_dir(self, existing_artifacts=(), merged_config=None):
         """
         Create directory for artifacts, directory name based on datetime.now()
         """
-        if self.artifacts_dir:
-            self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
-        else:
+        if not self.artifacts_dir:
             default = "%Y-%m-%d_%H-%M-%S.%f"
             artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", default)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
-            self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
-            self.artifacts_dir = os.path.abspath(self.artifacts_dir)
+
+        self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
 
@@ -411,7 +421,7 @@ class Engine(object):
                     base_configs.append(fname)
         else:
             self.log.info("No machine configs dir: %s", machine_dir)
-        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))
+        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))  # FIXME: this is CLI specifics
         if os.path.isfile(user_file):
             self.log.debug("Adding personal config: %s", user_file)
             base_configs.append(user_file)
@@ -430,7 +440,7 @@ class Engine(object):
         return user_config
 
     def __config_loaded(self, config):
-        self.file_search_paths.append(os.path.dirname(os.path.realpath(config)))
+        self.file_search_paths.append(get_full_path(config, step_up=1))
 
     def __prepare_provisioning(self):
         """
@@ -489,7 +499,6 @@ class Engine(object):
         cls = self.config.get(SETTINGS).get("aggregator", "")
         if not cls:
             self.log.warning("Proceeding without aggregator, no results analysis")
-            self.aggregator = EngineModule()
         else:
             self.aggregator = self.instantiate_module(cls)
         self.prepared.append(self.aggregator)
@@ -517,19 +526,21 @@ class Engine(object):
                 params = (bzt.VERSION, self.config.get("install-id", "N/A"))
                 req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
                 self.log.debug("Requesting updates info: %s", req)
-                response = urlopen(req, timeout=1)
+                response = urlopen(req, timeout=10)
                 resp = response.read()
 
                 if not isinstance(resp, str):
                     resp = resp.decode()
 
-                self.log.debug("Result: %s", resp)
+                self.log.debug("Taurus updates info: %s", resp)
 
                 data = json.loads(resp)
                 mine = LooseVersion(bzt.VERSION)
                 latest = LooseVersion(data['latest'])
                 if mine < latest or data['needsUpgrade']:
-                    self.log.warning("There is newer version of Taurus %s available, consider upgrading", latest)
+                    msg = "There is newer version of Taurus %s available, consider upgrading. " \
+                          "What's new: http://gettaurus.org/docs/Changelog/"
+                    self.log.warning(msg, latest)
                 else:
                     self.log.debug("Installation is up-to-date")
 
@@ -552,45 +563,38 @@ class Configuration(BetterDict):
         self.log = logging.getLogger('')
         self.dump_filename = None
 
-    def load(self, configs, callback=None):
+    def load(self, config_files, callback=None):
         """
         Load and merge JSON/YAML files into current dict
 
         :type callback: callable
-        :type configs: list[str]
+        :type config_files: list[str]
         """
-        self.log.debug("Configs: %s", configs)
-        for config_file in configs:
+        self.log.debug("Configs: %s", config_files)
+        for config_file in config_files:
             try:
-                config = self.__read_file(config_file)
-            except IOError as exc:
+                configs = []
+                self.log.debug("Reading %s", config_file)
+                with open(config_file) as fds:
+                    contents = fds.read()
+                    try:
+                        self.log.debug("Reading %s as YAML", config_file)
+                        configs.extend(yaml.load_all(contents))
+                    except BaseException as yaml_load_exc:
+                        self.log.debug("Error when reading config file as YAML '%s': %s", config_file, yaml_load_exc)
+                        if contents.lstrip().startswith('{'):
+                            self.log.debug("Reading %s as JSON", config_file)
+                            configs.append(json.loads(contents))
+                        else:
+                            raise
+            except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
-            self.merge(config)
+            for config in configs:
+                self.merge(config)
 
             if callback is not None:
                 callback(config_file)
-
-    def __read_file(self, filename):
-        """
-        Read and parse config file
-        :param filename: str
-        :return: list
-        """
-        with open(filename) as fds:
-            first_line = "#"
-            while first_line.startswith("#"):
-                first_line = fds.readline().strip()
-            fds.seek(0)
-
-            if first_line.startswith('---'):
-                self.log.debug("Reading %s as YAML", filename)
-                return yaml.load(fds)
-            elif first_line.strip().startswith('{'):
-                self.log.debug("Reading %s as JSON", filename)
-                return json.loads(fds.read())
-            else:
-                raise TaurusConfigError("Cannot detect file format for %s" % filename)
 
     def set_dump_file(self, filename):
         """
@@ -655,6 +659,7 @@ yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
 yaml.add_representer(BetterDict, SafeRepresenter.represent_dict)
 if PY2:
     yaml.add_representer(text_type, SafeRepresenter.represent_unicode)
+yaml.add_representer(str, str_representer)
 
 # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
 encoder.FLOAT_REPR = lambda o: format(o, '.3g')
@@ -673,8 +678,8 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
-        self.delay = None
-        self.start_time = None
+        self.delay = None  # FIXME: why here? Why not in ScenarioExecutor?
+        self.start_time = None  # FIXME: why here? Why not in ScenarioExecutor?
 
     def prepare(self):
         """
@@ -814,7 +819,7 @@ class ScenarioExecutor(EngineModule):
         else:
             return None
 
-    def get_scenario(self, name=None):
+    def get_scenario(self, name=None, cache_scenario=True):
         """
         Returns scenario dict, extract if scenario is inlined
 
@@ -860,7 +865,7 @@ class ScenarioExecutor(EngineModule):
         scenario = scenarios.get(label, exc)
         scenario_obj = Scenario(self.engine, scenario)
 
-        if name is None:
+        if name is None and cache_scenario:
             self.__scenario = scenario_obj
 
         return scenario_obj
@@ -943,12 +948,24 @@ class ScenarioExecutor(EngineModule):
         if aliases:
             environ["HOSTALIASES"] = hosts_file
         if env is not None:
+            if is_windows:
+                # as variables in windows are case insensitive we should provide correct merging
+                cur_env = {name.upper(): environ[name] for name in environ}
+                old_keys = set(env.keys())
+                env = {name.upper(): env[name] for name in env}
+                new_keys = set(env.keys())
+                if old_keys != new_keys:
+                    msg = 'Some taurus environment variables has been lost: %s'
+                    self.log.warning(msg, list(old_keys - new_keys))
+                environ = BetterDict()
+                environ.merge(cur_env)
             environ.merge(env)
 
         environ.merge({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})
 
         environ = {key: environ[key] for key in environ.keys() if environ[key] is not None}
 
+        self.log.debug("Executing shell from %s: %s", cwd, args)
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
 
 
@@ -971,7 +988,7 @@ class Service(EngineModule):
 
     def should_run(self):
         prov = self.engine.config.get(Provisioning.PROV)
-        runat = self.parameters.get("run-at", "local")
+        runat = self.parameters.get("run-at", "local")  # weird to have "local" hardcoded here
         if prov != runat:
             self.log.debug("Should not run because of non-matching prov: %s != %s", prov, runat)
             return False
@@ -1031,58 +1048,23 @@ class Scenario(UserDict, object):
         :rtype: dict[str,str]
         """
         scenario = self
-        headers = scenario.get("headers")
-        return headers if headers else {}
+        headers = scenario.get("headers", {})
+        if headers is None:
+            headers = {}
+        return headers
 
     def get_requests(self, require_url=True):
         """
         Generator object to read requests
 
         :type require_url: bool
-        :rtype: list[HTTPRequest]
+        :rtype: list[bzt.requests_model.Request]
         """
-        requests = self.get("requests", [])
-        for key in range(len(requests)):
-            req = ensure_is_dict(requests, key, "url")
-            if not require_url and "url" not in req:
-                req["url"] = None
-            yield HTTPRequest(config=req, engine=self.engine)
-
-
-class Request(object):
-    def __init__(self, config):
-        self.config = config
-
-
-class HTTPRequest(Request):
-    def __init__(self, config, engine):
-        super(HTTPRequest, self).__init__(config)
-        self.engine = engine
-        msg = "Option 'url' is mandatory for request but not found in %s" % config
-        self.url = config.get("url", TaurusConfigError(msg))
-        self.label = config.get("label", self.url)
-        self.method = config.get("method", "GET")
-        self.headers = config.get("headers", {})
-        self.timeout = config.get("timeout", None)
-        self.think_time = config.get("think-time", None)
-
-        body = config.get('body', None)
-        body_file = config.get('body-file', None)
-        if body_file:
-            if body:
-                # fixme: add own logger?
-                self.engine.log.warning('body and body-file fields are found, only first will take effect')
-            else:
-                bodyfile_path = self.engine.find_file(body_file)
-                with open(bodyfile_path) as fhd:
-                    body = fhd.read()
-
-        self.body = body
+        requests_parser = RequestsParser(self, self.engine)
+        return requests_parser.extract_requests(require_url=require_url)
 
 
 class HavingInstallableTools(object):
     @abstractmethod
     def install_required_tools(self):
         pass
-
-

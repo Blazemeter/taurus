@@ -15,7 +15,7 @@ class TestRequests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', 'webdriver.log')
+        profile.set_preference('webdriver.log.file', '<somewhere>/webdriver.log')
         cls.driver = webdriver.Firefox(profile)
         cls.driver.implicitly_wait(3.5)
         cls.driver.maximize_window()
@@ -34,6 +34,7 @@ class TestRequests(unittest.TestCase):
         self.driver.find_element(By.XPATH, '//div[3]/form/select[1]//option[3]').click()
         self.driver.find_element(By.XPATH, '//div[3]/form/select[2]//option[6]').click()
         self.driver.find_element(By.XPATH, "//input[@type='submit']").click()
+        self.driver.find_element(By.LINK_TEXT, 'destination of the week! The Beach!').click()
         body = self.driver.page_source
         re_pattern = re.compile(r'contained_text')
         self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")

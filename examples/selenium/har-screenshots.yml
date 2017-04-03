@@ -1,0 +1,21 @@
+---
+scenarios:
+  req:
+    browser: Chrome
+    requests:
+    - http://ca.com
+
+execution:
+  - scenario: req
+    executor: selenium
+    iterations: 1
+
+services:
+- capturehar
+- screenshoter
+
+modules:
+  selenium:
+    virtual-display:
+      width: 1280
+      height: 800

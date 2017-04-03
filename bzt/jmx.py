@@ -341,7 +341,8 @@ class JMX(object):
         http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
         for arg_name, arg_value in body.items():
             if not (isinstance(arg_value, string_types) or isinstance(arg_value, numeric_types)):
-                raise TaurusInternalException('Body structure requires application/JSON header')
+                msg = 'Body field "%s: %s" requires "Content-Type: application/json" header'
+                raise TaurusInternalException(msg % (arg_name, arg_value))
             try:
                 http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
             except ValueError:
@@ -676,7 +677,7 @@ class JMX(object):
                 netloc = parsed_url.netloc
                 if ':' in netloc:
                     index = netloc.rfind(':')
-                    cfg.append(JMX._string_prop("HTTPSampler.port", netloc[index+1:]))
+                    cfg.append(JMX._string_prop("HTTPSampler.port", netloc[index + 1:]))
                     netloc = netloc[:index]
 
                 cfg.append(JMX._string_prop("HTTPSampler.domain", netloc))
@@ -791,12 +792,14 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert):
+    def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert, regexp=True):
         """
         :type jsonpath: str
         :type expected_value: str
         :type json_validation: bool
         :type expect_null: bool
+        :type invert: bool
+        :type regexp: bool
         :return: lxml.etree.Element
         """
         package = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion"
@@ -809,6 +812,7 @@ class JMX(object):
         element.append(JMX._bool_prop("JSONVALIDATION", json_validation))
         element.append(JMX._bool_prop("EXPECT_NULL", expect_null))
         element.append(JMX._bool_prop("INVERT", invert))
+        element.append(JMX._bool_prop("ISREGEX", regexp))
 
         return element
 
@@ -867,7 +871,8 @@ class JMX(object):
         :type is_invert:  bool
         :rtype: lxml.etree.Element
         """
-        tname = "Assert %s has %s" % ("not" if is_invert else "", [text_type(x) for x in contains])
+        tname = "Assert %s %s" % ("hasn't" if is_invert else "has",
+                                  "[" + ", ".join('"' + text_type(x) + '"' for x in contains) + "]")
         element = etree.Element("ResponseAssertion", guiclass="AssertionGui",
                                 testclass="ResponseAssertion", testname=tname)
         if field == Scenario.FIELD_HEADERS:
@@ -900,14 +905,15 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_jsr223_element(language, script_file, parameters, execute):
+    def _get_jsr223_element(language, script_file, parameters, execute, script_text=None):
         if execute == "before":
             element = etree.Element("JSR223PreProcessor", guiclass="TestBeanGUI",
                                     testclass="JSR223PreProcessor", testname="JSR223 PreProcessor")
         else:
             element = etree.Element("JSR223PostProcessor", guiclass="TestBeanGUI",
                                     testclass="JSR223PostProcessor", testname="JSR223 PostProcessor")
-        element.append(JMX._string_prop("filename", script_file))
+        element.append(JMX._string_prop("filename", script_file if script_file else ''))
+        element.append(JMX._string_prop("script", script_text if script_text else ''))
         element.append(JMX._string_prop("parameters", parameters))
         element.append(JMX._string_prop("scriptLanguage", language))
         return element
@@ -919,7 +925,6 @@ class JMX(object):
         :type path: str
         :type delimiter: str
         :type is_quoted: bool
-        :type is_recycle: bool
         :return:
         """
         element = etree.Element("CSVDataSet", guiclass="TestBeanGUI",

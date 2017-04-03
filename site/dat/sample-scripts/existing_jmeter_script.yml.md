@@ -1,5 +1,4 @@
 ```yaml
----
 execution:
 - iterations: 50
   concurrency: 10
@@ -9,7 +8,7 @@ scenarios:
   with_script:
     script: my-existing.jmx
     
-services:
+reporting:
 - module: passfail
   criteria:
   - "avg-rt>150ms for 10s, continue as failed"

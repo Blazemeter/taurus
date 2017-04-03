@@ -6,12 +6,13 @@ from os.path import join
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
-from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul
+from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.selenium import Node
-from bzt.modules.services import Unpacker, InstallChecker, AppiumLoader, AndroidEmulatorLoader
-from bzt.utils import get_files_recursive, JavaVM, EXE_SUFFIX
+from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader
+from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
+from tests.modules.test_blazemeter import BZMock
 
 
 class TestZipFolder(BZTestCase):
@@ -27,7 +28,7 @@ class TestZipFolder(BZTestCase):
                     "us-east-1": 1,
                     "us-west": 2},
                 "scenario": {
-                    "script": __dir__() + "/../selenium/java_package"}},
+                    "script": __dir__() + "/../selenium/junit/java_package"}},
             "modules": {
                 "selenium": "bzt.modules.selenium.SeleniumExecutor",
                 "cloud": "bzt.modules.blazemeter.CloudProvisioning"},
@@ -36,18 +37,16 @@ class TestZipFolder(BZTestCase):
 
         obj.parameters = obj.engine.config['execution']
         obj.settings["token"] = "FakeToken"
-        obj.client = client = BlazeMeterClientEmul(obj.log)
-        client.results.append({"result": []})  # collections
-        client.results.append({"result": []})  # tests
-        client.results.append(self.__get_user_info())  # user
-        client.results.append({"result": {"id": id(client)}})  # create test
-        client.results.append({"files": []})  # create test
-        client.results.append({})  # upload files
-        client.results.append({"result": {"id": id(obj)}})  # start
-        client.results.append({"result": {"id": id(obj)}})  # get master
-        client.results.append({"result": []})  # get master sessions
-        client.results.append({})  # terminate
-
+        mock = BZMock(obj.user)
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": []},
+        })
+        mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests/1/files': {}
+        })
+        mock.mock_patch.update({'https://a.blazemeter.com/api/v4/tests/1': {"result": {}}})
         obj.prepare()
 
         unpack_cfgs = obj.engine.config.get(Service.SERV)
@@ -80,9 +79,9 @@ class TestZipFolder(BZTestCase):
         obj.parameters["files"] = ["java_package.zip"]
 
         # create archive and put it in artifact dir
-        source = __dir__() + "/../selenium/java_package"
+        source = __dir__() + "/../selenium/junit/java_package"
         zip_name = obj.engine.create_artifact('java_package', '.zip')
-        with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_STORED) as zip_file:
+        with zipfile.ZipFile(zip_name, 'w') as zip_file:
             for filename in get_files_recursive(source):
                 zip_file.write(filename, filename[len(os.path.dirname(source)):])
 

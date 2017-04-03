@@ -10,7 +10,6 @@ Taurus appends `PYTHONPATH` with path to artifacts directory and current working
 Here's example config that uses existing locust file:
 
 ```yaml
----
 execution:
 - executor: locust
   concurrency: 10
@@ -55,7 +54,6 @@ LocustIO executor partially supports building scenario from requests. Supported 
  - set timeout/think-time on both scenario/request levels
  - assertions (for body and http-code)
 ```yaml
----
 scenarios:
   request_example:
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
@@ -66,7 +64,7 @@ scenarios:
     - url: /  
       method: post
       headers:
-      - var1: val1
+        var1: val1
       body: 'body content'
       assert:
       - contains:
@@ -76,5 +74,6 @@ scenarios:
         regexp: false  # treat string as regular expression, true by default
         not: false  # inverse assertion condition
 ```
- 
+Keep in mind: locust requires default url for its work (empty string is accepted). You have to set `host`
+in python script or `default-address` in script for Taurus. If both are found value from Taurus script has priority.
  

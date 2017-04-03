@@ -66,7 +66,8 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         """
         Just store the latest info
 
-        :type data: bzt.modules.functional.ResultsTree
+        :type cumulative_results: bzt.modules.functional.ResultsTree
+        :type results: bzt.modules.functional.ResultsTree
         """
         self.cumulative_results = cumulative_results
 
@@ -131,7 +132,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 status_counter[case.status] += 1
 
         total = sum(count for _, count in iteritems(status_counter))
-        self.log.info("Total: %s %s", total, self.__plural(total, 'test'))
+        self.log.info("Total: %s %s", total, self.__plural(total, 'test')) # FIXME: it's actually not tests, but test cases
 
     def __report_samples_count(self, summary_kpi_set):
         """
@@ -177,6 +178,12 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __dump_xml(self, filename):
         self.log.info("Dumping final status as XML: %s", filename)
         root = etree.Element("FinalStatus")
+        report_info = get_bza_report_info(self.engine, self.log)
+        if report_info:
+            link, _ = report_info[0]
+            report_element = etree.Element("ReportURL")
+            report_element.text = link
+            root.append(report_element)
         if self.last_sec:
             for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
                 root.append(self.__get_xml_summary(label, kpiset))
@@ -265,139 +272,71 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
     A reporter that exports results in Jenkins JUnit XML format.
     """
 
-    REPORT_FILE_NAME = "xunit"
-    REPORT_FILE_EXT = ".xml"
-
     def __init__(self):
         super(JUnitXMLReporter, self).__init__()
-        self.report_file_path = "xunit.xml"
         self.last_second = None
+        self.report_file_path = None
 
     def prepare(self):
-        """
-        create artifacts, parse options.
-        report filename from parameters
-        :return:
-        """
-
-        filename = self.parameters.get("filename", None)
-        if filename:
-            self.report_file_path = filename
-        else:
-            self.report_file_path = self.engine.create_artifact(JUnitXMLReporter.REPORT_FILE_NAME,
-                                                                JUnitXMLReporter.REPORT_FILE_EXT)
-        self.parameters["filename"] = self.report_file_path
-
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):
-        """
-        :param data:
-        :return:
-        """
         self.last_second = data
 
     def post_process(self):
         """
         Get report data, generate xml report.
         """
-        super(JUnitXMLReporter, self).post_process()
+        filename = self.parameters.get("filename", None)
+        if not filename:
+            filename = self.engine.create_artifact(XUnitFileWriter.REPORT_FILE_NAME, XUnitFileWriter.REPORT_FILE_EXT)
+        self.parameters["filename"] = filename  # reflect it in effective config
+
         test_data_source = self.parameters.get("data-source", "sample-labels")
 
         if test_data_source == "sample-labels":
-            if self.last_second:
-                root_element = self.process_sample_labels()
-                self.save_report(root_element)
-            else:
+            if not self.last_second:
                 self.log.warning("No last second data to generate XUnit.xml")
+            else:
+                writer = XUnitFileWriter(self.engine, 'sample_labels')
+                self.process_sample_labels(writer)
+                writer.save_report(filename)
         elif test_data_source == "pass-fail":
-            root_element = self.process_pass_fail()
-            self.save_report(root_element)
+            writer = XUnitFileWriter(self.engine, 'bzt_pass_fail')
+            self.process_pass_fail(writer)
+            writer.save_report(filename)
         else:
             raise TaurusConfigError("Unsupported data source: %s" % test_data_source)
 
-    def process_sample_labels(self):
-        """
-        :return: etree element
-        """
-        _kpiset = self.last_second[DataPoint.CUMULATIVE]
-        root_xml_element = etree.Element("testsuite", name="sample_labels", package="bzt")
-        bza_report_info = self.get_bza_report_info()
-        class_name = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
-        report_urls = [info_item[0] for info_item in bza_report_info]
+        self.report_file_path = filename  # TODO: just for backward compatibility, remove later
 
-        for key in sorted(_kpiset.keys()):
-            if key == "":  # if label is not blank
+    def process_sample_labels(self, xunit):
+        """
+        :type xunit: XUnitFileWriter
+        """
+        labels = self.last_second[DataPoint.CUMULATIVE]
+
+        for key in sorted(labels.keys()):
+            if key == "":  # skip total label
                 continue
 
-            test_case_etree_element = etree.Element("testcase", classname=class_name, name=key)
-            if report_urls:
-                system_out_etree = etree.SubElement(test_case_etree_element, "system-out")
-                system_out_etree.text = "".join(report_urls)
-            if _kpiset[key][KPISet.ERRORS]:
-                for er_dict in _kpiset[key][KPISet.ERRORS]:
-                    err_message = str(er_dict["rc"])
-                    err_type = str(er_dict["msg"])
-                    err_desc = "total errors of this type:" + str(er_dict["cnt"])
-                    err_etree_element = etree.Element("error", message=err_message, type=err_type)
-                    err_etree_element.text = err_desc
-                    test_case_etree_element.append(err_etree_element)
+            errors = []
+            for er_dict in labels[key][KPISet.ERRORS]:
+                err_message = str(er_dict["rc"])
+                err_type = str(er_dict["msg"])
+                err_desc = "total errors of this type:" + str(er_dict["cnt"])
+                err_element = etree.Element("error", message=err_message, type=err_type)
+                err_element.text = err_desc
+                errors.append(err_element)
 
-            root_xml_element.append(test_case_etree_element)
+            xunit.add_test_case(key, errors)
 
-        return root_xml_element
-
-    def get_bza_report_info(self):
+    def process_pass_fail(self, xunit):
         """
-        :return: [(url, test), (url, test), ...]
+        :type xunit: XUnitFileWriter
         """
-        result = []
-        if isinstance(self.engine.provisioning, CloudProvisioning):
-            cloud_prov = self.engine.provisioning
-            report_url = "Cloud report link: %s\n" % cloud_prov.client.results_url
-            test_name = cloud_prov.settings.get('test', None)
-            result.append((report_url, test_name if test_name is not None else report_url))
-        else:
-            bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
-            for bza_reporter in bza_reporters:
-
-                if bza_reporter.client.results_url:
-                    report_url = "BlazeMeter report link: %s\n" % bza_reporter.client.results_url
-                    test_name = bza_reporter.parameters.get("test", None)
-
-                    result.append((report_url, test_name if test_name is not None else report_url))
-
-            if len(result) > 1:
-                self.log.warning("More then one blazemeter reporter found")
-        return result
-
-    def save_report(self, root_node):
-        """
-        :param root_node:
-        :return:
-        """
-        try:
-            if os.path.exists(self.report_file_path):
-                self.log.warning("File %s already exists, will be overwritten", self.report_file_path)
-            else:
-                dirname = os.path.dirname(self.report_file_path)
-                if dirname and not os.path.exists(dirname):
-                    os.makedirs(dirname)
-
-            etree_obj = etree.ElementTree(root_node)
-            self.log.info("Writing JUnit XML report into: %s", self.report_file_path)
-            with open(get_full_path(self.report_file_path), 'wb') as _fds:
-                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
-
-        except BaseException:
-            raise TaurusInternalException("Cannot create file %s" % self.report_file_path)
-
-    def process_pass_fail(self):
-        """
-        :return: etree element
-        """
-        mods = self.engine.reporters + self.engine.services  # TODO: remove it after migrating to service
+        mods = self.engine.reporters + self.engine.services  # TODO: remove it after passfail is only reporter
         pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
         self.log.debug("Processing passfail objects: %s", pass_fail_objects)
         fail_criteria = []
@@ -405,34 +344,98 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             if pf_obj.criteria:
                 for _fc in pf_obj.criteria:
                     fail_criteria.append(_fc)
-        root_xml_element = etree.Element("testsuite", name='bzt_pass_fail', package="bzt")
-
-        bza_report_info = self.get_bza_report_info()
-        classname = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
-        report_urls = [info_item[0] for info_item in bza_report_info]
 
         for fc_obj in fail_criteria:
-            testcase_etree = self.__process_criteria(classname, fc_obj, report_urls)
-            root_xml_element.append(testcase_etree)
-        return root_xml_element
+            if 'label' in fc_obj.config:
+                data = (fc_obj.config['subject'], fc_obj.config['label'], fc_obj.config['condition'],
+                        fc_obj.config['threshold'])
+                tpl = "%s of %s%s%s"
+            else:
+                data = (fc_obj.config['subject'], fc_obj.config['condition'], fc_obj.config['threshold'])
+                tpl = "%s%s%s"
+            if fc_obj.config['timeframe']:
+                tpl += " for %s"
+                data += (fc_obj.config['timeframe'],)
+            disp_name = tpl % data
 
-    def __process_criteria(self, classname, fc_obj, report_urls):
-        if 'label' in fc_obj.config:
-            data = (fc_obj.config['subject'], fc_obj.config['label'],
-                    fc_obj.config['condition'], fc_obj.config['threshold'])
-            tpl = "%s of %s%s%s"
-        else:
-            data = (fc_obj.config['subject'], fc_obj.config['condition'],
-                    fc_obj.config['threshold'])
-            tpl = "%s%s%s"
-        if fc_obj.config['timeframe']:
-            tpl += " for %s"
-            data += (fc_obj.config['timeframe'],)
-        disp_name = tpl % data
-        testcase_etree = etree.Element("testcase", classname=classname, name=disp_name)
-        if report_urls:
-            system_out_etree = etree.SubElement(testcase_etree, "system-out")
-            system_out_etree.text = "".join(report_urls)
-        if fc_obj.is_triggered and fc_obj.fail:
-            etree.SubElement(testcase_etree, "error", type="pass/fail criteria triggered", message="")
-        return testcase_etree
+            if fc_obj.is_triggered and fc_obj.fail:
+                errors = [etree.Element("error", message=str(fc_obj), type="pass/fail criteria triggered")]
+            else:
+                errors = ()
+
+            xunit.add_test_case(disp_name, errors)
+
+
+def get_bza_report_info(engine, log):
+    """
+    :return: [(url, test), (url, test), ...]
+    """
+    result = []
+    if isinstance(engine.provisioning, CloudProvisioning):
+        cloud_prov = engine.provisioning
+        test_name = cloud_prov.settings.get('test', None)
+        report_url = cloud_prov.results_url
+        result.append((report_url, test_name if test_name is not None else report_url))
+    else:
+        bza_reporters = [_x for _x in engine.reporters if isinstance(_x, BlazeMeterUploader)]
+        """:type : list[bzt.modules.blazemeter.BlazeMeterUploader]"""
+        for bza_reporter in bza_reporters:
+            if bza_reporter.results_url:
+                test_name = bza_reporter.parameters.get("test", None)
+                report_url = bza_reporter.results_url
+                result.append((report_url, test_name if test_name is not None else report_url))
+
+        if len(result) > 1:
+            log.warning("More than one blazemeter reporter found")
+    return result
+
+
+class XUnitFileWriter(object):
+    REPORT_FILE_NAME = "xunit"
+    REPORT_FILE_EXT = ".xml"
+
+    def __init__(self, engine, suite_name):
+        """
+        :type engine: bzt.engine.Engine
+        :type suite_name: str
+        """
+        super(XUnitFileWriter, self).__init__()
+        self.engine = engine
+        self.log = engine.log.getChild(self.__class__.__name__)
+        self.test_suite = etree.Element("testsuite", name=suite_name, package="bzt")
+        bza_report_info = get_bza_report_info(engine, self.log)
+        self.class_name = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
+        self.report_urls = ["BlazeMeter report link: %s\n" % info_item[0] for info_item in bza_report_info]
+
+    def save_report(self, fname):
+        """
+        :type fname: str
+        """
+        try:
+            if os.path.exists(fname):
+                self.log.warning("File %s already exists, it will be overwritten", fname)
+            else:
+                dirname = os.path.dirname(fname)
+                if dirname and not os.path.exists(dirname):
+                    os.makedirs(dirname)
+
+            etree_obj = etree.ElementTree(self.test_suite)
+            self.log.info("Writing JUnit XML report into: %s", fname)
+            with open(get_full_path(fname), 'wb') as _fds:
+                etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
+        except BaseException:
+            raise TaurusInternalException("Cannot create file %s" % fname)
+
+    def add_test_case(self, case_name, children=()):
+        """
+        :type case_name: str
+        :type children: list[bzt.six.etree.Element]
+        """
+        test_case = etree.Element("testcase", classname=self.class_name, name=case_name)
+        if self.report_urls:
+            system_out_etree = etree.SubElement(test_case, "system-out")
+            system_out_etree.text = "".join(self.report_urls)
+
+        for child in children:
+            test_case.append(child)
+        self.test_suite.append(test_case)

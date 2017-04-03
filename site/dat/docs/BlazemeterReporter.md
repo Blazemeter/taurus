@@ -23,25 +23,29 @@ retention policy of your account. For details see BlazeMeter service [website](h
 
 If you want the results to be stored in your existing BlazeMeter account, you'll need to specify
 the reporting settings in your configuration file. Get the API token from BlazeMeter.com (find it
-under your [Settings => API Key](https://a.blazemeter.com/app/#settings/api-key)) and put it
-into `token` option:
+under your [Settings => API Keys](https://a.blazemeter.com/app/#settings/api-keys)) and put it
+into `token` option. Join key ID and secret with single colon:
 
 ```yaml
----
 modules:
   blazemeter:
-    token: TDknBxu0hmVnJ7NqtG2F
+    token: TDknBxu0hmVnJ7NqtG2F:DFadfgdsljasdfkKSKSDDFKSDFJKSDJFKSDJFsdjfksjfjDSF
 ```
 
-It is highly recommended to place the token setting in your personal
+<div class="alert alert-danger">
+Never put API key into your main config files! 
+
+Never post it to support forums!
+
+It is recommended to place the token setting in your personal
 [per-user config](CommandLine.md#configuration-files-processing) `~/.bzt-rc` to prevent it from
 being logged and collected in artifacts.
+</div>
 
 Now you can use `-report` command-line switch, or you can set BlazeMeter reporting as part of
 your config, the `test` option specifies test name to use, `project` names group of tests:
 
 ```yaml
----
 reporting:
 - module: blazemeter
   report-name: Jenkins Build 1
@@ -52,7 +56,6 @@ reporting:
 Advanced settings:
 
 ```yaml
----
 modules:
   blazemeter:
     address: https://a.blazemeter.com  # reporting service address

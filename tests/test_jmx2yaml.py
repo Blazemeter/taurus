@@ -1,3 +1,4 @@
+# coding=utf-8
 import os
 import yaml
 
@@ -28,6 +29,15 @@ class TestConverter(BZTestCase):
 
     def _get_tmp(self, prefix='test', suffix='.yml'):
         return self.engine.create_artifact(prefix, suffix)
+
+    def test_objprop(self):
+        log_recorder = RecordingHandler()
+        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", self._get_tmp())
+        obj.log.addHandler(log_recorder)
+        obj.process()
+        self.assertNotIn("Removing unknown element: name (None)", log_recorder.warn_buff.getvalue())
+        self.assertNotIn("Removing unknown element: value (None)", log_recorder.warn_buff.getvalue())
+        obj.log.removeHandler(log_recorder)
 
     def test_loadjmx1(self):
         log_recorder = RecordingHandler()
@@ -207,11 +217,23 @@ class TestConverter(BZTestCase):
         tg_two_assertions = tg_two.get("assert")
         self.assertEqual(len(tg_two_assertions), 1)  # global only assertion
         tg_one_req_one_assertion = tg_one.get("requests")[0].get("assert")[0]
-        expected = {'subject': 'headers', 'contains': ["tg1httpreq1", "tg1httpreq12"], "not": False, 'regexp': True}
+        expected = {"subject": "headers", "contains": ["tg1httpreq1", "tg1httpreq12"],
+                    "assume-success": False, "not": False, "regexp": False}
         self.assertEqual(tg_one_req_one_assertion, expected)
         tg_one_assertion = tg_one.get("assert")[0]
-        expected = {'subject': 'body', 'contains': ["tg1body_text_not_contains"], "not": True, 'regexp': True}
+        expected = {"subject": "body", "contains": ["tg1body_text_not_contains"],
+                    "assume-success": False, "not": True, 'regexp': False}
         self.assertEqual(tg_one_assertion, expected)
+
+    def test_broken_request_assertions(self):
+        # see comments in broken_resp_asserts.jmx for explanation of cases
+        # don't save broken_resp_asserts.jmx by jmeter
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/yaml/converter/broken_resp_asserts.jmx", yml)
+        obj.process()
+        yml_tested = yaml.load(open(yml).read())
+        yml_original = yaml.load(open(__dir__() + "/yaml/converter/broken_resp_asserts.yml").read())
+        self.assertEqual(yml_tested, yml_original)
 
     def test_copy_global_json_assertions(self):
         yml = self._get_tmp()
@@ -228,7 +250,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(len(tg_one_req_one_jp), 0)
         tg_two_req_one_jp = tg_two.get("requests")[0].get("assert-jsonpath", [])
         self.assertEqual(len(tg_two_req_one_jp), 1)
-        expected = {"expect-null": True, "invert": True, "jsonpath": '$(":input")', "validate": True}
+        expected = {"expect-null": True, "invert": True, "jsonpath": '$(":input")', "validate": True, "regexp": True}
         self.assertEqual(expected, tg_two_req_one_jp[0])
         #  test concurrency, ramp-up, iterations in execution
         tg_one_exec = yml.get(ScenarioExecutor.EXEC)[0]
@@ -322,6 +344,20 @@ class TestConverter(BZTestCase):
         tg_two_req_one_body = tg_two.get("requests")[0].get("body")
         self.assertEqual(tg_two_req_one_body, None)
 
+    def test_json_body(self):
+        yml = self._get_tmp()
+        obj = self._get_jmx2yaml("/yaml/converter/json_body.jmx", yml)
+        obj.process()
+        yml = yaml.load(open(yml).read())
+        reqs1 = yml.get("scenarios").get("tg1")['requests']
+        reqs2 = yml.get("scenarios").get("tg2")['requests']
+        bodies = {req['label']: req.get('body', None) for req in reqs1 + reqs2}
+        targets = {'r1_1': None, 'r1_2': list, 'r1_3': str, 'r1_4': dict,
+                   'r2_1': None, 'r2_2': dict, 'r2_3': str, 'r2_4': str}
+        for label in targets:
+            self.assertTrue((bodies[label] is None and targets[label] is None)
+                            or isinstance(bodies[label], targets[label]))
+
     def test_duration_throughput(self):
         yml = self._get_tmp()
         obj = self._get_jmx2yaml("/yaml/converter/duration.jmx", yml)
@@ -403,19 +439,31 @@ class TestConverter(BZTestCase):
         self.assertIn("jsr223", request)
         jsrs = request["jsr223"]
         self.assertIsInstance(jsrs, list)
-        self.assertEqual(len(jsrs), 3)
+        self.assertEqual(len(jsrs), 5)
         self.assertEqual(jsrs[0]["language"], "beanshell")
-        self.assertEqual(jsrs[0]["script-file"], "script.bsh")
+        self.assertEqual(jsrs[0]["script-text"], "scripty")
         self.assertEqual(jsrs[0]["parameters"], "parames")
+        self.assertNotIn('script-file', jsrs[0])
         self.assertEqual(jsrs[1]["language"], "javascript")
-        self.assertEqual(jsrs[1]["script-file"], "script.js")
+        self.assertEqual(jsrs[1]["script-text"], u'console.log("ПРИВЕТ");\nline("2");')
         self.assertEqual(jsrs[1]["parameters"], "a b c")
+        self.assertNotIn('script-file', jsrs[1])
         self.assertEqual(jsrs[2]["language"], "javascript")
-        self.assertEqual(jsrs[2]["script-file"], "script-1.js")
+        self.assertEqual(jsrs[2]["script-file"], "script.js")
         self.assertEqual(jsrs[2]["parameters"], None)
-        self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.bsh')))
+        self.assertNotIn('script-text', jsrs[2])
+        self.assertEqual(jsrs[3]["language"], "beanshell")
+        self.assertEqual(jsrs[3]["execute"], "before")
+        self.assertEqual(jsrs[3]["parameters"], None)
+        self.assertEqual(jsrs[3]['script-text'], 'console.log("beanshell aka jsr223");')
+        self.assertNotIn('script-file', jsrs[3])
+        self.assertEqual(jsrs[4]["language"], "java")
+        self.assertEqual(jsrs[4]["execute"], "before")
+        self.assertEqual(jsrs[4]["parameters"], None)
+        self.assertIn('BlazeDemo.java', jsrs[4]['script-file'])
+        self.assertNotIn('script-text', jsrs[4])
+
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.js')))
-        self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script-1.js')))
 
     def test_unicode(self):
         obj = self._get_jmx2yaml("/yaml/converter/unicode.jmx", self._get_tmp())

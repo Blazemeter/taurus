@@ -15,16 +15,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
 import re
 import subprocess
 import time
 
+import os
+from bzt import TaurusConfigError, ToolError
+
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt import TaurusConfigError, ToolError
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
@@ -60,7 +62,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         :param fds: fds
         :return:
         """
-        base_props_file = self.settings.get("properties-file", "")
+        base_props_file = self.settings.get("properties-file", None)
         if base_props_file:
             fds.write("# Base Properies File Start: %s\n" % base_props_file)
             with open(base_props_file) as bpf:
@@ -82,7 +84,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         :param scenario: dict
         :return:
         """
-        script_props_file = scenario.get("properties-file", "")
+        script_props_file = scenario.get("properties-file", None)
         if script_props_file:
             fds.write("# Script Properies File Start: %s\n" % script_props_file)
             with open(script_props_file) as spf:
@@ -105,8 +107,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         fds.write("# BZT Properies Start\n")
         fds.write("grinder.hostID=%s\n" % self.exec_id)
-        fds.write("grinder.script=%s\n" % os.path.realpath(self.script).replace(os.path.sep, "/"))
-        dirname = os.path.realpath(self.engine.artifacts_dir)
+        fds.write("grinder.script=%s\n" % self.script.replace(os.path.sep, "/"))
+        dirname = self.engine.artifacts_dir
         fds.write("grinder.logDirectory=%s\n" % dirname.replace(os.path.sep, "/"))
 
         load = self.get_load()
@@ -126,9 +128,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         scenario = self.get_scenario()
 
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.script = self.engine.find_file(scenario[Scenario.SCRIPT])
-            self.engine.existing_artifact(self.script)
+        self.script = self.get_script_path()
+        if self.script:
+            self.script = os.path.abspath(self.engine.find_file(self.script))
         elif "requests" in scenario:
             self.script = self.__scenario_from_requests()
         else:
@@ -150,9 +152,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.engine.aggregator.add_underling(self.reader)
 
         # add logback configurations used by worker processes (logback-worker.xml)
-        classpath = os.path.join(os.path.abspath(os.path.dirname(__file__)), os.pardir, 'resources')
+        classpath = os.path.join(get_full_path(__file__, step_up=2), 'resources')
 
-        classpath += os.path.pathsep + os.path.realpath(self.settings.get("path"))
+        path = self.settings.get("path", None)
+        if path:
+            classpath += os.path.pathsep + path
 
         self.cmd_line = ["java", "-classpath", classpath]
         self.cmd_line += ["net.grinder.Grinder", self.properties_file]
@@ -168,7 +172,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.stderr_file = open(err, "w")
 
         env = {"T_GRINDER_PREFIX": self.exec_id}
-        self.process = self.execute(self.cmd_line, cwd=self.engine.artifacts_dir,
+        self.process = self.execute(self.cmd_line,
                                     stdout=self.stdout_file,
                                     stderr=self.stderr_file,
                                     env=env)
@@ -310,7 +314,7 @@ class DataLogReader(ResultsReader):
             source_id = ''
 
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
-                    latency, r_code, error_msg, source_id, bytes_count
+                  latency, r_code, error_msg, source_id, bytes_count
 
     def __split(self, line):
         if not line.endswith("\n"):
@@ -461,7 +465,7 @@ from HTTPClient import NVPair
 
         self.root.append(self.gen_new_line(indent=0))
 
-        default_address = self.scenario.get("default-address", "")
+        default_address = self.scenario.get("default-address", None)
         url_arg = "url=%r" % default_address if default_address else ""
         self.root.append(self.gen_statement('request = HTTPRequest(%s)' % url_arg, indent=0))
         self.root.append(self.gen_statement('test = Test(1, "BZT Requests")', indent=0))
@@ -501,19 +505,22 @@ from HTTPClient import NVPair
         runner_classdef = self.gen_class_definition("TestRunner", ["object"], indent=0)
         main_method = self.gen_method_definition("__call__", ["self"], indent=4)
 
-        global_think_time = self.scenario.get('think-time', None)
-
         for req in self.scenario.get_requests():
+            if not isinstance(req, HTTPRequest):
+                msg = "Grinder script generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+
             method = req.method.upper()
             url = req.url
-            think_time = dehumanize_time(req.think_time or global_think_time)
-            local_headers = req.config.get("headers", {})
+            local_headers = req.headers
 
             params = "[]"
             headers = self.__list_to_nvpair_list(iteritems(local_headers))
 
             main_method.append(self.gen_statement("request.%s(%r, %s, %s)" % (method, url, params, headers), indent=8))
 
+            think_time = dehumanize_time(req.priority_option('think-time'))
             if think_time:
                 main_method.append(self.gen_statement("grinder.sleep(%s)" % int(think_time * 1000), indent=8))
 

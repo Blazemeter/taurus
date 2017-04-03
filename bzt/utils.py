@@ -16,7 +16,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 import csv
 import fnmatch
 import itertools
@@ -39,6 +38,8 @@ import webbrowser
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
+from contextlib import contextmanager
+from math import log
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
@@ -253,6 +254,17 @@ class BetterDict(defaultdict):
             for idx, val in enumerate(obj):
                 visitor(val, idx, obj)
                 cls.traverse(obj[idx], visitor)
+
+    def filter(self, rules):
+        keys = set(self.keys())
+        for key in keys:
+            if key not in rules:
+                del self[key]
+            else:
+                if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
+                    self.get(key).filter(rules[key])
+                    if not self.get(key):  # clear empty
+                        del self[key]
 
 
 def get_uniq_name(directory, prefix, suffix, forbidden_names=()):
@@ -680,12 +692,13 @@ class RequiredTool(object):
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
-        self.log = None
+        self.log = logging.getLogger('')
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
             self.already_installed = True
             return True
+        self.log.debug("File not exists: %s", self.tool_path)
         return False
 
     def install(self):
@@ -693,6 +706,7 @@ class RequiredTool(object):
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
             downloader = ExceptionalDownloader()
+            self.log.info("Downloading %s", self.download_link)
             downloader.get(self.download_link, self.tool_path, reporthook=pbar.download_callback)
 
             if self.check_if_installed():
@@ -840,6 +854,30 @@ class TclLibrary(RequiredTool):
             self.log.warning("No Tcl library was found")
 
 
+class Node(RequiredTool):
+    def __init__(self, parent_logger):
+        super(Node, self).__init__("Node.js", "")
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.executable = None
+
+    def check_if_installed(self):
+        node_candidates = ["node", "nodejs"]
+        for candidate in node_candidates:
+            try:
+                self.log.debug("Trying %r", candidate)
+                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                self.log.debug("%s output: %s", candidate, output)
+                self.executable = candidate
+                return True
+            except (CalledProcessError, OSError):
+                self.log.debug("%r is not installed", candidate)
+                continue
+        return False
+
+    def install(self):
+        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
+
+
 class MirrorsManager(object):
     def __init__(self, base_link, parent_logger):
         self.base_link = base_link
@@ -863,17 +901,47 @@ class MirrorsManager(object):
         return (mirror for mirror in mirrors)
 
 
+@contextmanager
+def log_std_streams(logger=None, stdout_level=logging.DEBUG, stderr_level=logging.DEBUG):
+    """
+    redirect standard output/error to taurus logger
+    """
+    out_descriptor = os.dup(1)
+    err_descriptor = os.dup(2)
+    stdout = tempfile.SpooledTemporaryFile(mode='w+')
+    stderr = tempfile.SpooledTemporaryFile(mode='w+')
+    sys.stdout = stdout
+    sys.stderr = stderr
+    os.dup2(stdout.fileno(), 1)
+    os.dup2(stderr.fileno(), 2)
+    try:
+        yield
+    finally:
+        stdout.seek(0)
+        stderr.seek(0)
+        stdout_str = stdout.read().strip()
+        stderr_str = stderr.read().strip()
+        stdout.close()
+        stderr.close()
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        os.dup2(out_descriptor, 1)
+        os.dup2(err_descriptor, 2)
+        os.close(out_descriptor)
+        os.close(err_descriptor)
+        if logger:
+            if stdout_str:
+                logger.log(stdout_level, "STDOUT: " + stdout_str)
+            if stderr_str:
+                logger.log(stderr_level, "STDERR: " + stderr_str)
+
+
 def open_browser(url):
     try:
         browser = webbrowser.get()
         if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-            saved_out = os.dup(1)
-            os.close(1)
-            os.open(os.devnull, os.O_RDWR)
-            try:
+            with log_std_streams(logger=logging):
                 browser.open(url)
-            finally:
-                os.dup2(saved_out, 1)
     except BaseException as exc:
         logging.warning("Can't open link in browser: %s", exc)
 
@@ -996,3 +1064,24 @@ class PythonGenerator(object):
 
     def gen_new_line(self, indent=8):
         return self.gen_statement("", indent=indent)
+
+
+def str_representer(dumper, data):
+    "Representer for PyYAML that dumps multiline strings as | scalars"
+    if len(data.splitlines()) > 1:
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+
+def humanize_bytes(byteval):
+    # from http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size/
+    #   25613067#25613067
+    _suffixes = [' ', 'K', 'M', 'G', 'T', 'P']
+
+    # determine binary order in steps of size 10
+    # (coerce to int, // still returns a float)
+    order = int(log(byteval, 2) / 10) if byteval else 0
+    # format file size
+    # (.4g results in rounded numbers for exact matches and max 3 decimals,
+    # should never resort to exponent values)
+    return '{:.4g}{}'.format(byteval / (1 << (order * 10)), _suffixes[order])

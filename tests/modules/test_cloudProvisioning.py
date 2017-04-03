@@ -1,20 +1,21 @@
 import json
 import os
-import logging
-import time
-import tempfile
 import shutil
+import tempfile
+import time
 
 import yaml
 
-from bzt import TaurusConfigError
-from bzt.engine import ScenarioExecutor, ManualShutdown
+from bzt import TaurusConfigError, TaurusException
+from bzt.bza import Master, Test, MultiTest
+from bzt.engine import ScenarioExecutor, ManualShutdown, Service
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.blazemeter import CloudProvisioning, BlazeMeterClientEmul, ResultsFromBZA
+from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
-from tests import BZTestCase, __dir__
 from bzt.utils import get_full_path
+from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
+from tests.modules.test_blazemeter import BZMock
 
 
 class TestCloudProvisioning(BZTestCase):
@@ -27,10 +28,19 @@ class TestCloudProvisioning(BZTestCase):
         engine = EngineEmul()
         engine.aggregator = ConsolidatingAggregator()
         self.obj = CloudProvisioning()
+        self.obj.settings.merge({'delete-test-files': False})
         self.obj.engine = engine
-        self.obj.client = BlazeMeterClientEmul(self.obj.log)
+        self.obj.browser_open = False
+        self.mock = BZMock(self.obj.user)
+        self.mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests/1/files': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": True},
+        })
 
-    def configure(self, engine_cfg=None, client_results=None, add_config=True, add_settings=True):
+    def configure(self, engine_cfg=None, get=None, post=None, patch=None, add_config=True, add_settings=True):
         if engine_cfg is None:
             engine_cfg = {}
         self.obj.engine.config.merge(engine_cfg)
@@ -38,7 +48,7 @@ class TestCloudProvisioning(BZTestCase):
         if add_settings:
             self.obj.settings["token"] = "FakeToken"
             self.obj.settings["browser-open"] = False
-            self.obj.settings['default-location'] = "us-west-1"
+            self.obj.settings['default-location'] = "us-east-1"
 
         if add_config:
             self.obj.engine.config.merge({
@@ -50,7 +60,10 @@ class TestCloudProvisioning(BZTestCase):
         if isinstance(self.obj.parameters, list):
             self.obj.parameters = self.obj.parameters[0]
 
-        self.obj.client.results = client_results
+        self.mock.mock_get.update(get if get else {})
+        self.mock.mock_post.update(post if post else {})
+        self.mock.mock_patch.update(patch if patch else {})
+        self.mock.mock_patch.update({'https://a.blazemeter.com/api/v4/tests/1': {"result": {}}})
 
     def test_simple(self):
         self.configure(
@@ -61,17 +74,15 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2}}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {},  # upload files
-                {"result": {"id": id(self.obj)}},  # start
-                {"result": {"id": id(self.obj)}},  # get master
-                {"result": []},  # get master sessions
-                {}])  # terminate
+
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
+            },
+            post={
+            }
+        )  # terminate
 
         self.obj.prepare()
         self.assertEquals(1, self.obj.executors[0].execution['locations']['us-east-1'])
@@ -82,6 +93,42 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
+    def test_no_results(self):
+        self.configure(
+            engine_cfg={
+                ScenarioExecutor.EXEC: {
+                    "executor": "mock",
+                    "concurrency": 5500,
+                    "locations": {
+                        "us-east-1": 1,
+                        "us-west": 2}}},
+
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": [{
+                    "errors": [
+                        {
+                            "code": 70404,
+                            "message": "Session ended without load report data",
+                            "details": None
+                        }
+                    ],
+                }]}},
+            },
+            post={
+            }
+        )  # terminate
+
+        self.obj.prepare()
+        self.assertEquals(1, self.obj.executors[0].execution['locations']['us-east-1'])
+        self.assertEquals(2, self.obj.executors[0].execution['locations']['us-west'])
+
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        self.assertRaises(TaurusException, self.obj.post_process)
+
     def test_detach(self):
         self.configure(
             engine_cfg={
@@ -91,39 +138,25 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2}}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {},  # upload files
-                {"result": {"id": id(self.obj)}}])  # start
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
+            }
+        )
 
         self.obj.settings["detach"] = True
 
         self.obj.prepare()
-        self.assertEqual(1, len(self.obj.client.results))
+        self.assertEqual(11, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual([], self.obj.client.results)
+        self.assertEqual(12, len(self.mock.requests))
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
 
     def test_no_settings(self):
-        self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {},  # upload files
-                {"result": {"id": id(self.obj)}}])  # start
-
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
         self.obj.prepare()
-        self.assertEquals(1, self.obj.executors[0].execution['locations']['us-west-1'])
+        self.assertEquals(1, self.obj.executors[0].execution['locations']['us-east-1'])
 
     def test_skip_reporting(self):
         self.configure(
@@ -141,87 +174,95 @@ class TestCloudProvisioning(BZTestCase):
                               "second_reporter",
                               {"module": "third_reporter"}]
             },
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {}])  # upload files
+        )
 
         self.obj.prepare()
         modules = [reporter['module'] for reporter in self.obj.engine.config['reporting']]
         self.assertEquals(modules, ['second_reporter', 'third_reporter'])
 
     def test_widget_cloud_test(self):
-        self.obj.test = CloudTaurusTest(self.obj.client, None, None, None, None, self.obj.log)
-        self.configure(
-            client_results=[
-                {"result": []},
-                {"result": {
-                    "sessions": [{
-                        "name": "executor/scenario/location",
-                        "configuration": {}}]}},
+        test = Test(self.obj.user, {"id": 1, 'name': 'testname'})
+        self.obj.router = CloudTaurusTest(self.obj.user, test, None, None, None, self.obj.log)
+        self.configure(get={
+            'https://a.blazemeter.com/api/v4/masters/1/sessions': [
+                {"result": {"sessions": []}},
                 {"result": {"sessions": [{
-                        "name": "executor/scenario/location",
-                        "configuration": {
-                            "location": "loc-name",
-                            "serversCount": "10"}}]}}])
+                    "name": "executor/scenario/location",
+                    "configuration": {
+                        "location": "loc-name",
+                        "serversCount": "10"}}]}}
+            ]
+        })
 
+        self.obj.startup()
         widget = self.obj.get_widget()
         widget.update()
         widget.update()
-        widget.update()
-        widget.update()
 
-        self.assertEqual("None #None\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
+        self.assertEqual("testname #1\n executor scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
     def test_widget_cloud_collection(self):
-        self.obj.test = CloudCollectionTest(self.obj.client, None, None, None, None, self.obj.log)
-        self.configure(
-            client_results=[
-                {"result": {
-                    "sessions": [{
-                        "id": "session-id",
-                        "locationId": "loc-name",
-                        "readyStatus": {"servers": ["server" for _ in range(10)]}}]}},
-                {"result": {
-                    "sessions": [{
-                        "id": "session-id",
-                        "name": "loc-name/scenario",
-                        "configuration": {}}]}}])
-        self.obj.test.get_master_status()
+        test = MultiTest(self.obj.user, {"id": 1, 'name': 'testname'})
+        self.obj.router = CloudCollectionTest(self.obj.user, test, None, None, None, self.obj.log)
+        self.configure(post={
+            'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {
+                "id": 1,
+                "sessions": [{
+                    "id": "session-id",
+                    "locationId": "loc-name",
+                    "readyStatus": {"servers": ["server" for _ in range(10)]}}]}}
+        }, get={
+            'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED", "sessions": [{
+                "id": "session-id",
+                "locationId": "loc-name",
+                "readyStatus": {"servers": ["server" for _ in range(10)]},
+                "name": "loc-name/scenario",
+                "configuration": {}}]}},
+            'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {
+                "sessions": [{
+                    "id": "session-id",
+                    "name": "loc-name/scenario",
+                    "configuration": {}}]}}
+        })
+        self.obj.startup()
+        self.obj.router.get_master_status()
         widget = self.obj.get_widget()
         widget.update()
 
-        self.assertEqual("None #None\n scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
+        self.assertEqual("testname #1\n scenario:\n  Agents in loc-name: 10\n", widget.text.get_text()[0])
 
     def test_delete_test_files(self):
         self.configure(
-            engine_cfg={
-                ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # user
-                {"files": [
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            get={
+                'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": [
                     {
                         "hash": "hash1",
                         "name": "file1"
                     }, {
                         "hash": "hash1",
-                        "name": "file2"}]},  # test files
-                {"removed": [
-                    "hash1", "hash2"]},  # remove test files
-                {}])  # upload files
+                        "name": "file2"}]
+                },
+                'https://a.blazemeter.com/api/v4/web/elfinder/1?target=s1_Lw&cmd=open': {"files": [
+                    {
+                        "hash": "hash1",
+                        "name": "file1"
+                    }, {
+                        "hash": "hash1",
+                        "name": "file2"}]
+                },
+                # deleting files with GET - ...!
+                'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1': {
+                    "removed": ["hash1", "hash2"]
+                }
+            }
+        )
 
         self.obj.settings.merge({'delete-test-files': True})
-
         self.obj.prepare()
-        self.assertTrue(self.obj.client.delete_files_before_test)
+        self.obj.log.info("Made requests: %s", self.mock.requests)
+        self.assertEquals('https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1',
+                          self.mock.requests[10]['url'])
 
     def test_cloud_config_cleanup(self):
         self.configure(
@@ -233,17 +274,10 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 2}}},
-            client_results=[
-                {"result": []},
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"},}]},  # find test
-                self.__get_user_info(),  # user
-                {}])  # upload files
+        )
 
-        self.obj.test = CloudTaurusTest(self.obj.client, None, None, "name", None, self.obj.log)
-        cloud_config = self.obj.test.prepare_cloud_config(self.obj.engine.config)
+        self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, self.obj.log)
+        cloud_config = self.obj.router.prepare_cloud_config(self.obj.engine.config)
         execution = cloud_config["execution"][0]
         self.assertNotIn("throughput", execution)
         self.assertNotIn("ramp-up", execution)
@@ -251,102 +285,94 @@ class TestCloudProvisioning(BZTestCase):
         self.assertNotIn("steps", execution)
 
     def test_default_test_type_cloud(self):
-        self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # user
-                {}])  # upload files
-
-        self.obj.settings.merge({"delete-test-files": False})
-
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
         self.obj.prepare()
-        self.assertIsInstance(self.obj.test, CloudTaurusTest)
+        self.assertIsInstance(self.obj.router, CloudTaurusTest)
 
     def test_type_forced(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": [{
-                    "id": 5174715,
+            get={
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': {'result': [{'id': 1}]},
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [{
+                    "id": 1,
+                    "projectId": 1,
                     "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {}])  # update collection
-
-        self.obj.settings.merge({'delete-test-files': False})
-
+                    "configuration": {"type": "taurus"}}]}
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+            },
+            patch={
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {}
+            }
+        )
         self.obj.prepare()
-        self.assertIsInstance(self.obj.test, CloudCollectionTest)
+        self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
     def test_detect_test_type_collection(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": [{
-                    "id": 5174715,
+            get={
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': {'result': [{'id': 1}]},
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [{
+                    "id": 1,
+                    "projectId": 1,
                     "name": "Taurus Cloud Test",
-                    "items": [{"configuration": {"type": "taurus"}}]}]},  # detect collection
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {}])  # update collection
-
-        self.obj.settings.merge({"delete-test-files": False})
+                    "configuration": {"type": "taurus"}}]}
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+            },
+            patch={
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {}
+            }
+        )
 
         self.obj.prepare()
-        self.assertIsInstance(self.obj.test, CloudCollectionTest)
+        self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
     def test_detect_test_type_cloud(self):
-        self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # detect collection
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # detect test
-                self.__get_user_info(),  # user
-                {"result": [{
-                    "id": 5174715,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                {},  # upload files
-                {"result": {
-                    "name": "Taurus Collection", "items": []}},  # transform config to collection
-                {}])  # update collection
-
-        self.obj.settings.merge({"delete-test-files": False})
-
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
         self.obj.prepare()
-        self.assertIsInstance(self.obj.test, CloudTaurusTest)
+        self.assertIsInstance(self.obj.router, CloudTaurusTest)
 
     def test_full_collection(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
                     "concurrency": 5500,
                     "locations": {
                         "us-east-1": 1,
-                        "us-west": 2}}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"files": []},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": id(self.obj.client)}},  # create collection
-                {"result": {"id": id(self.obj)}},  # start
-                {"result": {"id": id(self.obj), "sessions": []}},  # get master
-                {"result": []},  # get master sessions
-                {}])  # terminate
+                        "us-west": 2}}
+            },
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED"}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}}
+            }
+        )
 
         self.obj.settings["use-deprecated-api"] = False
 
@@ -360,85 +386,113 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.post_process()
 
     def test_create_project(self):
-        self.configure(
-            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # projects
-                {"result": {"id": 1428}},  # create project
-                {"result": []},  # collections
-                {"result": [{
-                    "id": 5174715,
-                    "projectId": 1428,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # locations
-                {}])  # upload files
-
-        self.obj.settings.merge({
-            "delete-test-files": False,
-            "project": "myproject"})
-
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
+        self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[5]['url'])
+        self.assertEquals('POST', self.mock.requests[5]['method'])
+
+    def test_create_project_test_exists(self):
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
+                {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
+            ]},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
+                {'result': []},
+                {'result': [{'id': 1}]}
+            ],
+            'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+        })
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
+        self.obj.prepare()
+        self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[5]['url'])
+        self.assertEquals('POST', self.mock.requests[5]['method'])
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests', self.mock.requests[7]['url'])
+        self.assertEquals('POST', self.mock.requests[7]['method'])
 
     def test_reuse_project(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": [{"id": 1428, "name": "myproject"}]},  # projects
-                {"result": []},  # collections
-                {"result": [{
-                    "id": 5174715,
-                    "projectId": 1428,
+            get={
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999": {
+                    "result": [{"id": 1, "name": "myproject"}]},
+                'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": [{
+                    "id": 1,
+                    "projectId": 1,
                     "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # user
-                {}])  # upload files
-
-        self.obj.settings.merge({
-            "delete-test-files": False,
-            "project": "myproject"})
-
+                    "configuration": {"type": "taurus"}}]}
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+            },
+            patch={
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {}
+            }
+        )
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
+        self.assertEquals('https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test',
+                          self.mock.requests[3]['url'])
 
     def test_reuse_project_id(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": [{
-                    "id": 5174715,
-                    "projectId": 1428,
-                    "name": "Taurus Cloud Test",
-                    "configuration": {"type": "taurus"}}]},  # find test
-                self.__get_user_info(),  # user
-                {}])  # upload files
+            get={
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999": {
+                    "result": [{"id": 1, "name": "myproject"}]},
+                'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {
+                    "result": [{"id": 1, "name": "Taurus Cloud Test"}]
+                }
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+            },
+            patch={
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {}
+            }
+        )
 
-        self.obj.settings.merge({
-            "delete-test-files": False,
-            "project": 1428})
-
+        self.obj.settings.merge({"delete-test-files": False, "project": 1})
         self.obj.prepare()
+        for request in self.mock.requests:
+            self.assertFalse(
+                request['url'] == 'https://a.blazemeter.com/api/v4/projects' and request['method'] == 'POST')
 
     def test_create_collection(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
-            client_results=[
-                {"result": []},  # find collection
-                {"result": []},  # find test
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}}])  # create collection
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
+            }
+        )
 
-        self.obj.settings.merge({
-            "delete-test-files": False,
-            "use-deprecated-api": False})
+        self.obj.settings.merge({"delete-test-files": False, "use-deprecated-api": False})
 
         self.obj.prepare()
-        self.assertIsInstance(self.obj.test, CloudCollectionTest)
+        self.assertIsInstance(self.obj.router, CloudCollectionTest)
 
     def test_toplevel_locations(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
@@ -447,13 +501,15 @@ class TestCloudProvisioning(BZTestCase):
                     "us-east-1": 1,
                     "us-west": 2},
                 "locations-weighted": True},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}}])  # create collection
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
+            }
+        )
 
         self.obj.settings["use-deprecated-api"] = False
         self.obj.prepare()
@@ -467,78 +523,63 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_nonexistent_location(self):
         self.configure(
-            engine_cfg={
-                ScenarioExecutor.EXEC: {
-                    "executor": "mock",
-                    "concurrency": 5500},
-                "locations": {"us-not-found": 1}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info()])  # user
-
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock", }, "locations": {"us-not-found": 1}},
+        )
         self.obj.settings["use-deprecated-api"] = False
-
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_sandbox_default_location(self):
         self.configure(
             add_settings=False,
-            engine_cfg={
-                ScenarioExecutor.EXEC: {
-                    "executor": "mock",
-                    "concurrency": 5500}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {}])  # upload files
-
-        self.obj.settings["token"] = "FakeToken"
-        self.obj.settings["browser-open"] = False
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+        )
+        self.obj.user.token = "key"
         self.obj.prepare()
         exec_locations = self.obj.executors[0].execution['locations']
-        self.assertEquals(1, exec_locations['us-west-1'])
+        self.assertEquals(1, exec_locations['non-harbor-sandbox'])
 
     def test_collection_defloc_sandbox(self):
+        self.obj.user.token = object()
         self.configure(
-            engine_cfg={
-                ScenarioExecutor.EXEC: {
-                    "executor": "mock",
-                    "concurrency": 5500}},
-            client_results=[
-                {"result": []},  # find collection
-                {"result": []},  # find test
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}}])  # create collection
+            add_settings=False,
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock", }},
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
+            }
+        )
 
         self.obj.settings["use-deprecated-api"] = False
 
         self.obj.prepare()
         exec_locations = self.obj.executors[0].execution['locations']
-        expected_location = 'harbor-5591335d8588531f5cde3a04'
+        expected_location = 'harbor-sandbox'
         self.assertIn(expected_location, exec_locations)
         self.assertEquals(1, exec_locations[expected_location])
 
     def test_locations_on_both_levels(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: [{
                     "executor": "mock",
                     "concurrency": 5500,
-                    "locations": {"eu-west-1": 1}}],
-                "locations": {"ams3": 1}},
-            client_results=[
-                {"result": []},  # find test
-                {"result": []},  # find collection
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}}])  # create collection
+                    "locations": {"us-east-1": 1}}],
+                "locations": {"aws": 1}},
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
+            }
+        )
 
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
@@ -554,7 +595,9 @@ class TestCloudProvisioning(BZTestCase):
         self.assertIn("Each execution has locations specified, global locations won't have any effect", log_buff)
 
     def test_collection_simultaneous_start(self):
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
@@ -562,31 +605,45 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 1}}},
-            client_results=[
-                {"result": []},  # find collection
-                {"result": []},  # find test
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {"name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}},  # create collection
-                {"result": {"id": id(self.obj)}},  # start
-                {"result": {
-                    "id": id(self.obj),
-                    "sessions": [
-                        {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
-                        {"id": "s2", "status": "INIT_SCRIPT"}]}},  # status
-                {"result": []},  # sessions
-                {"result": {
-                    "id": id(self.obj),
-                    "sessions": [
-                        {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
-                        {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
-                {"result": []},  # sessions
-                {"result": {}},  # force start
-                {"result": {"id": id(self.obj)}},  # master status
-                {"result": []},  # sessions
-                {},  # graceful shutdown
-                {"result": {"status": "ENDED"}}])  # master status
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': [
+                    {"result": {
+                        "id": id(self.obj),
+                        "sessions": [
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                            {"id": "s2", "status": "INIT_SCRIPT"}]}},
+                    {"result": {
+                        "id": id(self.obj),
+                        "sessions": [
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                            {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+                    {"result": {
+                        "id": id(self.obj),
+                        "sessions": [
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                            {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+                    {"result": {
+                        "id": id(self.obj),
+                        "status": "ENDED",
+                        "sessions": [
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT"},
+                            {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+                ],
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": []}},
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/force-start': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/multi-tests/1/stop': {"result": {"id": 1}}
+            }
+        )
 
         self.obj.settings["check-interval"] = "0ms"  # do not skip checks
         self.obj.settings["use-deprecated-api"] = False
@@ -598,11 +655,13 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(self.obj.client.results, [])
+        self.assertIn('masters/1/force-start', ''.join([x['url'] for x in self.mock.requests]))
 
     def test_terminate_only(self):
         """  test is terminated only when it was started and didn't finished """
+        self.obj.user.token = object()
         self.configure(
+            add_settings=False,
             engine_cfg={
                 ScenarioExecutor.EXEC: {
                     "executor": "mock",
@@ -610,58 +669,75 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-east-1": 1,
                         "us-west": 1}}},
-            client_results=[
-                {"result": []},  # find collection
-                {"result": []},  # find test
-                self.__get_user_info(),  # user
-                {},  # upload files
-                {"result": {
-                    "name": "Taurus Collection", "items": []}},  # transform config to collection
-                {"result": {"id": 42}},  # create collection
-                {"result": {"id": id(self.obj)}},  # start
-                {"result": {
-                    "id": id(self.obj),
-                    "sessions": [{
-                        "id": "s1", "status": "JMETER_CONSOLE_INIT"},
-                        {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
-                {"result": []},  # sessions
-                {"result": {}},  # force start
-                {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
-                {"result": []}])  # sessions
+
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': [
+                    {"result": {
+                        "id": id(self.obj),
+                        "sessions": [
+                            {"id": "s1", "status": "JMETER_CONSOLE_INIT", "locationId": "some"},
+                            {"id": "s2", "status": "JMETER_CONSOLE_INIT"}]}},
+                    {"result": {"progress": 120, "status": "ENDED"}},  # status should trigger shutdown
+                ],
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": [{'id': "s1"}]}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {
+                    "note": "msg",
+                    "sessions": [{'id': "s1"}]}
+                },
+                'https://a.blazemeter.com/api/v4/masters/1': {"result": {"id": 1, "note": "msg"}},
+                'https://a.blazemeter.com/api/v4/sessions/s1/reports/logs': {"result": {"data": [
+                    {
+                        'filename': "artifacts.zip",
+                        'dataUrl': "file://" + __dir__() + '/../data/artifacts-1.zip'
+                    }
+                ]}}
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {'id': 1, 'name': 'testname'}},
+                'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/force-start': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/multi-tests/1/stop': {"result": {"id": 1}}
+            }
+        )
 
         self.obj.settings["check-interval"] = "0ms"  # do not skip checks
         self.obj.settings["use-deprecated-api"] = False
+        cls = ServiceStubCaptureHAR.__module__ + "." + ServiceStubCaptureHAR.__name__
+        self.obj.engine.config.get("modules").get('capturehar')['class'] = cls
+        self.obj.engine.config.get(Service.SERV, []).append('capturehar')
 
+        log_recorder = RecordingHandler()
+        self.obj.log.addHandler(log_recorder)
         self.obj.prepare()
         self.obj.startup()
         self.obj.check()  # this one should trigger force start
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(self.obj.client.results, [])
+        self.assertEqual(18, len(self.mock.requests))
+        self.assertIn("Cloud test has probably failed with message: msg", log_recorder.warn_buff.getvalue())
 
     def test_cloud_paths(self):
         """
         Test different executor/path combinations for correct return values of get_resources_files
-
-        :return:
         """
         self.configure(
             add_config=False, add_settings=False,
-            client_results=[
-                {"result": []},  # collection
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {}])  # upload files
+        )  # upload files
 
+        # FIXME: refactor this method!
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
         self.obj.engine.configure([
             __dir__() + '/../../bzt/10-base.json',
-            __dir__() + '/../yaml/resource_files.yml'])
+            __dir__() + '/../yaml/resource_files.yml'], read_config_files=False)
         self.obj.settings = self.obj.engine.config['modules']['cloud']
+        self.obj.settings.merge({'delete-test-files': False})
 
         # list of existing files in $HOME
         pref = 'file-in-home-'
@@ -701,7 +777,7 @@ class TestCloudProvisioning(BZTestCase):
             str_files = [line for line in debug if 'Replace file names in config' in line]
             self.assertEqual(1, len(str_files))
             res_files = [_file for _file in str_files[0].split('\'')[1::2]]
-            half = int(len(res_files)/2)
+            half = int(len(res_files) / 2)
             old_names = res_files[:half]
             new_names = res_files[half:]
             names = list(zip(old_names, new_names))
@@ -763,39 +839,140 @@ class TestCloudProvisioning(BZTestCase):
     def test_check_interval(self):
         self.configure(
             engine_cfg={
-                ScenarioExecutor.EXEC: {
-                    "executor": "mock",
-                    "concurrency": 5500,
-                    "locations": {
-                        "us-east-1": 1,
-                        "us-west": 1}}},
-            client_results=[
-                {"result": []},  # collection
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {},  # upload files
-                {"result": {"id": id(self.obj)}},  # start test
-                {"result": {"id": id(self.obj)}},  # status
-                {"result": []},  # sessions
-                {"result": {"id": id(self.obj)}},  # status
-                {"result": []}])  # sessions
+                ScenarioExecutor.EXEC: {"executor": "mock", }},
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': [
+                    {"result": {"id": id(self.obj)}},
+                    {"result": {"id": id(self.obj), 'progress': 100}},
+                ],
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
+                'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {"result": [
+                    {"id": "ALL", "name": "ALL"},
+                    {"id": "e843ff89a5737891a10251cbb0db08e5", "name": "http://blazedemo.com/"}
+                ]},
+                'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=0&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                    "api_version": 2,
+                    "error": None,
+                    "result": [
+                        {
+                            "labelId": "ALL",
+                            "labelName": "ALL",
+                            "label": "ALL",
+                            "kpis": [
+                                {
+                                    "n": 15,
+                                    "na": 2,
+                                    "ec": 0,
+                                    "ts": 1442497724,
+                                    "t_avg": 558,
+                                    "lt_avg": 25.7,
+                                    "by_avg": 0,
+                                    "n_avg": 15,
+                                    "ec_avg": 0
+                                }, {
+                                    "n": 7,
+                                    "na": 4,
+                                    "ec": 0,
+                                    "ts": 1442497725,
+                                    "t_avg": 88.1,
+                                    "lt_avg": 11.9,
+                                    "by_avg": 0,
+                                    "n_avg": 7,
+                                    "ec_avg": 0
+                                }]
+                        }, {
+                            "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                            "labelName": "http://blazedemo.com/",
+                            "label": "http://blazedemo.com/",
+                            "kpis": [
+                                {
+                                    "n": 15,
+                                    "na": 2,
+                                    "ec": 0,
+                                    "ts": 1442497724,
+                                    "t_avg": 558,
+                                    "lt_avg": 25.7,
+                                    "by_avg": 0,
+                                    "n_avg": 15,
+                                    "ec_avg": 0
+                                }, {
+                                    "n": 7,
+                                    "na": 4,
+                                    "ec": 0,
+                                    "ts": 1442497725,
+                                    "t_avg": 88.1,
+                                    "lt_avg": 11.9,
+                                    "by_avg": 0,
+                                    "n_avg": 7,
+                                    "ec_avg": 0
+                                }]}]},
+                'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
+                    "api_version": 2,
+                    "error": None,
+                    "result": [
+                        {
+                            "labelId": "ALL",
+                            "labelName": "ALL",
+                            "samples": 152,
+                            "avgResponseTime": 786,
+                            "90line": 836,
+                            "95line": 912,
+                            "99line": 1050,
+                            "minResponseTime": 531,
+                            "maxResponseTime": 1148,
+                            "avgLatency": 81,
+                            "geoMeanResponseTime": None,
+                            "stDev": 108,
+                            "duration": 119,
+                            "avgBytes": 0,
+                            "avgThroughput": 1.2773109243697,
+                            "medianResponseTime": 0,
+                            "errorsCount": 0,
+                            "errorsRate": 0,
+                            "hasLabelPassedThresholds": None
+                        }, {
+                            "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                            "labelName": "http://blazedemo.com/",
+                            "samples": 152,
+                            "avgResponseTime": 786,
+                            "90line": 836,
+                            "95line": 912,
+                            "99line": 1050,
+                            "minResponseTime": 531,
+                            "maxResponseTime": 1148,
+                            "avgLatency": 81,
+                            "geoMeanResponseTime": None,
+                            "stDev": 108,
+                            "duration": 119,
+                            "avgBytes": 0,
+                            "avgThroughput": 1.2773109243697,
+                            "medianResponseTime": 0,
+                            "errorsCount": 0,
+                            "errorsRate": 0,
+                            "hasLabelPassedThresholds": None
+                        }]}
+            }
+        )
 
         self.obj.settings["check-interval"] = "1s"
 
         self.obj.prepare()
         self.obj.startup()
         self.obj.check()  # this one should work
+        self.obj.engine.aggregator.check()
         self.obj.check()  # this one should be skipped
-        time.sleep(1)
+        self.obj.engine.aggregator.check()
+        time.sleep(1.5)
         self.obj.check()  # this one should work
+        self.obj.engine.aggregator.check()
         self.obj.check()  # this one should skip
+        self.obj.results_reader.min_ts = 0  # to make it request same URL
+        self.obj.engine.aggregator.check()
 
-        self.assertEqual(self.obj.client.results, [])
+        self.assertEqual(22, len(self.mock.requests))
 
     def test_dump_locations(self):
-        self.configure(client_results=[self.__get_user_info()])
+        self.configure()
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
 
@@ -806,16 +983,15 @@ class TestCloudProvisioning(BZTestCase):
         warnings = log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
         info = log_recorder.info_buff.getvalue()
-        self.assertIn("Location: DFW	Dallas (Rackspace)", info)
-        self.assertIn("Location: us-west-2	US West (Oregon)", info)
-        self.assertNotIn("Location: harbor-5591335d8588531f5cde3a04	Sandbox", info)
-
+        self.assertIn("Location: us-west\tDallas (Rackspace)", info)
+        self.assertIn("Location: us-east-1\tEast", info)
+        self.assertNotIn("Location: harbor-sandbox\tSandbox", info)
         self.obj.post_process()
 
     def test_dump_locations_new_style(self):
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
-        self.configure(client_results=[self.__get_user_info()])
+        self.configure()
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = False
         self.assertRaises(ManualShutdown, self.obj.prepare)
@@ -823,9 +999,9 @@ class TestCloudProvisioning(BZTestCase):
         warnings = log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
         info = log_recorder.info_buff.getvalue()
-        self.assertIn("Location: DFW	Dallas (Rackspace)", info)
-        self.assertIn("Location: us-west-2	US West (Oregon)", info)
-        self.assertIn("Location: harbor-5591335d8588531f5cde3a04	Sandbox", info)
+        self.assertIn("Location: us-west\tDallas (Rackspace)", info)
+        self.assertIn("Location: us-east-1\tEast", info)
+        self.assertIn("Location: harbor-sandbox\tSandbox", info)
 
         self.obj.post_process()
 
@@ -846,13 +1022,7 @@ class TestCloudProvisioning(BZTestCase):
                         "detach": True,
                         "browser-open": None,
                         "check-interval": 10.0}}},
-            client_results=[
-                {"result": []},  # collection
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {}])  # upload files
+        )  # upload files
 
         # these should override 'blazemeter' settings
         self.obj.settings["check-interval"] = 20.0
@@ -862,9 +1032,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.assertEqual(self.obj.detach, True)
         self.assertEqual(self.obj.browser_open, "both")
-        self.assertEqual(self.obj.client.token, "bmtoken")
+        self.assertEqual(self.obj.user.token, "bmtoken")
         self.assertEqual(self.obj.check_interval, 20.0)
-        self.assertEqual(self.obj.client.results, [])
+        self.assertEqual(11, len(self.mock.requests))
 
     def test_public_report(self):
         self.configure(
@@ -875,18 +1045,15 @@ class TestCloudProvisioning(BZTestCase):
                     "locations": {
                         "us-west": 2
                     }}},
-            client_results=[
-                {"result": []},  # collections
-                {"result": []},  # tests
-                self.__get_user_info(),  # user
-                {"result": {"id": id(self.obj.client)}},  # create test
-                {"files": []},  # create test
-                {},  # upload files
-                {"result": {"id": id(self.obj)}},  # start
-                {'result': {'publicToken': 'publicToken'}},  # publish report
-                {"result": {"id": id(self.obj)}},  # get master
-                {"result": []},  # get master sessions
-                {}])  # terminate
+            post={
+                'https://a.blazemeter.com/api/v4/masters/1/public-token': {"result": {"publicToken": "publicToken"}}
+            },
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED"}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
+            }
+        )
 
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
@@ -899,10 +1066,8 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.post_process()
 
         log_buff = log_recorder.info_buff.getvalue()
-        log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/%s/summary"
-        self.assertIn(log_line % id(self.obj), log_buff)
-
-        self.assertEqual(self.obj.client.results, [])
+        log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/1/summary"
+        self.assertIn(log_line, log_buff)
 
 
 class TestCloudTaurusTest(BZTestCase):
@@ -914,121 +1079,118 @@ class TestCloudTaurusTest(BZTestCase):
 
 class TestResultsFromBZA(BZTestCase):
     def test_simple(self):
-        client = BlazeMeterClientEmul(logging.getLogger())
-        client.results.append({
-            "api_version": 2,
-            "error": None,
-            "result": [
-                {
-                    "id": "ALL",
-                    "name": "ALL"
-                }, {
-                    "id": "e843ff89a5737891a10251cbb0db08e5",
-                    "name": "http://blazedemo.com/"
-                }]})
-        client.results.append({
-            "api_version": 2,
-            "error": None,
-            "result": [
-                {
-                    "labelId": "ALL",
-                    "labelName": "ALL",
-                    "label": "ALL",
-                    "kpis": [
-                        {
-                            "n": 15,
-                            "na": 2,
-                            "ec": 0,
-                            "ts": 1442497724,
-                            "t_avg": 558,
-                            "lt_avg": 25.7,
-                            "by_avg": 0,
-                            "n_avg": 15,
-                            "ec_avg": 0
-                        }, {
-                            "n": 7,
-                            "na": 4,
-                            "ec": 0,
-                            "ts": 1442497725,
-                            "t_avg": 88.1,
-                            "lt_avg": 11.9,
-                            "by_avg": 0,
-                            "n_avg": 7,
-                            "ec_avg": 0
-                        }]
-                }, {
-                    "labelId": "e843ff89a5737891a10251cbb0db08e5",
-                    "labelName": "http://blazedemo.com/",
-                    "label": "http://blazedemo.com/",
-                    "kpis": [
-                        {
-                            "n": 15,
-                            "na": 2,
-                            "ec": 0,
-                            "ts": 1442497724,
-                            "t_avg": 558,
-                            "lt_avg": 25.7,
-                            "by_avg": 0,
-                            "n_avg": 15,
-                            "ec_avg": 0
-                        }, {
-                            "n": 7,
-                            "na": 4,
-                            "ec": 0,
-                            "ts": 1442497725,
-                            "t_avg": 88.1,
-                            "lt_avg": 11.9,
-                            "by_avg": 0,
-                            "n_avg": 7,
-                            "ec_avg": 0
-                        }]}]})
-        client.results.append({
-            "api_version": 2,
-            "error": None,
-            "result": [
-                {
-                    "labelId": "ALL",
-                    "labelName": "ALL",
-                    "samples": 152,
-                    "avgResponseTime": 786,
-                    "90line": 836,
-                    "95line": 912,
-                    "99line": 1050,
-                    "minResponseTime": 531,
-                    "maxResponseTime": 1148,
-                    "avgLatency": 81,
-                    "geoMeanResponseTime": None,
-                    "stDev": 108,
-                    "duration": 119,
-                    "avgBytes": 0,
-                    "avgThroughput": 1.2773109243697,
-                    "medianResponseTime": 0,
-                    "errorsCount": 0,
-                    "errorsRate": 0,
-                    "hasLabelPassedThresholds": None
-                }, {
-                    "labelId": "e843ff89a5737891a10251cbb0db08e5",
-                    "labelName": "http://blazedemo.com/",
-                    "samples": 152,
-                    "avgResponseTime": 786,
-                    "90line": 836,
-                    "95line": 912,
-                    "99line": 1050,
-                    "minResponseTime": 531,
-                    "maxResponseTime": 1148,
-                    "avgLatency": 81,
-                    "geoMeanResponseTime": None,
-                    "stDev": 108,
-                    "duration": 119,
-                    "avgBytes": 0,
-                    "avgThroughput": 1.2773109243697,
-                    "medianResponseTime": 0,
-                    "errorsCount": 0,
-                    "errorsRate": 0,
-                    "hasLabelPassedThresholds": None
-                }]})
-        obj = ResultsFromBZA(client)
-        obj.master_id = "master"
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {"result": [
+                {"id": "ALL", "name": "ALL"},
+                {"id": "e843ff89a5737891a10251cbb0db08e5", "name": "http://blazedemo.com/"}
+            ]},
+            'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=0&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                "api_version": 2,
+                "error": None,
+                "result": [
+                    {
+                        "labelId": "ALL",
+                        "labelName": "ALL",
+                        "label": "ALL",
+                        "kpis": [
+                            {
+                                "n": 15,
+                                "na": 2,
+                                "ec": 0,
+                                "ts": 1442497724,
+                                "t_avg": 558,
+                                "lt_avg": 25.7,
+                                "by_avg": 0,
+                                "n_avg": 15,
+                                "ec_avg": 0
+                            }, {
+                                "n": 7,
+                                "na": 4,
+                                "ec": 0,
+                                "ts": 1442497725,
+                                "t_avg": 88.1,
+                                "lt_avg": 11.9,
+                                "by_avg": 0,
+                                "n_avg": 7,
+                                "ec_avg": 0
+                            }]
+                    }, {
+                        "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                        "labelName": "http://blazedemo.com/",
+                        "label": "http://blazedemo.com/",
+                        "kpis": [
+                            {
+                                "n": 15,
+                                "na": 2,
+                                "ec": 0,
+                                "ts": 1442497724,
+                                "t_avg": 558,
+                                "lt_avg": 25.7,
+                                "by_avg": 0,
+                                "n_avg": 15,
+                                "ec_avg": 0
+                            }, {
+                                "n": 7,
+                                "na": 4,
+                                "ec": 0,
+                                "ts": 1442497725,
+                                "t_avg": 88.1,
+                                "lt_avg": 11.9,
+                                "by_avg": 0,
+                                "n_avg": 7,
+                                "ec_avg": 0
+                            }]}]},
+            'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
+                "api_version": 2,
+                "error": None,
+                "result": [
+                    {
+                        "labelId": "ALL",
+                        "labelName": "ALL",
+                        "samples": 152,
+                        "avgResponseTime": 786,
+                        "90line": 836,
+                        "95line": 912,
+                        "99line": 1050,
+                        "minResponseTime": 531,
+                        "maxResponseTime": 1148,
+                        "avgLatency": 81,
+                        "geoMeanResponseTime": None,
+                        "stDev": 108,
+                        "duration": 119,
+                        "avgBytes": 0,
+                        "avgThroughput": 1.2773109243697,
+                        "medianResponseTime": 0,
+                        "errorsCount": 0,
+                        "errorsRate": 0,
+                        "hasLabelPassedThresholds": None
+                    }, {
+                        "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                        "labelName": "http://blazedemo.com/",
+                        "samples": 152,
+                        "avgResponseTime": 786,
+                        "90line": 836,
+                        "95line": 912,
+                        "99line": 1050,
+                        "minResponseTime": 531,
+                        "maxResponseTime": 1148,
+                        "avgLatency": 81,
+                        "geoMeanResponseTime": None,
+                        "stDev": 108,
+                        "duration": 119,
+                        "avgBytes": 0,
+                        "avgThroughput": 1.2773109243697,
+                        "medianResponseTime": 0,
+                        "errorsCount": 0,
+                        "errorsRate": 0,
+                        "hasLabelPassedThresholds": None
+                    }]}
+        })
+
+        obj = ResultsFromBZA()
+        obj.master = Master(data={'id': 1})
+        mock.apply(obj.master)
         results = [x for x in obj.datapoints(True)]
         self.assertEquals(2, len(results))
         cumulative = results[-1][DataPoint.CUMULATIVE]['']

@@ -6,6 +6,9 @@ execution:
   ramp-up: 2m
   steps: 5
   #executor: gatling
+  locations:
+    #harbor-58bbed8d22fd94c407c1ac63: 1 # udi
+    #harbor-58c6a83a52e2096d4d7b23c6: 1 # qa
 
 scenarios:
   simple:
@@ -13,7 +16,13 @@ scenarios:
     requests:
     - http://blazedemo.com
 
-services:
+
+reporting:
 - module: passfail
   criteria:
-  - avg-rt>5ms for 10s, stop as failed
+  - avg-rt>5000ms for 5s, stop as failed
+- module: junit-xml
+  data-source: pass-fail
+- module: final-stats
+  dump-xml: true
+  

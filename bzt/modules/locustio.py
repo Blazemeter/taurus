@@ -29,8 +29,10 @@ from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
+from bzt.requests_model import HTTPRequest
 from bzt.six import PY3, iteritems
-from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time, ensure_is_dict, PythonGenerator
+from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time
+from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
@@ -82,17 +84,14 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         else:
             hatch = concurrency
 
-        wrapper = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                               os.pardir,
-                               "resources",
-                               "locustio-taurus-wrapper.py")
+        wrapper = os.path.join(get_full_path(__file__, step_up=2), "resources", "locustio-taurus-wrapper.py")
 
         env = BetterDict()
         env.merge({"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()})
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
 
-        args = [sys.executable, os.path.realpath(wrapper), '-f', os.path.realpath(self.script)]
+        args = [sys.executable, wrapper, '-f', self.script]
         args += ['--logfile=%s' % self.engine.create_artifact("locust", ".log")]
         args += ["--no-web", "--only-summary", ]
         args += ["--clients=%d" % concurrency, "--hatch-rate=%d" % hatch]
@@ -107,8 +106,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             env["JTL"] = self.kpi_jtl
 
         host = self.get_scenario().get("default-address", None)
-        if host:
-            args.append("--host=%s" % host)
+        if host is None:
+            host = ''
+        args.append('--host=%s' % host)
 
         self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
         self.process = self.execute(args, stderr=STDOUT, stdout=self.__out, env=env)
@@ -316,7 +316,9 @@ from locust import HttpLocust, TaskSet, task
 
         swarm_class.append(self.gen_statement('task_set = UserBehaviour', indent=4))
 
-        default_address = self.scenario.get("default-address", "")
+        default_address = self.scenario.get("default-address", None)
+        if default_address is None:
+            default_address = ''
         swarm_class.append(self.gen_statement('host = "%s"' % default_address, indent=4))
 
         swarm_class.append(self.gen_statement('min_wait = %s' % 0, indent=4))
@@ -332,21 +334,23 @@ from locust import HttpLocust, TaskSet, task
         task = self.gen_method_definition("generated_task", ['self'])
 
         think_time = dehumanize_time(self.scenario.get('think-time', None))
-        timeout = dehumanize_time(self.scenario.get("timeout", 30))
-        global_headers = self.scenario.get("headers", None)
+        global_headers = self.scenario.get_headers()
         if not self.scenario.get("keepalive", True):
             global_headers['Connection'] = 'close'
 
         for req in self.scenario.get_requests():
+            if not isinstance(req, HTTPRequest):
+                msg = "Locust script generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+
             method = req.method.lower()
             if method not in ('get', 'delete', 'head', 'options', 'path', 'put', 'post'):
                 raise TaurusConfigError("Wrong Locust request type: %s" % method)
 
-            if req.timeout:
-                local_timeout = dehumanize_time(req.timeout)
-            else:
-                local_timeout = timeout
-            self.__gen_check(method, req, task, local_timeout, global_headers)
+            timeout = req.priority_option('timeout', default='30s')
+
+            self.__gen_check(method, req, task, dehumanize_time(timeout), global_headers)
 
             if req.think_time:
                 task.append(self.gen_statement("sleep(%s)" % dehumanize_time(req.think_time)))

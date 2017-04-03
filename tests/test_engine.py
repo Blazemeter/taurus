@@ -67,6 +67,46 @@ class TestEngine(BZTestCase):
 
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
+    def test_null_aggregator(self):
+        self.obj.config.merge({
+            "execution": [{
+                "scenario": {
+                    "requests": [{"url": "http://example.com/"}],
+                }}],
+            "settings": {
+                "aggregator": None,
+                "default-executor": "jmeter",
+            },
+            "modules": {
+                "local": "bzt.modules.provisioning.Local",
+                "jmeter": "bzt.modules.jmeter.JMeterExecutor",
+            }})
+        self.obj.prepare()
+
+    def test_yaml_multi_docs(self):
+        configs = [
+            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/yaml/multi-docs.yml",
+            self.paths
+        ]
+        self.obj.configure(configs)
+        self.obj.prepare()
+        self.assertEqual(len(self.obj.config["execution"]), 2)
+
+    def test_json_format_regression(self):
+        configs = [
+            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/json/json-but-not-yaml.json"
+        ]
+        self.obj.configure(configs)
+        self.obj.prepare()
+
+    def test_invalid_format(self):
+        configs = [
+            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/data/jmeter-dist-3.0.zip"
+        ]
+        self.assertRaises(TaurusConfigError, lambda: self.obj.configure(configs))
 
 
 class TestScenarioExecutor(BZTestCase):
@@ -189,3 +229,17 @@ class TestScenarioExecutor(BZTestCase):
         process = self.executor.execute(cmdline, shell=True)
         stdout, _ = process.communicate()
         self.assertEquals(self.engine.artifacts_dir, stdout.decode().strip())
+
+    def test_case_of_variables(self):
+        env = {'aaa': 333, 'AAA': 666}
+        line_tpl = "echo %%%s%%" if is_windows() else "echo $%s"
+        cmdlines = [line_tpl % "aaa", line_tpl % "AAA"]
+        results = set()
+        for cmdline in cmdlines:
+            process = self.executor.execute(cmdline, shell= True, env=env)
+            stdout, _ = process.communicate()
+            results.add(stdout.decode().strip())
+        if is_windows():
+            self.assertEqual(1, len(results))
+        else:
+            self.assertEqual(2, len(results))

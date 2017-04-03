@@ -82,6 +82,26 @@ execution:
   concurrency: 1
   hold-for: 10s
   iterations: 10
+  scenario:
+    browser: Chrome
+    requests:
+      - url: http://blazedemo.com/
+        label: selenium-chrome
+
+- executor: selenium
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    browser: Firefox
+    requests:
+      - url: http://blazedemo.com/
+        label: selenium-firefox
+
+- executor: selenium
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
   runner: junit
   scenario:
     script: BOOTH1/Blazedemo.java
@@ -107,24 +127,4 @@ execution:
   iterations: 10
   scenario:
     script: selenium/mocha_example.js
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    browser: Chrome
-    requests:
-      - url: http://blazedemo.com/
-        label: selenium-chrome
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    browser: Firefox
-    requests:
-      - url: http://blazedemo.com/
-        label: selenium-firefox
 

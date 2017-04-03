@@ -63,10 +63,24 @@
           "assert-jsonpath": [
             "$.",
             {
-              "jsonpath": "$.result[*].type",
-              "expected-value": "some_value",
+              "jsonpath": "$.res[0].type",
+              "expected-value": "some_value.1",
               "validate": true,
               "expect-null": false,
+              "invert": false
+            },
+            {
+              "jsonpath": "$.res[1].ip",
+              "expected-value": "some_value.2",
+              "validate": true,
+              "expect-null": false,
+              "invert": true,
+              "regexp": false
+            },
+            {
+              "jsonpath": "$.res[2].default",
+              "validate": false,
+              "expect-null": true,
               "invert": false
             }
           ],
