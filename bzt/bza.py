@@ -45,7 +45,7 @@ class BZAObject(dict):
                     continue
                 self.__setattr__(attr, proto.__getattribute__(attr))
 
-    def _request(self, url, data=None, headers=None, method=None):
+    def _request(self, url, data=None, headers=None, method=None, raw_result=False):
         """
         :param url: str
         :type data: Union[dict,str]
@@ -83,13 +83,14 @@ class BZAObject(dict):
         response = self.http_request(method=log_method, url=url, data=data, headers=headers, cookies=self._cookies,
                                      timeout=self.timeout)
 
-        resp = response.content
-        if not isinstance(resp, str):
-            resp = resp.decode()
+        resp = response.text
 
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
         if response.status_code >= 400:
             raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
+
+        if raw_result:
+            return resp
 
         try:
             result = json.loads(resp) if len(resp) else {}

@@ -16,71 +16,73 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import json
 import sys
 import time
 import os
 import shutil
 
-import requests
+from bzt.bza import BZAObject
 
 from os.path import join, isfile
 
-from bzt import TaurusConfigError, TaurusNetworkError, TaurusInternalException
+from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Service
 from bzt.utils import is_windows, get_full_path
 from bzt.modules.selenium import AbstractSeleniumExecutor
 
 
+class BZAProxy(BZAObject):
+    def __init__(self):
+        super(BZAProxy, self).__init__()
+        self.address = 'https://a.blazemeter.com/api/latest/proxy'
+        self.delay = 5
+
+    def stop(self):
+        self._request(self.address + '/recording/stop', method='POST')
+
+    def start(self):
+        self._request(self.address + '/recording/start', method='POST')
+
+    def get_jmx(self):
+        # wait for availability
+        while True:
+            response = self._request(self.address)
+            if response['result']['smartjmx'] == "available":
+                break
+            time.sleep(self.delay)
+
+        response = self._request(self.address + '/download?format=jmx&smart=true', raw_result=True)
+        return response
+
+    def get_addr(self):
+        response = self._request(self.address)
+
+        proxy_info = response['result']
+        if proxy_info:
+            self.log.info('Using existing recording proxy...')
+            if proxy_info['status'] == 'active':
+                self.log.info('Proxy is active, stop it')
+                self.stop()
+        else:
+            self.log.info('Creating new recording proxy...')
+            response = self._request(self.address, method='POST')
+            proxy_info = response['result']
+
+        self._request(self.address + '/recording/clear', method='POST')
+
+        return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])
+
+
 class Proxy2JMX(Service):
     def __init__(self):
         super(Proxy2JMX, self).__init__()
-        self.proxy = None
+        self.proxy_addr = None
+        self.proxy = BZAProxy()
         self.headers = {}
-        self.api_delay = 5
-        self.address = 'https://a.blazemeter.com/api/latest/mitmproxies'
         self.label = 'generated'
-
-    def api_request(self, path='', method='GET', check=True):
-        if method == 'GET':
-            req = requests.get(self.address + path, headers=self.headers)
-        elif method == 'POST':
-            req = requests.post(self.address + path, headers=self.headers)
-        else:
-            raise TaurusInternalException('Unsupported API request method: %s' % method)
-
-        if check and req.status_code != 200:
-            json_content = json.loads(req.text)
-            raise TaurusNetworkError('API request failed: %s' % json_content['error']['message'])
-        return req
-
-    def __get_proxy(self):
-        req = self.api_request(check=False)
-
-        if req.status_code == 404:
-            self.log.info('Creating new recording proxy...')
-            req = self.api_request(method='POST')
-            json_content = json.loads(req.text)
-        elif req.status_code == 200:
-            self.log.info('Using existing recording proxy...')
-            json_content = json.loads(req.text)
-            if json_content['result']['status'] == 'active':
-                self.log.info('Proxy is active, stop it')
-                self.api_request('/stopRecording', 'POST')
-        else:
-            json_content = json.loads(req.text)
-            raise TaurusNetworkError('API request failed: %s' % json_content['error']['message'])
-
-        self.api_request('/clearRecording', 'POST')
-
-        host = json_content['result']['host']
-        port = json_content['result']['port']
-
-        return 'http://%s:%s' % (host, port)
 
     def prepare(self):
         super(Proxy2JMX, self).prepare()
-        self.address = self.settings.get('address', self.address)
         token = self.settings.get('token')
         if not token:
             token = self.engine.config.get('modules').get('blazemeter').get('token')
@@ -90,10 +92,10 @@ class Proxy2JMX(Service):
                   "'proxy2jmx' or 'blazemeter' modules to use Proxy Recorder"
             raise TaurusConfigError(msg)
 
-        self.headers = {"X-Api-Key": token}
+        self.proxy.token = token
 
         # todo: handle network exceptions (ssl, ...) in next call
-        self.proxy = self.__get_proxy()
+        self.proxy_addr = self.proxy.get_addr()
 
     def startup(self):
         super(Proxy2JMX, self).startup()
@@ -103,12 +105,12 @@ class Proxy2JMX(Service):
         is_linux = 'linux' in sys.platform.lower()
         additional_env = {}
         if is_linux:
-            self.log.info('Set proxy for selenium: %s', self.proxy)
-            additional_env.update({'http_proxy': self.proxy,  # set vars anyway for case
-                                  'https_proxy': self.proxy,  # linux system can't say correct name
-                                  'HTTP_PROXY': self.proxy,
-                                  'HTTPS_PROXY': self.proxy,
-                                  "CHROMIUM_USER_FLAGS": "--proxy-server=%s" % self.proxy,  # for Linux chrome
+            self.log.info('Set proxy for selenium: %s', self.proxy_addr)
+            additional_env.update({'http_proxy': self.proxy_addr,  # set vars anyway for case
+                                  'https_proxy': self.proxy_addr,  # linux system can't say correct name
+                                  'HTTP_PROXY': self.proxy_addr,
+                                  'HTTPS_PROXY': self.proxy_addr,
+                                  "CHROMIUM_USER_FLAGS": "--proxy-server=%s" % self.proxy_addr,  # for Linux chrome
                                   'XDG_CURRENT_DESKTOP': None,  # (it might be in Docker, etc.)
                                   'DESKTOP_SESSION': None,
                                   'GNOME_DESKTOP_SESSION_ID': None,
@@ -121,7 +123,7 @@ class Proxy2JMX(Service):
                 new_path = join(self.engine.artifacts_dir, 'chrome-loader') + os.pathsep + os.getenv('PATH', '')
                 additional_env.update({
                     'path_to_chrome': chrome_path,
-                    'additional_chrome_params': '--proxy-server="%s"' % self.proxy,
+                    'additional_chrome_params': '--proxy-server="%s"' % self.proxy_addr,
                     'chrome_loader_log': self.engine.create_artifact('chrome-loader', '.log'),
                     'path': new_path
                 })
@@ -139,7 +141,7 @@ class Proxy2JMX(Service):
         if len(labels) == 1:
             self.label += '_' + labels[0]
 
-        self.api_request('/startRecording', 'POST')
+        self.proxy.start()
 
     @staticmethod
     def _get_chrome_path():
@@ -188,7 +190,7 @@ class Proxy2JMX(Service):
     def shutdown(self):
         super(Proxy2JMX, self).shutdown()
         self.log.info("Stopping BlazeMeter recorder...")
-        self.api_request('/stopRecording', 'POST')
+        self.proxy.stop()
 
     def post_process(self):
         super(Proxy2JMX, self).post_process()
@@ -197,20 +199,13 @@ class Proxy2JMX(Service):
             return
 
         self.log.info("Waiting for proxy to generate JMX...")
-        while True:
-            req = self.api_request()
-            json_content = json.loads(req.text)
-            if json_content['result']['smartjmx'] == "available":
-                break
-            time.sleep(self.api_delay)
-
-        req = self.api_request('/jmx?smart=true')
+        jmx_text = self.proxy.get_jmx()
         jmx_file = self.engine.create_artifact(self.label, '.jmx')
         with open(jmx_file, 'w') as _file:
-            _file.writelines(req.text)
+            _file.writelines(jmx_text)
 
         self.log.info("JMX saved into %s", jmx_file)
-        if 'HTTPSampler' not in req.text:
+        if 'HTTPSampler' not in jmx_text:
             self.log.warning("There aren't requests recorded by proxy2jmx, check your proxy configuration")
 
         # log of chrome-loader not found under windows
