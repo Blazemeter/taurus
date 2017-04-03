@@ -24,7 +24,7 @@ class TestApiritif(unittest.TestCase):
     def test_assertions(self):
         result = run_apiritif_script(__dir__() + "/apiritif/test_assertions.py")
         self.assertTrue(result.wasSuccessful())
-        self.assertEqual(result.testsRun, 3)
+        self.assertEqual(result.testsRun, 21)
 
     def test_methods(self):
         result = run_apiritif_script(__dir__() + "/apiritif/test_methods.py")

@@ -230,12 +230,12 @@ class APITestCase(TestCase):
     @record_assertion
     def assertRegexInHeaders(self, member, response=None, msg=None):
         response = response or self._get_last_response()
-        self.assertIn(member, headers_as_text(response.headers), msg=msg)
+        self.assertRegexp(member, headers_as_text(response.headers), msg=msg)
 
     @record_assertion
     def assertRegexNotInHeaders(self, member, response=None, msg=None):
         response = response or self._get_last_response()
-        self.assertNotIn(member, headers_as_text(response.headers), msg=msg)
+        self.assertNotRegexp(member, headers_as_text(response.headers), msg=msg)
 
     @record_assertion
     def assertJSONPath(self, jsonpath_query, response=None, expected_value=None, msg=None):
