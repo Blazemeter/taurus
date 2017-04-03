@@ -83,7 +83,9 @@ class BZAObject(dict):
         response = self.http_request(method=log_method, url=url, data=data, headers=headers, cookies=self._cookies,
                                      timeout=self.timeout)
 
-        resp = response.text
+        resp = response.content
+        if not isinstance(resp, str):
+            resp = resp.decode()
 
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
         if response.status_code >= 400:
