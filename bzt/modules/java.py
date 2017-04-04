@@ -93,8 +93,8 @@ class JavaTestRunner(SubprocessedExecutor):
         compile_cl.extend(["-cp", os.pathsep.join(self.base_class_path)])
         compile_cl.extend(self._collect_script_files({".java"}))
 
-        with open(os.path.join(self.engine.artifacts_dir, "javac.out"), 'ab') as javac_out:
-            with open(os.path.join(self.engine.artifacts_dir, "javac.err"), 'ab') as javac_err:
+        with open(self.engine.create_artifact("javac", ".out"), 'ab') as javac_out:
+            with open(self.engine.create_artifact("javac", ".err"), 'ab') as javac_err:
                 self.log.debug("running javac: %s", compile_cl)
                 self.process = shell_exec(compile_cl, stdout=javac_out, stderr=javac_err)
                 ret_code = self.process.poll()
@@ -191,7 +191,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
 
         self.check_tools(tools)
 
-    def run_tests(self):
+    def startup(self):
         # java -cp junit.jar:selenium-test-small.jar:
         # selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar
         # taurusjunit.CustomRunner runner.properties
@@ -201,7 +201,8 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         self.base_class_path.extend(jar_list)
 
         with open(self.props_file, 'wt') as props:
-            props.write("report_file=%s\n" % self.settings.get("report-file").replace(os.path.sep, '/'))
+            report_file = self.execution.get("report-file", TaurusConfigError("Missing report file name"))
+            props.write("report_file=%s\n" % report_file.replace(os.path.sep, '/'))
 
             load = self.get_load()
             if load.iterations:
@@ -213,14 +214,10 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
             for index, item in enumerate(jar_list):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
-        std_out = open(self.settings.get("stdout"), "wt")
-        self.opened_descriptors.append(std_out)
-        std_err = open(self.settings.get("stderr"), "wt")
-        self.opened_descriptors.append(std_err)
-
         junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
                               self.props_file]
-        self.process = self.execute(junit_command_line, stdout=std_out, stderr=std_err, env=self.env)
+
+        self._start_subprocess(junit_command_line)
 
 
 class TestNGTester(JavaTestRunner, HavingInstallableTools):

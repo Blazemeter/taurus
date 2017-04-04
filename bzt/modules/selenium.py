@@ -147,11 +147,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         elif script_type == "junit":
             runner_class = JUnitTester
             runner_config.merge(self.settings.get("selenium-tools").get("junit"))
-            runner_config['working-dir'] = self.get_runner_working_dir()
         elif script_type == "testng":
             runner_class = TestNGTester
             runner_config.merge(self.settings.get("selenium-tools").get("testng"))
-            runner_config['working-dir'] = self.get_runner_working_dir()
             runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
             testng_config = self._get_testng_xml()
             if testng_config:
@@ -166,9 +164,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             raise TaurusConfigError("Unsupported script type: %s" % script_type)
 
         runner_config["script-type"] = script_type
-        runner_config["report-file"] = report_file
-        runner_config["stdout"] = self.engine.create_artifact("selenium", ".out")
-        runner_config["stderr"] = self.engine.create_artifact("selenium", ".err")
         runner = runner_class()
         runner.engine = self.engine
         runner.log = self.log.getChild(script_type)
@@ -177,6 +172,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         runner.provisioning = self.provisioning
         runner.script = self.script
         runner.execution = self.execution
+        runner.execution["report-file"] = report_file  # TODO: shouldn't it be the field?
         return runner
 
     def _register_reader(self, report_file):

@@ -1083,12 +1083,22 @@ class SubprocessedExecutor(ScenarioExecutor):
         self.env = {}
         self.process = None
         self.opened_descriptors = []
+        self._stderr_file = None
+
+    def _start_subprocess(self, cmdline):
+        prefix = self.label
+        std_out = open(self.engine.create_artifact(prefix, ".out"), "wt")
+        self.opened_descriptors.append(std_out)
+        self._stderr_file = self.engine.create_artifact(prefix, ".err")
+        std_err = open(self._stderr_file, "wt")
+        self.opened_descriptors.append(std_err)
+        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env)
 
     def check(self):
         ret_code = self.process.poll()
         if ret_code is not None:
             if ret_code != 0:
-                with open(self.settings.get("stderr")) as fds:
+                with open(self._stderr_file) as fds:
                     std_err = fds.read()
                 msg = "Test runner %s (%s) has failed with retcode %s \n %s"
                 raise ToolError(msg % (self.label, self.__class__.__name__, ret_code, std_err.strip()))
