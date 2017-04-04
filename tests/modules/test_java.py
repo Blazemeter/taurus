@@ -1,12 +1,14 @@
 import logging
 import shutil
 import time
+import traceback
 
 import os
 import yaml
 from tests import __dir__
 
 from bzt.engine import ScenarioExecutor
+from bzt.modules import java
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION
 from bzt.utils import get_full_path
@@ -31,16 +33,16 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
 
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
 
-        selenium_server_link = SeleniumExecutor.SELENIUM_DOWNLOAD_LINK
-        SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
+        selenium_server_link = java.SELENIUM_DOWNLOAD_LINK
+        java.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
 
-        junit_link = SeleniumExecutor.JUNIT_DOWNLOAD_LINK
-        junit_mirrors = SeleniumExecutor.JUNIT_MIRRORS_SOURCE
-        SeleniumExecutor.JUNIT_DOWNLOAD_LINK = base_link + "/junit-4.12.jar"
-        SeleniumExecutor.JUNIT_MIRRORS_SOURCE = base_link + "unicode_file"
+        junit_link = java.JUNIT_DOWNLOAD_LINK
+        junit_mirrors = java.JUNIT_MIRRORS_SOURCE
+        java.JUNIT_DOWNLOAD_LINK = base_link + "/junit-4.12.jar"
+        java.JUNIT_MIRRORS_SOURCE = base_link + "unicode_file"
 
-        hamcrest_link = SeleniumExecutor.HAMCREST_DOWNLOAD_LINK
-        SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
+        hamcrest_link = java.HAMCREST_DOWNLOAD_LINK
+        java.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
 
         self.assertFalse(os.path.exists(dummy_installation_path))
 
@@ -61,10 +63,10 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
-        SeleniumExecutor.SELENIUM_DOWNLOAD_LINK = selenium_server_link
-        SeleniumExecutor.JUNIT_DOWNLOAD_LINK = junit_link
-        SeleniumExecutor.HAMCREST_DOWNLOAD_LINK = hamcrest_link
-        SeleniumExecutor.JUNIT_MIRRORS_SOURCE = junit_mirrors
+        java.SELENIUM_DOWNLOAD_LINK = selenium_server_link
+        java.JUNIT_DOWNLOAD_LINK = junit_link
+        java.HAMCREST_DOWNLOAD_LINK = hamcrest_link
+        java.JUNIT_MIRRORS_SOURCE = junit_mirrors
 
     def test_prepare_java_single(self):
         """
@@ -162,7 +164,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 0)
         self.assertEqual(len(jars), 0)
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
 
     def test_selenium_startup_shutdown_jar_folder(self):
         """
@@ -190,7 +192,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 0)
         self.assertEqual(len(jars), 0)
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
 
     def test_selenium_startup_shutdown_java_single(self):
         """
@@ -222,7 +224,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(1, len(class_files))
         self.assertEqual(1, len(jars))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
 
     def test_selenium_startup_shutdown_java_folder(self):
         """
@@ -252,7 +254,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(2, len(class_files))
         self.assertEqual(1, len(jars))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
 
     def test_not_junit(self):
         """
@@ -271,6 +273,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                 time.sleep(1)
             self.fail()
         except BaseException as exc:
+            logging.debug(traceback.format_exc())
             self.assertIn("Nothing to test", exc.args[0])
         self.obj.shutdown()
 
@@ -435,7 +438,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
         duration = time.time() - self.obj.start_time
         self.assertGreater(duration, 5)
 
@@ -455,8 +458,8 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
-        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        lines = open(self.obj.runner.execution.get("report-file")).readlines()
         self.assertEqual(len(lines), 9)
 
     def test_with_testng_config(self):
@@ -473,8 +476,8 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
-        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        lines = open(self.obj.runner.execution.get("report-file")).readlines()
         self.assertEqual(len(lines), 6)
 
     def test_testng_config_autodetect(self):
@@ -492,8 +495,8 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
-        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        lines = open(self.obj.runner.execution.get("report-file")).readlines()
         self.assertEqual(len(lines), 6)
 
     def test_autodetect_script_type(self):

@@ -52,7 +52,6 @@ class JavaTestRunner(SubprocessedExecutor):
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
         self.base_class_path.extend(self.settings.get("additional-classpath", []))
         self.base_class_path.extend(self.get_scenario().get("additional-classpath", []))
-
         self.props_file = self.engine.create_artifact("runner", ".properties")
 
         if not os.path.exists(self.working_dir):
@@ -158,18 +157,21 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
 
     def prepare(self):
         super(JUnitTester, self).prepare()
-        self.junit_path = self.settings.get("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar")
-        self.hamcrest_path = self.settings.get("hamcrest-core", "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar")
-        self.json_jar_path = self.settings.get("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar")
-        self.selenium_server_jar_path = self.settings.get("selenium-server",
-                                                          "~/.bzt/selenium-taurus/selenium-server.jar")
+        path_lambda = lambda x: os.path.abspath(self.engine.find_file(x))
+        self.junit_path = path_lambda(self.settings.get("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar"))
+        self.hamcrest_path = path_lambda(self.settings.get("hamcrest-core",
+                                                           "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar"))
+        self.json_jar_path = path_lambda(self.settings.get("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar"))
+        self.selenium_server_jar_path = path_lambda(self.settings.get("selenium-server",
+                                                                      "~/.bzt/selenium-taurus/selenium-server.jar"))
         self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=2),
                                                 "resources", "taurus-junit-1.0.jar")
+        self.install_required_tools()
 
         self.base_class_path += [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
                                  self.hamcrest_path, self.json_jar_path]
 
-        self.base_class_path = [os.path.abspath(self.engine.find_file(x)) for x in self.base_class_path]
+        self.base_class_path = [path_lambda(x) for x in self.base_class_path]
 
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()

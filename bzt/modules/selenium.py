@@ -173,6 +173,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         runner.script = self.script
         runner.execution = self.execution
         runner.execution["report-file"] = report_file  # TODO: shouldn't it be the field?
+        runner.settings.merge(runner_config)  # TODO: shouldn't we use 'execution' instead?
         return runner
 
     def _register_reader(self, report_file):
