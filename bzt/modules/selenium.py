@@ -150,7 +150,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         elif script_type == "testng":
             runner_class = TestNGTester
             runner_config.merge(self.settings.get("selenium-tools").get("testng"))
-            runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
             testng_config = self._get_testng_xml()
             if testng_config:
                 runner_config['testng-xml'] = self.engine.find_file(testng_config)
@@ -198,7 +197,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         self.report_file = self.engine.create_artifact("selenium_tests_report", ".ldjson")
         self.runner = self._create_runner(self.report_file)
-
         self.runner.prepare()
         if self.register_reader:
             self.reader = self._register_reader(self.report_file)

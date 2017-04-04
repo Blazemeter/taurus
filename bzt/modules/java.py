@@ -7,7 +7,7 @@ import os
 from bzt import ToolError, TaurusConfigError
 
 from bzt.engine import SubprocessedExecutor, HavingInstallableTools
-from bzt.utils import BetterDict, get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager
+from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager
 
 SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.3/" \
                          "selenium-server-standalone-3.3.0.jar"
@@ -47,8 +47,17 @@ class JavaTestRunner(SubprocessedExecutor):
         """
         make jar.
         """
+        path_lambda = lambda x: os.path.abspath(self.engine.find_file(x))
+        self.hamcrest_path = path_lambda(self.settings.get("hamcrest-core",
+                                                           "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar"))
+        self.json_jar_path = path_lambda(self.settings.get("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar"))
+        self.selenium_server_jar_path = path_lambda(self.settings.get("selenium-server",
+                                                                      "~/.bzt/selenium-taurus/selenium-server.jar"))
+
+        self.base_class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_jar_path])
+
         self.script = self.settings.get("script", self.script)
-        self.working_dir = self.settings.get("working-dir", self.engine.create_artifact("classes", ""))
+        self.working_dir = self.engine.create_artifact(self.settings.get("working-dir", "classes"), "")
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
         self.base_class_path.extend(self.settings.get("additional-classpath", []))
         self.base_class_path.extend(self.get_scenario().get("additional-classpath", []))
@@ -159,17 +168,11 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         super(JUnitTester, self).prepare()
         path_lambda = lambda x: os.path.abspath(self.engine.find_file(x))
         self.junit_path = path_lambda(self.settings.get("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar"))
-        self.hamcrest_path = path_lambda(self.settings.get("hamcrest-core",
-                                                           "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar"))
-        self.json_jar_path = path_lambda(self.settings.get("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar"))
-        self.selenium_server_jar_path = path_lambda(self.settings.get("selenium-server",
-                                                                      "~/.bzt/selenium-taurus/selenium-server.jar"))
         self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=2),
                                                 "resources", "taurus-junit-1.0.jar")
         self.install_required_tools()
 
-        self.base_class_path += [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
-                                 self.hamcrest_path, self.json_jar_path]
+        self.base_class_path += [self.junit_path, self.junit_listener_path]
 
         self.base_class_path = [path_lambda(x) for x in self.base_class_path]
 
@@ -230,20 +233,14 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
     __test__ = False  # Hello, nosetests discovery mechanism
 
     def prepare(self):
-        testng_config = {}
-        self.props_file = testng_config.get('props-file', None)
-
-        path_lambda = lambda key, val: get_full_path(testng_config.get(key, val))
-        self.testng_path = path_lambda("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar")
-        self.hamcrest_path = path_lambda("hamcrest-core", "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar")
-        self.json_jar_path = path_lambda("json-jar", "~/.bzt/selenium-taurus/tools/testng/json.jar")
-        self.selenium_server_jar_path = path_lambda("selenium-server", "~/.bzt/selenium-taurus/selenium-server.jar")
+        super(TestNGTester, self).prepare()
+        path_lambda = lambda x: os.path.abspath(self.engine.find_file(x))
+        self.testng_path = path_lambda(self.settings.get("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar"))
         self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                                "resources",
                                                "taurus-testng-1.0.jar")
-
-        self.base_class_path += [self.selenium_server_jar_path, self.testng_path, self.testng_plugin_path,
-                                 self.hamcrest_path, self.json_jar_path]
+        self.install_required_tools()
+        self.base_class_path += [self.testng_path, self.testng_plugin_path]
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
 
@@ -263,7 +260,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
         self.check_tools(tools)
 
-    def run_tests(self):
+    def startup(self):
         # java -classpath
         # testng.jar:selenium-server.jar:taurus-testng-1.0.jar:json.jar:compiled.jar
         # taurustestng.TestNGRunner runner.properties
@@ -273,7 +270,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         self.base_class_path.extend(jar_list)
 
         with open(self.props_file, 'wt') as props:
-            props.write("report_file=%s\n" % self.settings.get("report-file").replace(os.path.sep, '/'))
+            props.write("report_file=%s\n" % self.execution.get("report-file").replace(os.path.sep, '/'))
 
             load = self.get_load()
             if load.iterations:
@@ -288,16 +285,8 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
             if self.settings.get('testng-xml'):
                 props.write('testng_config=%s\n' % self.settings.get('testng-xml').replace(os.path.sep, '/'))
 
-        std_out = open(self.settings.get("stdout"), "wt")
-        self.opened_descriptors.append(std_out)
-        std_err = open(self.settings.get("stderr"), "wt")
-        self.opened_descriptors.append(std_err)
-
-        env = BetterDict()
-        env.merge(self.env)
-
         cmdline = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurustestng.TestNGRunner", self.props_file]
-        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=env)
+        self._start_subprocess(cmdline)
 
 
 class TestNGJar(RequiredTool):
