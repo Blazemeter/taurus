@@ -31,7 +31,7 @@ from distutils.version import LooseVersion
 
 import os
 import yaml
-from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
+from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, ToolError
 from json import encoder
 from yaml.representer import SafeRepresenter
 
@@ -39,7 +39,7 @@ import bzt
 from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
-from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
+from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, shutdown_process
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
 from bzt.utils import str_representer
 
@@ -1068,3 +1068,86 @@ class HavingInstallableTools(object):
     @abstractmethod
     def install_required_tools(self):
         pass
+
+
+# FIXME: temporary resort
+class AbstractSeleniumExecutor(ScenarioExecutor, HavingInstallableTools):
+    """
+    Abstract base class for Selenium executors.
+
+    All executors must implement the following interface.
+    """
+
+    SHARED_VIRTUAL_DISPLAY = {}
+
+    def __init__(self, settings, executor):
+        """
+    
+        :type settings: dict
+        :type executor: SeleniumExecutor
+        """
+        self.process = None
+        self.settings = settings
+        self.required_tools = []
+        self.executor = executor
+        self.scenario = executor.scenario
+        self.load = executor.get_load()
+        self.script = self.settings.get("script", TaurusConfigError("Script not passed to runner %s" % self))
+        self.artifacts_dir = self.settings.get("artifacts-dir")
+        self.log = executor.log.getChild(self.__class__.__name__)
+        self.opened_descriptors = []
+        self.is_failed = False
+        self.env = {}
+
+    @abstractmethod
+    def prepare(self):
+        pass
+
+    @abstractmethod
+    def run_checklist(self):
+        pass
+
+    @abstractmethod
+    def run_tests(self):
+        pass
+
+    def is_finished(self):
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            if ret_code != 0:
+                with open(self.settings.get("stderr")) as fds:
+                    std_err = fds.read()
+                self.is_failed = True
+                msg = "Test runner %s (%s) has failed with retcode %s \n %s"
+                raise ToolError(msg % (self.executor.label, self.__class__.__name__, ret_code, std_err.strip()))
+            return True
+        return False
+
+    def check_tools(self):
+        for tool in self.required_tools:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s...", tool.tool_name)
+                tool.install()
+
+    def shutdown(self):
+        shutdown_process(self.process, self.log)
+        for desc in self.opened_descriptors:
+            desc.close()
+        self.opened_descriptors = []
+
+    @abstractmethod
+    def add_env(self, env):
+        """
+        Add environment variables into selenium process env
+        :type env: dict[str,str]
+        """
+        pass
+
+    @abstractmethod
+    def get_virtual_display(self):
+        """
+        Return virtual display instance used by this executor.
+        :rtype: Display
+        """
+        pass
+
