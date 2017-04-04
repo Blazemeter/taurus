@@ -1,9 +1,10 @@
 import os
 import sys
+import json
 import shutil
 
 from bzt import TaurusConfigError
-from bzt.modules.proxy2jmx import Proxy2JMX
+from bzt.modules.proxy2jmx import Proxy2JMX, BZAProxy
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import is_windows, get_full_path
 from tests import BZTestCase
@@ -11,11 +12,26 @@ from tests.mocks import EngineEmul, RecordingHandler
 from os.path import join
 
 
+class BZAProxyEmul(BZAProxy):
+    def __init__(self, service):
+        super(BZAProxyEmul, self).__init__()
+        self.service = service
+
+    def _request(self, url, data=None, headers=None, method=None, raw_result=False):
+        response = self.service.responses.pop(0)
+        resp = response.text
+        if raw_result:
+            return resp
+        else:
+            return json.loads(resp) if len(resp) else {}
+
+
 class Proxy2JMXEmul(Proxy2JMX):
     responses = []
 
-    def api_request(self, path='', method='GET', check=True):
-        return self.responses.pop(0)
+    def __init__(self):
+        super(Proxy2JMXEmul, self).__init__()
+        self.proxy = BZAProxyEmul(self)
 
 
 class ResponseEmul(object):
@@ -36,7 +52,7 @@ class TestProxy2JMX(BZTestCase):
     def test_full(self):
         self.obj.api_delay = 1
         self.obj.responses = [
-            ResponseEmul(404, ''),
+            ResponseEmul(200, '{"result" : {}}'),
             ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1"}}'),
             ResponseEmul(200, ''),
             ResponseEmul(200, ''),  # startup: startRecording
@@ -52,7 +68,7 @@ class TestProxy2JMX(BZTestCase):
         self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
 
         self.obj.prepare()
-        self.assertEqual(self.obj.proxy, 'http://host1:port1')
+        self.assertEqual(self.obj.proxy_addr, 'http://host1:port1')
         self.obj.engine.provisioning.executors = [SeleniumExecutor()]
         self.obj.startup()
         self.obj.shutdown()
@@ -77,7 +93,7 @@ class TestProxy2JMX(BZTestCase):
         self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
 
         self.obj.prepare()
-        self.assertEqual(self.obj.proxy, 'http://host1:port1')
+        self.assertEqual(self.obj.proxy_addr, 'http://host1:port1')
 
     def _check_linux(self):
         self.obj.startup()
@@ -125,7 +141,7 @@ class TestProxy2JMX(BZTestCase):
 
     def test_chrome_proxy(self):
         self.obj.responses = [
-            ResponseEmul(404, ''),
+            ResponseEmul(200, '{"result" : {}}'),
             ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1"}}'),
             ResponseEmul(200, ''),
             ResponseEmul(200, ''),  # startup: startRecording

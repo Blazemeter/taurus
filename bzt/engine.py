@@ -948,7 +948,7 @@ class ScenarioExecutor(EngineModule):
         if aliases:
             environ["HOSTALIASES"] = hosts_file
         if env is not None:
-            if is_windows:
+            if is_windows():
                 # as variables in windows are case insensitive we should provide correct merging
                 cur_env = {name.upper(): environ[name] for name in environ}
                 old_keys = set(env.keys())
