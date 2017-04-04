@@ -1,8 +1,17 @@
+import subprocess
+import traceback
+from subprocess import CalledProcessError
+
+import os
+
+from bzt import ToolError
+from bzt.engine import SubprocessedExecutor
+from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node
 
 MOCHA_NPM_PACKAGE_NAME = "mocha"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
 
-class MochaTester(AbstractSeleniumExecutor):
+class MochaTester(SubprocessedExecutor):
     """
     Mocha tests runner
 
@@ -149,14 +158,14 @@ class NPMPackage(RequiredTool):
 
 class Mocha(NPMPackage):
     def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
-        super(Mocha, self).__init__("Mocha", SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME,
+        super(Mocha, self).__init__("Mocha", MOCHA_NPM_PACKAGE_NAME,
                                     tools_dir, node_tool, npm_tool, parent_logger)
 
 
 class JSSeleniumWebdriverPackage(NPMPackage):
     def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
         super(JSSeleniumWebdriverPackage, self).__init__("selenium-webdriver npm package",
-                                                         SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME,
+                                                         SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME,
                                                          tools_dir, node_tool, npm_tool, parent_logger)
 
 

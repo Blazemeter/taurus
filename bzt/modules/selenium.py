@@ -16,12 +16,13 @@ limitations under the License.
 import json
 import re
 import time
+from abc import abstractmethod
 
 import os
 from bzt import TaurusConfigError, TaurusInternalException
 from urwid import Text, Pile
 
-from bzt.engine import Scenario, FileLister, AbstractSeleniumExecutor
+from bzt.engine import Scenario, FileLister, SubprocessedExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
@@ -39,11 +40,31 @@ except ImportError:
     from pyvirtualdisplay import Display
 
 
+class AbstractSeleniumExecutor(SubprocessedExecutor):  # NOTE: just for compatibility
+    SHARED_VIRTUAL_DISPLAY = {}
+
+    @abstractmethod
+    def get_virtual_display(self):
+        """
+        Return virtual display instance used by this executor.
+        :rtype: Display
+        """
+        pass
+
+    @abstractmethod
+    def add_env(self, env):
+        """
+        Add environment variables into selenium process env
+        :type env: dict[str,str]
+        """
+        pass
+
+
 class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
     :type virtual_display: Display
-    :type runner: AbstractSeleniumExecutor
+    :type runner: SubprocessedExecutor
     """
 
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha"]
@@ -127,7 +148,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             runner_class = JUnitTester
             runner_config.merge(self.settings.get("selenium-tools").get("junit"))
             runner_config['working-dir'] = self.get_runner_working_dir()
-            runner_config['props-file'] = self.engine.create_artifact("runner", ".properties")
         elif script_type == "testng":
             runner_class = TestNGTester
             runner_config.merge(self.settings.get("selenium-tools").get("testng"))
@@ -145,13 +165,19 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         else:
             raise TaurusConfigError("Unsupported script type: %s" % script_type)
 
-        runner_config["script"] = self.script
         runner_config["script-type"] = script_type
-        runner_config["artifacts-dir"] = self.engine.artifacts_dir
         runner_config["report-file"] = report_file
         runner_config["stdout"] = self.engine.create_artifact("selenium", ".out")
         runner_config["stderr"] = self.engine.create_artifact("selenium", ".err")
-        return runner_class(runner_config, self)
+        runner = runner_class()
+        runner.engine = self.engine
+        runner.log = self.log.getChild(script_type)
+        runner.settings = self.settings
+        runner.parameters = self.parameters
+        runner.provisioning = self.provisioning
+        runner.script = self.script
+        runner.execution = self.execution
+        return runner
 
     def _register_reader(self, report_file):
         if self.engine.is_functional_mode():

@@ -26,7 +26,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from bzt.bza import BZAProxy
 from bzt.engine import Service
 from bzt.utils import is_windows, get_full_path
-from bzt.modules.selenium import AbstractSeleniumExecutor
+from bzt.modules.selenium import SubprocessedExecutor
 
 class Proxy2JMX(Service):
     def __init__(self):
@@ -89,7 +89,7 @@ class Proxy2JMX(Service):
             self.log.warning("Your system doesn't support settings of proxy by Taurus way")
 
         for executor in self.engine.provisioning.executors:
-            if isinstance(executor, AbstractSeleniumExecutor):
+            if isinstance(executor, SubprocessedExecutor):
                 if executor.label:
                     labels.append(executor.label)
                 executor.add_env(additional_env)

@@ -4,11 +4,11 @@ import traceback
 import os
 from bzt import ToolError
 
-from bzt.engine import AbstractSeleniumExecutor
+from bzt.engine import SubprocessedExecutor, HavingInstallableTools
 from bzt.utils import RequiredTool, is_windows, get_full_path, TclLibrary
 
 
-class RSpecTester(AbstractSeleniumExecutor):
+class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
     """
     RSpec tests runner
     """

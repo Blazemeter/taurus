@@ -1,5 +1,13 @@
+import sys
 
-class NoseTester(AbstractSeleniumExecutor):
+import os
+from bzt import ToolError
+
+from bzt.engine import SubprocessedExecutor
+from bzt.utils import get_full_path, TclLibrary, RequiredTool
+
+
+class NoseTester(SubprocessedExecutor):
     """
     Python selenium tests runner
     """
@@ -57,4 +65,3 @@ class TaurusNosePlugin(RequiredTool):
 
     def install(self):
         raise ToolError("Automatic installation of Taurus nose plugin isn't implemented")
-
