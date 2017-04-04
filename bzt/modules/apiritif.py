@@ -1,5 +1,5 @@
 """
-Copyright 2015 BlazeMeter Inc.
+Copyright 2017 BlazeMeter Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -52,8 +52,8 @@ class ApiritifExecutor(ScenarioExecutor):
         else:
             raise TaurusConfigError("You must specify either 'requests' or 'script' for Apiritif")
 
-        self.stdout_path = self.engine.create_artifact("nose", ".out")
-        self.stderr_path = self.engine.create_artifact("nose", ".err")
+        self.stdout_path = self.engine.create_artifact("apiritif", ".out")
+        self.stderr_path = self.engine.create_artifact("apiritif", ".err")
         self.report_path = self.engine.create_artifact("report", ".ldjson")
 
         if self.engine.is_functional_mode():
@@ -91,7 +91,7 @@ class ApiritifExecutor(ScenarioExecutor):
             if ret_code != 0:
                 with open(self.stderr_path) as fds:
                     std_err = fds.read()
-                msg = "Nose %s (%s) has failed with retcode %s \n %s"
+                msg = "Apiritif %s (%s) has failed with retcode %s \n %s"
                 raise ToolError(msg % (self.label, self.__class__.__name__, ret_code, std_err.strip()))
             return True
         return False
