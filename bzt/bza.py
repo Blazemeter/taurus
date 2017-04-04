@@ -156,6 +156,7 @@ class User(BZAObject):
         return self
 
     def available_locations(self, include_harbors=False):
+        self.log.warn("Deprecated method used: available_locations")
         if 'locations' not in self:
             self.fetch()
 

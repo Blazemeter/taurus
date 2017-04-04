@@ -73,7 +73,7 @@ reporting:
 
 Two options `dump-xml` and `dump-csv` allows to export final cumulative stats into files that can be used
 by  [Jenkins Performance Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Performance+Plugin) and [Jenkins Plot Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Plot+Plugin) to plot historical data
-inside Jenkins. CSV to use with Plot Plugin. XML format is for Performance Plugin.
+inside Jenkins. CSV to use with Plot Plugin (you can read good [article](https://www.blazemeter.com/blog/how-run-taurus-jenkins-performance-plugin) about it). XML format is for Performance Plugin.
 
 Field names with explanations:
  -   `label` - is the sample group for which this CSV line presents the stats. Empty label means total of all labels
