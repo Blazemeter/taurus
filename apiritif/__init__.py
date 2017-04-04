@@ -68,7 +68,6 @@ class APITestCase(TestCase):
         if self.keep_alive:
             response = self.session.send(prepared, allow_redirects=allow_redirects, timeout=timeout)
         else:
-
             response = requests.Session().send(prepared, allow_redirects=allow_redirects, timeout=timeout)
 
         log_item["response"] = response
