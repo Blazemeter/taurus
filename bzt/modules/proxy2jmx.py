@@ -17,61 +17,16 @@ limitations under the License.
 """
 
 import sys
-import time
 import os
 import shutil
-
-from bzt.bza import BZAObject
 
 from os.path import join, isfile
 
 from bzt import TaurusConfigError, TaurusInternalException
+from bzt.bza import BZAProxy
 from bzt.engine import Service
 from bzt.utils import is_windows, get_full_path
 from bzt.modules.selenium import AbstractSeleniumExecutor
-
-
-class BZAProxy(BZAObject):
-    def __init__(self):
-        super(BZAProxy, self).__init__()
-        self.address = 'https://a.blazemeter.com/api/latest/proxy'
-        self.delay = 5
-
-    def stop(self):
-        self._request(self.address + '/recording/stop', method='POST')
-
-    def start(self):
-        self._request(self.address + '/recording/start', method='POST')
-
-    def get_jmx(self):
-        # wait for availability
-        while True:
-            response = self._request(self.address)
-            if response['result']['smartjmx'] == "available":
-                break
-            time.sleep(self.delay)
-
-        response = self._request(self.address + '/download?format=jmx&smart=true', raw_result=True)
-        return response
-
-    def get_addr(self):
-        response = self._request(self.address)
-
-        proxy_info = response['result']
-        if proxy_info:
-            self.log.info('Using existing recording proxy...')
-            if proxy_info['status'] == 'active':
-                self.log.info('Proxy is active, stop it')
-                self.stop()
-        else:
-            self.log.info('Creating new recording proxy...')
-            response = self._request(self.address, method='POST')
-            proxy_info = response['result']
-
-        self._request(self.address + '/recording/clear', method='POST')
-
-        return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])
-
 
 class Proxy2JMX(Service):
     def __init__(self):

@@ -5,6 +5,7 @@ it may become separate library in the future. Things like imports and logging sh
 import base64
 import json
 import logging
+import time
 from collections import OrderedDict
 
 import requests
@@ -597,3 +598,44 @@ class Session(BZAObject):
     def get_logs(self):
         url = self.address + "/api/v4/sessions/%s/reports/logs" % self['id']
         return self._request(url)['result']['data']
+
+
+class BZAProxy(BZAObject):
+    def __init__(self):
+        super(BZAProxy, self).__init__()
+        self.delay = 5
+
+    def stop(self):
+        self._request(self.address + '/api/latest/proxy/recording/stop', method='POST')
+
+    def start(self):
+        self._request(self.address + '/api/latest/proxy/recording/start', method='POST')
+
+    def get_jmx(self):
+        # wait for availability
+        while True:
+            response = self._request(self.address + '/api/latest/proxy')
+            if response['result']['smartjmx'] == "available":
+                break
+            time.sleep(self.delay)
+
+        response = self._request(self.address + '/api/latest/proxy/download?format=jmx&smart=true', raw_result=True)
+        return response
+
+    def get_addr(self):
+        response = self._request(self.address + '/api/latest/proxy')
+
+        proxy_info = response['result']
+        if proxy_info:
+            self.log.info('Using existing recording proxy...')
+            if proxy_info['status'] == 'active':
+                self.log.info('Proxy is active, stop it')
+                self.stop()
+        else:
+            self.log.info('Creating new recording proxy...')
+            response = self._request(self.address + '/api/latest/proxy', method='POST')
+            proxy_info = response['result']
+
+        self._request(self.address + '/api/latest/proxy/recording/clear', method='POST')
+
+        return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])
