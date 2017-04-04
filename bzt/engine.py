@@ -1086,7 +1086,7 @@ class SubprocessedExecutor(ScenarioExecutor):
         self._stderr_file = None
 
     def _start_subprocess(self, cmdline):
-        prefix = self.label
+        prefix = self.label or "subprocess"
         std_out = open(self.engine.create_artifact(prefix, ".out"), "wt")
         self.opened_descriptors.append(std_out)
         self._stderr_file = self.engine.create_artifact(prefix, ".err")
@@ -1110,3 +1110,9 @@ class SubprocessedExecutor(ScenarioExecutor):
         for desc in self.opened_descriptors:
             desc.close()
         self.opened_descriptors = []
+
+    def _check_tools(self, tools):
+        for tool in tools:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s...", tool.tool_name)
+                tool.install()

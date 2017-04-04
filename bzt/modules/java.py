@@ -152,11 +152,6 @@ class JavaTestRunner(SubprocessedExecutor):
 
         self.log.info("Making .jar file completed")
 
-    def check_tools(self, tools):
-        for tool in tools:
-            if not tool.check_if_installed():
-                self.log.info("Installing %s...", tool.tool_name)
-                tool.install()
 
 
 class JUnitTester(JavaTestRunner, HavingInstallableTools):
@@ -194,7 +189,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         tools.append(JsonJar(self.json_jar_path, JSON_JAR_DOWNLOAD_LINK))
         tools.append(JUnitListenerJar(self.junit_listener_path, ""))
 
-        self.check_tools(tools)
+        self._check_tools(tools)
 
     def startup(self):
         # java -cp junit.jar:selenium-test-small.jar:
@@ -258,7 +253,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         tools.append(JsonJar(self.json_jar_path, JSON_JAR_DOWNLOAD_LINK))
         tools.append(TestNGPluginJar(self.testng_plugin_path, ""))
 
-        self.check_tools(tools)
+        self._check_tools(tools)
 
     def startup(self):
         # java -classpath

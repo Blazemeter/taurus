@@ -28,7 +28,7 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
         self.required_tools.append(RSpec("", "", self.log))
         self.required_tools.append(TaurusRSpecPlugin(self.plugin_path, ""))
 
-        self.check_tools()
+        self._check_tools()
 
     def run_tests(self):
         """

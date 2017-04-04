@@ -43,7 +43,7 @@ class MochaTester(SubprocessedExecutor):
         self.required_tools.append(JSSeleniumWebdriverPackage(self.tools_dir, self.node_tool, self.npm_tool, self.log))
         self.required_tools.append(TaurusMochaPlugin(self.plugin_path, ""))
 
-        self.check_tools()
+        self._check_tools()
 
     def run_tests(self):
         mocha_cmdline = [
