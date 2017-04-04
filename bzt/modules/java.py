@@ -52,7 +52,6 @@ class JavaTestRunner(SubprocessedExecutor):
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
         self.base_class_path.extend(self.settings.get("additional-classpath", []))
         self.base_class_path.extend(self.get_scenario().get("additional-classpath", []))
-        self.base_class_path = [os.path.abspath(self.engine.find_file(x)) for x in self.base_class_path]
 
         self.props_file = self.engine.create_artifact("runner", ".properties")
 
@@ -165,11 +164,12 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         self.selenium_server_jar_path = self.settings.get("selenium-server",
                                                           "~/.bzt/selenium-taurus/selenium-server.jar")
         self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=2),
-                                                "resources",
-                                                "taurus-junit-1.0.jar")
+                                                "resources", "taurus-junit-1.0.jar")
 
         self.base_class_path += [self.selenium_server_jar_path, self.junit_path, self.junit_listener_path,
                                  self.hamcrest_path, self.json_jar_path]
+
+        self.base_class_path = [os.path.abspath(self.engine.find_file(x)) for x in self.base_class_path]
 
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
