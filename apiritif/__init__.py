@@ -153,27 +153,37 @@ class APITestCase(TestCase):
     @record_assertion
     def assertFailed(self, response=None, msg=None):
         response = response or self._get_last_response()
-        self.assertTrue(response.status_code >= 400, msg=msg)
+        if response.status_code < 400:
+            msg = msg or "Request to %s didn't fail" % response.url
+            self.fail(msg=msg)
 
     @record_assertion
     def assert2xx(self, response=None, msg=None):
         response = response or self._get_last_response()
-        self.assertTrue(200 <= response.status_code < 300, msg=msg)
+        if not 200 <= response.status_code < 300:
+            msg = msg or "Response code isn't 2xx, it's %s" % response.status_code
+            self.fail(msg=msg)
 
     @record_assertion
     def assert3xx(self, response=None, msg=None):
         response = response or self._get_last_response()
-        self.assertTrue(300 <= response.status_code < 400, msg=msg)
+        if not 300 <= response.status_code < 400:
+            msg = msg or "Response code isn't 3xx, it's %s" % response.status_code
+            self.fail(msg=msg)
 
     @record_assertion
     def assert4xx(self, response=None, msg=None):
         response = response or self._get_last_response()
-        self.assertTrue(400 <= response.status_code < 500, msg=msg)
+        if not 400 <= response.status_code < 500:
+            msg = msg or "Response code isn't 4xx, it's %s" % response.status_code
+            self.fail(msg=msg)
 
     @record_assertion
     def assert5xx(self, response=None, msg=None):
         response = response or self._get_last_response()
-        self.assertTrue(500 <= response.status_code < 600, msg=msg)
+        if not 500 <= response.status_code < 600:
+            msg = msg or "Response code isn't 5xx, it's %s" % response.status_code
+            self.fail(msg=msg)
 
     @record_assertion
     def assertStatusCode(self, code, response=None, msg=None):
