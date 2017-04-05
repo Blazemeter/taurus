@@ -1,7 +1,7 @@
 import sys
 
 import os
-from bzt import ToolError
+from bzt import ToolError, TaurusConfigError
 
 from bzt.engine import SubprocessedExecutor, HavingInstallableTools
 from bzt.utils import get_full_path, TclLibrary, RequiredTool
@@ -21,7 +21,6 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
     def prepare(self):
         super(NoseTester, self).prepare()
         self.install_required_tools()
-        self.script = self.settings.get("script", self.script)
 
     def install_required_tools(self):
         """
@@ -46,7 +45,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         if load.hold:
             nose_command_line += ['-d', str(load.hold)]
 
-        nose_command_line += [self.script]
+        nose_command_line += [self.settings.get("script", TaurusConfigError("No script specified"))]
         self._start_subprocess(nose_command_line)
 
 

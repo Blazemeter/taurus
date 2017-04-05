@@ -29,8 +29,8 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
-        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        lines = open(self.obj.runner.execution.get("report-file")).readlines()
         self.assertEqual(len(lines), 3)
         first, second, third = lines
         self.assertEqual(json.loads(first)["status"], "PASSED")
@@ -51,7 +51,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
         duration = time.time() - self.obj.start_time
         self.assertGreater(duration, 10)
 
@@ -69,8 +69,8 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
-        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        lines = open(self.obj.runner.execution.get("report-file")).readlines()
         self.assertEqual(len(lines), 9)
 
     def test_interpreter(self):
@@ -88,4 +88,3 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
             "selenium-tools": {"rspec": {"interpreter": dummy}}
         })
         self.obj.prepare()
-

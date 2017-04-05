@@ -2,7 +2,7 @@ import subprocess
 import traceback
 
 import os
-from bzt import ToolError
+from bzt import ToolError, TaurusConfigError
 
 from bzt.engine import SubprocessedExecutor, HavingInstallableTools
 from bzt.utils import RequiredTool, is_windows, get_full_path, TclLibrary
@@ -13,24 +13,25 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
     RSpec tests runner
     """
 
-    def __init__(self, rspec_config, executor):
-        super(RSpecTester, self).__init__(rspec_config, executor)
+    def __init__(self):
+        super(RSpecTester, self).__init__()
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "rspec_taurus_plugin.rb")
 
     def prepare(self):
-        self.run_checklist()
+        super(RSpecTester, self).prepare()
+        self.install_required_tools()
 
-    def run_checklist(self):
-        self.required_tools.append(TclLibrary(self.log))
-        self.required_tools.append(Ruby(self.settings.get("interpreter", "ruby"), "", self.log))
-        self.required_tools.append(RSpec("", "", self.log))
-        self.required_tools.append(TaurusRSpecPlugin(self.plugin_path, ""))
+    def install_required_tools(self):
+        tools = []
+        tools.append(TclLibrary(self.log))
+        tools.append(Ruby(self.settings.get("interpreter", "ruby"), "", self.log))
+        tools.append(RSpec("", "", self.log))
+        tools.append(TaurusRSpecPlugin(self.plugin_path, ""))
+        self._check_tools(tools)
 
-        self._check_tools()
-
-    def run_tests(self):
+    def startup(self):
         """
         run rspec plugin
         """
@@ -40,34 +41,26 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
             interpreter,
             self.plugin_path,
             "--report-file",
-            self.settings.get("report-file"),
+            self.execution.get("report-file"),
             "--test-suite",
-            self.script
+            self.get_scenario().get("script", TaurusConfigError("No script specified"))
         ]
+        load = self.get_load()
+        if load.iterations:
+            rspec_cmdline += ['--iterations', str(load.iterations)]
 
-        if self.load.iterations:
-            rspec_cmdline += ['--iterations', str(self.load.iterations)]
+        if load.hold:
+            rspec_cmdline += ['--hold-for', str(load.hold)]
 
-        if self.load.hold:
-            rspec_cmdline += ['--hold-for', str(self.load.hold)]
-
-        std_out = open(self.settings.get("stdout"), "wt")
-        self.opened_descriptors.append(std_out)
-        std_err = open(self.settings.get("stderr"), "wt")
-        self.opened_descriptors.append(std_err)
-
-        self.process = self.executor.execute(rspec_cmdline,
-                                             stdout=std_out,
-                                             stderr=std_err,
-                                             env=self.env)
+        self._start_subprocess(rspec_cmdline)
 
     def is_finished(self):
         ret_code = self.process.poll()
         if ret_code is not None:
             self.log.debug("Test runner exit code: %s", ret_code)
             # rspec returns non-zero code when some tests fail, no need to throw an exception here
-            if ret_code != 0:
-                self.is_failed = True
+            # if ret_code != 0:
+            #    self.is_failed = True FIXME: what did we lose on this?
             return True
         return False
 

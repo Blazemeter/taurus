@@ -169,7 +169,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         runner.settings = self.settings
         runner.parameters = self.parameters
         runner.provisioning = self.provisioning
-        runner.script = self.script
+        runner.script = self.script # FIXME: rework normally
         runner.execution = self.execution
         runner.execution["report-file"] = report_file  # TODO: shouldn't it be the field?
         runner.settings.merge(runner_config)  # TODO: shouldn't we use 'execution' instead?
