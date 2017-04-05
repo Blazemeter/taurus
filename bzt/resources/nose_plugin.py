@@ -166,7 +166,7 @@ class BZTPlugin(Plugin):
                 for assertion in assertions
             ],
             'responseBody': py_response.text,
-            'requestBody': "",  # py_response.get("rawRequest", ""),
+            'requestBody': "",  # py_response.get("rawRequest", ""),  # TODO: fix
             'requestCookies': {},  # py_response.get("requestCookies", {}),
             'requestHeaders': dict(py_response.request.headers),
             'responseHeaders': dict(py_response.headers),

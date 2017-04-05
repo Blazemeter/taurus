@@ -40,9 +40,10 @@ class TestApiritifExecutor(BZTestCase):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [
-                        "http://blazedemo.com/",
-                        "https://api.github.com/",
+                        "/",
+                        "/reserve.php",
                     ]
                 }
             }]
@@ -64,8 +65,9 @@ class TestApiritifExecutor(BZTestCase):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [
-                        "http://blazedemo.com/",
+                        "/",
                     ]
                 }
             }]
@@ -73,15 +75,16 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("keep_alive = True", test_script)
+        self.assertIn("target.keep_alive(True)", test_script)
 
     def test_keepalive(self):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "keepalive": False,
                     "requests": [
-                        "http://blazedemo.com/",
+                        "/",
                     ]
                 }
             }]
@@ -89,14 +92,15 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("keep_alive = False", test_script)
+        self.assertIn("target.keep_alive(False)", test_script)
 
     def test_timeout_default(self):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [
-                        "http://blazedemo.com/",
+                        "/",
                     ]
                 }
             }]
@@ -111,10 +115,11 @@ class TestApiritifExecutor(BZTestCase):
             "execution": [{
                 "scenario": {
                     "timeout": "10s",
+                    "default-address": "http://blazedemo.com",
                     "requests": [
-                        "http://blazedemo.com/?tag=1",
+                        "/?tag=1",
                         {
-                            "url": "http://blazedemo.com/?tag=2",
+                            "url": "/?tag=2",
                             "timeout": "2s",
                         }
                     ]
@@ -124,16 +129,17 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("get('http://blazedemo.com/?tag=1', timeout=10.0", test_script)
-        self.assertIn("get('http://blazedemo.com/?tag=2', timeout=2.0", test_script)
+        self.assertIn("get('/?tag=1', timeout=10.0", test_script)
+        self.assertIn("get('/?tag=2', timeout=2.0", test_script)
 
     def test_think_time(self):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [
                         {
-                            "url": "http://blazedemo.com/?tag=2",
+                            "url": "/?tag=2",
                             "think-time": "1s500ms",
                         }
                     ]
@@ -149,18 +155,19 @@ class TestApiritifExecutor(BZTestCase):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [
-                        {"url": "http://blazedemo.com/?tag=get",
+                        {"url": "/?tag=get",
                          "method": "GET"},
-                        {"url": "http://blazedemo.com/?tag=post",
+                        {"url": "/?tag=post",
                          "method": "POST"},
-                        {"url": "http://blazedemo.com/?tag=put",
+                        {"url": "/?tag=put",
                          "method": "PUT"},
-                        {"url": "http://blazedemo.com/?tag=patch",
+                        {"url": "/?tag=patch",
                          "method": "PATCH"},
-                        {"url": "http://blazedemo.com/?tag=head",
+                        {"url": "/?tag=head",
                          "method": "HEAD"},
-                        {"url": "http://blazedemo.com/?tag=delete",
+                        {"url": "/?tag=delete",
                          "method": "DELETE"},
                     ]
                 }
@@ -169,19 +176,19 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("get('http://blazedemo.com/?tag=get'", test_script)
-        self.assertIn("post('http://blazedemo.com/?tag=post'", test_script)
-        self.assertIn("put('http://blazedemo.com/?tag=put'", test_script)
-        self.assertIn("patch('http://blazedemo.com/?tag=patch'", test_script)
-        self.assertIn("head('http://blazedemo.com/?tag=head'", test_script)
-        self.assertIn("delete('http://blazedemo.com/?tag=delete'", test_script)
+        self.assertIn("get('/?tag=get'", test_script)
+        self.assertIn("post('/?tag=post'", test_script)
+        self.assertIn("put('/?tag=put'", test_script)
+        self.assertIn("patch('/?tag=patch'", test_script)
+        self.assertIn("head('/?tag=head'", test_script)
+        self.assertIn("delete('/?tag=delete'", test_script)
 
     def test_default_address_path_prefix(self):
         self.configure({
             "execution": [{
                 "scenario": {
                     "default-address": "https://a.blazemeter.com",
-                    "path-prefix": "/api/latest",
+                    "base-path": "/api/latest",
                     "requests": [
                         "/user",
                     ]
@@ -191,16 +198,17 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("self.default_address = 'https://a.blazemeter.com'", test_script)
-        self.assertIn("self.path_prefix = '/api/latest'", test_script)
+        self.assertIn("target('https://a.blazemeter.com')", test_script)
+        self.assertIn("target.base_path('/api/latest')", test_script)
 
     def test_headers(self):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "headers": {"X-Foo": "foo"},
                     "requests": [{
-                        "url": "http://blazedemo.com/",
+                        "url": "/",
                         "headers": {"X-Bar": "bar"}
                     }]
                 }
@@ -216,8 +224,9 @@ class TestApiritifExecutor(BZTestCase):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "http://blazedemo.com/",
+                        "url": "/",
                     }]
                 }
             }]
@@ -231,8 +240,9 @@ class TestApiritifExecutor(BZTestCase):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "http://blazedemo.com/",
+                        "url": "/",
                         "follow-redirects": False,
                     }]
                 }
@@ -247,8 +257,9 @@ class TestApiritifExecutor(BZTestCase):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "http://blazedemo.com/",
+                        "url": "/",
                         "body": {
                             "foo": "bar",
                         },
@@ -265,8 +276,9 @@ class TestApiritifExecutor(BZTestCase):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "http://blazedemo.com/",
+                        "url": "/",
                         "headers": {
                             "Content-Type": "application/json",
                         },
@@ -286,8 +298,9 @@ class TestApiritifExecutor(BZTestCase):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "http://blazedemo.com/",
+                        "url": "/",
                         "body": "MY PERFECT BODY"
                     }]
                 }
@@ -302,8 +315,9 @@ class TestApiritifExecutor(BZTestCase):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "http://blazedemo.com/",
+                        "url": "/",
                         "body": 123
                     }]
                 }
@@ -315,8 +329,9 @@ class TestApiritifExecutor(BZTestCase):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "http://blazedemo.com/",
+                        "url": "/",
                         "assert": [
                             "Welcome", "Simple Travel Agency"
                         ]
@@ -327,15 +342,16 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertRegexInBody('Welcome')", test_script)
-        self.assertIn("assertRegexInBody('Simple Travel Agency')", test_script)
+        self.assertIn("response.assert_regex_in_body('Welcome')", test_script)
+        self.assertIn("response.assert_regex_in_body('Simple Travel Agency')", test_script)
 
     def test_plain_assertion_kinds(self):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [{
-                        "url": "http://blazedemo.com/",
+                        "url": "/",
                         "assert": [
                             {"contains": ["1"], "regexp": False, "not": False},
                             {"contains": ["2"], "regexp": False, "not": True},
@@ -356,23 +372,24 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertInBody('1')", test_script)
-        self.assertIn("assertNotInBody('2')", test_script)
-        self.assertIn("assertRegexInBody('3')", test_script)
-        self.assertIn("assertRegexNotInBody('4')", test_script)
-        self.assertIn("assertInHeaders('5')", test_script)
-        self.assertIn("assertNotInHeaders('6')", test_script)
-        self.assertIn("assertRegexInHeaders('7')", test_script)
-        self.assertIn("assertRegexNotInHeaders('8')", test_script)
-        self.assertIn("assertStatusCode('9')", test_script)
-        self.assertIn("assertNotStatusCode('10')", test_script)
+        self.assertIn("assert_in_body('1')", test_script)
+        self.assertIn("assert_not_in_body('2')", test_script)
+        self.assertIn("assert_regex_in_body('3')", test_script)
+        self.assertIn("assert_regex_not_in_body('4')", test_script)
+        self.assertIn("assert_in_headers('5')", test_script)
+        self.assertIn("assert_not_in_headers('6')", test_script)
+        self.assertIn("assert_regex_in_headers('7')", test_script)
+        self.assertIn("assert_regex_not_in_headers('8')", test_script)
+        self.assertIn("assert_status_code('9')", test_script)
+        self.assertIn("assert_not_status_code('10')", test_script)
 
     def test_jsonpath_assertions(self):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "https://api.github.com",
                     "requests": [{
-                        "url": "https://api.github.com/",
+                        "url": "/",
                         "assert-jsonpath": [
                             "$.foo.bar"
                         ]
@@ -383,14 +400,15 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertJSONPath('$.foo.bar', expected_value=None)", test_script)
+        self.assertIn("assert_jsonpath('$.foo.bar', expected_value=None)", test_script)
 
     def test_jsonpath_assertions_kinds(self):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "https://api.github.com",
                     "requests": [{
-                        "url": "https://api.github.com/",
+                        "url": "/",
                         "assert-jsonpath": [
                             {"jsonpath": "$.1", "invert": False},
                             {"jsonpath": "$.2", "invert": True},
@@ -403,16 +421,17 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertJSONPath('$.1', expected_value=None)", test_script)
-        self.assertIn("assertNotJSONPath('$.2', expected_value=None)", test_script)
-        self.assertIn("assertJSONPath('$.3', expected_value='value')", test_script)
+        self.assertIn("assert_jsonpath('$.1', expected_value=None)", test_script)
+        self.assertIn("assert_not_jsonpath('$.2', expected_value=None)", test_script)
+        self.assertIn("assert_jsonpath('$.3', expected_value='value')", test_script)
 
     def test_xpath_assertions(self):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "https://api.github.com",
                     "requests": [{
-                        "url": "https://api.github.com/",
+                        "url": "/",
                         "assert-xpath": [
                             "//head/title"
                         ]
@@ -423,14 +442,15 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertXPath('//head/title', parser_type='html', validate=False)", test_script)
+        self.assertIn("assert_xpath('//head/title', parser_type='html', validate=False)", test_script)
 
     def test_xpath_assertions_kinds(self):
         self.configure({
             "execution": [{
                 "scenario": {
+                    "default-address": "https://api.github.com",
                     "requests": [{
-                        "url": "https://api.github.com/",
+                        "url": "/",
                         "assert-xpath": [
                             {"xpath": "//1", "invert": False},
                             {"xpath": "//2", "invert": True},
@@ -444,31 +464,28 @@ class TestApiritifExecutor(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("assertXPath('//1', parser_type='html', validate=False)", test_script)
-        self.assertIn("assertNotXPath('//2', parser_type='html', validate=False)", test_script)
-        self.assertIn("assertXPath('//3', parser_type='html', validate=True)", test_script)
-        self.assertIn("assertXPath('//4', parser_type='xml', validate=False)", test_script)
+        self.assertIn("assert_xpath('//1', parser_type='html', validate=False)", test_script)
+        self.assertIn("assert_not_xpath('//2', parser_type='html', validate=False)", test_script)
+        self.assertIn("assert_xpath('//3', parser_type='html', validate=True)", test_script)
+        self.assertIn("assert_xpath('//4', parser_type='xml', validate=False)", test_script)
 
     def test_assertions_exec(self):
         self.configure({
             'execution': [{
                 'iterations': 1,
                 'scenario': {
+                    'default-address': "http://blazedemo.com",
                     'requests': [
                         {'assert': [
                             {'contains': [200],
                              'subject': 'http-code'},
                             {'contains': ['Welcome to the Simple Travel Agency!'],
                              'subject': 'body'}],
-                         'url': 'http://blazedemo.com/'},
+                         'url': '/'},
                         {'assert-xpath': [{'use-tolerant-parser': True,
                                            'validate-xml': False,
                                            'xpath': '//head/title'}],
-                         'url': 'http://blazedemo.com/'},
-                        {'assert-jsonpath': [{'expected-value': 'Linus Gustav Larsson Thiel',
-                                              'jsonpath': '$.name'}],
-                         'headers': {'User-Agent': "Biggie/Smalls"},
-                         'url': 'https://api.github.com/users/linus'}]}}]})
+                         'url': '/'}]}}]})
         self.obj.prepare()
         self.obj.get_widget()
         try:
@@ -482,4 +499,30 @@ class TestApiritifExecutor(BZTestCase):
 
         reader = ApiritifResultsReader(self.obj.report_path, self.obj.engine, logging.getLogger(''), [])
         samples = list(reader.read(last_pass=True))
-        self.assertEqual(3, len(samples))
+
+    def test_assertion_jsonpath_exec(self):
+        self.configure({
+            'execution': [{
+                'iterations': 1,
+                'scenario': {
+                    'default-address': "https://api.github.com",
+                    'requests': [
+                        {'assert-jsonpath': [{'expected-value': 'Linus Gustav Larsson Thiel',
+                                              'jsonpath': '$.name'}],
+                         'headers': {'User-Agent': "Biggie/Smalls"},
+                         'url': '/users/linus'}]}}]})
+        self.obj.prepare()
+        self.obj.get_widget()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
+
+        reader = ApiritifResultsReader(self.obj.report_path, self.obj.engine, logging.getLogger(''), [])
+        samples = list(reader.read(last_pass=True))
+        self.assertEqual(1, len(samples))
+

@@ -125,6 +125,7 @@ class ApiritifExecutor(ScenarioExecutor):
 class ApiritifScriptBuilder(PythonGenerator):
     IMPORTS = """\
 import time
+import unittest
 
 import apiritif
 
@@ -138,24 +139,28 @@ import apiritif
         if keepalive is None:
             keepalive = True
 
-        default_address = self.scenario.get("default-address", None)
-        path_prefix = self.scenario.get("path-prefix", None)
+        exc = TaurusConfigError("Apiritif required 'default-address' to be set")
+        default_address = self.scenario.get("default-address", exc)
+        base_path = self.scenario.get("base-path", None)
+        auto_assert_ok = self.scenario.get("auto-assert-ok", True)
 
-        setup_method_def = self.gen_method_definition('setUp', ['self'])
-        setup_method_def.append(self.gen_statement("super(TestRequests, self).setUp()", indent=8))
-        setup_method_def.append(self.gen_statement("self.keep_alive = %r" % keepalive, indent=8))
-        if default_address is not None:
-            setup_method_def.append(self.gen_statement("self.default_address = %r" % default_address, indent=8))
-        if path_prefix is not None:
-            setup_method_def.append(self.gen_statement("self.path_prefix = %r" % path_prefix, indent=8))
-        setup_method_def.append(self.gen_new_line())
+        setup_method_def = self.gen_decorator_statement('classmethod')
+        setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
+        target_line = "cls.target = apiritif.http.target(%r)" % default_address
+        setup_method_def.append(self.gen_statement(target_line, indent=8))
+
+        if base_path:
+            setup_method_def.append(self.gen_statement("cls.target.base_path(%r)" % base_path, indent=8))
+        setup_method_def.append(self.gen_statement("cls.target.keep_alive(%r)" % keepalive, indent=8))
+        setup_method_def.append(self.gen_statement("cls.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
+        setup_method_def.append(self.gen_new_line(indent=0))
         return setup_method_def
 
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
         imports = self.add_imports()
         self.root.append(imports)
-        test_class = self.gen_class_definition("TestRequests", ["apiritif.APITestCase"])
+        test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
         test_class.append(self.gen_setup_method())
 
@@ -172,7 +177,7 @@ import apiritif
             self._add_url_request(req, test_method)
 
             test_class.append(test_method)
-            test_method.append(self.gen_new_line())
+            test_method.append(self.gen_new_line(indent=0))
 
     def _add_url_request(self, request, test_method):
         """
@@ -211,13 +216,12 @@ import apiritif
 
         kwargs = ", ".join("%s=%r" % (name, value) for name, value in iteritems(named_args))
 
-        request_line = "self.{method}({url}, {kwargs})".format(
+        request_line = "response = self.target.{method}({url}, {kwargs})".format(
             method=method,
             url=repr(request.url),
             kwargs=kwargs,
         )
         test_method.append(self.gen_statement(request_line))
-        test_method.append(self.gen_statement("self.assertOk()"))
         self._add_assertions(request, test_method)
         self._add_jsonpath_assertions(request, test_method)
         self._add_xpath_assertions(request, test_method)
@@ -234,22 +238,22 @@ import apiritif
             if subject in (Scenario.FIELD_BODY, Scenario.FIELD_HEADERS):
                 for member in assertion["contains"]:
                     func_table = {
-                        (Scenario.FIELD_BODY, False, False): "assertInBody",
-                        (Scenario.FIELD_BODY, False, True): "assertNotInBody",
-                        (Scenario.FIELD_BODY, True, False): "assertRegexInBody",
-                        (Scenario.FIELD_BODY, True, True): "assertRegexNotInBody",
-                        (Scenario.FIELD_HEADERS, False, False): "assertInHeaders",
-                        (Scenario.FIELD_HEADERS, False, True): "assertNotInHeaders",
-                        (Scenario.FIELD_HEADERS, True, False): "assertRegexInHeaders",
-                        (Scenario.FIELD_HEADERS, True, True): "assertRegexNotInHeaders",
+                        (Scenario.FIELD_BODY, False, False): "assert_in_body",
+                        (Scenario.FIELD_BODY, False, True): "assert_not_in_body",
+                        (Scenario.FIELD_BODY, True, False): "assert_regex_in_body",
+                        (Scenario.FIELD_BODY, True, True): "assert_regex_not_in_body",
+                        (Scenario.FIELD_HEADERS, False, False): "assert_in_headers",
+                        (Scenario.FIELD_HEADERS, False, True): "assert_not_in_headers",
+                        (Scenario.FIELD_HEADERS, True, False): "assert_regex_in_headers",
+                        (Scenario.FIELD_HEADERS, True, True): "assert_regex_not_in_headers",
                     }
                     method = func_table[(subject, assertion.get('regexp', True), assertion.get('not', False))]
-                    line = "self.{method}({member})".format(method=method, member=repr(member))
+                    line = "response.{method}({member})".format(method=method, member=repr(member))
                     test_method.append(self.gen_statement(line))
             elif subject == Scenario.FIELD_RESP_CODE:
                 for member in assertion["contains"]:
-                    method = "assertStatusCode" if not assertion.get('not', False) else "assertNotStatusCode"
-                    line = "self.{method}({member})".format(method=method, member=repr(member))
+                    method = "assert_status_code" if not assertion.get('not', False) else "assert_not_status_code"
+                    line = "response.{method}({member})".format(method=method, member=repr(member))
                     test_method.append(self.gen_statement(line))
 
     def _add_jsonpath_assertions(self, request, test_method):
@@ -259,8 +263,8 @@ import apiritif
             exc = TaurusConfigError('JSON Path not found in assertion: %s' % assertion)
             query = assertion.get('jsonpath', exc)
             expected = assertion.get('expected-value', '') or None
-            method = "assertNotJSONPath" if assertion.get('invert', False) else "assertJSONPath"
-            line = "self.{method}({query}, expected_value={expected})".format(
+            method = "assert_not_jsonpath" if assertion.get('invert', False) else "assert_jsonpath"
+            line = "response.{method}({query}, expected_value={expected})".format(
                 method=method,
                 query=repr(query),
                 expected=repr(expected) if expected else None
@@ -275,8 +279,8 @@ import apiritif
             query = assertion.get('xpath', exc)
             parser_type = 'html' if assertion.get('use-tolerant-parser', True) else 'xml'
             validate = assertion.get('validate-xml', False)
-            method = "assertNotXPath" if assertion.get('invert', False) else "assertXPath"
-            line = "self.{method}({query}, parser_type={parser_type}, validate={validate})".format(
+            method = "assert_not_xpath" if assertion.get('invert', False) else "assert_xpath"
+            line = "response.{method}({query}, parser_type={parser_type}, validate={validate})".format(
                 method=method,
                 query=repr(query),
                 validate=repr(validate),
@@ -299,6 +303,8 @@ class ApiritifResultsReader(FuncSamplesReader):
 
     def _write_sample_data_to_artifacts(self, sample_extras):
         for file_field in self.FIELDS_EXTRACTED_TO_ARTIFACTS:
+            if file_field not in sample_extras:
+                continue
             contents = sample_extras.pop(file_field)
             if contents:
                 filename = "sample-%s" % file_field
