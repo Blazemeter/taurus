@@ -54,16 +54,6 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
 
         self._start_subprocess(rspec_cmdline)
 
-    def is_finished(self):
-        ret_code = self.process.poll()
-        if ret_code is not None:
-            self.log.debug("Test runner exit code: %s", ret_code)
-            # rspec returns non-zero code when some tests fail, no need to throw an exception here
-            # if ret_code != 0:
-            #    self.is_failed = True FIXME: what did we lose on this?
-            return True
-        return False
-
 
 class Ruby(RequiredTool):
     def __init__(self, tool_path, download_link, parent_logger):

@@ -4,7 +4,7 @@ import time
 import os
 from tests import __dir__
 
-from bzt.modules.selenium import SeleniumExecutor
+from bzt.modules import javascript
 from bzt.utils import get_full_path
 from tests.modules.test_SeleniumExecutor import SeleniumTestCase
 
@@ -36,8 +36,8 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
-        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        lines = open(self.obj.runner.execution.get("report-file")).readlines()
         self.assertEqual(len(lines), 3)
 
     def test_mocha_hold(self):
@@ -61,7 +61,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
         duration = time.time() - self.obj.start_time
         self.assertGreater(duration, 5)
 
@@ -86,8 +86,8 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.settings.get("report-file")))
-        lines = open(self.obj.runner.settings.get("report-file")).readlines()
+        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        lines = open(self.obj.runner.execution.get("report-file")).readlines()
         self.assertEqual(len(lines), 9)
 
     def test_install_mocha(self):
@@ -102,10 +102,10 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         if old_node_path:
             os.environ.pop("NODE_PATH")
 
-        orig_mocha_package = SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME
-        orig_wd_package = SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME
-        SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = mocha_link
-        SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = wd_link
+        orig_mocha_package = javascript.MOCHA_NPM_PACKAGE_NAME
+        orig_wd_package = javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME
+        javascript.MOCHA_NPM_PACKAGE_NAME = mocha_link
+        javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = wd_link
 
         self.obj.settings.merge({"selenium-tools": {
             "mocha": {"tools-dir": dummy_installation_path}
@@ -120,8 +120,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "selenium-webdriver",
                                                     "index.js")))
 
-        SeleniumExecutor.MOCHA_NPM_PACKAGE_NAME = orig_mocha_package
-        SeleniumExecutor.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = orig_wd_package
+        javascript.MOCHA_NPM_PACKAGE_NAME = orig_mocha_package
+        javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = orig_wd_package
         if old_node_path:
             os.environ["NODE_PATH"] = old_node_path
-

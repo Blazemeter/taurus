@@ -153,7 +153,6 @@ class JavaTestRunner(SubprocessedExecutor):
         self.log.info("Making .jar file completed")
 
 
-
 class JUnitTester(JavaTestRunner, HavingInstallableTools):
     """
     Allows to test java and jar files

@@ -3,15 +3,16 @@ import traceback
 from subprocess import CalledProcessError
 
 import os
+from bzt import ToolError, TaurusConfigError
 
-from bzt import ToolError
-from bzt.engine import SubprocessedExecutor
+from bzt.engine import SubprocessedExecutor, HavingInstallableTools
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node
 
 MOCHA_NPM_PACKAGE_NAME = "mocha"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
 
-class MochaTester(SubprocessedExecutor):
+
+class MochaTester(SubprocessedExecutor, HavingInstallableTools):
     """
     Mocha tests runner
 
@@ -19,69 +20,54 @@ class MochaTester(SubprocessedExecutor):
     :type mocha_tool: Mocha
     """
 
-    def __init__(self, rspec_config, executor):
-        super(MochaTester, self).__init__(rspec_config, executor)
+    def __init__(self):
+        super(MochaTester, self).__init__()
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "mocha-taurus-plugin.js")
-        self.tools_dir = get_full_path(self.settings.get("tools-dir", "~/.bzt/selenium-taurus/mocha"))
+        self.tools_dir = "~/.bzt/selenium-taurus/mocha"
         self.node_tool = None
         self.npm_tool = None
         self.mocha_tool = None
 
     def prepare(self):
-        self.run_checklist()
+        super(MochaTester, self).prepare()
+        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
+        self.install_required_tools()
 
-    def run_checklist(self):
-        self.required_tools.append(TclLibrary(self.log))
+    def install_required_tools(self):
+        tools = []
+        tools.append(TclLibrary(self.log))
         self.node_tool = Node(self.log)
         self.npm_tool = NPM(self.log)
         self.mocha_tool = Mocha(self.tools_dir, self.node_tool, self.npm_tool, self.log)
-        self.required_tools.append(self.node_tool)
-        self.required_tools.append(self.npm_tool)
-        self.required_tools.append(self.mocha_tool)
-        self.required_tools.append(JSSeleniumWebdriverPackage(self.tools_dir, self.node_tool, self.npm_tool, self.log))
-        self.required_tools.append(TaurusMochaPlugin(self.plugin_path, ""))
+        tools.append(self.node_tool)
+        tools.append(self.npm_tool)
+        tools.append(self.mocha_tool)
+        tools.append(JSSeleniumWebdriverPackage(self.tools_dir, self.node_tool, self.npm_tool, self.log))
+        tools.append(TaurusMochaPlugin(self.plugin_path, ""))
 
-        self._check_tools()
+        self._check_tools(tools)
 
-    def run_tests(self):
+    def startup(self):
         mocha_cmdline = [
             self.node_tool.executable,
             self.plugin_path,
             "--report-file",
-            self.settings.get("report-file"),
+            self.execution.get("report-file"),
             "--test-suite",
-            self.script
+            self.get_scenario().get("script", TaurusConfigError("No script specified"))
         ]
+        load = self.get_load()
+        if load.iterations:
+            mocha_cmdline += ['--iterations', str(load.iterations)]
 
-        if self.load.iterations:
-            mocha_cmdline += ['--iterations', str(self.load.iterations)]
-
-        if self.load.hold:
-            mocha_cmdline += ['--hold-for', str(self.load.hold)]
-
-        std_out = open(self.settings.get("stdout"), "wt")
-        self.opened_descriptors.append(std_out)
-        std_err = open(self.settings.get("stderr"), "wt")
-        self.opened_descriptors.append(std_err)
+        if load.hold:
+            mocha_cmdline += ['--hold-for', str(load.hold)]
 
         self.env["NODE_PATH"] = self.mocha_tool.get_node_path_envvar()
 
-        self.process = self.executor.execute(mocha_cmdline,
-                                             stdout=std_out,
-                                             stderr=std_err,
-                                             env=self.env)
-
-    def is_finished(self):
-        ret_code = self.process.poll()
-        if ret_code is not None:
-            self.log.debug("Test runner exit code: %s", ret_code)
-            # mocha returns non-zero code when tests fail, no need to throw an exception here
-            if ret_code != 0:
-                self.is_failed = True
-            return True
-        return False
+        self._start_subprocess(mocha_cmdline)
 
 
 class NPM(RequiredTool):
@@ -175,4 +161,3 @@ class TaurusMochaPlugin(RequiredTool):
 
     def install(self):
         raise ToolError("Automatic installation of Taurus mocha plugin isn't implemented")
-
