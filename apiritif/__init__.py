@@ -1,7 +1,8 @@
+import inspect
 import re
-from io import BytesIO
+from collections import OrderedDict
 from functools import wraps
-from unittest import TestCase
+from io import BytesIO
 
 import jsonpath_rw
 import requests
@@ -12,282 +13,451 @@ def headers_as_text(headers_dict):
     return "\n".join("%s: %s" % (key, value) for key, value in headers_dict.items())
 
 
-def record_assertion(assertion_method):
-    @wraps(assertion_method)
-    def _impl(self, *method_args, **method_kwargs):
-        self._record_assertion(getattr(assertion_method, '__name__', 'assertion'))
-        return assertion_method(self, *method_args, **method_kwargs)
-    return _impl
+def shorten(string, upto, end_with="..."):
+    return string[:upto - len(end_with)] + end_with if len(string) > upto else string
 
 
-class APITestCase(TestCase):
-    """
-    Base class for API test cases.
+def assert_regexp(regex, text, match=False, msg=None):
+    if match:
+        if re.match(regex, text) is None:
+            msg = msg or "Regex %r didn't match expected value: %r" % (regex, shorten(text, 100))
+            raise AssertionError(msg)
+    else:
+        if not re.findall(regex, text):
+            msg = msg or "Regex %r didn't find anything in text %r" % (regex, shorten(text, 100))
+            raise AssertionError(msg)
 
-    Contains a bunch of utility functions (request, get, post, etc) and a few helpful assertions.
-    """
-    def setUp(self):
-        self.request_log = []
-        self.keep_alive = True
-        self.session = None
-        self.default_address = None
-        self.path_prefix = None
 
-    def tearDown(self):
-        pass
+def assert_not_regexp(regex, text, match=False, msg=None):
+    if match:
+        if re.match(regex, text) is not None:
+            msg = msg or "Regex %r unexpectedly matched expected value: %r" % (regex, shorten(text, 100))
+            raise AssertionError(msg)
+    else:
+        if re.findall(regex, text):
+            msg = msg or "Regex %r unexpectedly found something in text %r" % (regex, shorten(text, 100))
+            raise AssertionError(msg)
 
-    # Utility functions
 
-    def request(self, url, method='GET', **kwargs):
-        if self.keep_alive and self.session is None:
-            self.session = requests.Session()
+class http(object):
+    @staticmethod
+    def target(*args, **kwargs):
+        return HTTPTarget(*args, **kwargs)
 
-        address = ''
-        if self.default_address is not None:
-            address += self.default_address
-        if self.path_prefix is not None:
-            address += self.path_prefix
-        address += url
+    @staticmethod
+    def request(method, address, session=None,
+                params=None, headers=None, cookies=None, data=None, json=None, allow_redirects=False, timeout=30):
+        """
 
-        timeout = kwargs.pop('timeout', 30)
-        allow_redirects = kwargs.pop('allow_redirects', True)
-
-        request = requests.Request(method, address, **kwargs)
+        :param method: str
+        :param address: str
+        :return: response
+        :rtype: HTTPResponse
+        """
+        if session is None:
+            session = requests.Session()
+        request = requests.Request(method, address,
+                                   params=params, headers=headers, cookies=cookies, json=json, data=data)
         prepared = request.prepare()
-        session_cookies = dict(self.session.cookies) if self.session else {}
-        session_cookies.update(kwargs.get("cookies", {}))
+        response = session.send(prepared, allow_redirects=allow_redirects, timeout=timeout)
+        wrapped_response = HTTPResponse.from_py_response(response)
+        recorder.record_http_request(method, address, request, wrapped_response)
+        return wrapped_response
 
-        log_item = {
-            "url": address,
-            "method": method,
-            "rawRequest": prepared.body or "",
-            "requestCookies": session_cookies,
-        }
-        log_item.update(kwargs)
+    @staticmethod
+    def get(address, **kwargs):
+        return http.request("GET", address, **kwargs)
 
-        if self.keep_alive:
-            response = self.session.send(prepared, allow_redirects=allow_redirects, timeout=timeout)
-        else:
-            response = requests.Session().send(prepared, allow_redirects=allow_redirects, timeout=timeout)
+    @staticmethod
+    def post(address, **kwargs):
+        return http.request("POST", address, **kwargs)
 
-        log_item["response"] = response
+    @staticmethod
+    def put(address, **kwargs):
+        return http.request("PUT", address, **kwargs)
 
-        self.request_log.append(log_item)
+    @staticmethod
+    def delete(address, **kwargs):
+        return http.request("DELETE", address, **kwargs)
+
+    @staticmethod
+    def patch(address, **kwargs):
+        return http.request("PATCH", address, **kwargs)
+
+    @staticmethod
+    def head(address, **kwargs):
+        return http.request("HEAD", address, **kwargs)
+
+
+class LogAssertion(object):
+    def __init__(self, name, response):
+        self.name = name
+        self.response = response
+        self.is_failed = False
+        self.failure_message = ""
+
+    def __repr__(self):
+        tmpl = "Assertion(name=%r, response=%r, is_failed=%r, failure_message=%r)"
+        return tmpl % (self.name, self.response, self.is_failed, self.failure_message)
+
+
+class LogRequest(object):
+    def __init__(self, method, address, request, response):
+        self.method = method
+        self.address = address
+        self.request = request
+        self.response = response
+
+
+class Record(object):
+    def __init__(self):
+        """
+        :type requests: list[LogRequest]
+        :type assertions: list[LogAssertion]
+        """
+        self.requests = []
+        self.assertions = []
+
+    def add_request(self, method, address, request, response):
+        self.requests.append(LogRequest(method, address, request, response))
+
+    def assertions_for_response(self, response):
+        return [
+            ass
+            for ass in self.assertions
+            if ass.response == response
+        ]
+
+    def add_assertion(self, assertion_name, target_response):
+        self.assertions.append(LogAssertion(assertion_name, target_response))
+
+    def __repr__(self):
+        tmpl = "Record(requests=%r, assertions=%r)"
+        return tmpl % (self.requests, self.assertions)
+
+
+# TODO: thread-safe version?
+class _Recorder(object):
+    def __init__(self):
+        self.log = OrderedDict()
+
+    @staticmethod
+    def _get_current_test_case_name():
+        for entry in inspect.stack():
+            frame, filename, line_no, func_name, ctx, ctx_index = entry
+            if func_name.startswith("test"):
+                return func_name
+        return None
+
+    def record_http_request(self, method, address, request, response):
+        test_case = self._get_current_test_case_name()
+        if test_case not in self.log:
+            self.log[test_case] = Record()
+        self.log[test_case].add_request(method, address, request, response)
+
+    def record_assertion(self, assertion_name, target_response):
+        if not self.log:
+            raise ValueError("Can't record assertion, no test cases were registered yet")
+        last_record = self.log[next(reversed(self.log))]
+        if not last_record:
+            raise ValueError("Can't record assertion, no test cases were registered yet")
+        last_record.add_assertion(assertion_name, target_response)
+
+    def record_assertion_failure(self, failure_message):  # do we need to pass some kind of context or assertion id?
+        if not self.log:
+            raise ValueError("Can't record assertion, no requests were made yet")
+        last_record = self.log[next(reversed(self.log))]
+        if not last_record:
+            raise ValueError("Can't record assertion, no test cases were registered yet")
+        last_assertion = last_record.assertions[-1]
+        last_assertion.is_failed = True
+        last_assertion.failure_message = failure_message
+
+    @staticmethod
+    def assertion_decorator(assertion_method):
+        @wraps(assertion_method)
+        def _impl(self, *method_args, **method_kwargs):
+            recorder.record_assertion(getattr(assertion_method, '__name__', 'assertion'), self)
+            try:
+                return assertion_method(self, *method_args, **method_kwargs)
+            except BaseException as exc:
+                recorder.record_assertion_failure(str(exc))
+                raise
+        return _impl
+
+
+recorder = _Recorder()
+
+
+class HTTPTarget(object):
+    def __init__(
+            self,
+            address,
+            base_path=None,
+            use_cookies=True,
+            default_headers=None,
+            keep_alive=True,
+            auto_assert_ok=True
+    ):
+        self.address = address
+        # config flags
+        self._base_path = base_path
+        self._use_cookies = use_cookies
+        self._keep_alive = keep_alive
+        self._default_headers = default_headers
+        self._auto_assert_ok = auto_assert_ok
+        # internal vars
+        self.__session = None
+
+    def use_cookies(self, use=True):
+        self._use_cookies = use
+        return self
+
+    def base_path(self, base_path):
+        self._base_path = base_path
+        return self
+
+    def keep_alive(self, keep=True):
+        self._keep_alive = keep
+        return self
+
+    def default_headers(self, headers):
+        self._default_headers = headers  # NOTE: copy or even update?
+        return self
+
+    def auto_assert_ok(self, value=True):
+        self._auto_assert_ok = value
+
+    def _bake_address(self, path):
+        addr = self.address
+        if self._base_path is not None:
+            addr += self._base_path
+        addr += path
+        return addr
+
+    def request(self, method, path,
+                params=None, headers=None, cookies=None, data=None, json=None, allow_redirects=False, timeout=30):
+        """
+        Prepares and sends an HTTP request. Returns the response.
+
+        :param method: str
+        :param path: str
+        :return: response
+        :rtype: HTTPResponse
+        """
+        if self._keep_alive and self.__session is None:
+            self.__session = requests.Session()
+
+        address = self._bake_address(path)
+        response = http.request(method, address, session=self.__session,
+                                params=params, headers=headers, cookies=cookies, data=data, json=json,
+                                allow_redirects=allow_redirects, timeout=timeout)
+        if self._auto_assert_ok:
+            response.assert_ok()
         return response
 
-    def head(self, url, **kwargs):
-        return self.request(url, method='HEAD', **kwargs)
+    def get(self, path, **kwargs):
+        # TODO: how to reuse requests.session? - pass it as additional parameter for http.request ?
+        return self.request("GET", path, **kwargs)
 
-    def get(self, url, **kwargs):
-        return self.request(url, method='GET', **kwargs)
+    def post(self, path, **kwargs):
+        return self.request("POST", path, **kwargs)
 
-    def post(self, url, **kwargs):
-        return self.request(url, method='POST', **kwargs)
+    def put(self, path, **kwargs):
+        return self.request("PUT", path, **kwargs)
 
-    def put(self, url, **kwargs):
-        return self.request(url, method='PUT', **kwargs)
+    def delete(self, path, **kwargs):
+        return self.request("DELETE", path, **kwargs)
 
-    def patch(self, url, **kwargs):
-        return self.request(url, method='PATCH', **kwargs)
+    def patch(self, path, **kwargs):
+        return self.request("PATCH", path, **kwargs)
 
-    def delete(self, url, **kwargs):
-        return self.request(url, method='DELETE', **kwargs)
+    def head(self, path, **kwargs):
+        return self.request("HEAD", path, **kwargs)
 
-    def _get_last_response(self):
-        if self.request_log:
-            return self.request_log[-1]["response"]
-        raise ValueError("Can't take last response because no requests were made")
 
-    def failureException(self, msg):
-        if self.request_log:
-            last_record = self.request_log[-1]
-            if last_record.get("assertions"):
-                last_record["assertions"][-1].update(isFailed=True, errorMessage=msg)
+# HTTP Response:
+class HTTPResponse(object):
+    # properties:
+    # - url
+    # - status code
+    # - status message
+    # - text
+    # - content
+    # - headers
+    # - cookies
+    # - request
 
-        exc = super(APITestCase, self).failureException
-        return exc(msg)
+    # methods:
+    # - assertions (assertOk, assertFailed, assertJSON)
+    # - extractors (extractJSON, extractRegexp, extractXPath)
+    def __init__(self, py_response):
+        """
 
-    def _record_assertion(self, assertion_name):
-        if not self.request_log:
-            return
-        last_record = self.request_log[-1]
-        if "assertions" not in last_record:
-            last_record["assertions"] = []
-        last_record["assertions"].append({"name": assertion_name, "isFailed": False, "errorMessage": ''})
+        :param py_response: requests.Response
+        :type py_response: requests.Response
+        """
+        self.py_response = py_response
+        # TODO: unpack all py_response fields into local properties
 
-    # Utility asserts
+    @classmethod
+    def from_py_response(cls, py_response):
+        "Construct HTTPResponse from requests.Response object"
+        return cls(py_response)
 
-    def assertRegexp(self, regex, text, match=False, msg=None):
-        if match:
-            if re.match(regex, text) is None:
-                text = text[:100] + "..." if len(text) > 100 else text
-                msg = msg or "Regex %r didn't match expected value: %r" % (regex, text)
-                self.fail(msg)
-        else:
-            if not re.findall(regex, text):
-                text = text[:100] + "..." if len(text) > 100 else text
-                msg = msg or "Regex %r didn't find anything in string %r" % (regex, text)
-                self.fail(msg)
+    def __eq__(self, other):
+        return self.py_response == other.py_response
 
-    def assertNotRegexp(self, regex, text, match=False, msg=None):
-        if match:
-            if re.match(regex, text) is not None:
-                text = text[:100] + "..." if len(text) > 100 else text
-                msg = msg or "Regex %r unexpectedly matched expected value: %r" % (regex, text)
-                raise AssertionError(msg)
-        else:
-            if re.findall(regex, text):
-                text = text[:100] + "..." if len(text) > 100 else text
-                msg = msg or "Regex %r unexpectedly found something in string %r" % (regex, text)
-                raise AssertionError(msg)
+    # TODO: text, content - @property?
 
-    # Asserts for HTTP responses
+    @recorder.assertion_decorator
+    def assert_ok(self, msg=None):
+        if self.py_response.status_code >= 400:
+            msg = msg or "Request to %s didn't succeed" % self.py_response.url
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertOk(self, response=None, msg=None):
-        response = response or self._get_last_response()
-        if not response.ok:
-            msg = msg or "Request to %s didn't succeed" % response.url
-            self.fail(msg)
+    @recorder.assertion_decorator
+    def assert_failed(self, msg=None):
+        if self.py_response.status_code < 400:
+            msg = msg or "Request to %s didn't fail" % self.py_response.url
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertFailed(self, response=None, msg=None):
-        response = response or self._get_last_response()
-        if response.status_code < 400:
-            msg = msg or "Request to %s didn't fail" % response.url
-            self.fail(msg=msg)
+    @recorder.assertion_decorator
+    def assert_2xx(self, msg=None):
+        if not 200 <= self.py_response.status_code < 300:
+            msg = msg or "Response code isn't 2xx, it's %s" % self.py_response.status_code
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assert2xx(self, response=None, msg=None):
-        response = response or self._get_last_response()
-        if not 200 <= response.status_code < 300:
-            msg = msg or "Response code isn't 2xx, it's %s" % response.status_code
-            self.fail(msg=msg)
+    @recorder.assertion_decorator
+    def assert_3xx(self, msg=None):
+        if not 300 <= self.py_response.status_code < 400:
+            msg = msg or "Response code isn't 3xx, it's %s" % self.py_response.status_code
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assert3xx(self, response=None, msg=None):
-        response = response or self._get_last_response()
-        if not 300 <= response.status_code < 400:
-            msg = msg or "Response code isn't 3xx, it's %s" % response.status_code
-            self.fail(msg=msg)
+    @recorder.assertion_decorator
+    def assert_4xx(self, msg=None):
+        if not 400 <= self.py_response.status_code < 500:
+            msg = msg or "Response code isn't 4xx, it's %s" % self.py_response.status_code
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assert4xx(self, response=None, msg=None):
-        response = response or self._get_last_response()
-        if not 400 <= response.status_code < 500:
-            msg = msg or "Response code isn't 4xx, it's %s" % response.status_code
-            self.fail(msg=msg)
+    @recorder.assertion_decorator
+    def assert_5xx(self, msg=None):
+        if not 500 <= self.py_response.status_code < 600:
+            msg = msg or "Response code isn't 5xx, it's %s" % self.py_response.status_code
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assert5xx(self, response=None, msg=None):
-        response = response or self._get_last_response()
-        if not 500 <= response.status_code < 600:
-            msg = msg or "Response code isn't 5xx, it's %s" % response.status_code
-            self.fail(msg=msg)
+    @recorder.assertion_decorator
+    def assert_status_code(self, code, msg=None):
+        actual = str(self.py_response.status_code)
+        expected = str(code)
+        if actual != expected:
+            msg = msg or "Actual status code (%s) didn't match expected (%s)" % (actual, expected)
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertStatusCode(self, code, response=None, msg=None):
-        response = response or self._get_last_response()
-        self.assertEqual(str(response.status_code), str(code), msg=msg)
+    @recorder.assertion_decorator
+    def assert_not_status_code(self, code, msg=None):
+        actual = str(self.py_response.status_code)
+        expected = str(code)
+        if actual == expected:
+            msg = msg or "Actual status code (%s) unexpectedly matched" % actual
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertNotStatusCode(self, code, response=None, msg=None):
-        response = response or self._get_last_response()
-        self.assertNotEqual(str(response.status_code), str(code), msg=msg)
+    @recorder.assertion_decorator
+    def assert_in_body(self, member, msg=None):
+        if member not in self.py_response.text:
+            msg = msg or "%r wasn't found in response body" % member
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertInBody(self, member, response=None, msg=None):
-        response = response or self._get_last_response()
-        self.assertIn(member, response.text, msg=msg)
+    @recorder.assertion_decorator
+    def assert_not_in_body(self, member, msg=None):
+        if member in self.py_response.text:
+            msg = msg or "%r was found in response body" % member
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertNotInBody(self, member, response=None, msg=None):
-        response = response or self._get_last_response()
-        self.assertNotIn(member, response, msg=msg)
+    @recorder.assertion_decorator
+    def assert_regex_in_body(self, regex, match=False, msg=None):
+        assert_regexp(regex, self.py_response.text, match=match, msg=msg)
 
-    @record_assertion
-    def assertRegexInBody(self, regex, response=None, match=False, msg=None):
-        response = response or self._get_last_response()
-        self.assertRegexp(regex, response.text, match=match, msg=msg)
+    @recorder.assertion_decorator
+    def assert_regex_not_in_body(self, regex, match=False, msg=None):
+        assert_not_regexp(regex, self.py_response.text, match=match, msg=msg)
 
-    @record_assertion
-    def assertRegexNotInBody(self, regex, response=None, match=False, msg=None):
-        response = response or self._get_last_response()
-        self.assertNotRegexp(regex, response.text, match=match, msg=msg)
+    # TODO: assert_content_type?
 
-    @record_assertion
-    def assertHasHeader(self, header, response=None, msg=None):
-        response = response or self._get_last_response()
-        self.assertIn(header, response.headers, msg=msg)
+    @recorder.assertion_decorator
+    def assert_has_header(self, header, msg=None):
+        if header not in self.py_response.headers:
+            msg = msg or "Header %s wasn't found in response headers" % header
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertHeaderValue(self, header, value, response=None, msg=None):
-        response = response or self._get_last_response()
-        self.assertIn(header, response.headers, msg=msg)
-        self.assertEqual(response.headers[header], value, msg=msg)
+    @recorder.assertion_decorator
+    def assert_header_value(self, header, value, msg=None):
+        self.assert_has_header(header)
+        actual = self.py_response.headers[header]
+        if actual != value:
+            msg = msg or "Actual header value (%r) isn't equal to expected (%r)" % (actual, value)
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertInHeaders(self, member, response=None, msg=None):
-        response = response or self._get_last_response()
-        self.assertIn(member, headers_as_text(response.headers), msg=msg)
+    @recorder.assertion_decorator
+    def assert_in_headers(self, member, msg=None):
+        if member not in headers_as_text(self.py_response.headers):
+            msg = msg or "Header %s wasn't found in response headers text" % member
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertNotInHeaders(self, member, response=None, msg=None):
-        response = response or self._get_last_response()
-        self.assertNotIn(member, headers_as_text(response.headers), msg=msg)
+    @recorder.assertion_decorator
+    def assert_not_in_headers(self, member, msg=None):
+        if member in headers_as_text(self.py_response.headers):
+            msg = msg or "Header %s was found in response headers text" % member
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertRegexInHeaders(self, member, response=None, msg=None):
-        response = response or self._get_last_response()
-        self.assertRegexp(member, headers_as_text(response.headers), msg=msg)
+    @recorder.assertion_decorator
+    def assert_regex_in_headers(self, member, msg=None):
+        assert_regexp(member, headers_as_text(self.py_response.headers), msg=msg)
 
-    @record_assertion
-    def assertRegexNotInHeaders(self, member, response=None, msg=None):
-        response = response or self._get_last_response()
-        self.assertNotRegexp(member, headers_as_text(response.headers), msg=msg)
+    @recorder.assertion_decorator
+    def assert_regex_not_in_headers(self, member, msg=None):
+        assert_not_regexp(member, headers_as_text(self.py_response.headers), msg=msg)
 
-    @record_assertion
-    def assertJSONPath(self, jsonpath_query, response=None, expected_value=None, msg=None):
-        response = response or self._get_last_response()
+    @recorder.assertion_decorator
+    def assert_jsonpath(self, jsonpath_query, expected_value=None, msg=None):
         jsonpath_expr = jsonpath_rw.parse(jsonpath_query)
-        body = response.json()
+        body = self.py_response.json()
         matches = jsonpath_expr.find(body)
         if not matches:
             msg = msg or "JSONPath query %r didn't match response content" % jsonpath_query
-            self.fail(msg=msg)
+            raise AssertionError(msg)
         if expected_value is not None and matches[0].value != expected_value:
             msg = msg or "Actual value at JSONPath query %r isn't equal to expected" % jsonpath_query
-            self.fail(msg)
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertNotJSONPath(self, jsonpath_query, response=None, expected_value=None, msg=None):
-        response = response or self._get_last_response()
+    @recorder.assertion_decorator
+    def assert_not_jsonpath(self, jsonpath_query, expected_value=None, msg=None):
         jsonpath_expr = jsonpath_rw.parse(jsonpath_query)
-        body = response.json()
+        body = self.py_response.json()
         matches = jsonpath_expr.find(body)
         if matches:
             msg = msg or "JSONPath query %r did match response content" % jsonpath_query
-            self.fail(msg=msg)
+            raise AssertionError(msg)
         if expected_value is not None and matches[0].value == expected_value:
             msg = msg or "Actual value at JSONPath query %r is equal to expected" % jsonpath_query
-            self.fail(msg)
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertXPath(self, xpath_query, response=None, parser_type='html', validate=False, msg=None):
-        response = response or self._get_last_response()
+    @recorder.assertion_decorator
+    def assert_xpath(self, xpath_query, parser_type='html', validate=False, msg=None):
         parser = etree.HTMLParser() if parser_type == 'html' else etree.XMLParser(dtd_validation=validate)
-        tree = etree.parse(BytesIO(response.content), parser)
+        tree = etree.parse(BytesIO(self.py_response.content), parser)
         matches = tree.xpath(xpath_query)
         if not matches:
             msg = msg or "XPath query %r didn't match response content" % xpath_query
-            self.fail(msg=msg)
+            raise AssertionError(msg)
 
-    @record_assertion
-    def assertNotXPath(self, xpath_query, response=None, parser_type='html', validate=False, msg=None):
-        response = response or self._get_last_response()
+    @recorder.assertion_decorator
+    def assert_not_xpath(self, xpath_query, parser_type='html', validate=False, msg=None):
         parser = etree.HTMLParser() if parser_type == 'html' else etree.XMLParser(dtd_validation=validate)
-        tree = etree.parse(BytesIO(response.content), parser)
+        tree = etree.parse(BytesIO(self.py_response.content), parser)
         matches = tree.xpath(xpath_query)
         if matches:
             msg = msg or "XPath query %r did match response content" % xpath_query
-            self.fail(msg=msg)
+            raise AssertionError(msg)
+
+    # TODO: extractors (regex, xpath, json)

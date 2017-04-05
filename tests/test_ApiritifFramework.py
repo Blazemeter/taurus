@@ -14,7 +14,7 @@ class TestApiritif(unittest.TestCase):
     def test_example(self):
         result = run_apiritif_script(__dir__() + "/apiritif/test_api_example.py")
         self.assertTrue(result.wasSuccessful())
-        self.assertEqual(result.testsRun, 1)
+        self.assertEqual(result.testsRun, 2)
 
     def test_cookies(self):
         result = run_apiritif_script(__dir__() + "/apiritif/test_cookies.py")

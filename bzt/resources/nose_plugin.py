@@ -137,30 +137,39 @@ class BZTPlugin(Plugin):
     def _cookies_from_dict(cookies):
         return "; ".join(key + "=" + value for key, value in cookies.items())
 
-    def _record_request_info(self, test):
-        test_obj = test.test
-        request_log = getattr(test_obj, 'request_log', [])
-        if not request_log:
+    def _extract_apiritif_data(self, test_case):
+        try:
+            from apiritif import recorder
+        except ImportError:
             return
-        request = request_log[0]
-        response = request["response"]
+
+        log_record = recorder.log.get(test_case, None)
+        if log_record is None or not log_record.requests:
+            return
+
+        request_log = log_record.requests[0]
+        assertions = log_record.assertions_for_response(request_log.response)
+        py_response = request_log.response.py_response
 
         record = {
-            'responseCode': response.status_code,
-            'responseMessage': response.reason,
-            'responseTime': response.elapsed.total_seconds(),
+            'responseCode': py_response.status_code,
+            'responseMessage': py_response.reason,
+            'responseTime': py_response.elapsed.total_seconds(),
             'connectTime': 0,
             'latency': 0,
-            'responseSize': len(response.content),
+            'responseSize': len(py_response.content),
             'requestSize': 0,
-            'requestMethod': response.request.method,
-            'requestURI': response.request.url,
-            'assertions': request.get("assertions", []),
-            'responseBody': response.text,
-            'requestBody': request.get("rawRequest", ""),
-            'requestCookies': request.get("requestCookies", {}),
-            'requestHeaders': dict(response.request.headers),
-            'responseHeaders': dict(response.headers),
+            'requestMethod': py_response.request.method,
+            'requestURI': py_response.request.url,
+            'assertions': [
+                {"name": assertion.name, "isFailed": assertion.is_failed, "failureMessage": assertion.failure_message}
+                for assertion in assertions
+            ],
+            'responseBody': py_response.text,
+            'requestBody': "",  # py_response.get("rawRequest", ""),
+            'requestCookies': {},  # py_response.get("requestCookies", {}),
+            'requestHeaders': dict(py_response.request.headers),
+            'responseHeaders': dict(py_response.headers),
         }
 
         record["requestCookiesRaw"] = self._cookies_from_dict(record["requestCookies"])
@@ -178,7 +187,7 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self._record_request_info(test)
+        self._extract_apiritif_data(self.test_dict["test_case"])
         self.test_count += 1
         self.test_dict["duration"] = time.time() - self.test_dict["start_time"]
         self.out_stream.write("%s\n" % json.dumps(self.test_dict))

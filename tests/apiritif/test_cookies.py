@@ -1,7 +1,9 @@
-from apiritif import APITestCase
+from unittest import TestCase
+
+from apiritif import http
 
 
-class MyTest(APITestCase):
+class MyTest(TestCase):
     def test_cookies(self):
-        response = self.request('http://example.com', cookies={"foo": "bar"})
-        self.assertOk(response)
+        response = http.get('http://example.com', cookies={"foo": "bar"})
+        response.assert_ok()
