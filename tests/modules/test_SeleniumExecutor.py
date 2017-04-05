@@ -1,4 +1,3 @@
-import json
 import logging
 import re
 import shutil
@@ -15,7 +14,6 @@ from bzt.modules.provisioning import Local
 from bzt.modules.selenium import NoseTester
 from bzt.modules.selenium import SeleniumExecutor, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
-from bzt.utils import is_windows, get_full_path
 from tests.mocks import EngineEmul
 
 
@@ -55,8 +53,6 @@ class SeleniumTestCase(BZTestCase):
             except BaseException:
                 pass
         self.obj.free_virtual_display()
-
-
 
 
 class LDJSONReaderEmul(object):

@@ -16,17 +16,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import sys
-import os
 import shutil
-
+import sys
 from os.path import join, isfile
 
+import os
 from bzt import TaurusConfigError, TaurusInternalException
+
 from bzt.bza import BZAProxy
 from bzt.engine import Service
+from bzt.modules.selenium import AbstractSeleniumExecutor
 from bzt.utils import is_windows, get_full_path
-from bzt.modules.selenium import SubprocessedExecutor
+
 
 class Proxy2JMX(Service):
     def __init__(self):
@@ -89,7 +90,7 @@ class Proxy2JMX(Service):
             self.log.warning("Your system doesn't support settings of proxy by Taurus way")
 
         for executor in self.engine.provisioning.executors:
-            if isinstance(executor, SubprocessedExecutor):
+            if isinstance(executor, AbstractSeleniumExecutor):
                 if executor.label:
                     labels.append(executor.label)
                 executor.add_env(additional_env)
