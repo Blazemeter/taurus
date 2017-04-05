@@ -1,11 +1,19 @@
 ---
-modules:
-  selenium:
-    virtual-display:
-      width: 1024
-      height: 768
-
 execution:
+- executor: selenium
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/rspec_example.rb
+
+- executor: selenium
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/mocha_example.js
+
 - executor: selenium
   concurrency: 1
   hold-for: 10s
@@ -41,18 +49,4 @@ execution:
   runner: testng
   scenario:
     script: selenium/TestNGExample.java
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: selenium/rspec_example.rb
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    script: selenium/mocha_example.js
 
