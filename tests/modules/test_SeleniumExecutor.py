@@ -11,7 +11,7 @@ from tests import BZTestCase, local_paths_config, __dir__
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
-from bzt.modules.selenium import NoseTester
+from bzt.modules.selenium import NoseTester, AbstractSeleniumExecutor
 from bzt.modules.selenium import SeleniumExecutor, LoadSamplesReader, LDJSONReader, FuncSamplesReader
 from bzt.six import StringIO
 from tests.mocks import EngineEmul
@@ -52,7 +52,8 @@ class SeleniumTestCase(BZTestCase):
                     logging.info('Selenium stderr: """\n%s\n"""', stderr)
             except BaseException:
                 pass
-        self.obj.free_virtual_display()
+        if isinstance(self.obj, SeleniumExecutor):
+            self.obj.free_virtual_display()
 
 
 class LDJSONReaderEmul(object):

@@ -9,9 +9,9 @@ from tests import __dir__
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules import java
-from bzt.modules.selenium import SeleniumExecutor
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION
 from bzt.utils import get_full_path
+from tests.mocks import EngineEmul
 from tests.modules.test_SeleniumExecutor import SeleniumTestCase
 
 
@@ -46,20 +46,19 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
 
         self.assertFalse(os.path.exists(dummy_installation_path))
 
-        self.obj.settings.merge({"selenium-tools": {
-            "junit": {"selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar")}
-        }})
-        self.obj.settings.merge({"selenium-tools": {
-            "junit": {"hamcrest-core": os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")}
-        }})
-        self.obj.settings.merge({"selenium-tools": {
-            "junit": {"path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")}
-        }})
+        self.obj = JUnitTester()
+        self.obj.engine = EngineEmul()
+        self.obj.settings.merge({
+            "selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar"),
+            "hamcrest-core": os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar"),
+            "path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")
+        })
 
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/junit/jar/"},
                                   "runner": "junit"})
+        self.obj.install_required_tools()
         self.obj.prepare()
-        self.assertIsInstance(self.obj.runner, JUnitTester)
+        self.assertIsInstance(self.obj, JUnitTester)
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
@@ -333,13 +332,13 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
 
         self.assertFalse(os.path.exists(dummy_installation_path))
 
-        self.obj.settings.merge({"selenium-tools": {
-            "testng": {
-                "selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar"),
-                "hamcrest-core": os.path.join(dummy_installation_path, "tools", "testng", "hamcrest-core.jar"),
-                "path": os.path.join(dummy_installation_path, "tools", "testng", "testng.jar")
-            }
-        }})
+        self.obj = TestNGTester()
+        self.obj.engine = EngineEmul()
+        self.obj.settings.merge({
+            "selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar"),
+            "hamcrest-core": os.path.join(dummy_installation_path, "tools", "testng", "hamcrest-core.jar"),
+            "path": os.path.join(dummy_installation_path, "tools", "testng", "testng.jar")
+        })
 
         self.obj.execution.merge({
             "runner": "testng",
@@ -348,6 +347,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                 'testng-xml': None,
             },
         })
+        self.obj.install_required_tools()
         self.obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "testng", "testng.jar")))
