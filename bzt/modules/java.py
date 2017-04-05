@@ -57,6 +57,7 @@ class JavaTestRunner(SubprocessedExecutor):
         self.base_class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_jar_path])
 
         self.script = self.get_scenario().get(Scenario.SCRIPT, self.script)
+        self.script = self.engine.find_file(self.script)
         self.working_dir = self.engine.create_artifact(self.settings.get("working-dir", "classes"), "")
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
         self.base_class_path.extend(self.settings.get("additional-classpath", []))
