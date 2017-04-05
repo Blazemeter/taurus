@@ -295,9 +295,6 @@ class TestSeleniumStuff(SeleniumTestCase):
         # scenario.script, scenario.additional-classpath, settings.additional-classpath
         self.assertEqual(len(resources), 3)
 
-    def test_required_tools(self):
-        self.obj.install_required_tools()
-
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
     def test_build_script(self):

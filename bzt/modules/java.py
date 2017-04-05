@@ -6,7 +6,7 @@ import time
 import os
 from bzt import ToolError, TaurusConfigError
 
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools
+from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager
 
 SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.3/" \
@@ -56,7 +56,7 @@ class JavaTestRunner(SubprocessedExecutor):
 
         self.base_class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_jar_path])
 
-        self.script = self.settings.get("script", self.script)
+        self.script = self.get_scenario().get(Scenario.SCRIPT, self.script)
         self.working_dir = self.engine.create_artifact(self.settings.get("working-dir", "classes"), "")
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
         self.base_class_path.extend(self.settings.get("additional-classpath", []))

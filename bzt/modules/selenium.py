@@ -169,10 +169,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         runner.settings = self.settings
         runner.parameters = self.parameters
         runner.provisioning = self.provisioning
-        runner.script = self.script # FIXME: rework normally
         runner.execution = self.execution
         runner.execution["report-file"] = report_file  # TODO: shouldn't it be the field?
         runner.settings.merge(runner_config)  # TODO: shouldn't we use 'execution' instead?
+        if self.script:
+            runner.get_scenario()[Scenario.SCRIPT] = self.script
         return runner
 
     def _register_reader(self, report_file):
@@ -332,22 +333,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         nose_test.save(filename)
         return filename
 
-    def install_required_tools(self):
-        self.scenario = BetterDict()
-        runner_classes = {
-            "nose": NoseTester,
-            "junit": JUnitTester,
-            "testng": TestNGTester,
-            "rspec": RSpecTester,
-            "mocha": MochaTester,
-        }
-        for runner, runner_class in iteritems(runner_classes):
-            runner_config = BetterDict()
-            runner_config.merge(self.settings.get("selenium-tools").get(runner))
-            runner_config.merge({"script": ''})
-            mod = runner_class(runner_config, self)
-            mod.run_checklist()
-
 
 class SeleniumWidget(Pile, PrioritizedWidget):
     def __init__(self, script, runner_output):
@@ -398,7 +383,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
     def __init__(self, scenario, parent_logger, wdlog):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
-        self.window_size = (1, 1)
+        self.window_size = None
         self.wdlog = wdlog
 
     def build_source_code(self):

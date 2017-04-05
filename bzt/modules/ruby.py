@@ -4,7 +4,7 @@ import traceback
 import os
 from bzt import ToolError, TaurusConfigError
 
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools
+from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario
 from bzt.utils import RequiredTool, is_windows, get_full_path, TclLibrary
 
 
@@ -43,7 +43,7 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
             "--report-file",
             self.execution.get("report-file"),
             "--test-suite",
-            self.get_scenario().get("script", TaurusConfigError("No script specified"))
+            self.get_scenario().get(Scenario.SCRIPT, TaurusConfigError("No script specified"))
         ]
         load = self.get_load()
         if load.iterations:
