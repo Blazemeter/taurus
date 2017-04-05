@@ -303,7 +303,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.script, self.runner.settings.get("stdout"))
+            self.widget = SeleniumWidget(self.script, self.runner._stdout_file)
         return self.widget
 
     def resource_files(self):
@@ -347,7 +347,7 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
     def update(self):
         reader_summary = ''
-        if os.path.exists(self.runner_output):
+        if self.runner_output is not None and os.path.exists(self.runner_output):
             with open(self.runner_output, "rt") as fds:
                 lines = fds.readlines()
                 if lines:

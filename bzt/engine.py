@@ -1083,11 +1083,13 @@ class SubprocessedExecutor(ScenarioExecutor):
         self.env = {}
         self.process = None
         self.opened_descriptors = []
+        self._stdout_file = None
         self._stderr_file = None
 
     def _start_subprocess(self, cmdline):
-        prefix = self.label or "subprocess"
-        std_out = open(self.engine.create_artifact(prefix, ".out"), "wt")
+        prefix = self.execution["executor"]
+        self._stdout_file = self.engine.create_artifact(prefix, ".out")
+        std_out = open(self._stdout_file, "wt")
         self.opened_descriptors.append(std_out)
         self._stderr_file = self.engine.create_artifact(prefix, ".err")
         std_err = open(self._stderr_file, "wt")
