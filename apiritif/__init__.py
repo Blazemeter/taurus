@@ -144,8 +144,8 @@ class _Recorder(object):
     @staticmethod
     def _get_current_test_case_name():
         for entry in inspect.stack():
-            frame, filename, line_no, func_name, ctx, ctx_index = entry
-            if func_name.startswith("test"):
+            _, _, _, func_name, _, _ = entry
+            if func_name.startswith("test"):  # is this heuristic good enough?
                 return func_name
         return None
 
@@ -288,9 +288,6 @@ class HTTPResponse(object):
     # - cookies
     # - request
 
-    # methods:
-    # - assertions (assertOk, assertFailed, assertJSON)
-    # - extractors (extractJSON, extractRegexp, extractXPath)
     def __init__(self, py_response):
         """
 
