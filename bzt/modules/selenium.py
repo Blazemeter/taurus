@@ -25,10 +25,7 @@ from bzt.engine import Scenario, FileLister, SubprocessedExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.modules.java import JUnitTester, TestNGTester
-from bzt.modules.javascript import MochaTester
 from bzt.modules.python import NoseTester
-from bzt.modules.ruby import RSpecTester
 from bzt.six import string_types
 from bzt.utils import is_windows, BetterDict, get_full_path, get_files_recursive
 
@@ -135,42 +132,27 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def _create_runner(self, report_file):
         script_type = self.detect_script_type()
-
-        runner_config = BetterDict()
-
-        if script_type == "nose":
-            runner_class = NoseTester
-            runner_config.merge(self.settings.get("selenium-tools").get("nose"))  # FIXME: move into module config
-        elif script_type == "junit":
-            runner_class = JUnitTester
-            runner_config.merge(self.settings.get("selenium-tools").get("junit"))
-        elif script_type == "testng":
-            runner_class = TestNGTester
-            runner_config.merge(self.settings.get("selenium-tools").get("testng"))
-            testng_config = self._get_testng_xml()
-            if testng_config:
-                runner_config['testng-xml'] = self.engine.find_file(testng_config)
-        elif script_type == "rspec":
-            runner_class = RSpecTester
-            runner_config.merge(self.settings.get("selenium-tools").get("rspec"))
-        elif script_type == "mocha":
-            runner_class = MochaTester
-            runner_config.merge(self.settings.get("selenium-tools").get("mocha"))
-        else:
-            raise TaurusConfigError("Unsupported script type: %s" % script_type)
-
-        runner_config["script-type"] = script_type
-        runner = runner_class()
-        runner.engine = self.engine
-        runner.log = self.log.getChild(script_type)
-        runner.settings = self.settings
+        runner = self.engine.instantiate_module(script_type)
         runner.parameters = self.parameters
         runner.provisioning = self.provisioning
         runner.execution = self.execution
-        runner.execution["report-file"] = report_file  # TODO: shouldn't it be the field?
-        runner.settings.merge(runner_config)  # TODO: shouldn't we use 'execution' instead?
+
         if script_type == "nose":
             runner.generated_methods = self.generated_methods
+        elif script_type == "junit":
+            pass
+        elif script_type == "testng":
+            testng_config = self._get_testng_xml()
+            if testng_config:
+                runner.execution['testng-xml'] = self.engine.find_file(testng_config)
+        elif script_type == "rspec":
+            pass
+        elif script_type == "mocha":
+            pass
+        else:
+            raise TaurusConfigError("Unsupported script type: %s" % script_type)
+
+        runner.execution["report-file"] = report_file  # TODO: shouldn't it be the field?
         return runner
 
     def _register_reader(self, report_file):
