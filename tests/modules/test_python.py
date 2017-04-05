@@ -131,3 +131,52 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
                 time.sleep(1.0)
         finally:
             self.obj.shutdown()
+
+
+class TestSeleniumScriptBuilder(SeleniumTestCase):
+    def test_build_script(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            {"waitByName('toPort')": "visible"},
+                            {"keysByName(\"toPort\")": "B"},
+                            "clickByXPath(//div[3]/form/select[1]//option[3])",
+                            "clickByXPath(//div[3]/form/select[2]//option[6])",
+                            "clickByXPath(//input[@type='submit'])",
+                            "clickByLinkText(destination of the week! The Beach!)"
+                        ],
+
+                    }, {
+                        "label": "empty"
+                    }]
+                }
+            },
+            "modules": {
+                "selenium": {
+                    "^virtual-display": 0}}})
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.readlines()
+        with open(__dir__() + "/../selenium/generated_from_requests.py") as sample:
+            sample_contents = sample.readlines()
+
+        # strip line terminator and exclude specific build path
+        gen_contents = [line.rstrip() for line in gen_contents if 'webdriver' not in line]
+        sample_contents = [line.rstrip() for line in sample_contents if 'webdriver' not in line]
+
+        self.assertEqual(gen_contents, sample_contents)
+

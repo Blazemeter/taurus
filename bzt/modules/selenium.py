@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
-import re
 import time
 from abc import abstractmethod
 
@@ -30,9 +29,8 @@ from bzt.modules.java import JUnitTester, TestNGTester
 from bzt.modules.javascript import MochaTester
 from bzt.modules.python import NoseTester
 from bzt.modules.ruby import RSpecTester
-from bzt.six import string_types, parse, iteritems
-from bzt.utils import PythonGenerator
-from bzt.utils import dehumanize_time, is_windows, BetterDict, get_full_path, get_files_recursive
+from bzt.six import string_types
+from bzt.utils import is_windows, BetterDict, get_full_path, get_files_recursive
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -78,7 +76,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.report_file = None
         self.scenario = None
         self.script = None
-        self.self_generated_script = False
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
         self.register_reader = True
@@ -143,7 +140,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         if script_type == "nose":
             runner_class = NoseTester
-            runner_config.merge(self.settings.get("selenium-tools").get("nose"))
+            runner_config.merge(self.settings.get("selenium-tools").get("nose"))  # FIXME: move into module config
         elif script_type == "junit":
             runner_class = JUnitTester
             runner_config.merge(self.settings.get("selenium-tools").get("junit"))
@@ -172,8 +169,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         runner.execution = self.execution
         runner.execution["report-file"] = report_file  # TODO: shouldn't it be the field?
         runner.settings.merge(runner_config)  # TODO: shouldn't we use 'execution' instead?
-        if self.script:
-            runner.get_scenario()[Scenario.SCRIPT] = self.script
+        if script_type == "nose":
+            runner.generated_methods = self.generated_methods
         return runner
 
     def _register_reader(self, report_file):
@@ -194,24 +191,20 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.log.warning(msg)
         self.set_virtual_display()
         self.scenario = self.get_scenario()
-        self.__setup_script()
+        self.script = self.get_script_path()
 
         self.report_file = self.engine.create_artifact("selenium_tests_report", ".ldjson")
         self.runner = self._create_runner(self.report_file)
         self.runner.prepare()
+        if isinstance(self.runner, NoseTester):
+            self.script = self.runner._script
         if self.register_reader:
             self.reader = self._register_reader(self.report_file)
 
-    def __setup_script(self):
-        self.script = self.get_script_path()
-        if not self.script:
-            if "requests" in self.scenario:
-                self.script = self.__tests_from_requests()
-                self.self_generated_script = True
-            else:
-                raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
-
     def detect_script_type(self):
+        if not self.script and "requests" in self.scenario:
+            return "nose"
+
         if not os.path.exists(self.script):
             raise TaurusConfigError("Script '%s' doesn't exist" % self.script)
 
@@ -323,16 +316,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         return resources
 
-    def __tests_from_requests(self):
-        filename = self.engine.create_artifact("test_requests", ".py")
-        wdlog = self.engine.create_artifact('webdriver', '.log')
-        nose_test = SeleniumScriptBuilder(self.scenario, self.log, wdlog)
-        if self.virtual_display:
-            nose_test.window_size = self.virtual_display.size
-        self.generated_methods.merge(nose_test.build_source_code())
-        nose_test.save(filename)
-        return filename
-
 
 class SeleniumWidget(Pile, PrioritizedWidget):
     def __init__(self, script, runner_output):
@@ -363,237 +346,6 @@ class SeleniumWidget(Pile, PrioritizedWidget):
             self.summary_stats.set_text('In progress...')
 
         self._invalidate()
-
-
-class SeleniumScriptBuilder(PythonGenerator):
-    """
-    :type window_size: tuple(int,int)
-    """
-    IMPORTS = """import unittest
-import re
-from time import sleep
-from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException
-from selenium.common.exceptions import NoAlertPresentException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as econd
-from selenium.webdriver.support.wait import WebDriverWait
-
-"""
-
-    def __init__(self, scenario, parent_logger, wdlog):
-        super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
-        self.window_size = None
-        self.wdlog = wdlog
-
-    def build_source_code(self):
-        self.log.debug("Generating Test Case test methods")
-        imports = self.add_imports()
-        self.root.append(imports)
-        test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
-        self.root.append(test_class)
-        test_class.append(self.gen_statement("driver = None", indent=4))
-        test_class.append(self.gen_new_line())
-        test_class.append(self.gen_setupclass_method())
-        test_class.append(self.gen_teardownclass_method())
-        test_class.append(self.gen_setup_method())
-
-        counter = 0
-        methods = {}
-        requests = self.scenario.get_requests(require_url=False)
-        default_address = self.scenario.get("default-address", None)
-
-        for req in requests:
-            if req.label:
-                label = req.label
-            elif req.url:
-                label = req.url
-            else:
-                raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
-            mod_label = re.sub('[^0-9a-zA-Z]+', '_', label[:30])
-            method_name = 'test_%05d_%s' % (counter, mod_label)
-            test_method = self.gen_test_method(method_name)
-            methods[method_name] = label
-            counter += 1
-            test_class.append(test_method)
-
-            if req.url is not None:
-                self._add_url_request(default_address, req, test_method)
-
-            for action_config in req.config.get("actions", []):
-                test_method.append(self.gen_action(action_config))
-
-            if "assert" in req.config:
-                test_method.append(self.gen_statement("body = self.driver.page_source"))
-                for assert_config in req.config.get("assert"):
-                    for elm in self.gen_assertion(assert_config):
-                        test_method.append(elm)
-
-            think_time = req.priority_option('think-time')
-            if think_time is not None:
-                test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
-
-            test_method.append(self.gen_statement("pass"))  # just to stub empty case
-            test_method.append(self.gen_new_line())
-
-        return methods
-
-    def _add_url_request(self, default_address, req, test_method):
-        parsed_url = parse.urlparse(req.url)
-        if default_address is not None and not parsed_url.netloc:
-            url = default_address + req.url
-        else:
-            url = req.url
-        if req.timeout is not None:
-            test_method.append(self.gen_impl_wait(req.timeout))
-        test_method.append(self.gen_statement("self.driver.get('%s')" % url))
-
-    def gen_setup_method(self):
-        timeout = self.scenario.get("timeout", None)
-        if timeout is None:
-            timeout = '30s'
-        scenario_timeout = dehumanize_time(timeout)
-        setup_method_def = self.gen_method_definition('setUp', ['self'])
-        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
-        setup_method_def.append(self.gen_new_line())
-        return setup_method_def
-
-    def gen_setupclass_method(self):
-        self.log.debug("Generating setUp test method")
-        browsers = ["Firefox", "Chrome", "Ie", "Opera"]
-        browser = self.scenario.get("browser", "Firefox")
-        if browser not in browsers:
-            raise TaurusConfigError("Unsupported browser name: %s" % browser)
-
-        setup_method_def = self.gen_decorator_statement('classmethod')
-        setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
-
-        if browser == 'Firefox':
-            setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
-            statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
-            log_set = self.gen_statement(statement)
-            setup_method_def.append(log_set)
-            setup_method_def.append(self.gen_statement("cls.driver = webdriver.Firefox(profile)"))
-        elif browser == 'Chrome':
-            statement = "cls.driver = webdriver.Chrome(service_log_path=%s)"
-            setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
-        else:
-            setup_method_def.append(self.gen_statement("cls.driver = webdriver.%s()" % browser))
-
-        scenario_timeout = self.scenario.get("timeout", None)
-        if scenario_timeout is None:
-            scenario_timeout = '30s'
-        setup_method_def.append(self.gen_impl_wait(scenario_timeout, target='cls'))
-        if self.window_size:
-            statement = self.gen_statement("cls.driver.set_window_size(%s, %s)" % self.window_size)
-            setup_method_def.append(statement)
-        else:
-            setup_method_def.append(self.gen_statement("cls.driver.maximize_window()"))
-        setup_method_def.append(self.gen_new_line())
-        return setup_method_def
-
-    def gen_impl_wait(self, timeout, target='self'):
-        return self.gen_statement("%s.driver.implicitly_wait(%s)" % (target, dehumanize_time(timeout)))
-
-    def gen_test_method(self, name):
-        self.log.debug("Generating test method %s", name)
-        test_method = self.gen_method_definition(name, ["self"])
-        return test_method
-
-    def gen_teardownclass_method(self):
-        self.log.debug("Generating tearDown test method")
-        tear_down_method_def = self.gen_decorator_statement('classmethod')
-        tear_down_method_def.append(self.gen_method_definition("tearDownClass", ["cls"]))
-        tear_down_method_def.append(self.gen_statement("cls.driver.quit()"))
-        tear_down_method_def.append(self.gen_new_line())
-        return tear_down_method_def
-
-    def gen_assertion(self, assertion_config):
-        self.log.debug("Generating assertion, config: %s", assertion_config)
-        assertion_elements = []
-
-        if isinstance(assertion_config, string_types):
-            assertion_config = {"contains": [assertion_config]}
-
-        for val in assertion_config["contains"]:
-            regexp = assertion_config.get("regexp", True)
-            reverse = assertion_config.get("not", False)
-            subject = assertion_config.get("subject", "body")
-            if subject != "body":
-                raise TaurusConfigError("Only 'body' subject supported ")
-
-            assert_message = "'%s' " % val
-            if not reverse:
-                assert_message += 'not '
-            assert_message += 'found in BODY'
-
-            if regexp:
-                assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
-                assertion_elements.append(self.gen_statement("re_pattern = re.compile(r'%s')" % val))
-
-                method = '%s(0, len(re.findall(re_pattern, body)), "Assertion: %s")'
-                method %= assert_method, assert_message
-                assertion_elements.append(self.gen_statement(method))
-            else:
-                assert_method = "self.assertNotIn" if reverse else "self.assertIn"
-                method = '%s("%s", body, "Assertion: %s")'
-                method %= assert_method, val, assert_message
-                assertion_elements.append(self.gen_statement(method))
-        return assertion_elements
-
-    def gen_action(self, action_config):
-        aby, atype, param, selector = self._parse_action(action_config)
-
-        bys = {
-            'byxpath': "XPATH",
-            'bycss': "CSS_SELECTOR",
-            'byname': "NAME",
-            'byid': "ID",
-            'bylinktext': "LINK_TEXT"
-        }
-        if atype in ('click', 'keys'):
-            tpl = "self.driver.find_element(By.%s, %r).%s"
-            if atype == 'click':
-                action = "click()"
-            else:
-                action = "send_keys(%r)" % param
-
-            return self.gen_statement(tpl % (bys[aby], selector, action))
-        elif atype == 'wait':
-            tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
-            mode = "visibility" if param == 'visible' else 'presence'
-            exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
-            timeout = dehumanize_time(self.scenario.get("timeout", exc))
-            errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
-            return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg))
-
-        raise TaurusInternalException("Could not build code for action: %s" % action_config)
-
-    def _parse_action(self, action_config):
-        if isinstance(action_config, string_types):
-            name = action_config
-            param = None
-        elif isinstance(action_config, dict):
-            name, param = next(iteritems(action_config))
-        else:
-            raise TaurusConfigError("Unsupported value for action: %s" % action_config)
-
-        expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath|byLinkText)\((.+)\)$", re.IGNORECASE)
-        res = expr.match(name)
-        if not res:
-            raise TaurusConfigError("Unsupported action: %s" % name)
-
-        atype = res.group(1).lower()
-        aby = res.group(2).lower()
-        selector = res.group(3)
-
-        # hello, reviewer!
-        if selector.startswith('"') and selector.endswith('"'):
-            selector = selector[1:-1]
-        elif selector.startswith("'") and selector.endswith("'"):
-            selector = selector[1:-1]
-
-        return aby, atype, param, selector
 
 
 class LDJSONReader(object):

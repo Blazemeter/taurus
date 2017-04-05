@@ -233,7 +233,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertFalse(os.path.exists(artifacts_script))
 
     def test_take_script_from_artifacts(self):
-        "ensures that executor looks for script in artifacts-dir (for cloud/remote cases)"
+        """ensures that executor looks for script in artifacts-dir (for cloud/remote cases)"""
         self.obj.engine.file_search_paths = [self.obj.engine.artifacts_dir]
 
         script_name = "BlazeDemo.java"
@@ -294,54 +294,6 @@ class TestSeleniumStuff(SeleniumTestCase):
         resources = self.obj.resource_files()
         # scenario.script, scenario.additional-classpath, settings.additional-classpath
         self.assertEqual(len(resources), 3)
-
-
-class TestSeleniumScriptBuilder(SeleniumTestCase):
-    def test_build_script(self):
-        self.configure({
-            "execution": [{
-                "executor": "selenium",
-                "hold-for": "4m",
-                "ramp-up": "3m",
-                "scenario": "loc_sc"}],
-            "scenarios": {
-                "loc_sc": {
-                    "default-address": "http://blazedemo.com",
-                    "timeout": "3.5s",
-                    "requests": [{
-                        "url": "/",
-                        "assert": [{
-                            "contains": ['contained_text'],
-                            "not": True
-                        }],
-                        "actions": [
-                            {"waitByName('toPort')": "visible"},
-                            {"keysByName(\"toPort\")": "B"},
-                            "clickByXPath(//div[3]/form/select[1]//option[3])",
-                            "clickByXPath(//div[3]/form/select[2]//option[6])",
-                            "clickByXPath(//input[@type='submit'])",
-                            "clickByLinkText(destination of the week! The Beach!)"
-                        ],
-
-                    }, {
-                        "label": "empty"
-                    }]
-                }
-            },
-            "modules": {
-                "selenium": {
-                    "^virtual-display": 0}}})
-        self.obj.prepare()
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-        with open(__dir__() + "/../selenium/generated_from_requests.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminator and exclude specific build path
-        gen_contents = [line.rstrip() for line in gen_contents if 'webdriver' not in line]
-        sample_contents = [line.rstrip() for line in sample_contents if 'webdriver' not in line]
-
-        self.assertEqual(gen_contents, sample_contents)
 
 
 class TestReportReader(BZTestCase):

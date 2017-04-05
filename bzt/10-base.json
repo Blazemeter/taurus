@@ -75,6 +75,21 @@
     "unpacker": {
       "class": "bzt.modules.services.Unpacker"
     },
+    "nose": {
+      "class": "bzt.modules.python.NoseTester"
+    },
+    "rspec": {
+      "class": "bzt.modules.ruby.RSpecTester"
+    },
+    "mocha": {
+      "class": "bzt.modules.javascript.MochaTester"
+    },
+    "junit": {
+      "class": "bzt.modules.java.JUnitTester"
+    },
+    "testng": {
+      "class": "bzt.modules.java.TestNGTester"
+    },
     "selenium": {
       "class": "bzt.modules.selenium.SeleniumExecutor",
       "selenium-tools": {
@@ -121,8 +136,7 @@
       ]
     },
     "console": {
-      "class": "bzt.modules.console.ConsoleStatusReporter",
-      "disable": "auto"
+      "class": "bzt.modules.console.ConsoleStatusReporter"
     },
     "blazemeter": {
       "class": "bzt.modules.blazemeter.BlazeMeterUploader"
