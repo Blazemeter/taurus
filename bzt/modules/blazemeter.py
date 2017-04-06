@@ -29,7 +29,7 @@ from ssl import SSLError
 
 import os
 import yaml
-from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError
+from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
@@ -1144,7 +1144,9 @@ class CloudTaurusTest(BaseCloudTest):
 
 class CloudCollectionTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        available_locations = self._user.available_locations(include_harbors=True)
+        available_locations = {}
+        for loc in self._workspaces.locations(include_private=True):
+            available_locations[loc['id']] = loc
 
         global_locations = engine_config.get(CloudProvisioning.LOC, BetterDict())
         self._check_locations(global_locations, available_locations)
@@ -1463,7 +1465,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             for location_id in sorted(locations):
                 location = locations[location_id]
                 self.log.info("Location: %s\t%s", location_id, location['title'])
-            raise ManualShutdown("Done listing locations")
+            raise NormalShutdown("Done listing locations")
 
     def _filter_reporting(self):
         reporting = self.engine.config.get(Reporter.REP, [])

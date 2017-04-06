@@ -293,9 +293,9 @@ class BZMock(object):
                 {'id': 'non-harbor-sandbox', 'sandbox': True, 'title': 'Sandbox Neverexisting'}, ]
         self.mock_get = {
             'https://a.blazemeter.com/api/v4/web/version': {},
-            'https://a.blazemeter.com/api/v4/user': {'defaultProject': {'id': None}, "locations": locs},
+            'https://a.blazemeter.com/api/v4/user': {'defaultProject': {'id': None}},
             'https://a.blazemeter.com/api/v4/accounts': {"result": [{'id': 1}]},
-            'https://a.blazemeter.com/api/v4/workspaces?accountId=1': {"result": [{'id': 1, 'enabled': True}]},
+            'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {"result": [{'id': 1, 'enabled': True}]},
             'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': {"result": []},

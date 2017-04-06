@@ -75,35 +75,37 @@
     "unpacker": {
       "class": "bzt.modules.services.Unpacker"
     },
+    "nose": {
+      "class": "bzt.modules.python.NoseTester"
+    },
+    "rspec": {
+      "class": "bzt.modules.ruby.RSpecTester",
+      "interpreter": "ruby"
+    },
+    "mocha": {
+      "class": "bzt.modules.javascript.MochaTester",
+      "tools-dir": "~/.bzt/selenium-taurus/mocha"
+    },
+    "junit": {
+      "class": "bzt.modules.java.JUnitTester",
+      "path": "~/.bzt/selenium-taurus/tools/junit/junit.jar",
+      "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
+      "hamcrest-core": "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar",
+      "json-jar": "~/.bzt/selenium-taurus/tools/junit/json.jar",
+      "jar-name": "compiled.jar",
+      "working-dir": "classes"
+    },
+    "testng": {
+      "class": "bzt.modules.java.TestNGTester",
+      "path": "~/.bzt/selenium-taurus/tools/testng/testng.jar",
+      "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
+      "hamcrest-core": "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar",
+      "json-jar": "~/.bzt/selenium-taurus/tools/testng/json.jar",
+      "jar-name": "compiled.jar",
+      "working-dir": "classes"
+    },
     "selenium": {
-      "class": "bzt.modules.selenium.SeleniumExecutor",
-      "selenium-tools": {
-        "junit": {
-          "path": "~/.bzt/selenium-taurus/tools/junit/junit.jar",
-          "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
-          "hamcrest-core": "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar",
-          "json-jar": "~/.bzt/selenium-taurus/tools/junit/json.jar",
-          "jar-name": "compiled.jar",
-          "working-dir": "classes"
-        },
-        "testng": {
-          "path": "~/.bzt/selenium-taurus/tools/testng/testng.jar",
-          "selenium-server": "~/.bzt/selenium-taurus/selenium-server.jar",
-          "hamcrest-core": "~/.bzt/selenium-taurus/tools/testng/hamcrest-core.jar",
-          "json-jar": "~/.bzt/selenium-taurus/tools/testng/json.jar",
-          "jar-name": "compiled.jar",
-          "working-dir": "classes"
-        },
-        "nose": {
-          "working-dir": "classes"
-        },
-        "rspec": {
-          "interpreter": "ruby"
-        },
-        "mocha": {
-          "tools-dir": "~/.bzt/selenium-taurus/mocha"
-        }
-      }
+      "class": "bzt.modules.selenium.SeleniumExecutor"
     },
     "consolidator": {
       "class": "bzt.modules.aggregator.ConsolidatingAggregator",
@@ -121,8 +123,7 @@
       ]
     },
     "console": {
-      "class": "bzt.modules.console.ConsoleStatusReporter",
-      "disable": "auto"
+      "class": "bzt.modules.console.ConsoleStatusReporter"
     },
     "blazemeter": {
       "class": "bzt.modules.blazemeter.BlazeMeterUploader"
@@ -130,8 +131,7 @@
     "cloud": {
       "class": "bzt.modules.blazemeter.CloudProvisioning",
       "check-interval": "5s",
-      "default-location": "us-central1-a",
-      "use-deprecated-api": true
+      "default-location": "us-central1-a"
     },
     "final_stats": {
       "class": "bzt.modules.reporting.FinalStatus"

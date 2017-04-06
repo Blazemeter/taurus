@@ -37,4 +37,4 @@ npm install selenium-webdriver@2.53.3 --prefix ~/.bzt/selenium-taurus/mocha
 
 export DBUS_SESSION_BUS_ADDRESS=/dev/null  # https://github.com/SeleniumHQ/docker-selenium/issues/87
 bzt -install-tools
-bzt examples/all-executors.yml -o modules.console.disable=true -sequential -o modules.selenium.selenium-tools.rspec.interpreter=ruby2.0
+bzt examples/all-executors.yml -o modules.console.disable=true -sequential -o modules.rspec.interpreter=ruby2.0
