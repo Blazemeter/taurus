@@ -25,7 +25,6 @@ from bzt.engine import Scenario, FileLister, SubprocessedExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.modules.python import NoseTester
 from bzt.six import string_types
 from bzt.utils import is_windows, BetterDict, get_full_path, get_files_recursive
 
@@ -157,7 +156,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def _register_reader(self, report_file):
         if self.engine.is_functional_mode():
-            reader = FuncSamplesReader(report_file, self.log, self.generated_methods)
+            reader = FuncSamplesReader(report_file, self.engine, self.log, self.generated_methods)
             if isinstance(self.engine.aggregator, FunctionalAggregator):
                 self.engine.aggregator.add_underling(reader)
         else:
@@ -175,10 +174,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.scenario = self.get_scenario()
         self.script = self.get_script_path()
 
+        script_type = self.detect_script_type()
         self.report_file = self.engine.create_artifact("selenium_tests_report", ".ldjson")
         self.runner = self._create_runner(self.report_file)
         self.runner.prepare()
-        if isinstance(self.runner, NoseTester):
+        if script_type == "nose":
             self.script = self.runner._script
         if self.register_reader:
             self.reader = self._register_reader(self.report_file)
@@ -440,9 +440,26 @@ class LoadSamplesReader(ResultsReader):
 
 
 class FuncSamplesReader(FunctionalResultsReader):
-    def __init__(self, filename, parent_logger, translation_table):
+    FIELDS_EXTRACTED_TO_ARTIFACTS = ["requestBody", "responseBody", "requestCookiesRaw"]
+
+    def __init__(self, filename, engine, parent_logger, translation_table):
         self.report_reader = SeleniumReportReader(filename, parent_logger, translation_table)
+        self.engine = engine
         self.read_records = 0
+
+    def _write_sample_data_to_artifacts(self, sample_extras):
+        if not sample_extras:
+            return
+        for file_field in self.FIELDS_EXTRACTED_TO_ARTIFACTS:
+            if file_field not in sample_extras:
+                continue
+            contents = sample_extras.pop(file_field)
+            if contents:
+                filename = "sample-%s" % file_field
+                artifact = self.engine.create_artifact(filename, ".bin")
+                with open(artifact, 'wb') as fds:
+                    fds.write(contents.encode('utf-8'))
+                sample_extras[file_field] = artifact
 
     def read(self, last_pass=False):
         for row in self.report_reader.read(last_pass):
@@ -451,4 +468,5 @@ class FuncSamplesReader(FunctionalResultsReader):
                                       status=row["status"], start_time=row["start_time"], duration=row["duration"],
                                       error_msg=row["error_msg"], error_trace=row["error_trace"],
                                       extras=row.get("extras", {}))
+            self._write_sample_data_to_artifacts(sample.extras)
             yield sample

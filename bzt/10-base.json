@@ -192,9 +192,6 @@
     },
     "android-emulator": {
       "class": "bzt.modules.services.AndroidEmulatorLoader"
-    },
-    "apiritif": {
-      "class": "bzt.modules.apiritif.ApiritifExecutor"
     }
   },
   "settings": {
