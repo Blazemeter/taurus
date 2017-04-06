@@ -346,30 +346,40 @@ import apiritif
 
     def __init__(self, scenario, parent_logger):
         super(ApiritifScriptBuilder, self).__init__(scenario, parent_logger)
+        self.access_method = None
 
     def gen_setup_method(self):
         keepalive = self.scenario.get("keepalive", None)
-        if keepalive is None:
-            keepalive = True
-
-        exc = TaurusConfigError("Apiritif required 'default-address' to be set")
-        default_address = self.scenario.get("default-address", exc)
+        default_address = self.scenario.get("default-address", None)
         base_path = self.scenario.get("base-path", None)
         auto_assert_ok = self.scenario.get("auto-assert-ok", True)
-        store_cookie = self.scenario.get("store-cookie", True)
+        store_cookie = self.scenario.get("store-cookie", None)
 
-        setup_method_def = self.gen_decorator_statement('classmethod')
-        setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
-        target_line = "cls.target = apiritif.http.target(%r)" % default_address
-        setup_method_def.append(self.gen_statement(target_line, indent=8))
+        if default_address is not None or keepalive or store_cookie:
+            self.access_method = "target"
+        else:
+            self.access_method = "plain"
 
-        if base_path:
-            setup_method_def.append(self.gen_statement("cls.target.base_path(%r)" % base_path, indent=8))
-        setup_method_def.append(self.gen_statement("cls.target.keep_alive(%r)" % keepalive, indent=8))
-        setup_method_def.append(self.gen_statement("cls.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
-        setup_method_def.append(self.gen_statement("cls.target.use_cookies(%r)" % store_cookie, indent=8))
-        setup_method_def.append(self.gen_new_line(indent=0))
-        return setup_method_def
+        if keepalive is None:
+            keepalive = True
+        if store_cookie is None:
+            store_cookie = True
+
+        if self.access_method == "target":
+            setup_method_def = self.gen_decorator_statement('classmethod')
+            setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
+            target_line = "cls.target = apiritif.http.target(%r)" % default_address
+            setup_method_def.append(self.gen_statement(target_line, indent=8))
+
+            if base_path:
+                setup_method_def.append(self.gen_statement("cls.target.base_path(%r)" % base_path, indent=8))
+            setup_method_def.append(self.gen_statement("cls.target.keep_alive(%r)" % keepalive, indent=8))
+            setup_method_def.append(self.gen_statement("cls.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
+            setup_method_def.append(self.gen_statement("cls.target.use_cookies(%r)" % store_cookie, indent=8))
+            setup_method_def.append(self.gen_new_line(indent=0))
+            return setup_method_def
+        else:
+            return None
 
     def build_source_code(self):
         methods = {}
@@ -378,7 +388,9 @@ import apiritif
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
-        test_class.append(self.gen_setup_method())
+        setup_method = self.gen_setup_method()
+        if setup_method is not None:
+            test_class.append(setup_method)
 
         for index, req in enumerate(self.scenario.get_requests()):
             if not isinstance(req, HTTPRequest):
@@ -442,7 +454,10 @@ import apiritif
 
         kwargs = ", ".join("%s=%r" % (name, value) for name, value in iteritems(named_args))
 
-        request_line = "response = self.target.{method}({url}, {kwargs})".format(
+        request_source = "self.target" if self.access_method == "target" else "apiritif.http"
+
+        request_line = "response = {source}.{method}({url}, {kwargs})".format(
+            source=request_source,
             method=method,
             url=repr(request.url),
             kwargs=kwargs,
