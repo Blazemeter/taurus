@@ -1,10 +1,12 @@
+import os
 import time
 
-import os
 from bzt import ToolError, TaurusConfigError
-from tests import __dir__
-
 from bzt.engine import ScenarioExecutor
+from bzt.modules.python import NoseTester
+
+from tests import __dir__, BZTestCase
+from tests.mocks import EngineEmul
 from tests.modules.test_SeleniumExecutor import SeleniumTestCase
 
 
@@ -32,7 +34,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         run tests from .py file
         :return:
         """
-
         self.configure({
             'execution': {
                 'scenario': {'script': __dir__() + '/../selenium/python/'},
@@ -132,6 +133,16 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         finally:
             self.obj.shutdown()
 
+
+class TestNoseRunner(BZTestCase):
+    def setUp(self):
+        self.obj = NoseTester()
+        self.obj.engine = EngineEmul()
+
+    def configure(self, config):
+        self.obj.engine.config.merge(config)
+        self.obj.execution = self.obj.engine.config["execution"][0]
+
     def test_full_single_script(self):
         self.obj.execution.merge({
             "scenario": {
@@ -139,7 +150,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             }
         })
         self.obj.prepare()
-        self.obj.get_widget()
         try:
             self.obj.startup()
             while not self.obj.check():
@@ -147,12 +157,11 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         finally:
             self.obj.shutdown()
         self.obj.post_process()
-        self.assertNotEquals(self.obj.runner.process, None)
+        self.assertNotEquals(self.obj.process, None)
 
     def test_apiritif_generated_requests(self):
         self.configure({
             "execution": [{
-                "runner": "nose",
                 "test-mode": "apiritif",
                 "scenario": {
                     "default-address": "http://blazedemo.com",
@@ -165,7 +174,6 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         })
         self.obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "test_requests.py")))
-        self.obj.get_widget()
         try:
             self.obj.startup()
             while not self.obj.check():
@@ -173,7 +181,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         finally:
             self.obj.shutdown()
         self.obj.post_process()
-        self.assertNotEquals(self.obj.runner.process, None)
+        self.assertNotEquals(self.obj.process, None)
 
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
