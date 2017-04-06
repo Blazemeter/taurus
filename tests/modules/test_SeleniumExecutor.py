@@ -10,9 +10,11 @@ from bzt import ToolError, TaurusConfigError
 from tests import BZTestCase, local_paths_config, __dir__
 
 from bzt.engine import ScenarioExecutor
+from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.python import NoseTester
-from bzt.modules.selenium import SeleniumExecutor, LoadSamplesReader, LDJSONReader, FuncSamplesReader
+from bzt.modules.selenium import SeleniumExecutor
+from bzt.utils import LDJSONReader
 from bzt.six import StringIO
 from tests.mocks import EngineEmul
 

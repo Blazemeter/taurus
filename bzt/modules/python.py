@@ -6,8 +6,7 @@ from collections import OrderedDict
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator
-from bzt.modules.functional import FunctionalAggregator
-from bzt.modules.selenium import LoadSamplesReader, FuncSamplesReader
+from bzt.modules.functional import FunctionalAggregator, LoadSamplesReader, FuncSamplesReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time, BetterDict, \

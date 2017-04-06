@@ -136,6 +136,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
 
 class TestNoseRunner(BZTestCase):
     def setUp(self):
+        super(TestNoseRunner, self).setUp()
         self.obj = NoseTester()
         self.obj.engine = EngineEmul()
 
