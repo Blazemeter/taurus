@@ -70,7 +70,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.shutdown()
         self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
 
-    def runner_fail_no_test_found(self):
+    def test_runner_fail_no_test_found(self):
         """
         Check that Python Nose runner fails if no tests were found
         :return:
@@ -233,7 +233,16 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         self.assertEqual(gen_contents, sample_contents)
 
 
-class TestApiritifScriptBuilder(SeleniumTestCase):
+class TestApiritifScriptBuilder(BZTestCase):
+    def setUp(self):
+        super(TestApiritifScriptBuilder, self).setUp()
+        self.obj = NoseTester()
+        self.obj.engine = EngineEmul()
+
+    def configure(self, config):
+        self.obj.engine.config.merge(config)
+        self.obj.execution = self.obj.engine.config["execution"][0]
+
     def test_keepalive_default(self):
         self.configure({
             "execution": [{
@@ -247,7 +256,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("target.keep_alive(True)", test_script)
 
@@ -265,7 +274,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("target.keep_alive(False)", test_script)
 
@@ -282,7 +291,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("timeout=30.0", test_script)
 
@@ -304,7 +313,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("get('/?tag=1', timeout=10.0", test_script)
         self.assertIn("get('/?tag=2', timeout=2.0", test_script)
@@ -325,7 +334,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("time.sleep(1.5)", test_script)
 
@@ -353,7 +362,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("get('/?tag=get'", test_script)
         self.assertIn("post('/?tag=post'", test_script)
@@ -376,7 +385,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("target('https://a.blazemeter.com')", test_script)
         self.assertIn("target.base_path('/api/latest')", test_script)
@@ -396,7 +405,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("'X-Foo': 'foo'", test_script)
         self.assertIn("'X-Bar': 'bar'", test_script)
@@ -414,7 +423,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("allow_redirects=True", test_script)
 
@@ -432,7 +441,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("allow_redirects=False", test_script)
 
@@ -452,7 +461,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("params={'foo': 'bar'}", test_script)
 
@@ -475,7 +484,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("json={'foo': 'bar'}", test_script)
 
@@ -493,7 +502,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("data='MY PERFECT BODY'", test_script)
 
@@ -528,7 +537,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("response.assert_regex_in_body('Welcome')", test_script)
         self.assertIn("response.assert_regex_in_body('Simple Travel Agency')", test_script)
@@ -559,7 +568,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("assert_in_body('1')", test_script)
         self.assertIn("assert_not_in_body('2')", test_script)
@@ -588,7 +597,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("assert_jsonpath('$.foo.bar', expected_value=None)", test_script)
 
@@ -610,7 +619,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("assert_jsonpath('$.1', expected_value=None)", test_script)
         self.assertIn("assert_not_jsonpath('$.2', expected_value=None)", test_script)
@@ -632,7 +641,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("assert_xpath('//head/title', parser_type='html', validate=False)", test_script)
 
@@ -655,7 +664,7 @@ class TestApiritifScriptBuilder(SeleniumTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj.script) as fds:
+        with open(self.obj._script) as fds:
             test_script = fds.read()
         self.assertIn("assert_xpath('//1', parser_type='html', validate=False)", test_script)
         self.assertIn("assert_not_xpath('//2', parser_type='html', validate=False)", test_script)
