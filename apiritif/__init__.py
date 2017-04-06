@@ -61,7 +61,7 @@ class http(object):
         prepared = request.prepare()
         response = session.send(prepared, allow_redirects=allow_redirects, timeout=timeout)
         wrapped_response = HTTPResponse.from_py_response(response)
-        recorder.record_http_request(method, address, request, wrapped_response)
+        recorder.record_http_request(method, address, prepared, wrapped_response, session)
         return wrapped_response
 
     @staticmethod
@@ -102,11 +102,12 @@ class LogAssertion(object):
 
 
 class LogRequest(object):
-    def __init__(self, method, address, request, response):
+    def __init__(self, method, address, request, response, session):
         self.method = method
         self.address = address
         self.request = request
         self.response = response
+        self.session = session
 
 
 class Record(object):
@@ -118,8 +119,8 @@ class Record(object):
         self.requests = []
         self.assertions = []
 
-    def add_request(self, method, address, request, response):
-        self.requests.append(LogRequest(method, address, request, response))
+    def add_request(self, method, address, request, response, session):
+        self.requests.append(LogRequest(method, address, request, response, session))
 
     def assertions_for_response(self, response):
         return [
@@ -149,11 +150,11 @@ class _Recorder(object):
                 return func_name
         return None
 
-    def record_http_request(self, method, address, request, response):
+    def record_http_request(self, method, address, request, response, session):
         test_case = self._get_current_test_case_name()
         if test_case not in self.log:
             self.log[test_case] = Record()
-        self.log[test_case].add_request(method, address, request, response)
+        self.log[test_case].add_request(method, address, request, response, session)
 
     def record_assertion(self, assertion_name, target_response):
         if not self.log:
@@ -247,6 +248,9 @@ class HTTPTarget(object):
         """
         if self._keep_alive and self.__session is None:
             self.__session = requests.Session()
+
+        if self.__session is not None and not self._use_cookies:
+            self.__session.cookies.clear()
 
         address = self._bake_address(path)
         response = http.request(method, address, session=self.__session,

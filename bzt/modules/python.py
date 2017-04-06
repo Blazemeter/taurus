@@ -356,6 +356,7 @@ import apiritif
         default_address = self.scenario.get("default-address", exc)
         base_path = self.scenario.get("base-path", None)
         auto_assert_ok = self.scenario.get("auto-assert-ok", True)
+        store_cookie = self.scenario.get("store-cookie", True)
 
         setup_method_def = self.gen_decorator_statement('classmethod')
         setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
@@ -366,6 +367,7 @@ import apiritif
             setup_method_def.append(self.gen_statement("cls.target.base_path(%r)" % base_path, indent=8))
         setup_method_def.append(self.gen_statement("cls.target.keep_alive(%r)" % keepalive, indent=8))
         setup_method_def.append(self.gen_statement("cls.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
+        setup_method_def.append(self.gen_statement("cls.target.use_cookies(%r)" % store_cookie, indent=8))
         setup_method_def.append(self.gen_new_line(indent=0))
         return setup_method_def
 

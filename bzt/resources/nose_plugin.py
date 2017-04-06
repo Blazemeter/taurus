@@ -150,6 +150,7 @@ class BZTPlugin(Plugin):
         request_log = log_record.requests[0]
         assertions = log_record.assertions_for_response(request_log.response)
         py_response = request_log.response.py_response
+        baked_request = request_log.request
 
         record = {
             'responseCode': py_response.status_code,
@@ -159,15 +160,15 @@ class BZTPlugin(Plugin):
             'latency': 0,
             'responseSize': len(py_response.content),
             'requestSize': 0,
-            'requestMethod': py_response.request.method,
-            'requestURI': py_response.request.url,
+            'requestMethod': baked_request.method,
+            'requestURI': baked_request.url,
             'assertions': [
                 {"name": assertion.name, "isFailed": assertion.is_failed, "failureMessage": assertion.failure_message}
                 for assertion in assertions
             ],
             'responseBody': py_response.text,
-            'requestBody': "",  # py_response.get("rawRequest", ""),  # TODO: fix
-            'requestCookies': {},  # py_response.get("requestCookies", {}),
+            'requestBody': baked_request.body or "",
+            'requestCookies': dict(request_log.session.cookies),
             'requestHeaders': dict(py_response.request.headers),
             'responseHeaders': dict(py_response.headers),
         }
