@@ -89,15 +89,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if not isinstance(self.engine.provisioning, Local):
             return scenario_obj
 
-        if "script" in scenario_obj and scenario_obj["script"] is not None:
-            script_path = self.engine.find_file(scenario_obj["script"])
+        if Scenario.SCRIPT in scenario_obj and scenario_obj[Scenario.SCRIPT] is not None:
+            script_path = self.engine.find_file(scenario_obj[Scenario.SCRIPT])
             with open(script_path) as fds:
                 script_content = fds.read()
             if "con:soapui-project" in script_content:
                 self.log.info("SoapUI project detected")
                 scenario_name, merged_scenario = self._extract_scenario_from_soapui(scenario_obj, script_path)
                 self.engine.config["scenarios"].merge({scenario_name: merged_scenario})
-                self.execution["scenario"] = scenario_name
+                self.execution[Scenario.SCRIPT] = scenario_name
                 return super(JMeterExecutor, self).get_scenario(name=scenario_name)
 
         return scenario_obj
@@ -122,7 +122,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         merged_scenario = BetterDict()
         merged_scenario.merge(conv_scenario)
         merged_scenario.merge(base_scenario.data)
-        for field in ["script", "test-case"]:
+        for field in [Scenario.SCRIPT, "test-case"]:
             if field in merged_scenario:
                 merged_scenario.pop(field)
 

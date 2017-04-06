@@ -16,17 +16,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import sys
-import os
 import shutil
-
+import sys
 from os.path import join, isfile
 
+import os
 from bzt import TaurusConfigError, TaurusInternalException
+
 from bzt.bza import BZAProxy
 from bzt.engine import Service
-from bzt.utils import is_windows, get_full_path
 from bzt.modules.selenium import AbstractSeleniumExecutor
+from bzt.utils import is_windows, get_full_path
+
 
 class Proxy2JMX(Service):
     def __init__(self):
