@@ -406,7 +406,7 @@ import apiritif
             else:
                 raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
 
-            mod_label = re.sub('[^0-9a-zA-Z]+', '_', req.url[:30])
+            mod_label = re.sub('[^0-9a-zA-Z]+', '_', label[:30])
             method_name = 'test_%05d_%s' % (index, mod_label)
             test_method = self.gen_test_method(method_name)
             methods[method_name] = label
