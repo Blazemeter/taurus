@@ -98,9 +98,10 @@ class BZTPlugin(Plugin):
     @staticmethod
     def _get_trace(error):
         if sys.version > '3':
-            return traceback.format_exception(*error, chain=not isinstance(error[1], str))
+            lines = traceback.format_exception(*error, chain=not isinstance(error[1], str))
         else:
-            return traceback.format_exception(*error)
+            lines = traceback.format_exception(*error)
+        return ''.join(lines).rstrip()
 
     def addFailure(self, test, error):  # pylint: disable=invalid-name
         """
