@@ -8,7 +8,6 @@ from optparse import OptionParser
 import nose
 from nose.plugins import Plugin
 
-
 REPORT_ITEM_KEYS = [
     "test_case",  # test label (test method name)
     "test_suite",  # test suite name (class name)
@@ -90,13 +89,19 @@ class BZTPlugin(Plugin):
         :param error:
         :return:
         """
-        exc_type, exc, trace = error
-        exc_msg = str(exc)
         # test_dict will be None if startTest wasn't called (i.e. exception in setUp/setUpClass)
         if self.test_dict is not None:
             self.test_dict["status"] = "BROKEN"
-            self.test_dict["error_msg"] = exc_msg.split('\n')[0]
-            self.test_dict["error_trace"] = ''.join(traceback.format_exception(exc_type, exc_msg, trace)).rstrip()
+            self.test_dict["error_msg"] = str(error[1]).split('\n')[0]
+            self.test_dict["error_trace"] = self._get_trace(error)
+
+    @staticmethod
+    def _get_trace(error):
+        if sys.version > '3':
+            lines = traceback.format_exception(*error, chain=not isinstance(error[1], str))
+        else:
+            lines = traceback.format_exception(*error)
+        return ''.join(lines).rstrip()
 
     def addFailure(self, test, error):  # pylint: disable=invalid-name
         """
@@ -106,11 +111,9 @@ class BZTPlugin(Plugin):
 
         :return:
         """
-        exc_type, exc, trace = error
-        exc_msg = str(exc)
         self.test_dict["status"] = "FAILED"
-        self.test_dict["error_msg"] = exc_msg.split('\n')[0]
-        self.test_dict["error_trace"] = ''.join(traceback.format_exception(exc_type, exc_msg, trace)).rstrip()
+        self.test_dict["error_msg"] = str(error[1]).split('\n')[0]
+        self.test_dict["error_trace"] = self._get_trace(error)
 
     def addSkip(self, test):  # pylint: disable=invalid-name
         """
