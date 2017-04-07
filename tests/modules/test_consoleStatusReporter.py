@@ -1,6 +1,8 @@
-import os
 import sys
 import time
+
+import os
+from tests import BZTestCase, r, rc, __dir__
 
 from bzt.engine import Provisioning, ScenarioExecutor
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -8,8 +10,7 @@ from bzt.modules.console import ConsoleStatusReporter
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.provisioning import Local
 from bzt.utils import is_windows, EXE_SUFFIX
-from tests import BZTestCase, r, rc, __dir__
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, RecordingHandler
 
 
 class TestConsoleStatusReporter(BZTestCase):
@@ -43,6 +44,8 @@ class TestConsoleStatusReporter(BZTestCase):
 
     def test_1(self):
         obj = ConsoleStatusReporter()
+        handler = RecordingHandler()
+        obj.log.addHandler(handler)
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
         obj.engine.provisioning.start_time = time.time()
@@ -80,9 +83,15 @@ class TestConsoleStatusReporter(BZTestCase):
             obj.check()
             self.assertTrue(obj.screen.started)
 
+        point = self.__get_datapoint(11)
+        point[DataPoint.CURRENT][''][KPISet.RESP_CODES][''] = 1
+        obj.aggregated_second(point)
+
         obj.check()
         obj.shutdown()
         obj.post_process()
+        obj.log.removeHandler(handler)
+        self.assertNotIn('Failed', handler.warn_buff.getvalue())
 
     def test_2(self):
         obj = ConsoleStatusReporter()
