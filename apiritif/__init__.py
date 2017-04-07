@@ -466,4 +466,26 @@ class HTTPResponse(object):
             msg = msg or "XPath query %r did match response content: %s" % (xpath_query, self.py_response.text)
             raise AssertionError(msg)
 
-    # TODO: extractors (regex, xpath, json)
+    def extract_regex(self, regex, default=None):
+        extracted_value = default
+        for item in re.finditer(regex, self.py_response.text):
+            extracted_value = item
+            break
+        return extracted_value
+
+    def extract_jsonpath(self, jsonpath_query, default=None):
+        jsonpath_expr = jsonpath_rw.parse(jsonpath_query)
+        body = self.py_response.json()
+        matches = jsonpath_expr.find(body)
+        if not matches:
+            return default
+        return matches[0].value
+
+    def extract_xpath(self, xpath_query, default=None, parser_type='html', validate=False):
+        parser = etree.HTMLParser() if parser_type == 'html' else etree.XMLParser(dtd_validation=validate)
+        tree = etree.parse(BytesIO(self.py_response.content), parser)
+        matches = tree.xpath(xpath_query)
+        if not matches:
+            return default
+        match = matches[0]
+        return match.text
