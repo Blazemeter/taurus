@@ -26,13 +26,5 @@ scenarios:
       assert-jsonpath:
       - $.id
     - label: delete from posts
-      url: https://jsonplaceholder.typicode.com/posts
-      method: POST
-      headers:
-        content-type: application/json
-      body:
-        title: foo
-        body: bar
-        userId: 1
-      assert-jsonpath:
-      - $.id
+      url: https://jsonplaceholder.typicode.com/posts/1
+      method: DELETE
