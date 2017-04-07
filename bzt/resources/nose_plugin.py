@@ -1,13 +1,13 @@
 import json
 import sys
 import time
-import traceback
 from collections import OrderedDict
 from optparse import OptionParser
 
 import nose
 from nose.plugins import Plugin
 
+from bzt.six import get_stacktrace
 
 REPORT_ITEM_KEYS = [
     "test_case",  # test label (test method name)
@@ -90,13 +90,11 @@ class BZTPlugin(Plugin):
         :param error:
         :return:
         """
-        exc_type, exc, trace = error
-        exc_msg = str(exc)
         # test_dict will be None if startTest wasn't called (i.e. exception in setUp/setUpClass)
         if self.test_dict is not None:
             self.test_dict["status"] = "BROKEN"
-            self.test_dict["error_msg"] = exc_msg.split('\n')[0]
-            self.test_dict["error_trace"] = ''.join(traceback.format_exception(exc_type, exc_msg, trace)).rstrip()
+            self.test_dict["error_msg"] = error[1].split('\n')[0]
+            self.test_dict["error_trace"] = get_stacktrace(error, capture_logging=True)
 
     def addFailure(self, test, error):  # pylint: disable=invalid-name
         """
@@ -106,11 +104,9 @@ class BZTPlugin(Plugin):
 
         :return:
         """
-        exc_type, exc, trace = error
-        exc_msg = str(exc)
         self.test_dict["status"] = "FAILED"
-        self.test_dict["error_msg"] = exc_msg.split('\n')[0]
-        self.test_dict["error_trace"] = ''.join(traceback.format_exception(exc_type, exc_msg, trace)).rstrip()
+        self.test_dict["error_msg"] = str(error[1]).split('\n')[0]
+        self.test_dict["error_trace"] = get_stacktrace(error, capture_logging=True)
 
     def addSkip(self, test):  # pylint: disable=invalid-name
         """

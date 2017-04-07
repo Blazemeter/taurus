@@ -76,8 +76,13 @@ def u(string):
     return string
 
 
-def get_stacktrace(exc):
-    return ''.join(traceback.format_tb(exc.__traceback__))
+def get_stacktrace(exc, capture_logging=False):
+    if capture_logging:
+        lines = traceback.format_exception(*exc, chain=not isinstance(exc[1], str))
+    else:
+        lines = traceback.format_tb(exc.__traceback__)
+
+    return ''.join(lines).rstrip()
 
 
 def reraise(exc_info):
