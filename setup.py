@@ -55,7 +55,7 @@ class InstallWithHook(install, object):
 
 requires = ['pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama',
             'cssselect', 'urwid', 'six', 'nose',
-            'selenium', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', ]
+            'selenium<=3.3.0', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', ]
 
 requires += ['lxml == 3.6.0'] if platform.system() == 'Windows' else ['lxml >= 3.6.0']
 setup(

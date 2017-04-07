@@ -77,7 +77,7 @@ def u(string):
 
 
 def get_stacktrace(exc):
-    return ''.join(traceback.format_tb(exc.__traceback__))
+    return ''.join(traceback.format_tb(exc.__traceback__)).rstrip()
 
 
 def reraise(exc_info):
