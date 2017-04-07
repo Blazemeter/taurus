@@ -366,9 +366,11 @@ import apiritif
         if store_cookie is None:
             store_cookie = True
 
+        setup_method_def = self.gen_decorator_statement('classmethod')
+        setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
+        setup_method_def.append(self.gen_statement("cls.variables = %r" % self.scenario.get("variables", {}), indent=8))
+
         if self.access_method == "target":
-            setup_method_def = self.gen_decorator_statement('classmethod')
-            setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
             target_line = "cls.target = apiritif.http.target(%r)" % default_address
             setup_method_def.append(self.gen_statement(target_line, indent=8))
 
@@ -378,9 +380,38 @@ import apiritif
             setup_method_def.append(self.gen_statement("cls.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
             setup_method_def.append(self.gen_statement("cls.target.use_cookies(%r)" % store_cookie, indent=8))
             setup_method_def.append(self.gen_new_line(indent=0))
-            return setup_method_def
-        else:
-            return None
+
+        return setup_method_def
+
+    def gen_get_var_method(self):
+        method = self.gen_decorator_statement('classmethod')
+        method.append(self.gen_method_definition("get_var", ["cls", "varname", "default=''"]))
+        method.append(self.gen_statement("return cls.variables.get(varname, default)", indent=8))
+        method.append(self.gen_new_line(indent=0))
+        return method
+
+    def gen_set_var_method(self):
+        method = self.gen_decorator_statement('classmethod')
+        method.append(self.gen_method_definition("set_var", ["cls", "varname", "value"]))
+        method.append(self.gen_statement("cls.variables[varname] = str(value)", indent=8))
+        method.append(self.gen_new_line(indent=0))
+        return method
+
+    @staticmethod
+    def interpolate(string):
+        """
+        "/${foo}" -> '"/" + self.get_var('foo', '${foo}')'
+
+
+        :param string:
+        :return:
+        """
+        components = [
+            ("self.get_var(%r, %r)" % (item[2:-1], item)) if item.startswith("${") and item.endswith("}") else repr(item)
+            for item in re.split(r'(\$\{\w+\})', str(string))
+            if item
+        ]
+        return " + ".join(components)
 
     def build_source_code(self):
         methods = {}
@@ -389,9 +420,9 @@ import apiritif
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
-        setup_method = self.gen_setup_method()
-        if setup_method is not None:
-            test_class.append(setup_method)
+        test_class.append(self.gen_setup_method())
+        test_class.append(self.gen_get_var_method())
+        test_class.append(self.gen_set_var_method())
 
         for index, req in enumerate(self.scenario.get_requests()):
             if not isinstance(req, HTTPRequest):
@@ -460,13 +491,14 @@ import apiritif
         request_line = "response = {source}.{method}({url}, {kwargs})".format(
             source=request_source,
             method=method,
-            url=repr(request.url),
+            url=self.interpolate(request.url),
             kwargs=kwargs,
         )
         test_method.append(self.gen_statement(request_line))
         self._add_assertions(request, test_method)
         self._add_jsonpath_assertions(request, test_method)
         self._add_xpath_assertions(request, test_method)
+        self._add_extractors(request, test_method)
         if think_time:
             test_method.append(self.gen_statement('time.sleep(%s)' % think_time))
 
@@ -497,6 +529,33 @@ import apiritif
                     method = "assert_status_code" if not assertion.get('not', False) else "assert_not_status_code"
                     line = "response.{method}({member})".format(method=method, member=repr(member))
                     test_method.append(self.gen_statement(line))
+
+    def _add_extractors(self, request, test_method):
+        jextractors = request.config.get("extract-jsonpath", BetterDict())
+        for varname in jextractors:
+            cfg = ensure_is_dict(jextractors, varname, "jsonpath")
+            extractor_line = "self.set_var({varname}, response.extract_jsonpath({query}, {default}))".format(
+                varname=repr(varname),
+                query=repr(cfg['jsonpath']),
+                default=repr(cfg.get('default', 'NOT_FOUND'))
+            )
+            test_method.append(self.gen_statement(extractor_line))
+
+        # extractors = request.config.get("extract-regexp", BetterDict())
+        # for varname in extractors:
+        #     cfg = ensure_is_dict(extractors, varname, "regexp")
+        #     extractor = JMX._get_extractor(varname, cfg.get('subject', 'body'), cfg['regexp'], cfg.get('template', 1),
+        #                                    cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'))
+        #
+        # xpath_extractors = request.config.get("extract-xpath", BetterDict())
+        # for varname in xpath_extractors:
+        #     cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
+        #     children.append(JMX._get_xpath_extractor(varname,
+        #                                              cfg['xpath'],
+        #                                              cfg.get('default', 'NOT_FOUND'),
+        #                                              cfg.get('validate-xml', False),
+        #                                              cfg.get('ignore-whitespace', True),
+        #                                              cfg.get('use-tolerant-parser', False)))
 
     def _add_jsonpath_assertions(self, request, test_method):
         jpath_assertions = request.config.get("assert-jsonpath", [])
