@@ -575,6 +575,8 @@ import apiritif
             )
             test_method.append(self.gen_statement(extractor_line))
 
+        # TODO: css/jquery extractor?
+
         xpath_extractors = request.config.get("extract-xpath", BetterDict())
         for varname in xpath_extractors:
             cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
