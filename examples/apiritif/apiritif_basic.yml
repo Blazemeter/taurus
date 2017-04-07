@@ -1,45 +1,12 @@
-settings:
-  default-executor: nose
-
-modules:
-  local:
-    sequential: true # makes it run executions sequentially
-
 execution:
-- scenario: basic-requests
-  iterations: 1
 - scenario: with-extractors
+  executor: nose
   iterations: 1
 
 reporting:
 - junit-xml
 
 scenarios:
-  basic-requests:
-    default-address: https://jsonplaceholder.typicode.com
-    timeout: 5s
-    requests:
-    - label: get posts
-      url: /posts
-      assert-jsonpath:
-      - jsonpath: $.[0].userId
-        validate: true
-        expected-value: 1
-    - label: post into posts
-      url: /posts
-      method: POST
-      headers:
-        content-type: application/json
-      body:
-        title: foo
-        body: bar
-        userId: 1
-      assert-jsonpath:
-      - $.id
-    - label: delete from posts
-      url: /posts/1
-      method: DELETE
-
   with-extractors:
     default-address: https://jsonplaceholder.typicode.com
     timeout: 5s
