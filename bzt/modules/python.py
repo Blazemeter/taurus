@@ -1,9 +1,10 @@
-import os
 import re
 import sys
 from collections import OrderedDict
 
+import os
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
+
 from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, LoadSamplesReader, FuncSamplesReader
@@ -38,7 +39,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
-        test_mode = self.execution.get("test-mode", None) or "selenium"
+        test_mode = self.execution.get("test-mode", None) or "apiritif"
         if test_mode == "apiritif":
             builder = ApiritifScriptBuilder(self.get_scenario(), self.log)
         else:
