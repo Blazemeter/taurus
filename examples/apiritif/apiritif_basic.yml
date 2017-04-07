@@ -1,0 +1,8 @@
+scenarios:
+  basic-requests:
+    requests:
+    - http://blazedemo.com/
+
+execution:
+- scenario: basic-requests
+  executor: nose

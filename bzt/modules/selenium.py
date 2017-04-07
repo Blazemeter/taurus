@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import json
 import time
 from abc import abstractmethod
 
@@ -138,6 +137,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         if script_type == "nose":
             runner.generated_methods = self.generated_methods
+            runner.execution["test-mode"] = "selenium"
         elif script_type == "junit":
             pass
         elif script_type == "testng":
