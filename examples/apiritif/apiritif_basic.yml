@@ -1,8 +1,38 @@
-scenarios:
-  basic-requests:
-    requests:
-    - http://blazedemo.com/
-
 execution:
 - scenario: basic-requests
   executor: nose
+
+reporting:
+- junit-xml
+
+scenarios:
+  basic-requests:
+    requests:
+    - label: get posts
+      url: https://jsonplaceholder.typicode.com/posts
+      assert-jsonpath:
+      - jsonpath: $.[0].userId
+        validate: true
+        expected-value: 1
+    - label: post into posts
+      url: https://jsonplaceholder.typicode.com/posts
+      method: POST
+      headers:
+        content-type: application/json
+      body:
+        title: foo
+        body: bar
+        userId: 1
+      assert-jsonpath:
+      - $.id
+    - label: delete from posts
+      url: https://jsonplaceholder.typicode.com/posts
+      method: POST
+      headers:
+        content-type: application/json
+      body:
+        title: foo
+        body: bar
+        userId: 1
+      assert-jsonpath:
+      - $.id
