@@ -466,6 +466,8 @@ class HTTPResponse(object):
             msg = msg or "XPath query %r did match response content: %s" % (xpath_query, self.py_response.text)
             raise AssertionError(msg)
 
+    # TODO: assertTiming? to assert response time / connection time
+
     def extract_regex(self, regex, default=None):
         extracted_value = default
         for item in re.finditer(regex, self.py_response.text):

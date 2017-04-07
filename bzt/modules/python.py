@@ -398,7 +398,7 @@ import apiritif
         return method
 
     @staticmethod
-    def interpolate(string):
+    def interpolate_str(string):
         """
         "/${foo}" -> '"/" + self.get_var('foo', '${foo}')'
 
@@ -406,12 +406,34 @@ import apiritif
         :param string:
         :return:
         """
-        components = [
-            ("self.get_var(%r, %r)" % (item[2:-1], item)) if item.startswith("${") and item.endswith("}") else repr(item)
-            for item in re.split(r'(\$\{\w+\})', str(string))
-            if item
-        ]
+        components = []
+        for item in re.split(r'(\$\{\w+\})', string):
+            if item:
+                if item.startswith("${") and item.endswith("}"):
+                    components.append("self.get_var(%r, %r)" % (item[2:-1], item))
+                else:
+                    components.append(repr(item))
+
         return " + ".join(components)
+
+    @staticmethod
+    def repr_inter(obj):
+        """
+        "/${foo}" -> '"/" + self.get_var('foo', '${foo}')'
+
+
+        :param string:
+        :return:
+        """
+        recur = ApiritifScriptBuilder.repr_inter
+        if isinstance(obj, dict):
+            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in iteritems(obj)) + "}"
+        elif isinstance(obj, list):
+            return "[" + ", ".join(recur(item) for item in obj) + "]"
+        elif isinstance(obj, string_types):
+            return ApiritifScriptBuilder.interpolate_str(obj)
+        else:
+            return repr(obj)
 
     def build_source_code(self):
         methods = {}
@@ -468,30 +490,31 @@ import apiritif
         if request.headers:
             headers.update(request.headers)
         if headers:
-            named_args['headers'] = headers
+            named_args['headers'] = self.repr_inter(headers)
 
         merged_headers = dict([(key.lower(), value) for key, value in iteritems(headers)])
         content_type = merged_headers.get('content-type', None)
+
         if content_type == 'application/json' and isinstance(request.body, (dict, list)):  # json request body
-            named_args['json'] = {key: value for key, value in iteritems(request.body)}
+            named_args['json'] = self.repr_inter(request.body)
         elif method == "get" and isinstance(request.body, dict):  # request URL params (?a=b&c=d)
-            named_args['params'] = {key: value for key, value in iteritems(request.body)}
+            named_args['params'] = self.repr_inter(request.body)
         elif isinstance(request.body, dict):  # form data
-            named_args['data'] = list(iteritems(request.body))
+            named_args['data'] = self.repr_inter(list(iteritems(request.body)))
         elif isinstance(request.body, string_types):
-            named_args['data'] = request.body
+            named_args['data'] = self.repr_inter(request.body)
         elif request.body:
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(request.body), request.body))
 
-        kwargs = ", ".join("%s=%r" % (name, value) for name, value in iteritems(named_args))
+        kwargs = ", ".join("%s=%s" % (name, value) for name, value in iteritems(named_args))
 
         request_source = "self.target" if self.access_method == "target" else "apiritif.http"
 
         request_line = "response = {source}.{method}({url}, {kwargs})".format(
             source=request_source,
             method=method,
-            url=self.interpolate(request.url),
+            url=self.repr_inter(request.url),
             kwargs=kwargs,
         )
         test_method.append(self.gen_statement(request_line))
@@ -541,12 +564,14 @@ import apiritif
             )
             test_method.append(self.gen_statement(extractor_line))
 
+        # TODO: implement these extractors
+
         # extractors = request.config.get("extract-regexp", BetterDict())
         # for varname in extractors:
         #     cfg = ensure_is_dict(extractors, varname, "regexp")
         #     extractor = JMX._get_extractor(varname, cfg.get('subject', 'body'), cfg['regexp'], cfg.get('template', 1),
         #                                    cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'))
-        #
+
         # xpath_extractors = request.config.get("extract-xpath", BetterDict())
         # for varname in xpath_extractors:
         #     cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
