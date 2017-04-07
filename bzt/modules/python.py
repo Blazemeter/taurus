@@ -564,23 +564,32 @@ import apiritif
             )
             test_method.append(self.gen_statement(extractor_line))
 
-        # TODO: implement these extractors
+        extractors = request.config.get("extract-regexp", BetterDict())
+        for varname in extractors:
+            cfg = ensure_is_dict(extractors, varname, "regexp")
+            # TODO: support non-'body' value of 'subject'
+            extractor_line = "self.set_var({varname}, response.extract_regex({regex}, {default}))".format(
+                varname=repr(varname),
+                regex=repr(cfg['regexp']),
+                default=repr(cfg.get('default', 'NOT_FOUND'))
+            )
+            test_method.append(self.gen_statement(extractor_line))
 
-        # extractors = request.config.get("extract-regexp", BetterDict())
-        # for varname in extractors:
-        #     cfg = ensure_is_dict(extractors, varname, "regexp")
-        #     extractor = JMX._get_extractor(varname, cfg.get('subject', 'body'), cfg['regexp'], cfg.get('template', 1),
-        #                                    cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'))
-
-        # xpath_extractors = request.config.get("extract-xpath", BetterDict())
-        # for varname in xpath_extractors:
-        #     cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
-        #     children.append(JMX._get_xpath_extractor(varname,
-        #                                              cfg['xpath'],
-        #                                              cfg.get('default', 'NOT_FOUND'),
-        #                                              cfg.get('validate-xml', False),
-        #                                              cfg.get('ignore-whitespace', True),
-        #                                              cfg.get('use-tolerant-parser', False)))
+        xpath_extractors = request.config.get("extract-xpath", BetterDict())
+        for varname in xpath_extractors:
+            cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
+            parser_type = 'html' if cfg.get('use-tolerant-parser', True) else 'xml'
+            validate = cfg.get('validate-xml', False)
+            extractor_line = ("self.set_var({varname}, response.extract_xpath({query}, default={default}, "
+                              "parser_type={parser_type}, validate={validate}))")
+            extractor_line = extractor_line.format(
+                varname=repr(varname),
+                query=repr(cfg['xpath']),
+                default=repr(cfg.get('default', 'NOT_FOUND')),
+                parser_type=repr(parser_type),
+                validate=repr(validate),
+            )
+            test_method.append(self.gen_statement(extractor_line))
 
     def _add_jsonpath_assertions(self, request, test_method):
         jpath_assertions = request.config.get("assert-jsonpath", [])
