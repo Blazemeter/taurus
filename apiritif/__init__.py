@@ -388,7 +388,7 @@ class HTTPResponse(object):
     @recorder.assertion_decorator
     def assert_has_header(self, header, msg=None):
         if header not in self.py_response.headers:
-            msg = msg or "Header %s wasn't found in response headers" % header
+            msg = msg or "Header %s wasn't found in response headers: %r" % (header, self.py_response.headers)
             raise AssertionError(msg)
 
     @recorder.assertion_decorator
@@ -401,8 +401,9 @@ class HTTPResponse(object):
 
     @recorder.assertion_decorator
     def assert_in_headers(self, member, msg=None):
-        if member not in headers_as_text(self.py_response.headers):
-            msg = msg or "Header %s wasn't found in response headers text" % member
+        headers_text = headers_as_text(self.py_response.headers)
+        if member not in headers_text:
+            msg = msg or "Header %s wasn't found in response headers text: %r" % (member, headers_text)
             raise AssertionError(msg)
 
     @recorder.assertion_decorator
@@ -425,10 +426,12 @@ class HTTPResponse(object):
         body = self.py_response.json()
         matches = jsonpath_expr.find(body)
         if not matches:
-            msg = msg or "JSONPath query %r didn't match response content" % jsonpath_query
+            msg = msg or "JSONPath query %r didn't match response content: %s" % (jsonpath_query, body)
             raise AssertionError(msg)
-        if expected_value is not None and matches[0].value != expected_value:
-            msg = msg or "Actual value at JSONPath query %r isn't equal to expected" % jsonpath_query
+        actual_value = matches[0].value
+        if expected_value is not None and actual_value != expected_value:
+            tmpl = "Actual value at JSONPath query (%r) isn't equal to expected (%r)"
+            msg = msg or tmpl % (actual_value, expected_value)
             raise AssertionError(msg)
 
     @recorder.assertion_decorator
@@ -437,10 +440,12 @@ class HTTPResponse(object):
         body = self.py_response.json()
         matches = jsonpath_expr.find(body)
         if matches:
-            msg = msg or "JSONPath query %r did match response content" % jsonpath_query
+            msg = msg or "JSONPath query %r did match response content: %s" % (jsonpath_query, body)
             raise AssertionError(msg)
-        if expected_value is not None and matches[0].value == expected_value:
-            msg = msg or "Actual value at JSONPath query %r is equal to expected" % jsonpath_query
+        actual_value = matches[0].value
+        if expected_value is not None and actual_value == expected_value:
+            tmpl = "Actual value at JSONPath query (%r) is equal to expected (%r)"
+            msg = msg or tmpl % (actual_value, expected_value)
             raise AssertionError(msg)
 
     @recorder.assertion_decorator
@@ -449,7 +454,7 @@ class HTTPResponse(object):
         tree = etree.parse(BytesIO(self.py_response.content), parser)
         matches = tree.xpath(xpath_query)
         if not matches:
-            msg = msg or "XPath query %r didn't match response content" % xpath_query
+            msg = msg or "XPath query %r didn't match response content: %s" % (xpath_query, self.py_response.text)
             raise AssertionError(msg)
 
     @recorder.assertion_decorator
@@ -458,7 +463,7 @@ class HTTPResponse(object):
         tree = etree.parse(BytesIO(self.py_response.content), parser)
         matches = tree.xpath(xpath_query)
         if matches:
-            msg = msg or "XPath query %r did match response content" % xpath_query
+            msg = msg or "XPath query %r did match response content: %s" % (xpath_query, self.py_response.text)
             raise AssertionError(msg)
 
     # TODO: extractors (regex, xpath, json)
