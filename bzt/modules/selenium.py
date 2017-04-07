@@ -136,6 +136,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         runner.parameters = self.parameters
         runner.provisioning = self.provisioning
         runner.execution = self.execution
+        runner.execution['executor'] = script_type
 
         if script_type == "nose":
             runner.generated_methods = self.generated_methods
