@@ -17,7 +17,9 @@ from abc import abstractmethod
 from collections import namedtuple
 
 from bzt.engine import Aggregator
-from bzt.utils import BetterDict, iteritems
+from bzt.modules.aggregator import ResultsReader
+from bzt.six import string_types
+from bzt.utils import BetterDict, iteritems, LDJSONReader
 
 
 class FunctionalAggregator(Aggregator):
@@ -110,3 +112,103 @@ class FunctionalAggregatorListener(object):
         :type cumulative_results: ResultsTree
         """
         pass
+
+
+class TestReportReader(object):
+    REPORT_ITEM_KEYS = ["test_case", "test_suite", "status", "start_time", "duration",
+                        "error_msg", "error_trace", "extras"]
+    TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
+    FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
+
+    def __init__(self, filename, parent_logger, translation_table=None):
+        super(TestReportReader, self).__init__()
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.json_reader = LDJSONReader(filename, self.log)
+        self.translation_table = translation_table or {}
+
+    def process_label(self, label):
+        if label in self.translation_table:
+            return self.translation_table[label]
+
+        if isinstance(label, string_types):
+            if label.startswith('test_') and label[5:10].isdigit():
+                return label[11:]
+
+        return label
+
+    def read(self, last_pass=False):
+        for row in self.json_reader.read(last_pass):
+            for key in self.REPORT_ITEM_KEYS:
+                if key not in row:
+                    self.log.debug("Unexpected test record: %s", row)
+                    self.log.warning("Test record doesn't conform to schema, skipping, %s", key)
+                    continue
+
+            row["test_case"] = self.process_label(row["test_case"])
+            yield row
+
+
+class LoadSamplesReader(ResultsReader):
+    STATUS_TO_CODE = {
+        "PASSED": "200",
+        "SKIPPED": "300",
+        "FAILED": "400",
+        "BROKEN": "500",
+    }
+
+    def __init__(self, filename, parent_logger, translation_table):
+        super(LoadSamplesReader, self).__init__()
+        self.report_reader = TestReportReader(filename, parent_logger, translation_table)
+        self.read_records = 0
+
+    def extract_sample(self, item):
+        tstmp = int(item["start_time"])
+        label = item["test_case"]
+        concur = 1
+        rtm = item["duration"]
+        cnn = 0
+        ltc = 0
+        rcd = self.STATUS_TO_CODE.get(item["status"], "UNKNOWN")
+        error = item["error_msg"] if item["status"] in TestReportReader.FAILING_TESTS_STATUSES else None
+        trname = ""
+        byte_count = None
+        return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
+
+    def _read(self, last_pass=False):
+        for row in self.report_reader.read(last_pass):
+            self.read_records += 1
+            sample = self.extract_sample(row)
+            yield sample
+
+
+class FuncSamplesReader(FunctionalResultsReader):
+    FIELDS_EXTRACTED_TO_ARTIFACTS = ["requestBody", "responseBody", "requestCookiesRaw"]
+
+    def __init__(self, filename, engine, parent_logger, translation_table):
+        self.report_reader = TestReportReader(filename, parent_logger, translation_table)
+        self.engine = engine
+        self.read_records = 0
+
+    def _write_sample_data_to_artifacts(self, sample_extras):
+        if not sample_extras:
+            return
+        for file_field in self.FIELDS_EXTRACTED_TO_ARTIFACTS:
+            if file_field not in sample_extras:
+                continue
+            contents = sample_extras.pop(file_field)
+            if contents:
+                filename = "sample-%s" % file_field
+                artifact = self.engine.create_artifact(filename, ".bin")
+                with open(artifact, 'wb') as fds:
+                    fds.write(contents.encode('utf-8'))
+                sample_extras[file_field] = artifact
+
+    def read(self, last_pass=False):
+        for row in self.report_reader.read(last_pass):
+            self.read_records += 1
+            sample = FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
+                                      status=row["status"], start_time=row["start_time"], duration=row["duration"],
+                                      error_msg=row["error_msg"], error_trace=row["error_trace"],
+                                      extras=row.get("extras", {}))
+            self._write_sample_data_to_artifacts(sample.extras)
+            yield sample

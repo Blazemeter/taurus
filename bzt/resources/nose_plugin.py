@@ -132,12 +132,66 @@ class BZTPlugin(Plugin):
         self.test_dict["status"] = "PASSED"
         self.success_count += 1
 
+    @staticmethod
+    def _headers_from_dict(headers):
+        return "\n".join(key + ": " + value for key, value in headers.items())
+
+    @staticmethod
+    def _cookies_from_dict(cookies):
+        return "; ".join(key + "=" + value for key, value in cookies.items())
+
+    def _extract_apiritif_data(self, test_case):
+        try:
+            from apiritif import recorder
+        except ImportError:
+            return
+
+        log_record = recorder.log.get(test_case, None)
+        if log_record is None or not log_record.requests:
+            return
+
+        request_log = log_record.requests[0]
+        assertions = log_record.assertions_for_response(request_log.response)
+        py_response = request_log.response.py_response
+        baked_request = request_log.request
+
+        record = {
+            'responseCode': py_response.status_code,
+            'responseMessage': py_response.reason,
+            'responseTime': py_response.elapsed.total_seconds(),
+            'connectTime': 0,
+            'latency': 0,
+            'responseSize': len(py_response.content),
+            'requestSize': 0,
+            'requestMethod': baked_request.method,
+            'requestURI': baked_request.url,
+            'assertions': [
+                {"name": assertion.name, "isFailed": assertion.is_failed, "failureMessage": assertion.failure_message}
+                for assertion in assertions
+            ],
+            'responseBody': py_response.text,
+            'requestBody': baked_request.body or "",
+            'requestCookies': dict(request_log.session.cookies),
+            'requestHeaders': dict(py_response.request.headers),
+            'responseHeaders': dict(py_response.headers),
+        }
+
+        record["requestCookiesRaw"] = self._cookies_from_dict(record["requestCookies"])
+        record["responseBodySize"] = len(record["responseBody"])
+        record["requestBodySize"] = len(record["requestBody"])
+        record["requestCookiesSize"] = len(record["requestCookiesRaw"])
+        record["requestHeadersSize"] = len(self._headers_from_dict(record["requestHeaders"]))
+        record["responseHeadersSize"] = len(self._headers_from_dict(record["responseHeaders"]))
+
+        self.test_dict["extras"].update(record)
+
     def stopTest(self, test):  # pylint: disable=invalid-name
         """
         after the test has been run
         :param test:
         :return:
         """
+        self._extract_apiritif_data(self.test_dict["test_case"])
         self.test_count += 1
         self.test_dict["duration"] = time.time() - self.test_dict["start_time"]
         self.out_stream.write("%s\n" % json.dumps(self.test_dict))

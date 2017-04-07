@@ -1,0 +1,80 @@
+settings:
+  default-executor: nose
+
+modules:
+  local:
+    sequential: true # makes it run executions sequentially
+
+execution:
+- scenario: basic-requests
+  iterations: 1
+- scenario: with-extractors
+  iterations: 1
+
+reporting:
+- junit-xml
+
+scenarios:
+  basic-requests:
+    default-address: https://jsonplaceholder.typicode.com
+    timeout: 5s
+    requests:
+    - label: get posts
+      url: /posts
+      assert-jsonpath:
+      - jsonpath: $.[0].userId
+        validate: true
+        expected-value: 1
+    - label: post into posts
+      url: /posts
+      method: POST
+      headers:
+        content-type: application/json
+      body:
+        title: foo
+        body: bar
+        userId: 1
+      assert-jsonpath:
+      - $.id
+    - label: delete from posts
+      url: /posts/1
+      method: DELETE
+
+  with-extractors:
+    default-address: https://jsonplaceholder.typicode.com
+    timeout: 5s
+    requests:
+    - label: get posts
+      url: /posts
+      assert-jsonpath:
+      - jsonpath: $.[0].userId
+        validate: true
+        expected-value: 1
+      extract-jsonpath:
+        userID: $.[5].userId
+
+    - label: get posts of certain user
+      url: /posts?userId=${userID}
+      extract-jsonpath:
+        postID: $.[0].id
+
+    - label: get comments on post
+      url: /posts/${postID}/comments
+      assert-jsonpath:
+      - $[0].email
+
+    - label: add into posts
+      url: /posts
+      method: POST
+      headers:
+        content-type: application/json
+      body:
+        title: foo
+        body: bar
+        userId: ${userID}
+      extract-jsonpath:
+        addedID: $.id
+
+    - label: delete from posts
+      url: /posts/${addedID}
+      method: DELETE
