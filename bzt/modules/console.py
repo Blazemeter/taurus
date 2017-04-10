@@ -24,8 +24,9 @@ from abc import abstractmethod
 from collections import deque
 from datetime import datetime
 from itertools import groupby, islice, chain
-from logging import StreamHandler
 
+from bzt import TaurusInternalException
+from logging import StreamHandler
 from urwid import LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine
 from urwid.decoration import Padding
@@ -35,7 +36,6 @@ from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
 import bzt
-from bzt import TaurusInternalException
 from bzt.engine import Reporter
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
@@ -1058,7 +1058,9 @@ class RCodesList(ListBox):
                 part,
                 overall[KPISet.RESP_CODES][key],
             )
-            if key[0] == '2':
+            if not len(key):
+                style = "stat-nonhttp"
+            elif key[0] == '2':
                 style = 'stat-2xx'
             elif key[0] == '3':
                 style = 'stat-3xx'

@@ -10,9 +10,11 @@ from bzt import ToolError, TaurusConfigError
 from tests import BZTestCase, local_paths_config, __dir__
 
 from bzt.engine import ScenarioExecutor
+from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
-from bzt.modules.selenium import NoseTester, AbstractSeleniumExecutor
-from bzt.modules.selenium import SeleniumExecutor, LoadSamplesReader, LDJSONReader, FuncSamplesReader
+from bzt.modules.python import NoseTester
+from bzt.modules.selenium import SeleniumExecutor
+from bzt.utils import LDJSONReader
 from bzt.six import StringIO
 from tests.mocks import EngineEmul
 
@@ -326,7 +328,7 @@ class TestReportReader(BZTestCase):
         self.assertEqual(len(items), 2)
 
     def test_func_reader(self):
-        reader = FuncSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger(), None)
+        reader = FuncSamplesReader(__dir__() + "/../selenium/report.ldjson", EngineEmul(), logging.getLogger(), None)
         items = list(reader.read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0].test_case, 'testFailure')

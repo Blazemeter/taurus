@@ -1,0 +1,6 @@
+Add Apiritif framework for API testing
+
+- Add initial version of Apiritif
+- Add Apiritif executor for Taurus
+- Add Apiritif script generator for Taurus
+- Makes nose plugin record all HTTP requests made by API tests into the test report, which is then can be consumed by Taurus (similar to JMeter)
