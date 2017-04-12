@@ -235,6 +235,11 @@
     "func": {
       "settings": {
         "aggregator": "functional-consolidator"
+      },
+      "modules": {
+        "console": {
+          "disable": true
+        }
       }
     },
     "sequential": {
