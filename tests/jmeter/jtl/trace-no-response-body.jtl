@@ -19,7 +19,7 @@
 		&quot;testId&quot;: 5000199,
 		&quot;name&quot;: &quot;6\/30\/2014 1:52:12 PM Test jmeter&quot;,
 		&quot;type&quot;: &quot;jmeter&quot;,
-		&quot;status&quot;: &quot;DATA_RECIEVED&quot;,
+		&quot;status&quot;: &quot;DATA_RECEIVED&quot;,
 		&quot;dataUrl&quot;: &quot;https:\/\/a.blazemeter.com\/api\/latest\/sessions\/r-op-beta53c3bdd960f23&quot;,
 		&quot;signature&quot;: &quot;a82801bd1902e7345b5952cb5a5cee86&quot;
 	}]
