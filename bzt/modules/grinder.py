@@ -148,6 +148,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.kpi_file = os.path.join(self.engine.artifacts_dir, self.exec_id + "-kpi.log")
 
         self.reader = DataLogReader(self.kpi_file, self.log)
+        self.reader.report_by_url = self.settings.get("report-by-url", False)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -248,7 +249,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 label = None
             self.widget = ExecutorWidget(self, label)
             if self.get_load().ramp_up:
-                self.widget.duration += self.get_load().ramp_up
+                self.widget.duration += self.get_load().ramp_up  # because we have ramp-down equal to rampup
         return self.widget
 
     def resource_files(self):
@@ -269,6 +270,7 @@ class DataLogReader(ResultsReader):
 
     def __init__(self, filename, parent_logger):
         super(DataLogReader, self).__init__()
+        self.report_by_url = False
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.filename = filename
         self.fds = None
@@ -279,6 +281,7 @@ class DataLogReader(ResultsReader):
         self.start_time = 0
         self.end_time = 0
         self.concurrency = 0
+        self.test_names = {}
 
     def _read(self, last_pass=False):
         """
@@ -311,9 +314,17 @@ class DataLogReader(ResultsReader):
             con_time = int(data_fields[self.idx["Time to resolve host"]]) / 1000.0
             con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
             bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
+            test_id = data_fields[self.idx["Test"]].strip()
 
-            label, error_msg = self.__parse_prev_line(lines, lnum)
+            url, error_msg = self.__parse_prev_line(lines, lnum)
             source_id = ''
+
+            if self.report_by_url:
+                label = url
+            elif test_id in self.test_names:
+                label = self.test_names[test_id]
+            else:
+                label = "Test #%s" % test_id
 
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
                   latency, r_code, error_msg, source_id, bytes_count
@@ -331,8 +342,12 @@ class DataLogReader(ResultsReader):
             if len(line_parts) > 1:
                 if line_parts[1] == 'starting,':
                     self.concurrency += 1
-                if line_parts[1] == 'shut':
+                elif line_parts[1] == 'shut':
                     self.concurrency -= 1
+                elif set(line_parts[1:5]) == {'Test', 'name', 'for', 'ID'}:
+                    test_id = line_parts[5][:-1]
+                    test_name = ' '.join(line_parts[6:-1])
+                    self.test_names[test_id] = test_name
             return None
 
         line = line.strip()
