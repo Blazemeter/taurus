@@ -13,7 +13,11 @@ public class TaurusAppender extends FileAppender {
     protected void writeOut(Object event) throws IOException {
         for (Test t : TestRegistryAccessor.getNewTests()) {
             LoggingEvent le = new LoggingEvent();
-            le.setMessage("Test name for " + t.getNumber() + ": " + t.getDescription());
+            if (event instanceof LoggingEvent) {
+                LoggingEvent proto= (LoggingEvent) event;
+                le.setLoggerName(proto.getLoggerName());
+            }
+            le.setMessage("Test name for ID " + t.getNumber() + ": " + t.getDescription());
             le.setLevel(Level.INFO);
             super.writeOut(le);
         }

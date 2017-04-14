@@ -29,7 +29,7 @@ public class TaurusAppenderTest {
         appender.writeOut(event);
         appender.stop();
 
-        assertEquals("Test name for 1: label\nTada!\n", os.toString());
+        assertEquals("Test name for ID 1: label\nTada!\n", os.toString());
     }
 
 }
