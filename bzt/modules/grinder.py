@@ -121,6 +121,14 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             fds.write("grinder.runs=%s\n" % load.iterations)
             if load.duration:
                 fds.write("grinder.duration=%s\n" % int(load.duration * 1000))
+
+        fds.write("# taurus load values in case you need them\n")
+        fds.write("taurus.concurrency=%s\n" % load.concurrency)
+        fds.write("taurus.throughput=%s\n" % load.throughput)
+        fds.write("taurus.ramp_up=%s\n" % load.ramp_up)
+        fds.write("taurus.steps=%s\n" % load.steps)
+        fds.write("taurus.hold_for=%s\n" % load.hold)
+        fds.write("taurus.iterations=%s\n" % load.iterations)
         fds.write("# BZT Properies End\n")
 
     def prepare(self):
