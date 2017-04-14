@@ -348,6 +348,7 @@ class DataLogReader(ResultsReader):
                     test_id = line_parts[5][:-1]
                     test_name = ' '.join(line_parts[6:-1])
                     self.test_names[test_id] = test_name
+                    self.log.debug("Recognized test id %s => %s", test_id, test_name)
             return None
 
         line = line.strip()
@@ -395,6 +396,7 @@ class DataLogReader(ResultsReader):
         line = ''
         while not line.startswith('data'):
             line = self.fds.readline()
+            self.__split(line)  # to caprute early test name records
             if line == '':  # end of file
                 self.fds.close()
                 self.fds = None
