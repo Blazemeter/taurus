@@ -302,6 +302,7 @@ class DataLogReader(ResultsReader):
         self.end_time = 0
         self.concurrency = 0
         self.test_names = {}
+        self.known_threads = set()
 
     def _read(self, last_pass=False):
         """
@@ -335,6 +336,10 @@ class DataLogReader(ResultsReader):
             con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
             bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
             test_id = data_fields[self.idx["Test"]].strip()
+            thread_id = int(data_fields[self.idx["Thread"]].strip())
+            run_id = int(data_fields[self.idx["Run"]].strip())
+            if run_id == 0:
+                self.concurrency += 1
 
             url, error_msg = self.__parse_prev_line(lines, lnum)
             source_id = ''
@@ -361,7 +366,8 @@ class DataLogReader(ResultsReader):
             line_parts = line.split(' ')
             if len(line_parts) > 1:
                 if line_parts[1] == 'starting,':
-                    self.concurrency += 1
+                    # self.concurrency += 1
+                    pass
                 elif line_parts[1] == 'shut':
                     self.concurrency -= 1
                 elif set(line_parts[1:5]) == {'Test', 'name', 'for', 'ID'}:
@@ -546,7 +552,7 @@ from HTTPClient import NVPair
         sleep_method = self.gen_method_definition("rampUpSleeper", ["self"], indent=4)
         sleep_method.append(self.gen_statement("if grinder.runNumber != 0: return"))
         sleep_method.append(self.gen_statement("tprops = grinder.properties.getPropertySubset('taurus.')"))
-        sleep_method.append(self.gen_statement("inc = tprops.getDouble('ramp_up', 0) / tprops.getInt('concurrency', 0)"))
+        sleep_method.append(self.gen_statement("inc = tprops.getDouble('ramp_up', 0)/tprops.getInt('concurrency', 0)"))
         sleep_method.append(self.gen_statement("sleep_time = int(1000 * grinder.threadNumber * inc)"))
         sleep_method.append(self.gen_statement("grinder.sleep(sleep_time, 0)"))
         sleep_method.append(self.gen_statement("if sleep_time: grinder.logger.info('slept for %sms' % sleep_time)"))

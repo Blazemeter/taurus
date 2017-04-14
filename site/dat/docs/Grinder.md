@@ -58,3 +58,6 @@ scenarios:
  -  `version: "3.11"` - Grinder version, by default "3.11"
  -  `report-by-url: false` - change results analysis to use URLs instead of test ID/test name
 
+TODO: document how to access load properties from inside grinder
+
+Thread ramp up doc: http://grinder.sourceforge.net/g3/script-gallery.html#threadrampup.py
