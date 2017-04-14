@@ -25,3 +25,7 @@ scenarios:
       headers:
         Content-Type: application/json
       think-time: 50ms
+
+services:
+- module: shellexec
+  startup: exit 0

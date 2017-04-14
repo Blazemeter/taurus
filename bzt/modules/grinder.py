@@ -18,6 +18,7 @@ limitations under the License.
 import re
 import subprocess
 import time
+from math import ceil
 
 import os
 from bzt import TaurusConfigError, ToolError
@@ -113,12 +114,23 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         load = self.get_load()
         if load.concurrency:
+            threads_per_process = load.concurrency
+            processes = 1
+            if load.steps:
+                processes = load.steps
+                threads_per_process = ceil(load.concurrency / load.steps)
+                if threads_per_process * processes != load.concurrency:
+                    self.log.warning("Will generate %s concurrency due to float rounding")
+
+            fds.write("grinder.processes=%s\n" % processes)
+            fds.write("grinder.threads=%s\n" % threads_per_process)
+            fds.write("grinder.runs=%s\n" % load.iterations)
+
             if load.ramp_up:
                 interval = int(1000 * load.ramp_up / load.concurrency)
                 fds.write("grinder.processIncrementInterval=%s\n" % interval)
                 fds.write("grinder.processIncrement=1\n")
-            fds.write("grinder.processes=%s\n" % int(load.concurrency))
-            fds.write("grinder.runs=%s\n" % load.iterations)
+
             if load.duration:
                 fds.write("grinder.duration=%s\n" % int(load.duration * 1000))
 
@@ -530,7 +542,20 @@ from HTTPClient import NVPair
 
     def gen_runner_class(self):
         runner_classdef = self.gen_class_definition("TestRunner", ["object"], indent=0)
+
+        sleep_method = self.gen_method_definition("rampUpSleeper", ["self"], indent=4)
+        sleep_method.append(self.gen_statement("if grinder.runNumber != 0: return"))
+        sleep_method.append(self.gen_statement("tprops = grinder.properties.getPropertySubset('taurus.')"))
+        sleep_method.append(self.gen_statement("inc = tprops.getDouble('ramp_up', 0) / tprops.getInt('concurrency', 0)"))
+        sleep_method.append(self.gen_statement("sleep_time = int(1000 * grinder.threadNumber * inc)"))
+        sleep_method.append(self.gen_statement("grinder.sleep(sleep_time, 0)"))
+        sleep_method.append(self.gen_statement("if sleep_time: grinder.logger.info('slept for %sms' % sleep_time)"))
+        sleep_method.append(self.gen_statement("else: grinder.logger.info('No sleep needed')"))
+        sleep_method.append(self.gen_new_line(indent=0))
+        runner_classdef.append(sleep_method)
+
         main_method = self.gen_method_definition("__call__", ["self"], indent=4)
+        main_method.append(self.gen_statement("self.rampUpSleeper()"))
 
         for req in self.scenario.get_requests():
             if not isinstance(req, HTTPRequest):
