@@ -1,0 +1,26 @@
+execution:
+- executor: grinder
+  concurrency: 20
+  ramp-up: 1m
+  iterations: 100
+  scenario: requests_sample
+
+scenarios:
+  requests_sample:
+    default-address: http://blazedemo.com  # base address for requests
+    think-time: 1s                         # pause for 1s after each request
+    timeout: 30s                           # specify timeout for requests
+    headers:                               # global headers, applied to all requests
+      X-Api-Key: my-fresh-token
+    store-cookie: false                    # simulate browser cookie storage (default value is `true`)
+    keepalive: true                        # flag to use keep-alive for connections, default is `true`  
+    requests:
+    - /                                    # short form, URL only
+    - url: /reserve.php                    # full form
+      method: POST
+      think-time: 5s
+    - url: /payment.php
+      method: POST
+      headers:                             # request-specific headers
+        Content-Type: application/json
+      think-time: 1s                       # overrides scenario-level `think-time`
