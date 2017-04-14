@@ -4,17 +4,6 @@
 Grinder supports following taurus execution parameters: `concurrency`, `ramp-up`, `hold-for` and `iterations` (all except of `throughput`). As duration is sent to every worker, you'll get the same ramp-down together with `ramp-up`. When you configure limit of `iterations`, it applies to every worker so effective limit can be up to `concurrency` * `iterations` (it depends on start and shutdown processes).
 All parameters are passed with .properties file, so they will work for your script too (not for generated script only). 
   
-## Module settings
- - `path`: "/somepath/folder/"
-    Path to Grinder.
-    If no grinder.jar found in folder/lib/, Grinder tool will be automatically downloaded and installed in "path".
-    By default "~/.bzt/grinder-taurus/".
- - `download-link`:"http://somehost/grinder-{version}-binary.zip"
-    Link to download Grinder.
-    By default "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}/grinder-{version}-binary.zip"
- -  `version`: "3.11"
-    Grinder version, by default "3.11"
-
 ## Running Grinder
 Running Grinder with existing script and properties file.
 ```yaml
@@ -62,3 +51,10 @@ scenarios:
         Content-Type: application/json
       think-time: 1s                       # overrides scenario-level `think-time`
 ```
+
+## Module settings
+ - `path: "/somepath/folder/"` - Path to Grinder. If no grinder.jar found in folder/lib/, Grinder tool will be automatically downloaded and installed in "path". By default "~/.bzt/grinder-taurus/".
+ - `download-link:"http://somehost/grinder-{version}-binary.zip"`  - Link to download Grinder. By default "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}/grinder-{version}-binary.zip"
+ -  `version: "3.11"` - Grinder version, by default "3.11"
+ -  `report-by-url: false` - change results analysis to use URLs instead of test ID/test name
+

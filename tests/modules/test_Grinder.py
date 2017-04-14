@@ -4,6 +4,7 @@ import re
 import shutil
 import time
 
+from bzt.modules.aggregator import DataPoint
 from bzt.modules.grinder import GrinderExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt import ToolError
@@ -188,9 +189,25 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 12)
+        self.assertIn('Test #1', list_of_values[0][DataPoint.CUMULATIVE])
 
     def test_read_empty_kpi(self):
         log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder.sh')
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 0)
+
+    def test_read_test_names(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-1-kpi.log')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 5)
+        self.assertIn('BZT Requests', list_of_values[0][DataPoint.CUMULATIVE])
+
+    def test_read_by_url(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-kpi.log')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        obj.report_by_url=True
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 12)
+        self.assertIn('http://blazedemo.com/', list_of_values[0][DataPoint.CUMULATIVE])
