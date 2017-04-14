@@ -3,7 +3,7 @@ execution:
   concurrency: 50
   ramp-up: 1m
   #steps: 5
-  #iterations: 5
+  # iterations: 5
   scenario: requests_sample
 
 scenarios:
