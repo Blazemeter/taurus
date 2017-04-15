@@ -25,6 +25,7 @@ import sys
 import threading
 import time
 import traceback
+import uuid
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
@@ -311,7 +312,7 @@ class Engine(object):
             os.makedirs(self.artifacts_dir)
 
         # dump current effective configuration
-        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        dump = self.create_artifact("effective", "")  # TODO: not good since this file not exists
         self.config.set_dump_file(dump)
         self.config.dump()
 
@@ -411,22 +412,17 @@ class Engine(object):
         return filename
 
     def _load_base_configs(self):
-        base_configs = []
+        base_configs = [os.path.join(get_full_path(__file__, step_up=1), 'resources', 'base-config.yml')]
         machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
         if os.path.isdir(machine_dir):
-            self.log.debug("Reading machine configs from: %s", machine_dir)
+            self.log.debug("Reading extension configs from: %s", machine_dir)
             for cfile in sorted(os.listdir(machine_dir)):
                 fname = os.path.join(machine_dir, cfile)
                 if os.path.isfile(fname):
                     base_configs.append(fname)
         else:
-            self.log.info("No machine configs dir: %s", machine_dir)
-        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))  # FIXME: this is CLI specifics
-        if os.path.isfile(user_file):
-            self.log.debug("Adding personal config: %s", user_file)
-            base_configs.append(user_file)
-        else:
-            self.log.info("No personal config: %s", user_file)
+            self.log.debug("No machine configs dir: %s", machine_dir)
+
         self.config.load(base_configs)
 
     def _load_user_configs(self, user_configs):
@@ -523,7 +519,7 @@ class Engine(object):
     def _check_updates(self):
         if self.config.get(SETTINGS).get("check-updates", True):
             try:
-                params = (bzt.VERSION, self.config.get("install-id", "N/A"))
+                params = (bzt.VERSION, self.config.get("install-id", uuid.getnode()))
                 req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
                 self.log.debug("Requesting updates info: %s", req)
                 response = urlopen(req, timeout=10)
