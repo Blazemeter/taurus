@@ -312,7 +312,7 @@ class Engine(object):
             os.makedirs(self.artifacts_dir)
 
         # dump current effective configuration
-        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        dump = self.create_artifact("effective", "")  # TODO: not good since this file not exists
         self.config.set_dump_file(dump)
         self.config.dump()
 
@@ -422,12 +422,7 @@ class Engine(object):
                     base_configs.append(fname)
         else:
             self.log.debug("No machine configs dir: %s", machine_dir)
-        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))  # FIXME: this is CLI specifics
-        if os.path.isfile(user_file):
-            self.log.debug("Adding personal config: %s", user_file)
-            base_configs.append(user_file)
-        else:
-            self.log.info("No personal config: %s", user_file)
+
         self.config.load(base_configs)
 
     def _load_user_configs(self, user_configs):
