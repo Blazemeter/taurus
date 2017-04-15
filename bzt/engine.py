@@ -674,8 +674,6 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
-        self.delay = None  # FIXME: why here? Why not in ScenarioExecutor?
-        self.start_time = None  # FIXME: why here? Why not in ScenarioExecutor?
 
     def prepare(self):
         """
@@ -797,6 +795,8 @@ class ScenarioExecutor(EngineModule):
         self.label = None
         self.widget = None
         self.reader = None
+        self.delay = None
+        self.start_time = None
 
     def has_results(self):
         if self.reader and self.reader.buffer:
