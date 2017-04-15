@@ -34,7 +34,7 @@ from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
 from bzt.bza import User, Session, Test
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
@@ -116,7 +116,7 @@ def send_with_retry(method):
     return _impl
 
 
-class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
+class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singletone):
     """
     Reporter class
 
