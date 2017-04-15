@@ -14,9 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import platform
-import shutil
 import sys
-import uuid
 from setuptools.command.install import install
 
 import os
@@ -39,19 +37,14 @@ class InstallWithHook(install, object):
 
     def __hook(self):
         dirname = bzt.get_configs_dir()
-        sys.stdout.write("[%s] Creating %s\n" % (bzt.VERSION, dirname))
-        if not os.path.exists(dirname):
+        if os.path.exists(dirname):
+            sys.stdout.write("[%s] Found %s\n" % (bzt.VERSION, dirname))
             os.makedirs(dirname)
 
-        src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")  # FIXME
-        sys.stdout.write("Copying %s to %s\n" % (src, dirname))
-        shutil.copy(src, dirname + os.path.sep)
-
-        sys.stdout.write("Generating install-id\n")
-        install_id = os.path.join(dirname, '99-installID.yml')
-        if not os.path.exists(install_id):
-            with open(install_id, 'w') as fhd:
-                fhd.write("---\ninstall-id: %x" % uuid.getnode())
+            src = os.path.join(dirname, "10-base.json")
+            if os.path.exists(src):
+                sys.stdout.write("Removing outdated %s\n" % src)
+                os.remove(src)
 
 
 requires = ['pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama',
@@ -69,7 +62,7 @@ setup(
     download_url='http://gettaurus.org/docs/DeveloperGuide/#Python-Egg-Snapshots',
     license='Apache 2.0',
     platform='any',
-    docs_url='http://gettaurus.org/',
+    docs_url='http://gettaurus.org/docs/',
 
     install_requires=requires,
     packages=['bzt', 'bzt.six', 'bzt.modules', 'bzt.resources', 'apiritif'],
@@ -84,5 +77,5 @@ setup(
     package_data={
         "bzt": [],
     },
-    cmdclass={"install": InstallWithHook}
+    cmdclass={"install": InstallWithHook}  # TODO: remove it completely once we have most of users upgraded to>=1.8.5
 )
