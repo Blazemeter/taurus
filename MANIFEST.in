@@ -1,4 +1,4 @@
-include bzt/10-base.json
+include bzt/resources/base-config.yml
 include LICENSE
 include NOTICE
 include bzt/resources/gatling_script.tpl

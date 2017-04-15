@@ -13,13 +13,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
 import platform
 import shutil
 import sys
 import uuid
-from setuptools import setup
 from setuptools.command.install import install
+
+import os
+from setuptools import setup
 
 import bzt
 
@@ -42,7 +43,7 @@ class InstallWithHook(install, object):
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")
+        src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")  # FIXME
         sys.stdout.write("Copying %s to %s\n" % (src, dirname))
         shutil.copy(src, dirname + os.path.sep)
 
