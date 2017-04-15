@@ -288,6 +288,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
+    DELIMITER = ","
 
     def __init__(self, filename, parent_logger):
         super(DataLogReader, self).__init__()
@@ -297,7 +298,6 @@ class DataLogReader(ResultsReader):
         self.fds = None
         self.idx = {}
         self.partial_buffer = ""
-        self.delimiter = ","
         self.offset = 0
         self.start_time = 0
         self.end_time = 0
@@ -324,7 +324,7 @@ class DataLogReader(ResultsReader):
         self.offset = self.fds.tell()
 
         for lnum, line in enumerate(lines):
-            data_fields = self.__split(line)
+            data_fields, worker_id = self.__split(line)
             if not data_fields:
                 self.log.debug("Skipping line: %s", line)
                 continue
@@ -337,9 +337,9 @@ class DataLogReader(ResultsReader):
             con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
             bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
             test_id = data_fields[self.idx["Test"]].strip()
-            thread_id = int(data_fields[self.idx["Thread"]].strip())
-            run_id = int(data_fields[self.idx["Run"]].strip())
-            if run_id == 0:
+            thread_id = worker_id + '/' + data_fields[self.idx["Thread"]].strip()
+            if thread_id not in self.known_threads:
+                self.known_threads.add(thread_id)
                 self.concurrency += 1
 
             url, error_msg = self.__parse_prev_line(lines, lnum)
@@ -358,12 +358,12 @@ class DataLogReader(ResultsReader):
     def __split(self, line):
         if not line.endswith("\n"):
             self.partial_buffer += line
-            return None
+            return None, None
 
         line = "%s%s" % (self.partial_buffer, line)
         self.partial_buffer = ""
 
-        if not line.startswith('data'):
+        if not line.startswith('data.'):
             line_parts = line.split(' ')
             if len(line_parts) > 1:
                 if line_parts[1] == 'starting,':
@@ -376,18 +376,19 @@ class DataLogReader(ResultsReader):
                     test_name = ' '.join(line_parts[6:-1])
                     self.test_names[test_id] = test_name
                     self.log.debug("Recognized test id %s => %s", test_id, test_name)
-            return None
+            return None, None
 
         line = line.strip()
-        line = line[len('data'):]
-        data_fields = line.split(self.delimiter)
+        worker_id = line[:line.find(' ')]
+        line = line[line.find(' '):]
+        data_fields = line.split(self.DELIMITER)
         if not data_fields[1].strip().isdigit():
-            return None
+            return None, None
 
         if len(data_fields) < max(self.idx.values()):
-            return None
+            return None, None
 
-        return data_fields
+        return data_fields, worker_id
 
     def __parse_prev_line(self, lines, lnum):
         label = ''
@@ -395,7 +396,7 @@ class DataLogReader(ResultsReader):
         if lnum > 0:
             line = lines[lnum - 1].strip()
             if line.endswith('bytes'):
-                line = line.split(self.delimiter)[0]
+                line = line.split(self.DELIMITER)[0]
                 log_parts = line.split(' ')
                 if len(log_parts) > 4:
                     log_parts.pop(0)  # worker_id
@@ -421,7 +422,7 @@ class DataLogReader(ResultsReader):
 
         self.fds = open(self.filename)
         line = ''
-        while not line.startswith('data'):
+        while not line.startswith('data.'):
             line = self.fds.readline()
             self.__split(line)  # to caprute early test name records
             if line == '':  # end of file
@@ -430,9 +431,9 @@ class DataLogReader(ResultsReader):
                 return False
 
         self.offset = self.fds.tell()
-        line = line[len('data '):]
+        line = line[line.find(' '):]
 
-        header_list = line.strip().split(self.delimiter)
+        header_list = line.strip().split(self.DELIMITER)
         for _ix, field in enumerate(header_list):
             self.idx[field.strip()] = _ix
         return True
