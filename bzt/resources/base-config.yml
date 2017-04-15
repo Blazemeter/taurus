@@ -58,20 +58,20 @@ modules:
     class: bzt.modules.services.AndroidEmulatorLoader
   appium:
     class: bzt.modules.services.AppiumLoader
-  capturehar:
-    class: bzt.modules.blazemeter.ServiceStubCaptureHAR
 
   # online services integrations
+  blazemeter:
+    class: bzt.modules.blazemeter.BlazeMeterUploader
+  cloud:
+    class: bzt.modules.blazemeter.CloudProvisioning
   proxy2jmx:
     class: bzt.modules.proxy2jmx.Proxy2JMX
   unpacker:
     class: bzt.modules.services.Unpacker
   screenshoter:
     class: bzt.modules.blazemeter.ServiceStubScreenshoter
-  blazemeter:
-    class: bzt.modules.blazemeter.BlazeMeterUploader
-  cloud:
-    class: bzt.modules.blazemeter.CloudProvisioning
+  capturehar:
+    class: bzt.modules.blazemeter.ServiceStubCaptureHAR
 
 ---
 # experimental & deprecated
