@@ -18,7 +18,6 @@ limitations under the License.
 import re
 import subprocess
 import time
-from math import ceil
 
 import os
 from bzt import TaurusConfigError, ToolError
@@ -109,30 +108,14 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         fds.write("# BZT Properies Start\n")
         fds.write("grinder.hostID=%s\n" % self.exec_id)
         fds.write("grinder.script=%s\n" % self.script.replace(os.path.sep, "/"))
-        dirname = self.engine.artifacts_dir
-        fds.write("grinder.logDirectory=%s\n" % dirname.replace(os.path.sep, "/"))
+        fds.write("grinder.logDirectory=%s\n" % self.engine.artifacts_dir.replace(os.path.sep, "/"))
 
         load = self.get_load()
-        if load.concurrency:
-            threads_per_process = load.concurrency
-            processes = 1
-            if load.steps:
-                processes = load.steps
-                threads_per_process = ceil(load.concurrency / load.steps)
-                if threads_per_process * processes != load.concurrency:
-                    self.log.warning("Will generate %s concurrency due to float rounding")
+        fds.write("grinder.threads=%s\n" % load.concurrency)
+        fds.write("grinder.runs=%s\n" % load.iterations)
 
-            fds.write("grinder.processes=%s\n" % processes)
-            fds.write("grinder.threads=%s\n" % threads_per_process)
-            fds.write("grinder.runs=%s\n" % load.iterations)
-
-            if load.ramp_up:
-                interval = int(1000 * load.ramp_up / load.concurrency)
-                fds.write("grinder.processIncrementInterval=%s\n" % interval)
-                fds.write("grinder.processIncrement=1\n")
-
-            if load.duration:
-                fds.write("grinder.duration=%s\n" % int(load.duration * 1000))
+        if load.duration:
+            fds.write("grinder.duration=%s\n" % int(load.duration * 1000))
 
         fds.write("# taurus load values in case you need them\n")
         fds.write("taurus.concurrency=%s\n" % load.concurrency)
