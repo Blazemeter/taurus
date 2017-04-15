@@ -204,7 +204,7 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 20)
-        self.assertIn('BZT Requests', list_of_values[-1][DataPoint.CUMULATIVE])
+        self.assertIn('requests_sample', list_of_values[-1][DataPoint.CUMULATIVE])
 
     def test_read_by_url(self):
         log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-kpi.log')

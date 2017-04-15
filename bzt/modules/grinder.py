@@ -363,6 +363,7 @@ class DataLogReader(ResultsReader):
         line = "%s%s" % (self.partial_buffer, line)
         self.partial_buffer = ""
 
+        line = line.strip()
         if not line.startswith('data.'):
             line_parts = line.split(' ')
             if len(line_parts) > 1:
@@ -373,12 +374,11 @@ class DataLogReader(ResultsReader):
                     self.concurrency -= 1
                 elif set(line_parts[1:5]) == {'Test', 'name', 'for', 'ID'}:
                     test_id = line_parts[5][:-1]
-                    test_name = ' '.join(line_parts[6:-1])
+                    test_name = ' '.join(line_parts[6:])
                     self.test_names[test_id] = test_name
                     self.log.debug("Recognized test id %s => %s", test_id, test_name)
             return None, None
 
-        line = line.strip()
         worker_id = line[:line.find(' ')]
         line = line[line.find(' '):]
         data_fields = line.split(self.DELIMITER)
