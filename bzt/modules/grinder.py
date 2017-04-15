@@ -111,8 +111,12 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         fds.write("grinder.logDirectory=%s\n" % self.engine.artifacts_dir.replace(os.path.sep, "/"))
 
         load = self.get_load()
-        fds.write("grinder.threads=%s\n" % load.concurrency)
-        fds.write("grinder.runs=%s\n" % load.iterations)
+
+        if load.iterations:
+            fds.write("grinder.runs=%s\n" % load.iterations)
+
+        if load.concurrency:
+            fds.write("grinder.threads=%s\n" % load.concurrency)
 
         if load.duration:
             fds.write("grinder.duration=%s\n" % int(load.duration * 1000))
@@ -353,8 +357,9 @@ class DataLogReader(ResultsReader):
                 if line_parts[1] == 'starting,':
                     # self.concurrency += 1
                     pass
-                elif line_parts[1] == 'shut':
-                    self.concurrency -= 1
+                elif line_parts[1] == 'finished':
+                    if self.concurrency > 0:
+                        self.concurrency -= 1
                 elif set(line_parts[1:5]) == {'Test', 'name', 'for', 'ID'}:
                     test_id = line_parts[5][:-1]
                     test_name = ' '.join(line_parts[6:])

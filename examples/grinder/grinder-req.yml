@@ -3,7 +3,6 @@ execution:
   concurrency: 50
   ramp-up: 1m
   hold-for: 1m
-  #steps: 5
   # iterations: 5
   scenario: requests_sample
 
@@ -26,7 +25,3 @@ scenarios:
       headers:
         Content-Type: application/json
       think-time: 50ms
-
-services:
-- module: shellexec
-  startup: exit 0
