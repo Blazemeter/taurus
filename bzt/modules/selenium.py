@@ -20,7 +20,7 @@ import os
 from bzt import TaurusConfigError, TaurusInternalException
 from urwid import Text, Pile
 
-from bzt.engine import Scenario, FileLister, SubprocessedExecutor
+from bzt.engine import Scenario, FileLister, SubprocessedExecutor, ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
@@ -131,9 +131,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     def _create_runner(self, report_file):
         script_type = self.detect_script_type()
         runner = self.engine.instantiate_module(script_type)
+        assert isinstance(runner, ScenarioExecutor)
         runner.parameters = self.parameters
         runner.provisioning = self.provisioning
-        runner.execution = self.execution
         runner.execution['executor'] = script_type
 
         if script_type == "nose":

@@ -357,7 +357,7 @@ class Engine(object):
 
         return self.modules[alias]
 
-    def instantiate_module(self, alias):
+    def instantiate_module(self, alias, parameters=None):
         """
         Create new instance for module using its alias from module settings
         section of config. Thus, to instantiate module it should be mentioned
@@ -372,7 +372,9 @@ class Engine(object):
         instance.log = self.log.getChild(alias)
         instance.engine = self
         settings = self.config.get("modules")
-        instance.settings = settings.get(alias)
+        instance.parameters.merge(settings.get(alias))
+        if parameters:
+            instance.parameters.merge(parameters)
         return instance
 
     def find_file(self, filename):
@@ -459,15 +461,14 @@ class Engine(object):
             reporter = ensure_is_dict(reporting, index, "module")
             msg = "reporter 'module' field isn't recognized: %s"
             cls = reporter.get('module', TaurusConfigError(msg % reporter))
-            instance = self.instantiate_module(cls)
-            instance.parameters = reporter
+            instance = self.instantiate_module(cls, reporter)
             assert isinstance(instance, Reporter)
             self.reporters.append(instance)
 
         # prepare reporters
-        for module in self.reporters:
-            self.prepared.append(module)
-            module.prepare()
+        for mod in self.reporters:
+            self.prepared.append(mod)
+            mod.prepare()
 
     def __prepare_services(self):
         """
@@ -477,9 +478,8 @@ class Engine(object):
         for index, config in enumerate(services):
             config = ensure_is_dict(services, index, "module")
             cls = config.get('module', '')
-            instance = self.instantiate_module(cls)
+            instance = self.instantiate_module(cls, config)
             assert isinstance(instance, Service)
-            instance.parameters = config
             if instance.should_run():
                 self.services.append(instance)
 
@@ -754,9 +754,8 @@ class Provisioning(EngineModule):
             if not executor:
                 msg = "Cannot determine executor type and no default executor in %s"
                 raise TaurusConfigError(msg % execution)
-            instance = self.engine.instantiate_module(executor)
+            instance = self.engine.instantiate_module(executor, execution)
             instance.provisioning = self
-            instance.execution = execution
             assert isinstance(instance, ScenarioExecutor)
             self.executors.append(instance)
 

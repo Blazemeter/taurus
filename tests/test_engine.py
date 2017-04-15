@@ -1,12 +1,12 @@
 """ unit test """
 import os
+from bzt import TaurusConfigError
+from tests import BZTestCase, __dir__, local_paths_config
 
 from bzt.engine import ScenarioExecutor
 from bzt.six import string_types
 from bzt.utils import BetterDict, EXE_SUFFIX, is_windows
-from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul
-from bzt import TaurusConfigError
 
 
 class TestEngine(BZTestCase):
@@ -123,7 +123,7 @@ class TestScenarioExecutor(BZTestCase):
                     "script": "tests/selenium/python/test_blazemeter_fail.py",
                     "param": "value"
                 }}]})
-        self.executor.execution = self.engine.config.get('execution')[0]
+        self.executor.parameters = self.engine.config.get('execution')[0]
         self.executor.get_scenario()
         config = self.engine.config
         self.assertEqual(config['execution'][0]['scenario'], 'test_blazemeter_fail.py')
@@ -147,7 +147,7 @@ class TestScenarioExecutor(BZTestCase):
                             'url': 'http://second.com',
                             'body': 'body2',
                             'body-file': body_file2}]}}})
-        self.executor.execution = self.engine.config.get('execution')[0]
+        self.executor.parameters = self.engine.config.get('execution')[0]
         scenario = self.executor.get_scenario()
 
         # check body fields in get_requests() results
@@ -169,7 +169,7 @@ class TestScenarioExecutor(BZTestCase):
             "execution": [{
                 "scenario": "tests/selenium/python/test_blazemeter_fail.py"
             }]})
-        self.executor.execution = self.engine.config.get('execution')[0]
+        self.executor.parameters = self.engine.config.get('execution')[0]
         self.executor.get_scenario()
         config = self.engine.config
         self.assertEqual(config['execution'][0]['scenario'], 'test_blazemeter_fail.py')
@@ -182,7 +182,7 @@ class TestScenarioExecutor(BZTestCase):
                     "requests": [{"url": "url.example"}],
                     "param": "value"
                 }}]})
-        self.executor.execution = self.engine.config.get('execution')[0]
+        self.executor.parameters = self.engine.config.get('execution')[0]
         self.executor.get_scenario()
         config = self.engine.config
         scenario = config['execution'][0]['scenario']
@@ -194,7 +194,7 @@ class TestScenarioExecutor(BZTestCase):
             "execution": [{
                 "scenario": "non-existent"
             }]})
-        self.executor.execution = self.engine.config.get('execution')[0]
+        self.executor.parameters = self.engine.config.get('execution')[0]
         self.assertRaises(TaurusConfigError, self.executor.get_scenario)
 
     def test_scenario_no_requests(self):
@@ -202,7 +202,7 @@ class TestScenarioExecutor(BZTestCase):
             "execution": [{
                 "scenario": ["url1", "url2"]
             }]})
-        self.executor.execution = self.engine.config.get('execution')[0]
+        self.executor.parameters = self.engine.config.get('execution')[0]
         self.assertRaises(TaurusConfigError, self.executor.get_scenario)
 
     def test_creates_hostaliases_file(self):
@@ -236,7 +236,7 @@ class TestScenarioExecutor(BZTestCase):
         cmdlines = [line_tpl % "aaa", line_tpl % "AAA"]
         results = set()
         for cmdline in cmdlines:
-            process = self.executor.execute(cmdline, shell= True, env=env)
+            process = self.executor.execute(cmdline, shell=True, env=env)
             stdout, _ = process.communicate()
             results.add(stdout.decode().strip())
         if is_windows():
