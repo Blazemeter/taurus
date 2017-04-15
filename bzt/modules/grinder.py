@@ -546,7 +546,7 @@ from HTTPClient import NVPair
         sleep_method = self.gen_method_definition("rampUpSleeper", ["self"], indent=4)
         sleep_method.append(self.gen_statement("if grinder.runNumber != 0: return"))
         sleep_method.append(self.gen_statement("tprops = grinder.properties.getPropertySubset('taurus.')"))
-        sleep_method.append(self.gen_statement("inc = tprops.getDouble('ramp_up', 0)/tprops.getInt('concurrency', 0)"))
+        sleep_method.append(self.gen_statement("inc = tprops.getDouble('ramp_up', 0)/tprops.getInt('concurrency', 1)"))
         sleep_method.append(self.gen_statement("sleep_time = int(1000 * grinder.threadNumber * inc)"))
         sleep_method.append(self.gen_statement("grinder.sleep(sleep_time, 0)"))
         sleep_method.append(self.gen_statement("if sleep_time: grinder.logger.info('slept for %sms' % sleep_time)"))
