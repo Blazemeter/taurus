@@ -29,6 +29,7 @@ public class TaurusAppender extends FileAppender {
             }
             wrapped.setMessage(proto.getMessage());
             wrapped.setLevel(proto.getLevel());
+            wrapped.setArgumentArray(proto.getArgumentArray());
             super.writeOut(wrapped);
 
         } else {
