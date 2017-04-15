@@ -11,16 +11,29 @@ import java.io.IOException;
 public class TaurusAppender extends FileAppender {
     @Override
     protected void writeOut(Object event) throws IOException {
-        for (Test t : TestRegistryAccessor.getNewTests()) {
-            LoggingEvent le = new LoggingEvent();
-            if (event instanceof LoggingEvent) {
-                LoggingEvent proto= (LoggingEvent) event;
+        if (event instanceof LoggingEvent) {
+            LoggingEvent proto = (LoggingEvent) event;
+            for (Test t : TestRegistryAccessor.getNewTests()) {
+                LoggingEvent le = new LoggingEvent();
                 le.setLoggerName(proto.getLoggerName());
+                le.setMessage("Test name for ID " + t.getNumber() + ": " + t.getDescription());
+                le.setLevel(Level.INFO);
+                super.writeOut(le);
             }
-            le.setMessage("Test name for ID " + t.getNumber() + ": " + t.getDescription());
-            le.setLevel(Level.INFO);
-            super.writeOut(le);
+
+            LoggingEvent wrapped = new LoggingEvent();
+            if (proto.getLoggerName().equals("data")) {
+                wrapped.setLoggerName(proto.getLoggerName() + "." + proto.getLoggerContextVO().getPropertyMap().get("WORKER_NAME"));
+            } else {
+                wrapped.setLoggerName(proto.getLoggerName());
+            }
+            wrapped.setMessage(proto.getMessage());
+            wrapped.setLevel(proto.getLevel());
+            wrapped.setArgumentArray(proto.getArgumentArray());
+            super.writeOut(wrapped);
+
+        } else {
+            super.writeOut(event);
         }
-        super.writeOut(event);
     }
 }

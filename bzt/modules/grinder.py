@@ -108,26 +108,33 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         fds.write("# BZT Properies Start\n")
         fds.write("grinder.hostID=%s\n" % self.exec_id)
         fds.write("grinder.script=%s\n" % self.script.replace(os.path.sep, "/"))
-        dirname = self.engine.artifacts_dir
-        fds.write("grinder.logDirectory=%s\n" % dirname.replace(os.path.sep, "/"))
+        fds.write("grinder.logDirectory=%s\n" % self.engine.artifacts_dir.replace(os.path.sep, "/"))
 
         load = self.get_load()
+
+        if load.iterations or load.concurrency:
+            fds.write("grinder.runs=%s\n" % load.iterations or 0)
+
         if load.concurrency:
-            if load.ramp_up:
-                interval = int(1000 * load.ramp_up / load.concurrency)
-                fds.write("grinder.processIncrementInterval=%s\n" % interval)
-                fds.write("grinder.processIncrement=1\n")
-            fds.write("grinder.processes=%s\n" % int(load.concurrency))
-            fds.write("grinder.runs=%s\n" % load.iterations)
-            if load.duration:
-                fds.write("grinder.duration=%s\n" % int(load.duration * 1000))
+            fds.write("grinder.threads=%s\n" % load.concurrency)
+
+        if load.duration:
+            fds.write("grinder.duration=%s\n" % int(load.duration * 1000))
+
+        fds.write("# taurus load values in case you need them\n")
+        fds.write("taurus.concurrency=%s\n" % load.concurrency)
+        fds.write("taurus.throughput=%s\n" % load.throughput)
+        fds.write("taurus.ramp_up=%s\n" % load.ramp_up)
+        fds.write("taurus.steps=%s\n" % load.steps)
+        fds.write("taurus.hold_for=%s\n" % load.hold)
+        fds.write("taurus.iterations=%s\n" % load.iterations)
         fds.write("# BZT Properies End\n")
 
     def prepare(self):
         self.install_required_tools()
 
         scenario = self.get_scenario()
-
+        self.exec_id = self.label
         self.script = self.get_script_path()
         if self.script:
             self.script = os.path.abspath(self.engine.find_file(self.script))
@@ -225,6 +232,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         script = self.engine.create_artifact("grinder_requests", ".py")
         builder = GrinderScriptBuilder(self.get_scenario(), self.log)
+        builder.label = self.label
         builder.build_source_code()
         builder.save(script)
         return script
@@ -267,6 +275,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
+    DELIMITER = ","
 
     def __init__(self, filename, parent_logger):
         super(DataLogReader, self).__init__()
@@ -276,12 +285,12 @@ class DataLogReader(ResultsReader):
         self.fds = None
         self.idx = {}
         self.partial_buffer = ""
-        self.delimiter = ","
         self.offset = 0
         self.start_time = 0
         self.end_time = 0
         self.concurrency = 0
         self.test_names = {}
+        self.known_threads = set()
 
     def _read(self, last_pass=False):
         """
@@ -302,7 +311,7 @@ class DataLogReader(ResultsReader):
         self.offset = self.fds.tell()
 
         for lnum, line in enumerate(lines):
-            data_fields = self.__split(line)
+            data_fields, worker_id = self.__split(line)
             if not data_fields:
                 self.log.debug("Skipping line: %s", line)
                 continue
@@ -315,6 +324,10 @@ class DataLogReader(ResultsReader):
             con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
             bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
             test_id = data_fields[self.idx["Test"]].strip()
+            thread_id = worker_id + '/' + data_fields[self.idx["Thread"]].strip()
+            if thread_id not in self.known_threads:
+                self.known_threads.add(thread_id)
+                self.concurrency += 1
 
             url, error_msg = self.__parse_prev_line(lines, lnum)
             source_id = ''
@@ -332,34 +345,38 @@ class DataLogReader(ResultsReader):
     def __split(self, line):
         if not line.endswith("\n"):
             self.partial_buffer += line
-            return None
+            return None, None
 
         line = "%s%s" % (self.partial_buffer, line)
         self.partial_buffer = ""
 
-        if not line.startswith('data'):
+        line = line.strip()
+        if not line.startswith('data.'):
             line_parts = line.split(' ')
             if len(line_parts) > 1:
                 if line_parts[1] == 'starting,':
-                    self.concurrency += 1
-                elif line_parts[1] == 'shut':
-                    self.concurrency -= 1
+                    # self.concurrency += 1
+                    pass
+                elif line_parts[1] == 'finished':
+                    if self.concurrency > 0:
+                        self.concurrency -= 1
                 elif set(line_parts[1:5]) == {'Test', 'name', 'for', 'ID'}:
                     test_id = line_parts[5][:-1]
-                    test_name = ' '.join(line_parts[6:-1])
+                    test_name = ' '.join(line_parts[6:])
                     self.test_names[test_id] = test_name
-            return None
+                    self.log.debug("Recognized test id %s => %s", test_id, test_name)
+            return None, None
 
-        line = line.strip()
-        line = line[len('data'):]
-        data_fields = line.split(self.delimiter)
+        worker_id = line[:line.find(' ')]
+        line = line[line.find(' '):]
+        data_fields = line.split(self.DELIMITER)
         if not data_fields[1].strip().isdigit():
-            return None
+            return None, None
 
         if len(data_fields) < max(self.idx.values()):
-            return None
+            return None, None
 
-        return data_fields
+        return data_fields, worker_id
 
     def __parse_prev_line(self, lines, lnum):
         label = ''
@@ -367,7 +384,7 @@ class DataLogReader(ResultsReader):
         if lnum > 0:
             line = lines[lnum - 1].strip()
             if line.endswith('bytes'):
-                line = line.split(self.delimiter)[0]
+                line = line.split(self.DELIMITER)[0]
                 log_parts = line.split(' ')
                 if len(log_parts) > 4:
                     log_parts.pop(0)  # worker_id
@@ -393,17 +410,18 @@ class DataLogReader(ResultsReader):
 
         self.fds = open(self.filename)
         line = ''
-        while not line.startswith('data'):
+        while not line.startswith('data.'):
             line = self.fds.readline()
+            self.__split(line)  # to caprute early test name records
             if line == '':  # end of file
                 self.fds.close()
                 self.fds = None
                 return False
 
         self.offset = self.fds.tell()
-        line = line[len('data '):]
+        line = line[line.find(' '):]
 
-        header_list = line.strip().split(self.delimiter)
+        header_list = line.strip().split(self.DELIMITER)
         for _ix, field in enumerate(header_list):
             self.idx[field.strip()] = _ix
         return True
@@ -475,6 +493,10 @@ from net.grinder.plugin.http import HTTPRequest, HTTPPluginControl, HTTPUtilitie
 from HTTPClient import NVPair
 """
 
+    def __init__(self, scenario, parent_logger):
+        super(GrinderScriptBuilder, self).__init__(scenario, parent_logger)
+        self.label = "BZT Requests"
+
     def build_source_code(self):
         self.log.debug("Generating Python script for Grinder")
         self.root.append(self.gen_comment("This script was generated by Taurus", indent=0))
@@ -485,7 +507,7 @@ from HTTPClient import NVPair
         default_address = self.scenario.get("default-address", None)
         url_arg = "url=%r" % default_address if default_address else ""
         self.root.append(self.gen_statement('request = HTTPRequest(%s)' % url_arg, indent=0))
-        self.root.append(self.gen_statement('test = Test(1, "BZT Requests")', indent=0))
+        self.root.append(self.gen_statement('test = Test(1, "%s")' % self.label, indent=0))
         self.root.append(self.gen_statement('test.record(request)', indent=0))
 
         self.root.append(self.gen_new_line(indent=0))
@@ -520,7 +542,20 @@ from HTTPClient import NVPair
 
     def gen_runner_class(self):
         runner_classdef = self.gen_class_definition("TestRunner", ["object"], indent=0)
+
+        sleep_method = self.gen_method_definition("rampUpSleeper", ["self"], indent=4)
+        sleep_method.append(self.gen_statement("if grinder.runNumber != 0: return"))
+        sleep_method.append(self.gen_statement("tprops = grinder.properties.getPropertySubset('taurus.')"))
+        sleep_method.append(self.gen_statement("inc = tprops.getDouble('ramp_up', 0)/tprops.getInt('concurrency', 1)"))
+        sleep_method.append(self.gen_statement("sleep_time = int(1000 * grinder.threadNumber * inc)"))
+        sleep_method.append(self.gen_statement("grinder.sleep(sleep_time, 0)"))
+        sleep_method.append(self.gen_statement("if sleep_time: grinder.logger.info('slept for %sms' % sleep_time)"))
+        sleep_method.append(self.gen_statement("else: grinder.logger.info('No sleep needed')"))
+        sleep_method.append(self.gen_new_line(indent=0))
+        runner_classdef.append(sleep_method)
+
         main_method = self.gen_method_definition("__call__", ["self"], indent=4)
+        main_method.append(self.gen_statement("self.rampUpSleeper()"))
 
         for req in self.scenario.get_requests():
             if not isinstance(req, HTTPRequest):

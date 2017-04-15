@@ -1,5 +1,6 @@
 package net.grinder.engine.process;
 
+import net.grinder.common.GrinderProperties;
 import net.grinder.common.Test;
 import net.grinder.script.Grinder;
 import net.grinder.script.InternalScriptContext;
@@ -35,7 +36,8 @@ public class TestRegistryAccessor {
 
     public static InternalScriptContext getDummyScriptContext() {
         TestRegistry reg = TestRegistryAccessor.getInstance();
-        return new ScriptContextImplementation(null, null, null, null, null, null, null, null, reg,
+        GrinderProperties props=new GrinderProperties();
+        return new ScriptContextImplementation(null, null, null, props, null, null, null, null, reg,
                 null, null, null, null);
     }
 }
