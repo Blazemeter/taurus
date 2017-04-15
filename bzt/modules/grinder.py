@@ -112,8 +112,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         load = self.get_load()
 
-        if load.iterations:
-            fds.write("grinder.runs=%s\n" % load.iterations)
+        if load.iterations or load.concurrency:
+            fds.write("grinder.runs=%s\n" % load.iterations or 0)
 
         if load.concurrency:
             fds.write("grinder.threads=%s\n" % load.concurrency)
