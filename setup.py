@@ -39,8 +39,6 @@ class InstallWithHook(install, object):
         dirname = bzt.get_configs_dir()
         if os.path.exists(dirname):
             sys.stdout.write("[%s] Found %s\n" % (bzt.VERSION, dirname))
-            os.makedirs(dirname)
-
             src = os.path.join(dirname, "10-base.json")
             if os.path.exists(src):
                 sys.stdout.write("Removing outdated %s\n" % src)
