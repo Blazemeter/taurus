@@ -666,14 +666,16 @@ class EngineModule(object):
     Base class for any BZT engine module
 
     :type engine: Engine
-    :type settings: BetterDict
     """
 
     def __init__(self):
         self.log = logging.getLogger('')
         self.engine = None
-        self.settings = BetterDict()
         self.parameters = BetterDict()
+
+    @property
+    def settings(self):
+        return self.parameters
 
     def prepare(self):
         """
@@ -790,13 +792,16 @@ class ScenarioExecutor(EngineModule):
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
         self.provisioning = None
-        self.execution = BetterDict()
         self.__scenario = None
         self.label = None
         self.widget = None
         self.reader = None
         self.delay = None
         self.start_time = None
+
+    @property
+    def execution(self):
+        return self.parameters
 
     def has_results(self):
         if self.reader and self.reader.buffer:
