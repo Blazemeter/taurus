@@ -16,19 +16,19 @@ limitations under the License.
 """
 import codecs
 import itertools
-import logging
-import os
-import re
 import json
+import logging
+import re
 import sys
 import traceback
 from collections import namedtuple
 from copy import deepcopy
 from optparse import OptionParser
 
+import os
+from bzt import TaurusInternalException
 from cssselect import GenericTranslator
 
-from bzt import TaurusInternalException
 from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
@@ -710,11 +710,11 @@ class JMXasDict(JMX):
 
     def _extract_test_field(self, jmx_assertion):
         supported_subjects = {"Assertion.response_data": "body",  # "Text Response"
-                              "Assertion.response_headers": "headers",    # "Response Headers"
-                              "Assertion.response_code": "http-code"}   # "Response Code"
+                              "Assertion.response_headers": "headers",  # "Response Headers"
+                              "Assertion.response_code": "http-code"}  # "Response Code"
         unsupported_subjects = {"Assertion.response_data_as_document": "body",  # "Document (text)"
-                                "Assertion.sample_label": "body",   # "URL Sampled"
-                                "Assertion.response_message": "body"}   # "Response Message"
+                                "Assertion.sample_label": "body",  # "URL Sampled"
+                                "Assertion.response_message": "body"}  # "Response Message"
 
         test_field_prop = self._get_string_prop(jmx_assertion, 'Assertion.test_field')  # "Response Field to test"
 
@@ -737,7 +737,7 @@ class JMXasDict(JMX):
 
         if assertion_collection is None:
             self.log.warning("Strings collection not found in %s, skipping", jmx_element.tag)
-            return []       # empty list for pylint check in _get_response_assertion()
+            return []  # empty list for pylint check in _get_response_assertion()
 
         test_string_props = assertion_collection.findall(".//stringProp")
         test_strings = []
@@ -751,12 +751,12 @@ class JMXasDict(JMX):
         return test_strings
 
     def _extract_test_type(self, jmx_element):
-        test_types = {2,    # Contains
-                      1,    # Matches
-                      8,    # Equals
-                      16}   # Substring
+        test_types = {2,  # Contains
+                      1,  # Matches
+                      8,  # Equals
+                      16}  # Substring
 
-        test_type_element = jmx_element.find(".//*[@name='Assertion.test_type']")   # "Pattern Matching Rules"
+        test_type_element = jmx_element.find(".//*[@name='Assertion.test_type']")  # "Pattern Matching Rules"
 
         if test_type_element is None or not test_type_element.text:
             self.log.warning("No test subject provided in %s, skipping", jmx_element.tag)
@@ -775,7 +775,7 @@ class JMXasDict(JMX):
         return is_inverted, test_type
 
     def _extract_assume_success(self, jmx_element):
-        assume_success_element = jmx_element.find(".//*[@name='Assertion.assume_success']")     # "Ignore Status"
+        assume_success_element = jmx_element.find(".//*[@name='Assertion.assume_success']")  # "Ignore Status"
         if assume_success_element is None or not assume_success_element.text:
             self.log.warning("No assume_success element provided in %s, skipping", jmx_element.tag)
             return
@@ -783,7 +783,7 @@ class JMXasDict(JMX):
         return assume_success_element.text == 'true'
 
     def _extract_scope(self, jmx_element):
-        scope = jmx_element.find(".//*[@name='Assertion.scope']")   # "Apply to:"
+        scope = jmx_element.find(".//*[@name='Assertion.scope']")  # "Apply to:"
         if scope is None:
             return "main"
         elif scope.text in ("all", "children", "variable"):
@@ -1046,12 +1046,12 @@ class JMXasDict(JMX):
 
                     # quote jmeter variables
                     body = request['body']
-                    pattern = re.compile(r'[^"]{1}\${[a-zA-Z0-9_]+}[^"]{1}')
+                    pattern = re.compile(r'[^"]\${[a-zA-Z0-9_]+}[^"]')
                     search_res = pattern.search(body)
                     while search_res:
                         body = body[:search_res.start() + 1] + \
                                '"%s"' % search_res.group()[1: -1] + \
-                               body[search_res.end()-1:]
+                               body[search_res.end() - 1:]
                         search_res = pattern.search(body)
                     if body != request['body']:
                         self.log.debug("Body convertion: '%s' => '%s'", request['body'], body)

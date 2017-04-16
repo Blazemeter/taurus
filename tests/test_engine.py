@@ -25,7 +25,7 @@ class TestEngine(BZTestCase):
 
     def test_requests(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/resources/base-config.yml",
             __dir__() + "/json/get-post.json",
             __dir__() + "/json/reporting.json",
             self.paths
@@ -41,7 +41,7 @@ class TestEngine(BZTestCase):
 
     def test_double_exec(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/resources/base-config.yml",
             __dir__() + "/yaml/triple.yml",
             __dir__() + "/json/reporting.json",
             self.paths
@@ -57,7 +57,7 @@ class TestEngine(BZTestCase):
 
     def test_unknown_module(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/resources/base-config.yml",
             __dir__() + "/json/gatling.json",
             self.paths
         ]
@@ -85,7 +85,7 @@ class TestEngine(BZTestCase):
 
     def test_yaml_multi_docs(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/resources/base-config.yml",
             __dir__() + "/yaml/multi-docs.yml",
             self.paths
         ]
@@ -95,7 +95,7 @@ class TestEngine(BZTestCase):
 
     def test_json_format_regression(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/resources/base-config.yml",
             __dir__() + "/json/json-but-not-yaml.json"
         ]
         self.obj.configure(configs)
@@ -103,7 +103,7 @@ class TestEngine(BZTestCase):
 
     def test_invalid_format(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
+            __dir__() + "/../bzt/resources/base-config.yml",
             __dir__() + "/data/jmeter-dist-3.0.zip"
         ]
         self.assertRaises(TaurusConfigError, lambda: self.obj.configure(configs))

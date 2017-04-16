@@ -11,6 +11,9 @@ scenarios:
     default-address: https://jsonplaceholder.typicode.com
     timeout: 5s
     requests:
+    - label: just get
+      url: /
+
     - label: get posts
       url: /posts
       assert-jsonpath:

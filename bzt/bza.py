@@ -440,6 +440,10 @@ class MultiTest(BZAObject):
 
 
 class Master(BZAObject):
+    def __init__(self, proto=None, data=None):
+        super(Master, self).__init__(proto, data)
+        self.warned_of_too_much_labels = False
+
     def make_report_public(self):
         url = self.address + "/api/v4/masters/%s/public-token" % self['id']
         res = self._request(url, {"publicToken": None}, method="POST")
@@ -490,7 +494,11 @@ class Master(BZAObject):
         for item in ('t', 'lt', 'by', 'n', 'ec', 'ts', 'na'):
             params.append(("kpis[]", item))
 
-        labels = self.get_labels()
+        labels = self.get_labels()[:100]
+        if len(labels) == 100 and not self.warned_of_too_much_labels:
+            self.log.warn("Using only first 100 labels, while test has more labels")
+            self.warned_of_too_much_labels = True
+
         for label in labels:
             params.append(("labels[]", label['id']))
 

@@ -15,23 +15,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-import os
 import platform
 import signal
 import sys
 import tempfile
 import traceback
-import yaml
-from logging import Formatter
 from optparse import OptionParser, Option
 from tempfile import NamedTemporaryFile
 
-from colorlog import ColoredFormatter
-
-import bzt
+import os
+import yaml
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt import TaurusException, ToolError
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
+from colorlog import ColoredFormatter
+from logging import Formatter
+
+import bzt
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.six import HTTPError, string_types, b, get_stacktrace
 from bzt.utils import run_once, is_int, BetterDict, is_piped
@@ -154,7 +154,15 @@ class CLI(object):
         if self.options.no_system_configs is None:
             self.options.no_system_configs = False
 
-        merged_config = self.engine.configure(configs, not self.options.no_system_configs)
+        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))
+        if os.path.isfile(user_file):
+            self.log.debug("Adding personal config: %s", user_file)
+            bzt_rc = [user_file]
+        else:
+            self.log.info("No personal config: %s", user_file)
+            bzt_rc = []
+
+        merged_config = self.engine.configure(bzt_rc + configs, not self.options.no_system_configs)
 
         # apply aliases
         for alias in self.options.aliases:
@@ -197,6 +205,7 @@ class CLI(object):
             if not self.options.verbose:
                 self.engine.post_startup_hook = self._level_down_logging
                 self.engine.pre_shutdown_hook = self._level_up_logging
+
             self.__configure(configs)
             self.__move_log_to_artifacts()
 
