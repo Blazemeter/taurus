@@ -461,6 +461,8 @@ class Engine(object):
             cls = reporter.get('module', TaurusConfigError(msg % reporter))
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
+            if self.__singletone_exists(instance, self.reporters):
+                continue
             assert isinstance(instance, Reporter)
             self.reporters.append(instance)
 
@@ -478,14 +480,26 @@ class Engine(object):
             config = ensure_is_dict(services, index, "module")
             cls = config.get('module', '')
             instance = self.instantiate_module(cls)
-            assert isinstance(instance, Service)
             instance.parameters = config
+            if self.__singletone_exists(instance, self.services):
+                continue
+            assert isinstance(instance, Service)
             if instance.should_run():
                 self.services.append(instance)
 
         for module in self.services:
             self.prepared.append(module)
             module.prepare()
+
+    def __singletone_exists(self, instance, mods_list):
+        if not isinstance(instance, Singletone):
+            return False
+
+        for mod in mods_list:
+            if mod.parameters.get("module") == instance.parameters.get("module"):
+                self.log.warning("Module '%s' can be only used once, will merge all new instances into single")
+                mod.parameters.merge(instance.parameters)
+                return True
 
     def __prepare_aggregator(self):
         """
@@ -1114,3 +1128,7 @@ class SubprocessedExecutor(ScenarioExecutor):
             if not tool.check_if_installed():
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
+
+
+class Singletone(object):
+    pass

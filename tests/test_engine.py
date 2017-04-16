@@ -1,12 +1,12 @@
 """ unit test """
 import os
+from bzt import TaurusConfigError
+from tests import BZTestCase, __dir__, local_paths_config
 
 from bzt.engine import ScenarioExecutor
 from bzt.six import string_types
 from bzt.utils import BetterDict, EXE_SUFFIX, is_windows
-from tests import BZTestCase, __dir__, local_paths_config
 from tests.mocks import EngineEmul
-from bzt import TaurusConfigError
 
 
 class TestEngine(BZTestCase):
@@ -48,6 +48,8 @@ class TestEngine(BZTestCase):
         ]
         self.obj.configure(configs)
         self.obj.prepare()
+
+        self.assertEquals(1, len(self.obj.services))
 
         for executor in self.obj.provisioning.executors:
             executor._env['TEST_MODE'] = 'files'
@@ -236,7 +238,7 @@ class TestScenarioExecutor(BZTestCase):
         cmdlines = [line_tpl % "aaa", line_tpl % "AAA"]
         results = set()
         for cmdline in cmdlines:
-            process = self.executor.execute(cmdline, shell= True, env=env)
+            process = self.executor.execute(cmdline, shell=True, env=env)
             stdout, _ = process.communicate()
             results.add(stdout.decode().strip())
         if is_windows():

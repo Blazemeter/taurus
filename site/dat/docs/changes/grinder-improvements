@@ -1,2 +1,0 @@
-add custom log wrapper to log test name mapping early
-change process count to 1 and use multi-threading with thread ramp-up

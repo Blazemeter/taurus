@@ -36,7 +36,7 @@ from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
 import bzt
-from bzt.engine import Reporter
+from bzt.engine import Reporter, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
 from bzt.six import StringIO, numeric_types
@@ -53,7 +53,7 @@ except ImportError:
     ConsoleScreen = GUIScreen
 
 
-class ConsoleStatusReporter(Reporter, AggregatorListener):
+class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
     """
     Class to show process status on the console
     :type logger_handlers: list[StreamHandler]
