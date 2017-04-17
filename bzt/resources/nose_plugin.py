@@ -2,23 +2,52 @@ import json
 import sys
 import time
 import traceback
-from collections import OrderedDict
 from optparse import OptionParser
 
 import nose
 from nose.plugins import Plugin
 
 
-REPORT_ITEM_KEYS = [
-    "test_case",  # test label (test method name)
-    "test_suite",  # test suite name (class name)
-    "status",  # test status (PASSED/FAILED/BROKEN/SKIPPED)
-    "start_time",  # test start time
-    "duration",  # test duration
-    "error_msg",  # short error message
-    "error_trace",  # traceback of a failure
-    "extras",  # extra info: 'file' - test location, 'full_name' - fully qualified name, 'decsription' - docstring
-]
+def get_apiritif():
+    try:
+        import apiritif
+    except ImportError:
+        apiritif = None
+    return apiritif
+
+
+class Sample(object):
+    def __init__(self, test_suite=None, test_case=None, status=None, start_time=None, duration=None,
+                 error_msg=None, error_trace=None):
+        self.test_suite = test_suite  # test label (test method name)
+        self.test_case = test_case  # test suite name (class name)
+        self.status = status  # test status (PASSED/FAILED/BROKEN/SKIPPED)
+        self.start_time = start_time  # test start time
+        self.duration = duration  # test duration
+        self.error_msg = error_msg  # short error message
+        self.error_trace = error_trace  # traceback of a failure
+        self.extras = {}  # extra info: ('file' - location, 'full_name' - full qualified name, 'decsription' - docstr)
+        self.subsamples = []  # subsamples list
+
+    def add_subsample(self, sample):
+        self.subsamples.append(sample)
+
+    def to_dict(self):
+        # type: () -> dict
+        return {
+            "test_suite": self.test_suite,
+            "test_case": self.test_case,
+            "status": self.status,
+            "start_time": self.start_time,
+            "duration": self.duration,
+            "error_msg": self.error_msg,
+            "error_trace": self.error_trace,
+            "extras": self.extras,
+            "subsamples": [sample.to_dict() for sample in self.subsamples],
+        }
+
+    def __repr__(self):
+        return "Sample(%r)" % self.to_dict()
 
 
 class BZTPlugin(Plugin):
@@ -34,7 +63,7 @@ class BZTPlugin(Plugin):
         self.output_file = output_file
         self.test_count = 0
         self.success_count = 0
-        self.test_dict = None
+        self.current_sample = None
         self.out_stream = None
 
     def __enter__(self):
@@ -68,20 +97,16 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self.test_dict = OrderedDict((key, None) for key in REPORT_ITEM_KEYS)
-
         test_file, _, _ = test.address()  # file path, module name, class.method
         test_fqn = test.id()  # [package].module.class.method
         class_name, method_name = test_fqn.split('.')[-2:]
 
-        self.test_dict["test_case"] = method_name
-        self.test_dict["test_suite"] = class_name
-        self.test_dict["start_time"] = time.time()
-        self.test_dict["extras"] = {
+        self.current_sample = Sample(test_case=method_name, test_suite=class_name, start_time=time.time())
+        self.current_sample.extras.update({
             "file": test_file,
             "full_name": test_fqn,
             "description": test.shortDescription()
-        }
+        })
 
     def addError(self, test, error):  # pylint: disable=invalid-name
         """
@@ -91,10 +116,10 @@ class BZTPlugin(Plugin):
         :return:
         """
         # test_dict will be None if startTest wasn't called (i.e. exception in setUp/setUpClass)
-        if self.test_dict is not None:
-            self.test_dict["status"] = "BROKEN"
-            self.test_dict["error_msg"] = str(error[1]).split('\n')[0]
-            self.test_dict["error_trace"] = self._get_trace(error)
+        if self.current_sample is not None:
+            self.current_sample.status = "BROKEN"
+            self.current_sample.error_msg = str(error[1]).split('\n')[0]
+            self.current_sample.error_trace = self._get_trace(error)
 
     @staticmethod
     def _get_trace(error):
@@ -112,9 +137,9 @@ class BZTPlugin(Plugin):
 
         :return:
         """
-        self.test_dict["status"] = "FAILED"
-        self.test_dict["error_msg"] = str(error[1]).split('\n')[0]
-        self.test_dict["error_trace"] = self._get_trace(error)
+        self.current_sample.status = "FAILED"
+        self.current_sample.error_msg = str(error[1]).split('\n')[0]
+        self.current_sample.error_trace = self._get_trace(error)
 
     def addSkip(self, test):  # pylint: disable=invalid-name
         """
@@ -122,7 +147,7 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self.test_dict["status"] = "SKIPPED"
+        self.current_sample.status = "SKIPPED"
 
     def addSuccess(self, test):  # pylint: disable=invalid-name
         """
@@ -130,8 +155,114 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self.test_dict["status"] = "PASSED"
+        self.current_sample.status = "PASSED"
         self.success_count += 1
+
+    def process_apiritif_samples(self, sample):
+        samples_processed = 0
+        apiritif = get_apiritif()
+        test_case = sample.test_case
+
+        recording = apiritif.recorder.get_recording(test_case)
+        if not recording:
+            return samples_processed
+
+        samples = ApiritifExtractor.parse_recording(recording, sample)
+        for sample in samples:
+            samples_processed += 1
+            self.test_count += 1
+            self.write_sample(sample)
+            self.write_stdout_report(sample.test_case)
+
+        return samples_processed
+
+    def process_sample(self, sample):
+        self.test_count += 1
+        self.write_sample(sample)
+        self.write_stdout_report(sample.test_case)
+
+    def write_sample(self, sample):
+        self.out_stream.write("%s\n" % json.dumps(sample.to_dict()))
+        self.out_stream.flush()
+
+    def write_stdout_report(self, label):
+        report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
+        failed = self.test_count - self.success_count
+        sys.stdout.write(report_pattern % (label, self.test_count, self.success_count, failed))
+        sys.stdout.flush()
+
+    def stopTest(self, test):  # pylint: disable=invalid-name
+        """
+        after the test has been run
+        :param test:
+        :return:
+        """
+        self.current_sample.duration = time.time() - self.current_sample.start_time
+
+        if get_apiritif() is not None:
+            samples_processed = self.process_apiritif_samples(self.current_sample)
+            if samples_processed == 0:
+                self.process_sample(self.current_sample)
+        else:
+            self.process_sample(self.current_sample)
+
+        self.current_sample = None
+
+
+class ApiritifExtractor(object):
+    @staticmethod
+    def parse_recording(recording, test_case_sample):
+        """
+
+        :type recording: list[apiritif.Event]
+        :type test_case_sample: Sample
+        :rtype: list[Sample]
+        """
+        apiritif = get_apiritif()
+        test_case_name = test_case_sample.test_case
+        active_transactions = [test_case_sample]
+        transactions_present = False
+        for item in recording:
+            if isinstance(item, apiritif.Request):
+                sample = Sample(
+                    test_suite=test_case_name,
+                    test_case=item.address,
+                    status="PASSED",
+                    start_time=item.timestamp,
+                    duration=item.response.py_response.elapsed.total_seconds(),
+                )
+                extras = ApiritifExtractor._extract_extras(item)
+                if extras:
+                    sample.extras.update(extras)
+                active_transactions[-1].add_subsample(sample)
+            elif isinstance(item, apiritif.TransactionStarted):
+                transactions_present = True
+                tran = Sample(test_case=item.transaction_name, test_suite=test_case_name, start_time=item.timestamp)
+                active_transactions.append(tran)
+            elif isinstance(item, apiritif.TransactionEnded):
+                tran = active_transactions.pop()
+                assert tran.test_case == item.transaction_name
+                tran.duration = item.timestamp - tran.start_time
+                tran.status = "PASSED" if all(spl.status == "PASSED" for spl in tran.subsamples) else "FAILED"
+                active_transactions[-1].add_subsample(tran)
+            elif isinstance(item, apiritif.Assertion):
+                pass  # TODO: find corresponding request and glue the assertion to it
+            elif isinstance(item, apiritif.AssertionFailure):
+                pass  # TODO: find corresponding request/assertion and glue the assertion to it
+            else:
+                raise ValueError("Unknown kind of event in apiritif recording: %s" % item)
+
+        if len(active_transactions) != 1:
+            # TODO: shouldn't we auto-balance them?
+            raise ValueError("Can't parse apiritif recordings: unbalanced transactions")
+
+        toplevel_sample = active_transactions.pop()
+
+        # do not capture toplevel sample if transactions were used
+        if transactions_present:
+            return [sample for sample in toplevel_sample.subsamples if sample.subsamples]
+        else:
+            return [toplevel_sample]
 
     @staticmethod
     def _headers_from_dict(headers):
@@ -141,23 +272,16 @@ class BZTPlugin(Plugin):
     def _cookies_from_dict(cookies):
         return "; ".join(key + "=" + value for key, value in cookies.items())
 
-    def _extract_apiritif_extras(self, test_case):
-        import apiritif
+    @staticmethod
+    def _extract_extras(request_event):
+        apiritif = get_apiritif()
 
-        recording = apiritif.recorder.get_recording(test_case)
-        if not recording:
-            return
-
-        recorded_requests = [event for event in recording if isinstance(event, apiritif.Request)]
-        if not recorded_requests:
-            return None
-
-        request_event = recorded_requests[0]
-        assertion_events = [
-            event for event in recording
-            if isinstance(event, (apiritif.Assertion, apiritif.AssertionFailure))
-            and event.response == request_event.response
-        ]
+        assertion_events = []
+        # assertion_events = [
+        #     event for event in recording
+        #     if isinstance(event, (apiritif.Assertion, apiritif.AssertionFailure))
+        #     and event.response == request_event.response
+        # ]
         assertions = {}
         for event in assertion_events:
             if event.name not in assertions:
@@ -188,58 +312,14 @@ class BZTPlugin(Plugin):
             'responseHeaders': dict(py_response.headers),
         }
 
-        record["requestCookiesRaw"] = self._cookies_from_dict(record["requestCookies"])
+        record["requestCookiesRaw"] = ApiritifExtractor._cookies_from_dict(record["requestCookies"])
         record["responseBodySize"] = len(record["responseBody"])
         record["requestBodySize"] = len(record["requestBody"])
         record["requestCookiesSize"] = len(record["requestCookiesRaw"])
-        record["requestHeadersSize"] = len(self._headers_from_dict(record["requestHeaders"]))
-        record["responseHeadersSize"] = len(self._headers_from_dict(record["responseHeaders"]))
+        record["requestHeadersSize"] = len(ApiritifExtractor._headers_from_dict(record["requestHeaders"]))
+        record["responseHeadersSize"] = len(ApiritifExtractor._headers_from_dict(record["responseHeaders"]))
 
         return record
-
-    def process_apiritif_samples(self, sample_dict):
-        apiritif_extras = self._extract_apiritif_extras(sample_dict["test_case"])
-        if apiritif_extras:
-            sample_dict["extras"].update(apiritif_extras)
-
-        self.test_count += 1
-        self.write_sample(sample_dict)
-        self.write_stdout_report(sample_dict["test_case"])
-
-    def process_sample(self, sample_dict):
-        self.test_count += 1
-        self.write_sample(sample_dict)
-        self.write_stdout_report(sample_dict["test_case"])
-
-    def write_sample(self, sample):
-        self.out_stream.write("%s\n" % json.dumps(sample))
-        self.out_stream.flush()
-
-    def write_stdout_report(self, label):
-        report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
-        failed = self.test_count - self.success_count
-        sys.stdout.write(report_pattern % (label, self.test_count, self.success_count, failed))
-        sys.stdout.flush()
-
-    def stopTest(self, test):  # pylint: disable=invalid-name
-        """
-        after the test has been run
-        :param test:
-        :return:
-        """
-        self.test_dict["duration"] = time.time() - self.test_dict["start_time"]
-
-        try:
-            import apiritif
-        except ImportError:
-            apiritif = None
-
-        if apiritif is not None:
-            self.process_apiritif_samples(self.test_dict)
-        else:
-            self.process_sample(self.test_dict)
-
-        self.test_dict = None
 
 
 def run_nose(report_file, files, iteration_limit, hold):

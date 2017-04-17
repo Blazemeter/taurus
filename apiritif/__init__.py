@@ -84,17 +84,26 @@ class Request(Event):
         self.response = response
         self.session = session
 
+    def __repr__(self):
+        return "Request(method=%r, address=%r)" % (self.method, self.address)
+
 
 class TransactionStarted(Event):
     def __init__(self, transaction_name):
         super(TransactionStarted, self).__init__()
         self.transaction_name = transaction_name
 
+    def __repr__(self):
+        return "TransactionStarted(transaction_name=%r)" % self.transaction_name
+
 
 class TransactionEnded(Event):
     def __init__(self, transaction_name):
         super(TransactionEnded, self).__init__()
         self.transaction_name = transaction_name
+
+    def __repr__(self):
+        return "TransactionEnded(transaction_name=%r)" % self.transaction_name
 
 
 class Assertion(Event):
@@ -103,6 +112,9 @@ class Assertion(Event):
         self.name = name
         self.response = response
 
+    def __repr__(self):
+        return "Assertion(name=%r)" % self.name
+
 
 class AssertionFailure(Event):
     def __init__(self, assertion_name, response, failure_message):
@@ -110,6 +122,9 @@ class AssertionFailure(Event):
         self.name = assertion_name
         self.response = response
         self.failure_message = failure_message
+
+    def __repr__(self):
+        return "Assertion(name=%r, failure_message=%r)" % (self.name, self.failure_message)
 
 
 # TODO: thread-safe version?
