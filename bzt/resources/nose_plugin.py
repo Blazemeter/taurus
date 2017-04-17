@@ -8,6 +8,7 @@ from optparse import OptionParser
 import nose
 from nose.plugins import Plugin
 
+
 REPORT_ITEM_KEYS = [
     "test_case",  # test label (test method name)
     "test_suite",  # test suite name (class name)
@@ -140,20 +141,34 @@ class BZTPlugin(Plugin):
     def _cookies_from_dict(cookies):
         return "; ".join(key + "=" + value for key, value in cookies.items())
 
-    def _extract_apiritif_data(self, test_case):
-        try:
-            from apiritif import recorder
-        except ImportError:
+    def _extract_apiritif_extras(self, test_case):
+        import apiritif
+
+        recording = apiritif.recorder.get_recording(test_case)
+        if not recording:
             return
 
-        log_record = recorder.log.get(test_case, None)
-        if log_record is None or not log_record.requests:
-            return
+        recorded_requests = [event for event in recording if isinstance(event, apiritif.Request)]
+        if not recorded_requests:
+            return None
 
-        request_log = log_record.requests[0]
-        assertions = log_record.assertions_for_response(request_log.response)
-        py_response = request_log.response.py_response
-        baked_request = request_log.request
+        request_event = recorded_requests[0]
+        assertion_events = [
+            event for event in recording
+            if isinstance(event, (apiritif.Assertion, apiritif.AssertionFailure))
+            and event.response == request_event.response
+        ]
+        assertions = {}
+        for event in assertion_events:
+            if event.name not in assertions:
+                assertions[event.name] = {"name": event.name, "isFailed": False, "failureMessage": ""}
+
+            if isinstance(event, apiritif.AssertionFailure):
+                assertions[event.name]["isFailed"] = True
+                assertions[event.name]["failureMessage"] = event.failure_message
+
+        py_response = request_event.response.py_response
+        baked_request = request_event.request
 
         record = {
             'responseCode': py_response.status_code,
@@ -165,13 +180,10 @@ class BZTPlugin(Plugin):
             'requestSize': 0,
             'requestMethod': baked_request.method,
             'requestURI': baked_request.url,
-            'assertions': [
-                {"name": assertion.name, "isFailed": assertion.is_failed, "failureMessage": assertion.failure_message}
-                for assertion in assertions
-            ],
+            'assertions': [assertion for assertion in assertions.values()],
             'responseBody': py_response.text,
             'requestBody': baked_request.body or "",
-            'requestCookies': dict(request_log.session.cookies),
+            'requestCookies': dict(request_event.session.cookies),
             'requestHeaders': dict(py_response.request.headers),
             'responseHeaders': dict(py_response.headers),
         }
@@ -183,7 +195,31 @@ class BZTPlugin(Plugin):
         record["requestHeadersSize"] = len(self._headers_from_dict(record["requestHeaders"]))
         record["responseHeadersSize"] = len(self._headers_from_dict(record["responseHeaders"]))
 
-        self.test_dict["extras"].update(record)
+        return record
+
+    def process_apiritif_samples(self, sample_dict):
+        apiritif_extras = self._extract_apiritif_extras(sample_dict["test_case"])
+        if apiritif_extras:
+            sample_dict["extras"].update(apiritif_extras)
+
+        self.test_count += 1
+        self.write_sample(sample_dict)
+        self.write_stdout_report(sample_dict["test_case"])
+
+    def process_sample(self, sample_dict):
+        self.test_count += 1
+        self.write_sample(sample_dict)
+        self.write_stdout_report(sample_dict["test_case"])
+
+    def write_sample(self, sample):
+        self.out_stream.write("%s\n" % json.dumps(sample))
+        self.out_stream.flush()
+
+    def write_stdout_report(self, label):
+        report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
+        failed = self.test_count - self.success_count
+        sys.stdout.write(report_pattern % (label, self.test_count, self.success_count, failed))
+        sys.stdout.flush()
 
     def stopTest(self, test):  # pylint: disable=invalid-name
         """
@@ -191,15 +227,17 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self._extract_apiritif_data(self.test_dict["test_case"])
-        self.test_count += 1
         self.test_dict["duration"] = time.time() - self.test_dict["start_time"]
-        self.out_stream.write("%s\n" % json.dumps(self.test_dict))
-        self.out_stream.flush()
 
-        report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
-        sys.stdout.write(report_pattern % (
-            self.test_dict["test_case"], self.test_count, self.success_count, self.test_count - self.success_count))
+        try:
+            import apiritif
+        except ImportError:
+            apiritif = None
+
+        if apiritif is not None:
+            self.process_apiritif_samples(self.test_dict)
+        else:
+            self.process_sample(self.test_dict)
 
         self.test_dict = None
 

@@ -1,12 +1,13 @@
 import inspect
 import re
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from contextlib import contextmanager
 from functools import wraps
 from io import BytesIO
 
 import jsonpath_rw
 import requests
+import time
 from lxml import etree
 
 from apiritif.utils import headers_as_text, assert_regexp, assert_not_regexp, shorten
@@ -64,25 +65,19 @@ class http(object):
 
 @contextmanager
 def transaction(name):
-    print("transaction %s started" % name)
+    recorder.record_transaction_start(name)
     yield
-    print("transaction %s finished" % name)
+    recorder.record_transaction_end(name)
 
 
-class LogAssertion(object):
-    def __init__(self, name, response):
-        self.name = name
-        self.response = response
-        self.is_failed = False
-        self.failure_message = ""
-
-    def __repr__(self):
-        tmpl = "Assertion(name=%r, response=%r, is_failed=%r, failure_message=%r)"
-        return tmpl % (self.name, self.response, self.is_failed, self.failure_message)
+class Event(object):
+    def __init__(self):
+        self.timestamp = time.time()
 
 
-class LogRequest(object):
+class Request(Event):
     def __init__(self, method, address, request, response, session):
+        super(Request, self).__init__()
         self.method = method
         self.address = address
         self.request = request
@@ -90,37 +85,37 @@ class LogRequest(object):
         self.session = session
 
 
-class Record(object):
-    def __init__(self):
-        """
-        :type requests: list[LogRequest]
-        :type assertions: list[LogAssertion]
-        """
-        self.requests = []
-        self.assertions = []
+class TransactionStarted(Event):
+    def __init__(self, transaction_name):
+        super(TransactionStarted, self).__init__()
+        self.transaction_name = transaction_name
 
-    def add_request(self, method, address, request, response, session):
-        self.requests.append(LogRequest(method, address, request, response, session))
 
-    def assertions_for_response(self, response):
-        return [
-            ass
-            for ass in self.assertions
-            if ass.response == response
-        ]
+class TransactionEnded(Event):
+    def __init__(self, transaction_name):
+        super(TransactionEnded, self).__init__()
+        self.transaction_name = transaction_name
 
-    def add_assertion(self, assertion_name, target_response):
-        self.assertions.append(LogAssertion(assertion_name, target_response))
 
-    def __repr__(self):
-        tmpl = "Record(requests=%r, assertions=%r)"
-        return tmpl % (self.requests, self.assertions)
+class Assertion(Event):
+    def __init__(self, name, response):
+        super(Assertion, self).__init__()
+        self.name = name
+        self.response = response
+
+
+class AssertionFailure(Event):
+    def __init__(self, assertion_name, response, failure_message):
+        super(AssertionFailure, self).__init__()
+        self.name = assertion_name
+        self.response = response
+        self.failure_message = failure_message
 
 
 # TODO: thread-safe version?
-class _Recorder(object):
+class _EventRecorder(object):
     def __init__(self):
-        self.log = OrderedDict()
+        self._recording = OrderedDict()  # test_case: str -> [Event]
 
     @staticmethod
     def _get_current_test_case_name():
@@ -130,29 +125,31 @@ class _Recorder(object):
                 return func_name
         return None
 
+    def get_recording(self, label=None):
+        label = label or self._get_current_test_case_name() or ""
+        if label not in self._recording:
+            self._recording[label] = []
+        return self._recording[label]
+
+    def record_transaction_start(self, transaction_name):
+        recording = self.get_recording()
+        recording.append(TransactionStarted(transaction_name))
+
+    def record_transaction_end(self, transaction_name):
+        recording = self.get_recording()
+        recording.append(TransactionEnded(transaction_name))
+
     def record_http_request(self, method, address, request, response, session):
-        test_case = self._get_current_test_case_name()
-        if test_case not in self.log:
-            self.log[test_case] = Record()
-        self.log[test_case].add_request(method, address, request, response, session)
+        recording = self.get_recording()
+        recording.append(Request(method, address, request, response, session))
 
     def record_assertion(self, assertion_name, target_response):
-        if not self.log:
-            raise ValueError("Can't record assertion, no test cases were registered yet")
-        last_record = self.log[next(reversed(self.log))]
-        if not last_record:
-            raise ValueError("Can't record assertion, no test cases were registered yet")
-        last_record.add_assertion(assertion_name, target_response)
+        recording = self.get_recording()
+        recording.append(Assertion(assertion_name, target_response))
 
-    def record_assertion_failure(self, failure_message):  # do we need to pass some kind of context or assertion id?
-        if not self.log:
-            raise ValueError("Can't record assertion, no requests were made yet")
-        last_record = self.log[next(reversed(self.log))]
-        if not last_record:
-            raise ValueError("Can't record assertion, no test cases were registered yet")
-        last_assertion = last_record.assertions[-1]
-        last_assertion.is_failed = True
-        last_assertion.failure_message = failure_message
+    def record_assertion_failure(self, assertion_name, target_response, failure_message):
+        recording = self.get_recording()
+        recording.append(AssertionFailure(assertion_name, target_response, failure_message))
 
     @staticmethod
     def assertion_decorator(assertion_method):
@@ -162,12 +159,12 @@ class _Recorder(object):
             try:
                 return assertion_method(self, *method_args, **method_kwargs)
             except BaseException as exc:
-                recorder.record_assertion_failure(str(exc))
+                recorder.record_assertion_failure(str(exc), self, str(exc))
                 raise
         return _impl
 
 
-recorder = _Recorder()
+recorder = _EventRecorder()
 
 
 class HTTPTarget(object):
@@ -415,17 +412,12 @@ class HTTPResponse(object):
             raise AssertionError(msg)
 
     @recorder.assertion_decorator
-    def assert_not_jsonpath(self, jsonpath_query, expected_value=None, msg=None):
+    def assert_not_jsonpath(self, jsonpath_query, msg=None):
         jsonpath_expr = jsonpath_rw.parse(jsonpath_query)
         body = self.py_response.json()
         matches = jsonpath_expr.find(body)
         if matches:
             msg = msg or "JSONPath query %r did match response content: %s" % (jsonpath_query, body)
-            raise AssertionError(msg)
-        actual_value = matches[0].value
-        if expected_value is not None and actual_value == expected_value:
-            tmpl = "Actual value at JSONPath query (%r) is equal to expected (%r)"
-            msg = msg or tmpl % (actual_value, expected_value)
             raise AssertionError(msg)
 
     @recorder.assertion_decorator
