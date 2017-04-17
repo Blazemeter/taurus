@@ -734,7 +734,7 @@ class TestCloudProvisioning(BZTestCase):
         log_recorder = RecordingHandler()
         self.obj.log.addHandler(log_recorder)
         self.obj.engine.configure([
-            __dir__() + '/../../bzt/10-base.json',
+            __dir__() + '/../../bzt/resources/base-config.yml',
             __dir__() + '/../yaml/resource_files.yml'], read_config_files=False)
         self.obj.settings = self.obj.engine.config['modules']['cloud']
         self.obj.settings.merge({'delete-test-files': False})

@@ -24,12 +24,12 @@ import os
 from bzt import TaurusConfigError, TaurusInternalException
 
 from bzt.bza import BZAProxy
-from bzt.engine import Service
+from bzt.engine import Service, Singletone
 from bzt.modules.selenium import AbstractSeleniumExecutor
 from bzt.utils import is_windows, get_full_path
 
 
-class Proxy2JMX(Service):
+class Proxy2JMX(Service, Singletone):
     def __init__(self):
         super(Proxy2JMX, self).__init__()
         self.proxy_addr = None

@@ -12,14 +12,14 @@ import psutil
 from urwid import Pile, Text
 
 from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
-from bzt.engine import Service
+from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
 from bzt.six import iteritems, urlopen, urlencode
 from bzt.utils import dehumanize_time
 
 
-class Monitoring(Service, WidgetProvider):
+class Monitoring(Service, WidgetProvider, Singletone):
     """
     :type clients: list[ServerAgentClient]
     :type listeners: list[MonitoringListener]

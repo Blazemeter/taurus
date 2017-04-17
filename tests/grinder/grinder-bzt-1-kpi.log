@@ -1,6 +1,7 @@
 worker.requests_sample-0 worker process 0
 worker.requests_sample-0 instrumentation agents: byte code transforming instrumenter for Jython 2.5; byte code transforming instrumenter for Java
 worker.requests_sample-0 registered plug-in net.grinder.plugin.http.HTTPPlugin
+worker.requests_sample-0 Test name for ID 1: requests_sample
 worker.requests_sample-0 running "/tmp/bzt-artifacts/0415-110806/grinder_requests.py" using Jython 2.5.3 (2.5:c56500f08d34+, Aug 13 2012, 14:54:35) 
 [Java HotSpot(TM) 64-Bit Server VM (Oracle Corporation)]
 data.requests_sample-0 Thread, Run, Test, Start time (ms since Epoch), Test time, Errors, HTTP response code, HTTP response length, HTTP response errors, Time to resolve host, Time to establish connection, Time to first byte, New connections

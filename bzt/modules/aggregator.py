@@ -24,6 +24,7 @@ from abc import abstractmethod
 from collections import Counter
 
 from bzt import TaurusInternalException, TaurusConfigError
+
 from bzt.engine import Aggregator
 from bzt.six import iteritems
 from bzt.utils import BetterDict, dehumanize_time
@@ -403,7 +404,7 @@ class ResultsProvider(object):
     def __init__(self):
         super(ResultsProvider, self).__init__()
         self.cumulative = BetterDict()
-        self.track_percentiles = []
+        self.track_percentiles = [0.0, 50.0, 90.0, 95.0, 99.0, 99.9, 100.0]
         self.listeners = []
         self.buffer_len = 2
         self.min_buffer_len = 2
@@ -602,7 +603,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
         self.generalize_labels = False
-        self.ignored_labels = []
+        self.ignored_labels = ["ignore"]
         self.underlings = []
         self.buffer = BetterDict()
         self.rtimes_len = 1000
