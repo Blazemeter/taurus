@@ -302,6 +302,9 @@ class HTTPResponse(object):
     def __eq__(self, other):
         return self.py_response == other.py_response
 
+    def __hash__(self):
+        return hash(self.py_response)
+
     # TODO: text, content - @property?
 
     @recorder.assertion_decorator
