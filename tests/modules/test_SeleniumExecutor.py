@@ -158,6 +158,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             msg = "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(), contents)
             self.assertEqual(3, contents.count("ok"), msg)
             self.assertEqual(1, contents.count("OK"))
+        pass
 
     def test_fail_on_zero_results(self):
         self.configure(yaml.load(open(__dir__() + "/../yaml/selenium_executor_requests.yml").read()))
