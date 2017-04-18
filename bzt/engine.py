@@ -503,7 +503,8 @@ class Engine(object):
 
         for mod in mods_list:
             if mod.parameters.get("module") == instance.parameters.get("module"):
-                self.log.warning("Module '%s' can be only used once, will merge all new instances into single")
+                msg = "Module '%s' can be only used once, will merge all new instances into single"
+                self.log.warning(msg % mod.parameters.get("module"))
                 mod.parameters.merge(instance.parameters)
                 return True
 
