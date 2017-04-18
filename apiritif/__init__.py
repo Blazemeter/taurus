@@ -1,6 +1,6 @@
 import inspect
 import re
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 from contextlib import contextmanager
 from functools import wraps
 from io import BytesIO
