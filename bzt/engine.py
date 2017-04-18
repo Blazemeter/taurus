@@ -105,10 +105,10 @@ class Engine(object):
         self._set_up_proxy()
 
         if self.config.get(SETTINGS).get("check-updates", True):
-            installID = self.config.get("install-id", uuid.getnode())
+            install_id = self.config.get("install-id", uuid.getnode())
 
             def wrapper():
-                return self._check_updates(installID)
+                return self._check_updates(install_id)
 
             thread = threading.Thread(target=wrapper)  # intentionally non-daemon thread
             thread.start()
