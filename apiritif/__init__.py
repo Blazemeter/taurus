@@ -170,11 +170,12 @@ class _EventRecorder(object):
     def assertion_decorator(assertion_method):
         @wraps(assertion_method)
         def _impl(self, *method_args, **method_kwargs):
-            recorder.record_assertion(getattr(assertion_method, '__name__', 'assertion'), self)
+            assertion_name = getattr(assertion_method, '__name__', 'assertion')
+            recorder.record_assertion(assertion_name, self)
             try:
                 return assertion_method(self, *method_args, **method_kwargs)
             except BaseException as exc:
-                recorder.record_assertion_failure(str(exc), self, str(exc))
+                recorder.record_assertion_failure(assertion_name, self, str(exc))
                 raise
         return _impl
 

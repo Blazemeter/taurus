@@ -221,6 +221,7 @@ class ApiritifExtractor(object):
         apiritif = get_apiritif()
         test_case_name = test_case_sample.test_case
         active_transactions = [test_case_sample]
+        response_map = {}  # response -> sample
         transactions_present = False
         for item in recording:
             if isinstance(item, apiritif.Request):
@@ -234,6 +235,7 @@ class ApiritifExtractor(object):
                 extras = ApiritifExtractor._extract_extras(item)
                 if extras:
                     sample.extras.update(extras)
+                response_map[item.response] = sample
                 active_transactions[-1].add_subsample(sample)
             elif isinstance(item, apiritif.TransactionStarted):
                 transactions_present = True
@@ -246,9 +248,26 @@ class ApiritifExtractor(object):
                 tran.status = "PASSED" if all(spl.status == "PASSED" for spl in tran.subsamples) else "FAILED"
                 active_transactions[-1].add_subsample(tran)
             elif isinstance(item, apiritif.Assertion):
-                pass  # TODO: find corresponding request and glue the assertion to it
+                sample = response_map.get(item.response, None)
+                if sample is None:
+                    raise ValueError("Found assertion for unknown response")
+                if "assertions" not in sample.extras:
+                    sample.extras["assertions"] = []
+                sample.extras["assertions"].append({
+                    "name": item.name,
+                    "isFailed": False,
+                    "failureMessage": "",
+                })
             elif isinstance(item, apiritif.AssertionFailure):
-                pass  # TODO: find corresponding request/assertion and glue the assertion to it
+                sample = response_map.get(item.response, None)
+                if sample is None:
+                    raise ValueError("Found assertion failure for unknown response")
+                for ass in sample.extras.get("assertions", []):
+                    if ass["name"] == item.name:
+                        ass["isFailed"] = True
+                        ass["failureMessage"] = item.failure_message
+                        sample.status = "FAILED"
+                        sample.error_msg = item.failure_message
             else:
                 raise ValueError("Unknown kind of event in apiritif recording: %s" % item)
 
@@ -274,23 +293,6 @@ class ApiritifExtractor(object):
 
     @staticmethod
     def _extract_extras(request_event):
-        apiritif = get_apiritif()
-
-        assertion_events = []
-        # assertion_events = [
-        #     event for event in recording
-        #     if isinstance(event, (apiritif.Assertion, apiritif.AssertionFailure))
-        #     and event.response == request_event.response
-        # ]
-        assertions = {}
-        for event in assertion_events:
-            if event.name not in assertions:
-                assertions[event.name] = {"name": event.name, "isFailed": False, "failureMessage": ""}
-
-            if isinstance(event, apiritif.AssertionFailure):
-                assertions[event.name]["isFailed"] = True
-                assertions[event.name]["failureMessage"] = event.failure_message
-
         py_response = request_event.response.py_response
         baked_request = request_event.request
 
@@ -304,7 +306,7 @@ class ApiritifExtractor(object):
             'requestSize': 0,
             'requestMethod': baked_request.method,
             'requestURI': baked_request.url,
-            'assertions': [assertion for assertion in assertions.values()],
+            'assertions': [],  # will be filled later
             'responseBody': py_response.text,
             'requestBody': baked_request.body or "",
             'requestCookies': dict(request_event.session.cookies),
