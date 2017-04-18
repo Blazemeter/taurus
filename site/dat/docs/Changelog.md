@@ -1,7 +1,21 @@
 # Changelog
 
-## 1.8.5 <sup></sup>
+## 1.9.1
+ - fix race condition in updates check
+ - catch possible error in psutil memory KPI getting
+
+## 1.9.0 <sup>16 apr 2017</sup>
+ - per-technology executors are extracted from selenium executor
+ - experimental release of `apiritif` framework scripts
  - use BZA workspace's `enabled` flag to filter 
+ - don't install `10-base.json` into `/etc/bzt.d` as step towards wheel dist
+ - proxy2jmx now uses new-style API client
+ - fix handling samples with empty RC in console dashboard
+ - fix for too many labels requested from BlazeMeter API
+ - suppress warning of windows env variables merge
+ - change Grinder to single process + threads model, change the way results are read
+ - work with test name mapping in Grinder
+ - fix locations error with BlazeMeter API
 
 ## 1.8.4 <sup>29 mar 2017</sup>
  - support new-style Blazemeter API keys

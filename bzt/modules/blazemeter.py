@@ -34,7 +34,7 @@ from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
 from bzt.bza import User, Session, Test
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
@@ -116,7 +116,7 @@ def send_with_retry(method):
     return _impl
 
 
-class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
+class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singletone):
     """
     Reporter class
 
@@ -1526,7 +1526,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         try:
             master = self.router.get_master_status()
-        except (URLError, SSLError, ReadTimeout):
+        except (URLError, SSLError, ReadTimeout, TaurusNetworkError):
             self.log.warning("Failed to get test status, will retry in %s seconds...", self.user.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.user.timeout)
@@ -1675,7 +1675,7 @@ class ResultsFromBZA(ResultsProvider):
     def query_data(self):
         try:
             data = self.master.get_kpis(self.min_ts)
-        except URLError:
+        except (URLError, TaurusNetworkError):
             self.log.warning("Failed to get result KPIs, will retry in %s seconds...", self.master.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.master.timeout)
@@ -1684,7 +1684,7 @@ class ResultsFromBZA(ResultsProvider):
 
         try:
             aggr = self.master.get_aggregate_report()
-        except URLError:
+        except (URLError, TaurusNetworkError):
             self.log.warning("Failed to get aggregate results, will retry in %s seconds...", self.master.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.master.timeout)

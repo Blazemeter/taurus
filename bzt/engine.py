@@ -25,6 +25,7 @@ import sys
 import threading
 import time
 import traceback
+import uuid
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
@@ -103,8 +104,14 @@ class Engine(object):
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
 
-        thread = threading.Thread(target=self._check_updates)  # intentionally non-daemon thread
-        thread.start()
+        if self.config.get(SETTINGS).get("check-updates", True):
+            install_id = self.config.get("install-id", uuid.getnode())
+
+            def wrapper():
+                return self._check_updates(install_id)
+
+            thread = threading.Thread(target=wrapper)  # intentionally non-daemon thread
+            thread.start()
 
         return merged_config
 
@@ -311,7 +318,7 @@ class Engine(object):
             os.makedirs(self.artifacts_dir)
 
         # dump current effective configuration
-        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        dump = self.create_artifact("effective", "")  # TODO: not good since this file not exists
         self.config.set_dump_file(dump)
         self.config.dump()
 
@@ -411,22 +418,17 @@ class Engine(object):
         return filename
 
     def _load_base_configs(self):
-        base_configs = []
+        base_configs = [os.path.join(get_full_path(__file__, step_up=1), 'resources', 'base-config.yml')]
         machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
         if os.path.isdir(machine_dir):
-            self.log.debug("Reading machine configs from: %s", machine_dir)
+            self.log.debug("Reading extension configs from: %s", machine_dir)
             for cfile in sorted(os.listdir(machine_dir)):
                 fname = os.path.join(machine_dir, cfile)
                 if os.path.isfile(fname):
                     base_configs.append(fname)
         else:
-            self.log.info("No machine configs dir: %s", machine_dir)
-        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))  # FIXME: this is CLI specifics
-        if os.path.isfile(user_file):
-            self.log.debug("Adding personal config: %s", user_file)
-            base_configs.append(user_file)
-        else:
-            self.log.info("No personal config: %s", user_file)
+            self.log.debug("No machine configs dir: %s", machine_dir)
+
         self.config.load(base_configs)
 
     def _load_user_configs(self, user_configs):
@@ -465,6 +467,8 @@ class Engine(object):
             cls = reporter.get('module', TaurusConfigError(msg % reporter))
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
+            if self.__singletone_exists(instance, self.reporters):
+                continue
             assert isinstance(instance, Reporter)
             self.reporters.append(instance)
 
@@ -482,14 +486,27 @@ class Engine(object):
             config = ensure_is_dict(services, index, "module")
             cls = config.get('module', '')
             instance = self.instantiate_module(cls)
-            assert isinstance(instance, Service)
             instance.parameters = config
+            if self.__singletone_exists(instance, self.services):
+                continue
+            assert isinstance(instance, Service)
             if instance.should_run():
                 self.services.append(instance)
 
         for module in self.services:
             self.prepared.append(module)
             module.prepare()
+
+    def __singletone_exists(self, instance, mods_list):
+        if not isinstance(instance, Singletone):
+            return False
+
+        for mod in mods_list:
+            if mod.parameters.get("module") == instance.parameters.get("module"):
+                msg = "Module '%s' can be only used once, will merge all new instances into single"
+                self.log.warning(msg % mod.parameters.get("module"))
+                mod.parameters.merge(instance.parameters)
+                return True
 
     def __prepare_aggregator(self):
         """
@@ -520,33 +537,32 @@ class Engine(object):
             opener = build_opener(proxy_handler)
             install_opener(opener)
 
-    def _check_updates(self):
-        if self.config.get(SETTINGS).get("check-updates", True):
-            try:
-                params = (bzt.VERSION, self.config.get("install-id", "N/A"))
-                req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
-                self.log.debug("Requesting updates info: %s", req)
-                response = urlopen(req, timeout=10)
-                resp = response.read()
+    def _check_updates(self, installID):
+        try:
+            params = (bzt.VERSION, installID)
+            req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
+            self.log.debug("Requesting updates info: %s", req)
+            response = urlopen(req, timeout=10)
+            resp = response.read()
 
-                if not isinstance(resp, str):
-                    resp = resp.decode()
+            if not isinstance(resp, str):
+                resp = resp.decode()
 
-                self.log.debug("Taurus updates info: %s", resp)
+            self.log.debug("Taurus updates info: %s", resp)
 
-                data = json.loads(resp)
-                mine = LooseVersion(bzt.VERSION)
-                latest = LooseVersion(data['latest'])
-                if mine < latest or data['needsUpgrade']:
-                    msg = "There is newer version of Taurus %s available, consider upgrading. " \
-                          "What's new: http://gettaurus.org/docs/Changelog/"
-                    self.log.warning(msg, latest)
-                else:
-                    self.log.debug("Installation is up-to-date")
+            data = json.loads(resp)
+            mine = LooseVersion(bzt.VERSION)
+            latest = LooseVersion(data['latest'])
+            if mine < latest or data['needsUpgrade']:
+                msg = "There is newer version of Taurus %s available, consider upgrading. " \
+                      "What's new: http://gettaurus.org/docs/Changelog/"
+                self.log.warning(msg, latest)
+            else:
+                self.log.debug("Installation is up-to-date")
 
-            except BaseException:
-                self.log.debug("Failed to check for updates: %s", traceback.format_exc())
-                self.log.warning("Failed to check for updates")
+        except BaseException:
+            self.log.debug("Failed to check for updates: %s", traceback.format_exc())
+            self.log.warning("Failed to check for updates")
 
 
 class Configuration(BetterDict):
@@ -678,8 +694,6 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
-        self.delay = None  # FIXME: why here? Why not in ScenarioExecutor?
-        self.start_time = None  # FIXME: why here? Why not in ScenarioExecutor?
 
     def prepare(self):
         """
@@ -801,6 +815,8 @@ class ScenarioExecutor(EngineModule):
         self.label = None
         self.widget = None
         self.reader = None
+        self.delay = None
+        self.start_time = None
 
     def has_results(self):
         if self.reader and self.reader.buffer:
@@ -1118,3 +1134,7 @@ class SubprocessedExecutor(ScenarioExecutor):
             if not tool.check_if_installed():
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
+
+
+class Singletone(object):
+    pass
