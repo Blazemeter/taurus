@@ -307,13 +307,13 @@ class HTTPResponse(object):
     @recorder.assertion_decorator
     def assert_ok(self, msg=None):
         if self.py_response.status_code >= 400:
-            msg = msg or "Request to %s didn't succeed" % self.py_response.url
+            msg = msg or "Request to %s didn't succeed (%s)" % (self.py_response.url, self.py_response.status_code)
             raise AssertionError(msg)
 
     @recorder.assertion_decorator
     def assert_failed(self, msg=None):
         if self.py_response.status_code < 400:
-            msg = msg or "Request to %s didn't fail" % self.py_response.url
+            msg = msg or "Request to %s didn't fail (%s)" % (self.py_response.url, self.py_response.status_code)
             raise AssertionError(msg)
 
     @recorder.assertion_decorator
