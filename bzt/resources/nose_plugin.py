@@ -279,7 +279,7 @@ class ApiritifExtractor(object):
 
         # do not capture toplevel sample if transactions were used
         if transactions_present:
-            return [sample for sample in toplevel_sample.subsamples if sample.subsamples]
+            return toplevel_sample.subsamples
         else:
             return [toplevel_sample]
 
