@@ -7,7 +7,7 @@ import os
 from bzt import ToolError
 from tests import BZTestCase, __dir__
 
-from bzt.modules.aggregator import DataPoint
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.grinder import GrinderExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt.utils import EXE_SUFFIX
@@ -212,4 +212,13 @@ class TestDataLogReader(BZTestCase):
         obj.report_by_url = True
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 20)
-        self.assertIn('http://blazedemo.com/', list_of_values[0][DataPoint.CUMULATIVE])
+        last = list_of_values[-1]
+        self.assertIn('http://blazedemo.com/payment.php', last[DataPoint.CUMULATIVE].keys())
+
+    def test_read_errors(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-1-kpi.log')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 20)
+        last = list_of_values[-1]
+        self.assertIn('Not Found', last[DataPoint.CUMULATIVE][''][KPISet.ERRORS][1]['msg'])
