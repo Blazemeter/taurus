@@ -10,6 +10,7 @@ from tests.mocks import EngineEmul, RecordingHandler
 
 
 class TaskTestCase(BZTestCase):
+
     def setUp(self):
         self.obj = ShellExecutor()
         self.obj.parameters = BetterDict()
@@ -33,6 +34,7 @@ class TestBlockingTasks(TaskTestCase):
         self.obj.shutdown()
 
     def test_nonbackground_prepare(self):
+        self.fail()
         task = {"command": "echo hello", "background": True}
         task2 = 'sleep 1'
         self.obj.parameters.merge({"prepare": [task, task2]})
