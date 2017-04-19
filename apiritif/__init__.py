@@ -99,8 +99,10 @@ class http(object):
 @contextmanager
 def transaction(name):
     recorder.record_transaction_start(name)
-    yield
-    recorder.record_transaction_end(name)
+    try:
+        yield
+    finally:
+        recorder.record_transaction_end(name)
 
 
 class Event(object):
