@@ -1,6 +1,10 @@
 # Changelog
 
-## 1.9.1
+## 1.9.2
+ - fix grinder having 100% errors
+
+
+## 1.9.1 <sup>19 apr 2017</sup>
  - fix errors in reading Grinder KPI file
  - fix race condition in updates check
  - catch possible error in psutil memory KPI getting

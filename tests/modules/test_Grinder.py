@@ -221,4 +221,5 @@ class TestDataLogReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 20)
         last = list_of_values[-1]
-        self.assertIn('Not Found', last[DataPoint.CUMULATIVE][''][KPISet.ERRORS][1]['msg'])
+        self.assertEquals(1, len(last[DataPoint.CUMULATIVE][''][KPISet.ERRORS]))
+        self.assertIn('Not Found', last[DataPoint.CUMULATIVE][''][KPISet.ERRORS][0]['msg'])

@@ -335,6 +335,8 @@ class DataLogReader(ResultsReader):
             if int(data_fields[self.idx["Errors"]]) > 0 or int(data_fields[self.idx['HTTP response errors']]) > 0:
                 if not error_msg:
                     error_msg = "HTTP %s" % r_code
+            else:
+                error_msg = None  # suppress errors
 
             if self.report_by_url:
                 label = url
