@@ -300,7 +300,8 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                     'additional-classpath': [settings_cp]}}})
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
-        self.assertTrue(any(scenario_cp in element for element in self.obj.runner.base_class_path))
+        self.assertTrue(any(scenario_cp in element for element in self.obj.runner.base_class_path),
+                        "class_path: %s" % self.obj.runner.base_class_path)
         self.assertTrue(any(settings_cp in element for element in self.obj.runner.base_class_path))
 
     def test_resource_files_collection_remote_jar(self):
