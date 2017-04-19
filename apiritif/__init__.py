@@ -1,5 +1,7 @@
 import inspect
+import logging
 import re
+import sys
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import wraps
@@ -12,8 +14,31 @@ from lxml import etree
 
 from apiritif.utils import headers_as_text, assert_regexp, assert_not_regexp, shorten
 
+log = logging.getLogger('apiritif')
+
+
+def setup_logging(verbose=False):
+    logging.getLogger("requests").setLevel(logging.WARNING)
+
+    log.setLevel(logging.DEBUG)
+
+    while log.handlers:
+        log.handlers.pop()
+
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(logging.Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s"))
+    if verbose:
+        console_handler.setLevel(logging.DEBUG)
+    else:
+        console_handler.setLevel(logging.INFO)
+    log.addHandler(console_handler)
+
+setup_logging()
+
 
 class http(object):
+    log = log.getChild('http')
+
     @staticmethod
     def target(*args, **kwargs):
         return HTTPTarget(*args, **kwargs)
@@ -28,12 +53,20 @@ class http(object):
         :return: response
         :rtype: HTTPResponse
         """
+        http.log.info("Request: %s %s", method, address)
+        msg = "Request: params=%r, headers=%r, cookies=%r, data=%r, json=%r, allow_redirects=%r, timeout=%r"
+        http.log.debug(msg, params, headers, cookies, data, json, allow_redirects, timeout)
+
         if session is None:
             session = requests.Session()
         request = requests.Request(method, address,
                                    params=params, headers=headers, cookies=cookies, json=json, data=data)
         prepared = request.prepare()
         response = session.send(prepared, allow_redirects=allow_redirects, timeout=timeout)
+        http.log.info("Response: %s %s", response.status_code, response.reason)
+        http.log.debug("Response headers: %r", response.headers)
+        http.log.debug("Response cookies: %r", dict(response.cookies))
+        http.log.debug('Response content: \n%s', response.content)
         wrapped_response = HTTPResponse.from_py_response(response)
         recorder.record_http_request(method, address, prepared, wrapped_response, session)
         return wrapped_response
@@ -131,6 +164,7 @@ class AssertionFailure(Event):
 class _EventRecorder(object):
     def __init__(self):
         self._recording = OrderedDict()  # test_case: str -> [Event]
+        self.log = log.getChild('recorder')
 
     @staticmethod
     def _get_current_test_case_name():
@@ -146,25 +180,25 @@ class _EventRecorder(object):
             self._recording[label] = []
         return self._recording[label]
 
-    def record_transaction_start(self, transaction_name):
+    def record_event(self, event):
+        self.log.debug("Recording event %r", event)
         recording = self.get_recording()
-        recording.append(TransactionStarted(transaction_name))
+        recording.append(event)
+
+    def record_transaction_start(self, transaction_name):
+        self.record_event(TransactionStarted(transaction_name))
 
     def record_transaction_end(self, transaction_name):
-        recording = self.get_recording()
-        recording.append(TransactionEnded(transaction_name))
+        self.record_event(TransactionEnded(transaction_name))
 
     def record_http_request(self, method, address, request, response, session):
-        recording = self.get_recording()
-        recording.append(Request(method, address, request, response, session))
+        self.record_event(Request(method, address, request, response, session))
 
     def record_assertion(self, assertion_name, target_response):
-        recording = self.get_recording()
-        recording.append(Assertion(assertion_name, target_response))
+        self.record_event(Assertion(assertion_name, target_response))
 
     def record_assertion_failure(self, assertion_name, target_response, failure_message):
-        recording = self.get_recording()
-        recording.append(AssertionFailure(assertion_name, target_response, failure_message))
+        self.record_event(AssertionFailure(assertion_name, target_response, failure_message))
 
     @staticmethod
     def assertion_decorator(assertion_method):
@@ -185,13 +219,13 @@ recorder = _EventRecorder()
 
 class HTTPTarget(object):
     def __init__(
-            self,
-            address,
-            base_path=None,
-            use_cookies=True,
-            default_headers=None,
-            keep_alive=True,
-            auto_assert_ok=True
+        self,
+        address,
+        base_path=None,
+        use_cookies=True,
+        default_headers=None,
+        keep_alive=True,
+        auto_assert_ok=True
     ):
         self.address = address
         # config flags
