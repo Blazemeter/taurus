@@ -485,13 +485,19 @@ import apiritif
 
         request_source = "self.target" if self.access_method == "target" else "apiritif.http"
 
+        if request.label:
+            label = request.label
+        else:
+            label = request.url
+
+        test_method.append(self.gen_statement("with apiritif.transaction(%r):" % label, indent=8))
         request_line = "response = {source}.{method}({url}, {kwargs})".format(
             source=request_source,
             method=method,
             url=self.repr_inter(request.url),
             kwargs=kwargs,
         )
-        test_method.append(self.gen_statement(request_line))
+        test_method.append(self.gen_statement(request_line, indent=12))
         self._add_assertions(request, test_method)
         self._add_jsonpath_assertions(request, test_method)
         self._add_xpath_assertions(request, test_method)
