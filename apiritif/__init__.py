@@ -1,7 +1,6 @@
 import inspect
 import logging
 import re
-import sys
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import wraps
@@ -14,26 +13,10 @@ from lxml import etree
 
 from apiritif.utils import headers_as_text, assert_regexp, assert_not_regexp, shorten
 
+
 log = logging.getLogger('apiritif')
-
-
-def setup_logging(verbose=False):
-    logging.getLogger("requests").setLevel(logging.WARNING)
-
-    log.setLevel(logging.DEBUG)
-
-    while log.handlers:
-        log.handlers.pop()
-
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(logging.Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s"))
-    if verbose:
-        console_handler.setLevel(logging.DEBUG)
-    else:
-        console_handler.setLevel(logging.INFO)
-    log.addHandler(console_handler)
-
-setup_logging()
+log.setLevel(logging.DEBUG)
+log.addHandler(logging.NullHandler())
 
 
 class http(object):
