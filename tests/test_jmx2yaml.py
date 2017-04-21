@@ -506,3 +506,8 @@ class TestConverter(BZTestCase):
         self.assertEqual(requests[0].get('follow-redirects'), True)
         self.assertEqual(requests[1].get('follow-redirects'), True)
         self.assertEqual(requests[2].get('follow-redirects'), False)
+
+    def test_binary_literals_xml(self):
+        yml_file = self._get_tmp()
+        obj = self._get_jmx2yaml("/jmeter/jmx/binary-literals.jmx", yml_file)
+        obj.process()
