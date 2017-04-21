@@ -276,6 +276,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
     DELIMITER = ","
+    DETAILS_REGEX = re.compile(r"worker\.(\S+) (.+) -> (\S+) (.+), \d+ bytes")
 
     def __init__(self, filename, parent_logger):
         super(DataLogReader, self).__init__()
@@ -316,6 +317,7 @@ class DataLogReader(ResultsReader):
                 self.log.debug("Skipping line: %s", line)
                 continue
 
+            worker_id = worker_id.split('.')[1]
             t_stamp = int(data_fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0
             r_time = int(data_fields[self.idx["Test time"]]) / 1000.0
             latency = int(data_fields[self.idx["Time to first byte"]]) / 1000.0
@@ -329,8 +331,12 @@ class DataLogReader(ResultsReader):
                 self.known_threads.add(thread_id)
                 self.concurrency += 1
 
-            url, error_msg = self.__parse_prev_line(lines, lnum)
-            source_id = ''
+            url, error_msg = self.__parse_prev_line(worker_id, lines, lnum)
+            if int(data_fields[self.idx["Errors"]]) > 0 or int(data_fields[self.idx['HTTP response errors']]) > 0:
+                if not error_msg:
+                    error_msg = "HTTP %s" % r_code
+            else:
+                error_msg = None  # suppress errors
 
             if self.report_by_url:
                 label = url
@@ -339,6 +345,7 @@ class DataLogReader(ResultsReader):
             else:
                 label = "Test #%s" % test_id
 
+            source_id = ''  # maybe use worker_id somehow?
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
                   latency, r_code, error_msg, source_id, bytes_count
 
@@ -378,23 +385,16 @@ class DataLogReader(ResultsReader):
 
         return data_fields, worker_id
 
-    def __parse_prev_line(self, lines, lnum):
-        label = ''
+    def __parse_prev_line(self, worker_id, lines, lnum):
+        url = ''
         error_msg = None
-        if lnum > 0:
-            line = lines[lnum - 1].strip()
-            if line.endswith('bytes'):
-                line = line.split(self.DELIMITER)[0]
-                log_parts = line.split(' ')
-                if len(log_parts) > 4:
-                    log_parts.pop(0)  # worker_id
-                    label = log_parts.pop(0)
-                    log_parts.pop(0)  # skip arrow
-                    status = log_parts.pop(0)
-                    if status != '200':
-                        error_msg = ' '.join(log_parts)
+        for lineNo in reversed(range(lnum)):
+            line = lines[lineNo].strip()
+            matched = self.DETAILS_REGEX.match(line)
+            if matched and worker_id == matched.group(1):
+                return matched.group(2), matched.group(4)
 
-        return label, error_msg
+        return url, error_msg
 
     def __open_fds(self):
         """
