@@ -65,7 +65,7 @@ target = apiritif.http.target(
     address,               # target base address
     base_path=None,        # base path prepended to all paths (e.g. '/api/v2')
     use_cookies=True,      # use cookies
-    default_headers=None,  # additional headers for all requests
+    additional_headers=None,  # additional headers for all requests
     keep_alive=True,       # reuse opened HTTP connection
     auto_assert_ok=True,   # automatically invoke 'assert_ok' after each request
 )

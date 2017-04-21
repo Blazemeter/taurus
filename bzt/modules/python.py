@@ -355,6 +355,8 @@ import apiritif
         base_path = self.scenario.get("base-path", None)
         auto_assert_ok = self.scenario.get("auto-assert-ok", True)
         store_cookie = self.scenario.get("store-cookie", None)
+        timeout = self.scenario.get("timeout", None)
+        follow_redirects = self.scenario.get("follow-redirects", True)
 
         if default_address is not None or keepalive or store_cookie:
             self.access_method = "target"
@@ -376,6 +378,10 @@ import apiritif
             setup_method_def.append(self.gen_statement("self.target.keep_alive(%r)" % keepalive, indent=8))
             setup_method_def.append(self.gen_statement("self.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
             setup_method_def.append(self.gen_statement("self.target.use_cookies(%r)" % store_cookie, indent=8))
+            setup_method_def.append(self.gen_statement("self.target.allow_redirects(%r)" % follow_redirects, indent=8))
+            if timeout is not None:
+                setup_method_def.append(self.gen_statement("self.target.timeout(%r)" % dehumanize_time(timeout),
+                                                           indent=8))
             setup_method_def.append(self.gen_new_line(indent=0))
 
             return setup_method_def
@@ -454,8 +460,10 @@ import apiritif
         method = request.method.lower()
         think_time = dehumanize_time(request.priority_option('think-time', default=None))
 
-        named_args['timeout'] = dehumanize_time(request.priority_option('timeout', default='30s'))
-        named_args['allow_redirects'] = request.priority_option('follow-redirects', default=True)
+        if request.timeout is not None:
+            named_args['timeout'] = dehumanize_time(request.timeout)
+        if request.follow_redirects is not None:
+            named_args['allow_redirects'] = request.priority_option('follow-redirects', default=True)
 
         headers = {}
         scenario_headers = self.scenario.get("headers", None)
@@ -481,7 +489,7 @@ import apiritif
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(request.body), request.body))
 
-        kwargs = ", ".join("%s=%s" % (name, value) for name, value in iteritems(named_args))
+        kwargs = ", ".join([""] + ["%s=%s" % (name, value) for name, value in iteritems(named_args)])
 
         request_source = "self.target" if self.access_method == "target" else "apiritif.http"
 
@@ -491,7 +499,7 @@ import apiritif
             label = request.url
 
         test_method.append(self.gen_statement("with apiritif.transaction(%r):" % label, indent=8))
-        request_line = "response = {source}.{method}({url}, {kwargs})".format(
+        request_line = "response = {source}.{method}({url}{kwargs})".format(
             source=request_source,
             method=method,
             url=self.repr_inter(request.url),
