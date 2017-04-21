@@ -35,3 +35,8 @@ class TestApiritif(unittest.TestCase):
         result = run_apiritif_script(__dir__() + "/apiritif/test_body_data.py")
         self.assertTrue(result.wasSuccessful())
         self.assertEqual(result.testsRun, 3)
+
+    def test_transactions(self):
+        result = run_apiritif_script(__dir__() + "/apiritif/test_transactions.py")
+        self.assertTrue(result.wasSuccessful())
+        self.assertEqual(result.testsRun, 5)

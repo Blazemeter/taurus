@@ -3,6 +3,7 @@ import time
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
+from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.python import NoseTester
 
 from tests import __dir__, BZTestCase
@@ -183,6 +184,36 @@ class TestNoseRunner(BZTestCase):
             self.obj.shutdown()
         self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
+
+    def test_apiritif_transactions(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "script": __dir__() + "/../apiritif/test_transactions.py"
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
+
+    def test_report_reading(self):
+        reader = FuncSamplesReader(__dir__() + "/../apiritif/transactions.ldjson", self.obj.engine, self.obj.log, [])
+        items = list(reader.read(last_pass=True))
+        self.assertEqual(len(items), 6)
+        self.assertEqual(items[0].test_case, "test_1_single_request")
+        self.assertEqual(items[1].test_case, "test_2_multiple_requests")
+        self.assertEqual(items[2].test_case, "Transaction")
+        self.assertEqual(items[3].test_case, "Transaction")
+        self.assertEqual(items[4].test_case, "Transaction 1")
+        self.assertEqual(items[5].test_case, "Transaction 2")
 
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
