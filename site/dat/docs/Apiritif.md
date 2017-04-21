@@ -43,7 +43,65 @@ TODO: options, auto_assert_ok
 
 Apiritif responses provide a lot of useful assertions that can be used on responses.
 
-TODO: assertion list
+Here's the list of assertions that can be used:
+```python
+response = http.get("http://example.com/")
+
+# assert that request succeeded (status code is 2xx or 3xx)
+response.assert_ok()
+# assert that request has failed
+response.assert_failed()
+
+# status code based assertions
+response.assert_2xx()
+response.assert_3xx()
+response.assert_4xx()
+response.assert_5xx()
+response.assert_status_code(code)
+response.assert_not_status_code(code)
+
+# content-based assertions
+
+# assert that response body contains a string
+response.assert_in_body(member)
+
+# assert that response body doesn't contain a string
+response.assert_not_in_body(member)
+
+# search (or match) response body with a regex
+response.assert_regex_in_body(regex, match=False)
+response.assert_regex_not_in_body(regex, match=False)
+
+# assert that response has header
+response.assert_has_header(header)
+
+# assert that response has header with given value
+response.assert_header_value(header, value)
+
+# assert that response's headers contains a string
+response.assert_in_headers(member)
+response.assert_not_in_headers(member)
+
+# search (or match) response body with a regex
+response.assert_regex_in_headers(member)
+response.assert_regex_not_in_headers(member)
+
+# assert that response body matches JSONPath query
+response.assert_jsonpath(jsonpath_query, expected_value=None)
+response.assert_not_jsonpath(jsonpath_query)
+
+# assert that response body matches XPath query
+response.assert_xpath(xpath_query, parser_type='html', validate=False)
+response.assert_not_xpath(xpath_query, parser_type='html', validate=False)
+```
+
+
+Note that assertions can be chained, so the following construction is entirely valid:
+```python
+
+response = http.get("http://example.com/")
+response.assert_ok().assert_in_body("Example")
+```
 
 ## Transactions
 
