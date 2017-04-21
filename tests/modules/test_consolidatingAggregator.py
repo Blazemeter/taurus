@@ -22,25 +22,28 @@ class TestConsolidatingAggregator(BZTestCase):
     def test_merging(self):
         dst = DataPoint(0)
         src = DataPoint(0)
-        src[DataPoint.CUMULATIVE].get('', KPISet())
-        src[DataPoint.CUMULATIVE][''].sum_rt = 0.5
+        src[DataPoint.CURRENT].get('', KPISet())
+        src[DataPoint.CURRENT][''].sum_rt = 0.5
 
-        src[DataPoint.CUMULATIVE][''][KPISet.SAMPLE_COUNT] = 1
+        src[DataPoint.CURRENT][''][KPISet.SAMPLE_COUNT] = 1
         dst.merge_point(src)
-        self.assertEquals(0.5, dst[DataPoint.CUMULATIVE][''].sum_rt)
-        self.assertEquals(0.5, dst[DataPoint.CUMULATIVE][''][KPISet.AVG_RESP_TIME])
+        dst.recalculate()
+        self.assertEquals(0.5, dst[DataPoint.CURRENT][''].sum_rt)
+        self.assertEquals(0.5, dst[DataPoint.CURRENT][''][KPISet.AVG_RESP_TIME])
 
-        src[DataPoint.CUMULATIVE][''][KPISet.SAMPLE_COUNT] = 3
+        src[DataPoint.CURRENT][''][KPISet.SAMPLE_COUNT] = 3
         dst.merge_point(src)
-        self.assertEquals(4, dst[DataPoint.CUMULATIVE][''][KPISet.SAMPLE_COUNT])
-        self.assertEquals(1, dst[DataPoint.CUMULATIVE][''].sum_rt)
-        self.assertEquals(0.25, dst[DataPoint.CUMULATIVE][''][KPISet.AVG_RESP_TIME])
+        dst.recalculate()
+        self.assertEquals(4, dst[DataPoint.CURRENT][''][KPISet.SAMPLE_COUNT])
+        self.assertEquals(1, dst[DataPoint.CURRENT][''].sum_rt)
+        self.assertEquals(0.25, dst[DataPoint.CURRENT][''][KPISet.AVG_RESP_TIME])
 
-        src[DataPoint.CUMULATIVE][''][KPISet.SAMPLE_COUNT] = 6
+        src[DataPoint.CURRENT][''][KPISet.SAMPLE_COUNT] = 6
         dst.merge_point(src)
-        self.assertEquals(10, dst[DataPoint.CUMULATIVE][''][KPISet.SAMPLE_COUNT])
-        self.assertEquals(1.5, dst[DataPoint.CUMULATIVE][''].sum_rt)
-        self.assertEquals(0.15, dst[DataPoint.CUMULATIVE][''][KPISet.AVG_RESP_TIME])
+        dst.recalculate()
+        self.assertEquals(10, dst[DataPoint.CURRENT][''][KPISet.SAMPLE_COUNT])
+        self.assertEquals(1.5, dst[DataPoint.CURRENT][''].sum_rt)
+        self.assertEquals(0.15, dst[DataPoint.CURRENT][''][KPISet.AVG_RESP_TIME])
 
     def test_two_executions(self):
         # check consolidator

@@ -393,8 +393,6 @@ class DataPoint(BetterDict):
         self.__merge_kpis(src[self.CURRENT], self[self.CURRENT], src[DataPoint.SOURCE_ID])
         self.__merge_kpis(src[self.CUMULATIVE], self[self.CUMULATIVE], src[DataPoint.SOURCE_ID])
 
-        self.recalculate()
-
 
 class ResultsProvider(object):
     """
@@ -441,7 +439,7 @@ class ResultsProvider(object):
         for datapoint in self._calculate_datapoints(final_pass):
             current = datapoint[DataPoint.CURRENT]
             self.__merge_to_cumulative(current)
-            datapoint[DataPoint.CUMULATIVE] = copy.deepcopy(self.cumulative)
+            datapoint[DataPoint.CUMULATIVE] = self.cumulative
             datapoint.recalculate()
 
             for listener in self.listeners:
@@ -712,6 +710,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             return
 
         timestamps = sorted(self.buffer.keys())
+
         while timestamps and (final_pass or (timestamps[-1] >= timestamps[0] + self.buffer_len)):
             tstamp = timestamps.pop(0)
             self.log.debug("Merging into %s", tstamp)
