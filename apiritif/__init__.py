@@ -1,3 +1,21 @@
+"""
+This is a toplevel package of Apiritif tool
+
+Copyright 2017 BlazeMeter Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+import copy
 import inspect
 import logging
 import re
@@ -12,7 +30,6 @@ import time
 from lxml import etree
 
 from apiritif.utils import headers_as_text, assert_regexp, assert_not_regexp, shorten
-
 
 log = logging.getLogger('apiritif')
 log.setLevel(logging.DEBUG)
@@ -203,22 +220,24 @@ recorder = _EventRecorder()
 
 
 class HTTPTarget(object):
-    def __init__(
-        self,
-        address,
-        base_path=None,
-        use_cookies=True,
-        default_headers=None,
-        keep_alive=True,
-        auto_assert_ok=True
-    ):
+    def __init__(self,
+                 address,
+                 base_path=None,
+                 use_cookies=True,
+                 additional_headers=None,
+                 keep_alive=True,
+                 auto_assert_ok=True,
+                 timeout=30,
+                 allow_redirects=True):
         self.address = address
         # config flags
         self._base_path = base_path
         self._use_cookies = use_cookies
         self._keep_alive = keep_alive
-        self._default_headers = default_headers
+        self._additional_headers = additional_headers or {}
         self._auto_assert_ok = auto_assert_ok
+        self._timeout = timeout
+        self._allow_redirects = allow_redirects
         # internal vars
         self.__session = None
 
@@ -234,12 +253,21 @@ class HTTPTarget(object):
         self._keep_alive = keep
         return self
 
-    def default_headers(self, headers):
-        self._default_headers = headers  # NOTE: copy or even update?
+    def additional_headers(self, headers):
+        self._additional_headers.update(headers)
         return self
 
     def auto_assert_ok(self, value=True):
         self._auto_assert_ok = value
+        return self
+
+    def timeout(self, value):
+        self._timeout = value
+        return self
+
+    def allow_redirects(self, value=True):
+        self._allow_redirects = value
+        return self
 
     def _bake_address(self, path):
         addr = self.address
@@ -249,15 +277,19 @@ class HTTPTarget(object):
         return addr
 
     def request(self, method, path,
-                params=None, headers=None, cookies=None, data=None, json=None, allow_redirects=True, timeout=30):
+                params=None, headers=None, cookies=None, data=None, json=None, allow_redirects=None, timeout=None):
         """
-        Prepares and sends an HTTP request. Returns the response.
+        Prepares and sends an HTTP request. Returns the HTTPResponse object.
 
         :param method: str
         :param path: str
         :return: response
         :rtype: HTTPResponse
         """
+        headers = headers or {}
+        timeout = timeout if timeout is not None else self._timeout
+        allow_redirects = allow_redirects if allow_redirects is not None else self._allow_redirects
+
         if self._keep_alive and self.__session is None:
             self.__session = requests.Session()
 
@@ -265,6 +297,9 @@ class HTTPTarget(object):
             self.__session.cookies.clear()
 
         address = self._bake_address(path)
+        req_headers = copy.deepcopy(self._additional_headers)
+        req_headers.merge(headers)
+
         response = http.request(method, address, session=self.__session,
                                 params=params, headers=headers, cookies=cookies, data=data, json=json,
                                 allow_redirects=allow_redirects, timeout=timeout)
