@@ -21,7 +21,29 @@ response = http.get("http://example.com")
 response.assert_ok()  # will raise AssertionError if request wasn't successful
 ```
 
-TODO: other methods and all parameters description.
+`http` object provides the following methods:
+```python
+from apiritif import http
+
+http.get("http://api.example.com/posts")
+http.post("http://api.example.com/posts")
+http.put("http://api.example.com/posts/1")
+http.patch("http://api.example.com/posts/1")
+http.delete("http://api.example.com/posts/1")
+http.head("http://api.example.com/posts")
+```
+
+All methods (`get`, `post`, `put`, `patch`, `delete`, `head`) support the following arguments:
+```python
+def get(address,               # URL for the request
+        params=None,           # URL params dict
+        headers=None,          # HTTP headers
+        cookies=None,          # request cookies
+        data=None,             # raw request data
+        json=None,             # attach JSON object as request body
+        allow_redirects=True,  # automatically follow HTTP redirects
+        timeout=30)            # request timeout, by default it's 30 seconds
+```
 
 ## HTTP Targets
 
@@ -37,7 +59,18 @@ qa_env.get("/api/v4/user")
 qa_env.get("/api/v4/user")
 ```
 
-TODO: options, auto_assert_ok
+Target constructor supports the following options:
+```python
+target = apiritif.http.target(
+    address,               # target base address
+    base_path=None,        # base path prepended to all paths (e.g. '/api/v2')
+    use_cookies=True,      # use cookies
+    default_headers=None,  # additional headers for all requests
+    keep_alive=True,       # reuse opened HTTP connection
+    auto_assert_ok=True,   # automatically invoke 'assert_ok' after each request
+)
+```
+
 
 ## Assertions
 
@@ -94,7 +127,6 @@ response.assert_not_jsonpath(jsonpath_query)
 response.assert_xpath(xpath_query, parser_type='html', validate=False)
 response.assert_not_xpath(xpath_query, parser_type='html', validate=False)
 ```
-
 
 Note that assertions can be chained, so the following construction is entirely valid:
 ```python
