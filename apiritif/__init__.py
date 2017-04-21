@@ -28,7 +28,7 @@ class http(object):
 
     @staticmethod
     def request(method, address, session=None,
-                params=None, headers=None, cookies=None, data=None, json=None, allow_redirects=False, timeout=30):
+                params=None, headers=None, cookies=None, data=None, json=None, allow_redirects=True, timeout=30):
         """
 
         :param method: str
@@ -249,7 +249,7 @@ class HTTPTarget(object):
         return addr
 
     def request(self, method, path,
-                params=None, headers=None, cookies=None, data=None, json=None, allow_redirects=False, timeout=30):
+                params=None, headers=None, cookies=None, data=None, json=None, allow_redirects=True, timeout=30):
         """
         Prepares and sends an HTTP request. Returns the response.
 
