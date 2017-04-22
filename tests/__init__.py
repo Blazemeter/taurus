@@ -1,9 +1,9 @@
 """ unit test """
+import difflib
 import inspect
 import json
 import logging
 import tempfile
-from difflib import context_diff
 from random import random
 from unittest.case import TestCase
 
@@ -93,7 +93,7 @@ def random_datapoint(n):
 class BZTestCase(TestCase):
     def assertFilesEqual(self, expected, actual):
         with open(expected) as exp, open(actual) as act:
-            diff = context_diff(exp.readlines(), act.readlines())
+            diff = list(difflib.unified_diff(exp.readlines(), act.readlines()))
             if diff:
                 msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
                 raise AssertionError(msg + "".join(diff))

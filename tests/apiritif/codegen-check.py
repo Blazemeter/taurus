@@ -1,3 +1,4 @@
+import time
 import unittest
 
 import apiritif
@@ -30,9 +31,9 @@ class TestRequests(unittest.TestCase):
         response.assert_jsonpath('$[0].email', expected_value=None)
 
         with apiritif.transaction('add into posts'):
-            response = self.target.post('/posts', headers={'content-type': 'application/json'},
-                                        json={'body': 'bar', 'userId': str(userID), 'title': 'foo'})
+            response = self.target.post('/posts', headers={'content-type': 'application/json'}, json={'body': 'bar', 'userId': str(userID), 'title': 'foo'})
         addedID = response.extract_jsonpath('$.id', 'NOT_FOUND')
 
         with apiritif.transaction('delete from posts'):
             response = self.target.delete('/posts/' + str(addedID))
+

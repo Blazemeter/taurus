@@ -1,4 +1,3 @@
-import shutil
 import time
 
 import os
@@ -709,5 +708,5 @@ class TestApiritifScriptBuilder(BZTestCase):
         self.configure(self.obj.engine.config['execution'][0])
         self.obj.prepare()
         exp_file = __dir__() + '/../apiritif/codegen-check.py'
-        # shutil.copy2(self.obj._script, exp_file) # keep this coment to ease updates
+        # import shutil; shutil.copy2(self.obj._script, exp_file)  # keep this coment to ease updates
         self.assertFilesEqual(exp_file, self.obj._script)
