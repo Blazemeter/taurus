@@ -411,7 +411,7 @@ import apiritif
     def repr_inter(obj):
         recur = ApiritifScriptBuilder.repr_inter
         if isinstance(obj, dict):
-            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in iteritems(obj)) + "}"
+            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in sorted(iteritems(obj))) + "}"
         elif isinstance(obj, list):
             return "[" + ", ".join(recur(item) for item in obj) + "]"
         elif isinstance(obj, string_types):
