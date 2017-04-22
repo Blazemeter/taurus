@@ -704,9 +704,9 @@ class TestApiritifScriptBuilder(BZTestCase):
 
     def test_complex_codegen(self):
         """ This test serves code review purposes, to make changes more visible """
-        self.obj.engine.config.load([__dir__() + '/../apiritif/codegen-check.yml'])
+        self.obj.engine.config.load([__dir__() + '/../apiritif/test_codegen.yml'])
         self.configure(self.obj.engine.config['execution'][0])
         self.obj.prepare()
-        exp_file = __dir__() + '/../apiritif/codegen-check.py'
+        exp_file = __dir__() + '/../apiritif/test_codegen.py'
         # import shutil; shutil.copy2(self.obj._script, exp_file)  # keep this coment to ease updates
         self.assertFilesEqual(exp_file, self.obj._script)
