@@ -1,3 +1,5 @@
+/geckodriver.log
+
 **/target/
 *.iml
 **/.idea/
