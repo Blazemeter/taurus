@@ -19,6 +19,7 @@ import copy
 import inspect
 import logging
 import re
+import time
 from collections import OrderedDict
 from contextlib import contextmanager
 from functools import wraps
@@ -26,7 +27,6 @@ from io import BytesIO
 
 import jsonpath_rw
 import requests
-import time
 from lxml import etree
 
 from apiritif.utils import headers_as_text, assert_regexp, assert_not_regexp, shorten
@@ -213,6 +213,7 @@ class _EventRecorder(object):
             except BaseException as exc:
                 recorder.record_assertion_failure(assertion_name, self, str(exc))
                 raise
+
         return _impl
 
 
@@ -350,7 +351,7 @@ class HTTPResponse(object):
 
     @classmethod
     def from_py_response(cls, py_response):
-        "Construct HTTPResponse from requests.Response object"
+        """Construct HTTPResponse from requests.Response object"""
         return cls(py_response)
 
     def __eq__(self, other):
@@ -358,6 +359,11 @@ class HTTPResponse(object):
 
     def __hash__(self):
         return hash(self.py_response)
+
+    def __repr__(self):
+        req = self.py_response.request
+        params = (req.method, req.url, self.py_response.status_code, self.py_response.reason)
+        return "%s %s => %s %s" % params
 
     # TODO: text, content - @property?
 
