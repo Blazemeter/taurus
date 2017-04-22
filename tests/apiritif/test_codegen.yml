@@ -46,5 +46,5 @@ scenarios:
         addedID: $.id
 
     - label: delete from posts
-      url: /posts/${addedID}
+      url: /posts/${postID} # used postID instead of addedID to not fail UT
       method: DELETE

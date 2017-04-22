@@ -298,7 +298,7 @@ class HTTPTarget(object):
 
         address = self._bake_address(path)
         req_headers = copy.deepcopy(self._additional_headers)
-        req_headers.merge(headers)
+        req_headers.update(headers)
 
         response = http.request(method, address, session=self.__session,
                                 params=params, headers=headers, cookies=cookies, data=data, json=json,

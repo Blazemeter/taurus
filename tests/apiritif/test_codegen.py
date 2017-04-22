@@ -35,5 +35,5 @@ class TestRequests(unittest.TestCase):
         addedID = response.extract_jsonpath('$.id', 'NOT_FOUND')
 
         with apiritif.transaction('delete from posts'):
-            response = self.target.delete('/posts/' + str(addedID))
+            response = self.target.delete('/posts/' + str(postID))
 
