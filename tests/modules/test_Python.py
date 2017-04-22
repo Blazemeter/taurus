@@ -1,12 +1,13 @@
-import os
+import shutil
 import time
 
+import os
 from bzt import ToolError, TaurusConfigError
+from tests import __dir__, BZTestCase
+
 from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.python import NoseTester
-
-from tests import __dir__, BZTestCase
 from tests.mocks import EngineEmul
 from tests.modules.test_SeleniumExecutor import SeleniumTestCase
 
@@ -563,7 +564,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                         "assert": [
                             "Welcome", "Simple Travel Agency"
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -594,7 +595,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                             {"contains": ["9"], "not": False, "subject": "http-code"},
                             {"contains": ["10"], "not": True, "subject": "http-code"},
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -623,7 +624,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                         "assert-jsonpath": [
                             "$.foo.bar"
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -645,7 +646,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                             {"jsonpath": "$.2", "invert": True},
                             {"jsonpath": "$.3", "expected-value": "value"},
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -667,7 +668,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                         "assert-xpath": [
                             "//head/title"
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -690,7 +691,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                             {"xpath": "//3", "validate-xml": True},
                             {"xpath": "//4", "validate-xml": False, "use-tolerant-parser": False},
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -701,3 +702,12 @@ class TestApiritifScriptBuilder(BZTestCase):
         self.assertIn("assert_not_xpath('//2', parser_type='html', validate=False)", test_script)
         self.assertIn("assert_xpath('//3', parser_type='html', validate=True)", test_script)
         self.assertIn("assert_xpath('//4', parser_type='xml', validate=False)", test_script)
+
+    def test_complex_codegen(self):
+        """ This test serves code review purposes, to make changes more visible """
+        self.obj.engine.config.load([__dir__() + '/../apiritif/codegen-check.yml'])
+        self.configure(self.obj.engine.config['execution'][0])
+        self.obj.prepare()
+        exp_file = __dir__() + '/../apiritif/codegen-check.py'
+        # shutil.copy2(self.obj._script, exp_file) # keep this coment to ease updates
+        self.assertFilesEqual(exp_file, self.obj._script)
