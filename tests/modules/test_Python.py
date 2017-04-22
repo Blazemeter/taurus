@@ -324,7 +324,7 @@ class TestApiritifScriptBuilder(BZTestCase):
         self.obj.prepare()
         with open(self.obj._script) as fds:
             test_script = fds.read()
-        self.assertIn("timeout=30.0", test_script)
+        self.assertNotIn("timeout=30.0", test_script)
 
     def test_timeout(self):
         self.configure({
@@ -346,7 +346,8 @@ class TestApiritifScriptBuilder(BZTestCase):
         self.obj.prepare()
         with open(self.obj._script) as fds:
             test_script = fds.read()
-        self.assertIn("get('/?tag=1', timeout=10.0", test_script)
+        self.assertIn("self.target.timeout(10.0)", test_script)
+        self.assertNotIn("get('/?tag=1', timeout=10.0", test_script)
         self.assertIn("get('/?tag=2', timeout=2.0", test_script)
 
     def test_think_time(self):
@@ -456,7 +457,8 @@ class TestApiritifScriptBuilder(BZTestCase):
         self.obj.prepare()
         with open(self.obj._script) as fds:
             test_script = fds.read()
-        self.assertIn("allow_redirects=True", test_script)
+        self.assertIn("self.target.allow_redirects(True)", test_script)
+        self.assertNotIn("allow_redirects=True", test_script)
 
     def test_follow_redirects(self):
         self.configure({
