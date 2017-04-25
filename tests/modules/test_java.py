@@ -9,7 +9,7 @@ from tests import __dir__
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules import java
-from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION
+from bzt.modules.java import JUnitTester, JavaTestRunner, JUnitJar, JUNIT_VERSION, TestNGTester
 from bzt.utils import get_full_path
 from tests.mocks import EngineEmul
 from tests.modules.test_SeleniumExecutor import SeleniumTestCase
@@ -334,7 +334,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
 
         self.assertFalse(os.path.exists(dummy_installation_path))
 
-        self.obj = BZTTestNGTester()
+        self.obj = TestNGTester()
         self.obj.engine = EngineEmul()
         self.obj.settings.merge({
             "selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar"),
