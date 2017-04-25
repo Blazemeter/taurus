@@ -1,5 +1,7 @@
 import time
 import unittest
+import logging
+import sys
 
 import apiritif
 
