@@ -8,7 +8,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.python import NoseTester
 from tests.mocks import EngineEmul
-from tests.subprocessed.test_SeleniumExecutor import SeleniumTestCase
+from tests.subprocessed import SeleniumTestCase
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):

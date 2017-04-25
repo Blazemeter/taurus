@@ -12,10 +12,18 @@ from bzt.modules import java
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION
 from bzt.utils import get_full_path
 from tests.mocks import EngineEmul
-from tests.subprocessed.test_SeleniumExecutor import SeleniumTestCase
+from tests.subprocessed import SeleniumTestCase
 
 
 class TestSeleniumJUnitTester(SeleniumTestCase):
+    """
+    :type obj: bzt.modules.selenium.SeleniumExecutor
+    """
+
+    def __init__(self, methodName='runTest'):
+        super(TestSeleniumJUnitTester, self).__init__(methodName)
+        self.obj = None
+
     def test_junit_mirrors(self):
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
