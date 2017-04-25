@@ -719,7 +719,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(18, len(self.mock.requests))
+        self.assertEqual(19, len(self.mock.requests))
         self.assertIn("Cloud test has probably failed with message: msg", log_recorder.warn_buff.getvalue())
 
     def test_cloud_paths(self):
@@ -979,9 +979,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = True
         try:
-            self.assertRaises(ManualShutdown, self.obj.prepare)
-        except KeyboardInterrupt:
-            raise AssertionError()
+            self.assertRaises(NormalShutdown, self.obj.prepare)
+        except KeyboardInterrupt, exc:
+            raise AssertionError(type(exc))
 
         warnings = log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
@@ -999,8 +999,8 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["use-deprecated-api"] = False
         try:
             self.assertRaises(NormalShutdown, self.obj.prepare)
-        except KeyboardInterrupt:
-            raise AssertionError()
+        except KeyboardInterrupt, exc:
+            raise AssertionError(type(exc))
 
         warnings = log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
