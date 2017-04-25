@@ -38,7 +38,7 @@ install:
 - nvm use 4.2
 - gem install rspec
 - pip install codecov nose colorlog jsonpath-rw pyyaml psutil!=4.4.0 lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay
-script: coverage run --source . -m nose tests -vvv
+script: coverage run --source . -m nose tests
 after_success:
 - coverage report -m
 - codecov
