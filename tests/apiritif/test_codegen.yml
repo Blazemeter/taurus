@@ -1,0 +1,50 @@
+execution:
+- scenario: with-extractors
+  executor: nose
+  iterations: 1
+
+reporting:
+- junit-xml
+
+scenarios:
+  with-extractors:
+    default-address: https://jsonplaceholder.typicode.com
+    timeout: 5s
+    requests:
+    - label: just get
+      url: /
+
+    - label: get posts
+      url: /posts
+      assert-jsonpath:
+      - jsonpath: $.[0].userId
+        validate: true
+        expected-value: 1
+      extract-jsonpath:
+        userID: $.[5].userId
+
+    - label: get posts of certain user
+      url: /posts?userId=${userID}
+      extract-jsonpath:
+        postID: $.[0].id
+
+    - label: get comments on post
+      url: /posts/${postID}/comments
+      assert-jsonpath:
+      - $[0].email
+
+    - label: add into posts
+      url: /posts
+      method: POST
+      headers:
+        content-type: application/json
+      body:
+        title: foo
+        body: bar
+        userId: ${userID}
+      extract-jsonpath:
+        addedID: $.id
+
+    - label: delete from posts
+      url: /posts/${postID} # used postID instead of addedID to not fail UT
+      method: DELETE

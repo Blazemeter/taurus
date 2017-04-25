@@ -229,13 +229,15 @@ class TestFinalStatusReporter(BZTestCase):
         tree = ResultsTree()
         tree.add_sample(FunctionalSample(test_case="case1", test_suite="TestClass", status="PASSED",
                                          start_time=time.time(), duration=0.12,
-                                         error_msg=None, error_trace=None, extras=None))
+                                         error_msg=None, error_trace=None, extras=None, subsamples=[]))
         tree.add_sample(FunctionalSample(test_case="case2", test_suite="TestClass", status="FAILED",
                                          start_time=time.time(), duration=0.33,
-                                         error_msg="something broke", error_trace="stacktrace2", extras=None))
+                                         error_msg="something broke", error_trace="stacktrace2", extras=None,
+                                         subsamples=[]))
         tree.add_sample(FunctionalSample(test_case="case3", test_suite="TestClass", status="BROKEN",
                                          start_time=time.time(), duration=0.33,
-                                         error_msg="something is badly broken", error_trace="stacktrace3", extras=None))
+                                         error_msg="something is badly broken", error_trace="stacktrace3", extras=None,
+                                         subsamples=[]))
         return tree, tree
 
     def test_blazemeter_report_link(self):
