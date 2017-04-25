@@ -383,6 +383,19 @@ class TestConverter(BZTestCase):
         yml = yaml.load(open(__dir__() + "/yaml/converter/disabled.yml").read())
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
 
+    def test_params_conversion(self):
+        log_recorder = RecordingHandler()
+        obj = self._get_jmx2yaml("/yaml/converter/params_conversion.jmx", self._get_tmp())
+        obj.log.addHandler(log_recorder)
+        obj.process()
+        yml = yaml.load(open(__dir__() + "/yaml/converter/params_conversion.yml").read())
+        self.assertNotIn('n1', log_recorder.warn_buff.getvalue())
+        self.assertNotIn('n2', log_recorder.warn_buff.getvalue())
+        self.assertIn('n1_101', log_recorder.debug_buff.getvalue())
+        self.assertIn('n1_011', log_recorder.debug_buff.getvalue())
+        self.assertIn('n1_001', log_recorder.debug_buff.getvalue())
+        self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
+
     def test_param_null(self):
         obj = self._get_jmx2yaml("/yaml/converter/param-null.jmx", self._get_tmp())
         obj.process()
