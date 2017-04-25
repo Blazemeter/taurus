@@ -39,6 +39,8 @@ install:
 - gem install rspec
 - pip install codecov nose colorlog jsonpath-rw pyyaml psutil!=4.4.0 lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay
 - pip install --upgrade nose
-script: coverage run -m nose tests
+script:
+- coverage run -m nose tests # -vvv
 after_success:
-  - codecov
+- coverage report -m
+- codecov
