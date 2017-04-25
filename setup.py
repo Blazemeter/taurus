@@ -47,7 +47,7 @@ class InstallWithHook(install, object):
 
 requires = ['pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama',
             'cssselect', 'urwid', 'six', 'nose',
-            'selenium<=3.3.0', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', 'jsonpath-rw']
+            'selenium<=3.3.0', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', "apiritif"]
 
 requires += ['lxml == 3.6.0'] if platform.system() == 'Windows' else ['lxml >= 3.6.0']
 setup(
@@ -63,7 +63,7 @@ setup(
     docs_url='http://gettaurus.org/docs/',
 
     install_requires=requires,
-    packages=['bzt', 'bzt.six', 'bzt.modules', 'bzt.resources', 'apiritif'],
+    packages=['bzt', 'bzt.six', 'bzt.modules', 'bzt.resources'],
     entry_points={
         'console_scripts': [
             'bzt=bzt.cli:main',
