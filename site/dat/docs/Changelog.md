@@ -4,6 +4,7 @@
  - fix grinder having 100% errors
  - bump up auto-installed JMeter to 3.2
  - extract apiritif into standalone PyPi project
+ - improve console message in case of BZA failed response
 
 ## 1.9.1 <sup>19 apr 2017</sup>
  - fix errors in reading Grinder KPI file
