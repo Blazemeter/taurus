@@ -9,7 +9,7 @@ from tests import __dir__
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules import java
-from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION
+from bzt.modules.java import JUnitTester, JavaTestRunner, BZTTestNGTester, JUnitJar, JUNIT_VERSION
 from bzt.utils import get_full_path
 from tests.mocks import EngineEmul
 from tests.modules.test_SeleniumExecutor import SeleniumTestCase
@@ -334,7 +334,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
 
         self.assertFalse(os.path.exists(dummy_installation_path))
 
-        self.obj = TestNGTester()
+        self.obj = BZTTestNGTester()
         self.obj.engine = EngineEmul()
         self.obj.settings.merge({
             "selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar"),
@@ -510,7 +510,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
             },
         })
         self.obj.prepare()
-        self.assertIsInstance(self.obj.runner, TestNGTester)
+        self.assertIsInstance(self.obj.runner, BZTTestNGTester)
 
     def test_detect_testng_xml_with_config(self):
         test_yml = __dir__() + "/../selenium/testng/test.yml"
@@ -519,5 +519,5 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.execution = self.obj.engine.config.get('execution')
         self.obj.engine.file_search_paths.append(os.path.dirname(test_yml))
         self.obj.prepare()
-        self.assertIsInstance(self.obj.runner, TestNGTester)
+        self.assertIsInstance(self.obj.runner, BZTTestNGTester)
         self.assertEqual(self.obj.runner.settings["testng-xml"], testng_xml)

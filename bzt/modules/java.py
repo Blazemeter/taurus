@@ -226,22 +226,20 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         self._start_subprocess(junit_command_line)
 
 
-class TestNGTester(JavaTestRunner, HavingInstallableTools):
+class BZTTestNGTester(JavaTestRunner, HavingInstallableTools):
     """
     Allows to test java and jar files with TestNG
     """
 
-    __test__ = False  # Hello, nosetests discovery mechanism
-
     def prepare(self):
-        super(TestNGTester, self).prepare()
+        super(BZTTestNGTester, self).prepare()
         self.install_required_tools()
         self.base_class_path += [self.testng_path, self.testng_plugin_path]
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
 
     def install_required_tools(self):
-        super(TestNGTester, self).install_required_tools()
+        super(BZTTestNGTester, self).install_required_tools()
         self.testng_path = self.path_lambda(self.settings.get("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar"))
         self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                                "resources",
