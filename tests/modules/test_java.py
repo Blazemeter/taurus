@@ -9,7 +9,7 @@ from tests import __dir__
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules import java
-from bzt.modules.java import JUnitTester, JavaTestRunner, BZTTestNGTester, JUnitJar, JUNIT_VERSION
+from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION
 from bzt.utils import get_full_path
 from tests.mocks import EngineEmul
 from tests.modules.test_SeleniumExecutor import SeleniumTestCase
