@@ -6,7 +6,7 @@ import time
 
 import yaml
 
-from bzt import TaurusConfigError, TaurusException
+from bzt import TaurusConfigError, TaurusException, NormalShutdown
 from bzt.bza import Master, Test, MultiTest
 from bzt.engine import ScenarioExecutor, ManualShutdown, Service
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
@@ -978,7 +978,10 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = True
-        self.assertRaises(ManualShutdown, self.obj.prepare)
+        try:
+            self.assertRaises(ManualShutdown, self.obj.prepare)
+        except KeyboardInterrupt:
+            raise AssertionError()
 
         warnings = log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
@@ -994,7 +997,10 @@ class TestCloudProvisioning(BZTestCase):
         self.configure()
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = False
-        self.assertRaises(ManualShutdown, self.obj.prepare)
+        try:
+            self.assertRaises(NormalShutdown, self.obj.prepare)
+        except KeyboardInterrupt:
+            raise AssertionError()
 
         warnings = log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
