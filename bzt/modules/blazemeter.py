@@ -1263,11 +1263,12 @@ class CloudCollectionTest(BaseCloudTest):
             time.sleep(1.0)
 
     def stop_test(self):
-        if self._started:
+        if self._started and self._test:
             self.log.info("Shutting down cloud test...")
             self._test.stop()
             self.await_test_end()
-        else:
+        elif self.master:
+
             self.log.info("Shutting down cloud test...")
             self.master.stop()
 
