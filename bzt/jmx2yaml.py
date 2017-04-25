@@ -215,7 +215,6 @@ class JMXasDict(JMX):
         :param element:
         :return: dict
         """
-        request_params = {}
         raw_body = self._get_bool_prop(element, 'HTTPSampler.postBodyRaw')
         if raw_body:
             query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
@@ -224,46 +223,53 @@ class JMXasDict(JMX):
             body = self._get_string_prop(http_args_element, 'Argument.value')
             if body:
                 self.log.debug('Got %s for body in %s (%s)', body, element.tag, element.get("name"))
-                request_params['body'] = body
+                return{'body': body}
+            else:
+                return {}
         else:
-            url = request_config.get('url', '')
-            body_params = {}
-            query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
-            xpath = GenericTranslator().css_to_xpath(query)
-            http_args_collection = element.xpath(xpath)
-            additional_url = ''
-            for param in http_args_collection:
-                name = param.get("name")
-                val = self._get_string_prop(param, 'Argument.value')
-                if val is None:
-                    val = ''
-                incompat = self._get_param_incompat(param, val)
-                method = request_config.get('method', 'get')
-                if incompat:
-                    if method.lower() == 'get':
-                        param_str = name
-                        if self._get_bool_prop(param, "HTTPArgument.use_equals"):
-                            param_str += '='
-                        param_str += val
-                        msg = "Parameter '%s'='%s' has unsupported option (%s) and added to url: '%s'"
-                        self.log.debug(msg, name, val, incompat, param_str)
-                        additional_url += '&' + param_str
-                        continue    # avoid adding this parameter to body part
-                    else:
-                        msg = "Parameter '%s'='%s' isn't fully supported for %s request: %s"
-                        self.log.warning(msg, name, val, method, incompat)
+            return self._get_params(element, request_config)                    
 
-                body_params[name] = val
+    def _get_params(self, element, request_config):
+        request_params = {}
+        url = request_config.get('url', '')
+        method = request_config.get('method', 'get')
+        body_params = {}
+        query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
+        xpath = GenericTranslator().css_to_xpath(query)
+        http_args_collection = element.xpath(xpath)
+        additional_url = ''
+        for param in http_args_collection:
+            name = param.get("name")
+            val = self._get_string_prop(param, 'Argument.value')
+            if val is None:
+                val = ''
+            incompat = self._get_param_incompat(param, val)
+            if incompat:
+                if method.lower() == 'get':
+                    param_str = name
+                    if self._get_bool_prop(param, "HTTPArgument.use_equals"):
+                        param_str += '='
+                    param_str += val
+                    msg = "Parameter '%s'='%s' has unsupported option (%s) and added to url: '%s'"
+                    self.log.debug(msg, name, val, incompat, param_str)
+                    additional_url += '&' + param_str
+                    continue  # avoid adding this parameter to body part
+                else:
+                    msg = "Parameter '%s'='%s' isn't fully supported for %s request: %s"
+                    self.log.warning(msg, name, val, method, incompat)
 
-            if additional_url:
-                if url:
-                    url += '?'
-                url += additional_url[1:]
-                request_params['url'] = url
+            body_params[name] = val
+
+        if additional_url:
+            if url:
+                url += '?'
+            url += additional_url[1:]
             request_params['url'] = url
-            if body_params:
-                self.log.debug('Got %s for parameters in %s (%s)', body_params, element.tag, element.get("name"))
-                request_params["body"] = body_params
+        request_params['url'] = url
+
+        if body_params:
+            self.log.debug('Got %s for parameters in %s (%s)', body_params, element.tag, element.get("name"))
+            request_params["body"] = body_params
 
         return request_params
 
