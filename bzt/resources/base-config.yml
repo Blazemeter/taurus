@@ -27,7 +27,7 @@ modules:
   junit:
     class: bzt.modules.java.JUnitTester
   testng:
-    class: bzt.modules.java.TestNGTester
+    class: bzt.modules.java.BZTTestNGTester
   rspec:
     class: bzt.modules.ruby.RSpecTester
   mocha:
