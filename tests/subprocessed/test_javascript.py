@@ -6,7 +6,7 @@ from tests import __dir__
 
 from bzt.modules import javascript
 from bzt.utils import get_full_path
-from tests.modules.test_SeleniumExecutor import SeleniumTestCase
+from tests.subprocessed.test_SeleniumExecutor import SeleniumTestCase
 
 
 class TestSeleniumMochaRunner(SeleniumTestCase):

@@ -14,12 +14,16 @@ from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.python import NoseTester
 from bzt.modules.selenium import SeleniumExecutor
-from bzt.utils import LDJSONReader
 from bzt.six import StringIO
+from bzt.utils import LDJSONReader
 from tests.mocks import EngineEmul
 
 
 class SeleniumTestCase(BZTestCase):
+    def __init__(self, methodName='runTest'):
+        super(SeleniumTestCase, self).__init__(methodName)
+        self.obj = None
+
     def setUp(self):
         super(SeleniumTestCase, self).setUp()
         engine_obj = EngineEmul()

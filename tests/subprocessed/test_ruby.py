@@ -5,7 +5,7 @@ import os
 from tests import __dir__
 
 from bzt.utils import is_windows
-from tests.modules.test_SeleniumExecutor import SeleniumTestCase
+from tests.subprocessed.test_SeleniumExecutor import SeleniumTestCase
 
 
 class TestSeleniumRSpecRunner(SeleniumTestCase):
