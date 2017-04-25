@@ -32,7 +32,7 @@ from colorlog import ColoredFormatter
 from logging import Formatter
 
 import bzt
-from bzt.engine import Engine, Configuration, ScenarioExecutor
+from bzt.engine import Engine, Configuration, ScenarioExecutor, SETTINGS
 from bzt.six import HTTPError, string_types, b, get_stacktrace
 from bzt.utils import run_once, is_int, BetterDict, is_piped
 
@@ -197,6 +197,7 @@ class CLI(object):
         :type configs: list
         :return: integer exit code
         """
+        self.engine.config.get(SETTINGS)['verbose'] = self.options.verbose
         jmx_shorthands = []
         try:
             jmx_shorthands = self.__get_jmx_shorthands(configs)

@@ -1,11 +1,12 @@
 import re
+import select
 import sys
 from collections import OrderedDict
 
 import os
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario
+from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, LoadSamplesReader, FuncSamplesReader
 from bzt.requests_model import HTTPRequest
@@ -26,6 +27,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
                                         "nose_plugin.py")
         self._script = None
         self.generated_methods = BetterDict()
+        self._tailer = NoneTailer()
 
     def prepare(self):
         super(NoseTester, self).prepare()
@@ -42,6 +44,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         test_mode = self.execution.get("test-mode", None) or "apiritif"
         if test_mode == "apiritif":
             builder = ApiritifScriptBuilder(self.get_scenario(), self.log)
+            builder.verbose = self.engine.config.get(SETTINGS).get("verbose", False)
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
@@ -89,11 +92,24 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         nose_command_line += [self._script]
         self._start_subprocess(nose_command_line)
 
+        if self.engine.config.get(SETTINGS).get("verbose", False):
+            self._tailer = FileTailer(self._stdout_file)
+
     def has_results(self):
         if isinstance(self.reader, LoadSamplesReader):
             return bool(self.reader) and bool(self.reader.buffer)
         elif isinstance(self.reader, FuncSamplesReader):
             return bool(self.reader) and bool(self.reader.read_records)
+
+    def check(self):
+        for line in self._tailer.get_lines():
+            print(line)
+        return super(NoseTester, self).check()
+
+    def post_process(self):
+        super(NoseTester, self).post_process()
+        for line in self._tailer.get_lines(True):
+            print(line)
 
 
 class TaurusNosePlugin(RequiredTool):
@@ -340,6 +356,8 @@ class ApiritifScriptBuilder(PythonGenerator):
     IMPORTS = """\
 import time
 import unittest
+import logging
+import sys
 
 import apiritif
 
@@ -347,6 +365,7 @@ import apiritif
 
     def __init__(self, scenario, parent_logger):
         super(ApiritifScriptBuilder, self).__init__(scenario, parent_logger)
+        self.verbose = False
         self.access_method = None
 
     def gen_setup_method(self):
@@ -424,6 +443,12 @@ import apiritif
         self.log.debug("Generating Test Case test methods")
         imports = self.add_imports()
         self.root.append(imports)
+
+        if self.verbose:
+            self.root.append(
+                self.gen_statement("logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)", indent=0))
+            self.root.append(self.gen_new_line(0))
+
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
         setup_method = self.gen_setup_method()
@@ -617,3 +642,31 @@ import apiritif
         self.log.debug("Generating test method %s", name)
         test_method = self.gen_method_definition(name, ["self"])
         return test_method
+
+
+class NoneTailer(object):
+    def get_lines(self, force=False):
+        if False:
+            yield ''
+        return
+
+
+class FileTailer(NoneTailer):
+    def __init__(self, filename):
+        super(FileTailer, self).__init__()
+        self._fds = open(filename)
+        self._poller = select.poll()
+        self._poller.register(self._fds)
+
+    def get_lines(self, force=False):
+        readable = self._poller.poll(0)
+        for fds, event in readable:
+            yield self._fds.readline().rstrip()
+
+        if force:
+            for line in self._fds.readlines():
+                yield line.rstrip()
+
+    def __del__(self):
+        if self._fds:
+            self._fds.close()
