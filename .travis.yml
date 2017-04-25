@@ -40,7 +40,7 @@ install:
 - pip install codecov nose colorlog jsonpath-rw pyyaml psutil!=4.4.0 lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay
 - pip install --upgrade nose
 script:
-- coverage run -m nose tests -vvv
+- coverage run --omit /home/travis/virtualenv -m nose tests -vvv
 after_success:
 - coverage report -m
 - codecov
