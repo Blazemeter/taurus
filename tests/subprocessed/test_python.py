@@ -159,6 +159,7 @@ class TestNoseRunner(BZTestCase):
         finally:
             self.obj.shutdown()
         self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
         self.assertNotEquals(self.obj.process, None)
 
     def test_apiritif_generated_requests(self):
