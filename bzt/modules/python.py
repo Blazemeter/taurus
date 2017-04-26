@@ -14,6 +14,8 @@ from bzt.six import parse, string_types, iteritems
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time, BetterDict, \
     ensure_is_dict
 
+IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
+
 
 class NoseTester(SubprocessedExecutor, HavingInstallableTools):
     """
@@ -102,14 +104,21 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
             return bool(self.reader) and bool(self.reader.read_records)
 
     def check(self):
-        for line in self._tailer.get_lines():
-            print(line)
+        self.__log_lines()
         return super(NoseTester, self).check()
 
     def post_process(self):
         super(NoseTester, self).post_process()
-        for line in self._tailer.get_lines(True):
-            print(line)
+        self.__log_lines(True)
+
+    def __log_lines(self, force=False):
+        lines = []
+        for line in self._tailer.get_lines(force):
+            if not IGNORED_LINE.match(line):
+                lines.append(line)
+
+        if lines:
+            self.log.info("\n".join(lines))
 
 
 class TaurusNosePlugin(RequiredTool):
@@ -393,14 +402,13 @@ import apiritif
             setup_method_def.append(self.gen_statement(target_line, indent=8))
 
             if base_path:
-                setup_method_def.append(self.gen_statement("self.target.base_path(%r)" % base_path, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.keep_alive(%r)" % keepalive, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.use_cookies(%r)" % store_cookie, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.allow_redirects(%r)" % follow_redirects, indent=8))
+                setup_method_def.append(self.gen_statement("self.target.base_path(%r)" % base_path))
+            setup_method_def.append(self.gen_statement("self.target.keep_alive(%r)" % keepalive))
+            setup_method_def.append(self.gen_statement("self.target.auto_assert_ok(%r)" % auto_assert_ok))
+            setup_method_def.append(self.gen_statement("self.target.use_cookies(%r)" % store_cookie))
+            setup_method_def.append(self.gen_statement("self.target.allow_redirects(%r)" % follow_redirects))
             if timeout is not None:
-                setup_method_def.append(self.gen_statement("self.target.timeout(%r)" % dehumanize_time(timeout),
-                                                           indent=8))
+                setup_method_def.append(self.gen_statement("self.target.timeout(%r)" % dehumanize_time(timeout)))
             setup_method_def.append(self.gen_new_line(indent=0))
 
             return setup_method_def
@@ -445,8 +453,9 @@ import apiritif
         self.root.append(imports)
 
         if self.verbose:
-            self.root.append(
-                self.gen_statement("logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)", indent=0))
+            self.root.append(self.gen_statement("log=logging.getLogger('apiritif.http')", indent=0))
+            self.root.append(self.gen_statement("log.addHandler(logging.StreamHandler(sys.stdout))", indent=0))
+            self.root.append(self.gen_statement("log.setLevel(logging.DEBUG)", indent=0))
             self.root.append(self.gen_new_line(0))
 
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
@@ -459,7 +468,7 @@ import apiritif
 
         variables = self.scenario.get("variables")
         for var, init in iteritems(variables):
-            test_method.append(self.gen_statement("%s = %s" % (var, ApiritifScriptBuilder.repr_inter(init)), indent=8))
+            test_method.append(self.gen_statement("%s = %s" % (var, ApiritifScriptBuilder.repr_inter(init))))
         if variables:
             test_method.append(self.gen_new_line(indent=0))
 
@@ -483,7 +492,7 @@ import apiritif
         named_args = OrderedDict()
 
         method = request.method.lower()
-        think_time = dehumanize_time(request.priority_option('think-time', default=None))
+        think_time = dehumanize_time(request.priority_option('think-time'))
 
         if request.timeout is not None:
             named_args['timeout'] = dehumanize_time(request.timeout)
@@ -523,7 +532,7 @@ import apiritif
         else:
             label = request.url
 
-        test_method.append(self.gen_statement("with apiritif.transaction(%r):" % label, indent=8))
+        test_method.append(self.gen_statement("with apiritif.transaction(%r):" % label))
         request_line = "response = {source}.{method}({url}{kwargs})".format(
             source=request_source,
             method=method,
