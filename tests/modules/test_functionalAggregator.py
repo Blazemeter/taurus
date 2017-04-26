@@ -1,6 +1,6 @@
-from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener, FunctionalSample
-
 from tests import BZTestCase
+
+from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener, FunctionalSample
 from tests.mocks import MockFunctionalReader
 
 
@@ -17,27 +17,27 @@ class TestFunctionalAggregator(BZTestCase):
         mock = MockFunctionalReader()
         mock.data = [
             FunctionalSample(test_case="test1", test_suite="Tests1", status="PASSED", start_time=1, duration=1,
-                             error_msg=None, error_trace=None, extras=None),
+                             error_msg=None, error_trace=None, extras=None, subsamples=[]),
             FunctionalSample(test_case="test2", test_suite="Tests1", status="BROKEN", start_time=2, duration=1,
-                             error_msg="Something broke", error_trace=None, extras=None),
+                             error_msg="Something broke", error_trace=None, extras=None, subsamples=[]),
             FunctionalSample(test_case="test3", test_suite="Tests2", status="PASSED", start_time=2, duration=1,
-                             error_msg=None, error_trace=None, extras=None),
+                             error_msg=None, error_trace=None, extras=None, subsamples=[]),
             FunctionalSample(test_case="test2", test_suite="Tests1", status="FAILED", start_time=3, duration=1,
-                             error_msg="Something failed", error_trace=None, extras=None),
+                             error_msg="Something failed", error_trace=None, extras=None, subsamples=[]),
             FunctionalSample(test_case="test1", test_suite="Tests1", status="SKIPPED", start_time=3, duration=1,
-                             error_msg="Disabled by user", error_trace=None, extras=None),
+                             error_msg="Disabled by user", error_trace=None, extras=None, subsamples=[]),
             FunctionalSample(test_case="test3", test_suite="Tests2", status="PASSED", start_time=4, duration=1,
-                             error_msg=None, error_trace=None, extras=None),
+                             error_msg=None, error_trace=None, extras=None, subsamples=[]),
             FunctionalSample(test_case="test1", test_suite="Tests1", status="BROKEN", start_time=4, duration=1,
-                             error_msg="Broken", error_trace=None, extras=None),
+                             error_msg="Broken", error_trace=None, extras=None, subsamples=[]),
             FunctionalSample(test_case="test1", test_suite="Tests1", status="PASSED", start_time=5, duration=1,
-                             error_msg=None, error_trace=None, extras=None),
+                             error_msg=None, error_trace=None, extras=None, subsamples=[]),
             FunctionalSample(test_case="test2", test_suite="Tests1", status="PASSED", start_time=4, duration=1,
-                             error_msg=None, error_trace=None, extras=None),
+                             error_msg=None, error_trace=None, extras=None, subsamples=[]),
             FunctionalSample(test_case="test3", test_suite="Tests2", status="FAILED", start_time=6, duration=1,
-                             error_msg="Really failed", error_trace=None, extras=None),
+                             error_msg="Really failed", error_trace=None, extras=None, subsamples=[]),
             FunctionalSample(test_case="test1", test_suite="Tests1", status="PASSED", start_time=6, duration=1,
-                             error_msg=None, error_trace=None, extras=None),
+                             error_msg=None, error_trace=None, extras=None, subsamples=[]),
         ]
         return mock
 

@@ -8,7 +8,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.python import NoseTester
 from tests.mocks import EngineEmul
-from tests.modules.test_SeleniumExecutor import SeleniumTestCase
+from tests.subprocessed import SeleniumTestCase
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
@@ -708,7 +708,6 @@ class TestApiritifScriptBuilder(BZTestCase):
         """ This test serves code review purposes, to make changes more visible """
         self.obj.engine.config.load([__dir__() + '/../apiritif/test_codegen.yml'])
         self.configure(self.obj.engine.config['execution'][0])
-        self.obj.settings['verbose'] = True
         self.obj.prepare()
         exp_file = __dir__() + '/../apiritif/test_codegen.py'
         # import shutil; shutil.copy2(self.obj._script, exp_file)  # keep this coment to ease updates
