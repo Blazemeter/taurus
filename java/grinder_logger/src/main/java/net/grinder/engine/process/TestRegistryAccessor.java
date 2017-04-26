@@ -18,10 +18,12 @@ public class TestRegistryAccessor {
     public static Collection<Test> getNewTests() {
         TestRegistry reg = Grinder.grinder.getTestRegistry();
         if (reg != null && reg instanceof TestRegistryImplementation) {
-            TestRegistryImplementation registry = (TestRegistryImplementation) reg;
-            Collection<Test> newTests = registry.getNewTests();
-            if (newTests != null) {
-                return newTests;
+            synchronized (reg) {
+                TestRegistryImplementation registry = (TestRegistryImplementation) reg;
+                Collection<Test> newTests = registry.getNewTests();
+                if (newTests != null) {
+                    return newTests;
+                }
             }
         }
         return empty;
@@ -36,7 +38,7 @@ public class TestRegistryAccessor {
 
     public static InternalScriptContext getDummyScriptContext() {
         TestRegistry reg = TestRegistryAccessor.getInstance();
-        GrinderProperties props=new GrinderProperties();
+        GrinderProperties props = new GrinderProperties();
         return new ScriptContextImplementation(null, null, null, props, null, null, null, null, reg,
                 null, null, null, null);
     }
