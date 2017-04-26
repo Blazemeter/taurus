@@ -24,9 +24,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
 
     def __init__(self):
         super(NoseTester, self).__init__()
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
-                                        "resources",
-                                        "nose_plugin.py")
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
         self._script = None
         self.generated_methods = BetterDict()
         self._tailer = NoneTailer()
@@ -46,7 +44,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         test_mode = self.execution.get("test-mode", None) or "apiritif"
         if test_mode == "apiritif":
             builder = ApiritifScriptBuilder(self.get_scenario(), self.log)
-            builder.verbose = self.engine.config.get(SETTINGS).get("verbose", False)
+            builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
@@ -54,12 +52,17 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         builder.save(filename)
         return filename
 
+    def __is_verbose(self):
+        engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
+        executor_verbose = self.settings.get("verbose", engine_verbose)
+        return executor_verbose
+
     def install_required_tools(self):
         """
         we need installed nose plugin
         """
         if sys.version >= '3':
-            self.log.warning("You are using python3, make sure that your scripts are able to run in python3!")
+            self.log.warning("You are using Python 3, make sure that your scripts are able to run in Python 3")
 
         self._check_tools([TclLibrary(self.log), TaurusNosePlugin(self.plugin_path, "")])
 
@@ -94,7 +97,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         nose_command_line += [self._script]
         self._start_subprocess(nose_command_line)
 
-        if self.engine.config.get(SETTINGS).get("verbose", False):
+        if self.__is_verbose():
             self._tailer = FileTailer(self._stdout_file)
 
     def has_results(self):
@@ -399,7 +402,7 @@ import apiritif
         if self.access_method == "target":
             setup_method_def = self.gen_method_definition("setUp", ["self"])
             target_line = "self.target = apiritif.http.target(%r)" % default_address
-            setup_method_def.append(self.gen_statement(target_line, indent=8))
+            setup_method_def.append(self.gen_statement(target_line))
 
             if base_path:
                 setup_method_def.append(self.gen_statement("self.target.base_path(%r)" % base_path))
@@ -425,7 +428,7 @@ import apiritif
         :return:
         """
         components = []
-        for item in re.split(r'(\$\{\w+\})', string):
+        for item in re.split(r"(\$\{\w+\})", string):
             if item:
                 if item.startswith("${") and item.endswith("}"):
                     components.append("str(%s)" % item[2:-1])
@@ -669,7 +672,7 @@ class FileTailer(NoneTailer):
 
     def get_lines(self, force=False):
         readable = self._poller.poll(0)
-        for fds, event in readable:
+        for _, _ in readable:
             yield self._fds.readline().rstrip()
 
         if force:
