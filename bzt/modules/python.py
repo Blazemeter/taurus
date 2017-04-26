@@ -456,7 +456,7 @@ import apiritif
         self.root.append(imports)
 
         if self.verbose:
-            self.root.append(self.gen_statement("log=logging.getLogger('apiritif.http')", indent=0))
+            self.root.append(self.gen_statement("log = logging.getLogger('apiritif.http')", indent=0))
             self.root.append(self.gen_statement("log.addHandler(logging.StreamHandler(sys.stdout))", indent=0))
             self.root.append(self.gen_statement("log.setLevel(logging.DEBUG)", indent=0))
             self.root.append(self.gen_new_line(0))
