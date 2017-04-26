@@ -6,7 +6,7 @@ from tests import __dir__
 
 from bzt.modules import javascript
 from bzt.utils import get_full_path
-from tests.modules.test_SeleniumExecutor import SeleniumTestCase
+from tests.subprocessed import SeleniumTestCase
 
 
 class TestSeleniumMochaRunner(SeleniumTestCase):
@@ -107,9 +107,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         javascript.MOCHA_NPM_PACKAGE_NAME = mocha_link
         javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = wd_link
 
-        self.obj.settings.merge({"selenium-tools": {
-            "mocha": {"tools-dir": dummy_installation_path}
-        }})
+        self.obj.settings.merge({"tools-dir": dummy_installation_path})
 
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/js-mocha/bd_scenarios.js"}})
         self.obj.prepare()

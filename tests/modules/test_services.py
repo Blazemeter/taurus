@@ -7,9 +7,8 @@ from os.path import join
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning
-from bzt.modules.selenium import Node
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader
-from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM
+from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node
 from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
 from tests.modules.test_blazemeter import BZMock

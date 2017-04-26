@@ -1,9 +1,9 @@
 from random import random
 
-from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from tests import BZTestCase, r
+
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from tests.mocks import MockReader
-from bzt.modules.reporting import Reporter
 
 
 class TestConsolidatingAggregator(BZTestCase):
