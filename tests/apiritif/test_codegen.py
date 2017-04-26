@@ -6,6 +6,10 @@ import sys
 import apiritif
 
 
+log=logging.getLogger('apiritif.http')
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.setLevel(logging.DEBUG)
+
 class TestRequests(unittest.TestCase):
     def setUp(self):
         self.target = apiritif.http.target('https://jsonplaceholder.typicode.com')
