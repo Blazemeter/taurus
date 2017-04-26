@@ -489,7 +489,7 @@ class TestASeleniumTestNGRunner(SeleniumTestCase):
         lines = open(self.obj.runner.execution.get("report-file")).readlines()
         self.assertEqual(len(lines), 6)
 
-    def test_testng_config_autodetect(self):
+    def test_atestng_config_autodetect(self):
         testng_xml_path = get_full_path(__dir__() + '/../selenium/testng/jars/testng.xml')
         self.configure({
             'execution': {
@@ -499,7 +499,7 @@ class TestASeleniumTestNGRunner(SeleniumTestCase):
             },
         })
         self.obj.prepare()
-        self.assertEqual(testng_xml_path, self.obj.runner.settings.get("testng-xml", None))
+        self.assertEqual(testng_xml_path, self.obj.runner.execution.get("testng-xml", None))
         self.obj.startup()
         while not self.obj.check():
             time.sleep(1)
@@ -519,7 +519,7 @@ class TestASeleniumTestNGRunner(SeleniumTestCase):
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, TestNGTester)
 
-    def test_adetect_testng_xml_with_config(self):
+    def test_detect_testng_xml_with_config(self):
         test_yml = __dir__() + "/../selenium/testng/test.yml"
         testng_xml = get_full_path(__dir__() + "/../selenium/testng/testng.xml")
         self.obj.engine.config.merge(yaml.load(open(test_yml)))
