@@ -980,7 +980,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["use-deprecated-api"] = True
         try:
             self.assertRaises(NormalShutdown, self.obj.prepare)
-        except KeyboardInterrupt, exc:
+        except KeyboardInterrupt as exc:
             raise AssertionError(type(exc))
 
         warnings = log_recorder.warn_buff.getvalue()
@@ -999,7 +999,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["use-deprecated-api"] = False
         try:
             self.assertRaises(NormalShutdown, self.obj.prepare)
-        except KeyboardInterrupt, exc:
+        except KeyboardInterrupt as exc:
             raise AssertionError(type(exc))
 
         warnings = log_recorder.warn_buff.getvalue()
