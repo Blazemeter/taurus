@@ -44,7 +44,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.configure({
             ScenarioExecutor.EXEC: {
                 "executor": "selenium",
-                "scenario": {"script": __dir__() + "/../selenium/invalid/invalid.java"}
+                "scenario": {"script": __dir__() + "/../../data/selenium/invalid/invalid.java"}
             }
         })
         self.assertRaises(ToolError, self.obj.prepare)
@@ -56,7 +56,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../selenium/invalid/not_found"}
+            "scenario": {"script": __dir__() + "/../../data/selenium/invalid/not_found"}
         }})
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
@@ -67,7 +67,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../selenium/invalid/SeleniumTest.java"}
+            "scenario": {"script": __dir__() + "/../../data/selenium/invalid/SeleniumTest.java"}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -82,7 +82,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../selenium/invalid/SimpleTest.java"}
+            "scenario": {"script": __dir__() + "/../../data/selenium/invalid/SimpleTest.java"}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -97,7 +97,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../selenium/invalid/selenium1.java"}
+            "scenario": {"script": __dir__() + "/../../data/selenium/invalid/selenium1.java"}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -237,7 +237,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
     def test_force_runner(self):
         self.obj.execution.merge({
-            'scenario': {'script': __dir__() + '/../selenium/junit/jar/'},
+            'scenario': {'script': __dir__() + '/../../data/selenium/junit/jar/'},
             'runner': 'nose',
         })
         self.obj.prepare()
@@ -246,13 +246,13 @@ class TestSeleniumStuff(SeleniumTestCase):
     def test_additional_classpath_resource_files(self):
         self.obj.execution.merge({
             'scenario': {
-                'script': __dir__() + '/../selenium/junit/jar/dummy.jar',
+                'script': __dir__() + '/../../data/selenium/junit/jar/dummy.jar',
                 'runner': 'junit',
-                'additional-classpath': [__dir__() + '/../selenium/junit/jar/another_dummy.jar'],
+                'additional-classpath': [__dir__() + '/../../data/selenium/junit/jar/another_dummy.jar'],
             },
         })
         self.obj.settings.merge({
-            'additional-classpath': [__dir__() + '/../selenium/testng/jars/testng-suite.jar'],
+            'additional-classpath': [__dir__() + '/../../data/selenium/testng/jars/testng-suite.jar'],
         })
         resources = self.obj.resource_files()
         # scenario.script, scenario.additional-classpath, settings.additional-classpath
@@ -261,7 +261,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
 class TestReportReader(BZTestCase):
     def test_report_reader(self):
-        reader = LoadSamplesReader(__dir__() + "/../selenium/report.ldjson", logging.getLogger(), None)
+        reader = LoadSamplesReader(__dir__() + "/../../data/selenium/report.ldjson", logging.getLogger(), None)
         items = list(reader._read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0][1], 'testFailure')
@@ -288,7 +288,7 @@ class TestReportReader(BZTestCase):
         self.assertEqual(len(items), 2)
 
     def test_func_reader(self):
-        reader = FuncSamplesReader(__dir__() + "/../selenium/report.ldjson", EngineEmul(), logging.getLogger(), None)
+        reader = FuncSamplesReader(__dir__() + "/../../data/selenium/report.ldjson", EngineEmul(), logging.getLogger(), None)
         items = list(reader.read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0].test_case, 'testFailure')

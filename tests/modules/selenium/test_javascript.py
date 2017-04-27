@@ -11,21 +11,21 @@ from tests.modules.selenium import SeleniumTestCase
 class TestSeleniumMochaRunner(SeleniumTestCase):
     def test_selenium_prepare_mocha(self):
         self.obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../selenium/js-mocha/bd_scenarios.js"
+            "script": __dir__() + "/../../data/selenium/js-mocha/bd_scenarios.js"
         }})
         self.obj.prepare()
 
     def test_mocha_full(self):
         self.obj.engine.config.merge({
             'execution': {
-                "script": __dir__() + "/../selenium/js-mocha/bd_scenarios.js"
+                "script": __dir__() + "/../../data/selenium/js-mocha/bd_scenarios.js"
             },
         })
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
 
         self.obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../selenium/js-mocha/bd_scenarios.js"
+            "script": __dir__() + "/../../data/selenium/js-mocha/bd_scenarios.js"
         }})
 
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
@@ -43,7 +43,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.engine.config.merge({
             'execution': {
                 'hold-for': '5s',
-                'scenario': {'script': __dir__() + '/../selenium/js-mocha/'},
+                'scenario': {'script': __dir__() + '/../../data/selenium/js-mocha/'},
                 'executor': 'selenium'
             },
         })
@@ -51,7 +51,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.execution = self.obj.engine.config['execution']
 
         self.obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../selenium/js-mocha/"
+            "script": __dir__() + "/../../data/selenium/js-mocha/"
         }})
 
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
@@ -68,7 +68,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.engine.config.merge({
             'execution': {
                 'iterations': 3,
-                'scenario': {'script': __dir__() + '/../selenium/js-mocha'},
+                'scenario': {'script': __dir__() + '/../../data/selenium/js-mocha'},
                 'executor': 'selenium'
             },
         })
@@ -76,7 +76,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.execution = self.obj.engine.config['execution']
 
         self.obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../selenium/js-mocha"
+            "script": __dir__() + "/../../data/selenium/js-mocha"
         }})
 
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
@@ -108,7 +108,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
         self.obj.settings.merge({"tools-dir": dummy_installation_path})
 
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../selenium/js-mocha/bd_scenarios.js"}})
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../../data/selenium/js-mocha/bd_scenarios.js"}})
         self.obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules")))
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "node_modules", "mocha")))
