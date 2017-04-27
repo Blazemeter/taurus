@@ -209,13 +209,12 @@ class JMXasDict(JMX):
                 result[opt_name] = int(prop_value)
         return result
 
-    def _get_request_body(self, element):
+    def _get_request_body(self, element, request_config):
         """
         Get body params from sampler
         :param element:
         :return: dict
         """
-
         raw_body = self._get_bool_prop(element, 'HTTPSampler.postBodyRaw')
         if raw_body:
             query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
@@ -224,25 +223,68 @@ class JMXasDict(JMX):
             body = self._get_string_prop(http_args_element, 'Argument.value')
             if body:
                 self.log.debug('Got %s for body in %s (%s)', body, element.tag, element.get("name"))
-                return {"body": body}
+                return{'body': body}
             else:
                 return {}
         else:
-            body_params = {}
-            query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
-            xpath = GenericTranslator().css_to_xpath(query)
-            http_args_collection = element.xpath(xpath)
-            for element in http_args_collection:
-                val = self._get_string_prop(element, 'Argument.value')
-                if val is None and self._get_bool_prop(element, 'HTTPArgument.use_equals'):
-                    val = ''
-                body_params[element.get("name")] = val
+            return self._get_params(element, request_config)                    
 
-            if body_params:
-                self.log.debug('Got %s for body in %s (%s)', body_params, element.tag, element.get("name"))
-                return {"body": body_params}
-            else:
-                return {}
+    def _get_params(self, element, request_config):
+        request_params = {}
+        url = request_config.get('url', '')
+        method = request_config.get('method', 'get')
+        body_params = {}
+        query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
+        xpath = GenericTranslator().css_to_xpath(query)
+        http_args_collection = element.xpath(xpath)
+        additional_url = ''
+        for param in http_args_collection:
+            name = param.get("name")
+            val = self._get_string_prop(param, 'Argument.value')
+            if val is None:
+                val = ''
+            incompat = self._get_param_incompat(param, val)
+            if incompat:
+                if method.lower() == 'get':
+                    param_str = name
+                    if self._get_bool_prop(param, "HTTPArgument.use_equals"):
+                        param_str += '='
+                    param_str += val
+                    msg = "Parameter '%s'='%s' has unsupported option (%s) and added to url: '%s'"
+                    self.log.debug(msg, name, val, incompat, param_str)
+                    additional_url += '&' + param_str
+                    continue  # avoid adding this parameter to body part
+                else:
+                    msg = "Parameter '%s'='%s' isn't fully supported for %s request: %s"
+                    self.log.warning(msg, name, val, method, incompat)
+
+            body_params[name] = val
+
+        if additional_url:
+            if url:
+                url += '?'
+            url += additional_url[1:]
+            request_params['url'] = url
+        request_params['url'] = url
+
+        if body_params:
+            self.log.debug('Got %s for parameters in %s (%s)', body_params, element.tag, element.get("name"))
+            request_params["body"] = body_params
+
+        return request_params
+
+    def _get_param_incompat(self, param, val):
+        """
+        check if parameter can be processed by standard way (see jmx.py _add_body_from_script)
+         or it must be joined with url string
+
+        :param element:
+        :return:
+        """
+        if not self._get_bool_prop(param, "HTTPArgument.always_encode"):
+            return 'always_encode is off'
+        if not val and self._get_bool_prop(param, "HTTPArgument.use_equals"):
+            return 'use_equals is on for empty value'
 
     def _get_upload_files(self, element):
         """
@@ -1145,7 +1187,7 @@ class JMXasDict(JMX):
         """
         request_config = {}
         request_config.update(self._get_request_base(request_element))
-        request_config.update(self._get_request_body(request_element))
+        request_config.update(self._get_request_body(request_element, request_config))
         request_config.update(self._get_upload_files(request_element))
         request_config.update(self._get_headers(request_element))
         request_config.update(self.__get_constant_timer(request_element))
