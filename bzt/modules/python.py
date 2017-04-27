@@ -493,7 +493,7 @@ import apiritif
         self.translator = JMeterLangTranslator(self.log)
         self.access_method = None
 
-    def gen_setup_method(self):
+    def gen_target(self, test_method):
         keepalive = self.scenario.get("keepalive", None)
         default_address = self.scenario.get("default-address", None)
         base_path = self.scenario.get("base-path", None)
@@ -513,24 +513,19 @@ import apiritif
             store_cookie = True
 
         if self.access_method == "target":
-            setup_method_def = self.gen_method_definition("setUp", ["self"])
-            target_line = "self.target = apiritif.http.target(%r)" % default_address
-            setup_method_def.append(self.gen_statement(target_line, indent=8))
+            target_line = "target = apiritif.http.target(%s)" % self.translator.interpolate_str(default_address)
+            test_method.append(self.gen_statement(target_line, indent=8))
 
             if base_path:
-                setup_method_def.append(self.gen_statement("self.target.base_path(%r)" % base_path, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.keep_alive(%r)" % keepalive, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.use_cookies(%r)" % store_cookie, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.allow_redirects(%r)" % follow_redirects, indent=8))
+                test_method.append(self.gen_statement("target.base_path(%r)" % base_path, indent=8))
+            test_method.append(self.gen_statement("target.keep_alive(%r)" % keepalive, indent=8))
+            test_method.append(self.gen_statement("target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
+            test_method.append(self.gen_statement("target.use_cookies(%r)" % store_cookie, indent=8))
+            test_method.append(self.gen_statement("target.allow_redirects(%r)" % follow_redirects, indent=8))
             if timeout is not None:
-                setup_method_def.append(self.gen_statement("self.target.timeout(%r)" % dehumanize_time(timeout),
+                test_method.append(self.gen_statement("target.timeout(%r)" % dehumanize_time(timeout),
                                                            indent=8))
-            setup_method_def.append(self.gen_new_line(indent=0))
-
-            return setup_method_def
-
-        return None
+            test_method.append(self.gen_new_line(indent=0))
 
     def build_source_code(self):
         methods = {}
@@ -539,9 +534,6 @@ import apiritif
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
-        setup_method = self.gen_setup_method()
-        if setup_method is not None:
-            test_class.append(setup_method)
 
         test_method = self.gen_method_definition("test_requests", ["self"])
 
@@ -550,6 +542,8 @@ import apiritif
             test_method.append(self.gen_statement("%s = %s" % (var, self.translator.repr_inter(init)), indent=8))
         if variables:
             test_method.append(self.gen_new_line(indent=0))
+
+        self.gen_target(test_method)
 
         for index, req in enumerate(self.scenario.get_requests()):
             if not isinstance(req, HTTPRequest):
