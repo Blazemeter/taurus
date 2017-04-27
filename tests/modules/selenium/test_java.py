@@ -37,7 +37,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         :return:
         """
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
-        base_link = "file:///" + __dir__() + "/../data/"
+        base_link = "file:///" + __dir__() + "/../../data/"
 
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
 
@@ -326,7 +326,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
 class TestASeleniumTestNGRunner(SeleniumTestCase):
     def test_install_tools(self):
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
-        base_link = "file:///" + __dir__() + "/../data/"
+        base_link = "file:///" + __dir__() + "/../../data/"
 
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
 

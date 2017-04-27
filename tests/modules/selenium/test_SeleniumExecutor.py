@@ -106,7 +106,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.shutdown()
 
     def test_requests(self):
-        self.configure(yaml.load(open(__dir__() + "/../yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.load(open(__dir__() + "/../../yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
@@ -120,7 +120,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             self.assertEqual(1, contents.count("OK"))
 
     def test_fail_on_zero_results(self):
-        self.configure(yaml.load(open(__dir__() + "/../yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.load(open(__dir__() + "/../../yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]
@@ -183,7 +183,7 @@ class TestSeleniumStuff(SeleniumTestCase):
     def test_dont_copy_local_script_to_artifacts(self):
         "ensures that .java file is not copied into artifacts-dir"
         filename = "BlazeDemo.java"
-        script_path = __dir__() + "/../data/" + filename
+        script_path = __dir__() + "/../../data/" + filename
         self.obj.execution.merge({
             "scenario": {
                 "script": script_path,
@@ -200,7 +200,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.engine.file_search_paths = [self.obj.engine.artifacts_dir]
 
         script_name = "BlazeDemo.java"
-        test_script = __dir__() + "/../data/" + script_name
+        test_script = __dir__() + "/../../data/" + script_name
         artifacts_script = os.path.join(self.obj.engine.artifacts_dir, script_name)
         shutil.copy2(test_script, artifacts_script)
 
