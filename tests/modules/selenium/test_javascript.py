@@ -1,12 +1,11 @@
+import os
 import shutil
 import time
 
-import os
-from tests import __dir__
-
 from bzt.modules import javascript
 from bzt.utils import get_full_path
-from tests.subprocessed import SeleniumTestCase
+from tests import __dir__
+from tests.modules.selenium import SeleniumTestCase
 
 
 class TestSeleniumMochaRunner(SeleniumTestCase):

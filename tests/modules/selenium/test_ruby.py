@@ -1,11 +1,10 @@
 import json
+import os
 import time
 
-import os
-from tests import __dir__
-
 from bzt.utils import is_windows
-from tests.subprocessed import SeleniumTestCase
+from tests import __dir__
+from tests.modules.selenium import SeleniumTestCase
 
 
 class TestSeleniumRSpecRunner(SeleniumTestCase):

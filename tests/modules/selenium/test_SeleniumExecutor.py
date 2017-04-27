@@ -1,21 +1,21 @@
 import logging
+import os
 import re
 import shutil
 import time
 
-import os
 import yaml
-from bzt import ToolError, TaurusConfigError
-from tests import BZTestCase, __dir__
 
+from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.python import NoseTester
 from bzt.six import StringIO
 from bzt.utils import LDJSONReader
+from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
-from tests.subprocessed import SeleniumTestCase
+from tests.modules.selenium import SeleniumTestCase
 
 
 class LDJSONReaderEmul(object):

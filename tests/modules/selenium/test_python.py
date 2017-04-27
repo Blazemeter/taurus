@@ -1,14 +1,13 @@
+import os
 import time
 
-import os
 from bzt import ToolError, TaurusConfigError
-from tests import __dir__, BZTestCase
-
 from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.python import NoseTester
+from tests import __dir__, BZTestCase
 from tests.mocks import EngineEmul
-from tests.subprocessed import SeleniumTestCase
+from tests.modules.selenium import SeleniumTestCase
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):

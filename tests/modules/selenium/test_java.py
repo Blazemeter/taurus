@@ -1,18 +1,18 @@
 import logging
+import os
 import shutil
 import time
 import traceback
 
-import os
 import yaml
-from tests import __dir__
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules import java
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION
 from bzt.utils import get_full_path
+from tests import __dir__
 from tests.mocks import EngineEmul
-from tests.subprocessed import SeleniumTestCase
+from tests.modules.selenium import SeleniumTestCase
 
 
 class TestSeleniumJUnitTester(SeleniumTestCase):
