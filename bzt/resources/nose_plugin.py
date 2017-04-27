@@ -230,7 +230,7 @@ class ApiritifExtractor(object):
                     test_case=item.address,
                     status="PASSED",
                     start_time=item.timestamp,
-                    duration=item.response.py_response.elapsed.total_seconds(),
+                    duration=item.response.elapsed.total_seconds(),
                 )
                 extras = ApiritifExtractor._extract_extras(item)
                 if extras:
@@ -293,25 +293,25 @@ class ApiritifExtractor(object):
 
     @staticmethod
     def _extract_extras(request_event):
-        py_response = request_event.response.py_response
+        response = request_event.response
         baked_request = request_event.request
 
         record = {
-            'responseCode': py_response.status_code,
-            'responseMessage': py_response.reason,
-            'responseTime': py_response.elapsed.total_seconds(),
+            'responseCode': response.status_code,
+            'responseMessage': response.reason,
+            'responseTime': response.elapsed.total_seconds(),
             'connectTime': 0,
             'latency': 0,
-            'responseSize': len(py_response.content),
+            'responseSize': len(response.content),
             'requestSize': 0,
             'requestMethod': baked_request.method,
             'requestURI': baked_request.url,
             'assertions': [],  # will be filled later
-            'responseBody': py_response.text,
+            'responseBody': response.text,
             'requestBody': baked_request.body or "",
             'requestCookies': dict(request_event.session.cookies),
-            'requestHeaders': dict(py_response.request.headers),
-            'responseHeaders': dict(py_response.headers),
+            'requestHeaders': dict(response._request.headers),
+            'responseHeaders': dict(response.headers),
         }
 
         record["requestCookiesRaw"] = ApiritifExtractor._cookies_from_dict(record["requestCookies"])
