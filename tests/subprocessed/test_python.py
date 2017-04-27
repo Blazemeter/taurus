@@ -1,13 +1,14 @@
-import os
 import time
 
+import os
 from bzt import ToolError, TaurusConfigError
-from bzt.engine import ScenarioExecutor
-from bzt.modules.python import NoseTester
-
 from tests import __dir__, BZTestCase
+
+from bzt.engine import ScenarioExecutor
+from bzt.modules.functional import FuncSamplesReader
+from bzt.modules.python import NoseTester
 from tests.mocks import EngineEmul
-from tests.modules.test_SeleniumExecutor import SeleniumTestCase
+from tests.subprocessed import SeleniumTestCase
 
 
 class TestSeleniumNoseRunner(SeleniumTestCase):
@@ -184,6 +185,36 @@ class TestNoseRunner(BZTestCase):
         self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
 
+    def test_apiritif_transactions(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "script": __dir__() + "/../apiritif/test_transactions.py"
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
+
+    def test_report_reading(self):
+        reader = FuncSamplesReader(__dir__() + "/../apiritif/transactions.ldjson", self.obj.engine, self.obj.log, [])
+        items = list(reader.read(last_pass=True))
+        self.assertEqual(len(items), 6)
+        self.assertEqual(items[0].test_case, "test_1_single_request")
+        self.assertEqual(items[1].test_case, "test_2_multiple_requests")
+        self.assertEqual(items[2].test_case, "Transaction")
+        self.assertEqual(items[3].test_case, "Transaction")
+        self.assertEqual(items[4].test_case, "Transaction 1")
+        self.assertEqual(items[5].test_case, "Transaction 2")
+
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
     def test_build_script(self):
@@ -293,7 +324,7 @@ class TestApiritifScriptBuilder(BZTestCase):
         self.obj.prepare()
         with open(self.obj._script) as fds:
             test_script = fds.read()
-        self.assertIn("timeout=30.0", test_script)
+        self.assertNotIn("timeout=30.0", test_script)
 
     def test_timeout(self):
         self.configure({
@@ -315,7 +346,8 @@ class TestApiritifScriptBuilder(BZTestCase):
         self.obj.prepare()
         with open(self.obj._script) as fds:
             test_script = fds.read()
-        self.assertIn("get('/?tag=1', timeout=10.0", test_script)
+        self.assertIn("self.target.timeout(10.0)", test_script)
+        self.assertNotIn("get('/?tag=1', timeout=10.0", test_script)
         self.assertIn("get('/?tag=2', timeout=2.0", test_script)
 
     def test_think_time(self):
@@ -425,7 +457,8 @@ class TestApiritifScriptBuilder(BZTestCase):
         self.obj.prepare()
         with open(self.obj._script) as fds:
             test_script = fds.read()
-        self.assertIn("allow_redirects=True", test_script)
+        self.assertIn("self.target.allow_redirects(True)", test_script)
+        self.assertNotIn("allow_redirects=True", test_script)
 
     def test_follow_redirects(self):
         self.configure({
@@ -532,7 +565,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                         "assert": [
                             "Welcome", "Simple Travel Agency"
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -563,7 +596,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                             {"contains": ["9"], "not": False, "subject": "http-code"},
                             {"contains": ["10"], "not": True, "subject": "http-code"},
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -592,7 +625,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                         "assert-jsonpath": [
                             "$.foo.bar"
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -614,7 +647,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                             {"jsonpath": "$.2", "invert": True},
                             {"jsonpath": "$.3", "expected-value": "value"},
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -636,7 +669,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                         "assert-xpath": [
                             "//head/title"
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -659,7 +692,7 @@ class TestApiritifScriptBuilder(BZTestCase):
                             {"xpath": "//3", "validate-xml": True},
                             {"xpath": "//4", "validate-xml": False, "use-tolerant-parser": False},
                         ]
-                     }]
+                    }]
                 }
             }]
         })
@@ -670,3 +703,12 @@ class TestApiritifScriptBuilder(BZTestCase):
         self.assertIn("assert_not_xpath('//2', parser_type='html', validate=False)", test_script)
         self.assertIn("assert_xpath('//3', parser_type='html', validate=True)", test_script)
         self.assertIn("assert_xpath('//4', parser_type='xml', validate=False)", test_script)
+
+    def test_complex_codegen(self):
+        """ This test serves code review purposes, to make changes more visible """
+        self.obj.engine.config.load([__dir__() + '/../apiritif/test_codegen.yml'])
+        self.configure(self.obj.engine.config['execution'][0])
+        self.obj.prepare()
+        exp_file = __dir__() + '/../apiritif/test_codegen.py'
+        # import shutil; shutil.copy2(self.obj._script, exp_file)  # keep this coment to ease updates
+        self.assertFilesEqual(exp_file, self.obj._script)

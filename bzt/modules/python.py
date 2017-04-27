@@ -355,6 +355,8 @@ import apiritif
         base_path = self.scenario.get("base-path", None)
         auto_assert_ok = self.scenario.get("auto-assert-ok", True)
         store_cookie = self.scenario.get("store-cookie", None)
+        timeout = self.scenario.get("timeout", None)
+        follow_redirects = self.scenario.get("follow-redirects", True)
 
         if default_address is not None or keepalive or store_cookie:
             self.access_method = "target"
@@ -366,41 +368,30 @@ import apiritif
         if store_cookie is None:
             store_cookie = True
 
-        setup_method_def = self.gen_decorator_statement('classmethod')
-        setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
-        setup_method_def.append(self.gen_statement("cls.variables = %r" % self.scenario.get("variables", {}), indent=8))
-
         if self.access_method == "target":
-            target_line = "cls.target = apiritif.http.target(%r)" % default_address
+            setup_method_def = self.gen_method_definition("setUp", ["self"])
+            target_line = "self.target = apiritif.http.target(%r)" % default_address
             setup_method_def.append(self.gen_statement(target_line, indent=8))
 
             if base_path:
-                setup_method_def.append(self.gen_statement("cls.target.base_path(%r)" % base_path, indent=8))
-            setup_method_def.append(self.gen_statement("cls.target.keep_alive(%r)" % keepalive, indent=8))
-            setup_method_def.append(self.gen_statement("cls.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
-            setup_method_def.append(self.gen_statement("cls.target.use_cookies(%r)" % store_cookie, indent=8))
+                setup_method_def.append(self.gen_statement("self.target.base_path(%r)" % base_path, indent=8))
+            setup_method_def.append(self.gen_statement("self.target.keep_alive(%r)" % keepalive, indent=8))
+            setup_method_def.append(self.gen_statement("self.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
+            setup_method_def.append(self.gen_statement("self.target.use_cookies(%r)" % store_cookie, indent=8))
+            setup_method_def.append(self.gen_statement("self.target.allow_redirects(%r)" % follow_redirects, indent=8))
+            if timeout is not None:
+                setup_method_def.append(self.gen_statement("self.target.timeout(%r)" % dehumanize_time(timeout),
+                                                           indent=8))
             setup_method_def.append(self.gen_new_line(indent=0))
 
-        return setup_method_def
+            return setup_method_def
 
-    def gen_get_var_method(self):
-        method = self.gen_decorator_statement('classmethod')
-        method.append(self.gen_method_definition("get_var", ["cls", "varname", "default=''"]))
-        method.append(self.gen_statement("return cls.variables.get(varname, default)", indent=8))
-        method.append(self.gen_new_line(indent=0))
-        return method
-
-    def gen_set_var_method(self):
-        method = self.gen_decorator_statement('classmethod')
-        method.append(self.gen_method_definition("set_var", ["cls", "varname", "value"]))
-        method.append(self.gen_statement("cls.variables[varname] = str(value)", indent=8))
-        method.append(self.gen_new_line(indent=0))
-        return method
+        return None
 
     @staticmethod
     def interpolate_str(string):
         """
-        "/${foo}" -> '"/" + self.get_var('foo', '${foo}')'
+        "/${foo}" -> '"/" + str(foo)'
 
 
         :param string:
@@ -410,7 +401,7 @@ import apiritif
         for item in re.split(r'(\$\{\w+\})', string):
             if item:
                 if item.startswith("${") and item.endswith("}"):
-                    components.append("self.get_var(%r, %r)" % (item[2:-1], item))
+                    components.append("str(%s)" % item[2:-1])
                 else:
                     components.append(repr(item))
 
@@ -418,16 +409,9 @@ import apiritif
 
     @staticmethod
     def repr_inter(obj):
-        """
-        "/${foo}" -> '"/" + self.get_var('foo', '${foo}')'
-
-
-        :param string:
-        :return:
-        """
         recur = ApiritifScriptBuilder.repr_inter
         if isinstance(obj, dict):
-            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in iteritems(obj)) + "}"
+            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in sorted(iteritems(obj))) + "}"
         elif isinstance(obj, list):
             return "[" + ", ".join(recur(item) for item in obj) + "]"
         elif isinstance(obj, string_types):
@@ -442,9 +426,17 @@ import apiritif
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
-        test_class.append(self.gen_setup_method())
-        test_class.append(self.gen_get_var_method())
-        test_class.append(self.gen_set_var_method())
+        setup_method = self.gen_setup_method()
+        if setup_method is not None:
+            test_class.append(setup_method)
+
+        test_method = self.gen_method_definition("test_requests", ["self"])
+
+        variables = self.scenario.get("variables")
+        for var, init in iteritems(variables):
+            test_method.append(self.gen_statement("%s = %s" % (var, ApiritifScriptBuilder.repr_inter(init)), indent=8))
+        if variables:
+            test_method.append(self.gen_new_line(indent=0))
 
         for index, req in enumerate(self.scenario.get_requests()):
             if not isinstance(req, HTTPRequest):
@@ -452,22 +444,10 @@ import apiritif
                 self.log.warning(msg, req.NAME)
                 continue
 
-            if req.label:
-                label = req.label
-            elif req.url:
-                label = req.url
-            else:
-                raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
-
-            mod_label = re.sub('[^0-9a-zA-Z]+', '_', label[:30])
-            method_name = 'test_%05d_%s' % (index, mod_label)
-            test_method = self.gen_test_method(method_name)
-            methods[method_name] = label
-
             self._add_url_request(req, test_method)
-
-            test_class.append(test_method)
             test_method.append(self.gen_new_line(indent=0))
+
+        test_class.append(test_method)
 
         return methods
 
@@ -480,8 +460,10 @@ import apiritif
         method = request.method.lower()
         think_time = dehumanize_time(request.priority_option('think-time', default=None))
 
-        named_args['timeout'] = dehumanize_time(request.priority_option('timeout', default='30s'))
-        named_args['allow_redirects'] = request.priority_option('follow-redirects', default=True)
+        if request.timeout is not None:
+            named_args['timeout'] = dehumanize_time(request.timeout)
+        if request.follow_redirects is not None:
+            named_args['allow_redirects'] = request.priority_option('follow-redirects', default=True)
 
         headers = {}
         scenario_headers = self.scenario.get("headers", None)
@@ -507,17 +489,23 @@ import apiritif
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(request.body), request.body))
 
-        kwargs = ", ".join("%s=%s" % (name, value) for name, value in iteritems(named_args))
+        kwargs = ", ".join([""] + ["%s=%s" % (name, value) for name, value in iteritems(named_args)])
 
         request_source = "self.target" if self.access_method == "target" else "apiritif.http"
 
-        request_line = "response = {source}.{method}({url}, {kwargs})".format(
+        if request.label:
+            label = request.label
+        else:
+            label = request.url
+
+        test_method.append(self.gen_statement("with apiritif.transaction(%r):" % label, indent=8))
+        request_line = "response = {source}.{method}({url}{kwargs})".format(
             source=request_source,
             method=method,
             url=self.repr_inter(request.url),
             kwargs=kwargs,
         )
-        test_method.append(self.gen_statement(request_line))
+        test_method.append(self.gen_statement(request_line, indent=12))
         self._add_assertions(request, test_method)
         self._add_jsonpath_assertions(request, test_method)
         self._add_xpath_assertions(request, test_method)
@@ -557,8 +545,8 @@ import apiritif
         jextractors = request.config.get("extract-jsonpath", BetterDict())
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
-            extractor_line = "self.set_var({varname}, response.extract_jsonpath({query}, {default}))".format(
-                varname=repr(varname),
+            extractor_line = "{varname} = response.extract_jsonpath({query}, {default})".format(
+                varname=varname,
                 query=repr(cfg['jsonpath']),
                 default=repr(cfg.get('default', 'NOT_FOUND'))
             )
@@ -568,8 +556,8 @@ import apiritif
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
             # TODO: support non-'body' value of 'subject'
-            extractor_line = "self.set_var({varname}, response.extract_regex({regex}, {default}))".format(
-                varname=repr(varname),
+            extractor_line = "{varname} = response.extract_regex({regex}, {default})".format(
+                varname=varname,
                 regex=repr(cfg['regexp']),
                 default=repr(cfg.get('default', 'NOT_FOUND'))
             )
@@ -582,10 +570,10 @@ import apiritif
             cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
             parser_type = 'html' if cfg.get('use-tolerant-parser', True) else 'xml'
             validate = cfg.get('validate-xml', False)
-            extractor_line = ("self.set_var({varname}, response.extract_xpath({query}, default={default}, "
-                              "parser_type={parser_type}, validate={validate}))")
+            extractor_line = ("{varname} = response.extract_xpath({query}, default={default}, "
+                              "parser_type={parser_type}, validate={validate})")
             extractor_line = extractor_line.format(
-                varname=repr(varname),
+                varname=varname,
                 query=repr(cfg['xpath']),
                 default=repr(cfg.get('default', 'NOT_FOUND')),
                 parser_type=repr(parser_type),
