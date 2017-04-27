@@ -336,8 +336,151 @@ from selenium.webdriver.support.wait import WebDriverWait
         return aby, atype, param, selector
 
 
+class JMeterFunction(object):
+    arg_names = []
+
+    def to_python(self, arguments):
+        "arguments -> (expression, helper_lines)"
+        args = dict(zip(self.arg_names, arguments))
+        return self._translate(args)
+
+    def _translate(self, args):
+        pass
+
+
+class RandomFunction(JMeterFunction):
+    arg_names = ["min", "max", "varname"]
+
+    def _translate(self, args):
+        if args.get("min") is None or args.get("max") is None:
+            return None
+
+        rand = "str(random.randrange(%s, %s))" % (args["min"], args["max"])
+
+        if "varname" in args:
+            return args["varname"], ["%s = %s" % (args["varname"], rand)]
+        else:
+            return rand, None
+
+
+class RandomStringFunction(JMeterFunction):
+    arg_names = ["size", "chars", "varname"]
+
+    def _translate(self, args):
+        lines = []
+        if args.get("size") is None:
+            return None
+
+        size = int(args.get("size"))
+        if "chars" in args:
+            chars = repr(args["chars"])
+        else:
+            chars = "string.ascii_letters + string.digits + string.punctuation"
+
+        rand = '"".join(random.choice(%s) for _ in range(%r))' % (chars, size)
+
+        if "varname" in args:
+            lines.append("%s = %s" % (args["varname"], rand))
+            expr = args["varname"]
+        else:
+            expr = rand
+
+        return expr, lines
+
+
+class TimeFunction(JMeterFunction):
+    arg_names = ["format", "varname"]
+
+    def _translate(self, arguments):
+        # if no format is given - return number of ms since epoch
+        # TODO: otherwise - return SimpleDateFormat-formatted date
+        # TODO: handle second argument - varname
+        return "str(int(time.time() * 1000))", None
+
+
+class JMeterLangTranslator(object):
+    def __init__(self, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+
+    def translate_jmeter_expr(self, expr):
+        """
+        Translates JMeter expression into Apiritif-based Python expression.
+        :type expr: str
+        :return:
+        """
+        self.log.debug("Attempting to translate JMeter expression %r", expr)
+        functions = {
+            '__time': TimeFunction,
+            '__Random': RandomFunction,
+            '__RandomString': RandomStringFunction,
+        }
+        regexp = r"(\w+)\((.*?)\)"
+        args_re = r'(?<!\\),'
+        match = re.match(regexp, expr)
+        if match is None:  # doesn't look like JMeter expression, do not translate
+            return repr(expr), None
+
+        varname, arguments = match.groups()
+
+        if arguments is None:  # plain variable
+            return varname, None
+        else:  # function call
+            if not arguments:
+                args = []
+            else:
+                # parse arguments: split by ',' but not '\,'
+                args = [arg.strip() for arg in re.split(args_re, arguments)]
+
+            if varname not in functions:  # unknown function
+                return repr(expr), None
+
+            self.log.debug("Translating function %s with arguments %s", varname, arguments)
+            func = functions[varname]()
+            result = func.to_python(args)
+            if result is None:
+                return repr(expr), None
+            else:
+                return result
+
+    def interpolate_str(self, string):
+        """
+        "/${foo}" -> '"/" + str(foo)'
+
+
+        :param string:
+        :return:
+        """
+        components = []
+        lines = []
+        for item in re.split(r'(\$\{.*?\})', string):
+            if item:
+                if item.startswith("${") and item.endswith("}"):
+                    expr = item[2:-1]
+                    result, helpers = self.translate_jmeter_expr(expr)
+                    components.append(result)
+                    if helpers:
+                        lines.extend(helpers)
+                else:
+                    components.append(repr(item))
+
+        return " + ".join(components)
+
+    def repr_inter(self, obj):
+        recur = self.repr_inter
+        if isinstance(obj, dict):
+            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in sorted(iteritems(obj))) + "}"
+        elif isinstance(obj, list):
+            return "[" + ", ".join(recur(item) for item in obj) + "]"
+        elif isinstance(obj, string_types):
+            return self.interpolate_str(obj)
+        else:
+            return repr(obj)
+
+
 class ApiritifScriptBuilder(PythonGenerator):
     IMPORTS = """\
+import random
+import string
 import time
 import unittest
 
@@ -347,6 +490,7 @@ import apiritif
 
     def __init__(self, scenario, parent_logger):
         super(ApiritifScriptBuilder, self).__init__(scenario, parent_logger)
+        self.translator = JMeterLangTranslator(self.log)
         self.access_method = None
 
     def gen_setup_method(self):
@@ -388,37 +532,6 @@ import apiritif
 
         return None
 
-    @staticmethod
-    def interpolate_str(string):
-        """
-        "/${foo}" -> '"/" + str(foo)'
-
-
-        :param string:
-        :return:
-        """
-        components = []
-        for item in re.split(r'(\$\{\w+\})', string):
-            if item:
-                if item.startswith("${") and item.endswith("}"):
-                    components.append("str(%s)" % item[2:-1])
-                else:
-                    components.append(repr(item))
-
-        return " + ".join(components)
-
-    @staticmethod
-    def repr_inter(obj):
-        recur = ApiritifScriptBuilder.repr_inter
-        if isinstance(obj, dict):
-            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in sorted(iteritems(obj))) + "}"
-        elif isinstance(obj, list):
-            return "[" + ", ".join(recur(item) for item in obj) + "]"
-        elif isinstance(obj, string_types):
-            return ApiritifScriptBuilder.interpolate_str(obj)
-        else:
-            return repr(obj)
-
     def build_source_code(self):
         methods = {}
         self.log.debug("Generating Test Case test methods")
@@ -434,7 +547,7 @@ import apiritif
 
         variables = self.scenario.get("variables")
         for var, init in iteritems(variables):
-            test_method.append(self.gen_statement("%s = %s" % (var, ApiritifScriptBuilder.repr_inter(init)), indent=8))
+            test_method.append(self.gen_statement("%s = %s" % (var, self.translator.repr_inter(init)), indent=8))
         if variables:
             test_method.append(self.gen_new_line(indent=0))
 
@@ -472,19 +585,19 @@ import apiritif
         if request.headers:
             headers.update(request.headers)
         if headers:
-            named_args['headers'] = self.repr_inter(headers)
+            named_args['headers'] = self.translator.repr_inter(headers)
 
         merged_headers = dict([(key.lower(), value) for key, value in iteritems(headers)])
         content_type = merged_headers.get('content-type', None)
 
         if content_type == 'application/json' and isinstance(request.body, (dict, list)):  # json request body
-            named_args['json'] = self.repr_inter(request.body)
+            named_args['json'] = self.translator.repr_inter(request.body)
         elif method == "get" and isinstance(request.body, dict):  # request URL params (?a=b&c=d)
-            named_args['params'] = self.repr_inter(request.body)
+            named_args['params'] = self.translator.repr_inter(request.body)
         elif isinstance(request.body, dict):  # form data
-            named_args['data'] = self.repr_inter(list(iteritems(request.body)))
+            named_args['data'] = self.translator.repr_inter(list(iteritems(request.body)))
         elif isinstance(request.body, string_types):
-            named_args['data'] = self.repr_inter(request.body)
+            named_args['data'] = self.translator.repr_inter(request.body)
         elif request.body:
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(request.body), request.body))
@@ -502,7 +615,7 @@ import apiritif
         request_line = "response = {source}.{method}({url}{kwargs})".format(
             source=request_source,
             method=method,
-            url=self.repr_inter(request.url),
+            url=self.translator.repr_inter(request.url),
             kwargs=kwargs,
         )
         test_method.append(self.gen_statement(request_line, indent=12))
