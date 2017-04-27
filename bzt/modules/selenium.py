@@ -131,6 +131,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     def _create_runner(self, report_file):
         script_type = self.detect_script_type()
         runner = self.engine.instantiate_module(script_type)
+        runner.settings.merge(self.settings)
         runner.parameters = self.parameters
         runner.provisioning = self.provisioning
         runner.execution = self.execution
