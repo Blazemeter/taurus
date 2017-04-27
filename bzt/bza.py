@@ -90,7 +90,13 @@ class BZAObject(dict):
 
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
         if response.status_code >= 400:
-            raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
+            try:
+                result = json.loads(resp) if len(resp) else {}
+                if 'error' in result and result['error']:
+                    raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
+            except ValueError as exc:
+
+                raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
 
         if raw_result:
             return resp

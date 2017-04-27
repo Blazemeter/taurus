@@ -52,7 +52,7 @@ worker.requests_sample-0 sleeping for 154 ms
 worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
 data.requests_sample-0 0, 3, 1, 1492243691173, 62, 0, 404, 14844, 1, 0, 0, 61, 0
 worker.requests_sample-0 sleeping for 49 ms
-worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+worker.requests_sample-0 http://blazedemo.com/?params=1,2,3 ,5 -> 200 OK, 7693 bytes
 data.requests_sample-0 0, 4, 1, 1492243691285, 119, 0, 200, 7693, 0, 0, 0, 118, 0
 worker.requests_sample-0 sleeping for 250 ms
 worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
