@@ -1,5 +1,6 @@
 import logging
 import shutil
+import traceback
 
 import os
 from bzt import TaurusException
@@ -158,8 +159,7 @@ class TestCLI(BZTestCase):
 
     def test_cover_option_parser(self):
         parser = get_option_parser()
-        parsed_options, parsed_configs = parser.parse_args()
-        self.assertEquals([], parsed_options.aliases)
+        parser.print_usage()
 
 
 class TestConfigOverrider(BZTestCase):
