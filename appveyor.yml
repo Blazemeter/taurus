@@ -5,8 +5,9 @@ environment:
 install:
   - choco install firefox -version 46.0.1
   - "%PYTHON%\\python.exe -m pip install nose"
-  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml jsonpath-rw psutil!=4.4.0 lxml==3.4.2 cssselect urwid six progressbar33 locustio pyvirtualdisplay apiritif"
+  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml jsonpath-rw psutil!=4.4.0 lxml==3.4.2 cssselect urwid six progressbar33 locustio pyvirtualdisplay"
   - "%PYTHON%\\python.exe -m pip install --upgrade selenium==2.53.0"
+  - "%PYTHON%\\python.exe -m pip install https://github.com/Blazemeter/apiritif/archive/master.zip"
   - set PATH=C:\Ruby22\bin;%PATH%
 
 build: off
