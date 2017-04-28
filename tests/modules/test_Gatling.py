@@ -47,7 +47,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             'files': [
                 'tests/grinder/fake_grinder.jar',
-                'tests/selenium/junit/jar'],
+                'tests/data/selenium/junit/jar'],
             'scenario': {
                 "script": __dir__() + "/../gatling/BasicSimulation.scala",
                 "simulation": "mytest.BasicSimulation"}})
