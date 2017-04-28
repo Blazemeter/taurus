@@ -17,22 +17,23 @@ limitations under the License.
 """
 import json
 import math
-import os
 import sys
 import time
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from imp import find_module
 from subprocess import STDOUT
 
+import os
 from bzt import ToolError, TaurusConfigError
+from bzt.six import PY3, iteritems
+
 from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
-from bzt.six import PY3, iteritems
-from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time
 from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator
+from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
@@ -287,6 +288,13 @@ class SlavesReader(ResultsProvider):
             if item['num_requests']:
                 avg_rt = (item['total_response_time'] / 1000.0) / item['num_requests']
                 kpiset.sum_rt = item['num_reqs_per_sec'][timestamp] * avg_rt
+
+            for err in data['errors'].values():
+                if err['name'] == item['name']:
+                    new_err = KPISet.error_item_skel(err['error'], None, err['occurences'], KPISet.ERRTYPE_ERROR,
+                                                     Counter())
+                    KPISet.inc_list(kpiset[KPISet.ERRORS], ("msg", err['error']), new_err)
+
             point[DataPoint.CURRENT][item['name']] = kpiset
             overall.merge_kpis(kpiset)
 
