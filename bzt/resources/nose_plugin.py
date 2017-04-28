@@ -245,7 +245,12 @@ class ApiritifExtractor(object):
                 tran = active_transactions.pop()
                 assert tran.test_case == item.transaction_name
                 tran.duration = item.timestamp - tran.start_time
-                tran.status = "PASSED" if all(spl.status == "PASSED" for spl in tran.subsamples) else "FAILED"
+                tran.status = "PASSED"
+                for sample in tran.subsamples:
+                    if sample.status in ("FAILED", "BROKEN"):
+                        tran.status = sample.status
+                        tran.error_msg = sample.error_msg
+                        tran.error_trace = sample.error_trace
                 active_transactions[-1].add_subsample(tran)
             elif isinstance(item, apiritif.Assertion):
                 sample = response_map.get(item.response, None)
