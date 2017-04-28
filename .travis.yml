@@ -38,7 +38,7 @@ install:
 - nvm use 4.2
 - gem install rspec
 - pip install colorlog jsonpath-rw pyyaml psutil!=4.4.0 lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay
-- pip install git+https://github.com/Blaemeter/apiritif.git@master
+- pip install git+https://github.com/Blazemeter/apiritif.git@master
 - pip install --upgrade codecov nose
 script: coverage run --source . -m nose tests
 after_success:
