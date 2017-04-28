@@ -221,8 +221,9 @@ class TestNoseRunner(BZTestCase):
             "execution": [{
                 "test-mode": "apiritif",
                 "scenario": {
+                    "default-address": "http://blazedemo.com",
                     "requests": [
-                        "http://blazedemo.com/404",
+                        "/404",
                     ]
                 }
             }]
