@@ -48,3 +48,7 @@ scenarios:
     - label: delete from posts
       url: /posts/${postID} # used postID instead of addedID to not fail UT
       method: DELETE
+
+modules:
+  nose:
+    verbose: true
