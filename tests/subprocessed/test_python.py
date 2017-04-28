@@ -5,7 +5,7 @@ from bzt import ToolError, TaurusConfigError
 from tests import __dir__, BZTestCase
 
 from bzt.engine import ScenarioExecutor
-from bzt.modules.functional import FuncSamplesReader
+from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader
 from bzt.modules.python import NoseTester
 from tests.mocks import EngineEmul
 from tests.subprocessed import SeleniumTestCase
@@ -215,6 +215,34 @@ class TestNoseRunner(BZTestCase):
         self.assertEqual(items[3].test_case, "Transaction")
         self.assertEqual(items[4].test_case, "Transaction 1")
         self.assertEqual(items[5].test_case, "Transaction 2")
+
+    def test_report_transactions_as_failed(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": [
+                        "http://blazedemo.com/404",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
+        reader = LoadSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "report.ldjson"),
+                                   self.obj.log,
+                                   [])
+        samples = list(reader._read(last_pass=True))
+        self.assertEqual(len(samples), 1)
+        tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count = samples[0]
+        self.assertIsNotNone(error)
 
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
