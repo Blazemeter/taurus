@@ -305,7 +305,9 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                 'executor': 'selenium', },
             'modules': {
                 'selenium': {
-                    'additional-classpath': [settings_cp]}}})
+                    'selenium-tools': {
+                        'junit': {
+                            'additional-classpath': [settings_cp]}}}}})
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
         base_class_path = ':'.join(self.obj.runner.base_class_path)
