@@ -2,6 +2,7 @@ import logging
 import shutil
 
 import os
+from bzt import TaurusException
 from tests import BZTestCase, __dir__
 
 from bzt.cli import CLI, ConfigOverrider, get_option_parser
@@ -31,6 +32,11 @@ class TestCLI(BZTestCase):
         ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
         self.assertEquals(0, ret)
         self.assertTrue(self.obj.engine.config['marker'])
+
+    def test_perform_prepare_exc(self):
+        self.obj.engine.prepare_exc = TaurusException()
+        ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
+        self.assertEquals(1, ret)
 
     def test_perform_overrides(self):
         self.option.append("test.subkey5.-1=value")
