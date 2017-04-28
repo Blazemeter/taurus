@@ -327,7 +327,7 @@ class ApiritifExtractor(object):
 def run_nose(report_file, files, iteration_limit, hold):
     argv = [__file__, '-v']
     argv.extend(files)
-    argv.extend(['--with-bzt_plugin', '--nocapture', '--exe'])
+    argv.extend(['--with-bzt_plugin', '--nocapture', '--exe', '--nologcapture'])
 
     if iteration_limit == 0:
         if hold > 0:

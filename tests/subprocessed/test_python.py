@@ -159,6 +159,7 @@ class TestNoseRunner(BZTestCase):
         finally:
             self.obj.shutdown()
         self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
         self.assertNotEquals(self.obj.process, None)
 
     def test_apiritif_generated_requests(self):
@@ -708,6 +709,7 @@ class TestApiritifScriptBuilder(BZTestCase):
         """ This test serves code review purposes, to make changes more visible """
         self.obj.engine.config.load([__dir__() + '/../apiritif/test_codegen.yml'])
         self.configure(self.obj.engine.config['execution'][0])
+        self.obj.settings['verbose'] = True
         self.obj.prepare()
         exp_file = __dir__() + '/../apiritif/test_codegen.py'
         # import shutil; shutil.copy2(self.obj._script, exp_file)  # keep this coment to ease updates
