@@ -264,39 +264,39 @@ class TestJMeterExecutor(BZTestCase):
 
         jmeter_vars = get_jmeter_executor_vars()
         set_jmeter_executor_vars(jmeter_vars)
+        try:
+            JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
+            JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
+            JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+            JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+            JMeterExecutor.PLUGINS = ['Alice', 'Bob']
+            JMeterExecutor.JMETER_VER = '2.13'
 
-        JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-        JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
-        JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
-        JMeterExecutor.PLUGINS = ['Alice', 'Bob']
-        JMeterExecutor.JMETER_VER = '2.13'
+            self.obj.settings.merge({"path": path})
+            self.configure({
+                "execution": [{"scenario": {"requests": ["http://localhost"]}}],
+                "settings": {
+                    "proxy": {
+                        "address": "http://myproxy.com:8080",
+                        "username": "user",
+                        "password": "pass"}}})
+            self.obj.prepare()
+            jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
+            old_jars = [
+                'httpcore-4.2.5.jar', 'httpmime-4.2.6.jar', 'xercesImpl-2.9.1.jar',
+                'commons-jexl-1.1.jar', 'httpclient-4.2.6.jar']
+            for old_jar in old_jars:
+                self.assertNotIn(old_jar, jars)
 
-        self.obj.settings.merge({"path": path})
-        self.configure({
-            "execution": [{"scenario": {"requests": ["http://localhost"]}}],
-            "settings": {
-                "proxy": {
-                    "address": "http://myproxy.com:8080",
-                    "username": "user",
-                    "password": "pass"}}})
-        self.obj.prepare()
-        jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
-        old_jars = [
-            'httpcore-4.2.5.jar', 'httpmime-4.2.6.jar', 'xercesImpl-2.9.1.jar',
-            'commons-jexl-1.1.jar', 'httpclient-4.2.6.jar']
-        for old_jar in old_jars:
-            self.assertNotIn(old_jar, jars)
+            self.assertTrue(os.path.exists(path))
 
-        self.assertTrue(os.path.exists(path))
+            self.obj = get_jmeter()
+            self.obj.settings.merge({"path": path})
+            self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
-        self.obj = get_jmeter()
-        self.obj.settings.merge({"path": path})
-        self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
-
-        self.obj.prepare()
-
-        set_jmeter_executor_vars(jmeter_vars)
+            self.obj.prepare()
+        finally:
+            set_jmeter_executor_vars(jmeter_vars)
 
     def test_install_jmeter_3_0(self):
         path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
@@ -305,35 +305,36 @@ class TestJMeterExecutor(BZTestCase):
         self.assertFalse(os.path.exists(path))
 
         jmeter_vars = get_jmeter_executor_vars()
+        try:
+            JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
+            JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
+            JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+            JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+            JMeterExecutor.PLUGINS = ['Alice', 'Bob']
+            JMeterExecutor.JMETER_VER = '3.0'
 
-        JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
-        JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-        JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
-        JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
-        JMeterExecutor.PLUGINS = ['Alice', 'Bob']
-        JMeterExecutor.JMETER_VER = '3.0'
+            self.obj.settings.merge({"path": path})
+            self.configure({
+                "execution": [{"scenario": {"requests": ["http://localhost"]}}],
+                "settings": {
+                    "proxy": {
+                        "address": "http://myproxy.com:8080",
+                        "username": "user",
+                        "password": "pass"}}})
+            self.obj.prepare()
+            jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
+            self.assertNotIn('httpclient-4.5.jar', jars)
+            self.assertIn('httpclient-4.5.2.jar', jars)
 
-        self.obj.settings.merge({"path": path})
-        self.configure({
-            "execution": [{"scenario": {"requests": ["http://localhost"]}}],
-            "settings": {
-                "proxy": {
-                    "address": "http://myproxy.com:8080",
-                    "username": "user",
-                    "password": "pass"}}})
-        self.obj.prepare()
-        jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
-        self.assertNotIn('httpclient-4.5.jar', jars)
-        self.assertIn('httpclient-4.5.2.jar', jars)
+            self.assertTrue(os.path.exists(path))
 
-        self.assertTrue(os.path.exists(path))
+            self.obj = get_jmeter()
+            self.obj.settings.merge({"path": path})
+            self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
-        self.obj = get_jmeter()
-        self.obj.settings.merge({"path": path})
-        self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
-
-        self.obj.prepare()
-        set_jmeter_executor_vars(jmeter_vars)
+            self.obj.prepare()
+        finally:
+            set_jmeter_executor_vars(jmeter_vars)
 
     def test_think_time_bug(self):
         self.configure({

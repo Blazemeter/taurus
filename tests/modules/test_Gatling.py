@@ -89,11 +89,13 @@ class TestGatlingExecutor(BZTestCase):
         obj.settings.merge({
             "path": path,
             "download-link": download_link,
-            "version": gatling_version,
-        })
+            "version": gatling_version})
 
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../gatling/BasicSimulation.scala",
-                                          "simulation": "mytest.BasicSimulation"}})
+        obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../gatling/BasicSimulation.scala",
+                "simulation": "mytest.BasicSimulation"}})
+
         obj.prepare()
         self.assertTrue(os.path.exists(path))
 

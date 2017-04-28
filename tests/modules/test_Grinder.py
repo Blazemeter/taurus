@@ -22,28 +22,29 @@ class TestGrinderExecutor(BZTestCase):
         grinder_link = GrinderExecutor.DOWNLOAD_LINK
         grinder_version = GrinderExecutor.VERSION
         mirrors_source = GrinderExecutor.MIRRORS_SOURCE
-        GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/grinder-{version}_{version}-binary.zip"
-        GrinderExecutor.VERSION = "3.11"
-        GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
+        try:
+            GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/grinder-{version}_{version}-binary.zip"
+            GrinderExecutor.VERSION = "3.11"
+            GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
 
-        self.assertFalse(os.path.exists(path))
+            self.assertFalse(os.path.exists(path))
 
-        obj = GrinderExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({"path": path})
-        obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties",
-                            "properties": {"sample_prop": "some_val"}})
-        obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../grinder/helloworld.py",
-            "properties-file": __dir__() + "/..//grinder/grinder.properties",
-            "properties": {"grinder.useConsole": "false"}}})
-        obj.prepare()
+            obj = GrinderExecutor()
+            obj.engine = EngineEmul()
+            obj.settings.merge({"path": path})
+            obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties",
+                                "properties": {"sample_prop": "some_val"}})
+            obj.execution.merge({"scenario": {
+                "script": __dir__() + "/../grinder/helloworld.py",
+                "properties-file": __dir__() + "/..//grinder/grinder.properties",
+                "properties": {"grinder.useConsole": "false"}}})
+            obj.prepare()
 
-        self.assertTrue(os.path.exists(path))
-
-        GrinderExecutor.DOWNLOAD_LINK = grinder_link
-        GrinderExecutor.VERSION = grinder_version
-        GrinderExecutor.MIRRORS_SOURCE = mirrors_source
+            self.assertTrue(os.path.exists(path))
+        finally:
+            GrinderExecutor.DOWNLOAD_LINK = grinder_link
+            GrinderExecutor.VERSION = grinder_version
+            GrinderExecutor.MIRRORS_SOURCE = mirrors_source
 
     def test_grinder_widget(self):
         obj = GrinderExecutor()

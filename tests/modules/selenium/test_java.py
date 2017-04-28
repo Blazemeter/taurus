@@ -42,38 +42,39 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
 
         selenium_server_link = java.SELENIUM_DOWNLOAD_LINK
-        java.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
-
         junit_link = java.JUNIT_DOWNLOAD_LINK
         junit_mirrors = java.JUNIT_MIRRORS_SOURCE
-        java.JUNIT_DOWNLOAD_LINK = base_link + "/junit-4.12.jar"
-        java.JUNIT_MIRRORS_SOURCE = base_link + "unicode_file"
-
         hamcrest_link = java.HAMCREST_DOWNLOAD_LINK
-        java.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
+        try:
+            java.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
+            java.JUNIT_DOWNLOAD_LINK = base_link + "/junit-4.12.jar"
+            java.JUNIT_MIRRORS_SOURCE = base_link + "unicode_file"
+            java.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
 
-        self.assertFalse(os.path.exists(dummy_installation_path))
+            self.assertFalse(os.path.exists(dummy_installation_path))
 
-        self.obj = JUnitTester()
-        self.obj.engine = EngineEmul()
-        self.obj.settings.merge({
-            "selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar"),
-            "hamcrest-core": os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar"),
-            "path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")
-        })
+            self.obj = JUnitTester()
+            self.obj.engine = EngineEmul()
+            self.obj.settings.merge({
+                "selenium-server": os.path.join(dummy_installation_path, "selenium-server.jar"),
+                "hamcrest-core": os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar"),
+                "path": os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")
+            })
 
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../../data/selenium/junit/jar/"},
-                                  "runner": "junit"})
-        self.obj.install_required_tools()
-        self.obj.prepare()
-        self.assertIsInstance(self.obj, JUnitTester)
-        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
-        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")))
-        self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
-        java.SELENIUM_DOWNLOAD_LINK = selenium_server_link
-        java.JUNIT_DOWNLOAD_LINK = junit_link
-        java.HAMCREST_DOWNLOAD_LINK = hamcrest_link
-        java.JUNIT_MIRRORS_SOURCE = junit_mirrors
+            self.obj.execution.merge({"scenario": {"script": __dir__() + "/../../data/selenium/junit/jar/"},
+                                      "runner": "junit"})
+            self.obj.install_required_tools()
+            self.obj.prepare()
+            self.assertIsInstance(self.obj, JUnitTester)
+            self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
+            self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "junit.jar")))
+            self.assertTrue(
+                os.path.exists(os.path.join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
+        finally:
+            java.SELENIUM_DOWNLOAD_LINK = selenium_server_link
+            java.JUNIT_DOWNLOAD_LINK = junit_link
+            java.HAMCREST_DOWNLOAD_LINK = hamcrest_link
+            java.JUNIT_MIRRORS_SOURCE = junit_mirrors
 
     def test_prepare_java_single(self):
         """
