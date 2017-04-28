@@ -18,15 +18,13 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
     def test_mocha_full(self):
         self.obj.engine.config.merge({
             'execution': {
-                "script": __dir__() + "/../../data/selenium/js-mocha/bd_scenarios.js"
-            },
-        })
+                "script": __dir__() + "/../../data/selenium/js-mocha/bd_scenarios.js"}})
+
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.execution = self.obj.engine.config['execution']
 
         self.obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../../data/selenium/js-mocha/bd_scenarios.js"
-        }})
+            "script": __dir__() + "/../../data/selenium/js-mocha/bd_scenarios.js"}})
 
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
         self.obj.prepare()
@@ -90,7 +88,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertEqual(len(lines), 9)
 
     def test_install_mocha(self):
-        dummy_installation_path = get_full_path(__dir__() + "/../../build/tmp/selenium-taurus/mocha")
+        dummy_installation_path = get_full_path(__dir__() + "/../../../build/tmp/selenium-taurus/mocha")
         mocha_link = get_full_path(__dir__() + "/../../data/mocha-3.1.0.tgz")
         wd_link = get_full_path(__dir__() + "/../../data/selenium-webdriver-1.0.0.tgz")
 
