@@ -111,6 +111,7 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertEquals(60, len(points))
         for point in points:
             self.assertEquals(len(point[DataPoint.CURRENT][''][KPISet.ERRORS]), 1)
+            self.assertGreaterEqual(point[DataPoint.CURRENT][''][KPISet.FAILURES], 70)
 
     def test_locust_resource_files(self):
         if six.PY3:
