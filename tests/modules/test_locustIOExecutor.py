@@ -1,13 +1,14 @@
 import logging
-import os
 import sys
 import time
 
+import os
 from bzt import six, ToolError
+from tests import BZTestCase, __dir__
+
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from bzt.modules.provisioning import Local
-from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
 
@@ -100,6 +101,16 @@ class TestLocustIOExecutor(BZTestCase):
         for point in points:
             self.assertGreater(point[DataPoint.CURRENT][''][KPISet.AVG_RESP_TIME], 0)
             self.assertGreater(point[DataPoint.CURRENT][''][KPISet.BYTE_COUNT], 0)
+
+    def test_locust_slave_results_errors(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
+        obj = SlavesReader(__dir__() + "/../locust/locust-slaves2.ldjson", 2, logging.getLogger(""))
+        points = [x for x in obj.datapoints(True)]
+        self.assertEquals(60, len(points))
+        for point in points:
+            self.assertEquals(len(point[DataPoint.CURRENT][''][KPISet.ERRORS]), 1)
 
     def test_locust_resource_files(self):
         if six.PY3:
@@ -213,17 +224,7 @@ class TestLocustIOExecutor(BZTestCase):
 
         self.obj.execution = self.obj.engine.config.get('execution')[0]
         self.obj.prepare()
-
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-        with open(__dir__() + "/../locust/generated_from_requests_1.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminators
-        gen_contents = [line.rstrip() for line in gen_contents]
-        sample_contents = [line.rstrip() for line in sample_contents]
-
-        self.assertEqual(gen_contents, sample_contents)
+        self.assertFilesEqual(__dir__() + "/../locust/generated_from_requests_1.py", self.obj.script)
 
     def test_build_script_none_def_addr(self):
         self.obj.engine.config.merge({
@@ -239,17 +240,7 @@ class TestLocustIOExecutor(BZTestCase):
 
         self.obj.execution = self.obj.engine.config.get('execution')[0]
         self.obj.prepare()
-
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-        with open(__dir__() + "/../locust/generated_from_requests_2.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminators
-        gen_contents = [line.rstrip() for line in gen_contents]
-        sample_contents = [line.rstrip() for line in sample_contents]
-
-        self.assertEqual(gen_contents, sample_contents)
+        self.assertFilesEqual(__dir__() + "/../locust/generated_from_requests_2.py", self.obj.script)
 
     def test_jtl_key_order(self):
         self.obj.execution.merge({
@@ -276,5 +267,5 @@ class TestLocustIOExecutor(BZTestCase):
                 jtl = fds.readlines()
 
             header_line = jtl[0].strip()
-            expected_header = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
-            self.assertEqual(header_line, expected_header)
+            expected = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
+            self.assertEqual(header_line, expected)
