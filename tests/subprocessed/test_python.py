@@ -221,10 +221,11 @@ class TestNoseRunner(BZTestCase):
             "execution": [{
                 "test-mode": "apiritif",
                 "scenario": {
-                    "default-address": "http://blazedemo.com",
-                    "requests": [
-                        "/404",
-                    ]
+                    "default-address": "https://httpbin.org",
+                    "requests": [{
+                        "label": "failure by 404",
+                        "url": "/status/404",
+                    }]
                 }
             }]
         })
