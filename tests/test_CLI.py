@@ -1,10 +1,11 @@
 import logging
-import os
 import shutil
 
-from bzt.cli import CLI, ConfigOverrider
-from bzt.engine import Configuration
+import os
 from tests import BZTestCase, __dir__
+
+from bzt.cli import CLI, ConfigOverrider, get_option_parser
+from bzt.engine import Configuration
 from tests.mocks import EngineEmul, ModuleMock
 
 
@@ -12,7 +13,8 @@ class TestCLI(BZTestCase):
     def setUp(self):
         super(TestCLI, self).setUp()
         self.log = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
-        self.verbose = True
+        self.verbose = False
+        self.quiet = False
         self.no_system_configs = True
         self.option = []
         self.datadir = os.path.join(os.path.dirname(__file__), "..", "build", "acli")
@@ -23,6 +25,12 @@ class TestCLI(BZTestCase):
     def test_perform_normal(self):
         ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
         self.assertEquals(0, ret)
+
+    def test_perform_aliases(self):
+        self.aliases = ['test']
+        ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
+        self.assertEquals(0, ret)
+        self.assertTrue(self.obj.engine.config['marker'])
 
     def test_perform_overrides(self):
         self.option.append("test.subkey5.-1=value")
@@ -123,28 +131,29 @@ class TestCLI(BZTestCase):
                 shutil.rmtree(artifacts_dir)
 
     def test_logging_verbosity_adjustment(self):
-        was_verbose = self.verbose
-        try:
-            self.verbose = False
-            ret = self.obj.perform([
-                __dir__() + "/json/mock_normal.json",
-            ])
-            self.assertEquals(0, ret)
-            log_lines = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).readlines()
-            checking = False
-            found_line = False
-            for line in log_lines:
-                if "Leveling down" in line:
-                    found_line = True
-                    checking = True
-                elif "Leveled up" in line:
-                    checking = False
-                else:
-                    if checking:
-                        self.assertNotIn("DEBUG", line)
-            self.assertTrue(found_line)
-        finally:
-            self.verbose = was_verbose
+        self.verbose = False
+        ret = self.obj.perform([
+            __dir__() + "/json/mock_normal.json",
+        ])
+        self.assertEquals(0, ret)
+        log_lines = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).readlines()
+        checking = False
+        found_line = False
+        for line in log_lines:
+            if "Leveling down" in line:
+                found_line = True
+                checking = True
+            elif "Leveled up" in line:
+                checking = False
+            else:
+                if checking:
+                    self.assertNotIn("DEBUG", line)
+        self.assertTrue(found_line)
+
+    def test_cover_option_parser(self):
+        parser = get_option_parser()
+        parsed_options, parsed_configs = parser.parse_args()
+        self.assertEquals([], parsed_options.aliases)
 
 
 class TestConfigOverrider(BZTestCase):

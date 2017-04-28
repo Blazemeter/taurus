@@ -28,12 +28,12 @@ import yaml
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt import TaurusException, ToolError
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
+from bzt.six import HTTPError, string_types, b, get_stacktrace
 from colorlog import ColoredFormatter
 from logging import Formatter
 
 import bzt
 from bzt.engine import Engine, Configuration, ScenarioExecutor
-from bzt.six import HTTPError, string_types, b, get_stacktrace
 from bzt.utils import run_once, is_int, BetterDict, is_piped
 
 
@@ -452,10 +452,7 @@ class OptionParserWithAliases(OptionParser, object):
         return res
 
 
-def main():
-    """
-    This function is used as entrypoint by setuptools
-    """
+def get_option_parser():
     usage = "Usage: bzt [options] [configs] [-aliases]"
     dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % bzt.VERSION
     parser = OptionParserWithAliases(usage=usage, description=dsc, prog="bzt")
@@ -469,6 +466,24 @@ def main():
                       help="Prints all logging messages to console")
     parser.add_option('-n', '--no-system-configs', action='store_true',
                       help="Skip system and user config files")
+    return parser
+
+
+def signal_handler(sig, frame):
+    """
+    required for non-tty python runs to interrupt
+    :param frame:
+    :param sig:
+    """
+    del sig, frame
+    raise ManualShutdown()
+
+
+def main():
+    """
+    This function is used as entrypoint by setuptools
+    """
+    parser = get_option_parser()
 
     parsed_options, parsed_configs = parser.parse_args()
 
@@ -489,16 +504,6 @@ def main():
         code = 1
 
     exit(code)
-
-
-def signal_handler(sig, frame):
-    """
-    required for non-tty python runs to interrupt
-    :param frame:
-    :param sig:
-    """
-    del sig, frame
-    raise ManualShutdown()
 
 
 if __name__ == "__main__":
