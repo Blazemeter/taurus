@@ -12,7 +12,8 @@ Command-line tool is named `bzt` and invoked like `bzt <options> \[configs]`. Po
 ## Configuration Files Processing
 Taurus tool consumes configuration files as input format (start learning its syntax [here](ConfigSyntax.md)), it automatically detects YAML and JSON formats. Internally, all configuration files are merged into single configuration object (see merged.config artifact), and each following config overrides/appends previous. There are some special config locations that allows having per-machine and per-user configs, that will be loaded for every tool run. In general, configs load sequence is:
 
-  1. `/etc/bzt.d` directory, contains per-machine configs, its contents are first in the configs list
+  1. `base-config.yml` file from Taurus distribution
+  1. `/etc/bzt.d` directory, contains machine-wide configs
   1. `~/.bzt-rc` file, contained in user's home directory (holds per-user preferences) is added to list after per-machine configs
   1. all command-line passed configs (like `bzt config-1.yml config-2.json`) are added to list after per-user config
   1. any data passed to stdin (like `./generate-config.sh | bzt`) is written to temporary file and that file is added to configs list
