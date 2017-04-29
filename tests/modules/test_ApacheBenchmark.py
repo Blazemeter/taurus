@@ -12,7 +12,7 @@ TOOL_NAME = 'ab' + EXE_SUFFIX
 
 
 def get_res_path(resource):
-    return path.join(path.dirname(__file__), '..', 'resource', 'ab', resource)
+    return path.join(path.dirname(__file__), '..', 'resources', 'ab', resource)
 
 
 class TestApacheBenchExecutor(BZTestCase):
