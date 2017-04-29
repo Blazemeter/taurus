@@ -230,7 +230,7 @@ class ApiritifExtractor(object):
                     test_case=item.address,
                     status="PASSED",
                     start_time=item.timestamp,
-                    duration=item.response.py_response.elapsed.total_seconds(),
+                    duration=item.response.elapsed.total_seconds(),
                 )
                 extras = ApiritifExtractor._extract_extras(item)
                 if extras:
@@ -245,7 +245,12 @@ class ApiritifExtractor(object):
                 tran = active_transactions.pop()
                 assert tran.test_case == item.transaction_name
                 tran.duration = item.timestamp - tran.start_time
-                tran.status = "PASSED" if all(spl.status == "PASSED" for spl in tran.subsamples) else "FAILED"
+                tran.status = "PASSED"
+                for sample in tran.subsamples:
+                    if sample.status in ("FAILED", "BROKEN"):
+                        tran.status = sample.status
+                        tran.error_msg = sample.error_msg
+                        tran.error_trace = sample.error_trace
                 active_transactions[-1].add_subsample(tran)
             elif isinstance(item, apiritif.Assertion):
                 sample = response_map.get(item.response, None)
@@ -293,25 +298,25 @@ class ApiritifExtractor(object):
 
     @staticmethod
     def _extract_extras(request_event):
-        py_response = request_event.response.py_response
+        response = request_event.response
         baked_request = request_event.request
 
         record = {
-            'responseCode': py_response.status_code,
-            'responseMessage': py_response.reason,
-            'responseTime': py_response.elapsed.total_seconds(),
+            'responseCode': response.status_code,
+            'responseMessage': response.reason,
+            'responseTime': response.elapsed.total_seconds(),
             'connectTime': 0,
             'latency': 0,
-            'responseSize': len(py_response.content),
+            'responseSize': len(response.content),
             'requestSize': 0,
             'requestMethod': baked_request.method,
             'requestURI': baked_request.url,
             'assertions': [],  # will be filled later
-            'responseBody': py_response.text,
+            'responseBody': response.text,
             'requestBody': baked_request.body or "",
             'requestCookies': dict(request_event.session.cookies),
-            'requestHeaders': dict(py_response.request.headers),
-            'responseHeaders': dict(py_response.headers),
+            'requestHeaders': dict(response._request.headers),
+            'responseHeaders': dict(response.headers),
         }
 
         record["requestCookiesRaw"] = ApiritifExtractor._cookies_from_dict(record["requestCookies"])
@@ -327,7 +332,7 @@ class ApiritifExtractor(object):
 def run_nose(report_file, files, iteration_limit, hold):
     argv = [__file__, '-v']
     argv.extend(files)
-    argv.extend(['--with-bzt_plugin', '--nocapture', '--exe'])
+    argv.extend(['--with-bzt_plugin', '--nocapture', '--exe', '--nologcapture'])
 
     if iteration_limit == 0:
         if hold > 0:

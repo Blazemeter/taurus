@@ -21,5 +21,10 @@
     1,
     2,
     3
-  ]
+  ],
+  "cli-aliases": {
+    "test": {
+      "marker": true
+    }
+  }
 }

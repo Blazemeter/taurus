@@ -1,17 +1,20 @@
 import re
+import select
 import sys
 from collections import OrderedDict
 
 import os
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario
+from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, LoadSamplesReader, FuncSamplesReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time, BetterDict, \
     ensure_is_dict
+
+IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 
 class NoseTester(SubprocessedExecutor, HavingInstallableTools):
@@ -21,11 +24,10 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
 
     def __init__(self):
         super(NoseTester, self).__init__()
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
-                                        "resources",
-                                        "nose_plugin.py")
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
         self._script = None
         self.generated_methods = BetterDict()
+        self._tailer = NoneTailer()
 
     def prepare(self):
         super(NoseTester, self).prepare()
@@ -42,6 +44,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         test_mode = self.execution.get("test-mode", None) or "apiritif"
         if test_mode == "apiritif":
             builder = ApiritifScriptBuilder(self.get_scenario(), self.log)
+            builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
@@ -49,12 +52,17 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         builder.save(filename)
         return filename
 
+    def __is_verbose(self):
+        engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
+        executor_verbose = self.settings.get("verbose", engine_verbose)
+        return executor_verbose
+
     def install_required_tools(self):
         """
         we need installed nose plugin
         """
         if sys.version >= '3':
-            self.log.warning("You are using python3, make sure that your scripts are able to run in python3!")
+            self.log.warning("You are using Python 3, make sure that your scripts are able to run in Python 3")
 
         self._check_tools([TclLibrary(self.log), TaurusNosePlugin(self.plugin_path, "")])
 
@@ -89,11 +97,31 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         nose_command_line += [self._script]
         self._start_subprocess(nose_command_line)
 
+        if self.__is_verbose():
+            self._tailer = FileTailer(self._stdout_file)
+
     def has_results(self):
         if isinstance(self.reader, LoadSamplesReader):
             return bool(self.reader) and bool(self.reader.buffer)
         elif isinstance(self.reader, FuncSamplesReader):
             return bool(self.reader) and bool(self.reader.read_records)
+
+    def check(self):
+        self.__log_lines()
+        return super(NoseTester, self).check()
+
+    def post_process(self):
+        super(NoseTester, self).post_process()
+        self.__log_lines(True)
+
+    def __log_lines(self, force=False):
+        lines = []
+        for line in self._tailer.get_lines(force):
+            if not IGNORED_LINE.match(line):
+                lines.append(line)
+
+        if lines:
+            self.log.info("\n".join(lines))
 
 
 class TaurusNosePlugin(RequiredTool):
@@ -340,6 +368,8 @@ class ApiritifScriptBuilder(PythonGenerator):
     IMPORTS = """\
 import time
 import unittest
+import logging
+import sys
 
 import apiritif
 
@@ -347,6 +377,7 @@ import apiritif
 
     def __init__(self, scenario, parent_logger):
         super(ApiritifScriptBuilder, self).__init__(scenario, parent_logger)
+        self.verbose = False
         self.access_method = None
 
     def gen_setup_method(self):
@@ -371,17 +402,16 @@ import apiritif
         if self.access_method == "target":
             setup_method_def = self.gen_method_definition("setUp", ["self"])
             target_line = "self.target = apiritif.http.target(%r)" % default_address
-            setup_method_def.append(self.gen_statement(target_line, indent=8))
+            setup_method_def.append(self.gen_statement(target_line))
 
             if base_path:
-                setup_method_def.append(self.gen_statement("self.target.base_path(%r)" % base_path, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.keep_alive(%r)" % keepalive, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.use_cookies(%r)" % store_cookie, indent=8))
-            setup_method_def.append(self.gen_statement("self.target.allow_redirects(%r)" % follow_redirects, indent=8))
+                setup_method_def.append(self.gen_statement("self.target.base_path(%r)" % base_path))
+            setup_method_def.append(self.gen_statement("self.target.keep_alive(%r)" % keepalive))
+            setup_method_def.append(self.gen_statement("self.target.auto_assert_ok(%r)" % auto_assert_ok))
+            setup_method_def.append(self.gen_statement("self.target.use_cookies(%r)" % store_cookie))
+            setup_method_def.append(self.gen_statement("self.target.allow_redirects(%r)" % follow_redirects))
             if timeout is not None:
-                setup_method_def.append(self.gen_statement("self.target.timeout(%r)" % dehumanize_time(timeout),
-                                                           indent=8))
+                setup_method_def.append(self.gen_statement("self.target.timeout(%r)" % dehumanize_time(timeout)))
             setup_method_def.append(self.gen_new_line(indent=0))
 
             return setup_method_def
@@ -398,7 +428,7 @@ import apiritif
         :return:
         """
         components = []
-        for item in re.split(r'(\$\{\w+\})', string):
+        for item in re.split(r"(\$\{\w+\})", string):
             if item:
                 if item.startswith("${") and item.endswith("}"):
                     components.append("str(%s)" % item[2:-1])
@@ -411,7 +441,7 @@ import apiritif
     def repr_inter(obj):
         recur = ApiritifScriptBuilder.repr_inter
         if isinstance(obj, dict):
-            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in sorted(iteritems(obj))) + "}"
+            return "{" + ", ".join("%s: %s" % (recur(key), recur(value)) for key, value in sorted(iteritems(obj))) + "}"
         elif isinstance(obj, list):
             return "[" + ", ".join(recur(item) for item in obj) + "]"
         elif isinstance(obj, string_types):
@@ -424,6 +454,13 @@ import apiritif
         self.log.debug("Generating Test Case test methods")
         imports = self.add_imports()
         self.root.append(imports)
+
+        if self.verbose:
+            self.root.append(self.gen_statement("log = logging.getLogger('apiritif.http')", indent=0))
+            self.root.append(self.gen_statement("log.addHandler(logging.StreamHandler(sys.stdout))", indent=0))
+            self.root.append(self.gen_statement("log.setLevel(logging.DEBUG)", indent=0))
+            self.root.append(self.gen_new_line(0))
+
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
         setup_method = self.gen_setup_method()
@@ -434,7 +471,7 @@ import apiritif
 
         variables = self.scenario.get("variables")
         for var, init in iteritems(variables):
-            test_method.append(self.gen_statement("%s = %s" % (var, ApiritifScriptBuilder.repr_inter(init)), indent=8))
+            test_method.append(self.gen_statement("%s = %s" % (var, ApiritifScriptBuilder.repr_inter(init))))
         if variables:
             test_method.append(self.gen_new_line(indent=0))
 
@@ -458,7 +495,7 @@ import apiritif
         named_args = OrderedDict()
 
         method = request.method.lower()
-        think_time = dehumanize_time(request.priority_option('think-time', default=None))
+        think_time = dehumanize_time(request.priority_option('think-time'))
 
         if request.timeout is not None:
             named_args['timeout'] = dehumanize_time(request.timeout)
@@ -498,7 +535,7 @@ import apiritif
         else:
             label = request.url
 
-        test_method.append(self.gen_statement("with apiritif.transaction(%r):" % label, indent=8))
+        test_method.append(self.gen_statement("with apiritif.transaction(%r):" % label))
         request_line = "response = {source}.{method}({url}{kwargs})".format(
             source=request_source,
             method=method,
@@ -617,3 +654,31 @@ import apiritif
         self.log.debug("Generating test method %s", name)
         test_method = self.gen_method_definition(name, ["self"])
         return test_method
+
+
+class NoneTailer(object):
+    def get_lines(self, force=False):
+        if False:
+            yield ''
+        return
+
+
+class FileTailer(NoneTailer):
+    def __init__(self, filename):
+        super(FileTailer, self).__init__()
+        self._fds = open(filename)
+        self._poller = select.poll()
+        self._poller.register(self._fds)
+
+    def get_lines(self, force=False):
+        readable = self._poller.poll(0)
+        for _, _ in readable:
+            yield self._fds.readline().rstrip()
+
+        if force:
+            for line in self._fds.readlines():
+                yield line.rstrip()
+
+    def __del__(self):
+        if self._fds:
+            self._fds.close()

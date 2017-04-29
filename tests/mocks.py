@@ -8,6 +8,7 @@ from io import StringIO
 
 import os
 import requests
+from bzt.six import u
 from logging import Handler
 from tests import random_sample
 
@@ -15,7 +16,6 @@ from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader
-from bzt.six import u
 from bzt.utils import load_class, to_json
 
 try:
@@ -33,7 +33,7 @@ class EngineEmul(Engine):
         self.create_artifacts_dir()
         self.config.merge({"provisioning": "local"})
         self.config.merge({"modules": {"mock": ModuleMock.__module__ + "." + ModuleMock.__name__}})
-        self.finalize_exc = None
+        self.prepare_exc = None
         self.was_finalize = False
 
     def dump_config(self):
@@ -42,6 +42,11 @@ class EngineEmul(Engine):
         self.config.dump(fname, Configuration.JSON)
         with open(fname) as fh:
             logging.debug("JSON:\n%s", fh.read())
+
+    def prepare(self):
+        if self.prepare_exc:
+            raise self.prepare_exc
+        return super(EngineEmul, self).prepare()
 
 
 class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister, HavingInstallableTools):
@@ -295,7 +300,8 @@ class BZMock(object):
             'https://a.blazemeter.com/api/v4/web/version': {},
             'https://a.blazemeter.com/api/v4/user': {'defaultProject': {'id': None}},
             'https://a.blazemeter.com/api/v4/accounts': {"result": [{'id': 1}]},
-            'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {"result": [{'id': 1, 'enabled': True}]},
+            'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
+                "result": [{'id': 1, 'enabled': True}]},
             'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': {"result": []},
