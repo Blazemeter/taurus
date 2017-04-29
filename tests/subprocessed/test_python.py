@@ -221,7 +221,7 @@ class TestNoseRunner(BZTestCase):
             "execution": [{
                 "test-mode": "apiritif",
                 "scenario": {
-                    "default-address": "https://httpbin.org",
+                    "default-address": "http://httpbin.org",
                     "requests": [{
                         "label": "failure by 404",
                         "url": "/status/404",
