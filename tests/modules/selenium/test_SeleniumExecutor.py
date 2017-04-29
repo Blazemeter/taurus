@@ -44,7 +44,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.configure({
             ScenarioExecutor.EXEC: {
                 "executor": "selenium",
-                "scenario": {"script": __dir__() + "/../../data/selenium/invalid/invalid.java"}
+                "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/invalid.java"}
             }
         })
         self.assertRaises(ToolError, self.obj.prepare)
@@ -56,7 +56,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../../data/selenium/invalid/not_found"}
+            "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/not_found"}
         }})
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
@@ -67,7 +67,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../../data/selenium/invalid/SeleniumTest.java"}
+            "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/SeleniumTest.java"}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -82,7 +82,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../../data/selenium/invalid/SimpleTest.java"}
+            "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/SimpleTest.java"}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -97,7 +97,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../../data/selenium/invalid/selenium1.java"}
+            "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/selenium1.java"}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -183,7 +183,7 @@ class TestSeleniumStuff(SeleniumTestCase):
     def test_dont_copy_local_script_to_artifacts(self):
         "ensures that .java file is not copied into artifacts-dir"
         filename = "BlazeDemo.java"
-        script_path = __dir__() + "/../../data/" + filename
+        script_path = __dir__() + "/../../resources/" + filename
         self.obj.execution.merge({
             "scenario": {
                 "script": script_path,
@@ -200,7 +200,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.engine.file_search_paths = [self.obj.engine.artifacts_dir]
 
         script_name = "BlazeDemo.java"
-        test_script = __dir__() + "/../../data/" + script_name
+        test_script = __dir__() + "/../../resources/" + script_name
         artifacts_script = os.path.join(self.obj.engine.artifacts_dir, script_name)
         shutil.copy2(test_script, artifacts_script)
 
@@ -237,7 +237,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
     def test_force_runner(self):
         self.obj.execution.merge({
-            'scenario': {'script': __dir__() + '/../../data/selenium/junit/jar/'},
+            'scenario': {'script': __dir__() + '/../../resources/selenium/junit/jar/'},
             'runner': 'nose',
         })
         self.obj.prepare()
@@ -246,13 +246,13 @@ class TestSeleniumStuff(SeleniumTestCase):
     def test_additional_classpath_resource_files(self):
         self.obj.execution.merge({
             'scenario': {
-                'script': __dir__() + '/../../data/selenium/junit/jar/dummy.jar',
+                'script': __dir__() + '/../../resources/selenium/junit/jar/dummy.jar',
                 'runner': 'junit',
-                'additional-classpath': [__dir__() + '/../../data/selenium/junit/jar/another_dummy.jar'],
+                'additional-classpath': [__dir__() + '/../../resources/selenium/junit/jar/another_dummy.jar'],
             },
         })
         self.obj.settings.merge({
-            'additional-classpath': [__dir__() + '/../../data/selenium/testng/jars/testng-suite.jar'],
+            'additional-classpath': [__dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar'],
         })
         resources = self.obj.resource_files()
         # scenario.script, scenario.additional-classpath, settings.additional-classpath
@@ -261,7 +261,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
 class TestReportReader(BZTestCase):
     def test_report_reader(self):
-        reader = LoadSamplesReader(__dir__() + "/../../data/selenium/report.ldjson", logging.getLogger(), None)
+        reader = LoadSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", logging.getLogger(), None)
         items = list(reader._read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0][1], 'testFailure')
@@ -288,7 +288,7 @@ class TestReportReader(BZTestCase):
         self.assertEqual(len(items), 2)
 
     def test_func_reader(self):
-        reader = FuncSamplesReader(__dir__() + "/../../data/selenium/report.ldjson", EngineEmul(), logging.getLogger(), None)
+        reader = FuncSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", EngineEmul(), logging.getLogger(), None)
         items = list(reader.read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0].test_case, 'testFailure')

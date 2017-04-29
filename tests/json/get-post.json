@@ -144,10 +144,10 @@
       "concurrent-pool-size": 10,
       "disable-listeners": true,
       "data-sources": [
-        "tests/data/test1.csv",
+        "tests/resources/test1.csv",
         {
           "type": "csv",
-          "path": "tests/data/test1.csv",
+          "path": "tests/resources/test1.csv",
           "delimiter": ",",
           "quoted": false,
           "loop": true

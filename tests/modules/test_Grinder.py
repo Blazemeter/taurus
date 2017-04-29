@@ -23,9 +23,9 @@ class TestGrinderExecutor(BZTestCase):
         grinder_version = GrinderExecutor.VERSION
         mirrors_source = GrinderExecutor.MIRRORS_SOURCE
         try:
-            GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/grinder-{version}_{version}-binary.zip"
+            GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../resources/grinder-{version}_{version}-binary.zip"
             GrinderExecutor.VERSION = "3.11"
-            GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
+            GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../resources/unicode_file"
 
             self.assertFalse(os.path.exists(path))
 

@@ -18,8 +18,8 @@ class BasicSimulation extends Simulation {
 
   val scn =     scenario("BasicSimulation") .exec(
           http("request_1").post("some_action")
-0          .formUpload("key", "tests/data/test1.csv")
-1          .bodyPart(RawFileBodyPart("file", "tests/data/unicode_file").contentType("application/binary").fileName("unicode_file")).asMultipartForm
+0          .formUpload("key", "tests/resources/test1.csv")
+1          .bodyPart(RawFileBodyPart("file", "tests/resources/unicode_file").contentType("application/binary").fileName("unicode_file")).asMultipartForm
 2          .body(RawFileBody("tests/json/blazemeter-api-user.json"))
 3          .body(RawFileBodyPart("tests/json/get-post.json"))
 4          .body(RawFileBodyPart("file_name", "tests/json/passfail.json"))

@@ -92,7 +92,7 @@ line(&quot;11&quot;);
           <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="JSR223 PreProcessor" enabled="true">
             <stringProp name="scriptLanguage">java</stringProp>
             <stringProp name="parameters"></stringProp>
-            <stringProp name="filename">tests/data/BlazeDemo.java</stringProp>
+            <stringProp name="filename">tests/resources/BlazeDemo.java</stringProp>
             <stringProp name="cacheKey"></stringProp>
             <stringProp name="script"></stringProp>
           </JSR223PreProcessor>

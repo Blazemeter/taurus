@@ -106,7 +106,7 @@ class TestEngine(BZTestCase):
     def test_invalid_format(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/data/jmeter-dist-3.0.zip"
+            __dir__() + "/resources/jmeter-dist-3.0.zip"
         ]
         self.assertRaises(TaurusConfigError, lambda: self.obj.configure(configs))
 
@@ -169,7 +169,7 @@ class TestScenarioExecutor(BZTestCase):
     def test_scenario_is_script(self):
         self.engine.config.merge({
             "execution": [{
-                "scenario": "tests/data/selenium/python/test_blazemeter_fail.py"
+                "scenario": "tests/resources/selenium/python/test_blazemeter_fail.py"
             }]})
         self.executor.execution = self.engine.config.get('execution')[0]
         self.executor.get_scenario()

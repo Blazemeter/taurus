@@ -688,7 +688,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/sessions/s1/reports/logs': {"result": {"data": [
                     {
                         'filename': "artifacts.zip",
-                        'dataUrl': "file://" + __dir__() + '/../data/artifacts-1.zip'
+                        'dataUrl': "file://" + __dir__() + '/../resources/artifacts-1.zip'
                     }
                 ]}}
             },

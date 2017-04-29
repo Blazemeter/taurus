@@ -17,7 +17,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         :return:
         """
         self.obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../../data/selenium/python/test_blazemeter_fail.py"
+            "script": __dir__() + "/../../resources/selenium/python/test_blazemeter_fail.py"
         }})
         self.obj.prepare()
 
@@ -26,7 +26,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         Check if scripts exist in working dir
         :return:
         """
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../../data/selenium/python/"}})
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../../resources/selenium/python/"}})
         self.obj.prepare()
 
     def test_selenium_startup_shutdown_python_single(self):
@@ -36,13 +36,13 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         """
         self.configure({
             'execution': {
-                'scenario': {'script': __dir__() + '/../../data/selenium/python/'},
+                'scenario': {'script': __dir__() + '/../../resources/selenium/python/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
         })
         self.obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../../data/selenium/python/test_blazemeter_fail.py"
+            "script": __dir__() + "/../../resources/selenium/python/test_blazemeter_fail.py"
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -58,7 +58,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         """
         self.configure({
             'execution': {
-                'scenario': {'script': __dir__() + '/../../data/selenium/python/'},
+                'scenario': {'script': __dir__() + '/../../resources/selenium/python/'},
                 'executor': 'selenium'
             },
             'reporting': [{'module': 'junit-xml'}]
@@ -78,7 +78,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.configure({
             ScenarioExecutor.EXEC: {
                 "executor": "selenium",
-                "scenario": {"script": __dir__() + "/../../data/selenium/invalid/dummy.py"}
+                "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/dummy.py"}
             }
         })
         self.obj.prepare()
@@ -92,7 +92,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.shutdown()
 
     def test_resource_files_collection_remote_nose(self):
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../../data/selenium/python/"}})
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../../resources/selenium/python/"}})
         self.assertEqual(len(self.obj.resource_files()), 1)
 
     def test_setup_exception(self):
@@ -101,7 +101,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         :return:
         """
         self.obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../../data/selenium/python/test_setup_exception.py"
+            "script": __dir__() + "/../../resources/selenium/python/test_setup_exception.py"
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -286,7 +286,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         self.obj.prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.readlines()
-        with open(__dir__() + "/../../data/selenium/generated_from_requests.py") as sample:
+        with open(__dir__() + "/../../resources/selenium/generated_from_requests.py") as sample:
             sample_contents = sample.readlines()
 
         # strip line terminator and exclude specific build path

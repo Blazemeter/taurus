@@ -27,7 +27,7 @@ class TestZipFolder(BZTestCase):
                     "us-east-1": 1,
                     "us-west": 2},
                 "scenario": {
-                    "script": __dir__() + "/../data/selenium/junit/java_package"}},
+                    "script": __dir__() + "/../resources/selenium/junit/java_package"}},
             "modules": {
                 "selenium": "bzt.modules.selenium.SeleniumExecutor",
                 "cloud": "bzt.modules.blazemeter.CloudProvisioning"},

@@ -47,7 +47,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.execution.merge({
             'files': [
                 'tests/grinder/fake_grinder.jar',
-                'tests/data/selenium/junit/jar'],
+                'tests/resources/selenium/junit/jar'],
             'scenario': {
                 "script": __dir__() + "/../gatling/BasicSimulation.scala",
                 "simulation": "mytest.BasicSimulation"}})
@@ -81,7 +81,7 @@ class TestGatlingExecutor(BZTestCase):
         path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
-        download_link = "file:///" + __dir__() + "/../data/gatling-dist-{version}_{version}.zip"
+        download_link = "file:///" + __dir__() + "/../resources/gatling-dist-{version}_{version}.zip"
         gatling_version = '2.1.4'
 
         self.assertFalse(os.path.exists(path))

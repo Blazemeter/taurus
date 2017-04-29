@@ -11,10 +11,10 @@ execution:
 # 2, 3
 - executor: selenium
   scenario:
-    testng-xml: data/selenium/testng/testng.xml
-    script: data/BlazeDemo.java
+    testng-xml: resources/selenium/testng/testng.xml
+    script: resources/BlazeDemo.java
     additional-classpath:
-    - data/selenium/junit/jar/dummy.jar
+    - resources/selenium/junit/jar/dummy.jar
     - ~/file-in-home-05.jar
 - executor: selenium
   scenario:
@@ -73,7 +73,7 @@ execution:
 # 15, 16
 - executor: pbench
   scenario:
-    script: data/pbench.src
+    script: resources/pbench.src
 - executor: pbench
   scenario:
     script: ~/file-in-home-13.src

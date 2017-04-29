@@ -183,7 +183,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution.merge({"scenario":
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
-                                           {"path": __dir__() + "/../data/test2.csv",
+                                           {"path": __dir__() + "/../resources/test2.csv",
                                             "delimiter": ","}]}})
         self.obj.prepare()
 
@@ -212,7 +212,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution.merge({"scenario":
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
-                                           {"path": __dir__() + "/../data/test2.csv"}]}})
+                                           {"path": __dir__() + "/../resources/test2.csv"}]}})
         self.obj.prepare()
 
     def test_path_processing(self):
@@ -265,10 +265,10 @@ class TestJMeterExecutor(BZTestCase):
         jmeter_vars = get_jmeter_executor_vars()
         set_jmeter_executor_vars(jmeter_vars)
         try:
-            JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
-            JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-            JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
-            JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+            JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../resources/unicode_file"
+            JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../resources/jmeter-dist-{version}.zip"
+            JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../resources/jmeter-plugins-manager.jar"
+            JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../resources/jmeter-plugins-manager.jar"
             JMeterExecutor.PLUGINS = ['Alice', 'Bob']
             JMeterExecutor.JMETER_VER = '2.13'
 
@@ -306,10 +306,10 @@ class TestJMeterExecutor(BZTestCase):
 
         jmeter_vars = get_jmeter_executor_vars()
         try:
-            JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
-            JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/jmeter-dist-{version}.zip"
-            JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
-            JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../data/jmeter-plugins-manager.jar"
+            JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../resources/unicode_file"
+            JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../resources/jmeter-dist-{version}.zip"
+            JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../resources/jmeter-plugins-manager.jar"
+            JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../resources/jmeter-plugins-manager.jar"
             JMeterExecutor.PLUGINS = ['Alice', 'Bob']
             JMeterExecutor.JMETER_VER = '3.0'
 
@@ -416,8 +416,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertTrue(all([_file in artifacts for _file in files]))
 
     def test_resource_files_data_sources_shorthand(self):
-        csv_file = __dir__() + '/../data/test1.csv'
-        csv_file_uni = u(__dir__() + '/../data/test2.csv')
+        csv_file = __dir__() + '/../resources/test1.csv'
+        csv_file_uni = u(__dir__() + '/../resources/test2.csv')
         self.configure({
             'execution': {
                 'scenario': {
@@ -427,8 +427,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn(csv_file_uni, resource_files)
 
     def test_resource_files_data_sources_full_form(self):
-        csv_file = __dir__() + '/../data/test1.csv'
-        csv_file_uni = u(__dir__() + '/../data/test2.csv')
+        csv_file = __dir__() + '/../resources/test1.csv'
+        csv_file_uni = u(__dir__() + '/../resources/test2.csv')
         self.configure({
             'execution': {
                 'scenario': {
@@ -445,7 +445,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn(csv_file_uni, resource_files)
 
     def test_resource_files_jsr223(self):
-        js_file = __dir__() + '/../data/data.js'
+        js_file = __dir__() + '/../resources/data.js'
         self.configure({
             'execution': {
                 'scenario': {
@@ -459,8 +459,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn(js_file, resource_files)
 
     def test_resource_files_jsr223s(self):
-        js_file = __dir__() + '/../data/data.js'
-        js_file2 = __dir__() + '/../data/data2.js'
+        js_file = __dir__() + '/../resources/data.js'
+        js_file2 = __dir__() + '/../resources/data2.js'
         self.configure({
             'execution': {
                 'scenario': {
@@ -1245,7 +1245,7 @@ class TestJMeterExecutor(BZTestCase):
                 "requests": ["http://blazedemo.com/"],
                 # note that data-sources should be a list of strings/objects
                 "data-sources": {
-                    "path": __dir__() + "/../data/test1.csv"}}})
+                    "path": __dir__() + "/../resources/test1.csv"}}})
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_force_parent_sample(self):
@@ -1300,7 +1300,7 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {
                     'data-sources': ['test1.csv'],
                     'requests': ['http://blazedemo.com/${url}']}}})
-        csv_source = __dir__() + '/../data/test1.csv'
+        csv_source = __dir__() + '/../resources/test1.csv'
         self.obj.engine.file_search_paths.append(self.obj.engine.artifacts_dir)
         shutil.copy2(csv_source, self.obj.engine.artifacts_dir)
         self.obj.prepare()
@@ -1429,7 +1429,7 @@ class TestJMeterExecutor(BZTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    "data-sources": [__dir__() + "/../data/test1.csv"],
+                    "data-sources": [__dir__() + "/../resources/test1.csv"],
                     "requests": [{
                         "if": "<cond1>",
                         "then": [{
@@ -1626,14 +1626,14 @@ class TestJMeterExecutor(BZTestCase):
         self.configure({
             'scenarios': {
                 'login': {
-                    'data-sources': [__dir__() + "/../data/test1.csv"],
+                    'data-sources': [__dir__() + "/../resources/test1.csv"],
                     'requests': [{
                         "url": "http://demo.blazemeter.com/",
                         "method": "POST",
                         "body-file": __dir__() + "/../jmeter/jmx/dummy.jmx"}]}},
             'execution': {
                 'scenario': {
-                    'data-sources': [__dir__() + "/../data/test2.csv"],
+                    'data-sources': [__dir__() + "/../resources/test2.csv"],
                     "requests": [{
                         "include-scenario": "login"}]}},
             'provisioning': 'cloud'})
@@ -1644,11 +1644,11 @@ class TestJMeterExecutor(BZTestCase):
         self.configure({
             'scenarios': {
                 'login': {
-                    'data-sources': [__dir__() + "/../data/test1.csv"],
+                    'data-sources': [__dir__() + "/../resources/test1.csv"],
                     'requests': ['http://blazedemo.com/auth/${test1}']}},
             'execution': {
                 'scenario': {
-                    "data-sources": [__dir__() + "/../data/test2.csv"],
+                    "data-sources": [__dir__() + "/../resources/test2.csv"],
                     "requests": [
                         {"include-scenario": "login"},
                         "http://example.com/${test2}"]}}})
@@ -1658,14 +1658,14 @@ class TestJMeterExecutor(BZTestCase):
         scenario_dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
         self.assertIsNotNone(scenario_dataset)
         filename = scenario_dataset.find('stringProp[@name="filename"]')
-        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test2.csv"))
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../resources/test2.csv"))
         login_controler = thread_group.find('GenericController')
         self.assertIsNotNone(login_controler)
         login_ht = login_controler.getnext()
         login_dataset = login_ht.find('CSVDataSet')
         self.assertIsNotNone(login_dataset)
         filename = scenario_dataset.find('stringProp[@name="filename"]')
-        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test2.csv"))
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../resources/test2.csv"))
 
     def test_include_recursion(self):
         self.configure({
@@ -1813,7 +1813,7 @@ class TestJMeterExecutor(BZTestCase):
             'execution': {
                 'scenario': {
                     "data-sources": [{
-                        "path": __dir__() + "/../data/test1.csv",
+                        "path": __dir__() + "/../resources/test1.csv",
                         "loop": True}],
                     "requests": [
                         "http://example.com/${test1}"]}}})
@@ -1822,7 +1822,7 @@ class TestJMeterExecutor(BZTestCase):
         dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
         self.assertIsNotNone(dataset)
         filename = dataset.find('stringProp[@name="filename"]')
-        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test1.csv"))
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../resources/test1.csv"))
         loop = dataset.find('boolProp[@name="recycle"]')
         self.assertEqual(loop.text, "true")
         stop = dataset.find('boolProp[@name="stopThread"]')
@@ -1833,7 +1833,7 @@ class TestJMeterExecutor(BZTestCase):
             'execution': {
                 'scenario': {
                     "data-sources": [{
-                        "path": __dir__() + "/../data/test1.csv",
+                        "path": __dir__() + "/../resources/test1.csv",
                         "loop": False}],
                     "requests": [
                         "http://example.com/${test1}"]}}})
@@ -1842,7 +1842,7 @@ class TestJMeterExecutor(BZTestCase):
         dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
         self.assertIsNotNone(dataset)
         filename = dataset.find('stringProp[@name="filename"]')
-        self.assertEqual(filename.text, get_full_path(__dir__() + "/../data/test1.csv"))
+        self.assertEqual(filename.text, get_full_path(__dir__() + "/../resources/test1.csv"))
         loop = dataset.find('boolProp[@name="recycle"]')
         self.assertEqual(loop.text, "false")
         stop = dataset.find('boolProp[@name="stopThread"]')
@@ -1853,7 +1853,7 @@ class TestJMeterExecutor(BZTestCase):
             'execution': {
                 'scenario': {
                     "data-sources": [{
-                        "path": __dir__() + "/../data/test1.csv",
+                        "path": __dir__() + "/../resources/test1.csv",
                         "variable-names": "a,b,c"}],
                     "requests": [
                         "http://example.com/${test1}"]}}})

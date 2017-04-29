@@ -12,14 +12,14 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.configure({
             "execution": {
                 "scenario": {
-                    "script": __dir__() + "/../../data/selenium/ruby/example_spec.rb"
+                    "script": __dir__() + "/../../resources/selenium/ruby/example_spec.rb"
                 }}})
         self.obj.prepare()
 
     def test_rspec_full(self):
         self.configure({
             'execution': {
-                'scenario': {'script': __dir__() + '/../../data/selenium/ruby/example_spec.rb'},
+                'scenario': {'script': __dir__() + '/../../resources/selenium/ruby/example_spec.rb'},
             },
         })
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
@@ -40,7 +40,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'hold-for': '10s',
-                'scenario': {'script': __dir__() + '/../../data/selenium/ruby/example_spec.rb'},
+                'scenario': {'script': __dir__() + '/../../resources/selenium/ruby/example_spec.rb'},
                 'executor': 'selenium'
             },
         })
@@ -58,7 +58,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'iterations': 3,
-                'scenario': {'script': __dir__() + '/../../data/selenium/ruby/example_spec.rb'},
+                'scenario': {'script': __dir__() + '/../../resources/selenium/ruby/example_spec.rb'},
                 'executor': 'selenium'
             },
         })
@@ -76,12 +76,12 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'iterations': 3,
-                'scenario': {'script': __dir__() + '/../../data/selenium/ruby/example_spec.rb'},
+                'scenario': {'script': __dir__() + '/../../resources/selenium/ruby/example_spec.rb'},
                 'executor': 'selenium'
             },
         })
         self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
-        dummy = __dir__() + '/../../data/selenium/ruby/ruby-dummy'
+        dummy = __dir__() + '/../../resources/selenium/ruby/ruby-dummy'
         dummy += '.bat' if is_windows() else ''
         self.obj.settings.merge({
             "selenium-tools": {"rspec": {"interpreter": dummy}}
