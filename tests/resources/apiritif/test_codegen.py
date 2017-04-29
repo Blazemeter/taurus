@@ -1,4 +1,3 @@
-import time
 import unittest
 import logging
 import sys
@@ -9,6 +8,7 @@ import apiritif
 log = logging.getLogger('apiritif.http')
 log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG)
+
 
 class TestRequests(unittest.TestCase):
     def setUp(self):
@@ -37,7 +37,10 @@ class TestRequests(unittest.TestCase):
         response.assert_jsonpath('$[0].email', expected_value=None)
 
         with apiritif.transaction('add into posts'):
-            response = self.target.post('/posts', headers={'content-type': 'application/json'}, json={'body': 'bar', 'title': 'foo', 'userId': str(userID)})
+            response = self.target.post(
+                '/posts',
+                headers={'content-type': 'application/json'},
+                json={'body': 'bar', 'title': 'foo', 'userId': str(userID)})
         addedID = response.extract_jsonpath('$.id', 'NOT_FOUND')
 
         with apiritif.transaction('delete from posts'):

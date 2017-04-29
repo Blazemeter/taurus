@@ -147,7 +147,7 @@ class TestNoseRunner(BZTestCase):
     def test_full_single_script(self):
         self.obj.execution.merge({
             "scenario": {
-                "script": __dir__() + "/../../apiritif/test_api_example.py"
+                "script": __dir__() + "/../../resources/apiritif/test_api_example.py"
             }
         })
         self.obj.prepare()
@@ -190,7 +190,7 @@ class TestNoseRunner(BZTestCase):
             "execution": [{
                 "test-mode": "apiritif",
                 "scenario": {
-                    "script": __dir__() + "/../../apiritif/test_transactions.py"
+                    "script": __dir__() + "/../../resources/apiritif/test_transactions.py"
                 }
             }]
         })
@@ -205,7 +205,7 @@ class TestNoseRunner(BZTestCase):
         self.assertNotEquals(self.obj.process, None)
 
     def test_report_reading(self):
-        reader = FuncSamplesReader(__dir__() + "/../../apiritif/transactions.ldjson", self.obj.engine, self.obj.log, [])
+        reader = FuncSamplesReader(__dir__() + "/../../resources/apiritif/transactions.ldjson", self.obj.engine, self.obj.log, [])
         items = list(reader.read(last_pass=True))
         self.assertEqual(len(items), 6)
         self.assertEqual(items[0].test_case, "test_1_single_request")
@@ -738,10 +738,10 @@ class TestApiritifScriptBuilder(BZTestCase):
 
     def test_complex_codegen(self):
         """ This test serves code review purposes, to make changes more visible """
-        self.obj.engine.config.load([__dir__() + '/../../apiritif/test_codegen.yml'])
+        self.obj.engine.config.load([__dir__() + '/../../resources/apiritif/test_codegen.yml'])
         self.configure(self.obj.engine.config['execution'][0])
         self.obj.settings['verbose'] = True
         self.obj.prepare()
-        exp_file = __dir__() + '/../../apiritif/test_codegen.py'
+        exp_file = __dir__() + '/../../resources/apiritif/test_codegen.py'
         # import shutil; shutil.copy2(self.obj._script, exp_file)  # keep this coment to ease updates
         self.assertFilesEqual(exp_file, self.obj._script)
