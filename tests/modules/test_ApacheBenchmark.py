@@ -12,7 +12,7 @@ TOOL_NAME = 'ab' + EXE_SUFFIX
 
 
 def get_res_path(resource):
-    return path.join(path.dirname(__file__), '..', 'ab', resource)
+    return path.join(path.dirname(__file__), '..', 'resource', 'ab', resource)
 
 
 class TestApacheBenchExecutor(BZTestCase):
@@ -37,8 +37,6 @@ class TestApacheBenchExecutor(BZTestCase):
             obj.shutdown()
         obj.post_process()
         self.assertNotEquals(obj.process, None)
-
-
 
     def test_no_request_exception(self):
         "Checks that executor.startup fails if there's no request specified."

@@ -57,7 +57,7 @@ execution:
 # 11, 12
 - executor: siege
   scenario:
-    script: siege/url-file
+    script: resources/siege/url-file
 - executor: siege
   scenario:
     script: ~/file-in-home-09.siege
