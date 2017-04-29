@@ -165,7 +165,7 @@ class TestAndroidEmulatorLoader(BZTestCase):
 
     def create_fake_android_emulator(self):
         sdk_dir = join(self.android.engine.artifacts_dir, 'sdk')
-        src_dir = join(__dir__(), '..', 'android-emulator')
+        src_dir = join(__dir__(), '..', 'resources', 'android-emulator')
         dest_dir = join(sdk_dir, 'tools')
         os.mkdir(sdk_dir)
         os.mkdir(dest_dir)
@@ -207,7 +207,7 @@ class TestAppiumLoader(BZTestCase):
         self.appium.post_process()
 
     def create_fake_appium(self):
-        src_dir = join(__dir__(), '..', 'appium')
+        src_dir = join(__dir__(), '..', 'resources', 'appium')
         dest_dir = self.appium.engine.artifacts_dir
         shutil.copy2(join(src_dir, 'appium' + EXE_SUFFIX), dest_dir)
         os.chmod(join(dest_dir, 'appium' + EXE_SUFFIX), 0o755)
