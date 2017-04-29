@@ -213,7 +213,7 @@ class TestScenarioExecutor(BZTestCase):
                 "hostaliases": {
                     "demo": "blazedemo.com"}}})
 
-        path = os.path.join(__dir__(), "data", "hostaliases" + EXE_SUFFIX)
+        path = os.path.join(__dir__(), "resources", "hostaliases" + EXE_SUFFIX)
         process = self.executor.execute([path])
         stdout, _ = process.communicate()
         hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
