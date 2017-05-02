@@ -25,18 +25,18 @@ class TestCLI(BZTestCase):
         self.obj.engine = EngineEmul()
 
     def test_perform_normal(self):
-        ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
+        ret = self.obj.perform([__dir__() + "/resources/json/mock_normal.json"])
         self.assertEquals(0, ret)
 
     def test_perform_aliases(self):
         self.aliases = ['test']
-        ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
+        ret = self.obj.perform([__dir__() + "/resources/json/mock_normal.json"])
         self.assertEquals(0, ret)
         self.assertTrue(self.obj.engine.config['marker'])
 
     def test_perform_prepare_exc(self):
         self.obj.engine.prepare_exc = TaurusException()
-        ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
+        ret = self.obj.perform([__dir__() + "/resources/json/mock_normal.json"])
         self.assertEquals(1, ret)
 
     def test_perform_overrides(self):
@@ -53,11 +53,11 @@ class TestCLI(BZTestCase):
     def test_perform_overrides_fail(self):
         self.option.append("test.subkey2.0.sskey=value")
         self.option.append("test.subkey.0=value")
-        ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
+        ret = self.obj.perform([__dir__() + "/resources/json/mock_normal.json"])
         self.assertEquals(1, ret)
 
     def test_perform_prepare_err(self):
-        ret = self.obj.perform([__dir__() + "/json/mock_prepare_err.json"])
+        ret = self.obj.perform([__dir__() + "/resources/json/mock_prepare_err.json"])
         self.assertEquals(1, ret)
 
         prov = self.obj.engine.provisioning
@@ -69,7 +69,7 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_postproc)
 
     def test_perform_start_err(self):
-        conf = __dir__() + "/json/mock_start_err.json"
+        conf = __dir__() + "/resources/json/mock_start_err.json"
         self.assertEquals(1, self.obj.perform([conf]))
 
         prov = self.obj.engine.provisioning
@@ -80,7 +80,7 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_postproc)
 
     def test_perform_wait_err(self):
-        conf = __dir__() + "/json/mock_wait_err.json"
+        conf = __dir__() + "/resources/json/mock_wait_err.json"
         self.assertEquals(1, self.obj.perform([conf]))
 
         prov = self.obj.engine.provisioning
@@ -91,7 +91,7 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_postproc)
 
     def test_perform_end_err(self):
-        conf = __dir__() + "/json/mock_end_err.json"
+        conf = __dir__() + "/resources/json/mock_end_err.json"
         self.assertEquals(1, self.obj.perform([conf]))
 
         prov = self.obj.engine.provisioning
@@ -102,7 +102,7 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_postproc)
 
     def test_perform_postproc_err(self):
-        conf = __dir__() + "/json/mock_postproc_err.json"
+        conf = __dir__() + "/resources/json/mock_postproc_err.json"
         self.assertEquals(3, self.obj.perform([conf]))
 
         prov = self.obj.engine.provisioning
@@ -114,7 +114,7 @@ class TestCLI(BZTestCase):
 
     def test_jmx_shorthand(self):
         ret = self.obj.perform([
-            __dir__() + "/json/mock_normal.json",
+            __dir__() + "/resources/json/mock_normal.json",
             __dir__() + "/jmx/dummy.jmx",
             __dir__() + "/jmx/dummy.jmx",
         ])
@@ -140,7 +140,7 @@ class TestCLI(BZTestCase):
     def test_logging_verbosity_adjustment(self):
         self.verbose = False
         ret = self.obj.perform([
-            __dir__() + "/json/mock_normal.json",
+            __dir__() + "/resources/json/mock_normal.json",
         ])
         self.assertEquals(0, ret)
         log_lines = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).readlines()

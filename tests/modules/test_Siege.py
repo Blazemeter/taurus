@@ -13,7 +13,7 @@ TOOL_NAME = 'siege' + EXE_SUFFIX
 
 
 def get_res_path(resource):
-    return path.join(path.dirname(__file__), '..', 'siege', resource)
+    return path.join(path.dirname(__file__), '..', 'resources', 'siege', resource)
 
 
 class TestSiegeExecutor(BZTestCase):

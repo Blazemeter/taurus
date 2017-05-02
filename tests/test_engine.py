@@ -26,8 +26,8 @@ class TestEngine(BZTestCase):
     def test_requests(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/json/get-post.json",
-            __dir__() + "/json/reporting.json",
+            __dir__() + "/resources/json/get-post.json",
+            __dir__() + "/resources/json/reporting.json",
             self.paths
         ]
         self.obj.configure(configs)
@@ -42,8 +42,8 @@ class TestEngine(BZTestCase):
     def test_double_exec(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/yaml/triple.yml",
-            __dir__() + "/json/reporting.json",
+            __dir__() + "/resources/yaml/triple.yml",
+            __dir__() + "/resources/json/reporting.json",
             self.paths
         ]
         self.obj.configure(configs)
@@ -60,7 +60,7 @@ class TestEngine(BZTestCase):
     def test_unknown_module(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/json/gatling.json",
+            __dir__() + "/resources/json/gatling.json",
             self.paths
         ]
         self.obj.configure(configs)
@@ -88,7 +88,7 @@ class TestEngine(BZTestCase):
     def test_yaml_multi_docs(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/yaml/multi-docs.yml",
+            __dir__() + "/resources/yaml/multi-docs.yml",
             self.paths
         ]
         self.obj.configure(configs)
@@ -98,7 +98,7 @@ class TestEngine(BZTestCase):
     def test_json_format_regression(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/json/json-but-not-yaml.json"
+            __dir__() + "/resources/json/json-but-not-yaml.json"
         ]
         self.obj.configure(configs)
         self.obj.prepare()
@@ -106,7 +106,7 @@ class TestEngine(BZTestCase):
     def test_invalid_format(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/data/jmeter-dist-3.0.zip"
+            __dir__() + "/resources/jmeter-dist-3.0.zip"
         ]
         self.assertRaises(TaurusConfigError, lambda: self.obj.configure(configs))
 
@@ -122,7 +122,7 @@ class TestScenarioExecutor(BZTestCase):
         self.engine.config.merge({
             "execution": [{
                 "scenario": {
-                    "script": "tests/selenium/python/test_blazemeter_fail.py",
+                    "script": "tests/resources/selenium/python/test_blazemeter_fail.py",
                     "param": "value"
                 }}]})
         self.executor.execution = self.engine.config.get('execution')[0]
@@ -132,8 +132,8 @@ class TestScenarioExecutor(BZTestCase):
         self.assertIn('test_blazemeter_fail.py', config['scenarios'])
 
     def test_body_files(self):
-        body_file1 = __dir__() + "/jmeter/body-file.dat"
-        body_file2 = __dir__() + "/jmeter/jmx/http.jmx"
+        body_file1 = __dir__() + "/resources/jmeter/body-file.dat"
+        body_file2 = __dir__() + "/resources/jmeter/jmx/http.jmx"
         self.engine.config.merge({
             'execution': [{
                 'iterations': 1,
@@ -169,7 +169,7 @@ class TestScenarioExecutor(BZTestCase):
     def test_scenario_is_script(self):
         self.engine.config.merge({
             "execution": [{
-                "scenario": "tests/selenium/python/test_blazemeter_fail.py"
+                "scenario": "tests/resources/selenium/python/test_blazemeter_fail.py"
             }]})
         self.executor.execution = self.engine.config.get('execution')[0]
         self.executor.get_scenario()
@@ -213,7 +213,7 @@ class TestScenarioExecutor(BZTestCase):
                 "hostaliases": {
                     "demo": "blazedemo.com"}}})
 
-        path = os.path.join(__dir__(), "data", "hostaliases" + EXE_SUFFIX)
+        path = os.path.join(__dir__(), "resources", "hostaliases" + EXE_SUFFIX)
         process = self.executor.execute([path])
         stdout, _ = process.communicate()
         hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
