@@ -753,7 +753,7 @@ class TestCloudProvisioning(BZTestCase):
                               'fullname': get_full_path(os.path.join('~', _file))}
                              for _file in files_in_home]
 
-            shutil.copyfile(__dir__() + '/../jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
+            shutil.copyfile(__dir__() + '/../resources/jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
 
             dir_path = get_full_path(os.path.join('~', 'example-of-directory'))
             os.mkdir(dir_path)
