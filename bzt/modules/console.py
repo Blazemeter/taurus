@@ -38,7 +38,7 @@ from urwid.widget import Divider
 
 import bzt
 from bzt.engine import Reporter, Singletone
-from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider, ConsolidatingAggregator
+from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
 from bzt.utils import humanize_time, is_windows, DummyScreen
 
@@ -117,8 +117,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         disable = self.settings.get('disable', 'auto')
         explicit_disable = isinstance(disable, (bool, int)) and disable
         auto_disable = str(disable).lower() == 'auto' and not sys.stdout.isatty()
-        is_functional = not isinstance(self.engine.aggregator, ConsolidatingAggregator)
-        if explicit_disable or auto_disable or is_functional:
+        if explicit_disable or auto_disable or self.engine.is_functional_mode():
             self.disabled = True
             return
 
