@@ -21,7 +21,7 @@ from tests.modules.test_blazemeter import BZMock
 class TestCloudProvisioning(BZTestCase):
     @staticmethod
     def __get_user_info():
-        with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
+        with open(__dir__() + "/../resources/json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
 
     def setUp(self):
@@ -735,7 +735,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.log.addHandler(log_recorder)
         self.obj.engine.configure([
             __dir__() + '/../../bzt/resources/base-config.yml',
-            __dir__() + '/../yaml/resource_files.yml'], read_config_files=False)
+            __dir__() + '/../resources/yaml/resource_files.yml'], read_config_files=False)
         self.obj.settings = self.obj.engine.config['modules']['cloud']
         self.obj.settings.merge({'delete-test-files': False})
 

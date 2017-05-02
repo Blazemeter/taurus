@@ -126,7 +126,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertRaises(TaurusInternalException, self.obj.prepare)
 
     def test_requests(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         self.obj.log.debug("%s: %s", self.obj.modified_jmx, open(self.obj.modified_jmx).read())
         self.obj.log.debug("%s", json.dumps(self.obj.execution, indent=True))
@@ -354,7 +354,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
 
     def test_body_parse(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         sampler_element = xml_tree.findall(".//HTTPSamplerProxy[@testname='With body params']")
@@ -402,7 +402,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual(res_file, os.path.basename(res_file))
 
     def test_resource_files_from_requests_remote_prov(self):
-        config = json.loads(open(__dir__() + "/../json/get-post.json").read())
+        config = json.loads(open(__dir__() + "/../resources/json/get-post.json").read())
         config['provisioning'] = 'cloud'
         self.configure(config)
         res_files = self.obj.resource_files()
@@ -410,7 +410,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(set(res_files)), 2)
 
     def test_resource_files_from_requests_local_prov(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         files = ['jmeter-bzt.properties', 'modified_requests.jmx']
         files += ['requests.jmx', 'system.properties']
@@ -481,7 +481,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn(js_file2, resource_files)
 
     def test_http_request_defaults(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         default_elements = xml_tree.findall(".//ConfigTestElement[@testclass='ConfigTestElement']")
@@ -500,7 +500,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual("false", request.find(".//boolProp[@name='HTTPSampler.use_keepalive']").text)
 
     def test_http_request_defaults_property(self):
-        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.obj.engine.config.merge(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         addr = 'https://${__P(hostname)}:${__P(port)}'
         self.obj.engine.config['scenarios']['get-post']['default-address'] = addr
         self.obj.execution = self.obj.engine.config['execution']
@@ -550,7 +550,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
 
     def test_user_def_vars_from_requests(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
@@ -621,7 +621,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn("', '-G', '", handler.debug_buff.getvalue())
 
     def test_distributed_th_hostnames_complex(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -640,7 +640,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertNotIn("system.properties", arts)
 
     def test_dns_cache_mgr_requests(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         dns_managers = xml_tree.findall(".//DNSCacheManager")
@@ -811,7 +811,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_forever.text, "false")
 
     def test_distributed_gui(self):
-        self.configure(yaml.load(open(__dir__() + "/../yaml/distributed_gui.yml").read()))
+        self.configure(yaml.load(open(__dir__() + "/../resources/yaml/distributed_gui.yml").read()))
         self.obj.prepare()
 
         prop_file_path = os.path.join(self.obj.engine.artifacts_dir, "jmeter-bzt.properties")
@@ -844,7 +844,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
 
     def test_css_jquery_extractor(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
@@ -866,7 +866,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
 
     def test_xpath_extractor(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
@@ -892,7 +892,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "true")
 
     def test_xpath_assertion(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
@@ -914,7 +914,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPath.negate']").text, "true")
 
     def test_jsonpath_assertion(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
@@ -2264,7 +2264,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertTrue(any(res.endswith(os.path.join("nested", "directory", "a.csv")) for res in resources))
 
     def test_stdout_stderr_capture(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()
         try:
             self.obj.startup()
@@ -2279,7 +2279,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "jmeter.err")))
 
     def test_func_aggregator_chosen(self):
-        self.configure(json.loads(open(__dir__() + "/../json/get-post.json").read()))
+        self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.engine.aggregator = FunctionalAggregator()
         self.obj.prepare()
         self.assertEquals('get-post', self.obj.reader.executor_label)

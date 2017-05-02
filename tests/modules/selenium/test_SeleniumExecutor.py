@@ -106,7 +106,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.shutdown()
 
     def test_requests(self):
-        self.configure(yaml.load(open(__dir__() + "/../../yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.load(open(__dir__() + "/../../resources/yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
@@ -120,7 +120,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             self.assertEqual(1, contents.count("OK"))
 
     def test_fail_on_zero_results(self):
-        self.configure(yaml.load(open(__dir__() + "/../../yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.load(open(__dir__() + "/../../resources/yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]

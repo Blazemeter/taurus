@@ -56,7 +56,7 @@ class TestZipFolder(BZTestCase):
 
     @staticmethod
     def __get_user_info():
-        with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
+        with open(__dir__() + "/../resources/json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
 
     def test_receive_and_unpack_on_worker(self):

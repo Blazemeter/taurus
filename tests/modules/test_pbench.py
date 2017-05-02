@@ -179,7 +179,7 @@ if not is_windows():
             obj.engine = EngineEmul()
             obj.settings = BetterDict()
             obj.engine.config = BetterDict()
-            obj.engine.config.merge(yaml.load(open(__dir__() + "/../yaml/phantom_improved_request.yml").read()))
+            obj.engine.config.merge(yaml.load(open(__dir__() + "/../resources/yaml/phantom_improved_request.yml").read()))
             obj.execution = obj.engine.config['execution'][0]
             obj.settings.merge({
                 "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
@@ -200,7 +200,7 @@ if not is_windows():
             obj.engine = EngineEmul()
             obj.settings = BetterDict()
             obj.engine.config = BetterDict()
-            obj.engine.config.merge(yaml.load(open(__dir__() + "/../yaml/phantom_request_same_address.yml").read()))
+            obj.engine.config.merge(yaml.load(open(__dir__() + "/../resources/yaml/phantom_request_same_address.yml").read()))
             obj.execution = obj.engine.config['execution'][0]
             obj.settings.merge({
                 "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),

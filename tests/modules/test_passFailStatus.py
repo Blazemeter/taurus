@@ -14,7 +14,7 @@ class TestPassFailStatus(BZTestCase):
     def test_prepare(self):
         obj = PassFailStatus()
         obj.engine = EngineEmul()
-        config = json.loads(open(__dir__() + "/../json/passfail.json").read())
+        config = json.loads(open(__dir__() + "/../resources/json/passfail.json").read())
         obj.parameters = config['reporting'][0]
         obj.prepare()
         self.assertGreater(len(obj.criteria), 0)

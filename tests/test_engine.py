@@ -26,8 +26,8 @@ class TestEngine(BZTestCase):
     def test_requests(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/json/get-post.json",
-            __dir__() + "/json/reporting.json",
+            __dir__() + "/resources/json/get-post.json",
+            __dir__() + "/resources/json/reporting.json",
             self.paths
         ]
         self.obj.configure(configs)
@@ -42,8 +42,8 @@ class TestEngine(BZTestCase):
     def test_double_exec(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/yaml/triple.yml",
-            __dir__() + "/json/reporting.json",
+            __dir__() + "/resources/yaml/triple.yml",
+            __dir__() + "/resources/json/reporting.json",
             self.paths
         ]
         self.obj.configure(configs)
@@ -60,7 +60,7 @@ class TestEngine(BZTestCase):
     def test_unknown_module(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/json/gatling.json",
+            __dir__() + "/resources/json/gatling.json",
             self.paths
         ]
         self.obj.configure(configs)
@@ -88,7 +88,7 @@ class TestEngine(BZTestCase):
     def test_yaml_multi_docs(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/yaml/multi-docs.yml",
+            __dir__() + "/resources/yaml/multi-docs.yml",
             self.paths
         ]
         self.obj.configure(configs)
@@ -98,7 +98,7 @@ class TestEngine(BZTestCase):
     def test_json_format_regression(self):
         configs = [
             __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/json/json-but-not-yaml.json"
+            __dir__() + "/resources/json/json-but-not-yaml.json"
         ]
         self.obj.configure(configs)
         self.obj.prepare()
