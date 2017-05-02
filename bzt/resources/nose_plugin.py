@@ -243,47 +243,28 @@ class ApiritifExtractor(object):
                 tran_sample = Sample(test_case=item.transaction_name, test_suite=test_case_name)
                 active_transactions.append(tran_sample)
             elif isinstance(item, apiritif.TransactionEnded):
+                tran = item.transaction
                 tran_sample = active_transactions.pop()
                 assert tran_sample.test_case == item.transaction_name
-                tran_sample.start_time = item.transaction.start_time()
-                tran_sample.duration = item.transaction.duration()
-                if item.transaction.success is None:
+                tran_sample.start_time = tran.start_time()
+                tran_sample.duration = tran.duration()
+                if tran.success is None:
                     tran_sample.status = "PASSED"
                     for sample in tran_sample.subsamples:
                         if sample.status in ("FAILED", "BROKEN"):
                             tran_sample.status = sample.status
                             tran_sample.error_msg = sample.error_msg
                             tran_sample.error_trace = sample.error_trace
-                elif item.transaction.success:
+                elif tran.success:
                     tran_sample.status = "PASSED"
                 else:
                     tran_sample.status = "FAILED"
-                    tran_sample.error_msg = item.transaction.error_message
+                    tran_sample.error_msg = tran.error_message
 
-                extras = copy.deepcopy(item.transaction.extras())
-                extras.update({
-                    'responseCode': item.transaction.response_code(),
-                    'responseMessage': "",
-                    'responseTime': item.transaction.duration(),
-                    'connectTime': 0,
-                    'latency': 0,
-                    'responseSize': len(item.transaction.response() or ""),
-                    'requestSize': len(item.transaction.request() or ""),
-                    'requestMethod': "",
-                    'requestURI': "",
-                    'assertions': [],  # will be filled later
-                    'responseBody': item.transaction.response() or "",
-                    'requestBody': item.transaction.request() or "",
-                    'requestCookies': {},
-                    'requestHeaders': {},
-                    'responseHeaders': {},
-                    "requestCookiesRaw": "",
-                    "requestCookiesSize": 0,
-                    "requestHeadersSize": 0,
-                    "responseHeadersSize": 0,
-                })
-                extras["responseBodySize"] = len(extras["responseBody"])
-                extras["requestBodySize"] = len(extras["requestBody"])
+                extras = copy.deepcopy(tran.extras())
+                extras.update(ApiritifExtractor._extras_dict(tran.name, "", tran.response_code(), "", {},
+                                                             tran.response() or "", len(tran.response() or ""),
+                                                             tran.duration(), tran.request() or "", {}, {}))
                 tran_sample.extras = extras
 
                 active_transactions[-1].add_subsample(tran_sample)
@@ -332,36 +313,43 @@ class ApiritifExtractor(object):
         return "; ".join(key + "=" + value for key, value in cookies.items())
 
     @staticmethod
-    def _extract_extras(request_event):
-        response = request_event.response
-        baked_request = request_event.request
-
+    def _extras_dict(url, method, status_code, reason, response_headers, response_body, response_size, response_time,
+                     request_body, request_cookies, request_headers):
         record = {
-            'responseCode': response.status_code,
-            'responseMessage': response.reason,
-            'responseTime': response.elapsed.total_seconds(),
+            'responseCode': status_code,
+            'responseMessage': reason,
+            'responseTime': response_time,
             'connectTime': 0,
             'latency': 0,
-            'responseSize': len(response.content),
+            'responseSize': response_size,
             'requestSize': 0,
-            'requestMethod': baked_request.method,
-            'requestURI': baked_request.url,
+            'requestMethod': method,
+            'requestURI': url,
             'assertions': [],  # will be filled later
-            'responseBody': response.text,
-            'requestBody': baked_request.body or "",
-            'requestCookies': dict(request_event.session.cookies),
-            'requestHeaders': dict(response._request.headers),
-            'responseHeaders': dict(response.headers),
+            'responseBody': response_body,
+            'requestBody': request_body,
+            'requestCookies': request_cookies,
+            'requestHeaders': request_headers,
+            'responseHeaders': response_headers,
         }
-
         record["requestCookiesRaw"] = ApiritifExtractor._cookies_from_dict(record["requestCookies"])
         record["responseBodySize"] = len(record["responseBody"])
         record["requestBodySize"] = len(record["requestBody"])
         record["requestCookiesSize"] = len(record["requestCookiesRaw"])
         record["requestHeadersSize"] = len(ApiritifExtractor._headers_from_dict(record["requestHeaders"]))
         record["responseHeadersSize"] = len(ApiritifExtractor._headers_from_dict(record["responseHeaders"]))
-
         return record
+
+    @staticmethod
+    def _extract_extras(request_event):
+        resp = request_event.response
+        req = request_event.request
+
+        return ApiritifExtractor._extras_dict(
+            req.url, req.method, resp.status_code, resp.reason,
+            dict(resp.headers), resp.text, len(resp.content), resp.elapsed.total_seconds(),
+            req.body or "", dict(request_event.session.cookies), dict(resp._request.headers)
+        )
 
 
 def run_nose(report_file, files, iteration_limit, hold):
