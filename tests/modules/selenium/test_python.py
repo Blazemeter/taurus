@@ -205,7 +205,8 @@ class TestNoseRunner(BZTestCase):
         self.assertNotEquals(self.obj.process, None)
 
     def test_report_reading(self):
-        reader = FuncSamplesReader(__dir__() + "/../../resources/apiritif/transactions.ldjson", self.obj.engine, self.obj.log, [])
+        reader = FuncSamplesReader(__dir__() + "/../../resources/apiritif/transactions.ldjson",
+                                   self.obj.engine, self.obj.log, [])
         items = list(reader.read(last_pass=True))
         self.assertEqual(len(items), 6)
         self.assertEqual(items[0].test_case, "test_1_single_request")

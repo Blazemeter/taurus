@@ -326,10 +326,10 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(len(self.obj.resource_files()), 1)
 
 
-class TestASeleniumTestNGRunner(SeleniumTestCase):
+class TestSeleniumTestNGRunner(SeleniumTestCase):
     def test_install_tools(self):
         dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
-        base_link = "file:///" + __dir__() + "/../../resources/"
+        base_link = "file:///" + __dir__() + "/../../resources/selenium"
 
         shutil.rmtree(os.path.dirname(dummy_installation_path), ignore_errors=True)
 

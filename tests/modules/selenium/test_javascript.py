@@ -90,8 +90,8 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
     def test_install_mocha(self):
         dummy_installation_path = get_full_path(__dir__() + "/../../../build/tmp/selenium-taurus/mocha")
-        mocha_link = get_full_path(__dir__() + "/../../resources/mocha-3.1.0.tgz")
-        wd_link = get_full_path(__dir__() + "/../../resources/selenium-webdriver-1.0.0.tgz")
+        mocha_link = get_full_path(__dir__() + "/../../resources/selenium/mocha-3.1.0.tgz")
+        wd_link = get_full_path(__dir__() + "/../../resources/selenium/selenium-webdriver-1.0.0.tgz")
 
         shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
         self.assertFalse(exists(dummy_installation_path))
