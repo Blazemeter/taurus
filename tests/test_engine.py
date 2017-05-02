@@ -132,8 +132,8 @@ class TestScenarioExecutor(BZTestCase):
         self.assertIn('test_blazemeter_fail.py', config['scenarios'])
 
     def test_body_files(self):
-        body_file1 = __dir__() + "/jmeter/body-file.dat"
-        body_file2 = __dir__() + "/jmeter/jmx/http.jmx"
+        body_file1 = __dir__() + "/resources/jmeter/body-file.dat"
+        body_file2 = __dir__() + "/resources/jmeter/jmx/http.jmx"
         self.engine.config.merge({
             'execution': [{
                 'iterations': 1,

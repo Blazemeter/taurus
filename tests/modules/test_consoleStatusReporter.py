@@ -39,7 +39,7 @@ class TestConsoleStatusReporter(BZTestCase):
         path = dir_name + "/../jmeter/jmeter-loader" + EXE_SUFFIX
         obj = JMeterExecutor()
         obj.settings.merge({'path': path})
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../resources/jmeter/jmx/dummy.jmx"}})
         return obj
 
     def test_1(self):

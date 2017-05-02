@@ -165,7 +165,7 @@ class TestPassFailStatus(BZTestCase):
 
         self.assertEqual(obj.widget.text_widget.text, "")
 
-    def test_ashort_data(self):
+    def test_short_data(self):
         obj = PassFailStatus()
         obj.engine = EngineEmul()
 

@@ -119,7 +119,7 @@
           "method": "PUT",
           "url": "http://demo.blazemeter.com/api/user",
           "label": "With body from file",
-          "body-file": "tests/jmeter/jmx/http.jmx"
+          "body-file": "tests/resources/jmeter/jmx/http.jmx"
         },
         {
           "method": "GET",

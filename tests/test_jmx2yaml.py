@@ -32,7 +32,7 @@ class TestConverter(BZTestCase):
 
     def test_objprop(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", self._get_tmp())
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", self._get_tmp())
         obj.log.addHandler(log_recorder)
         obj.process()
         self.assertNotIn("Removing unknown element: name (None)", log_recorder.warn_buff.getvalue())
@@ -41,7 +41,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx1(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", self._get_tmp())
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", self._get_tmp())
         obj.log.addHandler(log_recorder)
         obj.process()
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
@@ -51,7 +51,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx2(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmeter/jmx/notfound.jmx")
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/notfound.jmx")
         obj.log.addHandler(log_recorder)
         try:
             obj.process()
@@ -64,7 +64,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx3(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmeter/jmx/broken.jmx")
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/broken.jmx")
         obj.log.addHandler(log_recorder)
         try:
             obj.process()
@@ -77,7 +77,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx4(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", self._get_tmp('tmp', 'file'))
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", self._get_tmp('tmp', 'file'))
         obj.log.addHandler(log_recorder)
         obj.process()
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
@@ -100,7 +100,7 @@ class TestConverter(BZTestCase):
         obj.log.removeHandler(log_recorder)
 
     def test_not_jmx(self):
-        obj = self._get_jmx2yaml("/jmeter/jmx/not-jmx.xml")
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/not-jmx.xml")
         try:
             obj.process()
             self.fail()
@@ -428,7 +428,7 @@ class TestConverter(BZTestCase):
 
     def test_jsr223(self):
         yml_file = self._get_tmp()
-        obj = self._get_jmx2yaml("/jmeter/jmx/jsr223.jmx", yml_file)
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/jsr223.jmx", yml_file)
         obj.process()
         yml = yaml.load(open(yml_file).read())
         scenarios = yml.get("scenarios")
@@ -472,7 +472,7 @@ class TestConverter(BZTestCase):
 
     def test_path_without_domain(self):
         yml_file = self._get_tmp()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", yml_file)
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", yml_file)
         obj.process()
         yml = yaml.load(open(yml_file).read())
         scenarios = yml.get("scenarios")
@@ -484,7 +484,7 @@ class TestConverter(BZTestCase):
 
     def test_request_content_encoding(self):
         yml_file = self._get_tmp()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", yml_file)
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", yml_file)
         obj.process()
         yml = yaml.load(open(yml_file).read())
         scenarios = yml.get("scenarios")
@@ -496,7 +496,7 @@ class TestConverter(BZTestCase):
 
     def test_request_redirect_policy(self):
         yml_file = self._get_tmp()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", yml_file)
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", yml_file)
         obj.process()
         yml = yaml.load(open(yml_file).read())
         scenarios = yml.get("scenarios")

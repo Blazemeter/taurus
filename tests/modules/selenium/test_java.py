@@ -492,7 +492,7 @@ class TestASeleniumTestNGRunner(SeleniumTestCase):
         lines = open(self.obj.runner.execution.get("report-file")).readlines()
         self.assertEqual(len(lines), 6)
 
-    def test_atestng_config_autodetect(self):
+    def test_testng_config_autodetect(self):
         testng_xml_path = get_full_path(__dir__() + '/../../resources/selenium/testng/jars/testng.xml')
         self.configure({
             'execution': {

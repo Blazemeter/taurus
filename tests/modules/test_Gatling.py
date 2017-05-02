@@ -153,7 +153,7 @@ class TestGatlingExecutor(BZTestCase):
             lines = fds.readlines()
         self.assertNotIn('throughput', lines[-1])
 
-    def test_arequests_1(self):
+    def test_requests_1(self):
         obj = self.getGatling()
         obj.execution.merge({
             "concurrency": 10,
