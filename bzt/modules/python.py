@@ -372,12 +372,10 @@ class RandomStringFunction(JMeterFunction):
             return None
 
         size = int(args.get("size"))
+        args = repr(size)
         if "chars" in args:
-            chars = repr(args["chars"])
-        else:
-            chars = "string.ascii_letters + string.digits + string.punctuation"
-
-        rand = '"".join(random.choice(%s) for _ in range(%r))' % (chars, size)
+            args += ", " + repr(args["chars"])
+        rand = 'utils.random_string({args})'.format(args=args)
 
         if "varname" in args:
             lines.append("%s = %s" % (args["varname"], rand))
