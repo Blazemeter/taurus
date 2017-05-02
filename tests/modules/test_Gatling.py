@@ -21,7 +21,7 @@ class TestGatlingExecutor(BZTestCase):
         obj.settings.merge({"path": path})
         return obj
 
-    def test_aexternal_jar_wrong_launcher(self):
+    def test_external_jar_wrong_launcher(self):
         obj = self.getGatling()
 
         modified_launcher = obj.engine.create_artifact('wrong-gatling', EXE_SUFFIX)
