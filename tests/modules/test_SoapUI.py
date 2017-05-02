@@ -8,7 +8,7 @@ from tests.mocks import RecordingHandler
 class TestSoapUIConverter(BZTestCase):
     def test_minimal(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        config = obj.convert_script(__dir__() + "/..resources/soapui/project.xml")
+        config = obj.convert_script(__dir__() + "/../resources/soapui/project.xml")
 
         self.assertIn("execution", config)
         self.assertEqual(3, len(config["execution"]))
@@ -82,7 +82,7 @@ class TestSoapUIConverter(BZTestCase):
         obj = SoapUIScriptConverter(logging.getLogger(''))
         obj.log.addHandler(log_recorder)
 
-        config = obj.convert_script(__dir__() + "/..resources/soapui/project.xml")
+        config = obj.convert_script(__dir__() + "/../resources/soapui/project.xml")
 
         scenarios = config["scenarios"]
         self.assertEqual(len(scenarios), 3)
