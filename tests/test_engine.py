@@ -122,7 +122,7 @@ class TestScenarioExecutor(BZTestCase):
         self.engine.config.merge({
             "execution": [{
                 "scenario": {
-                    "script": "tests/selenium/python/test_blazemeter_fail.py",
+                    "script": "tests/resources/selenium/python/test_blazemeter_fail.py",
                     "param": "value"
                 }}]})
         self.executor.execution = self.engine.config.get('execution')[0]

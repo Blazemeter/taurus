@@ -189,27 +189,27 @@ class TestGrinderExecutor(BZTestCase):
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
-        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-kpi.log')
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'grinder', 'grinder-bzt-kpi.log')
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 20)
         self.assertIn('Test #1', list_of_values[-1][DataPoint.CUMULATIVE])
 
     def test_read_empty_kpi(self):
-        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder.sh')
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'grinder', 'grinder.sh')
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 0)
 
     def test_read_test_names(self):
-        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-1-kpi.log')
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'grinder', 'grinder-bzt-1-kpi.log')
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 20)
         self.assertIn('requests_sample', list_of_values[-1][DataPoint.CUMULATIVE])
 
     def test_read_by_url(self):
-        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-kpi.log')
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'grinder', 'grinder-bzt-kpi.log')
         obj = DataLogReader(log_path, logging.getLogger(''))
         obj.report_by_url = True
         list_of_values = list(obj.datapoints(True))
@@ -218,7 +218,7 @@ class TestDataLogReader(BZTestCase):
         self.assertIn('http://blazedemo.com/payment.php', last[DataPoint.CUMULATIVE].keys())
 
     def test_read_errors(self):
-        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-1-kpi.log')
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'grinder', 'grinder-bzt-1-kpi.log')
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 20)
