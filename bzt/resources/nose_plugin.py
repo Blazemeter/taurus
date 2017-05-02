@@ -239,19 +239,28 @@ class ApiritifExtractor(object):
                 active_transactions[-1].add_subsample(sample)
             elif isinstance(item, apiritif.TransactionStarted):
                 transactions_present = True
-                tran = Sample(test_case=item.transaction_name, test_suite=test_case_name, start_time=item.timestamp)
-                active_transactions.append(tran)
+                tran_sample = Sample(test_case=item.transaction_name, test_suite=test_case_name)
+                active_transactions.append(tran_sample)
             elif isinstance(item, apiritif.TransactionEnded):
-                tran = active_transactions.pop()
-                assert tran.test_case == item.transaction_name
-                tran.duration = item.timestamp - tran.start_time
-                tran.status = "PASSED"
-                for sample in tran.subsamples:
-                    if sample.status in ("FAILED", "BROKEN"):
-                        tran.status = sample.status
-                        tran.error_msg = sample.error_msg
-                        tran.error_trace = sample.error_trace
-                active_transactions[-1].add_subsample(tran)
+                tran_sample = active_transactions.pop()
+                assert tran_sample.test_case == item.transaction_name
+                tran_sample.start_time = item.transaction.start_time()
+                tran_sample.duration = item.transaction.duration()
+                if item.transaction.success is None:
+                    tran_sample.status = "PASSED"
+                    for sample in tran_sample.subsamples:
+                        if sample.status in ("FAILED", "BROKEN"):
+                            tran_sample.status = sample.status
+                            tran_sample.error_msg = sample.error_msg
+                            tran_sample.error_trace = sample.error_trace
+                elif item.transaction.success:
+                    tran_sample.status = "PASSED"
+                else:
+                    tran_sample.status = "FAILED"
+                    tran_sample.error_msg = item.transaction.error_message
+
+                tran_sample.extras = item.transaction.extras()
+                active_transactions[-1].add_subsample(tran_sample)
             elif isinstance(item, apiritif.Assertion):
                 sample = response_map.get(item.response, None)
                 if sample is None:
