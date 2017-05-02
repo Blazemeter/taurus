@@ -722,7 +722,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(19, len(self.mock.requests))
         self.assertIn("Cloud test has probably failed with message: msg", log_recorder.warn_buff.getvalue())
 
-    def test_cloud_paths(self):
+    def test_acloud_paths(self):
         """
         Test different executor/path combinations for correct return values of get_resources_files
         """
@@ -767,7 +767,7 @@ class TestCloudProvisioning(BZTestCase):
             self.obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [
                 os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),  # full path
                 files_in_home[2]['shortname'],  # path from ~
-                os.path.join('jmeter', 'jmeter-loader.bat'),  # relative path
+                os.path.join('resources', 'jmeter', 'jmeter-loader.bat'),  # relative path
                 'mocks.py',  # only basename (look at file_search_paths)
                 '~/example-of-directory']  # dir
 

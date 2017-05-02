@@ -3,10 +3,10 @@
 execution:
 - executor: jmeter
   scenario:
-    script: jmeter/jmx/dummy.jmx
+    script: resources/jmeter/jmx/dummy.jmx
 - executor: jmeter
   scenario:
-    script: jmeter/jmx/files_paths.jmx
+    script: resources/jmeter/jmx/files_paths.jmx
 
 # 2, 3
 - executor: selenium
@@ -51,7 +51,7 @@ execution:
 - executor: jmeter
   scenario:
     data-sources:
-    - jmeter/jmeter-loader.bat
+    - resources/jmeter/jmeter-loader.bat
     - ~/file-in-home-11.ds
 
 # 11, 12
@@ -65,7 +65,7 @@ execution:
 # 13, 14
 - executor: tsung
   scenario:
-    script: tsung/http_simple.xml
+    script: resources/tsung/http_simple.xml
 - executor: tsung
   scenario:
     script: ~/file-in-home-10.xml
