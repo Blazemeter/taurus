@@ -87,6 +87,8 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
                 if isinstance(self.engine.aggregator, ConsolidatingAggregator):
                     self.engine.aggregator.add_underling(self.reader)
 
+        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+
         nose_command_line = [executable, self.plugin_path, '--report-file', report_file]
 
         load = self.get_load()
