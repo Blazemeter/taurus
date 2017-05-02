@@ -73,7 +73,7 @@ execution:
 # 15, 16
 - executor: pbench
   scenario:
-    script: resources/pbench.src
+    script: resources/pbench/pbench.src
 - executor: pbench
   scenario:
     script: ~/file-in-home-13.src

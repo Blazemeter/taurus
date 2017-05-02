@@ -722,7 +722,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(19, len(self.mock.requests))
         self.assertIn("Cloud test has probably failed with message: msg", log_recorder.warn_buff.getvalue())
 
-    def test_acloud_paths(self):
+    def test_cloud_paths(self):
         """
         Test different executor/path combinations for correct return values of get_resources_files
         """
