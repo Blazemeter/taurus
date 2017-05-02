@@ -23,7 +23,8 @@ class TestGrinderExecutor(BZTestCase):
         grinder_version = GrinderExecutor.VERSION
         mirrors_source = GrinderExecutor.MIRRORS_SOURCE
         try:
-            GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../resources/grinder-{version}_{version}-binary.zip"
+            GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + \
+                                            "/../resources/grinder-{version}_{version}-binary.zip"
             GrinderExecutor.VERSION = "3.11"
             GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../resources/unicode_file"
 
@@ -32,11 +33,11 @@ class TestGrinderExecutor(BZTestCase):
             obj = GrinderExecutor()
             obj.engine = EngineEmul()
             obj.settings.merge({"path": path})
-            obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties",
+            obj.settings.merge({"properties-file": __dir__() + "/../resources/grinder/grinder.base.properties",
                                 "properties": {"sample_prop": "some_val"}})
             obj.execution.merge({"scenario": {
-                "script": __dir__() + "/../grinder/helloworld.py",
-                "properties-file": __dir__() + "/..//grinder/grinder.properties",
+                "script": __dir__() + "/../resources/grinder/helloworld.py",
+                "properties-file": __dir__() + "/..//resources/grinder/grinder.properties",
                 "properties": {"grinder.useConsole": "false"}}})
             obj.prepare()
 
@@ -49,12 +50,12 @@ class TestGrinderExecutor(BZTestCase):
     def test_grinder_widget(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.engine.config.merge({"provisioning": 'local'})
         obj.execution.merge({"concurrency": {"local": 2},
                              "ramp-up": 2,
                              "hold-for": 2,
-                             "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+                             "scenario": {"script": __dir__() + "/../resources/grinder/helloworld.py"}})
         obj.prepare()
         obj.get_widget()
         self.assertEqual(obj.widget.widgets[0].text, "Grinder: helloworld.py")
@@ -62,16 +63,16 @@ class TestGrinderExecutor(BZTestCase):
     def test_resource_files_collection_basic(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../resources/grinder/helloworld.py"}})
         res_files = obj.resource_files()
         self.assertEqual(len(res_files), 1)
 
     def test_fail_on_zero_results(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.execution.merge({"concurrency": {"local": 2},
-                             "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+                             "scenario": {"script": __dir__() + "/../resources/grinder/helloworld.py"}})
         obj.prepare()
         obj.engine.prepared = [obj]
         obj.engine.started = [obj]
@@ -84,10 +85,10 @@ class TestGrinderExecutor(BZTestCase):
         obj = GrinderExecutor()
 
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.execution.merge({
             "concurrency": {"local": 2},
-            "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+            "scenario": {"script": __dir__() + "/../resources/grinder/helloworld.py"}})
         obj.prepare()
         obj.engine.prepared = [obj]
         obj.engine.started = [obj]
@@ -101,15 +102,15 @@ class TestGrinderExecutor(BZTestCase):
     def test_requests(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.execution.merge({"scenario": {"requests": ['http://blazedemo.com']}})
         obj.prepare()
 
     def test_full_Grinder(self):
         obj = GrinderExecutor()
-        obj.kpi_file = os.path.abspath(__dir__() + '/../grinder/test.log')
+        obj.kpi_file = os.path.abspath(__dir__() + '/../resources/grinder/test.log')
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.execution.merge({"concurrency": {"local": 2},
                              "hold-for": 5,
                              "scenario": {"keepalive": False, "requests": ['http://blazedemo.com']}})
@@ -121,7 +122,7 @@ class TestGrinderExecutor(BZTestCase):
         self.assertNotEqual(cmd_line.find('net.grinder.Grinder'), -1)
 
         try:
-            obj.cmd_line = __dir__() + "/../grinder/grinder" + EXE_SUFFIX
+            obj.cmd_line = __dir__() + "/../resources/grinder/grinder" + EXE_SUFFIX
             obj.startup()
             while not obj.check():
                 time.sleep(obj.engine.check_interval)
@@ -133,7 +134,7 @@ class TestGrinderExecutor(BZTestCase):
     def test_script_generation(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.execution.merge({
             "scenario": {
                 "default-address": "http://blazedemo.com",
