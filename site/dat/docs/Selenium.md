@@ -134,6 +134,7 @@ modules:
       nose:
         working-dir: classes  # set name of runner working directory within artifacts dir
         interpreter: /home/user/interpreter/python  # path to custom interpreter.
+        verbose: false  # set true to print additional output from python test log
 ```
 
 ## Ruby RSpec Runner
