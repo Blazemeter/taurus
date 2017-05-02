@@ -1,3 +1,4 @@
+import copy
 import json
 import sys
 import time
@@ -259,7 +260,32 @@ class ApiritifExtractor(object):
                     tran_sample.status = "FAILED"
                     tran_sample.error_msg = item.transaction.error_message
 
-                tran_sample.extras = item.transaction.extras()
+                extras = copy.deepcopy(item.transaction.extras())
+                extras.update({
+                    'responseCode': item.transaction.response_code(),
+                    'responseMessage': "",
+                    'responseTime': item.transaction.duration(),
+                    'connectTime': 0,
+                    'latency': 0,
+                    'responseSize': len(item.transaction.response() or ""),
+                    'requestSize': len(item.transaction.request() or ""),
+                    'requestMethod': "",
+                    'requestURI': "",
+                    'assertions': [],  # will be filled later
+                    'responseBody': item.transaction.response() or "",
+                    'requestBody': item.transaction.request() or "",
+                    'requestCookies': {},
+                    'requestHeaders': {},
+                    'responseHeaders': {},
+                    "requestCookiesRaw": "",
+                    "requestCookiesSize": 0,
+                    "requestHeadersSize": 0,
+                    "responseHeadersSize": 0,
+                })
+                extras["responseBodySize"] = len(extras["responseBody"])
+                extras["requestBodySize"] = len(extras["requestBody"])
+                tran_sample.extras = extras
+
                 active_transactions[-1].add_subsample(tran_sample)
             elif isinstance(item, apiritif.Assertion):
                 sample = response_map.get(item.response, None)
