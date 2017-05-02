@@ -265,10 +265,11 @@ class TestJMeterExecutor(BZTestCase):
         jmeter_vars = get_jmeter_executor_vars()
         set_jmeter_executor_vars(jmeter_vars)
         try:
-            JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../resources/unicode_file"
-            JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../resources/jmeter-dist-{version}.zip"
-            JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../resources/jmeter-plugins-manager.jar"
-            JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../resources/jmeter-plugins-manager.jar"
+            jmeter_res_dir = "file:///" + __dir__() + "/../resources/jmeter/"
+            JMeterExecutor.MIRRORS_SOURCE = jmeter_res_dir + "unicode_file"
+            JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_res_dir + "jmeter-dist-{version}.zip"
+            JMeterExecutor.PLUGINS_MANAGER = jmeter_res_dir + "jmeter-plugins-manager.jar"
+            JMeterExecutor.CMDRUNNER = jmeter_res_dir + "jmeter-plugins-manager.jar"
             JMeterExecutor.PLUGINS = ['Alice', 'Bob']
             JMeterExecutor.JMETER_VER = '2.13'
 
@@ -306,10 +307,11 @@ class TestJMeterExecutor(BZTestCase):
 
         jmeter_vars = get_jmeter_executor_vars()
         try:
-            JMeterExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../resources/unicode_file"
-            JMeterExecutor.JMETER_DOWNLOAD_LINK = "file:///" + __dir__() + "/../resources/jmeter-dist-{version}.zip"
-            JMeterExecutor.PLUGINS_MANAGER = "file:///" + __dir__() + "/../resources/jmeter-plugins-manager.jar"
-            JMeterExecutor.CMDRUNNER = "file:///" + __dir__() + "/../resources/jmeter-plugins-manager.jar"
+            jmeter_res_dir = "file:///" + __dir__() + "/../resources/jmeter/"
+            JMeterExecutor.MIRRORS_SOURCE = jmeter_res_dir + "unicode_file"
+            JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_res_dir + "jmeter-dist-{version}.zip"
+            JMeterExecutor.PLUGINS_MANAGER = jmeter_res_dir + "jmeter-plugins-manager.jar"
+            JMeterExecutor.CMDRUNNER = jmeter_res_dir + "jmeter-plugins-manager.jar"
             JMeterExecutor.PLUGINS = ['Alice', 'Bob']
             JMeterExecutor.JMETER_VER = '3.0'
 

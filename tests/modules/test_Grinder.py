@@ -24,9 +24,9 @@ class TestGrinderExecutor(BZTestCase):
         mirrors_source = GrinderExecutor.MIRRORS_SOURCE
         try:
             GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + \
-                                            "/../resources/grinder-{version}_{version}-binary.zip"
+                                            "/../resources/grinder/grinder-{version}_{version}-binary.zip"
             GrinderExecutor.VERSION = "3.11"
-            GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../resources/unicode_file"
+            GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../resources/jmeter/unicode_file"
 
             self.assertFalse(os.path.exists(path))
 
