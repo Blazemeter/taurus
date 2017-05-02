@@ -29,12 +29,10 @@ if not is_windows():
             if os.path.exists("/home/undera/Sources/phantom"):  # FIXME: not good, get rid of it
                 obj.settings.merge({
                     "path": "/home/undera/Sources/phantom/bin/phantom",
-                    "modules-path": "/home/undera/Sources/phantom/lib/phantom",
-                })
+                    "modules-path": "/home/undera/Sources/phantom/lib/phantom"})
             else:
                 obj.settings.merge({
-                    "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
-                })
+                    "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh")})
 
             obj.execution.merge({
                 "log-responses": "proto_error",
@@ -59,13 +57,7 @@ if not is_windows():
                                 "Content-Length": 0
                             },
                             "body": {
-                                "param": "value"
-                            }
-                        }
-
-                    ]
-                }
-            })
+                                "param": "value"}}]}})
             obj.engine.aggregator.prepare()
             obj.prepare()
 
@@ -129,7 +121,8 @@ if not is_windows():
             executor = PBenchExecutor()
             executor.engine = EngineEmul()
             executor.execution.merge({"concurrency": 5, "ramp-up": 10, "hold-for": 5})
-            obj = Scheduler(executor.get_load(), io.BytesIO(b("5 test1\ntest1\n5 test2\ntest2\n")), logging.getLogger(""))
+            obj = Scheduler(executor.get_load(),
+                            io.BytesIO(b("5 test1\ntest1\n5 test2\ntest2\n")), logging.getLogger(""))
             items = list(obj.generate())
             self.assertEqual(8, len(items))
             self.assertEqual(-1, items[5][0])  # instance became unlimited
@@ -139,7 +132,8 @@ if not is_windows():
             executor = PBenchExecutor()
             executor.engine = EngineEmul()
             executor.execution.merge({"concurrency": 5, "ramp-up": 10, "steps": 3})
-            obj = Scheduler(executor.get_load(), io.BytesIO(b("5 test1\ntest1\n5 test2\ntest2\n")), logging.getLogger(""))
+            obj = Scheduler(executor.get_load(),
+                            io.BytesIO(b("5 test1\ntest1\n5 test2\ntest2\n")), logging.getLogger(""))
             items = list(obj.generate())
             self.assertEqual(8, len(items))
             self.assertEqual(-1, items[5][0])  # instance became unlimited
@@ -157,13 +151,10 @@ if not is_windows():
                         "hold-for": 30,
                         "scenario": {
                             "default-address": "http://blazedemo.com/",
-                            "requests": ["/"]
-                        }
-                    }
-                ]})
+                            "requests": ["/"]}}]})
             obj.execution = obj.engine.config['execution'][0]
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
             })
             obj.prepare()
             obj.startup()
@@ -179,10 +170,11 @@ if not is_windows():
             obj.engine = EngineEmul()
             obj.settings = BetterDict()
             obj.engine.config = BetterDict()
-            obj.engine.config.merge(yaml.load(open(__dir__() + "/../resources/yaml/phantom_improved_request.yml").read()))
+            obj.engine.config.merge(yaml.load(
+                open(__dir__() + "/../resources/yaml/phantom_improved_request.yml").read()))
             obj.execution = obj.engine.config['execution'][0]
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
             })
             obj.prepare()
             with open(obj.pbench.schedule_file) as fds:
@@ -203,7 +195,7 @@ if not is_windows():
             obj.engine.config.merge(yaml.load(open(__dir__() + "/../resources/yaml/phantom_request_same_address.yml").read()))
             obj.execution = obj.engine.config['execution'][0]
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
             })
             self.assertRaises(TaurusConfigError, obj.prepare)
 
@@ -229,7 +221,7 @@ if not is_windows():
                     {'execution': {"executor": "pbench", "scenario": {"script": "script.src"}}})
             obj.execution = obj.engine.config['execution']
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
             })
             resource_files = obj.resource_files()
             self.assertEqual(1, len(resource_files))
@@ -243,19 +235,19 @@ if not is_windows():
             obj.engine.config.merge({
                 ScenarioExecutor.EXEC: {
                     "executor": "pbench",
-                    "scenario": {"script": __dir__() + "/../resources/pbench.src"}
+                    "scenario": {"script": __dir__() + "/../resources/pbench/pbench.src"}
                 },
                 "provisioning": "test"
             })
             obj.execution = obj.engine.config['execution']
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
             })
             obj.prepare()
 
         def test_pbench_payload_relpath(self):
             "Verify that enhanced pbench preserves relative script path"
-            script_path = "tests/resources/pbench.src"
+            script_path = "tests/resources/pbench/pbench.src"
 
             obj = PBenchExecutor()
             obj.engine = EngineEmul()
@@ -264,13 +256,13 @@ if not is_windows():
             obj.engine.config.merge({
                 ScenarioExecutor.EXEC: {
                     "executor": "pbench",
-                    "scenario": {"script": "tests/resources/pbench.src"}
+                    "scenario": {"script": "tests/resources/pbench/pbench.src"}
                 },
                 "provisioning": "test",
             })
             obj.execution = obj.engine.config['execution']
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
                 "enhanced": True,
             })
             obj.prepare()
@@ -294,7 +286,7 @@ if not is_windows():
             })
             obj.execution = obj.engine.config['execution']
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), '..', "phantom.sh"),
+                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
             })
             obj.prepare()
 
