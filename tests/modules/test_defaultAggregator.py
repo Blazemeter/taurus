@@ -1,9 +1,9 @@
-""" test """
 import logging
 import time
 
-from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
 from tests import BZTestCase, r, rc, err
+
+from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
 from tests.mocks import MockReader
 
 

@@ -61,7 +61,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=' \
                       'kg/apc/jmeter-plugins-manager/0.12/jmeter-plugins-manager-0.12.jar'
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
-    JMETER_VER = "3.1"
+    JMETER_VER = "3.2"
     UDP_PORT_NUMBER = None
 
     def __init__(self):
@@ -1193,7 +1193,7 @@ class FuncJTLReader(FunctionalResultsReader):
         return FunctionalSample(test_case=label, test_suite=self.executor_label, status=status,
                                 start_time=tstmp, duration=duration,
                                 error_msg=error_msg, error_trace=error_trace,
-                                extras=sample_extras)
+                                extras=sample_extras, subsamples=[])
 
     def get_failure(self, element):
         """

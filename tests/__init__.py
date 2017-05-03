@@ -1,16 +1,19 @@
 """ unit test """
+import difflib
 import inspect
 import json
 import logging
-import os
 import tempfile
 from random import random
 from unittest.case import TestCase
 
+import os
+
 from bzt.cli import CLI
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.utils import run_once, EXE_SUFFIX
-TestCase.shortDescription = lambda self: None   # suppress nose habit to show docstring instead of method name
+
+TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
 
 
 @run_once
@@ -88,7 +91,12 @@ def random_datapoint(n):
 
 
 class BZTestCase(TestCase):
-    pass
+    def assertFilesEqual(self, expected, actual):
+        with open(expected) as exp, open(actual) as act:
+            diff = list(difflib.unified_diff(exp.readlines(), act.readlines()))
+            if diff:
+                msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
+                raise AssertionError(msg + "".join(diff))
 
 
 def local_paths_config():
@@ -99,13 +107,13 @@ def local_paths_config():
     settings = {
         "modules": {
             "jmeter": {
-                "path": dirname + "/jmeter/jmeter-loader" + EXE_SUFFIX,
+                "path": dirname + "/resources/jmeter/jmeter-loader" + EXE_SUFFIX,
             },
             "grinder": {
-                "path": dirname + "//grinder/fake_grinder.jar",
+                "path": dirname + "/resources/grinder/fake_grinder.jar",
             },
             "gatling": {
-                "path": dirname + "/gatling/gatling" + EXE_SUFFIX,
+                "path": dirname + "/resources/gatling/gatling" + EXE_SUFFIX,
             },
             "selenium": {
                 "selenium-tools": {

@@ -1,0 +1,30 @@
+{
+  "provisioning": "mock1",
+  "execution": [
+    {
+      "scenario": {
+        "executor": "mock2"
+      }
+    },
+    {
+      "scenario": {
+        "executor": "mock3"
+      }
+    }
+  ],
+  "modules": {
+    "mock1": {"class": "tests.mocks.ModuleMock"},
+    "mock2": "tests.mocks.ModuleMock",
+    "mock3": "tests.mocks.ModuleMock"
+  },
+  "test": [
+    1,
+    2,
+    3
+  ],
+  "cli-aliases": {
+    "test": {
+      "marker": true
+    }
+  }
+}

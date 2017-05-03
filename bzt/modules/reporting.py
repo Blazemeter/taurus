@@ -123,7 +123,10 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             for case in self.cumulative_results.test_cases(test_suite):
                 if case.status in ("FAILED", "BROKEN"):
                     full_name = case.test_suite + "." + case.test_case
-                    self.log.info("Test %s failed:\n%s", full_name, case.error_trace)
+                    msg = "Test {test_case} failed: {error_msg}".format(test_case=full_name, error_msg=case.error_msg)
+                    if case.error_trace:
+                        msg += "\n" + case.error_trace
+                    self.log.warning(msg)
 
     def __report_summary(self):
         status_counter = Counter()

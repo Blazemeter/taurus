@@ -67,7 +67,8 @@ class FunctionalAggregator(Aggregator):
         self.process_readers(last_pass=True)
 
 
-FunctionalSample = namedtuple('Sample', 'test_case,test_suite,status,start_time,duration,error_msg,error_trace,extras')
+FunctionalSample = namedtuple('Sample',
+                              'test_case,test_suite,status,start_time,duration,error_msg,error_trace,extras,subsamples')
 # test_case: str - name of test case (method)
 # test_suite: str - name of test suite (class)
 # status: str - test status (PASSED / FAILED / BROKEN / SKIPPED)
@@ -76,6 +77,7 @@ FunctionalSample = namedtuple('Sample', 'test_case,test_suite,status,start_time,
 # error_msg: str - one-line error message
 # error_trace: str - error stacktrace
 # extras: dict - additional test info (description, file, full_name)
+# subsamples: list - list of subsamples
 
 
 class ResultsTree(BetterDict):
@@ -116,7 +118,7 @@ class FunctionalAggregatorListener(object):
 
 class TestReportReader(object):
     REPORT_ITEM_KEYS = ["test_case", "test_suite", "status", "start_time", "duration",
-                        "error_msg", "error_trace", "extras"]
+                        "error_msg", "error_trace", "extras", "subsamples"]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
@@ -203,12 +205,16 @@ class FuncSamplesReader(FunctionalResultsReader):
                     fds.write(contents.encode('utf-8'))
                 sample_extras[file_field] = artifact
 
+    def _sample_from_row(self, row):
+        subsamples = [self._sample_from_row(item) for item in row.get("subsamples", [])]
+        return FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
+                                status=row["status"], start_time=row["start_time"], duration=row["duration"],
+                                error_msg=row["error_msg"], error_trace=row["error_trace"],
+                                extras=row.get("extras", {}), subsamples=subsamples)
+
     def read(self, last_pass=False):
         for row in self.report_reader.read(last_pass):
             self.read_records += 1
-            sample = FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
-                                      status=row["status"], start_time=row["start_time"], duration=row["duration"],
-                                      error_msg=row["error_msg"], error_trace=row["error_trace"],
-                                      extras=row.get("extras", {}))
+            sample = self._sample_from_row(row)
             self._write_sample_data_to_artifacts(sample.extras)
             yield sample

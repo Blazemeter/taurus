@@ -1,17 +1,22 @@
+import copy
+import os
 import re
+import select
 import sys
 from collections import OrderedDict
 
-import os
-from bzt import ToolError, TaurusConfigError, TaurusInternalException
+import apiritif
 
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario
+from bzt import ToolError, TaurusConfigError, TaurusInternalException
+from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, LoadSamplesReader, FuncSamplesReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time, BetterDict, \
     ensure_is_dict
+
+IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 
 class NoseTester(SubprocessedExecutor, HavingInstallableTools):
@@ -21,11 +26,10 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
 
     def __init__(self):
         super(NoseTester, self).__init__()
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
-                                        "resources",
-                                        "nose_plugin.py")
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
         self._script = None
         self.generated_methods = BetterDict()
+        self._tailer = NoneTailer()
 
     def prepare(self):
         super(NoseTester, self).prepare()
@@ -42,6 +46,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         test_mode = self.execution.get("test-mode", None) or "apiritif"
         if test_mode == "apiritif":
             builder = ApiritifScriptBuilder(self.get_scenario(), self.log)
+            builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
@@ -49,12 +54,17 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         builder.save(filename)
         return filename
 
+    def __is_verbose(self):
+        engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
+        executor_verbose = self.settings.get("verbose", engine_verbose)
+        return executor_verbose
+
     def install_required_tools(self):
         """
         we need installed nose plugin
         """
         if sys.version >= '3':
-            self.log.warning("You are using python3, make sure that your scripts are able to run in python3!")
+            self.log.warning("You are using Python 3, make sure that your scripts are able to run in Python 3")
 
         self._check_tools([TclLibrary(self.log), TaurusNosePlugin(self.plugin_path, "")])
 
@@ -77,6 +87,8 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
                 if isinstance(self.engine.aggregator, ConsolidatingAggregator):
                     self.engine.aggregator.add_underling(self.reader)
 
+        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+
         nose_command_line = [executable, self.plugin_path, '--report-file', report_file]
 
         load = self.get_load()
@@ -89,11 +101,31 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         nose_command_line += [self._script]
         self._start_subprocess(nose_command_line)
 
+        if self.__is_verbose():
+            self._tailer = FileTailer(self._stdout_file)
+
     def has_results(self):
         if isinstance(self.reader, LoadSamplesReader):
             return bool(self.reader) and bool(self.reader.buffer)
         elif isinstance(self.reader, FuncSamplesReader):
             return bool(self.reader) and bool(self.reader.read_records)
+
+    def check(self):
+        self.__log_lines()
+        return super(NoseTester, self).check()
+
+    def post_process(self):
+        super(NoseTester, self).post_process()
+        self.__log_lines(True)
+
+    def __log_lines(self, force=False):
+        lines = []
+        for line in self._tailer.get_lines(force):
+            if not IGNORED_LINE.match(line):
+                lines.append(line)
+
+        if lines:
+            self.log.info("\n".join(lines))
 
 
 class TaurusNosePlugin(RequiredTool):
@@ -340,6 +372,8 @@ class ApiritifScriptBuilder(PythonGenerator):
     IMPORTS = """\
 import time
 import unittest
+import logging
+import sys
 
 import apiritif
 
@@ -347,6 +381,7 @@ import apiritif
 
     def __init__(self, scenario, parent_logger):
         super(ApiritifScriptBuilder, self).__init__(scenario, parent_logger)
+        self.verbose = False
         self.access_method = None
 
     def gen_setup_method(self):
@@ -355,6 +390,8 @@ import apiritif
         base_path = self.scenario.get("base-path", None)
         auto_assert_ok = self.scenario.get("auto-assert-ok", True)
         store_cookie = self.scenario.get("store-cookie", None)
+        timeout = self.scenario.get("timeout", None)
+        follow_redirects = self.scenario.get("follow-redirects", True)
 
         if default_address is not None or keepalive or store_cookie:
             self.access_method = "target"
@@ -366,51 +403,39 @@ import apiritif
         if store_cookie is None:
             store_cookie = True
 
-        setup_method_def = self.gen_decorator_statement('classmethod')
-        setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
-        setup_method_def.append(self.gen_statement("cls.variables = %r" % self.scenario.get("variables", {}), indent=8))
-
         if self.access_method == "target":
-            target_line = "cls.target = apiritif.http.target(%r)" % default_address
-            setup_method_def.append(self.gen_statement(target_line, indent=8))
+            setup_method_def = self.gen_method_definition("setUp", ["self"])
+            target_line = "self.target = apiritif.http.target(%r)" % default_address
+            setup_method_def.append(self.gen_statement(target_line))
 
             if base_path:
-                setup_method_def.append(self.gen_statement("cls.target.base_path(%r)" % base_path, indent=8))
-            setup_method_def.append(self.gen_statement("cls.target.keep_alive(%r)" % keepalive, indent=8))
-            setup_method_def.append(self.gen_statement("cls.target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
-            setup_method_def.append(self.gen_statement("cls.target.use_cookies(%r)" % store_cookie, indent=8))
+                setup_method_def.append(self.gen_statement("self.target.base_path(%r)" % base_path))
+            setup_method_def.append(self.gen_statement("self.target.keep_alive(%r)" % keepalive))
+            setup_method_def.append(self.gen_statement("self.target.auto_assert_ok(%r)" % auto_assert_ok))
+            setup_method_def.append(self.gen_statement("self.target.use_cookies(%r)" % store_cookie))
+            setup_method_def.append(self.gen_statement("self.target.allow_redirects(%r)" % follow_redirects))
+            if timeout is not None:
+                setup_method_def.append(self.gen_statement("self.target.timeout(%r)" % dehumanize_time(timeout)))
             setup_method_def.append(self.gen_new_line(indent=0))
 
-        return setup_method_def
+            return setup_method_def
 
-    def gen_get_var_method(self):
-        method = self.gen_decorator_statement('classmethod')
-        method.append(self.gen_method_definition("get_var", ["cls", "varname", "default=''"]))
-        method.append(self.gen_statement("return cls.variables.get(varname, default)", indent=8))
-        method.append(self.gen_new_line(indent=0))
-        return method
-
-    def gen_set_var_method(self):
-        method = self.gen_decorator_statement('classmethod')
-        method.append(self.gen_method_definition("set_var", ["cls", "varname", "value"]))
-        method.append(self.gen_statement("cls.variables[varname] = str(value)", indent=8))
-        method.append(self.gen_new_line(indent=0))
-        return method
+        return None
 
     @staticmethod
     def interpolate_str(string):
         """
-        "/${foo}" -> '"/" + self.get_var('foo', '${foo}')'
+        "/${foo}" -> '"/" + str(foo)'
 
 
         :param string:
         :return:
         """
         components = []
-        for item in re.split(r'(\$\{\w+\})', string):
+        for item in re.split(r"(\$\{\w+\})", string):
             if item:
                 if item.startswith("${") and item.endswith("}"):
-                    components.append("self.get_var(%r, %r)" % (item[2:-1], item))
+                    components.append("str(%s)" % item[2:-1])
                 else:
                     components.append(repr(item))
 
@@ -418,16 +443,9 @@ import apiritif
 
     @staticmethod
     def repr_inter(obj):
-        """
-        "/${foo}" -> '"/" + self.get_var('foo', '${foo}')'
-
-
-        :param string:
-        :return:
-        """
         recur = ApiritifScriptBuilder.repr_inter
         if isinstance(obj, dict):
-            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in iteritems(obj)) + "}"
+            return "{" + ", ".join("%s: %s" % (recur(key), recur(value)) for key, value in sorted(iteritems(obj))) + "}"
         elif isinstance(obj, list):
             return "[" + ", ".join(recur(item) for item in obj) + "]"
         elif isinstance(obj, string_types):
@@ -440,11 +458,26 @@ import apiritif
         self.log.debug("Generating Test Case test methods")
         imports = self.add_imports()
         self.root.append(imports)
+
+        if self.verbose:
+            self.root.append(self.gen_statement("log = logging.getLogger('apiritif.http')", indent=0))
+            self.root.append(self.gen_statement("log.addHandler(logging.StreamHandler(sys.stdout))", indent=0))
+            self.root.append(self.gen_statement("log.setLevel(logging.DEBUG)", indent=0))
+            self.root.append(self.gen_new_line(0))
+
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
-        test_class.append(self.gen_setup_method())
-        test_class.append(self.gen_get_var_method())
-        test_class.append(self.gen_set_var_method())
+        setup_method = self.gen_setup_method()
+        if setup_method is not None:
+            test_class.append(setup_method)
+
+        test_method = self.gen_method_definition("test_requests", ["self"])
+
+        variables = self.scenario.get("variables")
+        for var, init in iteritems(variables):
+            test_method.append(self.gen_statement("%s = %s" % (var, ApiritifScriptBuilder.repr_inter(init))))
+        if variables:
+            test_method.append(self.gen_new_line(indent=0))
 
         for index, req in enumerate(self.scenario.get_requests()):
             if not isinstance(req, HTTPRequest):
@@ -452,22 +485,10 @@ import apiritif
                 self.log.warning(msg, req.NAME)
                 continue
 
-            if req.label:
-                label = req.label
-            elif req.url:
-                label = req.url
-            else:
-                raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
-
-            mod_label = re.sub('[^0-9a-zA-Z]+', '_', label[:30])
-            method_name = 'test_%05d_%s' % (index, mod_label)
-            test_method = self.gen_test_method(method_name)
-            methods[method_name] = label
-
             self._add_url_request(req, test_method)
-
-            test_class.append(test_method)
             test_method.append(self.gen_new_line(indent=0))
+
+        test_class.append(test_method)
 
         return methods
 
@@ -478,10 +499,12 @@ import apiritif
         named_args = OrderedDict()
 
         method = request.method.lower()
-        think_time = dehumanize_time(request.priority_option('think-time', default=None))
+        think_time = dehumanize_time(request.priority_option('think-time'))
 
-        named_args['timeout'] = dehumanize_time(request.priority_option('timeout', default='30s'))
-        named_args['allow_redirects'] = request.priority_option('follow-redirects', default=True)
+        if request.timeout is not None:
+            named_args['timeout'] = dehumanize_time(request.timeout)
+        if request.follow_redirects is not None:
+            named_args['allow_redirects'] = request.priority_option('follow-redirects', default=True)
 
         headers = {}
         scenario_headers = self.scenario.get("headers", None)
@@ -507,17 +530,23 @@ import apiritif
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(request.body), request.body))
 
-        kwargs = ", ".join("%s=%s" % (name, value) for name, value in iteritems(named_args))
+        kwargs = ", ".join([""] + ["%s=%s" % (name, value) for name, value in iteritems(named_args)])
 
         request_source = "self.target" if self.access_method == "target" else "apiritif.http"
 
-        request_line = "response = {source}.{method}({url}, {kwargs})".format(
+        if request.label:
+            label = request.label
+        else:
+            label = request.url
+
+        test_method.append(self.gen_statement("with apiritif.transaction(%r):" % label))
+        request_line = "response = {source}.{method}({url}{kwargs})".format(
             source=request_source,
             method=method,
             url=self.repr_inter(request.url),
             kwargs=kwargs,
         )
-        test_method.append(self.gen_statement(request_line))
+        test_method.append(self.gen_statement(request_line, indent=12))
         self._add_assertions(request, test_method)
         self._add_jsonpath_assertions(request, test_method)
         self._add_xpath_assertions(request, test_method)
@@ -557,8 +586,8 @@ import apiritif
         jextractors = request.config.get("extract-jsonpath", BetterDict())
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
-            extractor_line = "self.set_var({varname}, response.extract_jsonpath({query}, {default}))".format(
-                varname=repr(varname),
+            extractor_line = "{varname} = response.extract_jsonpath({query}, {default})".format(
+                varname=varname,
                 query=repr(cfg['jsonpath']),
                 default=repr(cfg.get('default', 'NOT_FOUND'))
             )
@@ -568,8 +597,8 @@ import apiritif
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
             # TODO: support non-'body' value of 'subject'
-            extractor_line = "self.set_var({varname}, response.extract_regex({regex}, {default}))".format(
-                varname=repr(varname),
+            extractor_line = "{varname} = response.extract_regex({regex}, {default})".format(
+                varname=varname,
                 regex=repr(cfg['regexp']),
                 default=repr(cfg.get('default', 'NOT_FOUND'))
             )
@@ -582,10 +611,10 @@ import apiritif
             cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
             parser_type = 'html' if cfg.get('use-tolerant-parser', True) else 'xml'
             validate = cfg.get('validate-xml', False)
-            extractor_line = ("self.set_var({varname}, response.extract_xpath({query}, default={default}, "
-                              "parser_type={parser_type}, validate={validate}))")
+            extractor_line = ("{varname} = response.extract_xpath({query}, default={default}, "
+                              "parser_type={parser_type}, validate={validate})")
             extractor_line = extractor_line.format(
-                varname=repr(varname),
+                varname=varname,
                 query=repr(cfg['xpath']),
                 default=repr(cfg.get('default', 'NOT_FOUND')),
                 parser_type=repr(parser_type),
@@ -629,3 +658,203 @@ import apiritif
         self.log.debug("Generating test method %s", name)
         test_method = self.gen_method_definition(name, ["self"])
         return test_method
+
+
+class NoneTailer(object):
+    def get_lines(self, force=False):
+        if False:
+            yield ''
+        return
+
+
+class FileTailer(NoneTailer):
+    def __init__(self, filename):
+        super(FileTailer, self).__init__()
+        self._fds = open(filename)
+        self._poller = select.poll()
+        self._poller.register(self._fds)
+
+    def get_lines(self, force=False):
+        readable = self._poller.poll(0)
+        for _, _ in readable:
+            yield self._fds.readline().rstrip()
+
+        if force:
+            for line in self._fds.readlines():
+                yield line.rstrip()
+
+    def __del__(self):
+        if self._fds:
+            self._fds.close()
+
+
+class Sample(object):
+    def __init__(self, test_suite=None, test_case=None, status=None, start_time=None, duration=None,
+                 error_msg=None, error_trace=None):
+        self.test_suite = test_suite  # test label (test method name)
+        self.test_case = test_case  # test suite name (class name)
+        self.status = status  # test status (PASSED/FAILED/BROKEN/SKIPPED)
+        self.start_time = start_time  # test start time
+        self.duration = duration  # test duration
+        self.error_msg = error_msg  # short error message
+        self.error_trace = error_trace  # traceback of a failure
+        self.extras = {}  # extra info: ('file' - location, 'full_name' - full qualified name, 'decsription' - docstr)
+        self.subsamples = []  # subsamples list
+
+    def add_subsample(self, sample):
+        self.subsamples.append(sample)
+
+    def to_dict(self):
+        # type: () -> dict
+        return {
+            "test_suite": self.test_suite,
+            "test_case": self.test_case,
+            "status": self.status,
+            "start_time": self.start_time,
+            "duration": self.duration,
+            "error_msg": self.error_msg,
+            "error_trace": self.error_trace,
+            "extras": self.extras,
+            "subsamples": [sample.to_dict() for sample in self.subsamples],
+        }
+
+    def __repr__(self):
+        return "Sample(%r)" % self.to_dict()
+
+
+class ApiritifSampleExtractor(object):
+    def parse_recording(self, recording, test_case_sample):
+        """
+
+        :type recording: list[apiritif.Event]
+        :type test_case_sample: Sample
+        :rtype: list[Sample]
+        """
+        test_case_name = test_case_sample.test_case
+        active_transactions = [test_case_sample]
+        response_map = {}  # response -> sample
+        transactions_present = False
+        for item in recording:
+            if isinstance(item, apiritif.Request):
+                sample = Sample(
+                    test_suite=test_case_name,
+                    test_case=item.address,
+                    status="PASSED",
+                    start_time=item.timestamp,
+                    duration=item.response.elapsed.total_seconds(),
+                )
+                extras = self._extract_extras(item)
+                if extras:
+                    sample.extras.update(extras)
+                response_map[item.response] = sample
+                active_transactions[-1].add_subsample(sample)
+            elif isinstance(item, apiritif.TransactionStarted):
+                transactions_present = True
+                tran_sample = Sample(test_case=item.transaction_name, test_suite=test_case_name)
+                active_transactions.append(tran_sample)
+            elif isinstance(item, apiritif.TransactionEnded):
+                tran = item.transaction
+                tran_sample = active_transactions.pop()
+                assert tran_sample.test_case == item.transaction_name
+                tran_sample.start_time = tran.start_time()
+                tran_sample.duration = tran.duration()
+                if tran.success is None:
+                    tran_sample.status = "PASSED"
+                    for sample in tran_sample.subsamples:
+                        if sample.status in ("FAILED", "BROKEN"):
+                            tran_sample.status = sample.status
+                            tran_sample.error_msg = sample.error_msg
+                            tran_sample.error_trace = sample.error_trace
+                elif tran.success:
+                    tran_sample.status = "PASSED"
+                else:
+                    tran_sample.status = "FAILED"
+                    tran_sample.error_msg = tran.error_message
+
+                extras = copy.deepcopy(tran.extras())
+                extras.update(self._extras_dict(tran.name, "", tran.response_code(), "", {},
+                                                tran.response() or "", len(tran.response() or ""),
+                                                tran.duration(), tran.request() or "", {}, {}))
+                tran_sample.extras = extras
+
+                active_transactions[-1].add_subsample(tran_sample)
+            elif isinstance(item, apiritif.Assertion):
+                sample = response_map.get(item.response, None)
+                if sample is None:
+                    raise ValueError("Found assertion for unknown response")
+                if "assertions" not in sample.extras:
+                    sample.extras["assertions"] = []
+                sample.extras["assertions"].append({
+                    "name": item.name,
+                    "isFailed": False,
+                    "failureMessage": "",
+                })
+            elif isinstance(item, apiritif.AssertionFailure):
+                sample = response_map.get(item.response, None)
+                if sample is None:
+                    raise ValueError("Found assertion failure for unknown response")
+                for ass in sample.extras.get("assertions", []):
+                    if ass["name"] == item.name:
+                        ass["isFailed"] = True
+                        ass["failureMessage"] = item.failure_message
+                        sample.status = "FAILED"
+                        sample.error_msg = item.failure_message
+            else:
+                raise ValueError("Unknown kind of event in apiritif recording: %s" % item)
+
+        if len(active_transactions) != 1:
+            # TODO: shouldn't we auto-balance them?
+            raise ValueError("Can't parse apiritif recordings: unbalanced transactions")
+
+        toplevel_sample = active_transactions.pop()
+
+        # do not capture toplevel sample if transactions were used
+        if transactions_present:
+            return toplevel_sample.subsamples
+        else:
+            return [toplevel_sample]
+
+    @staticmethod
+    def _headers_from_dict(headers):
+        return "\n".join(key + ": " + value for key, value in headers.items())
+
+    @staticmethod
+    def _cookies_from_dict(cookies):
+        return "; ".join(key + "=" + value for key, value in cookies.items())
+
+    def _extras_dict(self, url, method, status_code, reason, response_headers, response_body, response_size,
+                     response_time, request_body, request_cookies, request_headers):
+        record = {
+            'responseCode': status_code,
+            'responseMessage': reason,
+            'responseTime': response_time,
+            'connectTime': 0,
+            'latency': 0,
+            'responseSize': response_size,
+            'requestSize': 0,
+            'requestMethod': method,
+            'requestURI': url,
+            'assertions': [],  # will be filled later
+            'responseBody': response_body,
+            'requestBody': request_body,
+            'requestCookies': request_cookies,
+            'requestHeaders': request_headers,
+            'responseHeaders': response_headers,
+        }
+        record["requestCookiesRaw"] = self._cookies_from_dict(record["requestCookies"])
+        record["responseBodySize"] = len(record["responseBody"])
+        record["requestBodySize"] = len(record["requestBody"])
+        record["requestCookiesSize"] = len(record["requestCookiesRaw"])
+        record["requestHeadersSize"] = len(self._headers_from_dict(record["requestHeaders"]))
+        record["responseHeadersSize"] = len(self._headers_from_dict(record["responseHeaders"]))
+        return record
+
+    def _extract_extras(self, request_event):
+        resp = request_event.response
+        req = request_event.request
+
+        return self._extras_dict(
+            req.url, req.method, resp.status_code, resp.reason,
+            dict(resp.headers), resp.text, len(resp.content), resp.elapsed.total_seconds(),
+            req.body or "", dict(request_event.session.cookies), dict(resp._request.headers)
+        )

@@ -102,11 +102,12 @@ class TestFinalStatusReporter(BZTestCase):
         obj.aggregated_results(*self.__get_func_tree())
         obj.post_process()
         info_log = log_recorder.info_buff.getvalue()
+        warn_log = log_recorder.warn_buff.getvalue()
         self.assertIn("Total: 3 tests", info_log)
-        self.assertIn("Test TestClass.case2", info_log)
-        self.assertIn("stacktrace2", info_log)
-        self.assertIn("Test TestClass.case3", info_log)
-        self.assertIn("stacktrace3", info_log)
+        self.assertIn("Test TestClass.case2 failed: something broke", warn_log)
+        self.assertIn("stacktrace2", warn_log)
+        self.assertIn("Test TestClass.case3 failed: something is badly broken", warn_log)
+        self.assertIn("stacktrace3", warn_log)
         obj.log.removeHandler(log_recorder)
 
     def test_func_report_all_no_stacktrace(self):
@@ -229,13 +230,15 @@ class TestFinalStatusReporter(BZTestCase):
         tree = ResultsTree()
         tree.add_sample(FunctionalSample(test_case="case1", test_suite="TestClass", status="PASSED",
                                          start_time=time.time(), duration=0.12,
-                                         error_msg=None, error_trace=None, extras=None))
+                                         error_msg=None, error_trace=None, extras=None, subsamples=[]))
         tree.add_sample(FunctionalSample(test_case="case2", test_suite="TestClass", status="FAILED",
                                          start_time=time.time(), duration=0.33,
-                                         error_msg="something broke", error_trace="stacktrace2", extras=None))
+                                         error_msg="something broke", error_trace="stacktrace2", extras=None,
+                                         subsamples=[]))
         tree.add_sample(FunctionalSample(test_case="case3", test_suite="TestClass", status="BROKEN",
                                          start_time=time.time(), duration=0.33,
-                                         error_msg="something is badly broken", error_trace="stacktrace3", extras=None))
+                                         error_msg="something is badly broken", error_trace="stacktrace3", extras=None,
+                                         subsamples=[]))
         return tree, tree
 
     def test_blazemeter_report_link(self):

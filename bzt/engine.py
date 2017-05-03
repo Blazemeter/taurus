@@ -104,8 +104,14 @@ class Engine(object):
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
 
-        thread = threading.Thread(target=self._check_updates)  # intentionally non-daemon thread
-        thread.start()
+        if self.config.get(SETTINGS).get("check-updates", True):
+            install_id = self.config.get("install-id", uuid.getnode())
+
+            def wrapper():
+                return self._check_updates(install_id)
+
+            thread = threading.Thread(target=wrapper)  # intentionally non-daemon thread
+            thread.start()
 
         return merged_config
 
@@ -497,7 +503,8 @@ class Engine(object):
 
         for mod in mods_list:
             if mod.parameters.get("module") == instance.parameters.get("module"):
-                self.log.warning("Module '%s' can be only used once, will merge all new instances into single")
+                msg = "Module '%s' can be only used once, will merge all new instances into single"
+                self.log.warning(msg % mod.parameters.get("module"))
                 mod.parameters.merge(instance.parameters)
                 return True
 
@@ -530,33 +537,32 @@ class Engine(object):
             opener = build_opener(proxy_handler)
             install_opener(opener)
 
-    def _check_updates(self):
-        if self.config.get(SETTINGS).get("check-updates", True):
-            try:
-                params = (bzt.VERSION, self.config.get("install-id", uuid.getnode()))
-                req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
-                self.log.debug("Requesting updates info: %s", req)
-                response = urlopen(req, timeout=10)
-                resp = response.read()
+    def _check_updates(self, installID):
+        try:
+            params = (bzt.VERSION, installID)
+            req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
+            self.log.debug("Requesting updates info: %s", req)
+            response = urlopen(req, timeout=10)
+            resp = response.read()
 
-                if not isinstance(resp, str):
-                    resp = resp.decode()
+            if not isinstance(resp, str):
+                resp = resp.decode()
 
-                self.log.debug("Taurus updates info: %s", resp)
+            self.log.debug("Taurus updates info: %s", resp)
 
-                data = json.loads(resp)
-                mine = LooseVersion(bzt.VERSION)
-                latest = LooseVersion(data['latest'])
-                if mine < latest or data['needsUpgrade']:
-                    msg = "There is newer version of Taurus %s available, consider upgrading. " \
-                          "What's new: http://gettaurus.org/docs/Changelog/"
-                    self.log.warning(msg, latest)
-                else:
-                    self.log.debug("Installation is up-to-date")
+            data = json.loads(resp)
+            mine = LooseVersion(bzt.VERSION)
+            latest = LooseVersion(data['latest'])
+            if mine < latest or data['needsUpgrade']:
+                msg = "There is newer version of Taurus %s available, consider upgrading. " \
+                      "What's new: http://gettaurus.org/docs/Changelog/"
+                self.log.warning(msg, latest)
+            else:
+                self.log.debug("Installation is up-to-date")
 
-            except BaseException:
-                self.log.debug("Failed to check for updates: %s", traceback.format_exc())
-                self.log.warning("Failed to check for updates")
+        except BaseException:
+            self.log.debug("Failed to check for updates: %s", traceback.format_exc())
+            self.log.warning("Failed to check for updates")
 
 
 class Configuration(BetterDict):

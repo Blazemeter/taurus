@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.2
+ - fix grinder having 100% errors
+ - bump up auto-installed JMeter to 3.2
+ - extract apiritif into standalone PyPi project
+ - improve console message in case of BZA failed response
+
+## 1.9.1 <sup>19 apr 2017</sup>
+ - fix errors in reading Grinder KPI file
+ - fix race condition in updates check
+ - catch possible error in psutil memory KPI getting
+
 ## 1.9.0 <sup>16 apr 2017</sup>
  - per-technology executors are extracted from selenium executor
  - experimental release of `apiritif` framework scripts

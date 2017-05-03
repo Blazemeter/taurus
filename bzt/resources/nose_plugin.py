@@ -2,22 +2,19 @@ import json
 import sys
 import time
 import traceback
-from collections import OrderedDict
 from optparse import OptionParser
 
+from bzt.modules.python import ApiritifSampleExtractor, Sample
 import nose
 from nose.plugins import Plugin
 
-REPORT_ITEM_KEYS = [
-    "test_case",  # test label (test method name)
-    "test_suite",  # test suite name (class name)
-    "status",  # test status (PASSED/FAILED/BROKEN/SKIPPED)
-    "start_time",  # test start time
-    "duration",  # test duration
-    "error_msg",  # short error message
-    "error_trace",  # traceback of a failure
-    "extras",  # extra info: 'file' - test location, 'full_name' - fully qualified name, 'decsription' - docstring
-]
+
+def get_apiritif():
+    try:
+        import apiritif
+    except ImportError:
+        apiritif = None
+    return apiritif
 
 
 class BZTPlugin(Plugin):
@@ -33,8 +30,9 @@ class BZTPlugin(Plugin):
         self.output_file = output_file
         self.test_count = 0
         self.success_count = 0
-        self.test_dict = None
+        self.current_sample = None
         self.out_stream = None
+        self.apiritif_extractor = ApiritifSampleExtractor()
 
     def __enter__(self):
         self.out_stream = open(self.output_file, "wt", buffering=1)
@@ -67,20 +65,16 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self.test_dict = OrderedDict((key, None) for key in REPORT_ITEM_KEYS)
-
         test_file, _, _ = test.address()  # file path, module name, class.method
         test_fqn = test.id()  # [package].module.class.method
         class_name, method_name = test_fqn.split('.')[-2:]
 
-        self.test_dict["test_case"] = method_name
-        self.test_dict["test_suite"] = class_name
-        self.test_dict["start_time"] = time.time()
-        self.test_dict["extras"] = {
+        self.current_sample = Sample(test_case=method_name, test_suite=class_name, start_time=time.time())
+        self.current_sample.extras.update({
             "file": test_file,
             "full_name": test_fqn,
             "description": test.shortDescription()
-        }
+        })
 
     def addError(self, test, error):  # pylint: disable=invalid-name
         """
@@ -90,10 +84,10 @@ class BZTPlugin(Plugin):
         :return:
         """
         # test_dict will be None if startTest wasn't called (i.e. exception in setUp/setUpClass)
-        if self.test_dict is not None:
-            self.test_dict["status"] = "BROKEN"
-            self.test_dict["error_msg"] = str(error[1]).split('\n')[0]
-            self.test_dict["error_trace"] = self._get_trace(error)
+        if self.current_sample is not None:
+            self.current_sample.status = "BROKEN"
+            self.current_sample.error_msg = str(error[1]).split('\n')[0]
+            self.current_sample.error_trace = self._get_trace(error)
 
     @staticmethod
     def _get_trace(error):
@@ -111,9 +105,9 @@ class BZTPlugin(Plugin):
 
         :return:
         """
-        self.test_dict["status"] = "FAILED"
-        self.test_dict["error_msg"] = str(error[1]).split('\n')[0]
-        self.test_dict["error_trace"] = self._get_trace(error)
+        self.current_sample.status = "FAILED"
+        self.current_sample.error_msg = str(error[1]).split('\n')[0]
+        self.current_sample.error_trace = self._get_trace(error)
 
     def addSkip(self, test):  # pylint: disable=invalid-name
         """
@@ -121,7 +115,7 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self.test_dict["status"] = "SKIPPED"
+        self.current_sample.status = "SKIPPED"
 
     def addSuccess(self, test):  # pylint: disable=invalid-name
         """
@@ -129,61 +123,41 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self.test_dict["status"] = "PASSED"
+        self.current_sample.status = "PASSED"
         self.success_count += 1
 
-    @staticmethod
-    def _headers_from_dict(headers):
-        return "\n".join(key + ": " + value for key, value in headers.items())
+    def process_apiritif_samples(self, sample):
+        samples_processed = 0
+        apiritif = get_apiritif()
+        test_case = sample.test_case
 
-    @staticmethod
-    def _cookies_from_dict(cookies):
-        return "; ".join(key + "=" + value for key, value in cookies.items())
+        recording = apiritif.recorder.get_recording(test_case)
+        if not recording:
+            return samples_processed
 
-    def _extract_apiritif_data(self, test_case):
-        try:
-            from apiritif import recorder
-        except ImportError:
-            return
+        samples = self.apiritif_extractor.parse_recording(recording, sample)
+        for sample in samples:
+            samples_processed += 1
+            self.test_count += 1
+            self.write_sample(sample)
+            self.write_stdout_report(sample.test_case)
 
-        log_record = recorder.log.get(test_case, None)
-        if log_record is None or not log_record.requests:
-            return
+        return samples_processed
 
-        request_log = log_record.requests[0]
-        assertions = log_record.assertions_for_response(request_log.response)
-        py_response = request_log.response.py_response
-        baked_request = request_log.request
+    def process_sample(self, sample):
+        self.test_count += 1
+        self.write_sample(sample)
+        self.write_stdout_report(sample.test_case)
 
-        record = {
-            'responseCode': py_response.status_code,
-            'responseMessage': py_response.reason,
-            'responseTime': py_response.elapsed.total_seconds(),
-            'connectTime': 0,
-            'latency': 0,
-            'responseSize': len(py_response.content),
-            'requestSize': 0,
-            'requestMethod': baked_request.method,
-            'requestURI': baked_request.url,
-            'assertions': [
-                {"name": assertion.name, "isFailed": assertion.is_failed, "failureMessage": assertion.failure_message}
-                for assertion in assertions
-            ],
-            'responseBody': py_response.text,
-            'requestBody': baked_request.body or "",
-            'requestCookies': dict(request_log.session.cookies),
-            'requestHeaders': dict(py_response.request.headers),
-            'responseHeaders': dict(py_response.headers),
-        }
+    def write_sample(self, sample):
+        self.out_stream.write("%s\n" % json.dumps(sample.to_dict()))
+        self.out_stream.flush()
 
-        record["requestCookiesRaw"] = self._cookies_from_dict(record["requestCookies"])
-        record["responseBodySize"] = len(record["responseBody"])
-        record["requestBodySize"] = len(record["requestBody"])
-        record["requestCookiesSize"] = len(record["requestCookiesRaw"])
-        record["requestHeadersSize"] = len(self._headers_from_dict(record["requestHeaders"]))
-        record["responseHeadersSize"] = len(self._headers_from_dict(record["responseHeaders"]))
-
-        self.test_dict["extras"].update(record)
+    def write_stdout_report(self, label):
+        report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
+        failed = self.test_count - self.success_count
+        sys.stdout.write(report_pattern % (label, self.test_count, self.success_count, failed))
+        sys.stdout.flush()
 
     def stopTest(self, test):  # pylint: disable=invalid-name
         """
@@ -191,23 +165,22 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self._extract_apiritif_data(self.test_dict["test_case"])
-        self.test_count += 1
-        self.test_dict["duration"] = time.time() - self.test_dict["start_time"]
-        self.out_stream.write("%s\n" % json.dumps(self.test_dict))
-        self.out_stream.flush()
+        self.current_sample.duration = time.time() - self.current_sample.start_time
 
-        report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
-        sys.stdout.write(report_pattern % (
-            self.test_dict["test_case"], self.test_count, self.success_count, self.test_count - self.success_count))
+        if get_apiritif() is not None:
+            samples_processed = self.process_apiritif_samples(self.current_sample)
+            if samples_processed == 0:
+                self.process_sample(self.current_sample)
+        else:
+            self.process_sample(self.current_sample)
 
-        self.test_dict = None
+        self.current_sample = None
 
 
 def run_nose(report_file, files, iteration_limit, hold):
     argv = [__file__, '-v']
     argv.extend(files)
-    argv.extend(['--with-bzt_plugin', '--nocapture', '--exe'])
+    argv.extend(['--with-bzt_plugin', '--nocapture', '--exe', '--nologcapture'])
 
     if iteration_limit == 0:
         if hold > 0:

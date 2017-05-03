@@ -6,9 +6,9 @@ import time
 
 import yaml
 
-from bzt import TaurusConfigError, TaurusException
+from bzt import TaurusConfigError, TaurusException, NormalShutdown
 from bzt.bza import Master, Test, MultiTest
-from bzt.engine import ScenarioExecutor, ManualShutdown, Service
+from bzt.engine import ScenarioExecutor, Service
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
@@ -21,7 +21,7 @@ from tests.modules.test_blazemeter import BZMock
 class TestCloudProvisioning(BZTestCase):
     @staticmethod
     def __get_user_info():
-        with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
+        with open(__dir__() + "/../resources/json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
 
     def setUp(self):
@@ -688,7 +688,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/sessions/s1/reports/logs': {"result": {"data": [
                     {
                         'filename': "artifacts.zip",
-                        'dataUrl': "file://" + __dir__() + '/../data/artifacts-1.zip'
+                        'dataUrl': "file://" + __dir__() + '/../resources/artifacts-1.zip'
                     }
                 ]}}
             },
@@ -719,7 +719,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(18, len(self.mock.requests))
+        self.assertEqual(19, len(self.mock.requests))
         self.assertIn("Cloud test has probably failed with message: msg", log_recorder.warn_buff.getvalue())
 
     def test_cloud_paths(self):
@@ -735,7 +735,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.log.addHandler(log_recorder)
         self.obj.engine.configure([
             __dir__() + '/../../bzt/resources/base-config.yml',
-            __dir__() + '/../yaml/resource_files.yml'], read_config_files=False)
+            __dir__() + '/../resources/yaml/resource_files.yml'], read_config_files=False)
         self.obj.settings = self.obj.engine.config['modules']['cloud']
         self.obj.settings.merge({'delete-test-files': False})
 
@@ -753,7 +753,7 @@ class TestCloudProvisioning(BZTestCase):
                               'fullname': get_full_path(os.path.join('~', _file))}
                              for _file in files_in_home]
 
-            shutil.copyfile(__dir__() + '/../jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
+            shutil.copyfile(__dir__() + '/../resources/jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
 
             dir_path = get_full_path(os.path.join('~', 'example-of-directory'))
             os.mkdir(dir_path)
@@ -767,7 +767,7 @@ class TestCloudProvisioning(BZTestCase):
             self.obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [
                 os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),  # full path
                 files_in_home[2]['shortname'],  # path from ~
-                os.path.join('jmeter', 'jmeter-loader.bat'),  # relative path
+                os.path.join('resources', 'jmeter', 'jmeter-loader.bat'),  # relative path
                 'mocks.py',  # only basename (look at file_search_paths)
                 '~/example-of-directory']  # dir
 
@@ -978,7 +978,10 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = True
-        self.assertRaises(ManualShutdown, self.obj.prepare)
+        try:
+            self.assertRaises(NormalShutdown, self.obj.prepare)
+        except KeyboardInterrupt as exc:
+            raise AssertionError(type(exc))
 
         warnings = log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
@@ -994,7 +997,10 @@ class TestCloudProvisioning(BZTestCase):
         self.configure()
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = False
-        self.assertRaises(ManualShutdown, self.obj.prepare)
+        try:
+            self.assertRaises(NormalShutdown, self.obj.prepare)
+        except KeyboardInterrupt as exc:
+            raise AssertionError(type(exc))
 
         warnings = log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
