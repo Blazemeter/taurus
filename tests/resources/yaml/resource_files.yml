@@ -3,18 +3,18 @@
 execution:
 - executor: jmeter
   scenario:
-    script: jmeter/jmx/dummy.jmx
+    script: resources/jmeter/jmx/dummy.jmx
 - executor: jmeter
   scenario:
-    script: jmeter/jmx/files_paths.jmx
+    script: resources/jmeter/jmx/files_paths.jmx
 
 # 2, 3
 - executor: selenium
   scenario:
-    testng-xml: selenium/testng/testng.xml
-    script: data/BlazeDemo.java
+    testng-xml: resources/selenium/testng/testng.xml
+    script: resources/BlazeDemo.java
     additional-classpath:
-    - selenium/junit/jar/dummy.jar
+    - resources/selenium/junit/jar/dummy.jar
     - ~/file-in-home-05.jar
 - executor: selenium
   scenario:
@@ -24,7 +24,7 @@ execution:
 # 4, 5
 - executor: gatling
   scenario:
-    script: gatling/bs/BasicSimulation.scala
+    script: resources/gatling/bs/BasicSimulation.scala
 - executor: gatling
   scenario:
     script: ~/file-in-home-04.scala
@@ -32,8 +32,8 @@ execution:
 # 6, 7
 - executor: grinder
   scenario:
-    script: grinder/helloworld.py
-    properties-file: grinder/grinder.base.properties
+    script: resources/grinder/helloworld.py
+    properties-file: resources/grinder/grinder.base.properties
 - executor: grinder
   scenario:
     script: ~/file-in-home-06.py
@@ -42,7 +42,7 @@ execution:
 # 8, 9
 - executor: locust
   scenario:
-    script: locust/simple.py
+    script: resources/locust/simple.py
 - executor: locust
   scenario:
     script: ~/file-in-home-08.py
@@ -51,13 +51,13 @@ execution:
 - executor: jmeter
   scenario:
     data-sources:
-    - jmeter/jmeter-loader.bat
+    - resources/jmeter/jmeter-loader.bat
     - ~/file-in-home-11.ds
 
 # 11, 12
 - executor: siege
   scenario:
-    script: siege/url-file
+    script: resources/siege/url-file
 - executor: siege
   scenario:
     script: ~/file-in-home-09.siege
@@ -65,7 +65,7 @@ execution:
 # 13, 14
 - executor: tsung
   scenario:
-    script: tsung/http_simple.xml
+    script: resources/tsung/http_simple.xml
 - executor: tsung
   scenario:
     script: ~/file-in-home-10.xml
@@ -73,7 +73,7 @@ execution:
 # 15, 16
 - executor: pbench
   scenario:
-    script: data/pbench.src
+    script: resources/pbench/pbench.src
 - executor: pbench
   scenario:
     script: ~/file-in-home-13.src

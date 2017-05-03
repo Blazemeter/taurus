@@ -15,7 +15,7 @@ TOOL_NAME = 'tsung' + EXE_SUFFIX
 
 
 def get_res_path(resource):
-    return path.join(path.dirname(__file__), '..', 'tsung', resource)
+    return path.join(path.dirname(__file__), '..', 'resources', 'tsung', resource)
 
 
 class TestTsungExecutor(BZTestCase):

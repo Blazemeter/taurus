@@ -32,7 +32,7 @@ class TestConverter(BZTestCase):
 
     def test_objprop(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", self._get_tmp())
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", self._get_tmp())
         obj.log.addHandler(log_recorder)
         obj.process()
         self.assertNotIn("Removing unknown element: name (None)", log_recorder.warn_buff.getvalue())
@@ -41,7 +41,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx1(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", self._get_tmp())
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", self._get_tmp())
         obj.log.addHandler(log_recorder)
         obj.process()
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
@@ -51,7 +51,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx2(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmeter/jmx/notfound.jmx")
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/notfound.jmx")
         obj.log.addHandler(log_recorder)
         try:
             obj.process()
@@ -64,7 +64,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx3(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmeter/jmx/broken.jmx")
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/broken.jmx")
         obj.log.addHandler(log_recorder)
         try:
             obj.process()
@@ -77,7 +77,7 @@ class TestConverter(BZTestCase):
 
     def test_loadjmx4(self):
         log_recorder = RecordingHandler()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", self._get_tmp('tmp', 'file'))
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", self._get_tmp('tmp', 'file'))
         obj.log.addHandler(log_recorder)
         obj.process()
         self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
@@ -90,7 +90,7 @@ class TestConverter(BZTestCase):
         open(tmp_jmx_name, 'w+').close()  # touch file
 
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/disabled.jmx", yml, dump_jmx=tmp_jmx_name)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/disabled.jmx", yml, dump_jmx=tmp_jmx_name)
         log_recorder = RecordingHandler()
         obj.log.addHandler(log_recorder)
         obj.process()
@@ -100,7 +100,7 @@ class TestConverter(BZTestCase):
         obj.log.removeHandler(log_recorder)
 
     def test_not_jmx(self):
-        obj = self._get_jmx2yaml("/jmeter/jmx/not-jmx.xml")
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/not-jmx.xml")
         try:
             obj.process()
             self.fail()
@@ -109,7 +109,7 @@ class TestConverter(BZTestCase):
 
     def test_clean_disabled_jmx(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/disabled.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/disabled.jmx", yml)
         obj.process()
         disabled_elements = [element for element in obj.converter.dialect.tree.iter() if
                              element.get("enabled") == "false"]
@@ -117,7 +117,7 @@ class TestConverter(BZTestCase):
 
     def test_copy_global_csv_dataset(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/global_copy.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/global_copy.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         datasets_first_tg = yml.get("scenarios").get("Thread Group one").get("data-sources")
@@ -134,7 +134,7 @@ class TestConverter(BZTestCase):
 
     def test_parse_csv_dataset(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/global_copy.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/global_copy.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         datasets = yml.get("scenarios").get("Thread Group one").get("data-sources")
@@ -145,7 +145,7 @@ class TestConverter(BZTestCase):
 
     def test_copy_global_headers(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/global_copy.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/global_copy.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         headers_first_tg = yml.get("scenarios").get("Thread Group one").get("headers", [])
@@ -155,7 +155,7 @@ class TestConverter(BZTestCase):
 
     def test_cache_cookie_dns_overrides(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/global_copy.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/global_copy.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
@@ -175,7 +175,7 @@ class TestConverter(BZTestCase):
 
     def test_think_time_overrides(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/global_copy.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/global_copy.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
@@ -191,7 +191,7 @@ class TestConverter(BZTestCase):
 
     def test_request_defaults(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/global_copy.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/global_copy.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
@@ -207,7 +207,7 @@ class TestConverter(BZTestCase):
 
     def test_copy_global_request_assertions(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/assertions.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/assertions.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get("tg1")
@@ -229,15 +229,15 @@ class TestConverter(BZTestCase):
         # see comments in broken_resp_asserts.jmx for explanation of cases
         # don't save broken_resp_asserts.jmx by jmeter
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/broken_resp_asserts.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/broken_resp_asserts.jmx", yml)
         obj.process()
         yml_tested = yaml.load(open(yml).read())
-        yml_original = yaml.load(open(__dir__() + "/yaml/converter/broken_resp_asserts.yml").read())
+        yml_original = yaml.load(open(__dir__() + "/resources/yaml/converter/broken_resp_asserts.yml").read())
         self.assertEqual(yml_tested, yml_original)
 
     def test_copy_global_json_assertions(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/assertions.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/assertions.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get("tg1")
@@ -268,7 +268,7 @@ class TestConverter(BZTestCase):
 
     def test_xpath_assertions(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/assertions.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/assertions.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         tg = yml.get("scenarios").get("tg3")
@@ -291,7 +291,7 @@ class TestConverter(BZTestCase):
 
     def test_extractors(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/extractors.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/extractors.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get("tg1")
@@ -332,7 +332,7 @@ class TestConverter(BZTestCase):
 
     def test_request_body(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/extractors.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/extractors.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get("scenarios").get("tg1")
@@ -346,7 +346,7 @@ class TestConverter(BZTestCase):
 
     def test_json_body(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/json_body.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/json_body.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         reqs1 = yml.get("scenarios").get("tg1")['requests']
@@ -360,7 +360,7 @@ class TestConverter(BZTestCase):
 
     def test_duration_throughput(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/duration.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/duration.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         tg_one = yml.get(ScenarioExecutor.EXEC)[0]
@@ -378,9 +378,9 @@ class TestConverter(BZTestCase):
         self.assertEqual(100, tg_three.get("throughput"))
 
     def test_all(self):
-        obj = self._get_jmx2yaml("/yaml/converter/disabled.jmx", self._get_tmp())
+        obj = self._get_jmx2yaml("/resources/yaml/converter/disabled.jmx", self._get_tmp())
         obj.process()
-        yml = yaml.load(open(__dir__() + "/yaml/converter/disabled.yml").read())
+        yml = yaml.load(open(__dir__() + "/resources/yaml/converter/disabled.yml").read())
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
 
     def test_params_conversion(self):
@@ -397,13 +397,13 @@ class TestConverter(BZTestCase):
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
 
     def test_param_null(self):
-        obj = self._get_jmx2yaml("/yaml/converter/param-null.jmx", self._get_tmp())
+        obj = self._get_jmx2yaml("/resources/yaml/converter/param-null.jmx", self._get_tmp())
         obj.process()
         obj.converter.convert(obj.file_to_convert)
 
     def test_load_profile_default_values(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/default.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/default.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         execution = yml.get(ScenarioExecutor.EXEC)[0]
@@ -414,7 +414,7 @@ class TestConverter(BZTestCase):
 
     def test_variables(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/vars.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/vars.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         scenarios = yml.get("scenarios")
@@ -425,7 +425,7 @@ class TestConverter(BZTestCase):
 
     def test_no_variables(self):
         yml = self._get_tmp()
-        obj = self._get_jmx2yaml("/yaml/converter/default.jmx", yml)
+        obj = self._get_jmx2yaml("/resources/yaml/converter/default.jmx", yml)
         obj.process()
         yml = yaml.load(open(yml).read())
         execution = yml.get(ScenarioExecutor.EXEC)[0]
@@ -434,14 +434,14 @@ class TestConverter(BZTestCase):
         self.assertNotIn("variables", scenario)
 
     def test_controllers_to_requests(self):
-        obj = self._get_jmx2yaml("/yaml/converter/controllers.jmx", self._get_tmp())
+        obj = self._get_jmx2yaml("/resources/yaml/converter/controllers.jmx", self._get_tmp())
         obj.process()
-        yml = yaml.load(open(__dir__() + "/yaml/converter/controllers.yml").read())
+        yml = yaml.load(open(__dir__() + "/resources/yaml/converter/controllers.yml").read())
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
 
     def test_jsr223(self):
         yml_file = self._get_tmp()
-        obj = self._get_jmx2yaml("/jmeter/jmx/jsr223.jmx", yml_file)
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/jsr223.jmx", yml_file)
         obj.process()
         yml = yaml.load(open(yml_file).read())
         scenarios = yml.get("scenarios")
@@ -479,13 +479,13 @@ class TestConverter(BZTestCase):
         self.assertTrue(os.path.exists(os.path.join(get_full_path(yml_file, step_up=1), 'script.js')))
 
     def test_unicode(self):
-        obj = self._get_jmx2yaml("/yaml/converter/unicode.jmx", self._get_tmp())
+        obj = self._get_jmx2yaml("/resources/yaml/converter/unicode.jmx", self._get_tmp())
         obj.process()
         obj.converter.convert(obj.file_to_convert)
 
     def test_path_without_domain(self):
         yml_file = self._get_tmp()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", yml_file)
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", yml_file)
         obj.process()
         yml = yaml.load(open(yml_file).read())
         scenarios = yml.get("scenarios")
@@ -497,7 +497,7 @@ class TestConverter(BZTestCase):
 
     def test_request_content_encoding(self):
         yml_file = self._get_tmp()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", yml_file)
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", yml_file)
         obj.process()
         yml = yaml.load(open(yml_file).read())
         scenarios = yml.get("scenarios")
@@ -509,7 +509,7 @@ class TestConverter(BZTestCase):
 
     def test_request_redirect_policy(self):
         yml_file = self._get_tmp()
-        obj = self._get_jmx2yaml("/jmeter/jmx/http.jmx", yml_file)
+        obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", yml_file)
         obj.process()
         yml = yaml.load(open(yml_file).read())
         scenarios = yml.get("scenarios")

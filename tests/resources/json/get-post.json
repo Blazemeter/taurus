@@ -119,7 +119,7 @@
           "method": "PUT",
           "url": "http://demo.blazemeter.com/api/user",
           "label": "With body from file",
-          "body-file": "tests/jmeter/jmx/http.jmx"
+          "body-file": "tests/resources/jmeter/jmx/http.jmx"
         },
         {
           "method": "GET",
@@ -144,10 +144,10 @@
       "concurrent-pool-size": 10,
       "disable-listeners": true,
       "data-sources": [
-        "tests/data/test1.csv",
+        "tests/resources/test1.csv",
         {
           "type": "csv",
-          "path": "tests/data/test1.csv",
+          "path": "tests/resources/test1.csv",
           "delimiter": ",",
           "quoted": false,
           "loop": true

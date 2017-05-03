@@ -102,11 +102,12 @@ class TestFinalStatusReporter(BZTestCase):
         obj.aggregated_results(*self.__get_func_tree())
         obj.post_process()
         info_log = log_recorder.info_buff.getvalue()
+        warn_log = log_recorder.warn_buff.getvalue()
         self.assertIn("Total: 3 tests", info_log)
-        self.assertIn("Test TestClass.case2", info_log)
-        self.assertIn("stacktrace2", info_log)
-        self.assertIn("Test TestClass.case3", info_log)
-        self.assertIn("stacktrace3", info_log)
+        self.assertIn("Test TestClass.case2 failed: something broke", warn_log)
+        self.assertIn("stacktrace2", warn_log)
+        self.assertIn("Test TestClass.case3 failed: something is badly broken", warn_log)
+        self.assertIn("stacktrace3", warn_log)
         obj.log.removeHandler(log_recorder)
 
     def test_func_report_all_no_stacktrace(self):

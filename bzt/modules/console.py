@@ -26,6 +26,7 @@ from datetime import datetime
 from itertools import groupby, islice, chain
 
 from bzt import TaurusInternalException
+from bzt.six import StringIO, numeric_types
 from logging import StreamHandler
 from urwid import LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine
@@ -39,7 +40,6 @@ import bzt
 from bzt.engine import Reporter, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
-from bzt.six import StringIO, numeric_types
 from bzt.utils import humanize_time, is_windows, DummyScreen
 
 try:
@@ -117,7 +117,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         disable = self.settings.get('disable', 'auto')
         explicit_disable = isinstance(disable, (bool, int)) and disable
         auto_disable = str(disable).lower() == 'auto' and not sys.stdout.isatty()
-        if explicit_disable or auto_disable:
+        if explicit_disable or auto_disable or self.engine.is_functional_mode():
             self.disabled = True
             return
 

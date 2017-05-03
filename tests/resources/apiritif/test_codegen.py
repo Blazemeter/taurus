@@ -1,8 +1,14 @@
 import time
 import unittest
+import logging
+import sys
 
 import apiritif
 
+
+log = logging.getLogger('apiritif.http')
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.setLevel(logging.DEBUG)
 
 class TestRequests(unittest.TestCase):
     def setUp(self):

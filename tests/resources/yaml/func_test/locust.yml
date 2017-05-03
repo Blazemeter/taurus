@@ -5,4 +5,4 @@ execution:
   iterations: 5
   scenario:
     default-address: http://blazedemo.com
-    script: tests/yaml/func_test/locust_script.py
+    script: tests/resources/yaml/func_test/locust_script.py

@@ -52,8 +52,8 @@
           <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
           <elementProp name="HTTPsampler.Files" elementType="HTTPFileArgs">
             <collectionProp name="HTTPFileArgs.files">
-              <elementProp name="tests/json/grinder.json" elementType="HTTPFileArg">
-                <stringProp name="File.path">tests/json/grinder.json</stringProp>
+              <elementProp name="tests/resources/json/grinder.json" elementType="HTTPFileArg">
+                <stringProp name="File.path">tests/resources/json/grinder.json</stringProp>
                 <stringProp name="File.paramname"></stringProp>
                 <stringProp name="File.mimetype"></stringProp>
               </elementProp>
@@ -64,7 +64,7 @@
         </HTTPSamplerProxy>
         <hashTree/>
         <BSFSampler guiclass="TestBeanGUI" testclass="BSFSampler" testname="BSF Sampler" enabled="false">
-          <stringProp name="filename">tests/json/get-post.json</stringProp>
+          <stringProp name="filename">tests/resources/json/get-post.json</stringProp>
           <stringProp name="parameters"></stringProp>
           <stringProp name="script"></stringProp>
           <stringProp name="scriptLanguage"></stringProp>
@@ -72,7 +72,7 @@
         <hashTree/>
         <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="JSR223 Sampler" enabled="true">
           <stringProp name="cacheKey"></stringProp>
-          <stringProp name="filename">tests/json/merge1.json</stringProp>
+          <stringProp name="filename">tests/resources/json/merge1.json</stringProp>
           <stringProp name="parameters"></stringProp>
           <stringProp name="script"></stringProp>
           <stringProp name="scriptLanguage"></stringProp>
@@ -80,7 +80,7 @@
         <hashTree/>
         <BeanShellSampler guiclass="BeanShellSamplerGui" testclass="BeanShellSampler" testname="BeanShell Sampler" enabled="true">
           <stringProp name="BeanShellSampler.query"></stringProp>
-          <stringProp name="BeanShellSampler.filename">tests/json/merge2.json</stringProp>
+          <stringProp name="BeanShellSampler.filename">tests/resources/json/merge2.json</stringProp>
           <stringProp name="BeanShellSampler.parameters"></stringProp>
           <boolProp name="BeanShellSampler.resetInterpreter">false</boolProp>
         </BeanShellSampler>
@@ -97,7 +97,7 @@
         <hashTree/>
         <kg.apc.jmeter.config.VariablesFromCSV guiclass="kg.apc.jmeter.config.VariablesFromCSVGui" testclass="kg.apc.jmeter.config.VariablesFromCSV" testname="jp@gc - Variables From CSV File" enabled="true">
           <collectionProp name="Arguments.arguments"/>
-          <stringProp name="filename">tests/json/jmx.json</stringProp>
+          <stringProp name="filename">tests/resources/json/jmx.json</stringProp>
           <stringProp name="variablesPrefix"></stringProp>
           <stringProp name="delimiter">;</stringProp>
           <intProp name="skipLines">0</intProp>

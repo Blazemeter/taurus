@@ -28,7 +28,7 @@
       </ConfigTestElement>
       <hashTree/>
       <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="CSV a.csv">
-        <stringProp name="filename">tests/data/test1.csv</stringProp>
+        <stringProp name="filename">tests/resources/test1.csv</stringProp>
         <stringProp name="delimiter">,</stringProp>
         <boolProp name="quotedData">false</boolProp>
         <boolProp name="recycle">true</boolProp>

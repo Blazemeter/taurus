@@ -36,10 +36,11 @@ class TestConsoleStatusReporter(BZTestCase):
 
     def get_jmeter(self):
         dir_name = os.path.dirname(__file__)
-        path = dir_name + "/../jmeter/jmeter-loader" + EXE_SUFFIX
+        path = dir_name + "/../resources/jmeter/jmeter-loader" + EXE_SUFFIX
         obj = JMeterExecutor()
         obj.settings.merge({'path': path})
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../resources/jmeter/jmx/dummy.jmx"}})
         return obj
 
     def test_1(self):
@@ -131,7 +132,7 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
         obj.engine.config[Provisioning.PROV] = ''
-        jmeter = JMeterExecutor()
+        jmeter = self.get_jmeter()
         jmeter.engine = obj.engine
         jmeter.start_time = time.time()
         jmeter.execution[ScenarioExecutor.HOLD_FOR] = 10
