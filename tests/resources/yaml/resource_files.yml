@@ -1,0 +1,91 @@
+---
+# 0, 1
+execution:
+- executor: jmeter
+  scenario:
+    script: resources/jmeter/jmx/dummy.jmx
+- executor: jmeter
+  scenario:
+    script: resources/jmeter/jmx/files_paths.jmx
+
+# 2, 3
+- executor: selenium
+  scenario:
+    testng-xml: resources/selenium/testng/testng.xml
+    script: resources/BlazeDemo.java
+    additional-classpath:
+    - resources/selenium/junit/jar/dummy.jar
+    - ~/file-in-home-05.jar
+- executor: selenium
+  scenario:
+    script: ~/file-in-home-03.java
+    testng-xml: ~/file-in-home-12.xml
+
+# 4, 5
+- executor: gatling
+  scenario:
+    script: resources/gatling/bs/BasicSimulation.scala
+- executor: gatling
+  scenario:
+    script: ~/file-in-home-04.scala
+
+# 6, 7
+- executor: grinder
+  scenario:
+    script: resources/grinder/helloworld.py
+    properties-file: resources/grinder/grinder.base.properties
+- executor: grinder
+  scenario:
+    script: ~/file-in-home-06.py
+    properties-file: ~/file-in-home-07.properties
+
+# 8, 9
+- executor: locust
+  scenario:
+    script: resources/locust/simple.py
+- executor: locust
+  scenario:
+    script: ~/file-in-home-08.py
+
+# 10
+- executor: jmeter
+  scenario:
+    data-sources:
+    - resources/jmeter/jmeter-loader.bat
+    - ~/file-in-home-11.ds
+
+# 11, 12
+- executor: siege
+  scenario:
+    script: resources/siege/url-file
+- executor: siege
+  scenario:
+    script: ~/file-in-home-09.siege
+
+# 13, 14
+- executor: tsung
+  scenario:
+    script: resources/tsung/http_simple.xml
+- executor: tsung
+  scenario:
+    script: ~/file-in-home-10.xml
+
+# 15, 16
+- executor: pbench
+  scenario:
+    script: resources/pbench/pbench.src
+- executor: pbench
+  scenario:
+    script: ~/file-in-home-13.src
+
+# 17
+- executor: jmeter
+  scenario:
+    script: ~/file-in-home-00.jmx
+
+provisioning: cloud
+modules:
+  cloud:
+    token: FaKEtoKeN
+    browser-open: false
+    check-interval: 1s

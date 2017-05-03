@@ -23,6 +23,3 @@ reporting:
   - avg-rt>5000ms for 5s, stop as failed
 - module: junit-xml
   data-source: pass-fail
-- module: final-stats
-  dump-xml: true
-  

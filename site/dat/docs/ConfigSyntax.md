@@ -104,6 +104,7 @@ settings:
     username: user  # username and password used if authentication is configured on proxy server
     password: 12345
   check-updates: true  # check for newer version of Taurus on startup
+  verbose: false  # whenever you run bzt with -v option, it sets debug=true, some modules might use it for debug features
 ```
 
 ## Human-Readable Time Specifications
@@ -136,7 +137,7 @@ engine will perfectly deal with it. For example, following JSON file:
      "sample": {
        "script": "tests/jmx/dummy.jmx"
      }
-  }
+  },
   "provisioning": "local",
   "aggregator": "aggregator",
   "reporting": [

@@ -4,6 +4,7 @@ import time
 import traceback
 from optparse import OptionParser
 
+from bzt.modules.python import ApiritifSampleExtractor, Sample
 import nose
 from nose.plugins import Plugin
 
@@ -14,40 +15,6 @@ def get_apiritif():
     except ImportError:
         apiritif = None
     return apiritif
-
-
-class Sample(object):
-    def __init__(self, test_suite=None, test_case=None, status=None, start_time=None, duration=None,
-                 error_msg=None, error_trace=None):
-        self.test_suite = test_suite  # test label (test method name)
-        self.test_case = test_case  # test suite name (class name)
-        self.status = status  # test status (PASSED/FAILED/BROKEN/SKIPPED)
-        self.start_time = start_time  # test start time
-        self.duration = duration  # test duration
-        self.error_msg = error_msg  # short error message
-        self.error_trace = error_trace  # traceback of a failure
-        self.extras = {}  # extra info: ('file' - location, 'full_name' - full qualified name, 'decsription' - docstr)
-        self.subsamples = []  # subsamples list
-
-    def add_subsample(self, sample):
-        self.subsamples.append(sample)
-
-    def to_dict(self):
-        # type: () -> dict
-        return {
-            "test_suite": self.test_suite,
-            "test_case": self.test_case,
-            "status": self.status,
-            "start_time": self.start_time,
-            "duration": self.duration,
-            "error_msg": self.error_msg,
-            "error_trace": self.error_trace,
-            "extras": self.extras,
-            "subsamples": [sample.to_dict() for sample in self.subsamples],
-        }
-
-    def __repr__(self):
-        return "Sample(%r)" % self.to_dict()
 
 
 class BZTPlugin(Plugin):
@@ -65,6 +32,7 @@ class BZTPlugin(Plugin):
         self.success_count = 0
         self.current_sample = None
         self.out_stream = None
+        self.apiritif_extractor = ApiritifSampleExtractor()
 
     def __enter__(self):
         self.out_stream = open(self.output_file, "wt", buffering=1)
@@ -167,7 +135,7 @@ class BZTPlugin(Plugin):
         if not recording:
             return samples_processed
 
-        samples = ApiritifExtractor.parse_recording(recording, sample)
+        samples = self.apiritif_extractor.parse_recording(recording, sample)
         for sample in samples:
             samples_processed += 1
             self.test_count += 1
@@ -209,125 +177,10 @@ class BZTPlugin(Plugin):
         self.current_sample = None
 
 
-class ApiritifExtractor(object):
-    @staticmethod
-    def parse_recording(recording, test_case_sample):
-        """
-
-        :type recording: list[apiritif.Event]
-        :type test_case_sample: Sample
-        :rtype: list[Sample]
-        """
-        apiritif = get_apiritif()
-        test_case_name = test_case_sample.test_case
-        active_transactions = [test_case_sample]
-        response_map = {}  # response -> sample
-        transactions_present = False
-        for item in recording:
-            if isinstance(item, apiritif.Request):
-                sample = Sample(
-                    test_suite=test_case_name,
-                    test_case=item.address,
-                    status="PASSED",
-                    start_time=item.timestamp,
-                    duration=item.response.elapsed.total_seconds(),
-                )
-                extras = ApiritifExtractor._extract_extras(item)
-                if extras:
-                    sample.extras.update(extras)
-                response_map[item.response] = sample
-                active_transactions[-1].add_subsample(sample)
-            elif isinstance(item, apiritif.TransactionStarted):
-                transactions_present = True
-                tran = Sample(test_case=item.transaction_name, test_suite=test_case_name, start_time=item.timestamp)
-                active_transactions.append(tran)
-            elif isinstance(item, apiritif.TransactionEnded):
-                tran = active_transactions.pop()
-                assert tran.test_case == item.transaction_name
-                tran.duration = item.timestamp - tran.start_time
-                tran.status = "PASSED" if all(spl.status == "PASSED" for spl in tran.subsamples) else "FAILED"
-                active_transactions[-1].add_subsample(tran)
-            elif isinstance(item, apiritif.Assertion):
-                sample = response_map.get(item.response, None)
-                if sample is None:
-                    raise ValueError("Found assertion for unknown response")
-                if "assertions" not in sample.extras:
-                    sample.extras["assertions"] = []
-                sample.extras["assertions"].append({
-                    "name": item.name,
-                    "isFailed": False,
-                    "failureMessage": "",
-                })
-            elif isinstance(item, apiritif.AssertionFailure):
-                sample = response_map.get(item.response, None)
-                if sample is None:
-                    raise ValueError("Found assertion failure for unknown response")
-                for ass in sample.extras.get("assertions", []):
-                    if ass["name"] == item.name:
-                        ass["isFailed"] = True
-                        ass["failureMessage"] = item.failure_message
-                        sample.status = "FAILED"
-                        sample.error_msg = item.failure_message
-            else:
-                raise ValueError("Unknown kind of event in apiritif recording: %s" % item)
-
-        if len(active_transactions) != 1:
-            # TODO: shouldn't we auto-balance them?
-            raise ValueError("Can't parse apiritif recordings: unbalanced transactions")
-
-        toplevel_sample = active_transactions.pop()
-
-        # do not capture toplevel sample if transactions were used
-        if transactions_present:
-            return toplevel_sample.subsamples
-        else:
-            return [toplevel_sample]
-
-    @staticmethod
-    def _headers_from_dict(headers):
-        return "\n".join(key + ": " + value for key, value in headers.items())
-
-    @staticmethod
-    def _cookies_from_dict(cookies):
-        return "; ".join(key + "=" + value for key, value in cookies.items())
-
-    @staticmethod
-    def _extract_extras(request_event):
-        response = request_event.response
-        baked_request = request_event.request
-
-        record = {
-            'responseCode': response.status_code,
-            'responseMessage': response.reason,
-            'responseTime': response.elapsed.total_seconds(),
-            'connectTime': 0,
-            'latency': 0,
-            'responseSize': len(response.content),
-            'requestSize': 0,
-            'requestMethod': baked_request.method,
-            'requestURI': baked_request.url,
-            'assertions': [],  # will be filled later
-            'responseBody': response.text,
-            'requestBody': baked_request.body or "",
-            'requestCookies': dict(request_event.session.cookies),
-            'requestHeaders': dict(response._request.headers),
-            'responseHeaders': dict(response.headers),
-        }
-
-        record["requestCookiesRaw"] = ApiritifExtractor._cookies_from_dict(record["requestCookies"])
-        record["responseBodySize"] = len(record["responseBody"])
-        record["requestBodySize"] = len(record["requestBody"])
-        record["requestCookiesSize"] = len(record["requestCookiesRaw"])
-        record["requestHeadersSize"] = len(ApiritifExtractor._headers_from_dict(record["requestHeaders"]))
-        record["responseHeadersSize"] = len(ApiritifExtractor._headers_from_dict(record["responseHeaders"]))
-
-        return record
-
-
 def run_nose(report_file, files, iteration_limit, hold):
     argv = [__file__, '-v']
     argv.extend(files)
-    argv.extend(['--with-bzt_plugin', '--nocapture', '--exe'])
+    argv.extend(['--with-bzt_plugin', '--nocapture', '--exe', '--nologcapture'])
 
     if iteration_limit == 0:
         if hold > 0:

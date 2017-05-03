@@ -276,7 +276,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
     DELIMITER = ","
-    DETAILS_REGEX = re.compile(r"worker\.(\S+) (.+) -> (\S+) (.+), \d+ bytes")
+    DETAILS_REGEX = re.compile(r"worker\.(\S+) (.+) -> (\S+) (.+), (\d+) bytes")
 
     def __init__(self, filename, parent_logger):
         super(DataLogReader, self).__init__()
@@ -331,7 +331,7 @@ class DataLogReader(ResultsReader):
                 self.known_threads.add(thread_id)
                 self.concurrency += 1
 
-            url, error_msg = self.__parse_prev_line(worker_id, lines, lnum)
+            url, error_msg = self.__parse_prev_line(worker_id, lines, lnum, r_code, bytes_count)
             if int(data_fields[self.idx["Errors"]]) > 0 or int(data_fields[self.idx['HTTP response errors']]) > 0:
                 if not error_msg:
                     error_msg = "HTTP %s" % r_code
@@ -385,13 +385,16 @@ class DataLogReader(ResultsReader):
 
         return data_fields, worker_id
 
-    def __parse_prev_line(self, worker_id, lines, lnum):
+    def __parse_prev_line(self, worker_id, lines, lnum, r_code, bytes_count):
         url = ''
         error_msg = None
         for lineNo in reversed(range(lnum)):
             line = lines[lineNo].strip()
             matched = self.DETAILS_REGEX.match(line)
-            if matched and worker_id == matched.group(1):
+            if not matched:
+                continue
+
+            if worker_id == matched.group(1) and r_code == matched.group(3) and str(bytes_count) == matched.group(5):
                 return matched.group(2), matched.group(4)
 
         return url, error_msg

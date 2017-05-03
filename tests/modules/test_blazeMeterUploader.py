@@ -34,7 +34,8 @@ class TestBlazeMeterUploader(BZTestCase):
                 "signature": "sign"
             }},
             'https://a.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
-            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1' +
+            '&pq=0&target=labels_bulk&update=1': {},
             'https://a.blazemeter.com/api/v4/sessions/1/stop': {"result": True},
         })
 
@@ -398,13 +399,13 @@ class TestBlazeMeterClientUnicode(BZTestCase):
         session = Session(data={'id': 1})
         mock = BZMock(session)
         mock.mock_post['https://a.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
-        session.upload_file(__dir__() + "/../data/unicode_file")
+        session.upload_file(__dir__() + "/../resources/jmeter/unicode_file")
 
     def test_binary_unicode_error(self):
         session = Session(data={'id': 1})
         mock = BZMock(session)
         mock.mock_post['https://a.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
-        with open(__dir__() + "/../data/jmeter-dist-2.13.zip", 'rb') as fds:
+        with open(__dir__() + "/../resources/jmeter/jmeter-dist-2.13.zip", 'rb') as fds:
             zip_content = fds.read()
         session.upload_file("jtls_and_more.zip", zip_content)
 
@@ -412,7 +413,7 @@ class TestBlazeMeterClientUnicode(BZTestCase):
 class DummyHttpResponse(object):
     def __init__(self):
         self.fake_socket = BytesIO()
-        self.fake_socket.write(open(__dir__() + "/../data/unicode_file", 'rb').read())
+        self.fake_socket.write(open(__dir__() + "/../resources/unicode_file", 'rb').read())
 
     def read(self):
         self.fake_socket.seek(0)
