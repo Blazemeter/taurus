@@ -1,10 +1,10 @@
 # Selenium Executor
 Selenium is virtual executor provided you ability to run functional tests locally with Selenium WebDriver by choosing appropriate executor. Currently supported executors are:
-- [JUnit](JUnit.md)(Java)
-- [TestNG](TestNG.md)(Java)
-- [Nose](Nose.md)(Python)
-- [RSpec](RSpec.md)(Ruby)
-- [Mocha](Mocha.md)(JavaScript)
+- [JUnit](JUnit.md) (Java)
+- [TestNG](TestNG.md) (Java)
+- [Nose](Nose.md) (Python)
+- [RSpec](RSpec.md) (Ruby)
+- [Mocha](Mocha.md) (JavaScript)
 
 Selenium Grid isn't supported for tests described with Taurus language, but if you have your own test suite that uses
 Selenium Grid to manage browser instances - Taurus will run these tests just fine.
@@ -37,11 +37,11 @@ By default, Taurus tries to automatically detect the language your tests are wri
 the autodetection fails - you can specify test runner explicitly with `runner` execution-level option.
 
 Supported values:
-- `junit` - [JUnit-based](JUnit.md) Java tests
-- `testng` - [TestNG-based](TestNG.md) Java tests
-- `nose` - [nosetests-based](Nose.md) Python tests
-- `rspec` - [RSpec-based](RSpec.md) Ruby tests
-- `mocha` - [Mocha-based](Mocha.md) JavaScript tests
+- `junit`: [JUnit](JUnit.md)-based Java tests
+- `testng`: [TestNG](TestNG.md)-based Java tests
+- `nose`: [Nose](Nose.md)-based Python tests
+- `rspec`: [RSpec](RSpec.md)-based Ruby tests
+- `mocha`: [Mocha](Mocha.md)-based JavaScript tests
 
 Usage:
 ```yaml
@@ -92,14 +92,16 @@ scenarios:
     - /home/user/lib_two.jar    
     
 modules:
-  selenium:
-    selenium-tools:
-      junit:
-        jar-name: compiled_jar_from_provided_sources.jar
+  junit:
+    jar-name: compiled_jar_from_provided_sources.jar
         
 reporting:
 - module: junit-xml
 ```
+
+## Requests Scenario
+
+Selenium executor supports building test script from the `requests` option of `scenario`. Look at [Nose executor manual page](Nose.md#Request-Scenario) for more information. 
 
 ## Using Virtual Display on Linux
 

@@ -29,16 +29,14 @@ downloaded and installed automatically into `~/.bzt/selenium-taurus`.
 
 ```yaml
 modules:
-  selenium:
-    selenium-tools:
-      junit:
-        path: ~/.bzt/selenium-taurus/tools/junit/junit.jar  # path to JUnit framework
-        selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
-        hamcrest-core: ~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar  # path to Hamcrest lib
-        json-jar: ~/.bzt/selenium-taurus/tools/junit/json.jar  # path to JSON lib
-        jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
-        working-dir: classes  # set name of runner working directory within artifacts dir
-        compile-target-java: 1.7  # -source and -target option value for javac
+  junit:
+    path: ~/.bzt/selenium-taurus/tools/junit/junit.jar  # path to JUnit framework
+    selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
+    hamcrest-core: ~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar  # path to Hamcrest lib
+    json-jar: ~/.bzt/selenium-taurus/tools/junit/json.jar  # path to JSON lib
+    jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
+    working-dir: classes  # set name of runner working directory within artifacts dir
+    compile-target-java: 1.7  # -source and -target option value for javac
 ```
 
 When running tests, Taurus will automatically add `selenium-server`, `json-jar`, `hamcrest-core`, along with JUnit jar
@@ -70,10 +68,8 @@ scenarios:
     - /home/user/lib_two.jar    
     
 modules:
-  selenium:
-    selenium-tools:
-      junit:
-        jar-name: compiled_jar_from_provided_sources.jar
+  junit:
+    jar-name: compiled_jar_from_provided_sources.jar
         
 reporting:
 - module: junit-xml

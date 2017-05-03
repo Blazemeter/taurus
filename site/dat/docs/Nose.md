@@ -21,11 +21,9 @@ Configuration options:
 
 ```yaml
 modules:
-  selenium:
-    selenium-tools:
-      nose:
-        working-dir: classes  # set name of runner working directory within artifacts dir
-        interpreter: /home/user/interpreter/python  # path to custom interpreter.
+  nose:
+    working-dir: classes  # set name of runner working directory within artifacts dir
+    interpreter: /home/user/interpreter/python  # path to custom interpreter.
 ```
 
 ## Request Scenario

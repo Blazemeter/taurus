@@ -36,14 +36,12 @@ Just like JUnit runner, TestNG runner supports the `additional-classpath` option
 
 ```yaml
 modules:
-  selenium:
-    selenium-tools:
-      testng:
-        path: ~/.bzt/selenium-taurus/tools/testng/testng.jar  # TestNG jar
-        selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
-        hamcrest-core: ~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar  # path to Hamcrest lib
-        json-jar: ~/.bzt/selenium-taurus/tools/junit/json.jar  # path to JSON lib
-        jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
-        working-dir: classes  # set name of runner working directory within artifacts dir
-        compile-target-java: 1.7  # -source and -target option value for javac
+  testng:
+    path: ~/.bzt/selenium-taurus/tools/testng/testng.jar  # TestNG jar
+    selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
+    hamcrest-core: ~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar  # path to Hamcrest lib
+    json-jar: ~/.bzt/selenium-taurus/tools/junit/json.jar  # path to JSON lib
+    jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
+    working-dir: classes  # set name of runner working directory within artifacts dir
+    compile-target-java: 1.7  # -source and -target option value for javac
 ```
