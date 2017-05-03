@@ -9,10 +9,12 @@ class TestMultiPartForm(BZTestCase):
     def test___init__(self):
         body = MultiPartForm()
 
-        additional_files = os.listdir(__dir__() + "/data")
+        additional_files = os.listdir(__dir__() + "/resources")
 
         for extra_file in additional_files:
-            extra_file = __dir__() + "/data/" + extra_file
+            extra_file = __dir__() + "/resources/" + extra_file
+            if os.path.isdir(extra_file):
+                continue
             with open(os.path.expanduser(extra_file), 'rb') as fd:
                 file_data = fd.read()
 

@@ -1,0 +1,8 @@
+---
+execution:
+- concurrency: 1
+  executor: locust
+  iterations: 5
+  scenario:
+    default-address: http://blazedemo.com
+    script: tests/resources/yaml/func_test/locust_script.py
