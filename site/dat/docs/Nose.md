@@ -1,4 +1,4 @@
-# Selenium Executor
+# Nose Executor
 Allows to run functional Python tests based on nose library.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
