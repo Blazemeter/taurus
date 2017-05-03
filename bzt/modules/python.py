@@ -429,85 +429,6 @@ class TimeFunction(JMeterFunction):
         return "str(int(time.time() * 1000))", None
 
 
-class JMeterLangTranslator(object):
-    def __init__(self, parent_log):
-        self.log = parent_log.getChild(self.__class__.__name__)
-
-    def translate_jmeter_expr(self, expr):
-        """
-        Translates JMeter expression into Apiritif-based Python expression.
-        :type expr: str
-        :return:
-        """
-        self.log.debug("Attempting to translate JMeter expression %r", expr)
-        functions = {
-            '__time': TimeFunction,
-            '__Random': RandomFunction,
-            '__RandomString': RandomStringFunction,
-        }
-        regexp = r"(\w+)\((.*?)\)"
-        args_re = r'(?<!\\),'
-        match = re.match(regexp, expr)
-        if match is None:  # doesn't look like JMeter expression, do not translate
-            return repr(expr), None
-
-        varname, arguments = match.groups()
-
-        if arguments is None:  # plain variable
-            return varname, None
-        else:  # function call
-            if not arguments:
-                args = []
-            else:
-                # parse arguments: split by ',' but not '\,'
-                args = [arg.strip() for arg in re.split(args_re, arguments)]
-
-            if varname not in functions:  # unknown function
-                return repr(expr), None
-
-            self.log.debug("Translating function %s with arguments %s", varname, arguments)
-            func = functions[varname]()
-            result = func.to_python(args)
-            if result is None:
-                return repr(expr), None
-            else:
-                return result
-
-    def interpolate_str(self, string):
-        """
-        "/${foo}" -> '"/" + str(foo)'
-
-
-        :param string:
-        :return:
-        """
-        components = []
-        lines = []
-        for item in re.split(r'(\$\{.*?\})', string):
-            if item:
-                if item.startswith("${") and item.endswith("}"):
-                    expr = item[2:-1]
-                    result, helpers = self.translate_jmeter_expr(expr)
-                    components.append(result)
-                    if helpers:
-                        lines.extend(helpers)
-                else:
-                    components.append(repr(item))
-
-        return " + ".join(components)
-
-    def repr_inter(self, obj):
-        recur = self.repr_inter
-        if isinstance(obj, dict):
-            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in sorted(iteritems(obj))) + "}"
-        elif isinstance(obj, list):
-            return "[" + ", ".join(recur(item) for item in obj) + "]"
-        elif isinstance(obj, string_types):
-            return self.interpolate_str(obj)
-        else:
-            return repr(obj)
-
-
 class ApiritifScriptBuilder(PythonGenerator):
     IMPORTS = """\
 import logging
@@ -972,27 +893,47 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.scenario = scenario
         self.log = parent_log.getChild(self.__class__.__name__)
         self.tree = None
+        self.verbose = False
         self.__access_method = None
 
+    def gen_empty_line_stmt(self):
+        return ast.Expr(value=ast.Name(id=" "))
+
     def gen_module(self):
-        return ast.Module(body=[
+        stmts = [
             ast.Import(names=[ast.alias(name='logging', asname=None)]),
             ast.Import(names=[ast.alias(name='random', asname=None)]),
             ast.Import(names=[ast.alias(name='string', asname=None)]),
             ast.Import(names=[ast.alias(name='sys', asname=None)]),
             ast.Import(names=[ast.alias(name='time', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
+            self.gen_empty_line_stmt(),
 
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
+        ]
 
-            self.gen_classdef(),
-        ])
+        if self.verbose:
+            stmts.append(self.gen_empty_line_stmt()),
+            # self.root.append(self.gen_statement("log = logging.getLogger('apiritif.http')", indent=0))
+            # self.root.append(self.gen_statement("log.addHandler(logging.StreamHandler(sys.stdout))", indent=0))
+            # self.root.append(self.gen_statement("log.setLevel(logging.DEBUG)", indent=0))
+
+            stmts.extend(ast.parse("""\
+log = logging.getLogger('apiritif.http')
+log.addHandler(logging.StreamHandler(sys.stdout))
+log.setLevel(logging.DEBUG)
+""").body)
+        stmts.append(self.gen_empty_line_stmt())
+        stmts.append(self.gen_empty_line_stmt())
+        stmts.append(self.gen_classdef())
+        return ast.Module(body=stmts)
 
     def gen_classdef(self):
         return ast.ClassDef(
             name='TestAPIRequests',
             bases=[ast.Name(id='unittest.TestCase', ctx=ast.Load())],
             body=[self.gen_test_method()],
+            keywords=[],
             decorator_list=[],
         )
 
@@ -1012,8 +953,49 @@ class ApiritifScriptGenerator(PythonGenerator):
             decorator_list=[],
         )
 
+    def translate_jmeter_expr(self, expr):
+        """
+        Translates JMeter expression into Apiritif-based Python expression.
+        :type expr: str
+        :return:
+        """
+        self.log.debug("Attempting to translate JMeter expression %r", expr)
+        functions = {
+            '__time': TimeFunction,
+            '__Random': RandomFunction,
+            '__RandomString': RandomStringFunction,
+        }
+        regexp = r"(\w+)\((.*?)\)"
+        args_re = r'(?<!\\),'
+        match = re.match(regexp, expr)
+        if match is None:  # doesn't look like JMeter expression, do not translate
+            return ast.Str(s=expr)
+
+        varname, arguments = match.groups()
+
+        if arguments is None:  # plain variable
+            return ast.Name(id=varname, ctx=ast.Load())
+        else:  # function call
+            if not arguments:
+                args = []
+            else:
+                # parse arguments: split by ',' but not '\,'
+                args = [arg.strip() for arg in re.split(args_re, arguments)]
+
+            if varname not in functions:  # unknown function
+                return ast.Name(id=varname, ctx=ast.Load())
+
+            self.log.debug("Translating function %s with arguments %s", varname, arguments)
+            func = functions[varname]()
+
+            result = func.to_python(args)
+
+            if result is None:
+                return expr
+            else:
+                return result
+
     def gen_expr(self, value):
-        self.log.info("Gen expr: %s", value)
         if isinstance(value, bool):
             return ast.Name(id="True" if value else "False", ctx=ast.Load())
         elif isinstance(value, (int, float)):
@@ -1021,13 +1003,41 @@ class ApiritifScriptGenerator(PythonGenerator):
         elif isinstance(value, string_types):
             # if is has interpolation - break it into a BinOp or a Name node
             # otherwise - it's a literal
-            return ast.Str(s=value)
+            # TODO: "asdasdas".format(url)
+            parts = re.split(r'(\$\{.*?\})', value)
+            format_args = []
+            for item in parts:
+                if item:
+                    if item.startswith("${") and item.endswith("}"):
+                        # result = self.translate_jmeter_expr(item)
+                        value = value.replace(item, "{}")
+                        format_args.append(ast.Name(id=item[2:-1], ctx=ast.Load()))
+            if format_args:
+                if len(format_args) == 1 and value == "{}":
+                    result = format_args[0]
+                else:
+                    result = ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Str(s=value),
+                            attr='format',
+                            ctx=ast.Load(),
+                        ),
+                        args=format_args,
+                        keywords=[],
+                        starargs=None,
+                        kwargs=None
+                    )
+            else:
+                result = ast.Str(s=value)
+            self.log.debug("Gen expr: %r -> %r", value, result)
+            return result
         elif isinstance(value, type(None)):
             return ast.Name(id="None", ctx=ast.Load())
         elif isinstance(value, dict):
-            return ast.Num(n=0)
+            return ast.Dict(keys=[self.gen_expr(x) for x in value.keys()],
+                            values=[self.gen_expr(v) for v in value.values()])
         elif isinstance(value, list):
-            return ast.Num(n=0)
+            return ast.List(elts=[self.gen_expr(val) for val in value], ctx=ast.Load())
         elif isinstance(value, ast.AST):
             return value
         else:
@@ -1348,17 +1358,17 @@ class ApiritifScriptGenerator(PythonGenerator):
         return stmts
 
     def gen_test_method_body(self):
-        # test method body:
-        # - variables definition
-        # - target initialization (or not)
-        # - requests and assertions
         var_defs = [
             ast.Assign(targets=[ast.Name(id=var, ctx=ast.Store())],
                        value=self.gen_expr(init))
             for var, init in iteritems(self.scenario.get("variables"))
         ]
+        if var_defs:
+            var_defs.append(self.gen_empty_line_stmt())
 
         init = self.gen_init()
+        if init:
+            init.append(self.gen_empty_line_stmt())
 
         requests = []
         for index, req in enumerate(self.scenario.get_requests()):
@@ -1367,6 +1377,7 @@ class ApiritifScriptGenerator(PythonGenerator):
                 self.log.warning(msg, req.NAME)
                 continue
             requests.extend(self.gen_request_lines(req))
+            requests.append(self.gen_empty_line_stmt())
 
         return var_defs + init + requests
 
@@ -1385,3 +1396,82 @@ class ApiritifScriptGenerator(PythonGenerator):
         import astunparse
         with open(filename, 'wt') as fds:
             fds.write(astunparse.unparse(self.tree))
+
+
+class JMeterLangTranslator(object):
+    def __init__(self, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+
+    def translate_jmeter_expr(self, expr):
+        """
+        Translates JMeter expression into Apiritif-based Python expression.
+        :type expr: str
+        :return:
+        """
+        self.log.debug("Attempting to translate JMeter expression %r", expr)
+        functions = {
+            '__time': TimeFunction,
+            '__Random': RandomFunction,
+            '__RandomString': RandomStringFunction,
+        }
+        regexp = r"(\w+)\((.*?)\)"
+        args_re = r'(?<!\\),'
+        match = re.match(regexp, expr)
+        if match is None:  # doesn't look like JMeter expression, do not translate
+            return repr(expr), None
+
+        varname, arguments = match.groups()
+
+        if arguments is None:  # plain variable
+            return varname, None
+        else:  # function call
+            if not arguments:
+                args = []
+            else:
+                # parse arguments: split by ',' but not '\,'
+                args = [arg.strip() for arg in re.split(args_re, arguments)]
+
+            if varname not in functions:  # unknown function
+                return repr(expr), None
+
+            self.log.debug("Translating function %s with arguments %s", varname, arguments)
+            func = functions[varname]()
+            result = func.to_python(args)
+            if result is None:
+                return repr(expr), None
+            else:
+                return result
+
+    def interpolate_str(self, string):
+        """
+        "/${foo}" -> '"/" + str(foo)'
+
+
+        :param string:
+        :return:
+        """
+        components = []
+        lines = []
+        for item in re.split(r'(\$\{.*?\})', string):
+            if item:
+                if item.startswith("${") and item.endswith("}"):
+                    expr = item[2:-1]
+                    result, helpers = self.translate_jmeter_expr(expr)
+                    components.append(result)
+                    if helpers:
+                        lines.extend(helpers)
+                else:
+                    components.append(repr(item))
+
+        return " + ".join(components)
+
+    def repr_inter(self, obj):
+        recur = self.repr_inter
+        if isinstance(obj, dict):
+            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in sorted(iteritems(obj))) + "}"
+        elif isinstance(obj, list):
+            return "[" + ", ".join(recur(item) for item in obj) + "]"
+        elif isinstance(obj, string_types):
+            return self.interpolate_str(obj)
+        else:
+            return repr(obj)
