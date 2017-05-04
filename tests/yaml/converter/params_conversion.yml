@@ -1,0 +1,39 @@
+---
+execution:
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: Thread Group
+scenarios:
+  Thread Group:
+    default-address: http://blazedemo.com/
+    requests:
+    - body:
+        n1_010: ''
+        n1_111: v1_111
+      follow-redirects: true
+      label: r1
+      method: GET
+      url: /?n1_101=v1_101&n1_011=&n1_001=&n1_011=
+    - body:
+        n2_010: ''
+        n2_111: v2_111
+      follow-redirects: true
+      label: r2
+      method: GET
+      url: http://addr2/?n2_101=v2_101&n2_011=&n2_001=&n2_011=
+    - body:
+        n3_001: ''
+        n3_010: ''
+        n3_011: ''
+        n3_101: v3_101
+        n3_111: v3_111
+      follow-redirects: true
+      label: r3
+      method: POST
+      url: http://addr3/
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+

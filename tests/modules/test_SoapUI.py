@@ -2,7 +2,6 @@ import logging
 
 from bzt.modules.soapui import SoapUIScriptConverter
 from tests import BZTestCase, __dir__
-from tests.mocks import RecordingHandler
 
 
 class TestSoapUIConverter(BZTestCase):
@@ -78,9 +77,8 @@ class TestSoapUIConverter(BZTestCase):
         self.assertEqual(target_scenario, found_scenario)
 
     def test_find_test_case_empty(self):
-        log_recorder = RecordingHandler()
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
 
         config = obj.convert_script(__dir__() + "/../resources/soapui/project.xml")
 
@@ -92,16 +90,15 @@ class TestSoapUIConverter(BZTestCase):
         self.assertEqual(target_scenario, found_scenario)
 
         self.assertIn("No `test-case` specified for SoapUI project, will use 'index'",
-                      log_recorder.warn_buff.getvalue())
+                      self.log_recorder.warn_buff.getvalue())
 
     def test_skip_if_no_requests(self):
-        log_recorder = RecordingHandler()
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
 
         obj.convert_script(__dir__() + "/../resources/soapui/project.xml")
         self.assertIn("No requests extracted for scenario TestSuite 1-EmptyTestCase, skipping it",
-                      log_recorder.warn_buff.getvalue())
+                      self.log_recorder.warn_buff.getvalue())
 
     def test_rest_service_name_as_base_address(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))

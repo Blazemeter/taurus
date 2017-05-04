@@ -20,7 +20,7 @@ from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul, RecordingHandler
+from tests.mocks import EngineEmul
 
 
 def get_jmeter():
@@ -44,11 +44,13 @@ def set_jmeter_executor_vars(jmeter_vars):
 
 class TestJMeterExecutor(BZTestCase):
     def setUp(self):
+        super(TestJMeterExecutor, self).setUp()
         self.obj = get_jmeter()
 
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
             os.remove(self.obj.modified_jmx)
+        super(TestJMeterExecutor, self).tearDown()
 
     def configure(self, config):
         """
@@ -606,8 +608,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
     def test_distributed_props(self):
-        handler = RecordingHandler()
-        self.obj.log.addHandler(handler)
+        self.sniff_log(self.obj.log)
 
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../resources/jmeter/jmx/http.jmx"}})
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
@@ -617,8 +618,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
         self.obj.startup()
 
-        self.obj.log.removeHandler(handler)
-        self.assertIn("', '-G', '", handler.debug_buff.getvalue())
+        self.assertIn("', '-G', '", self.log_recorder.debug_buff.getvalue())
 
     def test_distributed_th_hostnames_complex(self):
         self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
@@ -942,21 +942,16 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual(val['regexp'], assertion.find(".//boolProp[@name='ISREGEX']").text)
 
     def test_shutdown_soft(self):
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
         self.obj.execution.merge({"scenario": {"script": __dir__() + "/../resources/jmeter/jmx/dummy.jmx"}})
-        try:
-            self.obj.prepare()
-            self.obj._env['TEST_MODE'] = 'server'
-            self.obj.startup()
-            time.sleep(1)
-            self.obj.management_port = 8089
-            self.obj.shutdown()
-        except:
-            self.fail()
-        finally:
-            self.obj.log.removeHandler(log_recorder)
-        self.assertIn("JMeter stopped on Shutdown command", log_recorder.debug_buff.getvalue())
+        self.obj.prepare()
+        self.obj._env['TEST_MODE'] = 'server'
+        self.obj.startup()
+        time.sleep(1)
+        self.obj.management_port = 8089
+        self.obj.shutdown()
+
+        self.assertIn("JMeter stopped on Shutdown command", self.log_recorder.debug_buff.getvalue())
 
     def test_embedded_resources_main_sample_fail_assert(self):
         obj = JTLErrorsReader(__dir__() + "/../resources/jmeter/jtl/resource-errors-main-assert.jtl",

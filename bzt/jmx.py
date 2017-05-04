@@ -363,8 +363,9 @@ class JMX(object):
                 http_element_prop.append(JMX._string_prop("Argument.value", "BINARY-STUB"))
 
             http_element_prop.append(JMX._bool_prop("HTTPArgument.always_encode", True))
+            use_equals = arg_value is not None
             http_element_prop.append(JMX._bool_prop("HTTPArgument.use_equals", arg_value is not None))
-            http_element_prop.append(JMX._string_prop("Argument.metadata", '='))
+            http_element_prop.append(JMX._string_prop("Argument.metadata", '=' if use_equals else ''))
             http_args_coll_prop.append(http_element_prop)
         args.append(http_args_coll_prop)
         proxy.append(args)

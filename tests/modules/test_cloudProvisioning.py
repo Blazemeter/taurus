@@ -14,7 +14,7 @@ from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStu
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from bzt.utils import get_full_path
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
+from tests.mocks import EngineEmul, ModuleMock
 from tests.modules.test_blazemeter import BZMock
 
 
@@ -25,6 +25,7 @@ class TestCloudProvisioning(BZTestCase):
             return json.loads(fhd.read())
 
     def setUp(self):
+        super(TestCloudProvisioning, self).setUp()
         engine = EngineEmul()
         engine.aggregator = ConsolidatingAggregator()
         self.obj = CloudProvisioning()
@@ -581,8 +582,7 @@ class TestCloudProvisioning(BZTestCase):
             }
         )
 
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
 
         self.obj.settings["use-deprecated-api"] = False
         self.obj.prepare()
@@ -591,7 +591,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertNotIn("locations", cloud_config)
         for execution in cloud_config["execution"]:
             self.assertIn("locations", execution)
-        log_buff = log_recorder.warn_buff.getvalue()
+        log_buff = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Each execution has locations specified, global locations won't have any effect", log_buff)
 
     def test_collection_simultaneous_start(self):
@@ -711,8 +711,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.engine.config.get("modules").get('capturehar')['class'] = cls
         self.obj.engine.config.get(Service.SERV, []).append('capturehar')
 
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
         self.obj.prepare()
         self.obj.startup()
         self.obj.check()  # this one should trigger force start
@@ -720,7 +719,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
         self.assertEqual(19, len(self.mock.requests))
-        self.assertIn("Cloud test has probably failed with message: msg", log_recorder.warn_buff.getvalue())
+        self.assertIn("Cloud test has probably failed with message: msg", self.log_recorder.warn_buff.getvalue())
 
     def test_cloud_paths(self):
         """
@@ -731,8 +730,7 @@ class TestCloudProvisioning(BZTestCase):
         )  # upload files
 
         # FIXME: refactor this method!
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
         self.obj.engine.configure([
             __dir__() + '/../../bzt/resources/base-config.yml',
             __dir__() + '/../resources/yaml/resource_files.yml'], read_config_files=False)
@@ -773,7 +771,7 @@ class TestCloudProvisioning(BZTestCase):
 
             self.obj.prepare()
 
-            debug = log_recorder.debug_buff.getvalue().split('\n')
+            debug = self.log_recorder.debug_buff.getvalue().split('\n')
             str_files = [line for line in debug if 'Replace file names in config' in line]
             self.assertEqual(1, len(str_files))
             res_files = [_file for _file in str_files[0].split('\'')[1::2]]
@@ -973,8 +971,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_dump_locations(self):
         self.configure()
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
 
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = True
@@ -983,17 +980,16 @@ class TestCloudProvisioning(BZTestCase):
         except KeyboardInterrupt as exc:
             raise AssertionError(type(exc))
 
-        warnings = log_recorder.warn_buff.getvalue()
+        warnings = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
-        info = log_recorder.info_buff.getvalue()
+        info = self.log_recorder.info_buff.getvalue()
         self.assertIn("Location: us-west\tDallas (Rackspace)", info)
         self.assertIn("Location: us-east-1\tEast", info)
         self.assertNotIn("Location: harbor-sandbox\tSandbox", info)
         self.obj.post_process()
 
     def test_dump_locations_new_style(self):
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
         self.configure()
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = False
@@ -1002,9 +998,9 @@ class TestCloudProvisioning(BZTestCase):
         except KeyboardInterrupt as exc:
             raise AssertionError(type(exc))
 
-        warnings = log_recorder.warn_buff.getvalue()
+        warnings = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
-        info = log_recorder.info_buff.getvalue()
+        info = self.log_recorder.info_buff.getvalue()
         self.assertIn("Location: us-west\tDallas (Rackspace)", info)
         self.assertIn("Location: us-east-1\tEast", info)
         self.assertIn("Location: harbor-sandbox\tSandbox", info)
@@ -1061,8 +1057,7 @@ class TestCloudProvisioning(BZTestCase):
             }
         )
 
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
 
         self.obj.settings['public-report'] = True
         self.obj.prepare()
@@ -1071,7 +1066,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
-        log_buff = log_recorder.info_buff.getvalue()
+        log_buff = self.log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/1/summary"
         self.assertIn(log_line, log_buff)
 

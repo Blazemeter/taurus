@@ -10,7 +10,7 @@ from bzt.modules.console import ConsoleStatusReporter
 from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.provisioning import Local
 from bzt.utils import is_windows, EXE_SUFFIX
-from tests.mocks import EngineEmul, RecordingHandler
+from tests.mocks import EngineEmul
 
 
 class TestConsoleStatusReporter(BZTestCase):
@@ -45,8 +45,7 @@ class TestConsoleStatusReporter(BZTestCase):
 
     def test_1(self):
         obj = ConsoleStatusReporter()
-        handler = RecordingHandler()
-        obj.log.addHandler(handler)
+        self.sniff_log(obj.log)
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
         obj.engine.provisioning.start_time = time.time()
@@ -91,8 +90,7 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.check()
         obj.shutdown()
         obj.post_process()
-        obj.log.removeHandler(handler)
-        self.assertNotIn('Failed', handler.warn_buff.getvalue())
+        self.assertNotIn('Failed', self.log_recorder.warn_buff.getvalue())
 
     def test_2(self):
         obj = ConsoleStatusReporter()

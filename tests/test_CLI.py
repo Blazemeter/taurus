@@ -1,6 +1,5 @@
 import logging
 import shutil
-import traceback
 
 import os
 from bzt import TaurusException
@@ -164,6 +163,7 @@ class TestCLI(BZTestCase):
 
 class TestConfigOverrider(BZTestCase):
     def setUp(self):
+        super(TestConfigOverrider, self).setUp()
         self.obj = ConfigOverrider(logging.getLogger())
         self.config = Configuration()
 
