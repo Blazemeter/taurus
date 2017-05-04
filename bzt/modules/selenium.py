@@ -179,7 +179,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.report_file = self.execution.get('report-file', default_report)
         self.runner = self._create_runner()
         self.runner.prepare()
-        
+
         if self.register_reader:
             self.reader = self._register_reader(self.report_file)
 

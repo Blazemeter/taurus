@@ -1,0 +1,7 @@
+Translate some of JMeter's functions into Apiritif code
+
+Functions supported:
+- __time()
+- __Random()
+- __RandomString()
+
