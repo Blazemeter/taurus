@@ -1,45 +1,48 @@
-import time
-import unittest
+
 import logging
+import random
+import string
 import sys
-
+import time
+ 
 import apiritif
-
-
+ 
 log = logging.getLogger('apiritif.http')
 log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG)
+ 
+ 
 
-class TestRequests(unittest.TestCase):
-    def setUp(self):
-        self.target = apiritif.http.target('https://jsonplaceholder.typicode.com')
-        self.target.keep_alive(True)
-        self.target.auto_assert_ok(True)
-        self.target.use_cookies(True)
-        self.target.allow_redirects(True)
-        self.target.timeout(5.0)
+class TestAPIRequests:
 
     def test_requests(self):
+        target = apiritif.http.target('https://jsonplaceholder.typicode.com')
+        target.keep_alive(True)
+        target.auto_assert_ok(True)
+        target.use_cookies(True)
+        target.allow_redirects(True)
+        target.timeout(5.0)
+         
         with apiritif.transaction('just get'):
-            response = self.target.get('/')
-
+            response = target.get('/')
+         
         with apiritif.transaction('get posts'):
-            response = self.target.get('/posts')
+            response = target.get('/posts')
         response.assert_jsonpath('$.[0].userId', expected_value=1)
         userID = response.extract_jsonpath('$.[5].userId', 'NOT_FOUND')
-
+         
         with apiritif.transaction('get posts of certain user'):
-            response = self.target.get('/posts?userId=' + str(userID))
+            response = target.get('/posts?userId={}'.format(userID))
         postID = response.extract_jsonpath('$.[0].id', 'NOT_FOUND')
-
+         
         with apiritif.transaction('get comments on post'):
-            response = self.target.get('/posts/' + str(postID) + '/comments')
+            response = target.get('/posts/{}/comments'.format(postID))
         response.assert_jsonpath('$[0].email', expected_value=None)
-
+         
         with apiritif.transaction('add into posts'):
-            response = self.target.post('/posts', headers={'content-type': 'application/json'}, json={'body': 'bar', 'title': 'foo', 'userId': str(userID)})
+            response = target.post('/posts', headers={'content-type': 'application/json'}, json={'body': 'bar', 'title': 'foo', 'userId': userID})
         addedID = response.extract_jsonpath('$.id', 'NOT_FOUND')
-
+         
         with apiritif.transaction('delete from posts'):
-            response = self.target.delete('/posts/' + str(postID))
-
+            response = target.delete('/posts/{}'.format(postID))
+         
