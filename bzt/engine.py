@@ -26,6 +26,7 @@ import sys
 import threading
 import time
 import traceback
+import uuid
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
@@ -34,11 +35,11 @@ from json import encoder
 import yaml
 from yaml.representer import SafeRepresenter
 
-import bzt
-from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
+from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, ToolError
+from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
-from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
+from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, shutdown_process
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
 from bzt.utils import str_representer
 

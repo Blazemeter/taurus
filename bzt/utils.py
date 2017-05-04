@@ -30,7 +30,6 @@ import shlex
 import signal
 import socket
 import stat
-import string
 import subprocess
 import sys
 import tempfile
