@@ -139,8 +139,10 @@ class TestTsungExecutor(BZTestCase):
         cid_param = '-i %s' % self.obj.tsung_controller_id
         self.assertIn(cid_param, stdout)
 
+
 class TestTsungConfig(BZTestCase):
     def setUp(self):
+        super(TestTsungConfig, self).setUp()
         self.obj = TsungExecutor()
         self.obj.engine = EngineEmul()
 

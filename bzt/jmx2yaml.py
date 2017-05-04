@@ -227,11 +227,10 @@ class JMXasDict(JMX):
             else:
                 return {}
         else:
-            return self._get_params(element, request_config)                    
+            return self._get_params(element, request_config)
 
     def _get_params(self, element, request_config):
         request_params = {}
-        url = request_config.get('url', '')
         method = request_config.get('method', 'get')
         body_params = {}
         query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
@@ -260,18 +259,22 @@ class JMXasDict(JMX):
 
             body_params[name] = val
 
-        if additional_url:
-            if url:
-                url += '?'
-            url += additional_url[1:]
-            request_params['url'] = url
-        request_params['url'] = url
+        request_params['url'] = self._get_url(request_config, additional_url)
 
         if body_params:
             self.log.debug('Got %s for parameters in %s (%s)', body_params, element.tag, element.get("name"))
             request_params["body"] = body_params
 
         return request_params
+
+    @staticmethod
+    def _get_url(request_config, additional_url):
+        url = request_config.get('url', '')
+        if additional_url:
+            if url:
+                url += '?'
+            url += additional_url[1:]
+        return url
 
     def _get_param_incompat(self, param, val):
         """
@@ -1416,7 +1419,8 @@ class JMX2YAML(object):
         self.options = options
         self.setup_logging()
         self.converter = None
-        self.file_to_convert = file_name
+        self.src_file = file_name
+        self.dst_file = ''
 
     def setup_logging(self):
         CLI.setup_logging(self.options)
@@ -1430,28 +1434,28 @@ class JMX2YAML(object):
         """
         output_format = Configuration.JSON if self.options.json else Configuration.YAML
 
-        self.log.info('Loading jmx file %s', self.file_to_convert)
-        self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
-        if not os.path.exists(self.file_to_convert):
-            raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
+        self.log.info('Loading jmx file %s', self.src_file)
+        self.src_file = os.path.abspath(os.path.expanduser(self.src_file))
+        if not os.path.exists(self.src_file):
+            raise TaurusInternalException("File does not exist: %s" % self.src_file)
         self.converter = Converter(self.log)
         try:
-            jmx_as_dict = self.converter.convert(self.file_to_convert, self.options.dump_jmx)
+            jmx_as_dict = self.converter.convert(self.src_file, self.options.dump_jmx)
         except BaseException:
-            self.log.error("Error while processing jmx file: %s", self.file_to_convert)
+            self.log.error("Error while processing jmx file: %s", self.src_file)
             raise
 
         exporter = Configuration()
         exporter.merge(jmx_as_dict)
 
         if self.options.file_name:
-            file_name = self.options.file_name
+            self.dst_file = self.options.file_name
         else:
-            file_name = self.file_to_convert + "." + output_format.lower()
+            self.dst_file = self.src_file + "." + output_format.lower()
 
-        exporter.dump(file_name, output_format)
+        exporter.dump(self.dst_file, output_format)
 
-        additional_files_dir = get_full_path(file_name, step_up=1)
+        additional_files_dir = get_full_path(self.dst_file, step_up=1)
         for filename in self.converter.dialect.additional_files:
             path = os.path.join(additional_files_dir, filename)
             self.log.info("Writing additional file: %s", path)
@@ -1459,7 +1463,7 @@ class JMX2YAML(object):
             with codecs.open(path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-        self.log.info("Done processing, result saved in %s", file_name)
+        self.log.info("Done processing, result saved in %s", self.dst_file)
 
 
 def main():
