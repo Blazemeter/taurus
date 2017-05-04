@@ -216,9 +216,9 @@ class JMXasDict(JMX):
         :return: dict
         """
         raw_body = self._get_bool_prop(element, 'HTTPSampler.postBodyRaw')
+        query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
+        xpath = GenericTranslator().css_to_xpath(query)
         if raw_body:
-            query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
-            xpath = GenericTranslator().css_to_xpath(query)
             http_args_element = element.xpath(xpath)[0]
             body = self._get_string_prop(http_args_element, 'Argument.value')
             if body:
@@ -227,14 +227,13 @@ class JMXasDict(JMX):
             else:
                 return {}
         else:
-            return self._get_params(element, request_config)
+            url = request_config.get('url', '')
+            method = request_config.get('method', 'get')
+            return self._get_params(element, xpath, url=url, method=method)
 
-    def _get_params(self, element, request_config):
+    def _get_params(self, element, xpath, url='', method='get'):
         request_params = {}
-        method = request_config.get('method', 'get')
         body_params = {}
-        query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
-        xpath = GenericTranslator().css_to_xpath(query)
         http_args_collection = element.xpath(xpath)
         additional_url = ''
         for param in http_args_collection:
@@ -259,22 +258,18 @@ class JMXasDict(JMX):
 
             body_params[name] = val
 
-        request_params['url'] = self._get_url(request_config, additional_url)
+        if additional_url:
+            if url:
+                url += '?'
+            url += additional_url[1:]
+
+        request_params['url'] = url
 
         if body_params:
             self.log.debug('Got %s for parameters in %s (%s)', body_params, element.tag, element.get("name"))
             request_params["body"] = body_params
 
         return request_params
-
-    @staticmethod
-    def _get_url(request_config, additional_url):
-        url = request_config.get('url', '')
-        if additional_url:
-            if url:
-                url += '?'
-            url += additional_url[1:]
-        return url
 
     def _get_param_incompat(self, param, val):
         """
