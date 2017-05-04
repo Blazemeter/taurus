@@ -7,7 +7,7 @@ from bzt.jmx2yaml import JMX2YAML
 from bzt.utils import get_full_path
 
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul, RecordingHandler
+from tests.mocks import EngineEmul
 
 
 class FakeOptions(object):
@@ -22,6 +22,7 @@ class FakeOptions(object):
 
 class TestConverter(BZTestCase):
     def setUp(self):
+        super(TestConverter, self).setUp()
         self.engine = EngineEmul()
 
     def _get_jmx2yaml(self, path, file_name=None, dump_jmx=False):
@@ -31,73 +32,59 @@ class TestConverter(BZTestCase):
         return self.engine.create_artifact(prefix, suffix)
 
     def test_objprop(self):
-        log_recorder = RecordingHandler()
         obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", self._get_tmp())
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.process()
-        self.assertNotIn("Removing unknown element: name (None)", log_recorder.warn_buff.getvalue())
-        self.assertNotIn("Removing unknown element: value (None)", log_recorder.warn_buff.getvalue())
-        obj.log.removeHandler(log_recorder)
+        self.assertNotIn("Removing unknown element: name (None)", self.log_recorder.warn_buff.getvalue())
+        self.assertNotIn("Removing unknown element: value (None)", self.log_recorder.warn_buff.getvalue())
 
     def test_loadjmx1(self):
-        log_recorder = RecordingHandler()
         obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", self._get_tmp())
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.process()
-        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-        self.assertNotEqual("", log_recorder.debug_buff.getvalue())
-        self.assertEqual("", log_recorder.err_buff.getvalue())
-        obj.log.removeHandler(log_recorder)
+        self.assertIn("Loading jmx file", self.log_recorder.info_buff.getvalue())
+        self.assertNotEqual("", self.log_recorder.debug_buff.getvalue())
+        self.assertEqual("", self.log_recorder.err_buff.getvalue())
 
     def test_loadjmx2(self):
-        log_recorder = RecordingHandler()
         obj = self._get_jmx2yaml("/resources/jmeter/jmx/notfound.jmx")
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         try:
             obj.process()
             self.fail()
         except BaseException as exc:
             self.assertIn("File does not exist", exc.args[0])
-        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-        self.assertEqual("", log_recorder.debug_buff.getvalue())
-        obj.log.removeHandler(log_recorder)
+        self.assertIn("Loading jmx file", self.log_recorder.info_buff.getvalue())
+        self.assertEqual("", self.log_recorder.debug_buff.getvalue())
 
     def test_loadjmx3(self):
-        log_recorder = RecordingHandler()
         obj = self._get_jmx2yaml("/resources/jmeter/jmx/broken.jmx")
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         try:
             obj.process()
             self.fail()
         except BaseException as exc:
             self.assertIn("XML parsing failed", exc.args[0])
-        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-        self.assertIn("Error while processing jmx file", log_recorder.err_buff.getvalue())
-        obj.log.removeHandler(log_recorder)
+        self.assertIn("Loading jmx file", self.log_recorder.info_buff.getvalue())
+        self.assertIn("Error while processing jmx file", self.log_recorder.err_buff.getvalue())
 
     def test_loadjmx4(self):
-        log_recorder = RecordingHandler()
         obj = self._get_jmx2yaml("/resources/jmeter/jmx/http.jmx", self._get_tmp('tmp', 'file'))
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.process()
-        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-        self.assertIn("Done processing, result saved in", log_recorder.info_buff.getvalue())
-        self.assertIn("Removing unknown element", log_recorder.warn_buff.getvalue())
-        obj.log.removeHandler(log_recorder)
+        self.assertIn("Loading jmx file", self.log_recorder.info_buff.getvalue())
+        self.assertIn("Done processing, result saved in", self.log_recorder.info_buff.getvalue())
+        self.assertIn("Removing unknown element", self.log_recorder.warn_buff.getvalue())
 
     def test_export_clean_jmx(self):
         tmp_jmx_name = self._get_tmp('tmp', '.jmx')
         open(tmp_jmx_name, 'w+').close()  # touch file
-
         yml = self._get_tmp()
         obj = self._get_jmx2yaml("/resources/yaml/converter/disabled.jmx", yml, dump_jmx=tmp_jmx_name)
-        log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.process()
-
-        self.assertIn("Loading jmx file", log_recorder.info_buff.getvalue())
-        self.assertIn("already exists and will be overwritten", log_recorder.warn_buff.getvalue())
-        obj.log.removeHandler(log_recorder)
+        self.assertIn("Loading jmx file", self.log_recorder.info_buff.getvalue())
+        self.assertIn("already exists and will be overwritten", self.log_recorder.warn_buff.getvalue())
 
     def test_not_jmx(self):
         obj = self._get_jmx2yaml("/resources/jmeter/jmx/not-jmx.xml")
@@ -384,16 +371,15 @@ class TestConverter(BZTestCase):
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
 
     def test_params_conversion(self):
-        log_recorder = RecordingHandler()
         obj = self._get_jmx2yaml("/yaml/converter/params_conversion.jmx", self._get_tmp())
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.process()
         yml = yaml.load(open(__dir__() + "/yaml/converter/params_conversion.yml").read())
-        self.assertNotIn('n1', log_recorder.warn_buff.getvalue())
-        self.assertNotIn('n2', log_recorder.warn_buff.getvalue())
-        self.assertIn('n1_101', log_recorder.debug_buff.getvalue())
-        self.assertIn('n1_011', log_recorder.debug_buff.getvalue())
-        self.assertIn('n1_001', log_recorder.debug_buff.getvalue())
+        self.assertNotIn('n1', self.log_recorder.warn_buff.getvalue())
+        self.assertNotIn('n2', self.log_recorder.warn_buff.getvalue())
+        self.assertIn('n1_101', self.log_recorder.debug_buff.getvalue())
+        self.assertIn('n1_011', self.log_recorder.debug_buff.getvalue())
+        self.assertIn('n1_001', self.log_recorder.debug_buff.getvalue())
         self.assertEqual(obj.converter.convert(obj.file_to_convert), yml)
 
     def test_param_null(self):

@@ -4,19 +4,17 @@ import random
 import sys
 import tempfile
 from _socket import SOCK_STREAM, AF_INET
-from io import StringIO
 
 import os
 import requests
-from bzt.six import u
-from logging import Handler
-from tests import random_sample
+
 
 from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.utils import load_class, to_json
+from . import random_sample
 
 try:
     from exceptions import KeyboardInterrupt
@@ -221,37 +219,6 @@ class ResultChecker(AggregatorListener):
 
     def aggregated_second(self, data):
         self.callback(data)
-
-
-class RecordingHandler(Handler):
-    def __init__(self):
-        super(RecordingHandler, self).__init__()
-        self.info_buff = StringIO()
-        self.err_buff = StringIO()
-        self.debug_buff = StringIO()
-        self.warn_buff = StringIO()
-
-    def emit(self, record):
-        """
-
-        :type record: logging.LogRecord
-        :return:
-        """
-        if record.levelno == logging.INFO:
-            self.write_log(self.info_buff, record.msg, record.args)
-        elif record.levelno == logging.ERROR:
-            self.write_log(self.err_buff, record.msg, record.args)
-        elif record.levelno == logging.WARNING:
-            self.write_log(self.warn_buff, record.msg, record.args)
-        elif record.levelno == logging.DEBUG:
-            self.write_log(self.debug_buff, record.msg, record.args)
-
-    def write_log(self, buff, str_template, args):
-        str_template += "\n"
-        if args:
-            buff.write(u(str_template % args))
-        else:
-            buff.write(u(str_template))
 
 
 class SocketEmul(object):

@@ -5,7 +5,7 @@ from bzt.modules.chrome import ChromeProfiler, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
 from bzt.six import iteritems
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul, RecordingHandler
+from tests.mocks import EngineEmul
 
 
 class TestMetricExtraction(BZTestCase):
@@ -134,9 +134,8 @@ class TestMetricReporter(BZTestCase):
         })
         shutil.copy(__dir__() + "/../resources/chrome/trace.json", engine.artifacts_dir)
 
-        log_recorder = RecordingHandler()
         reporter = MetricReporter()
-        reporter.log.addHandler(log_recorder)
+        self.sniff_log(reporter.log)
         reporter.engine = engine
 
         engine.services.append(profiler)
@@ -152,12 +151,12 @@ class TestMetricReporter(BZTestCase):
         reporter.shutdown()
         reporter.post_process()
 
-        info_buff = log_recorder.info_buff.getvalue()
+        info_buff = self.log_recorder.info_buff.getvalue()
 
         self.assertIn("Chrome metrics for tab 'JMeter and Performance Testing for DevOps I BlazeMeter'", info_buff)
         self.assertIn("Memory metrics:", info_buff)
 
-        profiler.log.removeHandler(log_recorder)
+        profiler.log.removeHandler(self.log_recorder)
 
 
 class RecordingListener(MonitoringListener):

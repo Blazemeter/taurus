@@ -5,19 +5,16 @@ import logging
 from psutil import Popen
 
 from bzt.utils import log_std_streams, get_uniq_name
-from tests.mocks import RecordingHandler
 from tests import BZTestCase
 
 
 class TestLogStreams(BZTestCase):
     def test_streams(self):
-        self.log = logging.getLogger('')
-        handler = RecordingHandler()
-        self.log.addHandler(handler)
+        self.sniff_log(logging.getLogger(''))
 
         print('test1')
 
-        with log_std_streams(logger=self.log, stdout_level=logging.DEBUG):
+        with log_std_streams(logger=self.logger, stdout_level=logging.DEBUG):
             print('test2')
 
         with log_std_streams(stdout_level=logging.DEBUG):
@@ -26,20 +23,18 @@ class TestLogStreams(BZTestCase):
         with log_std_streams(stdout_level=logging.DEBUG):
             sys.stdout.write('test3')
 
-        with log_std_streams(logger=self.log, stdout_level=logging.DEBUG):
+        with log_std_streams(logger=self.logger, stdout_level=logging.DEBUG):
             process = Popen(['echo', '"test5"'])
             process.wait()
 
         missed_file = get_uniq_name('.', 'test6', '')
 
-        with log_std_streams(logger=self.log, stderr_level=logging.WARNING):
+        with log_std_streams(logger=self.logger, stderr_level=logging.WARNING):
             process = Popen(['dir', missed_file])
             process.wait()
 
-        self.log.removeHandler(handler)
-
-        debug_buf = handler.debug_buff.getvalue()
-        warn_buf = handler.warn_buff.getvalue()
+        debug_buf = self.log_recorder.debug_buff.getvalue()
+        warn_buf = self.log_recorder.warn_buff.getvalue()
         self.assertNotIn('test1', debug_buf)
         self.assertIn('test2', debug_buf)
         self.assertNotIn('test3', debug_buf)

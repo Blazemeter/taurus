@@ -14,7 +14,7 @@ from tests.mocks import EngineEmul, ModuleMock
 class TestCLI(BZTestCase):
     def setUp(self):
         super(TestCLI, self).setUp()
-        self.log = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
+        self.logger = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
         self.verbose = False
         self.quiet = False
         self.no_system_configs = True
