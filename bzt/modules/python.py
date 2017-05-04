@@ -997,7 +997,10 @@ log.setLevel(logging.DEBUG)
 
     def save(self, filename):
         with open(filename, 'wt') as fds:
-            fds.write(astunparse.unparse(self.tree))
+            source = astunparse.unparse(self.tree)
+            # because astunparse on Python 2 adds empty parens
+            source = source.replace('class TestAPIRequests()', 'class TestAPIRequests')
+            fds.write(source)
 
 
 class JMeterFunction(object):
