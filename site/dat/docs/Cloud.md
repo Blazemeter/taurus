@@ -8,11 +8,11 @@ It is done by setting `cloud` provisioning like this:
 provisioning: cloud
 ```
 
-To access BlazeMeter cloud, Taurus would require to have API key set inside `cloud` module settings:
+To access BlazeMeter cloud, Taurus would require to have API key and secret set inside `cloud` module settings:
 ```yaml
 modules:
   cloud:
-    token: ******  # API key
+    token: ******:**************  # API id and API secret divided by :
     timeout: 10s  # BlazeMeter API client timeout
     browser-open: start  # auto-open browser on test start/end/both/none
     check-interval: 5s  # interval which Taurus uses to query test status from BlazeMeter

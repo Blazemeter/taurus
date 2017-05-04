@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="161" lt="161" ct="130" ts="1490691403962" s="true" lb="http://localhost:9999/hello" rc="200" rm="OK" tn="ThreadGroup 1-1" dt="text" de="UTF-8" by="266" sby="187" ng="1" na="1">
+  <responseHeader class="java.lang.String">HTTP/1.0 200 OK
+Date: Tue, 28 Mar 2017 08:56:44 GMT
+Server: WSGIServer/0.1 Python/2.7.12
+Content-Length: 29
+Content-Type: text/html; charset=UTF-8
+Set-Cookie: visited=yes
+Set-Cookie: hello=world
+Set-Cookie: yo=&quot;mama is so fat&quot;
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Content-Length: 0
+Content-Type: text/plain; charset=ISO-8859-1
+Host: localhost:9999
+User-Agent: Apache-HttpClient/4.5.2 (Java/1.8.0_91)
+</requestHeader>
+  <responseData class="java.lang.String">Hello there! Nice to meet you</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://localhost:9999/hello</java.net.URL>
+</httpSample>
+<httpSample t="3" lt="3" ct="1" ts="1490691404172" s="true" lb="http://localhost:9999/hello" rc="200" rm="OK" tn="ThreadGroup 1-1" dt="text" de="UTF-8" by="189" sby="240" ng="1" na="1">
+  <responseHeader class="java.lang.String">HTTP/1.0 200 OK
+Date: Tue, 28 Mar 2017 08:56:44 GMT
+Server: WSGIServer/0.1 Python/2.7.12
+Content-Length: 35
+Content-Type: text/html; charset=UTF-8
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Content-Length: 0
+Content-Type: text/plain; charset=ISO-8859-1
+Host: localhost:9999
+User-Agent: Apache-HttpClient/4.5.2 (Java/1.8.0_91)
+</requestHeader>
+  <responseData class="java.lang.String">Welcome back! Nice to see you again</responseData>
+  <cookies class="java.lang.String">visited=yes; hello=world</cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://localhost:9999/hello</java.net.URL>
+</httpSample>
+
+</testResults>

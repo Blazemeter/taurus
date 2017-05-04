@@ -15,11 +15,12 @@ TOOL_NAME = 'tsung' + EXE_SUFFIX
 
 
 def get_res_path(resource):
-    return path.join(path.dirname(__file__), '..', 'tsung', resource)
+    return path.join(path.dirname(__file__), '..', 'resources', 'tsung', resource)
 
 
 class TestTsungExecutor(BZTestCase):
     def setUp(self):
+        super(TestTsungExecutor, self).setUp()
         self.obj = TsungExecutor()
         self.obj.engine = EngineEmul()
         self.obj.settings = BetterDict()
@@ -138,8 +139,10 @@ class TestTsungExecutor(BZTestCase):
         cid_param = '-i %s' % self.obj.tsung_controller_id
         self.assertIn(cid_param, stdout)
 
+
 class TestTsungConfig(BZTestCase):
     def setUp(self):
+        super(TestTsungConfig, self).setUp()
         self.obj = TsungExecutor()
         self.obj.engine = EngineEmul()
 

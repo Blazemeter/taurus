@@ -36,11 +36,11 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
-from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems, StringIO
+from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
-from bzt.utils import str_representer, replace_leading_tabs
+from bzt.utils import str_representer
 
 SETTINGS = "settings"
 
@@ -102,8 +102,14 @@ class Engine(object):
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
 
-        thread = threading.Thread(target=self._check_updates)  # intentionally non-daemon thread
-        thread.start()
+        if self.config.get(SETTINGS).get("check-updates", True):
+            install_id = self.config.get("install-id", uuid.getnode())
+
+            def wrapper():
+                return self._check_updates(install_id)
+
+            thread = threading.Thread(target=wrapper)  # intentionally non-daemon thread
+            thread.start()
 
         return merged_config
 
@@ -278,7 +284,7 @@ class Engine(object):
         new_name = os.path.join(self.artifacts_dir, new_filename)
         self.__artifacts.append(new_name)
 
-        if os.path.realpath(filename) == os.path.realpath(new_name):
+        if get_full_path(filename) == get_full_path(new_name):
             self.log.debug("No need to copy %s", filename)
             return
 
@@ -297,14 +303,12 @@ class Engine(object):
         """
         Create directory for artifacts, directory name based on datetime.now()
         """
-        if self.artifacts_dir:
-            self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
-        else:
+        if not self.artifacts_dir:
             default = "%Y-%m-%d_%H-%M-%S.%f"
             artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", default)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
-            self.artifacts_dir = os.path.expanduser(self.artifacts_dir)
-            self.artifacts_dir = os.path.abspath(self.artifacts_dir)
+
+        self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
 
@@ -312,7 +316,7 @@ class Engine(object):
             os.makedirs(self.artifacts_dir)
 
         # dump current effective configuration
-        dump = self.create_artifact("effective", "")  # FIXME: not good since this file not exists
+        dump = self.create_artifact("effective", "")  # TODO: not good since this file not exists
         self.config.set_dump_file(dump)
         self.config.dump()
 
@@ -412,22 +416,17 @@ class Engine(object):
         return filename
 
     def _load_base_configs(self):
-        base_configs = []
+        base_configs = [os.path.join(get_full_path(__file__, step_up=1), 'resources', 'base-config.yml')]
         machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
         if os.path.isdir(machine_dir):
-            self.log.debug("Reading machine configs from: %s", machine_dir)
+            self.log.debug("Reading extension configs from: %s", machine_dir)
             for cfile in sorted(os.listdir(machine_dir)):
                 fname = os.path.join(machine_dir, cfile)
                 if os.path.isfile(fname):
                     base_configs.append(fname)
         else:
-            self.log.info("No machine configs dir: %s", machine_dir)
-        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))
-        if os.path.isfile(user_file):
-            self.log.debug("Adding personal config: %s", user_file)
-            base_configs.append(user_file)
-        else:
-            self.log.info("No personal config: %s", user_file)
+            self.log.debug("No machine configs dir: %s", machine_dir)
+
         self.config.load(base_configs)
 
     def _load_user_configs(self, user_configs):
@@ -441,7 +440,7 @@ class Engine(object):
         return user_config
 
     def __config_loaded(self, config):
-        self.file_search_paths.append(os.path.dirname(os.path.realpath(config)))
+        self.file_search_paths.append(get_full_path(config, step_up=1))
 
     def __prepare_provisioning(self):
         """
@@ -466,6 +465,8 @@ class Engine(object):
             cls = reporter.get('module', TaurusConfigError(msg % reporter))
             instance = self.instantiate_module(cls)
             instance.parameters = reporter
+            if self.__singletone_exists(instance, self.reporters):
+                continue
             assert isinstance(instance, Reporter)
             self.reporters.append(instance)
 
@@ -483,14 +484,27 @@ class Engine(object):
             config = ensure_is_dict(services, index, "module")
             cls = config.get('module', '')
             instance = self.instantiate_module(cls)
-            assert isinstance(instance, Service)
             instance.parameters = config
+            if self.__singletone_exists(instance, self.services):
+                continue
+            assert isinstance(instance, Service)
             if instance.should_run():
                 self.services.append(instance)
 
         for module in self.services:
             self.prepared.append(module)
             module.prepare()
+
+    def __singletone_exists(self, instance, mods_list):
+        if not isinstance(instance, Singletone):
+            return False
+
+        for mod in mods_list:
+            if mod.parameters.get("module") == instance.parameters.get("module"):
+                msg = "Module '%s' can be only used once, will merge all new instances into single"
+                self.log.warning(msg % mod.parameters.get("module"))
+                mod.parameters.merge(instance.parameters)
+                return True
 
     def __prepare_aggregator(self):
         """
@@ -521,33 +535,32 @@ class Engine(object):
             opener = build_opener(proxy_handler)
             install_opener(opener)
 
-    def _check_updates(self):
-        if self.config.get(SETTINGS).get("check-updates", True):
-            try:
-                params = (bzt.VERSION, self.config.get("install-id", "N/A"))
-                req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
-                self.log.debug("Requesting updates info: %s", req)
-                response = urlopen(req, timeout=10)
-                resp = response.read()
+    def _check_updates(self, installID):
+        try:
+            params = (bzt.VERSION, installID)
+            req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
+            self.log.debug("Requesting updates info: %s", req)
+            response = urlopen(req, timeout=10)
+            resp = response.read()
 
-                if not isinstance(resp, str):
-                    resp = resp.decode()
+            if not isinstance(resp, str):
+                resp = resp.decode()
 
-                self.log.debug("Result: %s", resp)
+            self.log.debug("Taurus updates info: %s", resp)
 
-                data = json.loads(resp)
-                mine = LooseVersion(bzt.VERSION)
-                latest = LooseVersion(data['latest'])
-                if mine < latest or data['needsUpgrade']:
-                    msg = "There is newer version of Taurus %s available, consider upgrading. " \
-                          "What's new: http://gettaurus.org/docs/Changelog/"
-                    self.log.warning(msg, latest)
-                else:
-                    self.log.debug("Installation is up-to-date")
+            data = json.loads(resp)
+            mine = LooseVersion(bzt.VERSION)
+            latest = LooseVersion(data['latest'])
+            if mine < latest or data['needsUpgrade']:
+                msg = "There is newer version of Taurus %s available, consider upgrading. " \
+                      "What's new: http://gettaurus.org/docs/Changelog/"
+                self.log.warning(msg, latest)
+            else:
+                self.log.debug("Installation is up-to-date")
 
-            except BaseException:
-                self.log.debug("Failed to check for updates: %s", traceback.format_exc())
-                self.log.warning("Failed to check for updates")
+        except BaseException:
+            self.log.debug("Failed to check for updates: %s", traceback.format_exc())
+            self.log.warning("Failed to check for updates")
 
 
 class Configuration(BetterDict):
@@ -682,8 +695,6 @@ class EngineModule(object):
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
-        self.delay = None  # FIXME: why here? Why not in ScenarioExecutor?
-        self.start_time = None  # FIXME: why here? Why not in ScenarioExecutor?
 
     def prepare(self):
         """
@@ -805,6 +816,8 @@ class ScenarioExecutor(EngineModule):
         self.label = None
         self.widget = None
         self.reader = None
+        self.delay = None
+        self.start_time = None
 
     def has_results(self):
         if self.reader and self.reader.buffer:
@@ -952,15 +965,15 @@ class ScenarioExecutor(EngineModule):
         if aliases:
             environ["HOSTALIASES"] = hosts_file
         if env is not None:
-            if is_windows:
+            if is_windows():
                 # as variables in windows are case insensitive we should provide correct merging
                 cur_env = {name.upper(): environ[name] for name in environ}
                 old_keys = set(env.keys())
                 env = {name.upper(): env[name] for name in env}
                 new_keys = set(env.keys())
                 if old_keys != new_keys:
-                    msg = 'Some taurus environment variables has been lost: %s'
-                    self.log.warning(msg, list(old_keys - new_keys))
+                    msg = 'Some taurus environment variables might be been lost: %s'
+                    self.log.debug(msg, list(old_keys - new_keys))
                 environ = BetterDict()
                 environ.merge(cur_env)
             environ.merge(env)
@@ -969,6 +982,7 @@ class ScenarioExecutor(EngineModule):
 
         environ = {key: environ[key] for key in environ.keys() if environ[key] is not None}
 
+        self.log.debug("Executing shell from %s: %s", cwd, args)
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
 
 
@@ -1051,56 +1065,77 @@ class Scenario(UserDict, object):
         :rtype: dict[str,str]
         """
         scenario = self
-        headers = scenario.get("headers")
-        return headers if headers else {}
+        headers = scenario.get("headers", {})
+        if headers is None:
+            headers = {}
+        return headers
 
     def get_requests(self, require_url=True):
         """
         Generator object to read requests
 
         :type require_url: bool
-        :rtype: list[HTTPRequest]
+        :rtype: list[bzt.requests_model.Request]
         """
-        requests = self.get("requests", [])
-        for key in range(len(requests)):
-            req = ensure_is_dict(requests, key, "url")
-            if not require_url and "url" not in req:
-                req["url"] = None
-            yield HTTPRequest(config=req, engine=self.engine)
-
-
-class Request(object):
-    def __init__(self, config):
-        self.config = config
-
-
-class HTTPRequest(Request):
-    def __init__(self, config, engine):
-        super(HTTPRequest, self).__init__(config)
-        self.engine = engine
-        msg = "Option 'url' is mandatory for request but not found in %s" % config
-        self.url = config.get("url", TaurusConfigError(msg))
-        self.label = config.get("label", self.url)
-        self.method = config.get("method", "GET")
-        self.headers = config.get("headers", {})
-        self.timeout = config.get("timeout", None)
-        self.think_time = config.get("think-time", None)
-
-        body = config.get('body', None)
-        body_file = config.get('body-file', None)
-        if body_file:
-            if body:
-                # todo: add own logger?
-                self.engine.log.warning('body and body-file fields are found, only first will take effect')
-            else:
-                bodyfile_path = self.engine.find_file(body_file)
-                with open(bodyfile_path) as fhd:
-                    body = fhd.read()
-
-        self.body = body
+        requests_parser = RequestsParser(self, self.engine)
+        return requests_parser.extract_requests(require_url=require_url)
 
 
 class HavingInstallableTools(object):
     @abstractmethod
     def install_required_tools(self):
         pass
+
+
+class SubprocessedExecutor(ScenarioExecutor):
+    """
+    Class for subprocessed executors
+
+    All executors must implement the following interface.
+    """
+
+    def __init__(self):
+        super(SubprocessedExecutor, self).__init__()
+
+        self.env = {}
+        self.process = None
+        self.opened_descriptors = []
+        self._stdout_file = None
+        self._stderr_file = None
+
+    def _start_subprocess(self, cmdline):
+        prefix = self.execution.get("executor", None) or "executor"
+        self._stdout_file = self.engine.create_artifact(prefix, ".out")
+        std_out = open(self._stdout_file, "wt")
+        self.opened_descriptors.append(std_out)
+        self._stderr_file = self.engine.create_artifact(prefix, ".err")
+        std_err = open(self._stderr_file, "wt")
+        self.opened_descriptors.append(std_err)
+        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env)
+
+    def check(self):
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            if ret_code != 0:
+                with open(self._stderr_file) as fds:
+                    std_err = fds.read()
+                msg = "Test runner %s (%s) has failed with retcode %s \n %s"
+                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code, std_err.strip()))
+            return True
+        return False
+
+    def shutdown(self):
+        shutdown_process(self.process, self.log)
+        for desc in self.opened_descriptors:
+            desc.close()
+        self.opened_descriptors = []
+
+    def _check_tools(self, tools):
+        for tool in tools:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s...", tool.tool_name)
+                tool.install()
+
+
+class Singletone(object):
+    pass

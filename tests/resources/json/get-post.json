@@ -1,0 +1,188 @@
+{
+  "provisioning": "local",
+  "scenarios": {
+    "get-post": {
+      "requests": [
+        "http://demo.blazemeter.com/",
+        {
+          "method": "GET",
+          "url": "http://demo.blazemeter.com/api/user",
+          "label": "All Puts",
+          "timeout": 5,
+          "think-time": 1.2,
+          "headers": {
+            "Accept-Lang": "en",
+            "Connection": "close"
+          },
+          "extract-regexp": {
+            "somename": "someregexp",
+            "varname2": {
+              "regexp": "regexp",
+              "template": 1,
+              "match-no": 0
+            }
+          },
+          "extract-jsonpath": {
+            "json1": "$.results",
+            "json2": {
+              "jsonpath": "$.results[*].type",
+              "default": "NO-JSON"
+            }
+          },
+          "extract-css-jquery": {
+            "name1": "input[name~=my_input]",
+            "name2": {
+              "expression": "input[name=JMeter]",
+              "attribute": "value",
+              "match-no": 1,
+              "default": "NV_JMETER"
+            }
+          },
+          "extract-xpath": {
+            "xpath1": "/html/head/title",
+            "xpath2": {
+              "xpath": "/html/head/base",
+              "default": "<no base>",
+              "ignore-whitespace": true,
+              "validate-xml": true,
+              "use-tolerant-parser": true
+            }
+          },
+          "assert": [
+            "contains_this_regexp",
+            {
+              "subject": "http-code",
+              "not": true,
+              "contains": [
+                "301",
+                "302"
+              ],
+              "regexp": false
+            }
+          ],
+          "assert-jsonpath": [
+            "$.",
+            {
+              "jsonpath": "$.res[0].type",
+              "expected-value": "some_value.1",
+              "validate": true,
+              "expect-null": false,
+              "invert": false
+            },
+            {
+              "jsonpath": "$.res[1].ip",
+              "expected-value": "some_value.2",
+              "validate": true,
+              "expect-null": false,
+              "invert": true,
+              "regexp": false
+            },
+            {
+              "jsonpath": "$.res[2].default",
+              "validate": false,
+              "expect-null": true,
+              "invert": false
+            }
+          ],
+          "assert-xpath": [
+            "/note/to",
+            {
+              "xpath": "/note/from",
+              "ignore-whitespace": true,
+              "validate-xml": true,
+              "use-tolerant-parser": true,
+              "invert": true
+            }
+          ]
+        },
+        "http://demo.blazemeter.com/?${somename}=${varname2}",
+        {
+          "url": "dummy",
+          "label": "Disable.Me"
+        },
+        {
+          "method": "POST",
+          "url": "http://demo.blazemeter.com/api/user",
+          "label": "With body",
+          "body": "test"
+        },
+        {
+          "method": "POST",
+          "url": "http://demo.blazemeter.com/api/user",
+          "label": "With body params",
+          "body": {
+            "param1": "param1_value",
+            "param2": "param2_value"
+          }
+        },
+        {
+          "method": "PUT",
+          "url": "http://demo.blazemeter.com/api/user",
+          "label": "With body from file",
+          "body-file": "tests/resources/jmeter/jmx/http.jmx"
+        },
+        {
+          "method": "GET",
+          "url": "${my_var}",
+          "label": "UDV"
+        }
+      ],
+      "properties": {
+        "log_level.jmeter": "WARN"
+      },
+      "headers": {
+        "Host": "blazemeter.com",
+        "Connection": "keep-alive"
+      },
+      "store-cache": true,
+      "store-cookie": true,
+      "timeout": 1,
+      "think-time": 0.5,
+      "default-address": "https://www.somehost.com:884",
+      "keepalive": false,
+      "use-dns-cache-mgr": true,
+      "concurrent-pool-size": 10,
+      "disable-listeners": true,
+      "data-sources": [
+        "tests/resources/test1.csv",
+        {
+          "type": "csv",
+          "path": "tests/resources/test1.csv",
+          "delimiter": ",",
+          "quoted": false,
+          "loop": true
+        }
+      ],
+      "modifications": {
+        "disable": ["Disable.Me"],
+        "enable": "Disable.Me",
+        "set-prop": {
+          "Disable.Me>HTTPSampler.connect_timeout": "0",
+          "Disable.Me>HTTPSampler.protocol": "https"
+        }
+      },
+      "variables": {
+        "my_var": "http://demo.blazemeter.com/api/user",
+        "my_var2": "my_val2"
+      }
+    }
+  },
+  "execution": {
+    "concurrency": 5,
+    "ramp-up": 15,
+    "hold-for": 30,
+    "iterations": 10,
+    "scenario": "get-post"
+  },
+  "modules": {
+    "jmeter": {
+      "rename-distributed-threads": false,
+      "properties": {
+        "jmeter.save.saveservice.autoflush": "true"
+      },
+      "system-properties": {
+        "any_prop": "true"
+      }
+    }
+  }
+}

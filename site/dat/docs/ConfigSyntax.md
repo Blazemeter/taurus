@@ -28,7 +28,7 @@ scenarios:
     - http://localhost/
 
 reporting:
-- module: final_stats
+- module: final-stats
 - module: console
 
 modules:
@@ -70,14 +70,14 @@ The shorthand is to specify module class string instead of settings dictionary, 
 
 ```yaml
 modules:
-  final_stats: bzt.modules.reporting.FinalStatus
+  final-stats: bzt.modules.reporting.FinalStatus
 ```
 
 is equivalent to
 
 ```yaml
 modules:
-  final_stats:
+  final-stats:
     class: bzt.modules.reporting.FinalStatus
 ```
  
@@ -104,6 +104,7 @@ settings:
     username: user  # username and password used if authentication is configured on proxy server
     password: 12345
   check-updates: true  # check for newer version of Taurus on startup
+  verbose: false  # whenever you run bzt with -v option, it sets debug=true, some modules might use it for debug features
 ```
 
 ## Human-Readable Time Specifications
@@ -134,16 +135,14 @@ engine will perfectly deal with it. For example, following JSON file:
   ],
   "scenarios": {
      "sample": {
-       "script": {
-         "path": "tests/jmx/dummy.jmx"
-       }
+       "script": "tests/jmx/dummy.jmx"
      }
-  }
+  },
   "provisioning": "local",
   "aggregator": "aggregator",
   "reporting": [
     {
-      "module": "status"
+      "module": "final-stats"
     }
   ],
   "modules": {
@@ -169,8 +168,7 @@ execution:
   
 scenarios:
   jmx_sample:
-    jmx:
-      path: tests/jmx/dummy.jmx
+    script: tests/jmx/dummy.jmx
       
 modules:
   jmeter:

@@ -1,10 +1,12 @@
 import json
 import logging
 import math
-import os
 import shutil
 import time
 from io import BytesIO
+
+import os
+from tests import BZTestCase, random_datapoint, __dir__
 
 from bzt.bza import Master, Session
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -12,9 +14,7 @@ from bzt.modules.blazemeter import BlazeMeterUploader, ResultsFromBZA
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.six import HTTPError
 from bzt.six import iteritems, viewvalues
-from tests import BZTestCase, random_datapoint, __dir__
-from tests.mocks import EngineEmul, RecordingHandler
-from tests.modules.test_blazemeter import BZMock
+from tests.mocks import EngineEmul, BZMock
 
 
 class TestBlazeMeterUploader(BZTestCase):
@@ -34,7 +34,8 @@ class TestBlazeMeterUploader(BZTestCase):
                 "signature": "sign"
             }},
             'https://a.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
-            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1' +
+            '&pq=0&target=labels_bulk&update=1': {},
             'https://a.blazemeter.com/api/v4/sessions/1/stop': {"result": True},
         })
 
@@ -296,8 +297,6 @@ class TestBlazeMeterUploader(BZTestCase):
             'https://a.blazemeter.com/api/v4/image/sess1/files?signature=': {'result': True},
         })
 
-        log_recorder = RecordingHandler()
-
         obj = BlazeMeterUploader()
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
@@ -305,7 +304,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings['send-monitoring'] = False
         obj.engine = EngineEmul()
         mock.apply(obj._user)
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.prepare()
         obj.startup()
         obj.aggregated_second(random_datapoint(10))
@@ -313,7 +312,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.shutdown()
         obj.post_process()
 
-        log_buff = log_recorder.info_buff.getvalue()
+        log_buff = self.log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
         self.assertIn(log_line, log_buff)
         logging.warning("\n".join([x['url'] for x in mock.requests]))
@@ -343,7 +342,6 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEquals('POST', mock.requests[4]['method'])
         self.assertEquals('https://a.blazemeter.com/api/v4/tests', mock.requests[6]['url'])
         self.assertEquals('POST', mock.requests[6]['method'])
-
 
     def test_new_project_new_test(self):
         obj = BlazeMeterUploader()
@@ -399,13 +397,13 @@ class TestBlazeMeterClientUnicode(BZTestCase):
         session = Session(data={'id': 1})
         mock = BZMock(session)
         mock.mock_post['https://a.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
-        session.upload_file(__dir__() + "/../data/unicode_file")
+        session.upload_file(__dir__() + "/../resources/jmeter/unicode_file")
 
     def test_binary_unicode_error(self):
         session = Session(data={'id': 1})
         mock = BZMock(session)
         mock.mock_post['https://a.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
-        with open(__dir__() + "/../data/jmeter-dist-2.13.zip", 'rb') as fds:
+        with open(__dir__() + "/../resources/jmeter/jmeter-dist-2.13.zip", 'rb') as fds:
             zip_content = fds.read()
         session.upload_file("jtls_and_more.zip", zip_content)
 
@@ -413,7 +411,7 @@ class TestBlazeMeterClientUnicode(BZTestCase):
 class DummyHttpResponse(object):
     def __init__(self):
         self.fake_socket = BytesIO()
-        self.fake_socket.write(open(__dir__() + "/../data/unicode_file", 'rb').read())
+        self.fake_socket.write(open(__dir__() + "/../resources/unicode_file", 'rb').read())
 
     def read(self):
         self.fake_socket.seek(0)

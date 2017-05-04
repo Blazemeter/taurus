@@ -106,7 +106,7 @@ scenarios:
     modifications:
       disable:  # Names of the tree elements to disable
       - Thread Group 1
-      enable:  # Names of the tree elements to ensable
+      enable:  # Names of the tree elements to enable
       - Thread Group 2
       set-prop:  # Set element properties, selected as [Element Name]>[property name]
         "HTTP Sampler>HTTPSampler.connect_timeout": "0"
@@ -619,6 +619,11 @@ scenarios:
 
 Taurus translates each `include-scenario` block to a JMeter's `Simple Controller` and puts all scenario-level
 settings and requests there.
+Keep in mind: the following scenario-level parameters of including scenario have no effect for included ones:
+- `keepalive`
+- `timeout`
+- `think-time`
+- `follow-redirects`
 
 ##### Action Blocks
 

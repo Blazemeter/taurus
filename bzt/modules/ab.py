@@ -25,6 +25,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
@@ -69,6 +70,12 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
             self.widget = ExecutorWidget(self, "ab: " + label.split('/')[1])
         return self.widget
 
+    def __first_http_request(self):
+        for request in self.scenario.get_requests():
+            if isinstance(request, HTTPRequest):
+                return request
+        return None
+
     def startup(self):
         args = [self.tool_path]
         load = self.get_load()
@@ -89,12 +96,14 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         for key, val in iteritems(self.scenario.get_headers()):
             args += ['-H', "%s: %s" % (key, val)]
 
-        requests = list(self.scenario.get_requests())
+        requests = self.scenario.get_requests()
         if not requests:
             raise TaurusConfigError("You must specify at least one request for ab")
         if len(requests) > 1:
             self.log.warning("ab doesn't support multiple requests. Only first one will be used.")
-        request = requests[0]
+        request = self.__first_http_request()
+        if request is None:
+            raise TaurusConfigError("ab supports only HTTP requests, while scenario doesn't have any")
 
         # add request-specific headers
         for header in request.headers:
@@ -104,14 +113,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         if request.method != 'GET':
             raise TaurusConfigError("ab supports only GET requests, but '%s' is found" % request.method)
 
-        request_keepalive = request.config.get('keepalive', None)
-        scenario_keepalive = self.scenario.get('keepalive', True)
-
-        if request_keepalive is not None:   # i.e. if it's present
-            keepalive = request_keepalive
-        else:
-            keepalive = scenario_keepalive
-        if keepalive:
+        if request.priority_option('keepalive', default=True):
             args += ['-k']
 
         args += [request.url]

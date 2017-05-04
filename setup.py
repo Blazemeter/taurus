@@ -13,12 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
-import shutil
+import platform
 import sys
-import uuid
-from setuptools import setup
 from setuptools.command.install import install
+
+import os
+from setuptools import setup
+
 import bzt
 
 
@@ -36,21 +37,19 @@ class InstallWithHook(install, object):
 
     def __hook(self):
         dirname = bzt.get_configs_dir()
-        sys.stdout.write("[%s] Creating %s\n" % (bzt.VERSION, dirname))
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
-
-        src = os.path.join(os.path.dirname(__file__), "bzt", "10-base.json")
-        sys.stdout.write("Copying %s to %s\n" % (src, dirname))
-        shutil.copy(src, dirname + os.path.sep)
-
-        sys.stdout.write("Generating install-id\n")
-        install_id = os.path.join(dirname, '99-installID.yml')
-        if not os.path.exists(install_id):
-            with open(install_id, 'w') as fhd:
-                fhd.write("---\ninstall-id: %x" % uuid.getnode())
+        if os.path.exists(dirname):
+            sys.stdout.write("[%s] Found %s\n" % (bzt.VERSION, dirname))
+            src = os.path.join(dirname, "10-base.json")
+            if os.path.exists(src):
+                sys.stdout.write("Removing outdated %s\n" % src)
+                os.remove(src)
 
 
+requires = ['pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama',
+            'cssselect', 'urwid', 'six', 'nose',
+            'selenium<=3.3.0', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', "apiritif>=0.3"]
+
+requires += ['lxml == 3.6.0'] if platform.system() == 'Windows' else ['lxml >= 3.6.0']
 setup(
     name="bzt",
     version=bzt.VERSION,
@@ -61,12 +60,9 @@ setup(
     download_url='http://gettaurus.org/docs/DeveloperGuide/#Python-Egg-Snapshots',
     license='Apache 2.0',
     platform='any',
-    docs_url='http://gettaurus.org/',
+    docs_url='http://gettaurus.org/docs/',
 
-    install_requires=[
-        'pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama', 'lxml == 3.6.0',
-        'cssselect', 'urwid', 'six', 'nose',
-        'selenium', 'progressbar33', 'pyvirtualdisplay', 'requests', ],
+    install_requires=requires,
     packages=['bzt', 'bzt.six', 'bzt.modules', 'bzt.resources'],
     entry_points={
         'console_scripts': [
@@ -79,5 +75,5 @@ setup(
     package_data={
         "bzt": [],
     },
-    cmdclass={"install": InstallWithHook}
+    cmdclass={"install": InstallWithHook}  # TODO: remove it completely once we have most of users upgraded to>=1.8.5
 )

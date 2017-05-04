@@ -19,7 +19,6 @@ import copy
 import csv
 import fnmatch
 import json
-import mimetypes
 import os
 import re
 import socket
@@ -34,13 +33,14 @@ from math import ceil
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, Request, HTTPRequest, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
+from bzt.requests_model import RequestVisitor, ResourceFilesCollector
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
@@ -61,7 +61,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=' \
                       'kg/apc/jmeter-plugins-manager/0.12/jmeter-plugins-manager-0.12.jar'
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
-    JMETER_VER = "3.1"
+    JMETER_VER = "3.2"
     UDP_PORT_NUMBER = None
 
     def __init__(self):
@@ -89,15 +89,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if not isinstance(self.engine.provisioning, Local):
             return scenario_obj
 
-        if "script" in scenario_obj and scenario_obj["script"] is not None:
-            script_path = self.engine.find_file(scenario_obj["script"])
+        if Scenario.SCRIPT in scenario_obj and scenario_obj[Scenario.SCRIPT] is not None:
+            script_path = self.engine.find_file(scenario_obj[Scenario.SCRIPT])
             with open(script_path) as fds:
                 script_content = fds.read()
             if "con:soapui-project" in script_content:
                 self.log.info("SoapUI project detected")
                 scenario_name, merged_scenario = self._extract_scenario_from_soapui(scenario_obj, script_path)
                 self.engine.config["scenarios"].merge({scenario_name: merged_scenario})
-                self.execution["scenario"] = scenario_name
+                self.execution[Scenario.SCRIPT] = scenario_name
                 return super(JMeterExecutor, self).get_scenario(name=scenario_name)
 
         return scenario_obj
@@ -122,7 +122,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         merged_scenario = BetterDict()
         merged_scenario.merge(conv_scenario)
         merged_scenario.merge(base_scenario.data)
-        for field in ["script", "test-case"]:
+        for field in [Scenario.SCRIPT, "test-case"]:
             if field in merged_scenario:
                 merged_scenario.pop(field)
 
@@ -146,13 +146,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         is_jmx_generated = False
 
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.original_jmx = self.get_script_path()
-        elif scenario.get("requests"):
-            self.original_jmx = self.__jmx_from_requests()
-            is_jmx_generated = True
-        else:
-            raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
+        self.original_jmx = self.get_script_path()
+        if not self.original_jmx:
+            if scenario.get("requests"):
+                self.original_jmx = self.__jmx_from_requests()
+                is_jmx_generated = True
+            else:
+                raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
         if isinstance(self.engine.aggregator, FunctionalAggregator):
             self.settings.merge({"xml-jtl-flags": {"connectTime": True, "sentBytes": True}})
@@ -174,10 +174,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
             self.reader.is_distributed = len(self.distributed_servers) > 0
+            assert isinstance(self.reader, JTLReader)
             self.engine.aggregator.add_underling(self.reader)
         elif isinstance(self.engine.aggregator, FunctionalAggregator):
             self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
             self.reader.is_distributed = len(self.distributed_servers) > 0
+            self.reader.executor_label = self.label
             self.engine.aggregator.add_underling(self.reader)
 
     def __set_system_properties(self):
@@ -452,6 +454,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 orig = 1
 
             new = int(round(concurrency * orig / orig_sum))
+            if new < 1:
+                new = 1  # TODO: cover with test
             leftover -= new
             othread.text = str(new)
         if leftover < 0:
@@ -833,8 +837,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                     files.append(data_source)
                 elif isinstance(data_source, dict):
                     files.append(data_source['path'])
-        requests_parser = RequestsParser(self.engine)
-        requests = requests_parser.extract_requests(scenario)
+        requests = scenario.get_requests()
         for req in requests:
             files.extend(self.res_files_from_request(req))
             self.resource_files_collector.clear_path_cache()
@@ -1013,10 +1016,11 @@ class FuncJTLReader(FunctionalResultsReader):
     :type parent_logger: logging.Logger
     """
 
-    FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookies", "requestHeaders", "responseHeaders"]
+    FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookiesRaw"]
 
     def __init__(self, filename, engine, parent_logger):
         super(FuncJTLReader, self).__init__()
+        self.executor_label = "JMeter"
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
         self.offset = 0
@@ -1046,6 +1050,20 @@ class FuncJTLReader(FunctionalResultsReader):
                 self.log.debug("File not exists: %s", self.filename)
                 return
 
+        self.__read_next_chunk(last_pass)
+
+        for _, elem in self.parser.read_events():
+            if elem.getparent() is not None and elem.getparent().tag == 'testResults':
+                sample = self._extract_sample(elem)
+                self.read_records += 1
+
+                elem.clear()
+                while elem.getprevious() is not None:
+                    del elem.getparent()[0]
+
+                yield sample
+
+    def __read_next_chunk(self, last_pass):
         self.fds.seek(self.offset)
         while True:
             read = self.fds.read(1024 * 1024)
@@ -1061,17 +1079,6 @@ class FuncJTLReader(FunctionalResultsReader):
             if not last_pass:
                 continue
         self.offset = self.fds.tell()
-
-        for _, elem in self.parser.read_events():
-            if elem.getparent() is not None and elem.getparent().tag == 'testResults':
-                sample = self._extract_sample(elem)
-                self.read_records += 1
-
-                elem.clear()
-                while elem.getprevious() is not None:
-                    del elem.getparent()[0]
-
-                yield sample
 
     def _write_sample_data(self, filename, contents):
         artifact = self.engine.create_artifact(filename, ".bin")
@@ -1090,9 +1097,34 @@ class FuncJTLReader(FunctionalResultsReader):
             assertions.append({"name": name, "isFailed": failed, "errorMessage": error_message})
         return assertions
 
+    def _parse_http_headers(self, header_str):
+        headers = {}
+        for line in header_str.split("\n"):
+            clean_line = line.strip()
+            if ":" in clean_line:
+                key, value = clean_line.split(":", 1)
+                headers[key] = value
+        return headers
+
+    def _parse_http_cookies(self, cookie_str):
+        cookies = {}
+        clean_line = cookie_str.strip()
+        if "; " in clean_line:
+            for item in clean_line.split("; "):
+                key, value = item.split("=", 1)
+                cookies[key] = value
+        return cookies
+
     def _extract_sample_extras(self, sample_elem):
         method = sample_elem.findtext("method")
         uri = sample_elem.findtext("java.net.URL")  # smells like Java automarshalling
+        req_headers = sample_elem.findtext("requestHeader") or ""
+        resp_headers = sample_elem.findtext("responseHeader") or ""
+        req_cookies = sample_elem.findtext("cookies") or ""
+
+        thread_id = sample_elem.get("tn")
+        split = thread_id.split("-")
+        thread_group = "-".join(split[:-1])
 
         sample_extras = {
             "responseCode": sample_elem.get("rc"),
@@ -1105,20 +1137,22 @@ class FuncJTLReader(FunctionalResultsReader):
             "requestMethod": method,
             "requestURI": uri,
 
-            "assertions": self._extract_sample_assertions(sample_elem),
+            "threadId": thread_id,
+            "threadGroup": thread_group,
 
-            "requestBody": sample_elem.findtext("queryString"),
-            "responseBody": sample_elem.findtext("responseData"),
-            "requestCookies": sample_elem.findtext("cookies"),
-            "requestHeaders": sample_elem.findtext("requestHeader"),
-            "responseHeaders": sample_elem.findtext("responseHeader")
+            "assertions": self._extract_sample_assertions(sample_elem),
+            "requestHeaders": self._parse_http_headers(req_headers),
+            "responseHeaders": self._parse_http_headers(resp_headers),
+            "requestCookies": self._parse_http_cookies(req_cookies),
+
+            "requestBody": sample_elem.findtext("queryString") or "",
+            "responseBody": sample_elem.findtext("responseData") or "",
+            "requestCookiesRaw": req_cookies,
         }
 
         sample_extras["requestBodySize"] = len(sample_extras["requestBody"])
         sample_extras["responseBodySize"] = len(sample_extras["responseBody"])
-        sample_extras["requestCookiesSize"] = len(sample_extras["requestCookies"])
-        sample_extras["requestHeadersSize"] = len(sample_extras["requestHeaders"])
-        sample_extras["responseHeadersSize"] = len(sample_extras["responseHeaders"])
+        sample_extras["requestCookiesSize"] = len(sample_extras["requestCookiesRaw"])
 
         return sample_extras
 
@@ -1133,7 +1167,6 @@ class FuncJTLReader(FunctionalResultsReader):
     def _extract_sample(self, sample_elem):
         tstmp = int(float(sample_elem.get("ts")) / 1000)
         label = sample_elem.get("lb")
-        suite_name = "JMeter"  # FIXME: we have better thing to put here, such as JMX name/executor label
         duration = float(sample_elem.get("t")) / 1000.0
         success = sample_elem.get("s") == "true"
 
@@ -1157,10 +1190,10 @@ class FuncJTLReader(FunctionalResultsReader):
         sample_extras = self._extract_sample_extras(sample_elem)
         self.__write_sample_data_to_artifacts(sample_extras)
 
-        return FunctionalSample(test_case=label, test_suite=suite_name, status=status,
+        return FunctionalSample(test_case=label, test_suite=self.executor_label, status=status,
                                 start_time=tstmp, duration=duration,
                                 error_msg=error_msg, error_trace=error_trace,
-                                extras=sample_extras)
+                                extras=sample_extras, subsamples=[])
 
     def get_failure(self, element):
         """
@@ -1528,6 +1561,7 @@ class JMeterScenarioBuilder(JMX):
         retrieve_resources = scenario.get("retrieve-resources", True)
         resources_regex = scenario.get("retrieve-resources-regex", None)
         concurrent_pool_size = scenario.get("concurrent-pool-size", 4)
+
         content_encoding = scenario.get("content-encoding", None)
 
         timeout = scenario.get("timeout", None)
@@ -1538,9 +1572,7 @@ class JMeterScenarioBuilder(JMX):
         return elements
 
     def __add_think_time(self, children, req):
-        think_time = req.think_time
-        if think_time is None:  # request option is a priority
-            think_time = self.scenario.get("think-time", None)
+        think_time = req.priority_option('think-time')
         if think_time is not None:
             children.append(JMX._get_constant_timer(self.smart_time(think_time)))
             children.append(etree.Element("hashTree"))
@@ -1656,8 +1688,7 @@ class JMeterScenarioBuilder(JMX):
             return None
 
     def __gen_requests(self, scenario):
-        requests_parser = RequestsParser(self.engine)
-        requests = list(requests_parser.extract_requests(scenario))
+        requests = scenario.get_requests()
         elements = []
         for compiled in self.compile_requests(requests):
             elements.extend(compiled)
@@ -1677,19 +1708,9 @@ class JMeterScenarioBuilder(JMX):
         :type request: HierarchicHTTPRequest
         :return:
         """
-        timeout = request.timeout
-        if timeout is None:                 # request option is a priority
-            timeout = self.scenario.get("timeout", None)
+        timeout = request.priority_option('timeout')
         if timeout is not None:
             timeout = self.smart_time(timeout)
-
-        follow_redirects = request.follow_redirects
-        if follow_redirects is None:        # request option is a priority
-            follow_redirects = self.scenario.get("follow-redirects", None)
-        if follow_redirects is None:
-            follow_redirects = True
-
-        keepalive = self.scenario.get("keepalive", True)
 
         content_type = self._get_merged_ci_headers(request, 'content-type')
         if content_type == 'application/json' and isinstance(request.body, (dict, list)):
@@ -1697,8 +1718,10 @@ class JMeterScenarioBuilder(JMX):
         else:
             body = request.body
 
-        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body, keepalive,
-                                     request.upload_files, request.content_encoding, follow_redirects)
+        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body,
+                                     request.priority_option('keepalive', default=True),
+                                     request.upload_files, request.content_encoding,
+                                     request.priority_option('follow-redirects', default=True))
 
         children = etree.Element("hashTree")
 
@@ -2102,249 +2125,6 @@ class JMeterMirrorsManager(MirrorsManager):
         # place HTTPS links first, preserving the order of HTTP links
         sorted_links = sorted(links, key=lambda l: l.startswith("https"), reverse=True)
         return sorted_links
-
-
-class IfBlock(Request):
-    def __init__(self, condition, then_clause, else_clause, config):
-        super(IfBlock, self).__init__(config)
-        self.condition = condition
-        self.then_clause = then_clause
-        self.else_clause = else_clause
-
-    def __repr__(self):
-        then_clause = [repr(req) for req in self.then_clause]
-        else_clause = [repr(req) for req in self.else_clause]
-        return "IfBlock(condition=%s, then=%s, else=%s)" % (self.condition, then_clause, else_clause)
-
-
-class LoopBlock(Request):
-    def __init__(self, loops, requests, config):
-        super(LoopBlock, self).__init__(config)
-        self.loops = loops
-        self.requests = requests
-
-    def __repr__(self):
-        requests = [repr(req) for req in self.requests]
-        return "LoopBlock(loops=%s, requests=%s)" % (self.loops, requests)
-
-
-class WhileBlock(Request):
-    def __init__(self, condition, requests, config):
-        super(WhileBlock, self).__init__(config)
-        self.condition = condition
-        self.requests = requests
-
-    def __repr__(self):
-        requests = [repr(req) for req in self.requests]
-        return "WhileBlock(condition=%s, requests=%s)" % (self.condition, requests)
-
-
-class ForEachBlock(Request):
-    def __init__(self, input_var, loop_var, requests, config):
-        super(ForEachBlock, self).__init__(config)
-        self.input_var = input_var
-        self.loop_var = loop_var
-        self.requests = requests
-
-    def __repr__(self):
-        requests = [repr(req) for req in self.requests]
-        fmt = "ForEachBlock(input=%s, loop_var=%s, requests=%s)"
-        return fmt % (self.input_var, self.loop_var, requests)
-
-
-class TransactionBlock(Request):
-    def __init__(self, name, requests, config):
-        super(TransactionBlock, self).__init__(config)
-        self.name = name
-        self.requests = requests
-
-    def __repr__(self):
-        requests = [repr(req) for req in self.requests]
-        fmt = "TransactionBlock(name=%s, requests=%s)"
-        return fmt % (self.name, requests)
-
-
-class IncludeScenarioBlock(Request):
-    def __init__(self, scenario_name, config):
-        super(IncludeScenarioBlock, self).__init__(config)
-        self.scenario_name = scenario_name
-
-
-class RequestsParser(object):
-    def __init__(self, engine):
-        self.engine = engine
-
-    def __parse_request(self, req):
-        if 'if' in req:
-            condition = req.get("if")
-            # TODO: apply some checks to `condition`?
-            then_clause = req.get("then", TaurusConfigError("'then' clause is mandatory for 'if' blocks"))
-            then_requests = self.__parse_requests(then_clause)
-            else_clause = req.get("else", [])
-            else_requests = self.__parse_requests(else_clause)
-            return IfBlock(condition, then_requests, else_requests, req)
-        elif 'loop' in req:
-            loops = req.get("loop")
-            do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'loop' blocks"))
-            do_requests = self.__parse_requests(do_block)
-            return LoopBlock(loops, do_requests, req)
-        elif 'while' in req:
-            condition = req.get("while")
-            do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'while' blocks"))
-            do_requests = self.__parse_requests(do_block)
-            return WhileBlock(condition, do_requests, req)
-        elif 'foreach' in req:
-            iteration_str = req.get("foreach")
-            match = re.match(r'(.+) in (.+)', iteration_str)
-            if not match:
-                msg = "'foreach' value should be in format '<elementName> in <collection>' but '%s' found"
-                raise TaurusConfigError(msg % iteration_str)
-            loop_var, input_var = match.groups()
-            do_block = req.get("do", TaurusConfigError("'do' field is mandatory for 'foreach' blocks"))
-            do_requests = self.__parse_requests(do_block)
-            return ForEachBlock(input_var, loop_var, do_requests, req)
-        elif 'transaction' in req:
-            name = req.get('transaction')
-            do_block = req.get('do', TaurusConfigError("'do' field is mandatory for transaction blocks"))
-            do_requests = self.__parse_requests(do_block)
-            return TransactionBlock(name, do_requests, req)
-        elif 'include-scenario' in req:
-            name = req.get('include-scenario')
-            return IncludeScenarioBlock(name, req)
-        elif 'action' in req:
-            action = req.get('action')
-            if action not in ('pause', 'stop', 'stop-now', 'continue'):
-                raise TaurusConfigError("Action should be either 'pause', 'stop', 'stop-now' or 'continue'")
-            target = req.get('target', 'current-thread')
-            if target not in ('current-thread', 'all-threads'):
-                msg = "Target for action should be either 'current-thread' or 'all-threads' but '%s' found"
-                raise TaurusConfigError(msg % target)
-            duration = req.get('pause-duration', None)
-            if duration is not None:
-                duration = dehumanize_time(duration)
-            return ActionBlock(action, target, duration, req)
-        else:
-            return HierarchicHTTPRequest(req, self.engine)
-
-    def __parse_requests(self, raw_requests):
-        requests = []
-        for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
-            if not isinstance(raw_requests[key], dict):
-                req = ensure_is_dict(raw_requests, key, "url")
-            else:
-                req = raw_requests[key]
-            requests.append(self.__parse_request(req))
-        return requests
-
-    def extract_requests(self, scenario):
-        requests = scenario.get("requests", [])
-        return list(self.__parse_requests(requests))
-
-
-class HierarchicHTTPRequest(HTTPRequest):
-    def __init__(self, config, engine):
-        super(HierarchicHTTPRequest, self).__init__(config, engine)
-        self.upload_files = config.get("upload-files", [])
-        for file_dict in self.upload_files:
-            file_dict.get("param", TaurusConfigError("Items from upload-files must specify parameter name"))
-            path = file_dict.get('path', TaurusConfigError("Items from upload-files must specify path to file"))
-            mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
-            file_dict.get('mime-type', mime)
-        self.content_encoding = config.get('content-encoding', None)
-        self.follow_redirects = config.get('follow-redirects', None)
-
-
-class ActionBlock(Request):
-    def __init__(self, action, target, duration, config):
-        super(ActionBlock, self).__init__(config)
-        self.action = action
-        self.target = target
-        self.duration = duration
-
-
-class RequestVisitor(object):
-    def __init__(self):
-        self.path = []
-
-    def clear_path_cache(self):
-        self.path = []
-
-    def record_path(self, path):
-        self.path.append(path)
-
-    def visit(self, node):
-        class_name = node.__class__.__name__.lower()
-        visitor = getattr(self, 'visit_' + class_name, None)
-        if visitor is not None:
-            return visitor(node)
-        raise TaurusInternalException("Visitor for class %s not found" % class_name)
-
-
-class ResourceFilesCollector(RequestVisitor):
-    def __init__(self, executor):
-        """
-        :param executor: JMeterExecutor
-        """
-        super(ResourceFilesCollector, self).__init__()
-        self.executor = executor
-
-    def visit_hierarchichttprequest(self, request):
-        files = []
-        body_file = request.config.get('body-file')
-        if body_file:
-            files.append(body_file)
-        if 'jsr223' in request.config:
-            jsrs = request.config.get('jsr223')
-            if isinstance(jsrs, dict):
-                jsrs = [jsrs]
-            for jsr in jsrs:
-                if 'script-file' in jsr:
-                    files.append(jsr.get('script-file'))
-        return files
-
-    def visit_ifblock(self, block):
-        files = []
-        for request in block.then_clause:
-            files.extend(self.visit(request))
-        for request in block.else_clause:
-            files.extend(self.visit(request))
-        return files
-
-    def visit_loopblock(self, block):
-        files = []
-        for request in block.requests:
-            files.extend(self.visit(request))
-        return files
-
-    def visit_whileblock(self, block):
-        files = []
-        for request in block.requests:
-            files.extend(self.visit(request))
-        return files
-
-    def visit_foreachblock(self, block):
-        files = []
-        for request in block.requests:
-            files.extend(self.visit(request))
-        return files
-
-    def visit_transactionblock(self, block):
-        files = []
-        for request in block.requests:
-            files.extend(self.visit(request))
-        return files
-
-    def visit_includescenarioblock(self, block):
-        scenario_name = block.scenario_name
-        if scenario_name in self.path:
-            msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
-            raise TaurusConfigError(msg % scenario_name)
-        self.record_path(scenario_name)
-        scenario = self.executor.get_scenario(name=block.scenario_name)
-        return self.executor.res_files_from_scenario(scenario)
-
-    def visit_actionblock(self, _):
-        return []
 
 
 class RequestCompiler(RequestVisitor):

@@ -1,7 +1,54 @@
 # Changelog
 
+## 1.9.2
+ - fix grinder having 100% errors
+ - bump up auto-installed JMeter to 3.2
+ - extract apiritif into standalone PyPi project
+ - improve console message in case of BZA failed response
+
+## 1.9.1 <sup>19 apr 2017</sup>
+ - fix errors in reading Grinder KPI file
+ - fix race condition in updates check
+ - catch possible error in psutil memory KPI getting
+
+## 1.9.0 <sup>16 apr 2017</sup>
+ - per-technology executors are extracted from selenium executor
+ - experimental release of `apiritif` framework scripts
+ - use BZA workspace's `enabled` flag to filter 
+ - don't install `10-base.json` into `/etc/bzt.d` as step towards wheel dist
+ - proxy2jmx now uses new-style API client
+ - fix handling samples with empty RC in console dashboard
+ - fix for too many labels requested from BlazeMeter API
+ - suppress warning of windows env variables merge
+ - change Grinder to single process + threads model, change the way results are read
+ - work with test name mapping in Grinder
+ - fix locations error with BlazeMeter API
+
+## 1.8.4 <sup>29 mar 2017</sup>
+ - support new-style Blazemeter API keys
+ - introduce `over` timeframe logic to passfail
+ - include report URL into `final-stats` module's `dump-xml`
+ - fix concurrency values for many thread groups, when values are very low
+ - add `final-stats` alias to conform our naming standards
+ - send some more config options to for cloud test
+ - documentation fixes
+ - fix Grinder working with multiple source files
+
+## 1.8.3 <sup>17 mar 2017</sup>
+ - fix broken on MacOS due to security restrictions
+ - use Java 8 as default compile target for Java
+
+## 1.8.2 <sup>16 mar 2017</sup>
+ - support `follow-redirects` option for Gatling
+ - add connections count to local monitoring, send it to BlazeMeter API also
+ - fix JSON configs with extra characters support
+ - fix BlazeMeter API usage
+ - bump up Java Selenium to 3.3.0 (will require latest geckodriver installed)
+ - bump up JMeter plugins manager to 0.12
+ - grab more details for JMeter's functional samples
+
 ## 1.8.1 <sup>13 mar 2017</sup>
- - make `---` not required for YAML files
+ - make `---` not required for YAML files anymore
  - enable YAML multi-doc files support, now `---` divides several configs per file (by YAML standard)
  - use less verbose logging in the middle of run, can be overridden with `-v` option
  - don't write bzt.log into current dir, use temp dir instead, then move to artifacts

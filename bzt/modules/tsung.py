@@ -26,6 +26,7 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.six import etree, parse, iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
 
@@ -328,15 +329,21 @@ class TsungConfig(object):
         clients.append(client)
         return clients
 
+    def __first_http_request(self, scenario):
+        for request in scenario.get_requests():
+            if isinstance(request, HTTPRequest):
+                return request
+        return None
+
     def __gen_servers(self, scenario):
         default_address = scenario.get("default-address", None)
         if default_address:
             base_addr = parse.urlparse(default_address)
         else:
-            requests = list(scenario.get_requests())
-            if not requests:
+            first_request = self.__first_http_request(scenario)
+            if not first_request:
                 raise TaurusConfigError("Tsung: you must specify requests in scenario")
-            base_addr = parse.urlparse(requests[0].url)
+            base_addr = parse.urlparse(first_request.url)
             self.log.debug("default-address was not specified, using %s instead", base_addr.hostname)
 
         servers = etree.Element("servers")
@@ -390,7 +397,7 @@ class TsungConfig(object):
 
         global_tcp_timeout = scenario.get('timeout', None)
         if global_tcp_timeout:
-            timeout = int(dehumanize_time(global_tcp_timeout)) * 1000
+            timeout = int(dehumanize_time(global_tcp_timeout) * 1000)
             options.append(etree.Element("option", name="connect_timeout", value=str(timeout)))
 
         global_max_retries = scenario.get('max-retries', 1)
@@ -401,6 +408,11 @@ class TsungConfig(object):
         sessions = etree.Element("sessions")
         session = etree.Element("session", name="taurus_requests", probability="100", type="ts_http")
         for request in scenario.get_requests():
+            if not isinstance(request, HTTPRequest):
+                msg = "Tsung config generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, request.NAME)
+                continue
+
             request_elem = etree.Element("request")
             http_elem = etree.Element("http", url=request.url, method=request.method, version="1.1")
             if request.body:

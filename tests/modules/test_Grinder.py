@@ -1,14 +1,16 @@
 import logging
-import os
 import re
 import shutil
 import time
 
+import os
+from bzt import ToolError
+from tests import BZTestCase, __dir__
+
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.grinder import GrinderExecutor, DataLogReader
 from bzt.modules.provisioning import Local
-from bzt import ToolError
 from bzt.utils import EXE_SUFFIX
-from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
 
@@ -20,38 +22,40 @@ class TestGrinderExecutor(BZTestCase):
         grinder_link = GrinderExecutor.DOWNLOAD_LINK
         grinder_version = GrinderExecutor.VERSION
         mirrors_source = GrinderExecutor.MIRRORS_SOURCE
-        GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + "/../data/grinder-{version}_{version}-binary.zip"
-        GrinderExecutor.VERSION = "3.11"
-        GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../data/unicode_file"
+        try:
+            GrinderExecutor.DOWNLOAD_LINK = "file:///" + __dir__() + \
+                                            "/../resources/grinder/grinder-{version}_{version}-binary.zip"
+            GrinderExecutor.VERSION = "3.11"
+            GrinderExecutor.MIRRORS_SOURCE = "file:///" + __dir__() + "/../resources/jmeter/unicode_file"
 
-        self.assertFalse(os.path.exists(path))
+            self.assertFalse(os.path.exists(path))
 
-        obj = GrinderExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({"path": path})
-        obj.settings.merge({"properties-file": __dir__() + "/../grinder/grinder.base.properties",
-                            "properties": {"sample_prop": "some_val"}})
-        obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../grinder/helloworld.py",
-            "properties-file": __dir__() + "/..//grinder/grinder.properties",
-            "properties": {"grinder.useConsole": "false"}}})
-        obj.prepare()
+            obj = GrinderExecutor()
+            obj.engine = EngineEmul()
+            obj.settings.merge({"path": path})
+            obj.settings.merge({"properties-file": __dir__() + "/../resources/grinder/grinder.base.properties",
+                                "properties": {"sample_prop": "some_val"}})
+            obj.execution.merge({"scenario": {
+                "script": __dir__() + "/../resources/grinder/helloworld.py",
+                "properties-file": __dir__() + "/..//resources/grinder/grinder.properties",
+                "properties": {"grinder.useConsole": "false"}}})
+            obj.prepare()
 
-        self.assertTrue(os.path.exists(path))
-
-        GrinderExecutor.DOWNLOAD_LINK = grinder_link
-        GrinderExecutor.VERSION = grinder_version
-        GrinderExecutor.MIRRORS_SOURCE = mirrors_source
+            self.assertTrue(os.path.exists(path))
+        finally:
+            GrinderExecutor.DOWNLOAD_LINK = grinder_link
+            GrinderExecutor.VERSION = grinder_version
+            GrinderExecutor.MIRRORS_SOURCE = mirrors_source
 
     def test_grinder_widget(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.engine.config.merge({"provisioning": 'local'})
         obj.execution.merge({"concurrency": {"local": 2},
                              "ramp-up": 2,
                              "hold-for": 2,
-                             "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+                             "scenario": {"script": __dir__() + "/../resources/grinder/helloworld.py"}})
         obj.prepare()
         obj.get_widget()
         self.assertEqual(obj.widget.widgets[0].text, "Grinder: helloworld.py")
@@ -59,16 +63,16 @@ class TestGrinderExecutor(BZTestCase):
     def test_resource_files_collection_basic(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../resources/grinder/helloworld.py"}})
         res_files = obj.resource_files()
         self.assertEqual(len(res_files), 1)
 
     def test_fail_on_zero_results(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.execution.merge({"concurrency": {"local": 2},
-                             "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+                             "scenario": {"script": __dir__() + "/../resources/grinder/helloworld.py"}})
         obj.prepare()
         obj.engine.prepared = [obj]
         obj.engine.started = [obj]
@@ -81,10 +85,10 @@ class TestGrinderExecutor(BZTestCase):
         obj = GrinderExecutor()
 
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.execution.merge({
             "concurrency": {"local": 2},
-            "scenario": {"script": __dir__() + "/../grinder/helloworld.py"}})
+            "scenario": {"script": __dir__() + "/../resources/grinder/helloworld.py"}})
         obj.prepare()
         obj.engine.prepared = [obj]
         obj.engine.started = [obj]
@@ -98,15 +102,15 @@ class TestGrinderExecutor(BZTestCase):
     def test_requests(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.execution.merge({"scenario": {"requests": ['http://blazedemo.com']}})
         obj.prepare()
 
     def test_full_Grinder(self):
         obj = GrinderExecutor()
-        obj.kpi_file = os.path.abspath(__dir__() + '/../grinder/test.log')
+        obj.kpi_file = os.path.abspath(__dir__() + '/../resources/grinder/test.log')
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.execution.merge({"concurrency": {"local": 2},
                              "hold-for": 5,
                              "scenario": {"keepalive": False, "requests": ['http://blazedemo.com']}})
@@ -118,7 +122,7 @@ class TestGrinderExecutor(BZTestCase):
         self.assertNotEqual(cmd_line.find('net.grinder.Grinder'), -1)
 
         try:
-            obj.cmd_line = __dir__() + "/../grinder/grinder" + EXE_SUFFIX
+            obj.cmd_line = __dir__() + "/../resources/grinder/grinder" + EXE_SUFFIX
             obj.startup()
             while not obj.check():
                 time.sleep(obj.engine.check_interval)
@@ -130,7 +134,7 @@ class TestGrinderExecutor(BZTestCase):
     def test_script_generation(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
-        obj.settings.merge({'path': __dir__() + "/../grinder/fake_grinder.jar"})
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
         obj.execution.merge({
             "scenario": {
                 "default-address": "http://blazedemo.com",
@@ -164,9 +168,10 @@ class TestGrinderExecutor(BZTestCase):
         self.assertEquals(requests[1], ('POST', 'http://example.com/'))
 
         sleeps = re.findall(r"grinder\.sleep\((.+)\)", script)
-        self.assertEquals(2, len(sleeps))
-        self.assertEquals(sleeps[0], '2000')
-        self.assertEquals(sleeps[1], '1000')
+        self.assertEquals(3, len(sleeps))
+        self.assertEquals(sleeps[0], 'sleep_time, 0')
+        self.assertEquals(sleeps[1], '2000')
+        self.assertEquals(sleeps[2], '1000')
 
         headers = re.findall(r"NVPair\('(.+)', '(.+)'\)", script)
         self.assertEquals(3, len(headers))
@@ -184,13 +189,39 @@ class TestGrinderExecutor(BZTestCase):
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
-        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder-bzt-kpi.log')
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'grinder', 'grinder-bzt-kpi.log')
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
-        self.assertEqual(len(list_of_values), 12)
+        self.assertEqual(len(list_of_values), 20)
+        self.assertIn('Test #1', list_of_values[-1][DataPoint.CUMULATIVE])
 
     def test_read_empty_kpi(self):
-        log_path = os.path.join(os.path.dirname(__file__), '..', 'grinder', 'grinder.sh')
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'grinder', 'grinder.sh')
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 0)
+
+    def test_read_test_names(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'grinder', 'grinder-bzt-1-kpi.log')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 20)
+        self.assertIn('requests_sample', list_of_values[-1][DataPoint.CUMULATIVE])
+
+    def test_read_by_url(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'grinder', 'grinder-bzt-kpi.log')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        obj.report_by_url = True
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 20)
+        last = list_of_values[-1]
+        self.assertIn('http://blazedemo.com/payment.php', last[DataPoint.CUMULATIVE].keys())
+
+    def test_read_errors(self):
+        log_path = os.path.join(os.path.dirname(__file__), '..', 'resources', 'grinder', 'grinder-bzt-1-kpi.log')
+        obj = DataLogReader(log_path, logging.getLogger(''))
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 20)
+        last = list_of_values[-1]
+        self.assertEquals(1, len(last[DataPoint.CUMULATIVE][''][KPISet.ERRORS]))
+        self.assertIn('Not Found', last[DataPoint.CUMULATIVE][''][KPISet.ERRORS][0]['msg'])

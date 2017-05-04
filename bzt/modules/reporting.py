@@ -123,7 +123,10 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             for case in self.cumulative_results.test_cases(test_suite):
                 if case.status in ("FAILED", "BROKEN"):
                     full_name = case.test_suite + "." + case.test_case
-                    self.log.info("Test %s failed:\n%s", full_name, case.error_trace)
+                    msg = "Test {test_case} failed: {error_msg}".format(test_case=full_name, error_msg=case.error_msg)
+                    if case.error_trace:
+                        msg += "\n" + case.error_trace
+                    self.log.warning(msg)
 
     def __report_summary(self):
         status_counter = Counter()
@@ -178,6 +181,12 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __dump_xml(self, filename):
         self.log.info("Dumping final status as XML: %s", filename)
         root = etree.Element("FinalStatus")
+        report_info = get_bza_report_info(self.engine, self.log)
+        if report_info:
+            link, _ = report_info[0]
+            report_element = etree.Element("ReportURL")
+            report_element.text = link
+            root.append(report_element)
         if self.last_sec:
             for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
                 root.append(self.__get_xml_summary(label, kpiset))
@@ -360,6 +369,30 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             xunit.add_test_case(disp_name, errors)
 
 
+def get_bza_report_info(engine, log):
+    """
+    :return: [(url, test), (url, test), ...]
+    """
+    result = []
+    if isinstance(engine.provisioning, CloudProvisioning):
+        cloud_prov = engine.provisioning
+        test_name = cloud_prov.settings.get('test', None)
+        report_url = cloud_prov.results_url
+        result.append((report_url, test_name if test_name is not None else report_url))
+    else:
+        bza_reporters = [_x for _x in engine.reporters if isinstance(_x, BlazeMeterUploader)]
+        """:type : list[bzt.modules.blazemeter.BlazeMeterUploader]"""
+        for bza_reporter in bza_reporters:
+            if bza_reporter.results_url:
+                test_name = bza_reporter.parameters.get("test", None)
+                report_url = bza_reporter.results_url
+                result.append((report_url, test_name if test_name is not None else report_url))
+
+        if len(result) > 1:
+            log.warning("More than one blazemeter reporter found")
+    return result
+
+
 class XUnitFileWriter(object):
     REPORT_FILE_NAME = "xunit"
     REPORT_FILE_EXT = ".xml"
@@ -373,34 +406,9 @@ class XUnitFileWriter(object):
         self.engine = engine
         self.log = engine.log.getChild(self.__class__.__name__)
         self.test_suite = etree.Element("testsuite", name=suite_name, package="bzt")
-        bza_report_info = self.get_bza_report_info()
+        bza_report_info = get_bza_report_info(engine, self.log)
         self.class_name = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
-        self.report_urls = [info_item[0] for info_item in bza_report_info]
-
-    def get_bza_report_info(self):
-        """
-        :return: [(url, test), (url, test), ...]
-        """
-        result = []
-        if isinstance(self.engine.provisioning, CloudProvisioning):
-            cloud_prov = self.engine.provisioning
-            report_url = "Cloud report link: %s\n" % cloud_prov.results_url
-            test_name = cloud_prov.settings.get('test', None)
-            result.append((report_url, test_name if test_name is not None else report_url))
-        else:
-            # FIXME: reworking it all
-            bza_reporters = [_x for _x in self.engine.reporters if isinstance(_x, BlazeMeterUploader)]
-            """:type : list[bzt.modules.blazemeter.BlazeMeterUploader]"""
-            for bza_reporter in bza_reporters:
-                if bza_reporter.results_url:
-                    report_url = "BlazeMeter report link: %s\n" % bza_reporter.results_url
-                    test_name = bza_reporter.parameters.get("test", None)
-
-                    result.append((report_url, test_name if test_name is not None else report_url))
-
-            if len(result) > 1:
-                self.log.warning("More than one blazemeter reporter found")
-        return result
+        self.report_urls = ["BlazeMeter report link: %s\n" % info_item[0] for info_item in bza_report_info]
 
     def save_report(self, fname):
         """

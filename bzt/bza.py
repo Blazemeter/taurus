@@ -2,14 +2,17 @@
 The idea for this module is to keep it separate from bzt codebase as much as possible,
 it may become separate library in the future. Things like imports and logging should be minimal.
 """
+import base64
 import json
 import logging
+import time
 from collections import OrderedDict
 
 import requests
-
 from bzt import TaurusNetworkError, ManualShutdown, VERSION
+
 from bzt.six import cookielib
+from bzt.six import string_types
 from bzt.six import text_type
 from bzt.six import urlencode
 from bzt.utils import to_json, MultiPartForm
@@ -43,7 +46,7 @@ class BZAObject(dict):
                     continue
                 self.__setattr__(attr, proto.__getattribute__(attr))
 
-    def _request(self, url, data=None, headers=None, method=None):
+    def _request(self, url, data=None, headers=None, method=None, raw_result=False):
         """
         :param url: str
         :type data: Union[dict,str]
@@ -57,7 +60,9 @@ class BZAObject(dict):
         headers["X-Client-Id"] = "Taurus"
         headers["X-Client-Version"] = VERSION
 
-        if self.token:
+        if isinstance(self.token, string_types) and ':' in self.token:
+            headers['Authorization'] = 'Basic ' + base64.b64encode(self.token)
+        elif self.token:
             headers["X-Api-Key"] = self.token
 
         if method:
@@ -85,7 +90,16 @@ class BZAObject(dict):
 
         self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
         if response.status_code >= 400:
-            raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
+            try:
+                result = json.loads(resp) if len(resp) else {}
+                if 'error' in result and result['error']:
+                    raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
+            except ValueError as exc:
+
+                raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
+
+        if raw_result:
+            return resp
 
         try:
             result = json.loads(resp) if len(resp) else {}
@@ -148,6 +162,7 @@ class User(BZAObject):
         return self
 
     def available_locations(self, include_harbors=False):
+        self.log.warn("Deprecated method used: available_locations")
         if 'locations' not in self:
             self.fetch()
 
@@ -193,9 +208,10 @@ class Account(BZAObject):
         """
         :rtype: BZAObjectsList[Workspace]
         """
-        params = {"accountId": self['id']}
+        params = {"accountId": self['id'], 'enabled': 'true', 'limit': 100}
+        params = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
         res = self._request(self.address + '/api/v4/workspaces?' + urlencode(params))
-        return BZAObjectsList([Workspace(self, x) for x in res['result']])
+        return BZAObjectsList([Workspace(self, x) for x in res['result'] if x['enabled']])
 
 
 class Workspace(BZAObject):
@@ -328,6 +344,11 @@ class Project(BZAObject):
         return tests
 
     def create_test(self, name, configuration):
+        """
+        :param name:
+        :param configuration:
+        :rtype: Test
+        """
         self.log.debug("Creating new test")
         url = self.address + '/api/v4/tests'
         data = {"name": name, "projectId": self['id'], "configuration": configuration}
@@ -400,6 +421,11 @@ class Test(BZAObject):
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)
 
+    def update_props(self, coll):
+        url = self.address + "/api/v4/tests/%s" % self['id']
+        res = self._request(url, data=coll, method="PATCH")
+        return res['result']
+
 
 class MultiTest(BZAObject):
     def start(self):
@@ -420,6 +446,10 @@ class MultiTest(BZAObject):
 
 
 class Master(BZAObject):
+    def __init__(self, proto=None, data=None):
+        super(Master, self).__init__(proto, data)
+        self.warned_of_too_much_labels = False
+
     def make_report_public(self):
         url = self.address + "/api/v4/masters/%s/public-token" % self['id']
         res = self._request(url, {"publicToken": None}, method="POST")
@@ -470,7 +500,11 @@ class Master(BZAObject):
         for item in ('t', 'lt', 'by', 'n', 'ec', 'ts', 'na'):
             params.append(("kpis[]", item))
 
-        labels = self.get_labels()
+        labels = self.get_labels()[:100]
+        if len(labels) == 100 and not self.warned_of_too_much_labels:
+            self.log.warn("Using only first 100 labels, while test has more labels")
+            self.warned_of_too_much_labels = True
+
         for label in labels:
             params.append(("labels[]", label['id']))
 
@@ -579,3 +613,44 @@ class Session(BZAObject):
     def get_logs(self):
         url = self.address + "/api/v4/sessions/%s/reports/logs" % self['id']
         return self._request(url)['result']['data']
+
+
+class BZAProxy(BZAObject):
+    def __init__(self):
+        super(BZAProxy, self).__init__()
+        self.delay = 5
+
+    def stop(self):
+        self._request(self.address + '/api/latest/proxy/recording/stop', method='POST')
+
+    def start(self):
+        self._request(self.address + '/api/latest/proxy/recording/start', method='POST')
+
+    def get_jmx(self):
+        # wait for availability
+        while True:
+            response = self._request(self.address + '/api/latest/proxy')
+            if response['result']['smartjmx'] == "available":
+                break
+            time.sleep(self.delay)
+
+        response = self._request(self.address + '/api/latest/proxy/download?format=jmx&smart=true', raw_result=True)
+        return response
+
+    def get_addr(self):
+        response = self._request(self.address + '/api/latest/proxy')
+
+        proxy_info = response['result']
+        if proxy_info:
+            self.log.info('Using existing recording proxy...')
+            if proxy_info['status'] == 'active':
+                self.log.info('Proxy is active, stop it')
+                self.stop()
+        else:
+            self.log.info('Creating new recording proxy...')
+            response = self._request(self.address + '/api/latest/proxy', method='POST')
+            proxy_info = response['result']
+
+        self._request(self.address + '/api/latest/proxy/recording/clear', method='POST')
+
+        return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])

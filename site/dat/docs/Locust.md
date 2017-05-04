@@ -64,7 +64,7 @@ scenarios:
     - url: /  
       method: post
       headers:
-      - var1: val1
+        var1: val1
       body: 'body content'
       assert:
       - contains:

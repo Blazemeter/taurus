@@ -1,6 +1,7 @@
 # coding=utf-8
 import logging
 import tempfile
+from collections import OrderedDict
 
 from bzt import six
 from bzt.engine import Configuration
@@ -12,9 +13,9 @@ class TestConfiguration(BZTestCase):
     def test_load(self):
         obj = Configuration()
         configs = [
-            __dir__() + "/../bzt/10-base.json",
-            __dir__() + "/json/jmx.json",
-            __dir__() + "/json/concurrency.json"
+            __dir__() + "/../bzt/resources/base-config.yml",
+            __dir__() + "/resources/json/jmx.json",
+            __dir__() + "/resources/json/concurrency.json"
         ]
         obj.load(configs)
         logging.debug("config:\n%s", obj)
@@ -32,9 +33,9 @@ class TestConfiguration(BZTestCase):
     def test_merge(self):
         obj = Configuration()
         configs = [
-            __dir__() + "/yaml/test.yml",
-            __dir__() + "/json/merge1.json",
-            __dir__() + "/json/merge2.json",
+            __dir__() + "/resources/yaml/test.yml",
+            __dir__() + "/resources/json/merge1.json",
+            __dir__() + "/resources/json/merge2.json",
         ]
         obj.load(configs)
         fname = tempfile.mkstemp()[1]
@@ -97,3 +98,19 @@ class TestConfiguration(BZTestCase):
         self.assertEquals(obj["my_password"], "*" * 8)
         self.assertEquals(obj["secret"], "*" * 8)
         self.assertEquals(obj["secret_story"], "story")
+
+    def test_filtering(self):
+        obj = Configuration()
+        obj.merge({
+            "drop": "me",
+            "also-drop": {"this": "drop"},
+            "and-also-drop": ["thelist"],
+            "but-keep": "value",
+            "and-also-keep": {
+                "nested": "value",
+                "while-dropping": "some"
+            }
+
+        })
+        obj.filter({"but-keep": True, "and-also-keep": {"nested": True}})
+        self.assertEquals({"and-also-keep": {"nested": "value"}, "but-keep": "value"}, obj)

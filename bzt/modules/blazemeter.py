@@ -17,7 +17,6 @@ limitations under the License.
 """
 import copy
 import logging
-import os
 import platform
 import sys
 import time
@@ -28,13 +27,14 @@ from collections import defaultdict, OrderedDict
 from functools import wraps
 from ssl import SSLError
 
+import os
 import yaml
+from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
-from bzt import ManualShutdown, TaurusInternalException, TaurusConfigError, TaurusException
 from bzt.bza import User, Session, Test
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
@@ -46,6 +46,51 @@ from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
 
 TAURUS_TEST_TYPE = "taurus"
+CLOUD_CONFIG_FILTER_RULES = {
+    "execution": True,
+    "scenarios": True,
+    "services": True,
+
+    "locations": True,
+    "locations-weighted": True,
+
+    "modules": {
+        "jmeter": {
+            "version": True,
+            "properties": True,
+            "system-properties": True,
+        },
+        "gatling": {
+            "version": True,
+            "properties": True
+        },
+        "grinder": {
+            "properties": True,
+            "properties-file": True
+        },
+        "selenium": {
+            "additional-classpath": True,
+            "virtual-display": True,
+            "compile-target-java": True
+        },
+        "junit": {
+            "compile-target-java": True
+        },
+        "testng": {
+            "compile-target-java": True
+        },
+        "local": {
+            "sequential": True
+        },
+        "proxy2jmx": {
+            "token": True
+        },
+        "shellexec": {
+            "env": True
+        }
+        # TODO: aggregator has plenty of relevant settings
+    }
+}
 
 
 def send_with_retry(method):
@@ -56,21 +101,21 @@ def send_with_retry(method):
 
         try:
             method(self, *args, **kwargs)
-        except IOError:
+        except (IOError, TaurusNetworkError):
             self.log.debug("Error sending data: %s", traceback.format_exc())
             self.log.warning("Failed to send data, will retry in %s sec...", self._user.timeout)
             try:
                 time.sleep(self._user.timeout)
                 method(self, *args, **kwargs)
                 self.log.info("Succeeded with retry")
-            except IOError:
+            except (IOError, TaurusNetworkError):
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
 
     return _impl
 
 
-class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
+class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singletone):
     """
     Reporter class
 
@@ -142,6 +187,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
             if token:
                 wsp = self._user.accounts().workspaces()
+                if not wsp:
+                    raise TaurusNetworkError("Your account has no active workspaces, please contact BlazeMeter support")
                 finder = ProjectFinder(self.parameters, self.settings, self._user, wsp, self.log)
                 self._test = finder.resolve_external_test()
             else:
@@ -656,7 +703,7 @@ class DatapointSerializer(object):
                     report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
         report_items = [report_items[key] for key in sorted(report_items.keys())]  # convert dict to list
-        data = {"labels": report_items, "sourceID": id(self)}
+        data = {"labels": report_items, "sourceID": id(self.owner)}
         if is_final:
             data['final'] = True
 
@@ -864,6 +911,7 @@ class ProjectFinder(object):
         assert test_class is not None
         router = test_class(self.user, test, project, test_name, default_location, self.log)
         router._workspaces = self.workspaces
+        router.cloud_mode = self.settings.get("cloud-mode", None)
         return router
 
     def _default_or_create_project(self, proj_name):
@@ -883,6 +931,7 @@ class BaseCloudTest(object):
     :type _project: bzt.bza.Project
     :type _test: bzt.bza.Test
     :type master: bzt.bza.Master
+    :type cloud_mode: str
     """
 
     def __init__(self, user, test, project, test_name, default_location, parent_log):
@@ -898,6 +947,7 @@ class BaseCloudTest(object):
         self._test = test
         self.master = None
         self._workspaces = None
+        self.cloud_mode = None
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -935,16 +985,21 @@ class BaseCloudTest(object):
 
 
 class CloudTaurusTest(BaseCloudTest):
+    def __init__(self, user, test, project, test_name, default_location, parent_log):
+        super(CloudTaurusTest, self).__init__(user, test, project, test_name, default_location, parent_log)
+
     def prepare_locations(self, executors, engine_config):
         available_locations = {}
-        for loc in self._workspaces.locations(include_private=TAURUS_TEST_TYPE != 'taurus'):  # FIXME: weird
+        is_taurus3 = self.cloud_mode == 'taurusCloud'
+        for loc in self._workspaces.locations(include_private=is_taurus3):
             available_locations[loc['id']] = loc
 
         if CloudProvisioning.LOC in engine_config:
-            self.log.warning("Deprecated test API doesn't support global locations")  # FIXME: not true for taurus3
+            self.log.warning("Deprecated test API doesn't support global locations")
 
         for executor in executors:
-            if CloudProvisioning.LOC in executor.execution:
+            if CloudProvisioning.LOC in executor.execution \
+                    and isinstance(executor.execution[CloudProvisioning.LOC], dict):
                 exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
             else:
@@ -980,17 +1035,15 @@ class CloudTaurusTest(BaseCloudTest):
         if not isinstance(config[ScenarioExecutor.EXEC], list):
             config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
 
-        provisioning = config.pop(Provisioning.PROV)
+        provisioning = config.get(Provisioning.PROV)
         for execution in config[ScenarioExecutor.EXEC]:
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
+        config.filter(CLOUD_CONFIG_FILTER_RULES)
+        config['local-bzt-version'] = engine_config.get('version', 'N/A')
         for key in list(config.keys()):
-            fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
-                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
-            if key not in fields:
-                config.pop(key)
-            elif not config[key]:
+            if not config[key]:
                 config.pop(key)
 
         self.cleanup_defaults(config)
@@ -1041,6 +1094,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
+        self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
@@ -1089,7 +1143,9 @@ class CloudTaurusTest(BaseCloudTest):
 
 class CloudCollectionTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
-        available_locations = self._user.available_locations(include_harbors=True)
+        available_locations = {}
+        for loc in self._workspaces.locations(include_private=True):
+            available_locations[loc['id']] = loc
 
         global_locations = engine_config.get(CloudProvisioning.LOC, BetterDict())
         self._check_locations(global_locations, available_locations)
@@ -1206,11 +1262,12 @@ class CloudCollectionTest(BaseCloudTest):
             time.sleep(1.0)
 
     def stop_test(self):
-        if self._started:
+        if self._started and self._test:
             self.log.info("Shutting down cloud test...")
             self._test.stop()
             self.await_test_end()
-        else:
+        elif self.master:
+
             self.log.info("Shutting down cloud test...")
             self.master.stop()
 
@@ -1359,10 +1416,11 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def prepare(self):
         self._merge_with_blazemeter_config()
-        global TAURUS_TEST_TYPE  # FIXME: remove temporary solution
-        TAURUS_TEST_TYPE = self.settings.get("cloud-test-type", TAURUS_TEST_TYPE)
         self._configure_client()
         self._workspaces = self.user.accounts().workspaces()
+        if not self._workspaces:
+            raise TaurusNetworkError("Your account has no active workspaces, please contact BlazeMeter support")
+
         self.__dump_locations_if_needed()
 
         super(CloudProvisioning, self).prepare()
@@ -1399,14 +1457,15 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.settings.get("dump-locations", False):
             self.log.warning("Dumping available locations instead of running the test")
             use_deprecated = self.settings.get("use-deprecated-api", True)
+            is_taurus3 = self.settings.get("cloud-mode", None) == 'taurusCloud'
             locations = {}
-            for loc in self._workspaces.locations(include_private=not use_deprecated or TAURUS_TEST_TYPE != 'taurus'):
+            for loc in self._workspaces.locations(include_private=not use_deprecated or is_taurus3):
                 locations[loc['id']] = loc
 
             for location_id in sorted(locations):
                 location = locations[location_id]
                 self.log.info("Location: %s\t%s", location_id, location['title'])
-            raise ManualShutdown("Done listing locations")
+            raise NormalShutdown("Done listing locations")
 
     def _filter_reporting(self):
         reporting = self.engine.config.get(Reporter.REP, [])
@@ -1467,7 +1526,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         try:
             master = self.router.get_master_status()
-        except (URLError, SSLError, ReadTimeout):
+        except (URLError, SSLError, ReadTimeout, TaurusNetworkError):
             self.log.warning("Failed to get test status, will retry in %s seconds...", self.user.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.user.timeout)
@@ -1616,7 +1675,7 @@ class ResultsFromBZA(ResultsProvider):
     def query_data(self):
         try:
             data = self.master.get_kpis(self.min_ts)
-        except URLError:
+        except (URLError, TaurusNetworkError):
             self.log.warning("Failed to get result KPIs, will retry in %s seconds...", self.master.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.master.timeout)
@@ -1625,7 +1684,7 @@ class ResultsFromBZA(ResultsProvider):
 
         try:
             aggr = self.master.get_aggregate_report()
-        except URLError:
+        except (URLError, TaurusNetworkError):
             self.log.warning("Failed to get aggregate results, will retry in %s seconds...", self.master.timeout)
             self.log.debug("Full exception: %s", traceback.format_exc())
             time.sleep(self.master.timeout)

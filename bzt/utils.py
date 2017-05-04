@@ -39,11 +39,11 @@ import webbrowser
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
+from contextlib import contextmanager
 from math import log
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
-from contextlib import contextmanager
 
 import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
@@ -255,6 +255,17 @@ class BetterDict(defaultdict):
             for idx, val in enumerate(obj):
                 visitor(val, idx, obj)
                 cls.traverse(obj[idx], visitor)
+
+    def filter(self, rules):
+        keys = set(self.keys())
+        for key in keys:
+            if key not in rules:
+                del self[key]
+            else:
+                if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
+                    self.get(key).filter(rules[key])
+                    if not self.get(key):  # clear empty
+                        del self[key]
 
 
 def get_uniq_name(directory, prefix, suffix, forbidden_names=()):
@@ -844,6 +855,30 @@ class TclLibrary(RequiredTool):
             self.log.warning("No Tcl library was found")
 
 
+class Node(RequiredTool):
+    def __init__(self, parent_logger):
+        super(Node, self).__init__("Node.js", "")
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.executable = None
+
+    def check_if_installed(self):
+        node_candidates = ["node", "nodejs"]
+        for candidate in node_candidates:
+            try:
+                self.log.debug("Trying %r", candidate)
+                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                self.log.debug("%s output: %s", candidate, output)
+                self.executable = candidate
+                return True
+            except (CalledProcessError, OSError):
+                self.log.debug("%r is not installed", candidate)
+                continue
+        return False
+
+    def install(self):
+        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
+
+
 class MirrorsManager(object):
     def __init__(self, base_link, parent_logger):
         self.base_link = base_link
@@ -1051,6 +1086,48 @@ def humanize_bytes(byteval):
     # (.4g results in rounded numbers for exact matches and max 3 decimals,
     # should never resort to exponent values)
     return '{:.4g}{}'.format(byteval / (1 << (order * 10)), _suffixes[order])
+
+
+class LDJSONReader(object):
+    def __init__(self, filename, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.filename = filename
+        self.fds = None
+        self.partial_buffer = ""
+        self.offset = 0
+
+    def read(self, last_pass=False):
+        if not self.fds and not self.__open_fds():
+            self.log.debug("No data to start reading yet")
+            return
+
+        self.fds.seek(self.offset)
+        if last_pass:
+            lines = self.fds.readlines()  # unlimited
+        else:
+            lines = self.fds.readlines(1024 * 1024)
+        self.offset = self.fds.tell()
+
+        for line in lines:
+            if not line.endswith("\n"):
+                self.partial_buffer += line
+                continue
+            line = "%s%s" % (self.partial_buffer, line)
+            self.partial_buffer = ""
+            yield json.loads(line)
+
+    def __open_fds(self):
+        if not os.path.isfile(self.filename):
+            return False
+        fsize = os.path.getsize(self.filename)
+        if not fsize:
+            return False
+        self.fds = open(self.filename, 'rt', buffering=1)
+        return True
+
+    def __del__(self):
+        if self.fds is not None:
+            self.fds.close()
 
 
 def replace_leading_tabs(text, spaces=4):

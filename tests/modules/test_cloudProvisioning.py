@@ -6,25 +6,26 @@ import time
 
 import yaml
 
-from bzt import TaurusConfigError, TaurusException
+from bzt import TaurusConfigError, TaurusException, NormalShutdown
 from bzt.bza import Master, Test, MultiTest
-from bzt.engine import ScenarioExecutor, ManualShutdown, Service
+from bzt.engine import ScenarioExecutor, Service
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from bzt.utils import get_full_path
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul, ModuleMock, RecordingHandler
+from tests.mocks import EngineEmul, ModuleMock
 from tests.modules.test_blazemeter import BZMock
 
 
 class TestCloudProvisioning(BZTestCase):
     @staticmethod
     def __get_user_info():
-        with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
+        with open(__dir__() + "/../resources/json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
 
     def setUp(self):
+        super(TestCloudProvisioning, self).setUp()
         engine = EngineEmul()
         engine.aggregator = ConsolidatingAggregator()
         self.obj = CloudProvisioning()
@@ -63,6 +64,7 @@ class TestCloudProvisioning(BZTestCase):
         self.mock.mock_get.update(get if get else {})
         self.mock.mock_post.update(post if post else {})
         self.mock.mock_patch.update(patch if patch else {})
+        self.mock.mock_patch.update({'https://a.blazemeter.com/api/v4/tests/1': {"result": {}}})
 
     def test_simple(self):
         self.configure(
@@ -145,9 +147,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["detach"] = True
 
         self.obj.prepare()
-        self.assertEqual(10, len(self.mock.requests))
-        self.obj.startup()
         self.assertEqual(11, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(12, len(self.mock.requests))
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
@@ -416,7 +418,8 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
-                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999": {"result": [{"id": 1, "name": "myproject"}]},
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999": {
+                    "result": [{"id": 1, "name": "myproject"}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
                     "projectId": 1,
@@ -444,7 +447,8 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
-                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999": {"result": [{"id": 1, "name": "myproject"}]},
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999": {
+                    "result": [{"id": 1, "name": "myproject"}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {
                     "result": [{"id": 1, "name": "Taurus Cloud Test"}]
                 }
@@ -578,8 +582,7 @@ class TestCloudProvisioning(BZTestCase):
             }
         )
 
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
 
         self.obj.settings["use-deprecated-api"] = False
         self.obj.prepare()
@@ -588,7 +591,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertNotIn("locations", cloud_config)
         for execution in cloud_config["execution"]:
             self.assertIn("locations", execution)
-        log_buff = log_recorder.warn_buff.getvalue()
+        log_buff = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Each execution has locations specified, global locations won't have any effect", log_buff)
 
     def test_collection_simultaneous_start(self):
@@ -685,7 +688,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/sessions/s1/reports/logs': {"result": {"data": [
                     {
                         'filename': "artifacts.zip",
-                        'dataUrl': "file://" + __dir__() + '/../data/artifacts-1.zip'
+                        'dataUrl': "file://" + __dir__() + '/../resources/artifacts-1.zip'
                     }
                 ]}}
             },
@@ -708,16 +711,15 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.engine.config.get("modules").get('capturehar')['class'] = cls
         self.obj.engine.config.get(Service.SERV, []).append('capturehar')
 
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
         self.obj.prepare()
         self.obj.startup()
         self.obj.check()  # this one should trigger force start
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(18, len(self.mock.requests))
-        self.assertIn("Cloud test has probably failed with message: msg", log_recorder.warn_buff.getvalue())
+        self.assertEqual(19, len(self.mock.requests))
+        self.assertIn("Cloud test has probably failed with message: msg", self.log_recorder.warn_buff.getvalue())
 
     def test_cloud_paths(self):
         """
@@ -728,11 +730,10 @@ class TestCloudProvisioning(BZTestCase):
         )  # upload files
 
         # FIXME: refactor this method!
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
         self.obj.engine.configure([
-            __dir__() + '/../../bzt/10-base.json',
-            __dir__() + '/../yaml/resource_files.yml'], read_config_files=False)
+            __dir__() + '/../../bzt/resources/base-config.yml',
+            __dir__() + '/../resources/yaml/resource_files.yml'], read_config_files=False)
         self.obj.settings = self.obj.engine.config['modules']['cloud']
         self.obj.settings.merge({'delete-test-files': False})
 
@@ -750,7 +751,7 @@ class TestCloudProvisioning(BZTestCase):
                               'fullname': get_full_path(os.path.join('~', _file))}
                              for _file in files_in_home]
 
-            shutil.copyfile(__dir__() + '/../jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
+            shutil.copyfile(__dir__() + '/../resources/jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
 
             dir_path = get_full_path(os.path.join('~', 'example-of-directory'))
             os.mkdir(dir_path)
@@ -764,13 +765,13 @@ class TestCloudProvisioning(BZTestCase):
             self.obj.engine.config[ScenarioExecutor.EXEC][0]['files'] = [
                 os.path.join(os.getcwd(), 'tests', 'test_CLI.py'),  # full path
                 files_in_home[2]['shortname'],  # path from ~
-                os.path.join('jmeter', 'jmeter-loader.bat'),  # relative path
+                os.path.join('resources', 'jmeter', 'jmeter-loader.bat'),  # relative path
                 'mocks.py',  # only basename (look at file_search_paths)
                 '~/example-of-directory']  # dir
 
             self.obj.prepare()
 
-            debug = log_recorder.debug_buff.getvalue().split('\n')
+            debug = self.log_recorder.debug_buff.getvalue().split('\n')
             str_files = [line for line in debug if 'Replace file names in config' in line]
             self.assertEqual(1, len(str_files))
             res_files = [_file for _file in str_files[0].split('\'')[1::2]]
@@ -966,36 +967,40 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.results_reader.min_ts = 0  # to make it request same URL
         self.obj.engine.aggregator.check()
 
-        self.assertEqual(21, len(self.mock.requests))
+        self.assertEqual(22, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
 
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = True
-        self.assertRaises(ManualShutdown, self.obj.prepare)
+        try:
+            self.assertRaises(NormalShutdown, self.obj.prepare)
+        except KeyboardInterrupt as exc:
+            raise AssertionError(type(exc))
 
-        warnings = log_recorder.warn_buff.getvalue()
+        warnings = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
-        info = log_recorder.info_buff.getvalue()
+        info = self.log_recorder.info_buff.getvalue()
         self.assertIn("Location: us-west\tDallas (Rackspace)", info)
         self.assertIn("Location: us-east-1\tEast", info)
         self.assertNotIn("Location: harbor-sandbox\tSandbox", info)
         self.obj.post_process()
 
     def test_dump_locations_new_style(self):
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
         self.configure()
         self.obj.settings["dump-locations"] = True
         self.obj.settings["use-deprecated-api"] = False
-        self.assertRaises(ManualShutdown, self.obj.prepare)
+        try:
+            self.assertRaises(NormalShutdown, self.obj.prepare)
+        except KeyboardInterrupt as exc:
+            raise AssertionError(type(exc))
 
-        warnings = log_recorder.warn_buff.getvalue()
+        warnings = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
-        info = log_recorder.info_buff.getvalue()
+        info = self.log_recorder.info_buff.getvalue()
         self.assertIn("Location: us-west\tDallas (Rackspace)", info)
         self.assertIn("Location: us-east-1\tEast", info)
         self.assertIn("Location: harbor-sandbox\tSandbox", info)
@@ -1031,7 +1036,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(self.obj.browser_open, "both")
         self.assertEqual(self.obj.user.token, "bmtoken")
         self.assertEqual(self.obj.check_interval, 20.0)
-        self.assertEqual(10, len(self.mock.requests))
+        self.assertEqual(11, len(self.mock.requests))
 
     def test_public_report(self):
         self.configure(
@@ -1052,8 +1057,7 @@ class TestCloudProvisioning(BZTestCase):
             }
         )
 
-        log_recorder = RecordingHandler()
-        self.obj.log.addHandler(log_recorder)
+        self.sniff_log(self.obj.log)
 
         self.obj.settings['public-report'] = True
         self.obj.prepare()
@@ -1062,7 +1066,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
-        log_buff = log_recorder.info_buff.getvalue()
+        log_buff = self.log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/1/summary"
         self.assertIn(log_line, log_buff)
 

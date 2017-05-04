@@ -6,19 +6,20 @@ import time
 import traceback
 from abc import abstractmethod
 from collections import OrderedDict, namedtuple
+from sys import platform
 
 import psutil
+from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from urwid import Pile, Text
 
-from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
-from bzt.engine import Service
+from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
 from bzt.six import iteritems, urlopen, urlencode
 from bzt.utils import dehumanize_time
 
 
-class Monitoring(Service, WidgetProvider):
+class Monitoring(Service, WidgetProvider, Singletone):
     """
     :type clients: list[ServerAgentClient]
     :type listeners: list[MonitoringListener]
@@ -182,6 +183,7 @@ class LocalMonitor(object):
     __instance = None
 
     def __init__(self, parent_logger, engine):
+        self.__informed_on_mem_issue = False
         if self.__instance is not None:
             raise TaurusInternalException("LocalMonitor can't be instantiated twice, use get_instance()")
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -223,6 +225,15 @@ class LocalMonitor(object):
         stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
                                              'rx', 'tx', 'dru', 'dwu', 'engine_loop', 'conn_all'))
 
+        try:
+            mem_usage = psutil.virtual_memory().percent
+        except KeyError:
+            mem_usage = None
+            if not self.__informed_on_mem_issue:
+                self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
+                self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
+                self.__informed_on_mem_issue = True
+
         net = psutil.net_io_counters()
         tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
         rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
@@ -240,13 +251,17 @@ class LocalMonitor(object):
             engine_loop = None
             disk_usage = None
 
-        connections = psutil.net_connections(kind="all")
+        if platform == 'darwin':  # TODO: add MacOS support
+            connections = []
+        else:
+            connections = psutil.net_connections(kind="all")
+
         count_conn = lambda x: x.family == 2 and x.status not in ('TIME_WAIT', 'LISTEN')
         connections = [y for y in connections if count_conn(y)]
         return stats(
             cpu=psutil.cpu_percent(),
             disk_usage=disk_usage,
-            mem_usage=psutil.virtual_memory().percent,
+            mem_usage=mem_usage,
             rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
             engine_loop=engine_loop, conn_all=len(connections)
         )
@@ -451,8 +466,9 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
                 maxwidth = max([len(key) for key in metrics.keys()])
 
                 for metric, value in iteritems(metrics):
-                    values = (' ' * (maxwidth - len(metric)), metric, value[0])
-                    text.append((value[1], "  %s%s: %.3f\n" % values))
+                    rendered = ('%.3f' % value[0]) if value[0] is not None else 'N/A'
+                    values = (' ' * (maxwidth - len(metric)), metric, rendered)
+                    text.append((value[1], "  %s%s: %s\n" % values))
 
         self.display.set_text(text)
         self._invalidate()

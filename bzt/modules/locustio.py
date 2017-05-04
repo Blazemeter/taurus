@@ -17,20 +17,23 @@ limitations under the License.
 """
 import json
 import math
-import os
 import sys
 import time
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 from imp import find_module
 from subprocess import STDOUT
 
+import os
 from bzt import ToolError, TaurusConfigError
+from bzt.six import PY3, iteritems
+
 from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
-from bzt.six import PY3, iteritems
-from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time, ensure_is_dict, PythonGenerator
+from bzt.requests_model import HTTPRequest
+from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator
+from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
@@ -82,17 +85,14 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         else:
             hatch = concurrency
 
-        wrapper = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                               os.pardir,
-                               "resources",
-                               "locustio-taurus-wrapper.py")
+        wrapper = os.path.join(get_full_path(__file__, step_up=2), "resources", "locustio-taurus-wrapper.py")
 
         env = BetterDict()
         env.merge({"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()})
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
 
-        args = [sys.executable, os.path.realpath(wrapper), '-f', os.path.realpath(self.script)]
+        args = [sys.executable, wrapper, '-f', self.script]
         args += ['--logfile=%s' % self.engine.create_artifact("locust", ".log")]
         args += ["--no-web", "--only-summary", ]
         args += ["--clients=%d" % concurrency, "--hatch-rate=%d" % hatch]
@@ -288,6 +288,14 @@ class SlavesReader(ResultsProvider):
             if item['num_requests']:
                 avg_rt = (item['total_response_time'] / 1000.0) / item['num_requests']
                 kpiset.sum_rt = item['num_reqs_per_sec'][timestamp] * avg_rt
+
+            for err in data['errors'].values():
+                if err['name'] == item['name']:
+                    new_err = KPISet.error_item_skel(err['error'], None, err['occurences'], KPISet.ERRTYPE_ERROR,
+                                                     Counter())
+                    KPISet.inc_list(kpiset[KPISet.ERRORS], ("msg", err['error']), new_err)
+                    kpiset[KPISet.FAILURES] += err['occurences']
+
             point[DataPoint.CURRENT][item['name']] = kpiset
             overall.merge_kpis(kpiset)
 
@@ -335,23 +343,21 @@ from locust import HttpLocust, TaskSet, task
         task = self.gen_method_definition("generated_task", ['self'])
 
         think_time = dehumanize_time(self.scenario.get('think-time', None))
-        global_headers = self.scenario.get("headers", None)
+        global_headers = self.scenario.get_headers()
         if not self.scenario.get("keepalive", True):
             global_headers['Connection'] = 'close'
 
         for req in self.scenario.get_requests():
+            if not isinstance(req, HTTPRequest):
+                msg = "Locust script generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+
             method = req.method.lower()
             if method not in ('get', 'delete', 'head', 'options', 'path', 'put', 'post'):
                 raise TaurusConfigError("Wrong Locust request type: %s" % method)
 
-            if req.timeout:
-                timeout = req.timeout
-            else:
-                scenario_timeout = self.scenario.get("timeout", None)
-                if scenario_timeout:
-                    timeout = scenario_timeout
-                else:
-                    timeout = '30s'
+            timeout = req.priority_option('timeout', default='30s')
 
             self.__gen_check(method, req, task, dehumanize_time(timeout), global_headers)
 

@@ -1,8 +1,10 @@
+import os
 from collections import Counter
 import time
 
 from tests import BZTestCase, random_datapoint
-from tests.mocks import EngineEmul, RecordingHandler
+from tests.mocks import EngineEmul
+from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -14,21 +16,18 @@ class TestFinalStatusReporter(BZTestCase):
         obj = FinalStatus()
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
-        log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False, "test-duration": False})
 
         obj.aggregated_second(self.__get_datapoint())
         obj.post_process()
-        self.assertIn("29656 failed samples: http://192.168.1.1/anotherquery\n", log_recorder.info_buff.getvalue())
-        obj.log.removeHandler(log_recorder)
+        self.assertIn("29656 failed samples: http://192.168.1.1/anotherquery\n", self.log_recorder.info_buff.getvalue())
 
     def test_log_messages_percentiles(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
-        log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False, "test-duration": False})
 
         obj.aggregated_second(self.__get_datapoint())
@@ -43,21 +42,18 @@ class TestFinalStatusReporter(BZTestCase):
                          "Percentile 99.9%: 0.008\n"
                          "Percentile 100.0%: 0.081\n"
                          )
-        self.assertEqual(target_output, log_recorder.info_buff.getvalue())
-        obj.log.removeHandler(log_recorder)
+        self.assertEqual(target_output, self.log_recorder.info_buff.getvalue())
 
     def test_log_messages_samples_count(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
-        log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True, "test-duration": False})
         obj.aggregated_second(self.__get_datapoint())
         obj.post_process()
 
-        self.assertEqual("Samples count: 59314, 50.00% failures\n", log_recorder.info_buff.getvalue())
-        obj.log.removeHandler(log_recorder)
+        self.assertEqual("Samples count: 59314, 50.00% failures\n", self.log_recorder.info_buff.getvalue())
 
     def test_log_messages_duration(self):
         """
@@ -67,20 +63,17 @@ class TestFinalStatusReporter(BZTestCase):
         obj = FinalStatus()
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
-        log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.prepare()
         obj.start_time -= 120005
         obj.post_process()
-        self.assertEqual("Test duration: 1 day, 9:20:05\n", log_recorder.info_buff.getvalue())
-        obj.log.removeHandler(log_recorder)
+        self.assertEqual("Test duration: 1 day, 9:20:05\n", self.log_recorder.info_buff.getvalue())
 
     def test_dump(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
-        log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.parameters.merge({
             "dump-xml": obj.engine.create_artifact("status", ".xml"),
             "dump-csv": obj.engine.create_artifact("status", ".csv")
@@ -88,43 +81,40 @@ class TestFinalStatusReporter(BZTestCase):
 
         obj.aggregated_second(random_datapoint(time.time()))
         obj.post_process()
-        self.assertIn("XML", log_recorder.info_buff.getvalue())
+        self.assertIn("XML", self.log_recorder.info_buff.getvalue())
 
     def test_func_report(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
-        log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.prepare()
         obj.aggregated_results(*self.__get_func_tree())
         obj.post_process()
-        info_log = log_recorder.info_buff.getvalue()
+        info_log = self.log_recorder.info_buff.getvalue()
+        warn_log = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Total: 3 tests", info_log)
-        self.assertIn("Test TestClass.case2", info_log)
-        self.assertIn("stacktrace2", info_log)
-        self.assertIn("Test TestClass.case3", info_log)
-        self.assertIn("stacktrace3", info_log)
-        obj.log.removeHandler(log_recorder)
+        self.assertIn("Test TestClass.case2 failed: something broke", warn_log)
+        self.assertIn("stacktrace2", warn_log)
+        self.assertIn("Test TestClass.case3 failed: something is badly broken", warn_log)
+        self.assertIn("stacktrace3", warn_log)
 
     def test_func_report_all_no_stacktrace(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
-        log_recorder = RecordingHandler()
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.parameters.merge({"report-tests": "all", "print-stacktrace": False})
         obj.prepare()
         obj.aggregated_results(*self.__get_func_tree())
         obj.post_process()
-        info_log = log_recorder.info_buff.getvalue()
+        info_log = self.log_recorder.info_buff.getvalue()
         self.assertIn("Total: 3 tests", info_log)
         self.assertIn("Test TestClass.case1 - PASSED", info_log)
         self.assertIn("Test TestClass.case2 - FAILED", info_log)
         self.assertIn("Test TestClass.case3 - BROKEN", info_log)
         self.assertNotIn("stacktrace2", info_log)
         self.assertNotIn("stacktrace3", info_log)
-        obj.log.removeHandler(log_recorder)
 
     def __get_datapoint(self):
         datapoint = DataPoint(None, None)
@@ -227,11 +217,55 @@ class TestFinalStatusReporter(BZTestCase):
         tree = ResultsTree()
         tree.add_sample(FunctionalSample(test_case="case1", test_suite="TestClass", status="PASSED",
                                          start_time=time.time(), duration=0.12,
-                                         error_msg=None, error_trace=None, extras=None))
+                                         error_msg=None, error_trace=None, extras=None, subsamples=[]))
         tree.add_sample(FunctionalSample(test_case="case2", test_suite="TestClass", status="FAILED",
                                          start_time=time.time(), duration=0.33,
-                                         error_msg="something broke", error_trace="stacktrace2", extras=None))
+                                         error_msg="something broke", error_trace="stacktrace2", extras=None,
+                                         subsamples=[]))
         tree.add_sample(FunctionalSample(test_case="case3", test_suite="TestClass", status="BROKEN",
                                          start_time=time.time(), duration=0.33,
-                                         error_msg="something is badly broken", error_trace="stacktrace3", extras=None))
+                                         error_msg="something is badly broken", error_trace="stacktrace3", extras=None,
+                                         subsamples=[]))
         return tree, tree
+
+    def test_blazemeter_report_link(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        xml_report = obj.engine.create_artifact("status", ".xml")
+        obj.parameters.merge({
+            "dump-xml": xml_report,
+        })
+
+        rep = BlazeMeterUploader()
+        rep.results_url = "http://report/link"
+        obj.engine.reporters.append(rep)
+
+        obj.aggregated_second(self.__get_datapoint())
+        obj.post_process()
+
+        self.assertTrue(os.path.exists(xml_report))
+        with open(xml_report) as fds:
+            report_content = fds.read()
+        self.assertIn('<ReportURL>http://report/link</ReportURL>', report_content)
+
+    def test_blazemeter_cloud_report_link(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        xml_report = obj.engine.create_artifact("status", ".xml")
+        obj.parameters.merge({
+            "dump-xml": xml_report,
+        })
+
+        prov = CloudProvisioning()
+        prov.results_url = "http://report/link"
+        obj.engine.provisioning = prov
+
+        obj.aggregated_second(self.__get_datapoint())
+        obj.post_process()
+
+        self.assertTrue(os.path.exists(xml_report))
+        with open(xml_report) as fds:
+            report_content = fds.read()
+        self.assertIn('<ReportURL>http://report/link</ReportURL>', report_content)

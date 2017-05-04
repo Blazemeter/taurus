@@ -5,7 +5,7 @@ from bzt.modules.chrome import ChromeProfiler, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
 from bzt.six import iteritems
 from tests import BZTestCase, __dir__
-from tests.mocks import EngineEmul, RecordingHandler
+from tests.mocks import EngineEmul
 
 
 class TestMetricExtraction(BZTestCase):
@@ -23,7 +23,7 @@ class TestMetricExtraction(BZTestCase):
         listener = RecordingListener()
         obj.add_listener(listener)
 
-        shutil.copy(__dir__() + "/../chrome/trace.json", obj.engine.artifacts_dir)
+        shutil.copy(__dir__() + "/../resources/chrome/trace.json", obj.engine.artifacts_dir)
 
         obj.prepare()
         obj.startup()
@@ -45,7 +45,7 @@ class TestMetricExtraction(BZTestCase):
         listener = RecordingListener()
         obj.add_listener(listener)
 
-        shutil.copy(__dir__() + "/../chrome/trace.json", obj.engine.artifacts_dir)
+        shutil.copy(__dir__() + "/../resources/chrome/trace.json", obj.engine.artifacts_dir)
 
         obj.prepare()
         obj.startup()
@@ -53,7 +53,7 @@ class TestMetricExtraction(BZTestCase):
             obj.check()
             time.sleep(1)
 
-        shutil.copy(__dir__() + "/../chrome/trace.json", obj.engine.artifacts_dir)
+        shutil.copy(__dir__() + "/../resources/chrome/trace.json", obj.engine.artifacts_dir)
         for _ in range(3):
             obj.check()
             time.sleep(1)
@@ -73,7 +73,7 @@ class TestMetricExtraction(BZTestCase):
             }
         })
 
-        shutil.copy(__dir__() + "/../chrome/trace.json", obj.engine.artifacts_dir)
+        shutil.copy(__dir__() + "/../resources/chrome/trace.json", obj.engine.artifacts_dir)
 
         obj.prepare()
         obj.startup()
@@ -101,7 +101,7 @@ class TestMetricExtraction(BZTestCase):
         listener = RecordingListener()
         obj.add_listener(listener)
 
-        shutil.copy(__dir__() + "/../chrome/trace.json", obj.engine.artifacts_dir)
+        shutil.copy(__dir__() + "/../resources/chrome/trace.json", obj.engine.artifacts_dir)
 
         obj.prepare()
         obj.startup()
@@ -132,11 +132,10 @@ class TestMetricReporter(BZTestCase):
                 }
             }
         })
-        shutil.copy(__dir__() + "/../chrome/trace.json", engine.artifacts_dir)
+        shutil.copy(__dir__() + "/../resources/chrome/trace.json", engine.artifacts_dir)
 
-        log_recorder = RecordingHandler()
         reporter = MetricReporter()
-        reporter.log.addHandler(log_recorder)
+        self.sniff_log(reporter.log)
         reporter.engine = engine
 
         engine.services.append(profiler)
@@ -152,12 +151,12 @@ class TestMetricReporter(BZTestCase):
         reporter.shutdown()
         reporter.post_process()
 
-        info_buff = log_recorder.info_buff.getvalue()
+        info_buff = self.log_recorder.info_buff.getvalue()
 
         self.assertIn("Chrome metrics for tab 'JMeter and Performance Testing for DevOps I BlazeMeter'", info_buff)
         self.assertIn("Memory metrics:", info_buff)
 
-        profiler.log.removeHandler(log_recorder)
+        profiler.log.removeHandler(self.log_recorder)
 
 
 class RecordingListener(MonitoringListener):

@@ -24,11 +24,10 @@ import zipfile
 import json
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError
-from bzt.engine import Service, HavingInstallableTools
-from bzt.modules.selenium import Node
+from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
-from bzt.utils import replace_in_config, JavaVM
+from bzt.utils import replace_in_config, JavaVM, Node
 
 
 class Unpacker(Service):
@@ -54,7 +53,7 @@ class Unpacker(Service):
         replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)
 
 
-class InstallChecker(Service):
+class InstallChecker(Service, Singletone):
     def prepare(self):
         modules = self.engine.config.get("modules")
         failure = None

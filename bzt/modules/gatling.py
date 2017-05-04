@@ -24,6 +24,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -59,6 +60,11 @@ class GatlingScriptBuilder(object):
     def _get_exec(self):
         exec_str = ''
         for req in self.scenario.get_requests():
+            if not isinstance(req, HTTPRequest):
+                msg = "Gatling simulation generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+
             if len(exec_str) > 0:
                 exec_str += '.'
 
@@ -83,23 +89,12 @@ class GatlingScriptBuilder(object):
 
             exec_str += self.__get_assertions(req.config.get('assert', []))
 
-            follow_redirects = req.config.get("follow-redirects", None)
-            if follow_redirects is None:  # request option is a priority
-                follow_redirects = self.scenario.get("follow-redirects", None)
-            if follow_redirects is None:
-                follow_redirects = True
-            if not follow_redirects:
+            if not req.priority_option('follow-redirects', default=True):
                 exec_str += '\t\t\t.disableFollowRedirect\n'
 
-            think_time = req.think_time
-            if think_time is None:  # request option is a priority
-                think_time = self.scenario.get("think-time", None)
-            if think_time is not None:
-                think_time = int(dehumanize_time(think_time))
-            else:
-                think_time = 0
-
             exec_str += '\t\t)'
+
+            think_time = int(dehumanize_time(req.priority_option('think-time')))
             if think_time:
                 exec_str += '.pause(%(think_time)s)' % {'think_time': think_time}
 
@@ -259,14 +254,14 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.log.debug("Will not build Gatling launcher")
             self.launcher = self.settings["path"]
 
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.script = self.get_script_path()
-        elif "requests" in scenario:
-            self.get_scenario()['simulation'], self.script = self.__generate_script()
-        else:
-            msg = "There must be a script file or requests for its generation "
-            msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
-            raise TaurusConfigError(msg)
+        self.script = self.get_script_path()
+        if not self.script:
+            if "requests" in scenario:
+                self.get_scenario()['simulation'], self.script = self.__generate_script()
+            else:
+                msg = "There must be a script file or requests for its generation "
+                msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
+                raise TaurusConfigError(msg)
 
         self.dir_prefix = 'gatling-%s' % id(self)
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
