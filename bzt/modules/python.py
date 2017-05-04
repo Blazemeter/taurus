@@ -571,6 +571,8 @@ class ApiritifSampleExtractor(object):
 
 
 class ApiritifScriptGenerator(PythonGenerator):
+    # Python AST docs: https://greentreesnakes.readthedocs.io/en/latest/
+
     def __init__(self, scenario, parent_log):
         super(ApiritifScriptGenerator, self).__init__(scenario, parent_log)
         self.scenario = scenario
@@ -618,6 +620,8 @@ log.setLevel(logging.DEBUG)
             bases=[ast.Name(id='unittest.TestCase', ctx=ast.Load())],
             body=[self.gen_test_method()],
             keywords=[],
+            starargs=None,
+            kwargs=None,
             decorator_list=[],
         )
 
