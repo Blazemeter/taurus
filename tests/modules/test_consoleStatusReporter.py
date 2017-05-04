@@ -90,7 +90,7 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.check()
         obj.shutdown()
         obj.post_process()
-        self.assertNotIn('Failed', self.handler.warn_buff.getvalue())
+        self.assertNotIn('Failed', self.log_recorder.warn_buff.getvalue())
 
     def test_2(self):
         obj = ConsoleStatusReporter()

@@ -13,7 +13,7 @@ from tests.mocks import EngineEmul, ModuleMock
 class TestCLI(BZTestCase):
     def setUp(self):
         super(TestCLI, self).setUp()
-        self.captured_logger = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
+        self.log = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
         self.verbose = False
         self.quiet = False
         self.no_system_configs = True
@@ -163,6 +163,7 @@ class TestCLI(BZTestCase):
 
 class TestConfigOverrider(BZTestCase):
     def setUp(self):
+        super(TestConfigOverrider, self).setUp()
         self.obj = ConfigOverrider(logging.getLogger())
         self.config = Configuration()
 
