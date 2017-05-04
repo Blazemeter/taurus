@@ -8,6 +8,7 @@ from abc import abstractmethod
 from collections import OrderedDict
 
 import apiritif
+import astunparse
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario, SETTINGS
@@ -592,7 +593,6 @@ class ApiritifScriptGenerator(PythonGenerator):
             ast.Import(names=[ast.alias(name='string', asname=None)]),
             ast.Import(names=[ast.alias(name='sys', asname=None)]),
             ast.Import(names=[ast.alias(name='time', asname=None)]),
-            ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             self.gen_empty_line_stmt(),
 
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
@@ -617,7 +617,7 @@ log.setLevel(logging.DEBUG)
     def gen_classdef(self):
         return ast.ClassDef(
             name='TestAPIRequests',
-            bases=[ast.Name(id='unittest.TestCase', ctx=ast.Load())],
+            bases=[],
             body=[self.gen_test_method()],
             keywords=[],
             starargs=None,
@@ -995,7 +995,6 @@ log.setLevel(logging.DEBUG)
         return {}
 
     def save(self, filename):
-        import astunparse
         with open(filename, 'wt') as fds:
             fds.write(astunparse.unparse(self.tree))
 
@@ -1125,7 +1124,6 @@ class JMeterExprCompiler(object):
                     )
             else:
                 result = ast.Str(s=value)
-            self.log.debug("Gen expr: %r -> %r", value, result)
             return result
         elif isinstance(value, type(None)):
             return ast.Name(id="None", ctx=ast.Load())
