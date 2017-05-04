@@ -3,14 +3,16 @@ import difflib
 import inspect
 import json
 import logging
+import os
 import tempfile
+from io import StringIO
+from logging import Handler
 from random import random
 from unittest.case import TestCase
 
-import os
-
 from bzt.cli import CLI
 from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.six import u
 from bzt.utils import run_once, EXE_SUFFIX
 
 TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
@@ -91,6 +93,20 @@ def random_datapoint(n):
 
 
 class BZTestCase(TestCase):
+    def setUp(self):
+        self.captured_logger = None
+        self.log_recorder = None
+
+    def sniff_log(self, log):
+        self.log_recorder = RecordingHandler()
+        self.captured_logger = log
+        self.captured_logger.addHandler(self.log_recorder)
+
+    def tearDown(self):
+        if self.captured_logger:
+            self.captured_logger.removeHandler(self.log_recorder)
+            self.log_recorder.close()
+
     def assertFilesEqual(self, expected, actual):
         with open(expected) as exp, open(actual) as act:
             diff = list(difflib.unified_diff(exp.readlines(), act.readlines()))
@@ -115,13 +131,9 @@ def local_paths_config():
             "gatling": {
                 "path": dirname + "/resources/gatling/gatling" + EXE_SUFFIX,
             },
-            "selenium": {
-                "selenium-tools": {
-                    "junit": {
-                        "path": dirname + "/../build/selenium/tools/junit/junit.jar",
-                        "selenium-server": dirname + "/../build/selenium/selenium-server.jar"
-                    }
-                }
+            "junit": {
+                "path": dirname + "/../build/selenium/tools/junit/junit.jar",
+                "selenium-server": dirname + "/../build/selenium/selenium-server.jar"
             }
         }
     }
@@ -129,3 +141,36 @@ def local_paths_config():
     with open(fname, 'w') as fds:
         fds.write(jstring)
     return fname
+
+
+class RecordingHandler(Handler):
+    def __init__(self):
+        super(RecordingHandler, self).__init__()
+        self.info_buff = StringIO()
+        self.err_buff = StringIO()
+        self.debug_buff = StringIO()
+        self.warn_buff = StringIO()
+
+    def emit(self, record):
+        """
+
+        :type record: logging.LogRecord
+        :return:
+        """
+        if record.levelno == logging.INFO:
+            self.write_log(self.info_buff, record.msg, record.args)
+        elif record.levelno == logging.ERROR:
+            self.write_log(self.err_buff, record.msg, record.args)
+        elif record.levelno == logging.WARNING:
+            self.write_log(self.warn_buff, record.msg, record.args)
+        elif record.levelno == logging.DEBUG:
+            self.write_log(self.debug_buff, record.msg, record.args)
+
+    def write_log(self, buff, str_template, args):
+        str_template += "\n"
+        if args:
+            buff.write(u(str_template % args))
+        else:
+            buff.write(u(str_template))
+
+

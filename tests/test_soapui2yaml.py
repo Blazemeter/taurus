@@ -18,6 +18,7 @@ class FakeOptions(object):
 
 class TestConverter(BZTestCase):
     def setUp(self):
+        super(TestConverter, self).setUp()
         self.engine = EngineEmul()
 
     def _get_soapui2yaml(self, path, file_name=None, test_case=None):

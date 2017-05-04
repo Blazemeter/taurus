@@ -14,7 +14,7 @@ from bzt.modules.blazemeter import BlazeMeterUploader, ResultsFromBZA
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.six import HTTPError
 from bzt.six import iteritems, viewvalues
-from tests.mocks import EngineEmul, RecordingHandler, BZMock
+from tests.mocks import EngineEmul, BZMock
 
 
 class TestBlazeMeterUploader(BZTestCase):
@@ -297,8 +297,6 @@ class TestBlazeMeterUploader(BZTestCase):
             'https://a.blazemeter.com/api/v4/image/sess1/files?signature=': {'result': True},
         })
 
-        log_recorder = RecordingHandler()
-
         obj = BlazeMeterUploader()
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
@@ -306,7 +304,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.settings['send-monitoring'] = False
         obj.engine = EngineEmul()
         mock.apply(obj._user)
-        obj.log.addHandler(log_recorder)
+        self.sniff_log(obj.log)
         obj.prepare()
         obj.startup()
         obj.aggregated_second(random_datapoint(10))
@@ -314,7 +312,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.shutdown()
         obj.post_process()
 
-        log_buff = log_recorder.info_buff.getvalue()
+        log_buff = self.log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
         self.assertIn(log_line, log_buff)
         logging.warning("\n".join([x['url'] for x in mock.requests]))

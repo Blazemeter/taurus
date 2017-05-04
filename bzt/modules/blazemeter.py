@@ -71,14 +71,13 @@ CLOUD_CONFIG_FILTER_RULES = {
         "selenium": {
             "additional-classpath": True,
             "virtual-display": True,
-            "selenium-tools": {
-                "junit": {
-                    "compile-target-java": True
-                },
-                "testng": {
-                    "compile-target-java": True
-                }
-            }
+            "compile-target-java": True
+        },
+        "junit": {
+            "compile-target-java": True
+        },
+        "testng": {
+            "compile-target-java": True
         },
         "local": {
             "sequential": True
