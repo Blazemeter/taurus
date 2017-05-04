@@ -599,11 +599,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         ]
 
         if self.verbose:
-            stmts.append(self.gen_empty_line_stmt()),
-            # self.root.append(self.gen_statement("log = logging.getLogger('apiritif.http')", indent=0))
-            # self.root.append(self.gen_statement("log.addHandler(logging.StreamHandler(sys.stdout))", indent=0))
-            # self.root.append(self.gen_statement("log.setLevel(logging.DEBUG)", indent=0))
-
+            stmts.append(self.gen_empty_line_stmt())
             stmts.extend(ast.parse("""\
 log = logging.getLogger('apiritif.http')
 log.addHandler(logging.StreamHandler(sys.stdout))
@@ -700,14 +696,7 @@ log.setLevel(logging.DEBUG)
                 lines.append(self._gen_target_setup('timeout', dehumanize_time(timeout)))
         return lines
 
-    def gen_request_lines(self, req):
-        apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr='http', ctx=ast.Load())
-        target = ast.Name(id='target', ctx=ast.Load())
-        requestor = target if self.__access_method == "target" else apiritif_http
-
-        method = req.method.lower()
-        think_time = dehumanize_time(req.priority_option('think-time', default=None))
-
+    def _extract_named_args(self, req):
         named_args = OrderedDict()
         if req.timeout is not None:
             named_args['timeout'] = dehumanize_time(req.timeout)
@@ -728,7 +717,7 @@ log.setLevel(logging.DEBUG)
 
         if content_type == 'application/json' and isinstance(req.body, (dict, list)):  # json request body
             named_args['json'] = self.gen_expr(req.body)
-        elif method == "get" and isinstance(req.body, dict):  # request URL params (?a=b&c=d)
+        elif req.method.lower() == "get" and isinstance(req.body, dict):  # request URL params (?a=b&c=d)
             named_args['params'] = self.gen_expr(req.body)
         elif isinstance(req.body, dict):  # form data
             named_args['data'] = self.gen_expr(list(iteritems(req.body)))
@@ -737,6 +726,18 @@ log.setLevel(logging.DEBUG)
         elif req.body:
             msg = "Cannot handle 'body' option of type %s: %s"
             raise TaurusConfigError(msg % (type(req.body), req.body))
+
+        return named_args
+
+    def gen_request_lines(self, req):
+        apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()),
+                                      attr='http', ctx=ast.Load())
+        target = ast.Name(id='target', ctx=ast.Load())
+        requestor = target if self.__access_method == "target" else apiritif_http
+
+        method = req.method.lower()
+        think_time = dehumanize_time(req.priority_option('think-time', default=None))
+        named_args = self._extract_named_args(req)
 
         if req.label:
             label = req.label
