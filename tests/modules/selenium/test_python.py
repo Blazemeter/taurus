@@ -320,7 +320,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("target.keep_alive(True)", test_script)
 
@@ -338,7 +338,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("target.keep_alive(False)", test_script)
 
@@ -355,7 +355,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertNotIn("timeout=30.0", test_script)
 
@@ -377,7 +377,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("self.target.timeout(10.0)", test_script)
         self.assertNotIn("get('/?tag=1', timeout=10.0", test_script)
@@ -399,7 +399,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("time.sleep(1.5)", test_script)
 
@@ -427,7 +427,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("get('/?tag=get'", test_script)
         self.assertIn("post('/?tag=post'", test_script)
@@ -450,7 +450,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("target('https://a.blazemeter.com')", test_script)
         self.assertIn("target.base_path('/api/latest')", test_script)
@@ -470,7 +470,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("'X-Foo': 'foo'", test_script)
         self.assertIn("'X-Bar': 'bar'", test_script)
@@ -488,7 +488,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("self.target.allow_redirects(True)", test_script)
         self.assertNotIn("allow_redirects=True", test_script)
@@ -507,7 +507,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("allow_redirects=False", test_script)
 
@@ -527,7 +527,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("params={'foo': 'bar'}", test_script)
 
@@ -550,7 +550,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("json={'foo': 'bar'}", test_script)
 
@@ -568,7 +568,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("data='MY PERFECT BODY'", test_script)
 
@@ -603,7 +603,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("response.assert_regex_in_body('Welcome')", test_script)
         self.assertIn("response.assert_regex_in_body('Simple Travel Agency')", test_script)
@@ -634,7 +634,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("assert_in_body('1')", test_script)
         self.assertIn("assert_not_in_body('2')", test_script)
@@ -663,7 +663,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("assert_jsonpath('$.foo.bar', expected_value=None)", test_script)
 
@@ -685,7 +685,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("assert_jsonpath('$.1', expected_value=None)", test_script)
         self.assertIn("assert_not_jsonpath('$.2', expected_value=None)", test_script)
@@ -707,7 +707,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("assert_xpath('//head/title', parser_type='html', validate=False)", test_script)
 
@@ -730,7 +730,7 @@ class TestApiritifScriptBuilder(BZTestCase):
             }]
         })
         self.obj.prepare()
-        with open(self.obj._script) as fds:
+        with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("assert_xpath('//1', parser_type='html', validate=False)", test_script)
         self.assertIn("assert_not_xpath('//2', parser_type='html', validate=False)", test_script)
@@ -745,4 +745,4 @@ class TestApiritifScriptBuilder(BZTestCase):
         self.obj.prepare()
         exp_file = __dir__() + '/../../resources/apiritif/test_codegen.py'
         # import shutil; shutil.copy2(self.obj._script, exp_file)  # keep this coment to ease updates
-        self.assertFilesEqual(exp_file, self.obj._script)
+        self.assertFilesEqual(exp_file, self.obj.script)

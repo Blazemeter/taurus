@@ -128,10 +128,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         return None
 
-    def _create_runner(self, report_file):
+    def _create_runner(self):
         script_type = self.detect_script_type()
         runner = self.engine.instantiate_module(script_type)
-        runner.settings.merge(self.settings.get('selenium-tools').get(script_type))
+        runner.settings.merge(self.settings.get('selenium-tools').get(script_type))  # todo: deprecated, remove it later
         runner.parameters = self.parameters
         runner.provisioning = self.provisioning
         runner.execution = self.execution
@@ -153,7 +153,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         else:
             raise TaurusConfigError("Unsupported script type: %s" % script_type)
 
-        runner.execution["report-file"] = report_file  # TODO: shouldn't it be the field?
         return runner
 
     def _register_reader(self, report_file):
@@ -176,11 +175,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.scenario = self.get_scenario()
         self.script = self.get_script_path()
 
-        self.report_file = self.engine.create_artifact("selenium_tests_report", ".ldjson")
-        self.runner = self._create_runner(self.report_file)
+        default_report = self.engine.create_artifact("selenium_tests_report", ".ldjson")
+        self.report_file = self.execution.get('report-file', default_report)
+        self.runner = self._create_runner()
         self.runner.prepare()
-        if isinstance(self.runner, NoseTester):
-            self.script = self.runner._script
+        
         if self.register_reader:
             self.reader = self._register_reader(self.report_file)
 

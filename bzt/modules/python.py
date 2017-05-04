@@ -27,17 +27,17 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(NoseTester, self).__init__()
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
-        self._script = None
+        self.script = None
         self.generated_methods = BetterDict()
         self._tailer = NoneTailer()
 
     def prepare(self):
         super(NoseTester, self).prepare()
         self.install_required_tools()
-        self._script = self.get_script_path()
-        if not self._script:
+        self.script = self.get_script_path()
+        if not self.script:
             if "requests" in self.get_scenario():
-                self._script = self.__tests_from_requests()
+                self.script = self.__tests_from_requests()
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
@@ -98,7 +98,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         if load.hold:
             nose_command_line += ['-d', str(load.hold)]
 
-        nose_command_line += [self._script]
+        nose_command_line += [self.script]
         self._start_subprocess(nose_command_line)
 
         if self.__is_verbose():

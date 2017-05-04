@@ -6,6 +6,8 @@ import time
 import os
 from bzt import ToolError, TaurusConfigError
 
+from os import listdir
+from os.path import join
 from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager
 
@@ -79,7 +81,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
             for root, _, files in os.walk(self.script):
                 for test_file in files:
                     if os.path.splitext(test_file)[1].lower() in extensions:
-                        path = get_full_path(os.path.join(root, test_file))
+                        path = get_full_path(join(root, test_file))
                         file_list.append(path)
         else:
             if os.path.splitext(self.script)[1].lower() in extensions:
@@ -92,9 +94,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         """
         self.log.debug("Compiling .java files started")
 
-        jar_path = os.path.join(self.engine.artifacts_dir,
-                                self.working_dir,
-                                self.settings.get("jar-name", "compiled.jar"))
+        jar_path = join(self.engine.artifacts_dir, self.working_dir, self.settings.get("jar-name", "compiled.jar"))
         if os.path.exists(jar_path):
             self.log.debug(".java files are already compiled, skipping")
             return
@@ -134,9 +134,9 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         """
         self.log.debug("Making .jar started")
 
-        with open(os.path.join(self.engine.artifacts_dir, "jar.out"), 'ab') as jar_out:
-            with open(os.path.join(self.engine.artifacts_dir, "jar.err"), 'ab') as jar_err:
-                class_files = [java_file for java_file in os.listdir(self.working_dir) if java_file.endswith(".class")]
+        with open(join(self.engine.artifacts_dir, "jar.out"), 'ab') as jar_out:
+            with open(join(self.engine.artifacts_dir, "jar.err"), 'ab') as jar_err:
+                class_files = [java_file for java_file in listdir(self.working_dir) if java_file.endswith(".class")]
                 jar_name = self.settings.get("jar-name", "compiled.jar")
                 if class_files:
                     compile_jar_cl = ["jar", "-cf", jar_name]
@@ -164,6 +164,10 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
     """
     Allows to test java and jar files
     """
+    def __init__(self):
+        super(JUnitTester, self).__init__()
+        self.junit_path = None
+        self.junit_listener_path = None
 
     def prepare(self):
         super(JUnitTester, self).prepare()
@@ -178,8 +182,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
     def install_required_tools(self):
         super(JUnitTester, self).install_required_tools()
         self.junit_path = self.path_lambda(self.settings.get("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar"))
-        self.junit_listener_path = os.path.join(get_full_path(__file__, step_up=2),
-                                                "resources", "taurus-junit-1.0.jar")
+        self.junit_listener_path = join(get_full_path(__file__, step_up=2), "resources", "taurus-junit-1.0.jar")
 
         tools = []
         # only check javac if we need to compile. if we have JAR as script - we don't need javac
@@ -202,7 +205,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         # selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar
         # taurusjunit.CustomRunner runner.properties
 
-        jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
+        jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
         self.base_class_path.extend(jar_list)
 
@@ -220,8 +223,8 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
             for index, item in enumerate(jar_list):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
-        junit_command_line = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurusjunit.CustomRunner",
-                              self.props_file]
+        class_path = os.pathsep.join(self.base_class_path)
+        junit_command_line = ["java", "-cp", class_path, "taurusjunit.CustomRunner", self.props_file]
 
         self._start_subprocess(junit_command_line)
 
@@ -233,6 +236,11 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
     __test__ = False  # Hello, nosetests discovery mechanism
 
+    def __init__(self):
+        super(TestNGTester, self).__init__()
+        self.testng_path = None
+        self.testng_plugin_path = None
+
     def prepare(self):
         super(TestNGTester, self).prepare()
         self.install_required_tools()
@@ -243,9 +251,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
     def install_required_tools(self):
         super(TestNGTester, self).install_required_tools()
         self.testng_path = self.path_lambda(self.settings.get("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar"))
-        self.testng_plugin_path = os.path.join(get_full_path(__file__, step_up=2),
-                                               "resources",
-                                               "taurus-testng-1.0.jar")
+        self.testng_plugin_path = join(get_full_path(__file__, step_up=2), "resources", "taurus-testng-1.0.jar")
 
         tools = []
         if self.script and any(self._collect_script_files({'.java'})):
@@ -267,7 +273,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         # testng.jar:selenium-server.jar:taurus-testng-1.0.jar:json.jar:compiled.jar
         # taurustestng.TestNGRunner runner.properties
 
-        jar_list = [os.path.join(self.working_dir, jar) for jar in os.listdir(self.working_dir) if jar.endswith(".jar")]
+        jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
         self.base_class_path.extend(jar_list)
 
