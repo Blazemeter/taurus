@@ -4,6 +4,7 @@ import os
 import re
 import select
 import sys
+from abc import abstractmethod
 from collections import OrderedDict
 
 import apiritif
@@ -369,324 +370,6 @@ from selenium.webdriver.support.wait import WebDriverWait
         return aby, atype, param, selector
 
 
-class JMeterFunction(object):
-    arg_names = []
-
-    def to_python(self, arguments):
-        "arguments -> (expression, helper_lines)"
-        args = dict(zip(self.arg_names, arguments))
-        return self._translate(args)
-
-    def _translate(self, args):
-        pass
-
-
-class RandomFunction(JMeterFunction):
-    arg_names = ["min", "max", "varname"]
-
-    def _translate(self, args):
-        if args.get("min") is None or args.get("max") is None:
-            return None
-
-        rand = "str(random.randrange(%s, %s))" % (args["min"], args["max"])
-
-        if "varname" in args:
-            return args["varname"], ["%s = %s" % (args["varname"], rand)]
-        else:
-            return rand, None
-
-
-class RandomStringFunction(JMeterFunction):
-    arg_names = ["size", "chars", "varname"]
-
-    def _translate(self, args):
-        lines = []
-        if args.get("size") is None:
-            return None
-
-        size = int(args.get("size"))
-        args = repr(size)
-        if "chars" in args:
-            args += ", " + repr(args["chars"])
-        rand = 'utils.random_string({args})'.format(args=args)
-
-        if "varname" in args:
-            lines.append("%s = %s" % (args["varname"], rand))
-            expr = args["varname"]
-        else:
-            expr = rand
-
-        return expr, lines
-
-
-class TimeFunction(JMeterFunction):
-    arg_names = ["format", "varname"]
-
-    def _translate(self, arguments):
-        # if no format is given - return number of ms since epoch
-        # TODO: otherwise - return SimpleDateFormat-formatted date
-        # TODO: handle second argument - varname
-        return "str(int(time.time() * 1000))", None
-
-
-class ApiritifScriptBuilder(PythonGenerator):
-    IMPORTS = """\
-import logging
-import random
-import string
-import sys
-import time
-import unittest
-
-import apiritif
-
-"""
-
-    def __init__(self, scenario, parent_logger):
-        super(ApiritifScriptBuilder, self).__init__(scenario, parent_logger)
-        self.translator = JMeterLangTranslator(self.log)
-        self.verbose = False
-        self.access_method = None
-
-    def gen_target(self, test_method):
-        keepalive = self.scenario.get("keepalive", None)
-        default_address = self.scenario.get("default-address", None)
-        base_path = self.scenario.get("base-path", None)
-        auto_assert_ok = self.scenario.get("auto-assert-ok", True)
-        store_cookie = self.scenario.get("store-cookie", None)
-        timeout = self.scenario.get("timeout", None)
-        follow_redirects = self.scenario.get("follow-redirects", True)
-
-        if default_address is not None or keepalive or store_cookie:
-            self.access_method = "target"
-        else:
-            self.access_method = "plain"
-
-        if keepalive is None:
-            keepalive = True
-        if store_cookie is None:
-            store_cookie = True
-
-        if self.access_method == "target":
-            target_line = "target = apiritif.http.target(%s)" % self.translator.interpolate_str(default_address)
-            test_method.append(self.gen_statement(target_line, indent=8))
-
-            if base_path:
-                test_method.append(self.gen_statement("target.base_path(%r)" % base_path, indent=8))
-            test_method.append(self.gen_statement("target.keep_alive(%r)" % keepalive, indent=8))
-            test_method.append(self.gen_statement("target.auto_assert_ok(%r)" % auto_assert_ok, indent=8))
-            test_method.append(self.gen_statement("target.use_cookies(%r)" % store_cookie, indent=8))
-            test_method.append(self.gen_statement("target.allow_redirects(%r)" % follow_redirects, indent=8))
-            if timeout is not None:
-                test_method.append(self.gen_statement("target.timeout(%r)" % dehumanize_time(timeout),
-                                                           indent=8))
-            test_method.append(self.gen_new_line(indent=0))
-
-    def build_source_code(self):
-        methods = {}
-        self.log.debug("Generating Test Case test methods")
-        imports = self.add_imports()
-        self.root.append(imports)
-
-        if self.verbose:
-            self.root.append(self.gen_statement("log = logging.getLogger('apiritif.http')", indent=0))
-            self.root.append(self.gen_statement("log.addHandler(logging.StreamHandler(sys.stdout))", indent=0))
-            self.root.append(self.gen_statement("log.setLevel(logging.DEBUG)", indent=0))
-            self.root.append(self.gen_new_line(0))
-
-        test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
-        self.root.append(test_class)
-        test_method = self.gen_method_definition("test_requests", ["self"])
-
-        variables = self.scenario.get("variables")
-        for var, init in iteritems(variables):
-            test_method.append(self.gen_statement("%s = %s" % (var, self.translator.repr_inter(init)), indent=8))
-        if variables:
-            test_method.append(self.gen_new_line(indent=0))
-
-        self.gen_target(test_method)
-
-        for index, req in enumerate(self.scenario.get_requests()):
-            if not isinstance(req, HTTPRequest):
-                msg = "Apiritif script generator doesn't support '%s' blocks, skipping"
-                self.log.warning(msg, req.NAME)
-                continue
-
-            self._add_url_request(req, test_method)
-            test_method.append(self.gen_new_line(indent=0))
-
-        test_class.append(test_method)
-
-        return methods
-
-    def _add_url_request(self, request, test_method):
-        """
-        :type request: bzt.requests_model.HTTPRequest
-        """
-        named_args = OrderedDict()
-
-        method = request.method.lower()
-        think_time = dehumanize_time(request.priority_option('think-time', default=None))
-
-        if request.timeout is not None:
-            named_args['timeout'] = dehumanize_time(request.timeout)
-        if request.follow_redirects is not None:
-            named_args['allow_redirects'] = request.priority_option('follow-redirects', default=True)
-
-        headers = {}
-        scenario_headers = self.scenario.get("headers", None)
-        if scenario_headers:
-            headers.update(scenario_headers)
-        if request.headers:
-            headers.update(request.headers)
-        if headers:
-            named_args['headers'] = self.translator.repr_inter(headers)
-
-        merged_headers = dict([(key.lower(), value) for key, value in iteritems(headers)])
-        content_type = merged_headers.get('content-type', None)
-
-        if content_type == 'application/json' and isinstance(request.body, (dict, list)):  # json request body
-            named_args['json'] = self.translator.repr_inter(request.body)
-        elif method == "get" and isinstance(request.body, dict):  # request URL params (?a=b&c=d)
-            named_args['params'] = self.translator.repr_inter(request.body)
-        elif isinstance(request.body, dict):  # form data
-            named_args['data'] = self.translator.repr_inter(list(iteritems(request.body)))
-        elif isinstance(request.body, string_types):
-            named_args['data'] = self.translator.repr_inter(request.body)
-        elif request.body:
-            msg = "Cannot handle 'body' option of type %s: %s"
-            raise TaurusConfigError(msg % (type(request.body), request.body))
-
-        kwargs = ", ".join([""] + ["%s=%s" % (name, value) for name, value in iteritems(named_args)])
-
-        request_source = "self.target" if self.access_method == "target" else "apiritif.http"
-
-        if request.label:
-            label = request.label
-        else:
-            label = request.url
-
-        test_method.append(self.gen_statement("with apiritif.transaction(%r):" % label, indent=8))
-        request_line = "response = {source}.{method}({url}{kwargs})".format(
-            source=request_source,
-            method=method,
-            url=self.translator.repr_inter(request.url),
-            kwargs=kwargs,
-        )
-        test_method.append(self.gen_statement(request_line, indent=12))
-        self._add_assertions(request, test_method)
-        self._add_jsonpath_assertions(request, test_method)
-        self._add_xpath_assertions(request, test_method)
-        self._add_extractors(request, test_method)
-        if think_time:
-            test_method.append(self.gen_statement('time.sleep(%s)' % think_time))
-
-    def _add_assertions(self, request, test_method):
-        assertions = request.config.get("assert", [])
-        for idx, assertion in enumerate(assertions):
-            assertion = ensure_is_dict(assertions, idx, "contains")
-            if not isinstance(assertion['contains'], list):
-                assertion['contains'] = [assertion['contains']]
-            subject = assertion.get("subject", Scenario.FIELD_BODY)
-            if subject in (Scenario.FIELD_BODY, Scenario.FIELD_HEADERS):
-                for member in assertion["contains"]:
-                    func_table = {
-                        (Scenario.FIELD_BODY, False, False): "assert_in_body",
-                        (Scenario.FIELD_BODY, False, True): "assert_not_in_body",
-                        (Scenario.FIELD_BODY, True, False): "assert_regex_in_body",
-                        (Scenario.FIELD_BODY, True, True): "assert_regex_not_in_body",
-                        (Scenario.FIELD_HEADERS, False, False): "assert_in_headers",
-                        (Scenario.FIELD_HEADERS, False, True): "assert_not_in_headers",
-                        (Scenario.FIELD_HEADERS, True, False): "assert_regex_in_headers",
-                        (Scenario.FIELD_HEADERS, True, True): "assert_regex_not_in_headers",
-                    }
-                    method = func_table[(subject, assertion.get('regexp', True), assertion.get('not', False))]
-                    line = "response.{method}({member})".format(method=method, member=repr(member))
-                    test_method.append(self.gen_statement(line))
-            elif subject == Scenario.FIELD_RESP_CODE:
-                for member in assertion["contains"]:
-                    method = "assert_status_code" if not assertion.get('not', False) else "assert_not_status_code"
-                    line = "response.{method}({member})".format(method=method, member=repr(member))
-                    test_method.append(self.gen_statement(line))
-
-    def _add_extractors(self, request, test_method):
-        jextractors = request.config.get("extract-jsonpath", BetterDict())
-        for varname in jextractors:
-            cfg = ensure_is_dict(jextractors, varname, "jsonpath")
-            extractor_line = "{varname} = response.extract_jsonpath({query}, {default})".format(
-                varname=varname,
-                query=repr(cfg['jsonpath']),
-                default=repr(cfg.get('default', 'NOT_FOUND'))
-            )
-            test_method.append(self.gen_statement(extractor_line))
-
-        extractors = request.config.get("extract-regexp", BetterDict())
-        for varname in extractors:
-            cfg = ensure_is_dict(extractors, varname, "regexp")
-            # TODO: support non-'body' value of 'subject'
-            extractor_line = "{varname} = response.extract_regex({regex}, {default})".format(
-                varname=varname,
-                regex=repr(cfg['regexp']),
-                default=repr(cfg.get('default', 'NOT_FOUND'))
-            )
-            test_method.append(self.gen_statement(extractor_line))
-
-        # TODO: css/jquery extractor?
-
-        xpath_extractors = request.config.get("extract-xpath", BetterDict())
-        for varname in xpath_extractors:
-            cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
-            parser_type = 'html' if cfg.get('use-tolerant-parser', True) else 'xml'
-            validate = cfg.get('validate-xml', False)
-            extractor_line = ("{varname} = response.extract_xpath({query}, default={default}, "
-                              "parser_type={parser_type}, validate={validate})")
-            extractor_line = extractor_line.format(
-                varname=varname,
-                query=repr(cfg['xpath']),
-                default=repr(cfg.get('default', 'NOT_FOUND')),
-                parser_type=repr(parser_type),
-                validate=repr(validate),
-            )
-            test_method.append(self.gen_statement(extractor_line))
-
-    def _add_jsonpath_assertions(self, request, test_method):
-        jpath_assertions = request.config.get("assert-jsonpath", [])
-        for idx, assertion in enumerate(jpath_assertions):
-            assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
-            exc = TaurusConfigError('JSON Path not found in assertion: %s' % assertion)
-            query = assertion.get('jsonpath', exc)
-            expected = assertion.get('expected-value', '') or None
-            method = "assert_not_jsonpath" if assertion.get('invert', False) else "assert_jsonpath"
-            line = "response.{method}({query}, expected_value={expected})".format(
-                method=method,
-                query=repr(query),
-                expected=repr(expected) if expected else None
-            )
-            test_method.append(self.gen_statement(line))
-
-    def _add_xpath_assertions(self, request, test_method):
-        jpath_assertions = request.config.get("assert-xpath", [])
-        for idx, assertion in enumerate(jpath_assertions):
-            assertion = ensure_is_dict(jpath_assertions, idx, "xpath")
-            exc = TaurusConfigError('XPath not found in assertion: %s' % assertion)
-            query = assertion.get('xpath', exc)
-            parser_type = 'html' if assertion.get('use-tolerant-parser', True) else 'xml'
-            validate = assertion.get('validate-xml', False)
-            method = "assert_not_xpath" if assertion.get('invert', False) else "assert_xpath"
-            line = "response.{method}({query}, parser_type={parser_type}, validate={validate})".format(
-                method=method,
-                query=repr(query),
-                validate=repr(validate),
-                parser_type=repr(parser_type),
-            )
-            test_method.append(self.gen_statement(line))
-
-    def gen_test_method(self, name):
-        self.log.debug("Generating test method %s", name)
-        test_method = self.gen_method_definition(name, ["self"])
-        return test_method
-
-
 class NoneTailer(object):
     def get_lines(self, force=False):
         if False:
@@ -894,6 +577,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.tree = None
         self.verbose = False
+        self.expr_compiler = JMeterExprCompiler(self.log)
         self.__access_method = None
 
     def gen_empty_line_stmt(self):
@@ -953,95 +637,8 @@ log.setLevel(logging.DEBUG)
             decorator_list=[],
         )
 
-    def translate_jmeter_expr(self, expr):
-        """
-        Translates JMeter expression into Apiritif-based Python expression.
-        :type expr: str
-        :return:
-        """
-        self.log.debug("Attempting to translate JMeter expression %r", expr)
-        functions = {
-            '__time': TimeFunction,
-            '__Random': RandomFunction,
-            '__RandomString': RandomStringFunction,
-        }
-        regexp = r"(\w+)\((.*?)\)"
-        args_re = r'(?<!\\),'
-        match = re.match(regexp, expr)
-        if match is None:  # doesn't look like JMeter expression, do not translate
-            return ast.Str(s=expr)
-
-        varname, arguments = match.groups()
-
-        if arguments is None:  # plain variable
-            return ast.Name(id=varname, ctx=ast.Load())
-        else:  # function call
-            if not arguments:
-                args = []
-            else:
-                # parse arguments: split by ',' but not '\,'
-                args = [arg.strip() for arg in re.split(args_re, arguments)]
-
-            if varname not in functions:  # unknown function
-                return ast.Name(id=varname, ctx=ast.Load())
-
-            self.log.debug("Translating function %s with arguments %s", varname, arguments)
-            func = functions[varname]()
-
-            result = func.to_python(args)
-
-            if result is None:
-                return expr
-            else:
-                return result
-
     def gen_expr(self, value):
-        if isinstance(value, bool):
-            return ast.Name(id="True" if value else "False", ctx=ast.Load())
-        elif isinstance(value, (int, float)):
-            return ast.Num(n=value)
-        elif isinstance(value, string_types):
-            # if is has interpolation - break it into a BinOp or a Name node
-            # otherwise - it's a literal
-            # TODO: "asdasdas".format(url)
-            parts = re.split(r'(\$\{.*?\})', value)
-            format_args = []
-            for item in parts:
-                if item:
-                    if item.startswith("${") and item.endswith("}"):
-                        # result = self.translate_jmeter_expr(item)
-                        value = value.replace(item, "{}")
-                        format_args.append(ast.Name(id=item[2:-1], ctx=ast.Load()))
-            if format_args:
-                if len(format_args) == 1 and value == "{}":
-                    result = format_args[0]
-                else:
-                    result = ast.Call(
-                        func=ast.Attribute(
-                            value=ast.Str(s=value),
-                            attr='format',
-                            ctx=ast.Load(),
-                        ),
-                        args=format_args,
-                        keywords=[],
-                        starargs=None,
-                        kwargs=None
-                    )
-            else:
-                result = ast.Str(s=value)
-            self.log.debug("Gen expr: %r -> %r", value, result)
-            return result
-        elif isinstance(value, type(None)):
-            return ast.Name(id="None", ctx=ast.Load())
-        elif isinstance(value, dict):
-            return ast.Dict(keys=[self.gen_expr(x) for x in value.keys()],
-                            values=[self.gen_expr(v) for v in value.values()])
-        elif isinstance(value, list):
-            return ast.List(elts=[self.gen_expr(val) for val in value], ctx=ast.Load())
-        elif isinstance(value, ast.AST):
-            return value
-        else:
-            return value
+        return self.expr_compiler.gen_expr(value)
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(value=ast.Call(
@@ -1144,7 +741,8 @@ log.setLevel(logging.DEBUG)
 
         lines = []
 
-        tran = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr="transaction", ctx=ast.Load())
+        tran = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()),
+                             attr="transaction", ctx=ast.Load())
         transaction = ast.With(
             context_expr=ast.Call(
                 func=tran,
@@ -1398,9 +996,145 @@ log.setLevel(logging.DEBUG)
             fds.write(astunparse.unparse(self.tree))
 
 
-class JMeterLangTranslator(object):
+class JMeterFunction(object):
+    def __init__(self, arg_names, compiler):
+        self.arg_names = arg_names
+        self.compiler = compiler
+
+    def to_python(self, arguments):
+        "arguments -> (expression, stmts)"
+        args = dict(zip(self.arg_names, arguments))
+        return self._compile(args)
+
+    @abstractmethod
+    def _compile(self, args):
+        pass
+
+
+class RandomFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(RandomFunction, self).__init__(["min", "max", "varname"], compiler)
+
+    def _compile(self, args):
+        if args.get("min") is None or args.get("max") is None:
+            return None
+
+        # TODO: handle `varname` arg
+
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='random_uniform',
+                ctx=ast.Load(),
+            ),
+            args=[self.compiler.gen_expr(int(args["min"])), self.compiler.gen_expr(int(args["max"]))],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+class RandomStringFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(RandomStringFunction, self).__init__(["size", "chars", "varname"], compiler)
+
+    def _compile(self, args):
+        if args.get("size") is None:
+            return None
+
+        # TODO: handle `varname`
+
+        size = int(args.get("size"))
+        arguments = [self.compiler.gen_expr(size)]
+        if "chars" in args:
+            arguments.append(self.compiler.gen_expr(args["chars"]))
+
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='random_string',
+                ctx=ast.Load(),
+            ),
+            args=arguments,
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+class TimeFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(TimeFunction, self).__init__(["format", "varname"], compiler)
+
+    def _compile(self, args):
+        # TODO: handle varname
+        arguments = []
+        if "format" in args:
+            arguments.append(self.compiler.gen_expr(args["format"]))
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='format_date',
+                ctx=ast.Load(),
+            ),
+            args=arguments,
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+class JMeterExprCompiler(object):
     def __init__(self, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
+
+    def gen_expr(self, value):
+        if isinstance(value, bool):
+            return ast.Name(id="True" if value else "False", ctx=ast.Load())
+        elif isinstance(value, (int, float)):
+            return ast.Num(n=value)
+        elif isinstance(value, string_types):
+            # if is has interpolation - break it into either a `"".format(args)` form or a Name node
+            # otherwise - it's a string literal
+            parts = re.split(r'(\$\{.*?\})', value)
+            format_args = []
+            for item in parts:
+                if item:
+                    if item.startswith("${") and item.endswith("}"):
+                        value = value.replace(item, "{}")
+                        compiled = self.translate_jmeter_expr(item[2:-1])
+                        format_args.append(compiled)
+            if format_args:
+                if len(format_args) == 1 and value == "{}":
+                    result = format_args[0]
+                else:
+                    result = ast.Call(
+                        func=ast.Attribute(
+                            value=ast.Str(s=value),
+                            attr='format',
+                            ctx=ast.Load(),
+                        ),
+                        args=format_args,
+                        keywords=[],
+                        starargs=None,
+                        kwargs=None
+                    )
+            else:
+                result = ast.Str(s=value)
+            self.log.debug("Gen expr: %r -> %r", value, result)
+            return result
+        elif isinstance(value, type(None)):
+            return ast.Name(id="None", ctx=ast.Load())
+        elif isinstance(value, dict):
+            items = sorted(list(iteritems(value)))
+            return ast.Dict(keys=[self.gen_expr(k) for k, _ in items],
+                            values=[self.gen_expr(v) for _, v in items])
+        elif isinstance(value, list):
+            return ast.List(elts=[self.gen_expr(val) for val in value], ctx=ast.Load())
+        elif isinstance(value, ast.AST):
+            return value
+        else:
+            return value
 
     def translate_jmeter_expr(self, expr):
         """
@@ -1418,12 +1152,12 @@ class JMeterLangTranslator(object):
         args_re = r'(?<!\\),'
         match = re.match(regexp, expr)
         if match is None:  # doesn't look like JMeter expression, do not translate
-            return repr(expr), None
+            return ast.Name(id=expr, ctx=ast.Load())
 
         varname, arguments = match.groups()
 
         if arguments is None:  # plain variable
-            return varname, None
+            result = ast.Name(id=varname, ctx=ast.Load())
         else:  # function call
             if not arguments:
                 args = []
@@ -1432,46 +1166,12 @@ class JMeterLangTranslator(object):
                 args = [arg.strip() for arg in re.split(args_re, arguments)]
 
             if varname not in functions:  # unknown function
-                return repr(expr), None
+                return ast.Name(id=varname, ctx=ast.Load())
 
             self.log.debug("Translating function %s with arguments %s", varname, arguments)
-            func = functions[varname]()
+            func = functions[varname](self)
             result = func.to_python(args)
             if result is None:
-                return repr(expr), None
-            else:
-                return result
-
-    def interpolate_str(self, string):
-        """
-        "/${foo}" -> '"/" + str(foo)'
-
-
-        :param string:
-        :return:
-        """
-        components = []
-        lines = []
-        for item in re.split(r'(\$\{.*?\})', string):
-            if item:
-                if item.startswith("${") and item.endswith("}"):
-                    expr = item[2:-1]
-                    result, helpers = self.translate_jmeter_expr(expr)
-                    components.append(result)
-                    if helpers:
-                        lines.extend(helpers)
-                else:
-                    components.append(repr(item))
-
-        return " + ".join(components)
-
-    def repr_inter(self, obj):
-        recur = self.repr_inter
-        if isinstance(obj, dict):
-            return "{" + ", ".join(recur(key) + ": " + recur(value) for key, value in sorted(iteritems(obj))) + "}"
-        elif isinstance(obj, list):
-            return "[" + ", ".join(recur(item) for item in obj) + "]"
-        elif isinstance(obj, string_types):
-            return self.interpolate_str(obj)
-        else:
-            return repr(obj)
+                result = ast.Name(id=varname, ctx=ast.Load())
+        self.log.debug("Compile: %r -> %r", expr, result)
+        return result

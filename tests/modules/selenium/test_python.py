@@ -297,9 +297,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         self.assertEqual(gen_contents, sample_contents)
 
 
-class TestApiritifScriptBuilder(BZTestCase):
+class TestApiritifScriptGenerator(BZTestCase):
     def setUp(self):
-        super(TestApiritifScriptBuilder, self).setUp()
+        super(TestApiritifScriptGenerator, self).setUp()
         self.obj = NoseTester()
         self.obj.engine = EngineEmul()
 
@@ -746,3 +746,61 @@ class TestApiritifScriptBuilder(BZTestCase):
         exp_file = __dir__() + '/../../resources/apiritif/test_codegen.py'
         # import shutil; shutil.copy2(self.obj._script, exp_file)  # keep this coment to ease updates
         self.assertFilesEqual(exp_file, self.obj._script)
+
+    def test_jmeter_functions_time(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "requests": [
+                        "/?time=${__time()}",
+                        "/?time=${__time(MM/dd/yy)}",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj._script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("'/?time={}'.format(apiritif.format_date())", test_script)
+        self.assertIn("'/?time={}'.format(apiritif.format_date('MM/dd/yy'))", test_script)
+
+    def test_jmeter_functions_random(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "requests": [
+                        "/?random=${__Random(1, 10)}",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj._script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("'/?random={}'.format(apiritif.random_uniform(1, 10))", test_script)
+
+    def test_jmeter_functions_random_string(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "requests": [
+                        "/?rs=${__RandomString(3)}",
+                        "/?rs=${__RandomString(4,abcdef)}",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj._script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("'/?rs={}'.format(apiritif.random_string(3))", test_script)
+        self.assertIn("'/?rs={}'.format(apiritif.random_string(4, 'abcdef'))", test_script)
