@@ -20,6 +20,7 @@ def get_res_path(resource):
 
 class TestTsungExecutor(BZTestCase):
     def setUp(self):
+        super(TestTsungExecutor, self).setUp()
         self.obj = TsungExecutor()
         self.obj.engine = EngineEmul()
         self.obj.settings = BetterDict()

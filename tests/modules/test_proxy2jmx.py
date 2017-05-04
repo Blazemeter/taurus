@@ -8,7 +8,7 @@ from bzt.modules.proxy2jmx import Proxy2JMX, BZAProxy
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import is_windows, get_full_path
 from tests import BZTestCase
-from tests.mocks import EngineEmul, RecordingHandler
+from tests.mocks import EngineEmul
 from os.path import join
 
 
@@ -42,6 +42,7 @@ class ResponseEmul(object):
 
 class TestProxy2JMX(BZTestCase):
     def setUp(self):
+        super(TestProxy2JMX, self).setUp()
         self.obj = Proxy2JMXEmul()
         self.obj.engine = EngineEmul()
 
@@ -155,19 +156,17 @@ class TestProxy2JMX(BZTestCase):
                 'recorder': {
                     'token': '123'}}})
         self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
-        handler = RecordingHandler()
-        self.obj.log.addHandler(handler)
+        self.sniff_log(self.obj.log)
 
         self.obj.prepare()
         self.obj.engine.provisioning.executors = [SeleniumExecutor()]
-        self.obj.log.removeHandler(handler)
         is_linux = 'linux' in sys.platform.lower()
         if is_linux:
             self._check_linux()
         elif is_windows():
             self._check_windows()
         else:   # MacOS, for future and manual testing
-            self.assertIn("Your system doesn't support settings of proxy", handler.warn_buff.getvalue())
+            self.assertIn("Your system doesn't support settings of proxy", self.log_recorder.warn_buff.getvalue())
 
         self.obj.shutdown()
         self.obj.post_process()

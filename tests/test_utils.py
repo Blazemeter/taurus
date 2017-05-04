@@ -14,7 +14,7 @@ class TestLogStreams(BZTestCase):
 
         print('test1')
 
-        with log_std_streams(logger=self.logger, stdout_level=logging.DEBUG):
+        with log_std_streams(logger=self.captured_logger, stdout_level=logging.DEBUG):
             print('test2')
 
         with log_std_streams(stdout_level=logging.DEBUG):
@@ -23,13 +23,13 @@ class TestLogStreams(BZTestCase):
         with log_std_streams(stdout_level=logging.DEBUG):
             sys.stdout.write('test3')
 
-        with log_std_streams(logger=self.logger, stdout_level=logging.DEBUG):
+        with log_std_streams(logger=self.captured_logger, stdout_level=logging.DEBUG):
             process = Popen(['echo', '"test5"'])
             process.wait()
 
         missed_file = get_uniq_name('.', 'test6', '')
 
-        with log_std_streams(logger=self.logger, stderr_level=logging.WARNING):
+        with log_std_streams(logger=self.captured_logger, stderr_level=logging.WARNING):
             process = Popen(['dir', missed_file])
             process.wait()
 

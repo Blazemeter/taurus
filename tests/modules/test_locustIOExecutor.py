@@ -14,6 +14,7 @@ from tests.mocks import EngineEmul
 
 class TestLocustIOExecutor(BZTestCase):
     def setUp(self):
+        super(TestLocustIOExecutor, self).setUp()
         sys.path.append(__dir__() + "/../resources/locust/")
         self.obj = LocustIOExecutor()
         self.obj.engine = EngineEmul()

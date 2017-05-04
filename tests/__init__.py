@@ -94,17 +94,17 @@ def random_datapoint(n):
 
 class BZTestCase(TestCase):
     def setUp(self):
-        self.logger = None
+        self.captured_logger = None
         self.log_recorder = None
 
     def sniff_log(self, log):
         self.log_recorder = RecordingHandler()
-        self.logger = log
-        self.logger.addHandler(self.log_recorder)
+        self.captured_logger = log
+        self.captured_logger.addHandler(self.log_recorder)
 
     def tearDown(self):
-        if self.logger:
-            self.logger.removeHandler(self.log_recorder)
+        if self.captured_logger:
+            self.captured_logger.removeHandler(self.log_recorder)
             self.log_recorder.close()
 
     def assertFilesEqual(self, expected, actual):

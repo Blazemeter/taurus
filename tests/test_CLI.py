@@ -1,6 +1,5 @@
 import logging
 import shutil
-import traceback
 
 import os
 from bzt import TaurusException
@@ -14,7 +13,7 @@ from tests.mocks import EngineEmul, ModuleMock
 class TestCLI(BZTestCase):
     def setUp(self):
         super(TestCLI, self).setUp()
-        self.logger = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
+        self.captured_logger = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
         self.verbose = False
         self.quiet = False
         self.no_system_configs = True
