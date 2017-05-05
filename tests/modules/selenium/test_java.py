@@ -10,9 +10,30 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules import java
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION
 from bzt.utils import get_full_path
-from tests import __dir__
+from tests import __dir__, BZTestCase, local_paths_config
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
+
+
+class TestJUnitTester(BZTestCase):
+    def setUp(self):
+        super(TestJUnitTester, self).setUp()
+        engine_obj = EngineEmul()
+        paths = [__dir__() + "/../../../bzt/resources/base-config.yml", local_paths_config()]
+        engine_obj.configure(paths)
+        self.obj = JUnitTester()
+        self.obj.settings = engine_obj.config.get("modules").get("junit")
+        engine_obj.create_artifacts_dir(paths)
+        self.obj.engine = engine_obj
+
+    def test_simple(self):
+        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../../resources/BlazeDemo.java"}})
+        self.obj.prepare()
+        self.obj.startup()
+        while self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.obj.post_process()
 
 
 class TestSeleniumJUnitTester(SeleniumTestCase):
