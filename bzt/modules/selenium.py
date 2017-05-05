@@ -24,7 +24,6 @@ from bzt.engine import Scenario, FileLister, SubprocessedExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
-from bzt.modules.python import NoseTester
 from bzt.utils import is_windows, BetterDict, get_full_path, get_files_recursive
 
 try:
