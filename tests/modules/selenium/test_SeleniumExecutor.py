@@ -105,7 +105,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
-    def test_arequests(self):
+    def test_requests(self):
         self.configure(yaml.load(open(__dir__() + "/../../resources/yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
