@@ -180,7 +180,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertIn(label2, res[1])
         self.assertIn(label3, res[2])
 
-    def test_dont_copy_local_script_to_artifacts(self):
+    def test_adont_copy_local_script_to_artifacts(self):
         "ensures that .java file is not copied into artifacts-dir"
         filename = "BlazeDemo.java"
         script_path = __dir__() + "/../../resources/" + filename

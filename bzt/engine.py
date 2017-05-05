@@ -1095,7 +1095,7 @@ class SubprocessedExecutor(ScenarioExecutor):
 
     def __init__(self):
         super(SubprocessedExecutor, self).__init__()
-
+        self.script = None
         self.env = {}
         self.process = None
         self.opened_descriptors = []

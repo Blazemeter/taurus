@@ -128,6 +128,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return None
 
     def _create_runner(self):
+
         script_type = self.detect_script_type()
         runner = self.engine.instantiate_module(script_type)
         runner.settings.merge(self.settings.get('selenium-tools').get(script_type))  # todo: deprecated, remove it later
@@ -172,22 +173,23 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.log.warning(msg)
         self.set_virtual_display()
         self.scenario = self.get_scenario()
-        self.script = self.get_script_path()
 
         default_report = self.engine.create_artifact("selenium_tests_report", ".ldjson")
         self.report_file = self.execution.get('report-file', default_report)
         self.runner = self._create_runner()
         self.runner.prepare()
+        self.script = self.runner.script
 
         if self.register_reader:
             self.reader = self._register_reader(self.report_file)
 
     def detect_script_type(self):
-        if not self.script and "requests" in self.scenario:
+        script_name = self.get_script_path()
+        if not script_name and "requests" in self.scenario:
             return "nose"
 
-        if not os.path.exists(self.script):
-            raise TaurusConfigError("Script '%s' doesn't exist" % self.script)
+        if not os.path.exists(script_name):
+            raise TaurusConfigError("Script '%s' doesn't exist" % script_name)
 
         if "runner" in self.execution:
             runner = self.execution["runner"]
@@ -199,10 +201,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         file_types = set()
 
-        if os.path.isfile(self.script):  # regular file received
-            file_types.add(os.path.splitext(self.script)[1].lower())
+        if os.path.isfile(script_name):  # regular file received
+            file_types.add(os.path.splitext(script_name)[1].lower())
         else:  # dir received: check contained files
-            for file_name in get_files_recursive(self.script):
+            for file_name in get_files_recursive(script_name):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types or '.jar' in file_types:
@@ -217,7 +219,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         elif '.js' in file_types:
             script_type = 'mocha'
         else:
-            raise TaurusConfigError("Unsupported script type: %s" % self.script)
+            raise TaurusConfigError("Unsupported script type: %s" % script_name)
 
         self.log.debug("Detected script type: %s", script_type)
 

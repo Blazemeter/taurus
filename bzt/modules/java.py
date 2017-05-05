@@ -39,7 +39,6 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
     def __init__(self):
         super(JavaTestRunner, self).__init__()
-        self.script = None
         self.working_dir = os.getcwd()
         self.target_java = "1.8"
         self.props_file = None

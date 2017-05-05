@@ -30,7 +30,6 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(NoseTester, self).__init__()
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
-        self.script = None
         self.generated_methods = BetterDict()
         self._tailer = NoneTailer()
 

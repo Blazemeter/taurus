@@ -29,14 +29,13 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
         self.node_tool = None
         self.npm_tool = None
         self.mocha_tool = None
-        self._script = None
 
     def prepare(self):
         super(MochaTester, self).prepare()
         self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
         self.install_required_tools()
-        self._script = self.get_script_path()
-        if not self._script:
+        self.script = self.get_script_path()
+        if not self.script:
             raise TaurusConfigError("No script specified")
 
     def install_required_tools(self):
@@ -60,7 +59,7 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
             "--report-file",
             self.execution.get("report-file"),
             "--test-suite",
-            self._script
+            self.script
         ]
         load = self.get_load()
         if load.iterations:
