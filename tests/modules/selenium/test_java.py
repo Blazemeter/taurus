@@ -405,7 +405,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
             time.sleep(1.0)
         self.obj.shutdown()
         self.obj.post_process()
-        lines = open(self.obj.report_file).readlines()
+        lines = open(self.obj.runner.report_file).readlines()
         self.assertEqual(len(lines), 3)
 
     def test_prepare_java_file(self):
@@ -424,7 +424,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
             time.sleep(1.0)
         self.obj.shutdown()
         self.obj.post_process()
-        lines = open(self.obj.report_file).readlines()
+        lines = open(self.obj.runner.report_file).readlines()
         self.assertEqual(len(lines), 3)
 
     def test_resource_files(self):

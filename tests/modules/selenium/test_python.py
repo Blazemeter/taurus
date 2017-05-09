@@ -238,11 +238,9 @@ class TestNoseRunner(BZTestCase):
             self.obj.shutdown()
         self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
-        with open(os.path.join(self.obj.engine.artifacts_dir, "report.ldjson")) as fds:
+        with open(self.obj.report_file) as fds:
             self.obj.log.debug("Report: %s", fds.read())
-        reader = LoadSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "report.ldjson"),
-                                   self.obj.log,
-                                   [])
+        reader = LoadSamplesReader(self.obj.report_file, self.obj.log, [])
         samples = list(reader._read(last_pass=True))
         self.assertEqual(len(samples), 1)
         tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count = samples[0]
