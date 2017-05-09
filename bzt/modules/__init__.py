@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from bzt import TaurusInternalException, ToolError
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, BetterDict
 from bzt.utils import shutdown_process
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
@@ -26,22 +26,28 @@ class ReportableExecutor(ScenarioExecutor):
     def __init__(self):
         super(ReportableExecutor, self).__init__()
         self.report_file = None
-        self.translation_table = None
         self.reported = True
 
-    def prepare(self):
-        super(ScenarioExecutor, self).prepare()
-        if self.reported:
-            if self.report_file is None:
-                raise TaurusInternalException('Report file not found: %s' % self)
-            if self.engine.is_functional_mode():
-                reader = FuncSamplesReader(self.report_file, self.engine, self.log, self.translation_table)
-                if isinstance(self.engine.aggregator, FunctionalAggregator):
-                    self.engine.aggregator.add_underling(reader)
-            else:
-                reader = LoadSamplesReader(self.report_file, self.log, self.translation_table)
-                if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-                    self.engine.aggregator.add_underling(reader)
+    def reporting_setup(self, translation_table=None, prefix=None, suffix=None):
+        if not self.reported:
+            return
+
+        if translation_table is None:
+            translation_table = {}
+
+        if "report-file" in self.execution:
+            self.report_file = self.execution.get("report-file")
+        else:
+            self.report_file = self.engine.create_artifact(prefix, suffix)
+
+        if self.engine.is_functional_mode():
+            self.reader = FuncSamplesReader(self.report_file, self.engine, self.log, translation_table)
+            if isinstance(self.engine.aggregator, FunctionalAggregator):
+                self.engine.aggregator.add_underling(self.reader)
+        else:
+            self.reader = LoadSamplesReader(self.report_file, self.log, translation_table)
+            if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+                self.engine.aggregator.add_underling(self.reader)
 
 
 class SubprocessedExecutor(ReportableExecutor):

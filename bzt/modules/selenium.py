@@ -161,8 +161,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.runner = self._create_runner()
         self.runner.prepare()
         self.script = self.runner.script
-        self.reported = False
-        super(SeleniumExecutor, self).prepare()
 
     def detect_script_type(self):
         script_name = self.get_script_path()

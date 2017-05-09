@@ -13,12 +13,11 @@ import astunparse
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules import SubprocessedExecutor
-from bzt.modules.aggregator import ConsolidatingAggregator
-from bzt.modules.functional import FunctionalAggregator, LoadSamplesReader, FuncSamplesReader
+from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
-from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time, BetterDict, \
-    ensure_is_dict
+from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time
+from bzt.utils import BetterDict, ensure_is_dict
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
@@ -43,13 +42,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
-        if "report-file" in self.execution:
-            self.report_file = self.execution.get("report-file")
-        else:
-            self.report_file = self.engine.create_artifact("report", ".ldjson")
-
-        self.translation_table = self.generated_methods     # todo: set translation_table in __tests_from_requests?
-        super(NoseTester, self).prepare()
+        self.reporting_setup(translation_table=self.generated_methods, prefix="report", suffix=".ldjson")
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
