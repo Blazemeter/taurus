@@ -49,7 +49,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
 
     def test_selenium_startup_shutdown_python_folder(self):
         """
@@ -68,7 +68,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
 
     def test_runner_fail_no_test_found(self):
         """

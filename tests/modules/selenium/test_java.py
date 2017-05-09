@@ -193,7 +193,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 0)
         self.assertEqual(len(jars), 0)
-        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
 
     def test_selenium_startup_shutdown_jar_folder(self):
         """
@@ -221,7 +221,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(len(java_files), 0)
         self.assertEqual(len(class_files), 0)
         self.assertEqual(len(jars), 0)
-        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
 
     def test_selenium_startup_shutdown_java_single(self):
         """
@@ -253,7 +253,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(1, len(class_files))
         self.assertEqual(1, len(jars))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
-        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
 
     def test_selenium_startup_shutdown_java_folder(self):
         """
@@ -283,7 +283,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(2, len(class_files))
         self.assertEqual(1, len(jars))
         self.assertTrue(os.path.exists(os.path.join(self.obj.runner.working_dir, "compiled.jar")))
-        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
 
     def test_not_junit(self):
         """
@@ -471,7 +471,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
         duration = time.time() - self.obj.start_time
         self.assertGreater(duration, 5)
 
@@ -491,8 +491,8 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
-        lines = open(self.obj.runner.execution.get("report-file")).readlines()
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
+        lines = open(self.obj.runner.report_file).readlines()
         self.assertEqual(len(lines), 9)
 
     def test_with_testng_config(self):
@@ -509,8 +509,8 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
-        lines = open(self.obj.runner.execution.get("report-file")).readlines()
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
+        lines = open(self.obj.runner.report_file).readlines()
         self.assertEqual(len(lines), 6)
 
     def test_testng_config_autodetect(self):
@@ -528,8 +528,8 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.execution.get("report-file")))
-        lines = open(self.obj.runner.execution.get("report-file")).readlines()
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
+        lines = open(self.obj.runner.report_file).readlines()
         self.assertEqual(len(lines), 6)
 
     def test_autodetect_script_type(self):
