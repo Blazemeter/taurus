@@ -251,10 +251,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.free_virtual_display()
 
     def has_results(self):
-        if self.reader and self.reader.read_records:
-            return True
-        else:
-            return False
+        return self.runner.has_results()
 
     def get_widget(self):
         if not self.widget:

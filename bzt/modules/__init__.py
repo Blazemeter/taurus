@@ -106,3 +106,9 @@ class SubprocessedExecutor(ReportableExecutor):
             if not tool.check_if_installed():
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
+
+    def has_results(self):
+        if self.reader and self.reader.read_records:
+            return True
+        else:
+            return False

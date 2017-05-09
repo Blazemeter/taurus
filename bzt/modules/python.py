@@ -109,12 +109,6 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         if self.__is_verbose():
             self._tailer = FileTailer(self._stdout_file)
 
-    def has_results(self):
-        if isinstance(self.reader, LoadSamplesReader):
-            return bool(self.reader) and bool(self.reader.buffer)
-        elif isinstance(self.reader, FuncSamplesReader):
-            return bool(self.reader) and bool(self.reader.read_records)
-
     def check(self):
         self.__log_lines()
         return super(NoseTester, self).check()
