@@ -5,7 +5,8 @@ from subprocess import CalledProcessError
 import os
 from bzt import ToolError, TaurusConfigError
 
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools
+from bzt.engine import HavingInstallableTools
+from bzt.modules import SubprocessedExecutor
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node
 
 MOCHA_NPM_PACKAGE_NAME = "mocha"
@@ -37,6 +38,7 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("No script specified")
+        self.reporting_setup(suffix='ldjson')
 
     def install_required_tools(self):
         tools = []
@@ -57,7 +59,7 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
             self.node_tool.executable,
             self.plugin_path,
             "--report-file",
-            self.execution.get("report-file"),
+            self.report_file,
             "--test-suite",
             self.script
         ]

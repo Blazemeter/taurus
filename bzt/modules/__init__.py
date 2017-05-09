@@ -30,7 +30,7 @@ class ReportableExecutor(ScenarioExecutor):
         self.report_file = None
         self.reported = True
 
-    def reporting_setup(self, translation_table=None, prefix=None, suffix=None):
+    def reporting_setup(self, prefix=None, suffix=None, translation_table=None):
         if not self.reported:
             return
 
@@ -40,6 +40,10 @@ class ReportableExecutor(ScenarioExecutor):
         if "report-file" in self.execution:
             self.report_file = self.execution.get("report-file")
         else:
+            if not prefix:
+                prefix = self.__class__.__name__
+            if suffix is None:
+                suffix = '.dat'
             self.report_file = self.engine.create_artifact(prefix, suffix)
 
         self.report_file = self.report_file.replace(os.path.sep, '/')

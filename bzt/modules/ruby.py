@@ -4,7 +4,8 @@ import traceback
 import os
 from bzt import ToolError, TaurusConfigError
 
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools
+from bzt.modules import SubprocessedExecutor
+from bzt.engine import HavingInstallableTools
 from bzt.utils import RequiredTool, is_windows, get_full_path, TclLibrary
 
 
@@ -27,6 +28,8 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
         if not self._script:
             raise TaurusConfigError("No script specified")
 
+        self.reporting_setup(suffix='ldjson')
+
     def install_required_tools(self):
         tools = []
         tools.append(TclLibrary(self.log))
@@ -45,7 +48,7 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
             interpreter,
             self.plugin_path,
             "--report-file",
-            self.execution.get("report-file"),
+            self.report_file,
             "--test-suite",
             self._script
         ]

@@ -75,7 +75,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         if not os.path.exists(self.working_dir):
             os.makedirs(self.working_dir)
 
-        self.reporting_setup(prefix=self.__class__.__name__, suffix="ldjson")
+        self.reporting_setup(suffix="ldjson")
 
     def _collect_script_files(self, extensions):
         file_list = []
