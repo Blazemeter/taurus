@@ -28,7 +28,6 @@ import astunparse
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules import SubprocessedExecutor
-from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time

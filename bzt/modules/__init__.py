@@ -108,7 +108,4 @@ class SubprocessedExecutor(ReportableExecutor):
                 tool.install()
 
     def has_results(self):
-        if self.reader and self.reader.read_records:
-            return True
-        else:
-            return False
+        return bool(self.reader) and bool(self.reader.read_records)
