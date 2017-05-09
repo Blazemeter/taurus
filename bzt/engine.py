@@ -20,6 +20,7 @@ import datetime
 import hashlib
 import json
 import logging
+import os
 import shutil
 import sys
 import threading
@@ -29,18 +30,17 @@ import uuid
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
-
-import os
-import yaml
-from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, ToolError
 from json import encoder
+
+import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
+from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
-from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, shutdown_process
+from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
 from bzt.utils import str_representer
 
@@ -1084,56 +1084,6 @@ class HavingInstallableTools(object):
     @abstractmethod
     def install_required_tools(self):
         pass
-
-
-class SubprocessedExecutor(ScenarioExecutor):
-    """
-    Class for subprocessed executors
-
-    All executors must implement the following interface.
-    """
-
-    def __init__(self):
-        super(SubprocessedExecutor, self).__init__()
-        self.script = None
-        self.env = {}
-        self.process = None
-        self.opened_descriptors = []
-        self._stdout_file = None
-        self._stderr_file = None
-
-    def _start_subprocess(self, cmdline):
-        prefix = self.execution.get("executor", None) or "executor"
-        self._stdout_file = self.engine.create_artifact(prefix, ".out")
-        std_out = open(self._stdout_file, "wt")
-        self.opened_descriptors.append(std_out)
-        self._stderr_file = self.engine.create_artifact(prefix, ".err")
-        std_err = open(self._stderr_file, "wt")
-        self.opened_descriptors.append(std_err)
-        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env)
-
-    def check(self):
-        ret_code = self.process.poll()
-        if ret_code is not None:
-            if ret_code != 0:
-                with open(self._stderr_file) as fds:
-                    std_err = fds.read()
-                msg = "Test runner %s (%s) has failed with retcode %s \n %s"
-                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code, std_err.strip()))
-            return True
-        return False
-
-    def shutdown(self):
-        shutdown_process(self.process, self.log)
-        for desc in self.opened_descriptors:
-            desc.close()
-        self.opened_descriptors = []
-
-    def _check_tools(self, tools):
-        for tool in tools:
-            if not tool.check_if_installed():
-                self.log.info("Installing %s...", tool.tool_name)
-                tool.install()
 
 
 class Singletone(object):

@@ -11,7 +11,8 @@ import apiritif
 import astunparse
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario, SETTINGS
+from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
+from bzt.modules import SubprocessedExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, LoadSamplesReader, FuncSamplesReader
 from bzt.requests_model import HTTPRequest
@@ -34,7 +35,6 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         self._tailer = NoneTailer()
 
     def prepare(self):
-        super(NoseTester, self).prepare()
         self.install_required_tools()
         self.script = self.get_script_path()
         if not self.script:
@@ -42,6 +42,14 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
                 self.script = self.__tests_from_requests()
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
+
+        if "report-file" in self.execution:
+            self.report_file = self.execution.get("report-file")
+        else:
+            self.report_file = self.engine.create_artifact("report", ".ldjson")
+
+        self.translation_table = self.generated_methods     # todo: set translation_table in __tests_from_requests?
+        super(NoseTester, self).prepare()
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
@@ -76,22 +84,9 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         """
         executable = self.settings.get("interpreter", sys.executable)
 
-        if "report-file" in self.execution:
-            report_file = self.execution.get("report-file")
-        else:
-            report_file = self.engine.create_artifact("report", ".ldjson")
-            if self.engine.is_functional_mode():
-                self.reader = FuncSamplesReader(report_file, self.engine, self.log, [])
-                if isinstance(self.engine.aggregator, FunctionalAggregator):
-                    self.engine.aggregator.add_underling(self.reader)
-            else:
-                self.reader = LoadSamplesReader(report_file, self.log, [])
-                if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-                    self.engine.aggregator.add_underling(self.reader)
-
         self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
 
-        nose_command_line = [executable, self.plugin_path, '--report-file', report_file]
+        nose_command_line = [executable, self.plugin_path, '--report-file', self.report_file]
 
         load = self.get_load()
         if load.iterations:

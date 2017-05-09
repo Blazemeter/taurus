@@ -15,5 +15,80 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from bzt import TaurusInternalException, ToolError
+from bzt.engine import ScenarioExecutor
+from bzt.utils import shutdown_process
+from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
 
 
+class ReportableExecutor(ScenarioExecutor):
+    def __init__(self):
+        super(ReportableExecutor, self).__init__()
+        self.report_file = None
+        self.translation_table = None
+        self.reported = True
+
+    def prepare(self):
+        super(ScenarioExecutor, self).prepare()
+        if self.reported:
+            if self.report_file is None:
+                raise TaurusInternalException('Report file not found: %s' % self)
+            if self.engine.is_functional_mode():
+                reader = FuncSamplesReader(self.report_file, self.engine, self.log, self.translation_table)
+                if isinstance(self.engine.aggregator, FunctionalAggregator):
+                    self.engine.aggregator.add_underling(reader)
+            else:
+                reader = LoadSamplesReader(self.report_file, self.log, self.translation_table)
+                if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+                    self.engine.aggregator.add_underling(reader)
+
+
+class SubprocessedExecutor(ReportableExecutor):
+    """
+    Class for subprocessed executors
+
+    All executors must implement the following interface.
+    """
+
+    def __init__(self):
+        super(SubprocessedExecutor, self).__init__()
+        self.script = None
+        self.env = {}
+        self.process = None
+        self.opened_descriptors = []
+        self._stdout_file = None
+        self._stderr_file = None
+
+    def _start_subprocess(self, cmdline):
+        prefix = self.execution.get("executor", None) or "executor"
+        self._stdout_file = self.engine.create_artifact(prefix, ".out")
+        std_out = open(self._stdout_file, "wt")
+        self.opened_descriptors.append(std_out)
+        self._stderr_file = self.engine.create_artifact(prefix, ".err")
+        std_err = open(self._stderr_file, "wt")
+        self.opened_descriptors.append(std_err)
+        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env)
+
+    def check(self):
+        ret_code = self.process.poll()
+        if ret_code is not None:
+            if ret_code != 0:
+                with open(self._stderr_file) as fds:
+                    std_err = fds.read()
+                msg = "Test runner %s (%s) has failed with retcode %s \n %s"
+                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code, std_err.strip()))
+            return True
+        return False
+
+    def shutdown(self):
+        shutdown_process(self.process, self.log)
+        for desc in self.opened_descriptors:
+            desc.close()
+        self.opened_descriptors = []
+
+    def _check_tools(self, tools):
+        for tool in tools:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s...", tool.tool_name)
+                tool.install()

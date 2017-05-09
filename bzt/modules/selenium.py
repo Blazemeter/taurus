@@ -20,10 +20,9 @@ import os
 from bzt import TaurusConfigError, TaurusInternalException
 from urwid import Text, Pile
 
-from bzt.engine import Scenario, FileLister, SubprocessedExecutor
-from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.engine import Scenario, FileLister
+from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
 from bzt.utils import is_windows, BetterDict, get_full_path, get_files_recursive
 
 try:
@@ -32,7 +31,7 @@ except ImportError:
     from pyvirtualdisplay import Display
 
 
-class AbstractSeleniumExecutor(SubprocessedExecutor):  # NOTE: just for compatibility
+class AbstractSeleniumExecutor(ReportableExecutor):
     SHARED_VIRTUAL_DISPLAY = {}
 
     @abstractmethod
@@ -67,12 +66,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.virtual_display = None
         self.end_time = None
         self.runner = None
-        self.report_file = None
         self.scenario = None
         self.script = None
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
-        self.register_reader = True
 
     def get_virtual_display(self):
         return self.virtual_display
@@ -128,7 +125,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return None
 
     def _create_runner(self):
-
         script_type = self.detect_script_type()
         runner = self.engine.instantiate_module(script_type)
         runner.settings.merge(self.settings.get('selenium-tools').get(script_type))  # todo: deprecated, remove it later
@@ -155,17 +151,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         return runner
 
-    def _register_reader(self, report_file):
-        if self.engine.is_functional_mode():
-            reader = FuncSamplesReader(report_file, self.engine, self.log, self.generated_methods)
-            if isinstance(self.engine.aggregator, FunctionalAggregator):
-                self.engine.aggregator.add_underling(reader)
-        else:
-            reader = LoadSamplesReader(report_file, self.log, self.generated_methods)
-            if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-                self.engine.aggregator.add_underling(reader)
-        return reader
-
     def prepare(self):
         if self.get_load().concurrency and self.get_load().concurrency > 1:
             msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
@@ -173,15 +158,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.log.warning(msg)
         self.set_virtual_display()
         self.scenario = self.get_scenario()
-
-        default_report = self.engine.create_artifact("selenium_tests_report", ".ldjson")
-        self.report_file = self.execution.get('report-file', default_report)
         self.runner = self._create_runner()
         self.runner.prepare()
         self.script = self.runner.script
-
-        if self.register_reader:
-            self.reader = self._register_reader(self.report_file)
+        self.reported = False
+        super(SeleniumExecutor, self).prepare()
 
     def detect_script_type(self):
         script_name = self.get_script_path()
