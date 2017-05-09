@@ -15,8 +15,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from bzt import TaurusInternalException, ToolError
-from bzt.engine import ScenarioExecutor, BetterDict
+import os
+
+from bzt import ToolError
+from bzt.engine import ScenarioExecutor
 from bzt.utils import shutdown_process
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
@@ -39,6 +41,8 @@ class ReportableExecutor(ScenarioExecutor):
             self.report_file = self.execution.get("report-file")
         else:
             self.report_file = self.engine.create_artifact(prefix, suffix)
+
+        self.report_file = self.report_file.replace(os.path.sep, '/')
 
         if self.engine.is_functional_mode():
             self.reader = FuncSamplesReader(self.report_file, self.engine, self.log, translation_table)

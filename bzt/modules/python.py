@@ -42,7 +42,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
-        self.reporting_setup(translation_table=self.generated_methods, prefix="report", suffix=".ldjson")
+        self.reporting_setup(translation_table=self.generated_methods, prefix="nose", suffix=".ldjson")
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")

@@ -4,11 +4,12 @@ import subprocess
 import time
 
 import os
-from bzt import ToolError, TaurusConfigError
-
 from os import listdir
 from os.path import join
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario
+
+from bzt import ToolError, TaurusConfigError
+from bzt.modules import SubprocessedExecutor
+from bzt.engine import HavingInstallableTools, Scenario
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager
 
 SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.3/" \
@@ -73,6 +74,8 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
         if not os.path.exists(self.working_dir):
             os.makedirs(self.working_dir)
+
+        self.reporting_setup(prefix=self.__class__.__name__, suffix="ldjson")
 
     def _collect_script_files(self, extensions):
         file_list = []
@@ -209,8 +212,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         self.base_class_path.extend(jar_list)
 
         with open(self.props_file, 'wt') as props:
-            report_file = self.execution.get("report-file", TaurusConfigError("Missing report file name"))
-            props.write("report_file=%s\n" % report_file.replace(os.path.sep, '/'))
+            props.write("report_file=%s\n" % self.report_file)
 
             load = self.get_load()
             if load.iterations:
@@ -277,7 +279,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         self.base_class_path.extend(jar_list)
 
         with open(self.props_file, 'wt') as props:
-            props.write("report_file=%s\n" % self.execution.get("report-file").replace(os.path.sep, '/'))
+            props.write("report_file=%s\n" % self.report_file)
 
             load = self.get_load()
             if load.iterations:
