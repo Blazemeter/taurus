@@ -491,13 +491,6 @@ def main():
 
     executor = CLI(parsed_options)
 
-    if is_piped(sys.stdin):
-        stdin = sys.stdin.read()
-        if stdin:
-            with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
-                fhd.write(b(stdin))
-                parsed_configs.append(fhd.name)
-
     try:
         code = executor.perform(parsed_configs)
     except BaseException as exc_top:
