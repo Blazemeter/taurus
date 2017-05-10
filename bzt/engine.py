@@ -20,6 +20,7 @@ import datetime
 import hashlib
 import json
 import logging
+import os
 import shutil
 import sys
 import threading
@@ -29,14 +30,12 @@ import uuid
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
-
-import os
-import yaml
-from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, ToolError
 from json import encoder
+
+import yaml
 from yaml.representer import SafeRepresenter
 
-import bzt
+from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, ToolError
 from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
@@ -578,6 +577,7 @@ class Configuration(BetterDict):
         super(Configuration, self).__init__()
         self.log = logging.getLogger('')
         self.dump_filename = None
+        self.replace_tabs = True
 
     def load(self, config_files, callback=None):
         """
@@ -593,6 +593,8 @@ class Configuration(BetterDict):
                 self.log.debug("Reading %s", config_file)
                 with open(config_file) as fds:
                     contents = fds.read()
+                    if self.replace_tabs:
+                        contents = replace_leading_tabs(contents)
                     try:
                         self.log.debug("Reading %s as YAML", config_file)
                         configs.extend(yaml.load_all(contents))

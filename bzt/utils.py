@@ -1127,3 +1127,12 @@ class LDJSONReader(object):
     def __del__(self):
         if self.fds is not None:
             self.fds.close()
+
+
+def replace_leading_tabs(text, spaces=4):
+    replacement = ' '*spaces
+    replaced_lines = []
+    regex = re.compile('^ *(\t+) *')
+    for line in text.split('\n'):
+        replaced_lines.append(regex.sub(lambda x: len(x.group(0))*replacement, line))
+    return '\n'.join(replaced_lines)
