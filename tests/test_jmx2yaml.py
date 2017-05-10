@@ -374,11 +374,11 @@ class TestConverter(BZTestCase):
         pass
 
     def test_params_conversion(self):
-        obj = self._get_jmx2yaml("/yaml/converter/params_conversion.jmx")
+        obj = self._get_jmx2yaml("/resources/yaml/converter/params_conversion.jmx")
         self.sniff_log(obj.log)
         obj.process()
         yml1 = obj.dst_file
-        yml2 = __dir__() + "/yaml/converter/params_conversion.yml"
+        yml2 = __dir__() + "/resources/yaml/converter/params_conversion.yml"
         self.assertTrue(self.same_yaml(yml1, yml2))
         self.assertNotIn('n1', self.log_recorder.warn_buff.getvalue())
         self.assertNotIn('n2', self.log_recorder.warn_buff.getvalue())
