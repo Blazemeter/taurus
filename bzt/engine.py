@@ -943,26 +943,13 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
 
-    def get_hostaliases(self):
-        settings = self.engine.config.get(SETTINGS, {})
-        return settings.get("hostaliases", {})
-
     def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
         if cwd is None:
             cwd = self.engine.default_cwd
-        aliases = self.get_hostaliases()
-        hosts_file = None
-        if aliases:
-            hosts_file = self.engine.create_artifact("hostaliases", "")
-            with open(hosts_file, 'w') as fds:
-                for key, value in iteritems(aliases):
-                    fds.write("%s %s\n" % (key, value))
 
         environ = BetterDict()
         environ.merge(dict(os.environ))
 
-        if aliases:
-            environ["HOSTALIASES"] = hosts_file
         if env is not None:
             if is_windows():
                 # as variables in windows are case insensitive we should provide correct merging

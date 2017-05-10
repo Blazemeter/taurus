@@ -68,7 +68,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def _generate_files(self):
         self.pbench.generate_payload(self.get_scenario())
         self.pbench.generate_schedule(self.get_load())
-        self.pbench.generate_config(self.get_scenario(), self.get_load(), self.get_hostaliases())
+        self.pbench.generate_config(self.get_scenario(), self.get_load())
         self.pbench.check_config()
 
     def startup(self):
@@ -143,7 +143,7 @@ class PBenchTool(object):
         self.port = 80
         self._target = {"scheme": None, "netloc": None}
 
-    def generate_config(self, scenario, load, hostaliases):
+    def generate_config(self, scenario, load, hostaliases=()):
         self.kpi_file = self.engine.create_artifact("pbench-kpi", ".txt")
         self.stats_file = self.engine.create_artifact("pbench-additional", ".ldjson")
         self.config_file = self.engine.create_artifact('pbench', '.conf')
