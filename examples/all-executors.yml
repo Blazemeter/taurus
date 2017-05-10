@@ -128,3 +128,40 @@ execution:
   scenario:
     script: selenium/mocha_example.js
 
+- executor: junit
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: BOOTH1/Blazedemo.java
+
+- executor: testng
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/TestNGExample.java
+
+- executor: rspec
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/rspec_example.rb
+
+- executor: mocha
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/mocha_example.js
+
+- executor: nose
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://blazedemo.com/
+
+

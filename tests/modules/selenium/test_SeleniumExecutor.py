@@ -163,8 +163,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         label3 = 'just_for_lulz'
         self.assertEqual(url1, gen_methods[name1])
         self.assertEqual(label2, gen_methods[name2])
-        self.obj.reader.report_reader.json_reader = LDJSONReaderEmul()
-        self.obj.reader.report_reader.json_reader.data.extend([
+        reader = self.obj.runner.reader
+        reader.report_reader.json_reader = LDJSONReaderEmul()
+        reader.report_reader.json_reader.data.extend([
             {
                 'test_case': name1, 'start_time': 1472049887, 'duration': 1.0, 'status': 'PASSED',
                 'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
@@ -175,7 +176,7 @@ class TestSeleniumStuff(SeleniumTestCase):
                 'test_case': name3, 'start_time': 1472049889, 'duration': 1.0, 'status': 'PASSED',
                 'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
             }])
-        res = list(self.obj.reader._read())
+        res = list(reader._read())
         self.assertIn(url1, res[0])
         self.assertIn(label2, res[1])
         self.assertIn(label3, res[2])
