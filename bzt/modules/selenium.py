@@ -20,11 +20,9 @@ import os
 from bzt import TaurusConfigError, TaurusInternalException
 from urwid import Text, Pile
 
-from bzt.engine import Scenario, FileLister, SubprocessedExecutor
-from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.engine import Scenario, FileLister
+from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
-from bzt.modules.python import NoseTester
 from bzt.utils import is_windows, BetterDict, get_full_path, get_files_recursive
 
 try:
@@ -33,7 +31,7 @@ except ImportError:
     from pyvirtualdisplay import Display
 
 
-class AbstractSeleniumExecutor(SubprocessedExecutor):  # NOTE: just for compatibility
+class AbstractSeleniumExecutor(ReportableExecutor):
     SHARED_VIRTUAL_DISPLAY = {}
 
     @abstractmethod
@@ -68,12 +66,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.virtual_display = None
         self.end_time = None
         self.runner = None
-        self.report_file = None
         self.scenario = None
         self.script = None
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
-        self.register_reader = True
 
     def get_virtual_display(self):
         return self.virtual_display
@@ -128,10 +124,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         return None
 
-    def _create_runner(self, report_file):
+    def _create_runner(self):
         script_type = self.detect_script_type()
         runner = self.engine.instantiate_module(script_type)
-        runner.settings.merge(self.settings.get('selenium-tools').get(script_type))
+        runner.settings.merge(self.settings.get('selenium-tools').get(script_type))  # todo: deprecated, remove it later
         runner.parameters = self.parameters
         runner.provisioning = self.provisioning
         runner.execution = self.execution
@@ -153,19 +149,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         else:
             raise TaurusConfigError("Unsupported script type: %s" % script_type)
 
-        runner.execution["report-file"] = report_file  # TODO: shouldn't it be the field?
         return runner
-
-    def _register_reader(self, report_file):
-        if self.engine.is_functional_mode():
-            reader = FuncSamplesReader(report_file, self.engine, self.log, self.generated_methods)
-            if isinstance(self.engine.aggregator, FunctionalAggregator):
-                self.engine.aggregator.add_underling(reader)
-        else:
-            reader = LoadSamplesReader(report_file, self.log, self.generated_methods)
-            if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-                self.engine.aggregator.add_underling(reader)
-        return reader
 
     def prepare(self):
         if self.get_load().concurrency and self.get_load().concurrency > 1:
@@ -174,22 +158,17 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.log.warning(msg)
         self.set_virtual_display()
         self.scenario = self.get_scenario()
-        self.script = self.get_script_path()
-
-        self.report_file = self.engine.create_artifact("selenium_tests_report", ".ldjson")
-        self.runner = self._create_runner(self.report_file)
+        self.runner = self._create_runner()
         self.runner.prepare()
-        if isinstance(self.runner, NoseTester):
-            self.script = self.runner._script
-        if self.register_reader:
-            self.reader = self._register_reader(self.report_file)
+        self.script = self.runner.script
 
     def detect_script_type(self):
-        if not self.script and "requests" in self.scenario:
+        script_name = self.get_script_path()
+        if not script_name and "requests" in self.scenario:
             return "nose"
 
-        if not os.path.exists(self.script):
-            raise TaurusConfigError("Script '%s' doesn't exist" % self.script)
+        if not os.path.exists(script_name):
+            raise TaurusConfigError("Script '%s' doesn't exist" % script_name)
 
         if "runner" in self.execution:
             runner = self.execution["runner"]
@@ -201,10 +180,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         file_types = set()
 
-        if os.path.isfile(self.script):  # regular file received
-            file_types.add(os.path.splitext(self.script)[1].lower())
+        if os.path.isfile(script_name):  # regular file received
+            file_types.add(os.path.splitext(script_name)[1].lower())
         else:  # dir received: check contained files
-            for file_name in get_files_recursive(self.script):
+            for file_name in get_files_recursive(script_name):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types or '.jar' in file_types:
@@ -219,7 +198,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         elif '.js' in file_types:
             script_type = 'mocha'
         else:
-            raise TaurusConfigError("Unsupported script type: %s" % self.script)
+            raise TaurusConfigError("Unsupported script type: %s" % script_name)
 
         self.log.debug("Detected script type: %s", script_type)
 
@@ -272,10 +251,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.free_virtual_display()
 
     def has_results(self):
-        if self.reader and self.reader.read_records:
-            return True
-        else:
-            return False
+        return self.runner.has_results()
 
     def get_widget(self):
         if not self.widget:

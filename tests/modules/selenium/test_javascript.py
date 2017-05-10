@@ -34,8 +34,8 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
-        self.assertTrue(exists(self.obj.runner.execution.get("report-file")))
-        lines = open(self.obj.runner.execution.get("report-file")).readlines()
+        self.assertTrue(exists(self.obj.runner.report_file))
+        lines = open(self.obj.runner.report_file).readlines()
         self.assertEqual(len(lines), 3)
 
     def test_mocha_hold(self):
@@ -59,7 +59,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(exists(self.obj.runner.execution.get("report-file")))
+        self.assertTrue(exists(self.obj.runner.report_file))
         duration = time.time() - self.obj.start_time
         self.assertGreater(duration, 5)
 
@@ -84,8 +84,8 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(exists(self.obj.runner.execution.get("report-file")))
-        lines = open(self.obj.runner.execution.get("report-file")).readlines()
+        self.assertTrue(exists(self.obj.runner.report_file))
+        lines = open(self.obj.runner.report_file).readlines()
         self.assertEqual(len(lines), 9)
 
     def test_install_mocha(self):
