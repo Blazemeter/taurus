@@ -66,8 +66,7 @@ ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 COPY . /tmp/bzt-src
 RUN pip install /tmp/bzt-src \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
-  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json
+  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 
 RUN bzt -install-tools && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (cat /tmp/all-executors-artifacts/webdriver-1.log; exit 1)
 
