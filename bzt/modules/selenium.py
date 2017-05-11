@@ -20,8 +20,8 @@ import os
 from bzt import TaurusConfigError, TaurusInternalException
 from urwid import Text, Pile
 
-from bzt.engine import Scenario, FileLister
-from bzt.modules import ReportableExecutor
+from bzt.engine import FileLister
+from bzt.modules import ReportableExecutor, SubprocessedExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.utils import is_windows, BetterDict, get_full_path, get_files_recursive
 
@@ -125,29 +125,19 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         return None
 
     def _create_runner(self):
-        script_type = self.detect_script_type()
-        runner = self.engine.instantiate_module(script_type)
-        runner.settings.merge(self.settings.get('selenium-tools').get(script_type))  # todo: deprecated, remove it later
+        runner_type = self.get_runner_type()
+        runner = self.engine.instantiate_module(runner_type)
+
+        # todo: deprecated, remove it later
+        runner.settings.merge(self.settings.get('selenium-tools').get(runner_type))
+
         runner.parameters = self.parameters
         runner.provisioning = self.provisioning
         runner.execution = self.execution
-        runner.execution['executor'] = script_type
+        runner.execution['executor'] = runner_type
 
-        if script_type == "nose":
-            runner.generated_methods = self.generated_methods
+        if runner_type == "nose":
             runner.execution["test-mode"] = "selenium"
-        elif script_type == "junit":
-            pass
-        elif script_type == "testng":
-            testng_config = self._get_testng_xml()
-            if testng_config:
-                runner.execution['testng-xml'] = self.engine.find_file(testng_config)
-        elif script_type == "rspec":
-            pass
-        elif script_type == "mocha":
-            pass
-        else:
-            raise TaurusConfigError("Unsupported script type: %s" % script_type)
 
         return runner
 
@@ -162,14 +152,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.runner.prepare()
         self.script = self.runner.script
 
-    def detect_script_type(self):
-        script_name = self.get_script_path()
-        if not script_name and "requests" in self.scenario:
-            return "nose"
-
-        if not os.path.exists(script_name):
-            raise TaurusConfigError("Script '%s' doesn't exist" % script_name)
-
+    def get_runner_type(self):
         if "runner" in self.execution:
             runner = self.execution["runner"]
             if runner not in SeleniumExecutor.SUPPORTED_RUNNERS:
@@ -178,8 +161,22 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.log.debug("Using script type: %s", runner)
             return runner
 
+        script_name = self.get_script_path()
+        if script_name:
+            return self.detect_script_type(script_name)
+        else:
+            if "requests" in self.scenario:
+                return "nose"
+            else:
+                raise TaurusConfigError("You must specify either script or list of requests to run Selenium")
+
+    def detect_script_type(self, script_name):
+        if not os.path.exists(script_name):
+            raise TaurusConfigError("Script '%s' doesn't exist" % script_name)
+
         file_types = set()
 
+        # gather file extensions and choose script_type according to priority
         if os.path.isfile(script_name):  # regular file received
             file_types.add(os.path.splitext(script_name)[1].lower())
         else:  # dir received: check contained files
@@ -198,7 +195,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         elif '.js' in file_types:
             script_type = 'mocha'
         else:
-            raise TaurusConfigError("Unsupported script type: %s" % script_name)
+            raise TaurusConfigError("Supported script files not found, script detection is failed")
 
         self.log.debug("Detected script type: %s", script_type)
 
@@ -255,25 +252,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.script, self.runner._stdout_file)
+            self.widget = SeleniumWidget(self.script, self.runner.stdout_file)
         return self.widget
-
-    def resource_files(self):
-        resources = []
-
-        self.scenario = self.get_scenario()
-        script = self.scenario.get(Scenario.SCRIPT, None)
-        if script:
-            resources.append(script)
-
-        resources.extend(self.scenario.get("additional-classpath", []))
-        resources.extend(self.settings.get("additional-classpath", []))
-
-        testng_config = self._get_testng_xml()
-        if testng_config:
-            resources.append(testng_config)
-
-        return resources
 
 
 class SeleniumWidget(Pile, PrioritizedWidget):

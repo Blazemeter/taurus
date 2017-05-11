@@ -306,8 +306,8 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
             for index, item in enumerate(jar_list):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
-            if self.execution.get('testng-xml', None):
-                props.write('testng_config=%s\n' % self.execution.get('testng-xml').replace(os.path.sep, '/'))
+            if self.settings.get('testng-xml', None):
+                props.write('testng_config=%s\n' % self.settings.get('testng-xml').replace(os.path.sep, '/'))
 
         cmdline = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurustestng.TestNGRunner", self.props_file]
         self._start_subprocess(cmdline)

@@ -71,16 +71,16 @@ class SubprocessedExecutor(ReportableExecutor):
         self.env = {}
         self.process = None
         self.opened_descriptors = []
-        self._stdout_file = None
-        self._stderr_file = None
+        self.stdout_file = None
+        self.stderr_file = None
 
     def _start_subprocess(self, cmdline):
         prefix = self.execution.get("executor", None) or "executor"
-        self._stdout_file = self.engine.create_artifact(prefix, ".out")
-        std_out = open(self._stdout_file, "wt")
+        self.stdout_file = self.engine.create_artifact(prefix, ".out")
+        std_out = open(self.stdout_file, "wt")
         self.opened_descriptors.append(std_out)
-        self._stderr_file = self.engine.create_artifact(prefix, ".err")
-        std_err = open(self._stderr_file, "wt")
+        self.stderr_file = self.engine.create_artifact(prefix, ".err")
+        std_err = open(self.stderr_file, "wt")
         self.opened_descriptors.append(std_err)
         self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env)
 
@@ -88,7 +88,7 @@ class SubprocessedExecutor(ReportableExecutor):
         ret_code = self.process.poll()
         if ret_code is not None:
             if ret_code != 0:
-                with open(self._stderr_file) as fds:
+                with open(self.stderr_file) as fds:
                     std_err = fds.read()
                 msg = "Test runner %s (%s) has failed with retcode %s \n %s"
                 raise ToolError(msg % (self.label, self.__class__.__name__, ret_code, std_err.strip()))
