@@ -105,22 +105,20 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
-    def _create_runner(self):
+    def create_runner(self):
         runner_type = self.get_runner_type()
-        runner = self.engine.instantiate_module(runner_type)
+        self.runner = self.engine.instantiate_module(runner_type)
 
         # todo: deprecated, remove it later
-        runner.settings.merge(self.settings.get('selenium-tools').get(runner_type))
+        self.runner.settings.merge(self.settings.get('selenium-tools').get(runner_type))
 
-        runner.parameters = self.parameters
-        runner.provisioning = self.provisioning
-        runner.execution = self.execution
-        runner.execution['executor'] = runner_type
+        self.runner.parameters = self.parameters
+        self.runner.provisioning = self.provisioning
+        self.runner.execution = self.execution
+        self.runner.execution['executor'] = runner_type
 
         if runner_type == "nose":
-            runner.execution["test-mode"] = "selenium"
-
-        return runner
+            self.runner.execution["test-mode"] = "selenium"
 
     def prepare(self):
         if self.get_load().concurrency and self.get_load().concurrency > 1:
@@ -129,7 +127,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.log.warning(msg)
         self.set_virtual_display()
         self.scenario = self.get_scenario()
-        self.runner = self._create_runner()
+        self.create_runner()
         self.runner.prepare()
         self.script = self.runner.script
 
@@ -150,6 +148,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
                 return "nose"
             else:
                 raise TaurusConfigError("You must specify either script or list of requests to run Selenium")
+
+    def resource_files(self):
+        self.create_runner()
+        return self.runner.resource_files()
 
     def detect_script_type(self, script_name):
         if not os.path.exists(script_name):
