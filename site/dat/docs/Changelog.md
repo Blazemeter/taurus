@@ -11,6 +11,7 @@
  - improve grinder RC matching algorithm
  - improve jmx2yaml conversion with encoded params
  - read errors info from distributed locustio test
+ - avoid recursion in dummy screen dashboard
  
 
 ## 1.9.1 <sup>19 apr 2017</sup>
