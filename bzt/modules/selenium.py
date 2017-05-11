@@ -21,7 +21,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 from urwid import Text, Pile
 
 from bzt.engine import FileLister
-from bzt.modules import ReportableExecutor, SubprocessedExecutor
+from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.utils import is_windows, BetterDict, get_files_recursive, get_full_path
 
@@ -66,7 +66,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.virtual_display = None
         self.end_time = None
         self.runner = None
-        self.scenario = None
         self.script = None
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
@@ -126,7 +125,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             msg += 'For details look at http://gettaurus.org/docs/Cloud.md'
             self.log.warning(msg)
         self.set_virtual_display()
-        self.scenario = self.get_scenario()
         self.create_runner()
         self.runner.prepare()
         self.script = self.runner.script
@@ -144,7 +142,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         if script_name:
             return self.detect_script_type(script_name)
         else:
-            if "requests" in self.scenario:
+            if "requests" in self.get_scenario():
                 return "nose"
             else:
                 raise TaurusConfigError("You must specify either script or list of requests to run Selenium")
