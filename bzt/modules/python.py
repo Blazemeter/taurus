@@ -1,3 +1,18 @@
+"""
+Copyright 2017 BlazeMeter Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import ast
 import copy
 import os
@@ -11,13 +26,12 @@ import apiritif
 import astunparse
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools, Scenario, SETTINGS
-from bzt.modules.aggregator import ConsolidatingAggregator
-from bzt.modules.functional import FunctionalAggregator, LoadSamplesReader, FuncSamplesReader
+from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
+from bzt.modules import SubprocessedExecutor
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
-from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time, BetterDict, \
-    ensure_is_dict
+from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time
+from bzt.utils import BetterDict, ensure_is_dict
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
@@ -30,19 +44,19 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(NoseTester, self).__init__()
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
-        self._script = None
         self.generated_methods = BetterDict()
         self._tailer = NoneTailer()
 
     def prepare(self):
-        super(NoseTester, self).prepare()
         self.install_required_tools()
-        self._script = self.get_script_path()
-        if not self._script:
+        self.script = self.get_script_path()
+        if not self.script:
             if "requests" in self.get_scenario():
-                self._script = self.__tests_from_requests()
+                self.script = self.__tests_from_requests()
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
+
+        self.reporting_setup(translation_table=self.generated_methods, suffix=".ldjson")
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
@@ -77,22 +91,9 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         """
         executable = self.settings.get("interpreter", sys.executable)
 
-        if "report-file" in self.execution:
-            report_file = self.execution.get("report-file")
-        else:
-            report_file = self.engine.create_artifact("report", ".ldjson")
-            if self.engine.is_functional_mode():
-                self.reader = FuncSamplesReader(report_file, self.engine, self.log, [])
-                if isinstance(self.engine.aggregator, FunctionalAggregator):
-                    self.engine.aggregator.add_underling(self.reader)
-            else:
-                self.reader = LoadSamplesReader(report_file, self.log, [])
-                if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-                    self.engine.aggregator.add_underling(self.reader)
-
         self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
 
-        nose_command_line = [executable, self.plugin_path, '--report-file', report_file]
+        nose_command_line = [executable, self.plugin_path, '--report-file', self.report_file]
 
         load = self.get_load()
         if load.iterations:
@@ -101,17 +102,11 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         if load.hold:
             nose_command_line += ['-d', str(load.hold)]
 
-        nose_command_line += [self._script]
+        nose_command_line += [self.script]
         self._start_subprocess(nose_command_line)
 
         if self.__is_verbose():
             self._tailer = FileTailer(self._stdout_file)
-
-    def has_results(self):
-        if isinstance(self.reader, LoadSamplesReader):
-            return bool(self.reader) and bool(self.reader.buffer)
-        elif isinstance(self.reader, FuncSamplesReader):
-            return bool(self.reader) and bool(self.reader.read_records)
 
     def check(self):
         self.__log_lines()

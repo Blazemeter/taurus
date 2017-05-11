@@ -207,25 +207,6 @@ class TestScenarioExecutor(BZTestCase):
         self.executor.execution = self.engine.config.get('execution')[0]
         self.assertRaises(TaurusConfigError, self.executor.get_scenario)
 
-    def test_creates_hostaliases_file(self):
-        self.engine.config.merge({
-            "settings": {
-                "hostaliases": {
-                    "demo": "blazedemo.com"}}})
-
-        path = os.path.join(__dir__(), "resources", "hostaliases" + EXE_SUFFIX)
-        process = self.executor.execute([path])
-        stdout, _ = process.communicate()
-        hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
-
-        self.assertTrue(os.path.exists(hosts_file))
-        self.assertIn(hosts_file, str(stdout))
-
-    def test_doesnt_create_hostaliases(self):
-        self.executor.execute(["echo"], shell=True)
-        hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
-        self.assertFalse(os.path.exists(hosts_file))
-
     def test_passes_artifacts_dir(self):
         cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
         process = self.executor.execute(cmdline, shell=True)
