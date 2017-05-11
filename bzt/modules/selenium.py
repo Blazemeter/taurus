@@ -23,7 +23,7 @@ from urwid import Text, Pile
 from bzt.engine import FileLister
 from bzt.modules import ReportableExecutor, SubprocessedExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.utils import is_windows, BetterDict, get_full_path, get_files_recursive
+from bzt.utils import is_windows, BetterDict, get_files_recursive, get_full_path
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -105,25 +105,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
-    def _get_testng_xml(self):
-        if 'testng-xml' in self.scenario:
-            testng_xml = self.scenario.get('testng-xml')
-            if testng_xml:
-                return testng_xml
-            else:
-                return None  # empty value for switch off testng.xml path autodetect
-
-        script_path = self.get_script_path()
-        if script_path:
-            script_dir = get_full_path(script_path, step_up=1)
-            testng_xml = os.path.join(script_dir, 'testng.xml')
-            if os.path.exists(testng_xml):
-                self.log.info("Detected testng.xml file at %s", testng_xml)
-                self.scenario['testng-xml'] = testng_xml
-                return testng_xml
-
-        return None
-
     def _create_runner(self):
         runner_type = self.get_runner_type()
         runner = self.engine.instantiate_module(runner_type)
@@ -184,7 +165,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types or '.jar' in file_types:
-            if self._get_testng_xml() is not None:
+            script_dir = get_full_path(self.get_script_path(), step_up=1)
+            if os.path.exists(os.path.join(script_dir, 'testng.xml')):
                 script_type = 'testng'
             else:
                 script_type = 'junit'

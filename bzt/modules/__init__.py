@@ -18,7 +18,7 @@ limitations under the License.
 import os
 
 from bzt import ToolError
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, Scenario
 from bzt.utils import shutdown_process
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
@@ -83,6 +83,14 @@ class SubprocessedExecutor(ReportableExecutor):
         std_err = open(self.stderr_file, "wt")
         self.opened_descriptors.append(std_err)
         self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env)
+
+    def resource_files(self):
+        scenario = self.get_scenario()
+        script = scenario.get(Scenario.SCRIPT, None)
+        if script:
+            return [script]
+        else:
+            return []
 
     def check(self):
         ret_code = self.process.poll()
