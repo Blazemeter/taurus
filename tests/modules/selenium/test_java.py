@@ -16,9 +16,9 @@ from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
 
-class TestATestNGTester(BZTestCase):
+class TestTestNGTester(BZTestCase):
     def setUp(self):
-        super(TestATestNGTester, self).setUp()
+        super(TestTestNGTester, self).setUp()
         engine_obj = EngineEmul()
         paths = [__dir__() + "/../../../bzt/resources/base-config.yml", local_paths_config()]
         engine_obj.configure(paths)
