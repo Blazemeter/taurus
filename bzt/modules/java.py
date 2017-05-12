@@ -256,7 +256,6 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
     """
     Allows to test java and jar files with TestNG
     """
-
     __test__ = False  # Hello, nosetests discovery mechanism
 
     def __init__(self):
