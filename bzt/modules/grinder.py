@@ -21,12 +21,12 @@ import time
 
 import os
 from bzt import TaurusConfigError, ToolError
+from bzt.six import iteritems
 
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import iteritems
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
@@ -241,9 +241,10 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
         grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
         self.settings["path"] = grinder_path
+        download_link = self.settings.get("download-link", "")
         required_tools = [TclLibrary(self.log),
                           JavaVM("", "", self.log),
-                          Grinder(grinder_path, self.log, GrinderExecutor.VERSION)]
+                          Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link=download_link)]
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -435,8 +436,8 @@ class DataLogReader(ResultsReader):
 
 
 class Grinder(RequiredTool):
-    def __init__(self, tool_path, parent_logger, version):
-        super(Grinder, self).__init__("Grinder", tool_path)
+    def __init__(self, tool_path, parent_logger, version, download_link):
+        super(Grinder, self).__init__("Grinder", tool_path, download_link=download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
         self.mirror_manager = GrinderMirrorsManager(self.log, self.version)
@@ -456,7 +457,7 @@ class Grinder(RequiredTool):
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
         self.log.info("Will install %s into %s", self.tool_name, dest)
-        grinder_dist = self._download()
+        grinder_dist = self._download(use_link=bool(self.download_link))
         self.log.info("Unzipping %s", grinder_dist)
         unzip(grinder_dist, dest, 'grinder-' + self.version)
         os.remove(grinder_dist)

@@ -72,7 +72,10 @@ For example, you might want to use `taurus.ramp\_up` value to simulate thread ra
 
 ## Module settings
 
- - `path: "/somepath/folder/"` - Path to Grinder. If no grinder.jar found in folder/lib/, Grinder tool will be automatically downloaded and installed in "path". By default "~/.bzt/grinder-taurus/".
- - `download-link:"http://somehost/grinder-{version}-binary.zip"`  - Link to download Grinder. By default "http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}/grinder-{version}-binary.zip/download"
- -  `version: "3.11"` - Grinder version, by default "3.11"
- -  `report-by-url: false` - change results analysis to use URLs instead of test ID/test name
+```yaml
+modules:
+  grinder:
+    path: ~/.bzt/grinder-taurus/ # Path to Grinder. If no grinder.jar found in folder/lib/, Grinder tool will be automatically downloaded and installed in "path". 
+    download-link: http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}/grinder-{version}-binary.zip/download  # Link to download Grinder from
+    report-by-url: false  # change results analysis to use URLs instead of test ID/test name
+```

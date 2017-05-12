@@ -47,6 +47,28 @@ class TestGrinderExecutor(BZTestCase):
             GrinderExecutor.VERSION = grinder_version
             GrinderExecutor.MIRRORS_SOURCE = mirrors_source
 
+    def test_install_Grinder_link(self):
+        path = os.path.abspath(__dir__() + "/../../build/tmp/grinder-taurus/lib/grinder.jar")
+        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+
+        self.assertFalse(os.path.exists(path))
+
+        obj = GrinderExecutor()
+        obj.engine = EngineEmul()
+        link = "file:///" + __dir__() + \
+               "/../resources/grinder/grinder-3.11_3.11-binary.zip"
+        obj.settings.merge({"download-link": link})
+        obj.settings.merge({"path": path})
+        obj.settings.merge({"properties-file": __dir__() + "/../resources/grinder/grinder.base.properties",
+                            "properties": {"sample_prop": "some_val"}})
+        obj.execution.merge({"scenario": {
+            "script": __dir__() + "/../resources/grinder/helloworld.py",
+            "properties-file": __dir__() + "/..//resources/grinder/grinder.properties",
+            "properties": {"grinder.useConsole": "false"}}})
+        obj.prepare()
+
+        self.assertTrue(os.path.exists(path))
+
     def test_grinder_widget(self):
         obj = GrinderExecutor()
         obj.engine = EngineEmul()
