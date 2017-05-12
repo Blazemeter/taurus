@@ -31,7 +31,7 @@ class TestZipFolder(BZTestCase):
             "modules": {
                 "selenium": "bzt.modules.selenium.SeleniumExecutor",
                 "cloud": "bzt.modules.blazemeter.CloudProvisioning",
-                "junit": "bzt.modules.selenium.java.JUnit"},
+                "junit": "bzt.modules.java.JUnit"},
             "provisioning": "cloud"
         })
 
