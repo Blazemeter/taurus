@@ -22,7 +22,6 @@ import itertools
 import json
 import logging
 import mimetypes
-import os
 import platform
 import random
 import re
@@ -44,13 +43,13 @@ from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
 
+import os
 import psutil
+from bzt import TaurusInternalException, TaurusNetworkError, ToolError
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
-
-from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree
 
 
 def get_full_path(path, step_up=0):
@@ -779,9 +778,10 @@ class ProgressBarContext(ProgressBar):
             self.finish()
 
     def download_callback(self, block_count, blocksize, totalsize):
-        self.maxval = totalsize
-        progress = block_count * blocksize
-        self.update(progress if progress <= totalsize else totalsize)
+        if totalsize > 0:
+            self.maxval = totalsize
+            progress = block_count * blocksize
+            self.update(progress if progress <= totalsize else totalsize)
 
 
 class IncrementableProgressBar(ProgressBarContext):
