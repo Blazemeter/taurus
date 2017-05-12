@@ -296,8 +296,8 @@ class TestConverter(BZTestCase):
         # test extract-jsonpath
         tg_one_extractors = tg_one.get("extract-jsonpath")
         tg_two_extractors = tg_two.get("extract-jsonpath")
-        self.assertEqual(len(tg_one_extractors), 3)  # 2x global + local
-        self.assertEqual(len(tg_two_extractors), 2)  # 2x global
+        self.assertEqual(len(tg_one_extractors), 5)  # 4x global + local
+        self.assertEqual(len(tg_two_extractors), 4)  # 4x global
         tg_three_req_exr = tg_three.get("requests")[0].get("extract-jsonpath", {})
         self.assertEqual(len(tg_three_req_exr), 1)  # 1x local
         # test extract-xpath
@@ -316,6 +316,14 @@ class TestConverter(BZTestCase):
             "ignore-whitespace": True,
             "validate-xml": True,
             "use-tolerant-parser": False,
+        })
+        self.assertEqual(tg_one_extractors['VAR1'], {
+            "jsonpath": "$.foo",
+            "default": "DEF_1",
+        })
+        self.assertEqual(tg_one_extractors['VAR2'], {
+            "jsonpath": "$.bar",
+            "default": "DEF_2",
         })
 
     def test_request_body(self):
