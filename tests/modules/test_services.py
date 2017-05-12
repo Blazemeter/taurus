@@ -30,7 +30,8 @@ class TestZipFolder(BZTestCase):
                     "script": __dir__() + "/../resources/selenium/junit/java_package"}},
             "modules": {
                 "selenium": "bzt.modules.selenium.SeleniumExecutor",
-                "cloud": "bzt.modules.blazemeter.CloudProvisioning"},
+                "cloud": "bzt.modules.blazemeter.CloudProvisioning",
+                "junit": "bzt.modules.selenium.java.JUnit"},
             "provisioning": "cloud"
         })
 

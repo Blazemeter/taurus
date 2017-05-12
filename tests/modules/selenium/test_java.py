@@ -376,10 +376,10 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.execution.merge({
             "runner": "testng",
             "scenario": {
-                "script": __dir__() + "/../../resources/selenium/testng/jars/testng-suite.jar",
-                'testng-xml': None,
-            },
-        })
+                "script": __dir__() + "/../../resources/selenium/testng/jars/testng-suite.jar"},
+            'modules': {
+                'testng': {
+                    'autodetect-xml': False}}})
         self.obj.install_required_tools()
         self.obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(dummy_installation_path, "selenium-server.jar")))
@@ -393,12 +393,11 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    'script': __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar',
-                    'testng-xml': None,
-                },
-                'runner': 'testng',
-            },
-        })
+                    'script': __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar'},
+                'runner': 'testng'},
+            'modules': {
+                'testng': {
+                    'autodetect-xml': False}}})
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -412,12 +411,12 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    'script': __dir__() + '/../../resources/selenium/testng/TestNGSuite.java',
-                    'testng-xml': None
-                },
-                'runner': 'testng',
-            },
-        })
+                    'script': __dir__() + '/../../resources/selenium/testng/TestNGSuite.java'},
+                'runner': 'testng'},
+            'modules': {
+                'testng': {
+                    'autodetect-xml': False
+                }}})
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -431,9 +430,9 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         script_jar = __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar'
         self.configure({
             'execution': {
+                'testng-xml': 'testng.xml',
                 'scenario': {
                     'script': script_jar,
-                    'testng-xml': 'testng.xml',
                 },
                 'runner': 'testng',
             },
@@ -460,12 +459,11 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
             'execution': {
                 'hold-for': '5s',
                 'scenario': {
-                    'script': __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar',
-                    'testng-xml': None,
-                },
-                'runner': 'testng',
-            },
-        })
+                    'script': __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar'},
+                'runner': 'testng'},
+            'modules': {
+                'testng': {
+                    'autodetect-xml': False}}})
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -480,12 +478,11 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
             'execution': {
                 'iterations': 3,
                 'scenario': {
-                    'script': __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar',
-                    'testng-xml': None,
-                },
-                'runner': 'testng',
-            },
-        })
+                    'script': __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar'},
+                'runner': 'testng'},
+            'modules': {
+                'testng': {
+                    'autodetect-xml': False}}})
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -514,16 +511,11 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.assertEqual(len(lines), 6)
 
     def test_testng_config_autodetect(self):
-        testng_xml_path = get_full_path(__dir__() + '/../../resources/selenium/testng/jars/testng.xml')
         self.configure({
             'execution': {
                 'scenario': {
-                    'script': __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar',
-                },
-            },
-        })
+                    'script': __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar'}}})
         self.obj.prepare()
-        self.assertEqual(testng_xml_path, self.obj.runner.execution.get("testng-xml", None))
         self.obj.startup()
         while not self.obj.check():
             time.sleep(1)
@@ -545,10 +537,8 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
 
     def test_detect_testng_xml_with_config(self):
         test_yml = __dir__() + "/../../resources/selenium/testng/test.yml"
-        testng_xml = get_full_path(__dir__() + "/../../resources/selenium/testng/testng.xml")
         self.obj.engine.config.merge(yaml.load(open(test_yml)))
         self.obj.execution = self.obj.engine.config.get('execution')
         self.obj.engine.file_search_paths.append(os.path.dirname(test_yml))
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, TestNGTester)
-        #self.assertEqual(self.obj.runner.settings["testng-xml"], testng_xml)

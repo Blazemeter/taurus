@@ -273,17 +273,16 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
     def detected_testng_xml(self):
         script_path = self.get_script_path()
-        if script_path:
+        if script_path and self.settings.get("autodetect-xml", True):
             script_dir = get_full_path(script_path, step_up=1)
             testng_xml = os.path.join(script_dir, 'testng.xml')
             if os.path.exists(testng_xml):
                 return testng_xml
-
         return None
 
     def resource_files(self):
         resources = super(TestNGTester, self).resource_files()
-        testng_xml = self.settings.get('testng-xml', None)
+        testng_xml = self.execution.get('testng-xml', None)
         if not testng_xml:
             testng_xml = self.detected_testng_xml()
             if testng_xml:
@@ -335,7 +334,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
             for index, item in enumerate(jar_list):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
-            testng_xml = self.settings.get('testng-xml', None) or self.detected_testng_xml()
+            testng_xml = self.execution.get('testng-xml', None) or self.detected_testng_xml()
             if testng_xml:
                 props.write('testng_config=%s\n' % testng_xml.replace(os.path.sep, '/'))
 
