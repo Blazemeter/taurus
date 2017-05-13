@@ -437,7 +437,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                     'autodetect-xml': False
                 }}})
         self.obj.prepare()
-        self.assertEqual(1, 0, "__d base_class_path: %s" % self.obj.base_class_path)
+        self.assertEqual(1, 0, "__d base_class_path: %s" % self.obj.runner.base_class_path)
         self.obj.startup()
         while not self.obj.check():
             time.sleep(1.0)
