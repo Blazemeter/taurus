@@ -295,6 +295,7 @@ Possible subjects for regexp are:
   - `body`
   - `headers`
   - `http-code`
+  - `url`
 
 ##### Assertions
 
