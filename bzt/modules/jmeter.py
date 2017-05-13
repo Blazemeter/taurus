@@ -19,7 +19,6 @@ import copy
 import csv
 import fnmatch
 import json
-import os
 import re
 import socket
 import subprocess
@@ -30,9 +29,11 @@ from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from math import ceil
 
+import os
+from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from cssselect import GenericTranslator
 
-from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
@@ -41,7 +42,6 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import RequestVisitor, ResourceFilesCollector
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -1861,7 +1861,7 @@ class JMeterScenarioBuilder(JMX):
         Generate the test plan
         """
 
-        thread_group = self.get_thread_group(concurrency=1, rampup=0, iterations=-1)
+        thread_group = self.get_thread_group(concurrency=1, rampup=0, iterations=-1, testname=self.executor.label)
         thread_group_ht = etree.Element("hashTree", type="tg")
 
         # NOTE: set realistic dns-cache and JVM prop by default?
