@@ -10,16 +10,16 @@ execution:
 
 # 2, 3
 - executor: selenium
+  testng-xml: resources/selenium/testng/testng.xml
   scenario:
-    testng-xml: resources/selenium/testng/testng.xml
     script: resources/BlazeDemo.java
     additional-classpath:
     - resources/selenium/junit/jar/dummy.jar
     - ~/file-in-home-05.jar
 - executor: selenium
+  testng-xml: ~/file-in-home-12.xml
   scenario:
     script: ~/file-in-home-03.java
-    testng-xml: ~/file-in-home-12.xml
 
 # 4, 5
 - executor: gatling

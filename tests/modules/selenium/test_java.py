@@ -23,7 +23,7 @@ class TestTestNGTester(BZTestCase):
         paths = [__dir__() + "/../../../bzt/resources/base-config.yml", local_paths_config()]
         engine_obj.configure(paths)
         self.obj = TestNGTester()
-        self.obj.settings = engine_obj.config.get("modules").get("junit")
+        self.obj.settings = engine_obj.config.get("modules").get("testng")
         engine_obj.create_artifacts_dir(paths)
         self.obj.engine = engine_obj
 
@@ -33,7 +33,6 @@ class TestTestNGTester(BZTestCase):
                 "script": __dir__() + "/../../resources/selenium/testng/TestNGSuite.java"}})
         self.obj.settings['autodetect-xml'] = False
         self.obj.prepare()
-        self.assertEqual(1, 0, "__d base_class_path: %s" % self.obj.base_class_path)
         self.obj.startup()
         while self.obj.check():
             time.sleep(1)
@@ -437,7 +436,6 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
                     'autodetect-xml': False
                 }}})
         self.obj.prepare()
-        self.assertEqual(1, 0, "__d base_class_path: %s" % self.obj.runner.base_class_path)
         self.obj.startup()
         while not self.obj.check():
             time.sleep(1.0)

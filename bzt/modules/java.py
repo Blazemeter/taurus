@@ -268,7 +268,6 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         self.install_required_tools()
         self.base_class_path += [self.testng_path, self.testng_plugin_path]
         if any(self._collect_script_files({'.java'})):
-            return
             self.compile_scripts()
 
     def detected_testng_xml(self):
