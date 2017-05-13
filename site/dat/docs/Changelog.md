@@ -13,6 +13,7 @@
  - read errors info from distributed locustio test
  - avoid recursion in dummy screen dashboard
  - allow specifying link to download Grinder
+ - allow using URL field for `extract-regex`
 
 ## 1.9.1 <sup>19 apr 2017</sup>
  - fix errors in reading Grinder KPI file

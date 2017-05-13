@@ -737,6 +737,8 @@ class JMX(object):
             headers = 'true'
         elif headers.lower() == 'http-code':
             headers = 'code'
+        elif headers.lower() == 'url':
+            headers = 'URL'
         else:
             headers = 'body'
 
