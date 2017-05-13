@@ -201,6 +201,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         self.base_class_path = [self.path_lambda(x) for x in self.base_class_path]
 
         if any(self._collect_script_files({'.java'})):
+            return
             self.compile_scripts()
 
     def install_required_tools(self):
