@@ -25,12 +25,20 @@ Test scenario may be presented not only as single file, folder or as a jar. Foll
 All `.java` files will be compiled and packed into jar file before running tests. All necessary tools will be
 downloaded and installed automatically into `~/.bzt/selenium-taurus`.
 
-TestNG configuration file (testng.xml) can be specified with `testng-xml` option. If the options isn't specified —
-Taurus will attempt to find TestNG config automatically by looking for 'testng.xml' file in current directory and
-in the script directory.
+TestNG configuration file (testng.xml) can be specified with `testng-xml` option on the execution level. If the options isn't specified — Taurus will attempt to find TestNG config automatically by looking for 'testng.xml' file in the script directory. You can turn off last detection with autodetect-xml option of testng:
+```yaml
+execution:
+- executor: testng
+  testng-xml: /path/to/your_testng.xml   # explicit path to test config
+  scenario:
+    script: some_file.java
+modules:
+  testng:
+    autodetect-xml: False    # default value: True
+```     
 If no TestNG configuration is found — Taurus will launch all tests from the test suite.
 
-Just like JUnit runner, TestNG runner supports the `additional-classpath` option.
+Just like JUnit runner, TestNG runner supports the `additional-classpath` option on the scenario and settings (i.e. modules.testng) levels.
 
 ## Configuration options:
 

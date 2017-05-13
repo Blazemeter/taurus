@@ -513,12 +513,9 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
     def test_with_testng_config(self):
         self.configure({
             'execution': {
+                'testng-xml': __dir__() + '/../../resources/selenium/testng/jars/testng.xml',
                 'scenario': {
-                    'script': __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar',
-                    'testng-xml': __dir__() + '/../../resources/selenium/testng/jars/testng.xml',
-                },
-            },
-        })
+                    'script': __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar'}}})
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():

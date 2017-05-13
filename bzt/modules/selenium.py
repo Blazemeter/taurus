@@ -166,7 +166,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         if '.java' in file_types or '.jar' in file_types:
             script_dir = get_full_path(self.get_script_path(), step_up=1)
-            if os.path.exists(os.path.join(script_dir, 'testng.xml')):
+            if os.path.exists(os.path.join(script_dir, 'testng.xml')) or self.execution.get('tesng-xml', None):
                 script_type = 'testng'
             else:
                 script_type = 'junit'
