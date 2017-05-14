@@ -18,14 +18,14 @@ from tests.mocks import EngineEmul, ModuleMock
 from tests.modules.test_blazemeter import BZMock
 
 
-class TestACloudProvisioning(BZTestCase):
+class TestCloudProvisioning(BZTestCase):
     @staticmethod
     def __get_user_info():
         with open(__dir__() + "/../resources/json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
 
     def setUp(self):
-        super(TestACloudProvisioning, self).setUp()
+        super(TestCloudProvisioning, self).setUp()
         engine = EngineEmul()
         engine.aggregator = ConsolidatingAggregator()
         self.obj = CloudProvisioning()
@@ -721,7 +721,7 @@ class TestACloudProvisioning(BZTestCase):
         self.assertEqual(19, len(self.mock.requests))
         self.assertIn("Cloud test has probably failed with message: msg", self.log_recorder.warn_buff.getvalue())
 
-    def test_acloud_paths(self):
+    def test_cloud_paths(self):
         """
         Test different executor/path combinations for correct return values of get_resources_files
         """
