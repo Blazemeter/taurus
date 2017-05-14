@@ -130,14 +130,11 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.engine.provisioning = prov
         self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
-    def test_remote_prov_requests(self):
+    def test_aremote_prov_requests(self):
         self.obj.execution.merge({
             "scenario": {
                 "requests": [
-                    "http://blazedemo.com"
-                ]
-            }
-        })
+                    "http://blazedemo.com"]}})
         resources = self.obj.resource_files()
         self.assertEqual(0, len(resources))
 
@@ -154,7 +151,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.execution.merge({
             "scenario": "req_sel"})
         self.obj.prepare()
-        gen_methods = self.obj.generated_methods
+        gen_methods = self.obj.runner.generated_methods
         name1 = 'test_00000_http_blazedemo_com'
         url1 = 'http://blazedemo.com'
         name2 = 'test_00001_Main_Page'
@@ -249,15 +246,17 @@ class TestSeleniumStuff(SeleniumTestCase):
             'scenario': {
                 'script': __dir__() + '/../../resources/selenium/junit/jar/dummy.jar',
                 'runner': 'junit',
-                'additional-classpath': [__dir__() + '/../../resources/selenium/junit/jar/another_dummy.jar'],
-            },
-        })
+                'additional-classpath': [__dir__() + '/../../resources/selenium/junit/jar/another_dummy.jar']}})
         self.obj.settings.merge({
-            'additional-classpath': [__dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar'],
-        })
-        resources = self.obj.resource_files()
+            'selenium-tools': {
+                'junit': {
+                    'additional-classpath': [__dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar']}}})
+        own_resources = self.obj.resource_files()
+        all_resources = list(set(self.obj.get_resource_files()))
+
         # scenario.script, scenario.additional-classpath, settings.additional-classpath
-        self.assertEqual(len(resources), 3)
+        self.assertEqual(len(own_resources), 2)
+        self.assertEqual(len(all_resources), 3)
 
 
 class TestReportReader(BZTestCase):

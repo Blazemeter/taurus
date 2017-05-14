@@ -106,7 +106,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         self._start_subprocess(nose_command_line)
 
         if self.__is_verbose():
-            self._tailer = FileTailer(self._stdout_file)
+            self._tailer = FileTailer(self.stdout_file)
 
     def check(self):
         self.__log_lines()
