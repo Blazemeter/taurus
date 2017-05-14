@@ -2,7 +2,6 @@
 
 ## 1.9.2
  - fix grinder having 100% errors
- - bump up auto-installed JMeter to 3.2
  - extract apiritif into standalone PyPi project
  - improve console message in case of BZA failed response
  - support some of JMeter functions when translating into apiritif code
@@ -11,9 +10,16 @@
  - improve grinder RC matching algorithm
  - improve jmx2yaml conversion with encoded params
  - read errors info from distributed locustio test
+ - bump up auto-installed JMeter to 3.2
  - avoid recursion in dummy screen dashboard
  - allow specifying link to download Grinder
- - allow using URL field for `extract-regex`
+ - allow using URL field for `extract-regex` in JMeter scripts
+ - support jmx2yaml conversion of JMeter's native JSONPath Post Processors
+ - stdin config read removed for CLI (it was hanging)
+ - hostaliases support removed (was never working properly)
+ - for JMeter, write scenario name into thread group name
+ - add simple JMX downloading for Proxy2JMX
+
 
 ## 1.9.1 <sup>19 apr 2017</sup>
  - fix errors in reading Grinder KPI file

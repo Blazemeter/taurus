@@ -15,6 +15,14 @@ scenarios:
     think-time: 500ms
     requests:
     - http://blazedemo.com
+    - url: http://blazedemo.com/vacation.html
+      extract-regexp:
+        key:
+          default: NO_KEY_FOUND
+          match-no: 1
+          regexp: /requests/(.*)
+          template: $1$
+          subject: url
 
 
 reporting:
