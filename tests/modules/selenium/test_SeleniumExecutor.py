@@ -251,9 +251,12 @@ class TestSeleniumStuff(SeleniumTestCase):
             'selenium-tools': {
                 'junit': {
                     'additional-classpath': [__dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar']}}})
-        resources = self.obj.resource_files()
+        own_resources = self.obj.resource_files()
+        all_resources = list(set(self.obj.get_resource_files()))
+
         # scenario.script, scenario.additional-classpath, settings.additional-classpath
-        self.assertEqual(len(resources), 3)
+        self.assertEqual(len(own_resources), 2)
+        self.assertEqual(len(all_resources), 3)
 
 
 class TestReportReader(BZTestCase):

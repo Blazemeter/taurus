@@ -406,7 +406,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertEqual(len(self.obj.resource_files()), 1)
 
 
-class TestASeleniumTestNGRunner(SeleniumTestCase):
+class TestSeleniumTestNGRunner(SeleniumTestCase):
     def test_prepare_java_package(self):
         self.configure({
             'execution': {
@@ -458,7 +458,7 @@ class TestASeleniumTestNGRunner(SeleniumTestCase):
         resources = self.obj.get_resource_files()
         self.assertEqual(resources, [script_jar, 'testng.xml'])
 
-    def test_aresource_files_detect_config(self):
+    def test_resource_files_detect_config(self):
         script_jar = __dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar'
         self.configure({
             'execution': {
