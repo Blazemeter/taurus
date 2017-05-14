@@ -41,7 +41,7 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
         self.install_required_tools()
         self._script = self.get_script_path()
         if not self._script:
-            raise TaurusConfigError("No script specified")
+            raise TaurusConfigError("Script not passed to runner %s" % self)
 
         self.reporting_setup(suffix='ldjson')
 

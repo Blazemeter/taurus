@@ -20,10 +20,10 @@ import os
 from bzt import TaurusConfigError, TaurusInternalException
 from urwid import Text, Pile
 
-from bzt.engine import Scenario, FileLister
+from bzt.engine import FileLister
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.utils import is_windows, BetterDict, get_full_path, get_files_recursive
+from bzt.utils import is_windows, BetterDict, get_files_recursive, get_full_path
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -66,7 +66,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.virtual_display = None
         self.end_time = None
         self.runner = None
-        self.scenario = None
         self.script = None
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
@@ -105,51 +104,20 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
-    def _get_testng_xml(self):
-        if 'testng-xml' in self.scenario:
-            testng_xml = self.scenario.get('testng-xml')
-            if testng_xml:
-                return testng_xml
-            else:
-                return None  # empty value for switch off testng.xml path autodetect
+    def create_runner(self):
+        runner_type = self.get_runner_type()
+        self.runner = self.engine.instantiate_module(runner_type)
 
-        script_path = self.get_script_path()
-        if script_path:
-            script_dir = get_full_path(script_path, step_up=1)
-            testng_xml = os.path.join(script_dir, 'testng.xml')
-            if os.path.exists(testng_xml):
-                self.log.info("Detected testng.xml file at %s", testng_xml)
-                self.scenario['testng-xml'] = testng_xml
-                return testng_xml
+        # todo: deprecated, remove it later
+        self.runner.settings.merge(self.settings.get('selenium-tools').get(runner_type))
 
-        return None
+        self.runner.parameters = self.parameters
+        self.runner.provisioning = self.provisioning
+        self.runner.execution = self.execution
+        self.runner.execution['executor'] = runner_type
 
-    def _create_runner(self):
-        script_type = self.detect_script_type()
-        runner = self.engine.instantiate_module(script_type)
-        runner.settings.merge(self.settings.get('selenium-tools').get(script_type))  # todo: deprecated, remove it later
-        runner.parameters = self.parameters
-        runner.provisioning = self.provisioning
-        runner.execution = self.execution
-        runner.execution['executor'] = script_type
-
-        if script_type == "nose":
-            runner.generated_methods = self.generated_methods
-            runner.execution["test-mode"] = "selenium"
-        elif script_type == "junit":
-            pass
-        elif script_type == "testng":
-            testng_config = self._get_testng_xml()
-            if testng_config:
-                runner.execution['testng-xml'] = self.engine.find_file(testng_config)
-        elif script_type == "rspec":
-            pass
-        elif script_type == "mocha":
-            pass
-        else:
-            raise TaurusConfigError("Unsupported script type: %s" % script_type)
-
-        return runner
+        if runner_type == "nose":
+            self.runner.execution["test-mode"] = "selenium"
 
     def prepare(self):
         if self.get_load().concurrency and self.get_load().concurrency > 1:
@@ -157,19 +125,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             msg += 'For details look at http://gettaurus.org/docs/Cloud.md'
             self.log.warning(msg)
         self.set_virtual_display()
-        self.scenario = self.get_scenario()
-        self.runner = self._create_runner()
+        self.create_runner()
         self.runner.prepare()
         self.script = self.runner.script
 
-    def detect_script_type(self):
-        script_name = self.get_script_path()
-        if not script_name and "requests" in self.scenario:
-            return "nose"
-
-        if not os.path.exists(script_name):
-            raise TaurusConfigError("Script '%s' doesn't exist" % script_name)
-
+    def get_runner_type(self):
         if "runner" in self.execution:
             runner = self.execution["runner"]
             if runner not in SeleniumExecutor.SUPPORTED_RUNNERS:
@@ -178,8 +138,26 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.log.debug("Using script type: %s", runner)
             return runner
 
+        script_name = self.get_script_path()
+        if script_name:
+            return self.detect_script_type(script_name)
+        else:
+            if "requests" in self.get_scenario():
+                return "nose"
+            else:
+                raise TaurusConfigError("You must specify either script or list of requests to run Selenium")
+
+    def resource_files(self):
+        self.create_runner()
+        return self.runner.resource_files()
+
+    def detect_script_type(self, script_name):
+        if not os.path.exists(script_name):
+            raise TaurusConfigError("Script '%s' doesn't exist" % script_name)
+
         file_types = set()
 
+        # gather file extensions and choose script_type according to priority
         if os.path.isfile(script_name):  # regular file received
             file_types.add(os.path.splitext(script_name)[1].lower())
         else:  # dir received: check contained files
@@ -187,7 +165,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
                 file_types.add(os.path.splitext(file_name)[1].lower())
 
         if '.java' in file_types or '.jar' in file_types:
-            if self._get_testng_xml() is not None:
+            # todo: next detection logic is duplicated in TestNGTester - can we avoid it?
+            script_dir = get_full_path(self.get_script_path(), step_up=1)
+            if os.path.exists(os.path.join(script_dir, 'testng.xml')) or self.execution.get('testng-xml', None):
                 script_type = 'testng'
             else:
                 script_type = 'junit'
@@ -198,7 +178,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         elif '.js' in file_types:
             script_type = 'mocha'
         else:
-            raise TaurusConfigError("Unsupported script type: %s" % script_name)
+            raise TaurusConfigError("Supported script files not found, script detection is failed")
 
         self.log.debug("Detected script type: %s", script_type)
 
@@ -255,25 +235,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.script, self.runner._stdout_file)
+            self.widget = SeleniumWidget(self.script, self.runner.stdout_file)
         return self.widget
-
-    def resource_files(self):
-        resources = []
-
-        self.scenario = self.get_scenario()
-        script = self.scenario.get(Scenario.SCRIPT, None)
-        if script:
-            resources.append(script)
-
-        resources.extend(self.scenario.get("additional-classpath", []))
-        resources.extend(self.settings.get("additional-classpath", []))
-
-        testng_config = self._get_testng_xml()
-        if testng_config:
-            resources.append(testng_config)
-
-        return resources
 
 
 class SeleniumWidget(Pile, PrioritizedWidget):

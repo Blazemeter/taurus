@@ -120,7 +120,6 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             self.assertTrue(exists(join(dummy_installation_path, "node_modules", "selenium-webdriver")))
             self.assertTrue(exists(join(dummy_installation_path, "node_modules", "selenium-webdriver", "index.js")))
         finally:
-
             javascript.MOCHA_NPM_PACKAGE_NAME = orig_mocha_package
             javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = orig_wd_package
             if old_node_path:

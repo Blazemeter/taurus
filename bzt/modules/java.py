@@ -75,12 +75,13 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         """
         make jar.
         """
-        self.install_required_tools()
-        self.base_class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_jar_path])
-
         self.script = self.get_scenario().get(Scenario.SCRIPT,
                                               TaurusConfigError("Script not passed to runner %s" % self))
         self.script = self.engine.find_file(self.script)
+
+        self.install_required_tools()
+        self.base_class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_jar_path])
+
         self.working_dir = self.engine.create_artifact(self.settings.get("working-dir", "classes"), "")
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
         self.base_class_path.extend(self.settings.get("additional-classpath", []))
@@ -91,6 +92,14 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
             os.makedirs(self.working_dir)
 
         self.reporting_setup(suffix="ldjson")
+
+    def resource_files(self):
+        resources = super(JavaTestRunner, self).resource_files()
+        resources.extend(self.get_scenario().get("additional-classpath", []))
+        global_additional_classpath = self.settings.get("additional-classpath", [])
+        execution_files = self.execution.get('files', [])   # later we need to fix path for sending into cloud
+        execution_files.extend(global_additional_classpath)
+        return resources
 
     def _collect_script_files(self, extensions):
         file_list = []
@@ -249,7 +258,6 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
     """
     Allows to test java and jar files with TestNG
     """
-
     __test__ = False  # Hello, nosetests discovery mechanism
 
     def __init__(self):
@@ -263,6 +271,28 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         self.base_class_path += [self.testng_path, self.testng_plugin_path]
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
+
+    def detected_testng_xml(self):
+        script_path = self.get_script_path()
+        if script_path and self.settings.get("autodetect-xml", True):
+            script_dir = get_full_path(script_path, step_up=1)
+            testng_xml = os.path.join(script_dir, 'testng.xml')
+            if os.path.exists(testng_xml):
+                return testng_xml
+        return None
+
+    def resource_files(self):
+        resources = super(TestNGTester, self).resource_files()
+        testng_xml = self.execution.get('testng-xml', None)
+        if not testng_xml:
+            testng_xml = self.detected_testng_xml()
+            if testng_xml:
+                self.log.info("Detected testng.xml file at %s", testng_xml)
+                self.execution['testng-xml'] = testng_xml
+        if testng_xml:
+            resources.append(testng_xml)
+
+        return resources
 
     def install_required_tools(self):
         super(TestNGTester, self).install_required_tools()
@@ -306,8 +336,9 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
             for index, item in enumerate(jar_list):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
-            if self.execution.get('testng-xml', None):
-                props.write('testng_config=%s\n' % self.execution.get('testng-xml').replace(os.path.sep, '/'))
+            testng_xml = self.execution.get('testng-xml', None) or self.detected_testng_xml()
+            if testng_xml:
+                props.write('testng_config=%s\n' % testng_xml.replace(os.path.sep, '/'))
 
         cmdline = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurustestng.TestNGRunner", self.props_file]
         self._start_subprocess(cmdline)
