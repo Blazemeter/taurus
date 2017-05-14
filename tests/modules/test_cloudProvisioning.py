@@ -18,14 +18,14 @@ from tests.mocks import EngineEmul, ModuleMock
 from tests.modules.test_blazemeter import BZMock
 
 
-class TestCloudProvisioning(BZTestCase):
+class TestACloudProvisioning(BZTestCase):
     @staticmethod
     def __get_user_info():
         with open(__dir__() + "/../resources/json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
 
     def setUp(self):
-        super(TestCloudProvisioning, self).setUp()
+        super(TestACloudProvisioning, self).setUp()
         engine = EngineEmul()
         engine.aggregator = ConsolidatingAggregator()
         self.obj = CloudProvisioning()
@@ -721,7 +721,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(19, len(self.mock.requests))
         self.assertIn("Cloud test has probably failed with message: msg", self.log_recorder.warn_buff.getvalue())
 
-    def test_cloud_paths(self):
+    def test_acloud_paths(self):
         """
         Test different executor/path combinations for correct return values of get_resources_files
         """
@@ -740,7 +740,8 @@ class TestCloudProvisioning(BZTestCase):
         # list of existing files in $HOME
         pref = 'file-in-home-'
         files_in_home = ['00.jmx', '01.csv', '02.res', '03.java', '04.scala', '05.jar', '06.py',
-                         '07.properties', '08.py', '09.siege', '10.xml', '11.ds', '12.xml', '13.src']
+                         '07.properties', '08.py', '09.siege', '10.xml', '11.ds', '12.xml',
+                         '13.src', '14.java', '15.xml', '16.java', '17.js', '18.rb', '19.jar', '20.jar']
         files_in_home = [pref + _file for _file in files_in_home]
 
         back_home = os.environ.get('HOME', '')
@@ -809,7 +810,7 @@ class TestCloudProvisioning(BZTestCase):
                 'file-in-home-01.csv', 'body-file.dat',  # 1 (from jmx)
                 'BlazeDemo.java',  # 2 (script)
                 'file-in-home-05.jar', 'dummy.jar',  # 2 (additional-classpath)
-                'testng.xml',  # 2 (testng-xml)
+                'not-jmx.xml',  # 2 (testng-xml)
                 'file-in-home-03.java',  # 3 (script)
                 'file-in-home-12.xml',  # 3 (testng-xml)
                 'BasicSimulation.scala',  # 4 (script)
@@ -828,7 +829,19 @@ class TestCloudProvisioning(BZTestCase):
                 'file-in-home-10.xml',  # 14 (script)
                 'pbench.src',  # 15 (script)
                 'file-in-home-13.src',  # 16 (script)
-                'file-in-home-00.jmx'  # 17 (script)
+                'file-in-home-00.jmx',  # 17 (script)
+                'TestBlazemeterFail.java',  # 18 (script)
+                'file-in-home-20.jar',  # 18 (additional-classpath)
+                'file-in-home-14.java',  # 19 (script)
+                'TestNGSuite.java',  # 20 (script)
+                'testng.xml',  # 20 (detected testng-xml from 'files')
+                'file-in-home-15.xml',  # 21 (testng-xml)
+                'file-in-home-16.java',  # 21 (script)
+                'bd_scenarios.js',  # 22 (script)
+                'file-in-home-17.js',   # 23 (sript)
+                'example_spec.rb',  # 24 (script)
+                'file-in-home-18.rb',  # 25 (sript)
+                'file-in-home-19.jar'   # global testng settings (additional-classpath)
             })
         finally:
             os.environ['HOME'] = back_home

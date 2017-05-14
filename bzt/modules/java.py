@@ -96,7 +96,10 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
     def resource_files(self):
         resources = super(JavaTestRunner, self).resource_files()
         resources.extend(self.get_scenario().get("additional-classpath", []))
-        resources.extend(self.settings.get("additional-classpath", []))
+        global_additional_classpath = self.settings.get("additional-classpath", [])
+        resources.extend(global_additional_classpath)
+        execution_files = self.execution.get('files', [])   # later we need to fix path for sending into cloud
+        execution_files.extend(global_additional_classpath)
         return resources
 
     def _collect_script_files(self, extensions):
@@ -286,6 +289,8 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
             testng_xml = self.detected_testng_xml()
             if testng_xml:
                 self.log.info("Detected testng.xml file at %s", testng_xml)
+                execution_files = self.execution.get('files', [])
+                execution_files.append(testng_xml)
         if testng_xml:
             resources.append(testng_xml)
 

@@ -18,7 +18,7 @@ limitations under the License.
 import os
 
 from bzt import ToolError
-from bzt.engine import ScenarioExecutor, Scenario
+from bzt.engine import ScenarioExecutor, Scenario, FileLister
 from bzt.utils import shutdown_process
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
@@ -58,7 +58,7 @@ class ReportableExecutor(ScenarioExecutor):
                 self.engine.aggregator.add_underling(self.reader)
 
 
-class SubprocessedExecutor(ReportableExecutor):
+class SubprocessedExecutor(ReportableExecutor, FileLister):
     """
     Class for subprocessed executors
 
