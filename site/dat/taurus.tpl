@@ -42,7 +42,7 @@
     {else}
         <link rel="stylesheet" href="/img/taurus.css"/>
     {/if}
-    <link rel="stylesheet" href="/img/font-awesome-4.3.0/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"/>
 
 </head>
 
