@@ -3,7 +3,7 @@ FROM ubuntu:16.04
 ENV CHROMEDRIVER_VERSION=2.28
 ENV GECKODRIVER_VERSION=0.15.0
 
-ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
+ADD https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_6.x /tmp
 RUN apt-get -y update \
