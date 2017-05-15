@@ -1471,7 +1471,8 @@ class JMX2YAML(object):
         else:
             self.dst_file = self.src_file + "." + output_format.lower()
 
-        exporter.dump(self.dst_file, output_format)
+        with open(self.dst_file, 'w') as fds:
+            exporter.write(fds, output_format)
 
         additional_files_dir = get_full_path(self.dst_file, step_up=1)
         for filename in self.converter.dialect.additional_files:
