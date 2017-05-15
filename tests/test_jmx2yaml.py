@@ -415,9 +415,11 @@ class TestConverter(BZTestCase):
         yml = yaml.load(open(obj.dst_file).read())
         scenarios = yml.get("scenarios")
         tg_one = scenarios["TG1"]
-        self.assertEqual(tg_one.get('variables'), {"tg1_local": "tg1", "global_var": "global"})
+        self.assertEqual(tg_one.get('variables'),
+                         {"tg1_local": "tg1", "global_var": "global", "auth_token": "shouldn't be masked"})
         tg_two = scenarios["TG2"]
-        self.assertEqual(tg_two.get('variables'), {"tg2_local": "tg2", "global_var": "global"})
+        self.assertEqual(tg_two.get('variables'),
+                         {"tg2_local": "tg2", "global_var": "global", "auth_token": "shouldn't be masked"})
 
     def test_no_variables(self):
         obj = self._get_jmx2yaml("/resources/yaml/converter/default.jmx")
