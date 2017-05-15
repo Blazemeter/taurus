@@ -229,6 +229,7 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertFilesEqual(__dir__() + "/../resources/locust/generated_from_requests_1.py", self.obj.script)
 
     def test_build_script_none_def_addr(self):
+        self.sniff_log(self.obj.log)
         self.obj.engine.config.merge({
             "execution": [{
                 "executor": "locust",
@@ -242,7 +243,10 @@ class TestLocustIOExecutor(BZTestCase):
 
         self.obj.execution = self.obj.engine.config.get('execution')[0]
         self.obj.prepare()
-        self.assertFilesEqual(__dir__() + "/../resources/locust/generated_from_requests_2.py", self.obj.script)
+        self.obj.startup()
+        self.obj.shutdown()
+        debug_buff = self.log_recorder.debug_buff.getvalue()
+        self.assertNotIn("'--host='", debug_buff)
 
     def test_jtl_key_order(self):
         self.obj.execution.merge({

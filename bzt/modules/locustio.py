@@ -107,9 +107,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             env["JTL"] = self.kpi_jtl
 
         host = self.get_scenario().get("default-address", None)
-        if host is None:
-            host = ''
-        args.append('--host=%s' % host)
+        if host is not None:
+            args.append('--host=%s' % host)
 
         self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
         self.process = self.execute(args, stderr=STDOUT, stdout=self.__out, env=env)

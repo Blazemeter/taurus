@@ -1,0 +1,1 @@
+Fix Locust crashing when no default-address is specified for given Locustfile
