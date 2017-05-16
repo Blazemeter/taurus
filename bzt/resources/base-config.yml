@@ -58,6 +58,8 @@ modules:
     class: bzt.modules.services.AndroidEmulatorLoader
   appium:
     class: bzt.modules.services.AppiumLoader
+  virtual-display:
+    class: bzt.modules.services.VirtualDisplay
 
   # online services integrations
   blazemeter:
