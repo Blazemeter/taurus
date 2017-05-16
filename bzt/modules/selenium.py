@@ -18,13 +18,14 @@ import time
 from abc import abstractmethod
 
 import os
-from bzt import TaurusConfigError, TaurusInternalException
+from bzt import TaurusConfigError
 from urwid import Text, Pile
 
 from bzt.engine import FileLister
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.utils import is_windows, BetterDict, get_files_recursive, get_full_path
+from bzt.modules.services import VirtualDisplay
+from bzt.utils import BetterDict, get_files_recursive, get_full_path
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -33,7 +34,16 @@ except ImportError:
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
+    # TODO: deprecated, as it's replaced with virtual-display service
     SHARED_VIRTUAL_DISPLAY = {}
+
+    @abstractmethod
+    def get_virtual_display(self):
+        """
+        Return virtual display instance, if any.
+        :return:
+        """
+        pass
 
     @abstractmethod
     def add_env(self, env):
@@ -61,6 +71,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.script = None
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
+        self.virtual_display_service = None  # TODO: remove compatibility with deprecated virtual-display setting
 
     def add_env(self, env):
         self.additional_env.update(env)
@@ -85,6 +96,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         if runner_type == "nose":
             self.runner.execution["test-mode"] = "selenium"
 
+    def get_virtual_display(self):
+        if self.virtual_display_service is not None:
+            return self.virtual_display_service.get_virtual_display()
+
     def prepare(self):
         if self.get_load().concurrency and self.get_load().concurrency > 1:
             msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
@@ -98,9 +113,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
                              " Use the service approach instead")
             service_conf = copy.deepcopy(vd_conf)
             service_conf["module"] = "virtual-display"
-            self.engine.config.get("services", []).append(service_conf)
-            # wait, services are already created and prepared at that stage
-            # TODO: solve
+            self.virtual_display_service = VirtualDisplay()
+            self.virtual_display_service.parameters.merge(service_conf)
+            self.virtual_display_service.prepare()
 
         self.create_runner()
         self.runner.prepare()
@@ -166,6 +181,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         Start runner
         :return:
         """
+        if self.virtual_display_service is not None:
+            self.virtual_display_service.startup()
         self.start_time = time.time()
         self.runner.env = self.additional_env
         self.runner.startup()
@@ -175,6 +192,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         check if test completed
         :return:
         """
+        if self.virtual_display_service is not None:
+            self.virtual_display_service.check()
+
         if self.widget:
             self.widget.update()
 
@@ -190,10 +210,16 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         shutdown test_runner
         :return:
         """
+        if self.virtual_display_service is not None:
+            self.virtual_display_service.shutdown()
+
         self.runner.shutdown()
         self.report_test_duration()
 
     def post_process(self):
+        if self.virtual_display_service is not None:
+            self.virtual_display_service.post_process()
+
         if os.path.exists("geckodriver.log"):
             self.engine.existing_artifact("geckodriver.log", True)
 
