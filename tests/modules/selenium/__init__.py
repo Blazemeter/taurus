@@ -52,4 +52,5 @@ class SeleniumTestCase(BZTestCase):
             except BaseException:
                 pass
         if isinstance(self.obj, SeleniumExecutor):
-            self.obj.free_virtual_display()
+            if self.obj.virtual_display_service is not None:
+                self.obj.virtual_display_service.free_virtual_display()

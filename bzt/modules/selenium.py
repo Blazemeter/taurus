@@ -59,6 +59,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     Selenium executor
     :type virtual_display: Display
     :type runner: SubprocessedExecutor
+    :type virtual_display_service: VirtualDisplay
     """
 
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha"]
