@@ -21,7 +21,7 @@ import os
 from bzt import TaurusConfigError
 from urwid import Text, Pile
 
-from bzt.engine import FileLister
+from bzt.engine import FileLister, Service
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.services import VirtualDisplay
@@ -72,7 +72,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.script = None
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
-        self.virtual_display_service = None  # TODO: remove compatibility with deprecated virtual-display setting
+        self.virtual_display_service = Service()  # TODO: remove compatibility with deprecated virtual-display setting
 
     def add_env(self, env):
         self.additional_env.update(env)
@@ -98,7 +98,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             self.runner.execution["test-mode"] = "selenium"
 
     def get_virtual_display(self):
-        if self.virtual_display_service is not None:
+        if isinstance(self.virtual_display_service, VirtualDisplay):
             return self.virtual_display_service.get_virtual_display()
 
     def prepare(self):
@@ -182,8 +182,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         Start runner
         :return:
         """
-        if self.virtual_display_service is not None:
-            self.virtual_display_service.startup()
+        self.virtual_display_service.startup()
         self.start_time = time.time()
         self.runner.env = self.additional_env
         self.runner.startup()
@@ -193,8 +192,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         check if test completed
         :return:
         """
-        if self.virtual_display_service is not None:
-            self.virtual_display_service.check()
+        self.virtual_display_service.check()
 
         if self.widget:
             self.widget.update()
@@ -211,15 +209,13 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         shutdown test_runner
         :return:
         """
-        if self.virtual_display_service is not None:
-            self.virtual_display_service.shutdown()
+        self.virtual_display_service.shutdown()
 
         self.runner.shutdown()
         self.report_test_duration()
 
     def post_process(self):
-        if self.virtual_display_service is not None:
-            self.virtual_display_service.post_process()
+        self.virtual_display_service.post_process()
 
         if os.path.exists("geckodriver.log"):
             self.engine.existing_artifact("geckodriver.log", True)
