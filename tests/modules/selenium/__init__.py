@@ -2,6 +2,8 @@ import logging
 import sys
 
 import os
+
+from bzt.modules.services import VirtualDisplay
 from tests import BZTestCase, __dir__, local_paths_config
 
 from bzt.modules.selenium import SeleniumExecutor
@@ -52,5 +54,5 @@ class SeleniumTestCase(BZTestCase):
             except BaseException:
                 pass
         if isinstance(self.obj, SeleniumExecutor):
-            if self.obj.virtual_display_service is not None:
+            if isinstance(self.obj.virtual_display_service, VirtualDisplay):
                 self.obj.virtual_display_service.free_virtual_display()
