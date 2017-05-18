@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import mimetypes
 import re
 
@@ -160,6 +161,9 @@ class IncludeScenarioBlock(Request):
         super(IncludeScenarioBlock, self).__init__(config)
         self.scenario_name = scenario_name
 
+    def __repr__(self):
+        return "IncludeScenarioBlock(scenario_name=%r)" % self.scenario_name
+
 
 class RequestsParser(object):
     def __init__(self, scenario, engine):
@@ -206,16 +210,21 @@ class RequestsParser(object):
             return IncludeScenarioBlock(name, req)
         elif 'action' in req:
             action = req.get('action')
-            if action not in ('pause', 'stop', 'stop-now', 'continue'):
+            if action in ('pause', 'stop', 'stop-now', 'continue'):
+                target = req.get('target', 'current-thread')
+                if target not in ('current-thread', 'all-threads'):
+                    msg = "Target for action should be either 'current-thread' or 'all-threads' but '%s' found"
+                    raise TaurusConfigError(msg % target)
+                duration = req.get('pause-duration', None)
+                if duration is not None:
+                    duration = dehumanize_time(duration)
+                return ActionBlock(action, target, duration, req)
+            elif action == 'set-variables':
+                mapping = copy.deepcopy(req)
+                mapping.pop('action')
+                return SetVariables(mapping, req)
+            else:
                 raise TaurusConfigError("Action should be either 'pause', 'stop', 'stop-now' or 'continue'")
-            target = req.get('target', 'current-thread')
-            if target not in ('current-thread', 'all-threads'):
-                msg = "Target for action should be either 'current-thread' or 'all-threads' but '%s' found"
-                raise TaurusConfigError(msg % target)
-            duration = req.get('pause-duration', None)
-            if duration is not None:
-                duration = dehumanize_time(duration)
-            return ActionBlock(action, target, duration, req)
         else:
             return HierarchicHTTPRequest(req, self.scenario, self.engine)
 
@@ -242,6 +251,12 @@ class ActionBlock(Request):
         self.action = action
         self.target = target
         self.duration = duration
+
+
+class SetVariables(Request):
+    def __init__(self, mapping, config):
+        super(SetVariables, self).__init__(config)
+        self.mapping = mapping
 
 
 class RequestVisitor(object):

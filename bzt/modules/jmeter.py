@@ -1847,6 +1847,16 @@ class JMeterScenarioBuilder(JMX):
         self.__add_jsr_elements(children, block)
         return [test_action, children]
 
+    def compile_set_variables_block(self, block):
+        # pause current thread for 0s
+        test_action = JMX._get_action_block(action_index=1, target_index=0, duration_ms=0)
+        children = etree.Element("hashTree")
+        jsr_settings = {"language": "groovy"}
+        fmt = "vars.put('%s', %r)"
+        jsr_settings["script-text"] = "\n".join(fmt % (var, expr) for var, expr in iteritems(block.mapping))
+        self.__add_jsr_elements(children, jsr_settings)
+        return [test_action, children]
+
     def compile_requests(self, requests):
         if self.request_compiler is None:
             self.request_compiler = RequestCompiler(self)
@@ -2160,3 +2170,6 @@ class RequestCompiler(RequestVisitor):
 
     def visit_actionblock(self, block):
         return self.jmx_builder.compile_action_block(block)
+
+    def visit_setvariables(self, block):
+        return self.jmx_builder.compile_set_variables_block(block)
