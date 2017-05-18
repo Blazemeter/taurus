@@ -13,17 +13,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import time
 from abc import abstractmethod
 
 import os
-from bzt import TaurusConfigError, TaurusInternalException
+from bzt import TaurusConfigError
 from urwid import Text, Pile
 
-from bzt.engine import FileLister
+from bzt.engine import FileLister, Service
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.utils import is_windows, BetterDict, get_files_recursive, get_full_path
+from bzt.modules.services import VirtualDisplay
+from bzt.utils import BetterDict, get_files_recursive, get_full_path
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -32,13 +34,14 @@ except ImportError:
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
+    # TODO: deprecated, as it's replaced with virtual-display service
     SHARED_VIRTUAL_DISPLAY = {}
 
     @abstractmethod
     def get_virtual_display(self):
         """
-        Return virtual display instance used by this executor.
-        :rtype: Display
+        Return virtual display instance, if any.
+        :return:
         """
         pass
 
@@ -56,6 +59,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     Selenium executor
     :type virtual_display: Display
     :type runner: SubprocessedExecutor
+    :type virtual_display_service: VirtualDisplay
     """
 
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha"]
@@ -63,41 +67,15 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
         self.additional_env = {}
-        self.virtual_display = None
         self.end_time = None
         self.runner = None
         self.script = None
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
-
-    def get_virtual_display(self):
-        return self.virtual_display
+        self.virtual_display_service = Service()  # TODO: remove compatibility with deprecated virtual-display setting
 
     def add_env(self, env):
         self.additional_env.update(env)
-
-    def set_virtual_display(self):
-        display_conf = self.settings.get("virtual-display")
-        if display_conf:
-            if is_windows():
-                self.log.warning("Cannot have virtual display on Windows, ignoring")
-            else:
-                if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY:
-                    self.virtual_display = SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
-                else:
-                    width = display_conf.get("width", 1024)
-                    height = display_conf.get("height", 768)
-                    self.virtual_display = Display(size=(width, height))
-                    msg = "Starting virtual display[%s]: %s"
-                    self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
-                    self.virtual_display.start()
-                    SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine] = self.virtual_display
-
-    def free_virtual_display(self):
-        if self.virtual_display and self.virtual_display.is_alive():
-            self.virtual_display.stop()
-        if self.engine in SeleniumExecutor.SHARED_VIRTUAL_DISPLAY:
-            del SeleniumExecutor.SHARED_VIRTUAL_DISPLAY[self.engine]
 
     def get_runner_working_dir(self):
         if self.runner_working_dir is None:
@@ -119,12 +97,27 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         if runner_type == "nose":
             self.runner.execution["test-mode"] = "selenium"
 
+    def get_virtual_display(self):
+        if isinstance(self.virtual_display_service, VirtualDisplay):
+            return self.virtual_display_service.get_virtual_display()
+
     def prepare(self):
         if self.get_load().concurrency and self.get_load().concurrency > 1:
             msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
             msg += 'For details look at http://gettaurus.org/docs/Cloud.md'
             self.log.warning(msg)
-        self.set_virtual_display()
+
+        # backwards-compatible virtual-display settings
+        vd_conf = self.settings.get("virtual-display")
+        if vd_conf:
+            self.log.warning("Configuring virtual-display in Selenium module settings is deprecated."
+                             " Use the service approach instead")
+            service_conf = copy.deepcopy(vd_conf)
+            service_conf["module"] = "virtual-display"
+            self.virtual_display_service = VirtualDisplay()
+            self.virtual_display_service.parameters.merge(service_conf)
+            self.virtual_display_service.prepare()
+
         self.create_runner()
         self.runner.prepare()
         self.script = self.runner.script
@@ -189,26 +182,20 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         Start runner
         :return:
         """
+        self.virtual_display_service.startup()
         self.start_time = time.time()
         self.runner.env = self.additional_env
         self.runner.startup()
-
-    def check_virtual_display(self):
-        if self.virtual_display:
-            if not self.virtual_display.is_alive():
-                self.log.info("Virtual display out: %s", self.virtual_display.stdout)
-                self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
-                raise TaurusInternalException("Virtual display failed: %s" % self.virtual_display.return_code)
 
     def check(self):
         """
         check if test completed
         :return:
         """
+        self.virtual_display_service.check()
+
         if self.widget:
             self.widget.update()
-
-        self.check_virtual_display()
 
         return self.runner.check()
 
@@ -222,13 +209,16 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         shutdown test_runner
         :return:
         """
+        self.virtual_display_service.shutdown()
+
         self.runner.shutdown()
         self.report_test_duration()
 
     def post_process(self):
+        self.virtual_display_service.post_process()
+
         if os.path.exists("geckodriver.log"):
             self.engine.existing_artifact("geckodriver.log", True)
-        self.free_virtual_display()
 
     def has_results(self):
         return self.runner.has_results()
