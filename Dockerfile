@@ -3,7 +3,7 @@ FROM ubuntu:16.04
 ENV CHROMEDRIVER_VERSION=2.28
 ENV GECKODRIVER_VERSION=0.15.0
 
-ADD http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
+ADD https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_6.x /tmp
 RUN apt-get -y update \
@@ -66,8 +66,7 @@ ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 COPY . /tmp/bzt-src
 RUN pip install /tmp/bzt-src \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
-  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && echo '{"modules": {"console": {"disable": true}}}' > /etc/bzt.d/90-no-console.json
+  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 
 RUN bzt -install-tools && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (cat /tmp/all-executors-artifacts/webdriver-1.log; exit 1)
 

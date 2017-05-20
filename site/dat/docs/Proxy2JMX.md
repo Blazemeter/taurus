@@ -17,7 +17,7 @@ services:
 - module: proxy2jmx
 ```
 
-As soon as taurus completes its work you'll find JMX in artifacts dir with the name `generated.jmx`.
+As soon as taurus completes its work you'll find JMX in artifacts dir with the name `generated.simple.jmx` and `generated.smart.jmx`. SmartJMX is a feature to help with JMX parameterization and explained in detail in [this article](https://www.blazemeter.com/blog/how-cut-your-jmeter-scripting-time-80).
 
 ## Proxy Server Auto Setup
 Taurus can help you with settings of proxy server for recording purposes. This ability depends on your operation system.

@@ -67,7 +67,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "JSR223PreProcessor",
               "JSR223PostProcessor",
               "BeanShellPreProcessor",
-              "BeanShellPostProcessor"
+              "BeanShellPostProcessor",
+              "JSONPostProcessor",
               ]
 
 
@@ -643,11 +644,17 @@ class JMXasDict(JMX):
 
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
-            property_pattern = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor"
-            extractor_elements = [element for element in hashtree.iterchildren() if element.tag == property_pattern]
+            plugins_extractor_pattern = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor"
+            native_extractor_pattern = "JSONPostProcessor"
+            extractor_elements = [
+                element
+                for element in hashtree.iterchildren()
+                if element.tag in (plugins_extractor_pattern, native_extractor_pattern)
+            ]
             for extractor_element in extractor_elements:
-                json_path_extractor = {}
-                if extractor_element is not None:
+                if extractor_element is None:
+                    continue
+                if extractor_element.tag == plugins_extractor_pattern:
                     varname = self._get_string_prop(extractor_element, 'VAR')
                     if varname:
                         extractor_props = {}
@@ -667,13 +674,29 @@ class JMXasDict(JMX):
                             self.log.warning("No default value found in %s", extractor_element.tag)
                             extractor_props["default"] = ""
 
-                        json_path_extractor.update({varname: extractor_props})
-
+                        json_path_extractors.update({varname: extractor_props})
                     else:
                         self.log.warning("Not found varname in %s, skipping", extractor_element.tag)
                         continue
-
-                json_path_extractors.update(json_path_extractor)
+                elif extractor_element.tag == native_extractor_pattern:
+                    self.log.warning("Found native JSONPath extractor")
+                    vars = self._get_string_prop(extractor_element, 'JSONPostProcessor.referenceNames')
+                    if not vars:
+                        self.log.warning("No vars declared for JSONPath extractor")
+                        continue
+                    queries = self._get_string_prop(extractor_element, 'JSONPostProcessor.jsonPathExprs')
+                    if not vars:
+                        self.log.warning("No queries declared for JSONPath extractor")
+                        continue
+                    def_values = self._get_string_prop(extractor_element, 'JSONPostProcessor.defaultValues')
+                    def_values_iter = iter(def_values.split(';') if def_values is not None else None)
+                    for var, query in zip(vars.split(';'), queries.split(';')):
+                        extractor = {"jsonpath": query}
+                        try:
+                            extractor["default"] = next(def_values_iter)
+                        except StopIteration:
+                            extractor["default"] = ""
+                        json_path_extractors.update({var: extractor})
 
         return json_path_extractors
 
@@ -1448,7 +1471,8 @@ class JMX2YAML(object):
         else:
             self.dst_file = self.src_file + "." + output_format.lower()
 
-        exporter.dump(self.dst_file, output_format)
+        with open(self.dst_file, 'w') as fds:
+            exporter.write(fds, output_format)
 
         additional_files_dir = get_full_path(self.dst_file, step_up=1)
         for filename in self.converter.dialect.additional_files:

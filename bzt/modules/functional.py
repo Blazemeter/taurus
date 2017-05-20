@@ -140,12 +140,6 @@ class TestReportReader(object):
 
     def read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
-            for key in self.REPORT_ITEM_KEYS:
-                if key not in row:
-                    self.log.debug("Unexpected test record: %s", row)
-                    self.log.warning("Test record doesn't conform to schema, skipping, %s", key)
-                    continue
-
             row["test_case"] = self.process_label(row["test_case"])
             yield row
 

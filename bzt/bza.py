@@ -10,11 +10,11 @@ from collections import OrderedDict
 
 import requests
 from bzt import TaurusNetworkError, ManualShutdown, VERSION
-
 from bzt.six import cookielib
 from bzt.six import string_types
 from bzt.six import text_type
 from bzt.six import urlencode
+
 from bzt.utils import to_json, MultiPartForm
 
 
@@ -627,6 +627,10 @@ class BZAProxy(BZAObject):
         self._request(self.address + '/api/latest/proxy/recording/start', method='POST')
 
     def get_jmx(self):
+        response = self._request(self.address + '/api/latest/proxy/download?format=jmx&smart=false', raw_result=True)
+        return response
+
+    def get_smart_jmx(self):
         # wait for availability
         while True:
             response = self._request(self.address + '/api/latest/proxy')

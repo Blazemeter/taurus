@@ -48,11 +48,12 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
 
     def prepare(self):
         super(MochaTester, self).prepare()
-        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
-        self.install_required_tools()
         self.script = self.get_script_path()
         if not self.script:
-            raise TaurusConfigError("No script specified")
+            raise TaurusConfigError("Script not passed to runner %s" % self)
+
+        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
+        self.install_required_tools()
         self.reporting_setup(suffix='ldjson')
 
     def install_required_tools(self):

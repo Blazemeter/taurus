@@ -154,13 +154,20 @@ class Proxy2JMX(Service, Singletone):
             self.log.info("Will not pick converted JMX due to exception: %s", self.engine.stopping_reason)
             return
 
-        self.log.info("Waiting for proxy to generate JMX...")
+        self.log.info("Downloading simple JMX...")
         jmx_text = self.proxy.get_jmx()
-        jmx_file = self.engine.create_artifact(self.label, '.jmx')
+        jmx_file = self.engine.create_artifact(self.label, '.simple.jmx')
+        with open(jmx_file, 'w') as _file:
+            _file.writelines(jmx_text)
+        self.log.info("Simple JMX saved into %s", jmx_file)
+
+        self.log.info("Waiting for proxy to generate SmartJMX...")
+        jmx_text = self.proxy.get_smart_jmx()
+        jmx_file = self.engine.create_artifact(self.label, '.smart.jmx')
         with open(jmx_file, 'w') as _file:
             _file.writelines(jmx_text)
 
-        self.log.info("JMX saved into %s", jmx_file)
+        self.log.info("Smart JMX saved into %s", jmx_file)
         if 'HTTPSampler' not in jmx_text:
             self.log.warning("There aren't requests recorded by proxy2jmx, check your proxy configuration")
 

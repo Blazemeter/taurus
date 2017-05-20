@@ -251,6 +251,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
         if self.__streams_redirected:
             return
 
+        if isinstance(self.screen, DummyScreen):
+            return
+
         if sys.stdout.isatty():
             if not is_windows():
                 self.__detect_console_logger()

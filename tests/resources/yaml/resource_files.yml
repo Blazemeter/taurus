@@ -10,16 +10,16 @@ execution:
 
 # 2, 3
 - executor: selenium
+  testng-xml: resources/jmeter/jmx/not-jmx.xml
   scenario:
-    testng-xml: resources/selenium/testng/testng.xml
     script: resources/BlazeDemo.java
     additional-classpath:
     - resources/selenium/junit/jar/dummy.jar
     - ~/file-in-home-05.jar
 - executor: selenium
+  testng-xml: ~/file-in-home-12.xml
   scenario:
     script: ~/file-in-home-03.java
-    testng-xml: ~/file-in-home-12.xml
 
 # 4, 5
 - executor: gatling
@@ -83,9 +83,48 @@ execution:
   scenario:
     script: ~/file-in-home-00.jmx
 
+# 18, 19
+- executor: junit
+  scenario:
+    additional-classpath:
+    - ~/file-in-home-20.jar
+    script: resources/selenium/junit/java/TestBlazemeterFail.java
+- executor: junit
+  scenario:
+    script: ~/file-in-home-14.java
+
+# 20, 21
+- executor: testng
+  scenario:
+    script: resources/selenium/testng/TestNGSuite.java
+- executor: testng
+  testng-xml: ~/file-in-home-15.xml
+  scenario:
+    script: ~/file-in-home-16.java
+
+# 22, 23
+- executor: mocha
+  scenario:
+    script: resources/selenium/js-mocha/bd_scenarios.js
+- executor: mocha
+  scenario:
+    script: ~/file-in-home-17.js
+
+# 24, 25
+- executor: rspec
+  scenario:
+    script: resources/selenium/ruby/example_spec.rb
+- executor: rspec
+  scenario:
+    script: ~/file-in-home-18.rb
+
+
 provisioning: cloud
 modules:
   cloud:
     token: FaKEtoKeN
     browser-open: false
     check-interval: 1s
+  testng:
+    additional-classpath:
+    - ~/file-in-home-19.jar

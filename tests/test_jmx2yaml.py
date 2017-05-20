@@ -296,8 +296,8 @@ class TestConverter(BZTestCase):
         # test extract-jsonpath
         tg_one_extractors = tg_one.get("extract-jsonpath")
         tg_two_extractors = tg_two.get("extract-jsonpath")
-        self.assertEqual(len(tg_one_extractors), 3)  # 2x global + local
-        self.assertEqual(len(tg_two_extractors), 2)  # 2x global
+        self.assertEqual(len(tg_one_extractors), 5)  # 4x global + local
+        self.assertEqual(len(tg_two_extractors), 4)  # 4x global
         tg_three_req_exr = tg_three.get("requests")[0].get("extract-jsonpath", {})
         self.assertEqual(len(tg_three_req_exr), 1)  # 1x local
         # test extract-xpath
@@ -316,6 +316,14 @@ class TestConverter(BZTestCase):
             "ignore-whitespace": True,
             "validate-xml": True,
             "use-tolerant-parser": False,
+        })
+        self.assertEqual(tg_one_extractors['VAR1'], {
+            "jsonpath": "$.foo",
+            "default": "DEF_1",
+        })
+        self.assertEqual(tg_one_extractors['VAR2'], {
+            "jsonpath": "$.bar",
+            "default": "DEF_2",
         })
 
     def test_request_body(self):
@@ -407,9 +415,11 @@ class TestConverter(BZTestCase):
         yml = yaml.load(open(obj.dst_file).read())
         scenarios = yml.get("scenarios")
         tg_one = scenarios["TG1"]
-        self.assertEqual(tg_one.get('variables'), {"tg1_local": "tg1", "global_var": "global"})
+        self.assertEqual(tg_one.get('variables'),
+                         {"tg1_local": "tg1", "global_var": "global", "auth_token": "shouldn't be masked"})
         tg_two = scenarios["TG2"]
-        self.assertEqual(tg_two.get('variables'), {"tg2_local": "tg2", "global_var": "global"})
+        self.assertEqual(tg_two.get('variables'),
+                         {"tg2_local": "tg2", "global_var": "global", "auth_token": "shouldn't be masked"})
 
     def test_no_variables(self):
         obj = self._get_jmx2yaml("/resources/yaml/converter/default.jmx")

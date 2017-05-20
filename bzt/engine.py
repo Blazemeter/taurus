@@ -667,8 +667,9 @@ class Configuration(BetterDict):
         """
         if isinstance(key, string_types):
             for suffix in ('password', 'secret', 'token',):
-                if key.lower().endswith(suffix) and value:
-                    container[key] = '*' * 8
+                if key.lower().endswith(suffix):
+                    if value and isinstance(value, (string_types, text_type)):
+                        container[key] = '*' * 8
 
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)

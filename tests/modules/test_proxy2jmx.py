@@ -58,6 +58,7 @@ class TestProxy2JMX(BZTestCase):
             ResponseEmul(200, ''),
             ResponseEmul(200, ''),  # startup: startRecording
             ResponseEmul(200, ''),  # shutdown: stopRecording
+            ResponseEmul(200, 'regular jmx contents'),
             ResponseEmul(200, '{"result" : {"smartjmx": "unavailable"}}'),
             ResponseEmul(200, '{"result" : {"smartjmx": "available"}}'),
             ResponseEmul(200, 'only one string')]
@@ -74,11 +75,16 @@ class TestProxy2JMX(BZTestCase):
         self.obj.startup()
         self.obj.shutdown()
         self.obj.post_process()
-        res_file = self.obj.engine.artifacts_dir + '/generated.jmx'
-        with open(res_file) as fd:
+
+        with open(self.obj.engine.artifacts_dir + '/generated.smart.jmx') as fd:
             lines = fd.readlines()
-        self.assertEqual(len(lines), 1)
-        self.assertEqual(lines[0].strip(), 'only one string')
+            self.assertEqual(len(lines), 1)
+            self.assertEqual(lines[0].strip(), 'only one string')
+
+        with open(self.obj.engine.artifacts_dir + '/generated.simple.jmx') as fd:
+            lines = fd.readlines()
+            self.assertEqual(len(lines), 1)
+            self.assertEqual(lines[0].strip(), 'regular jmx contents')
 
     def test_existing_proxy(self):
         self.obj.api_delay = 1
@@ -147,6 +153,7 @@ class TestProxy2JMX(BZTestCase):
             ResponseEmul(200, ''),
             ResponseEmul(200, ''),  # startup: startRecording
             ResponseEmul(200, ''),  # shutdown: stopRecording
+            ResponseEmul(200, 'regular jmx contents'),
             ResponseEmul(200, '{"result" : {"smartjmx": "unavailable"}}'),
             ResponseEmul(200, '{"result" : {"smartjmx": "available"}}'),
             ResponseEmul(200, 'only one string')]
