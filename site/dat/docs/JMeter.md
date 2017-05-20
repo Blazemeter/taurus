@@ -582,6 +582,7 @@ scenarios:
   transaction_example:
     requests:
     - transaction: Customer Session
+      force-parent-sample: False  # True by default
       do:
       - http://example.com/shop
       - http://example.com/shop/items/1
@@ -589,6 +590,7 @@ scenarios:
       - http://example.com/card
       - http://example.com/checkout
 ```
+Take note: you can specify force-parent-sample on both levels - scenario and transaction. If both are found local (transaction) value has priority.
 
 ##### Include Scenario blocks
 `include-scenario` block allows you to include scenario in another one. You can use it to split your test plan into
