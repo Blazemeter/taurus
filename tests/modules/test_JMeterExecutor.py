@@ -1276,6 +1276,40 @@ class TestJMeterExecutor(BZTestCase):
         non_parent = props[1]
         self.assertEqual(non_parent.text, 'false')
 
+    def test_transaction_and_requests1(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'force-parent-sample': False,
+                    'requests': [{
+                        'transaction': 'MY_TRANSACTION',
+                        'do': [{
+                            'url': 'http://blazedemo.com'}]}]}}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        selector = 'TransactionController > boolProp[name="TransactionController.parent"]'
+        props = jmx.get(selector)
+        self.assertEqual(len(props), 1)
+        non_parent = props[0]
+        self.assertEqual(non_parent.text, 'false')
+
+    def test_transaction_and_requests2(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'requests': [{
+                        'transaction': 'MY_TRANSACTION',
+                        'force-parent-sample': False,
+                        'do': [{
+                            'url': 'http://blazedemo.com'}]}]}}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        selector = 'TransactionController > boolProp[name="TransactionController.parent"]'
+        props = jmx.get(selector)
+        self.assertEqual(len(props), 1)
+        non_parent = props[0]
+        self.assertEqual(non_parent.text, 'false')
+
     def test_jvm_heap_settings(self):
         self.configure({
             'execution': {
