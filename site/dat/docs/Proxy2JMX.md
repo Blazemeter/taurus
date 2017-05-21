@@ -36,6 +36,8 @@ for chromedriver (don't place your chromedriver inside Windows directory). We st
 3.3 in the `System Variables` area locate the `Path` variable, highlight it and click `Edit`
 3.4 add your path ("c:\chromedriver") to previous value (and don't forget about path separator `;`)
 3.5 save changes.
+4. don't run taurus from Admin account or Admin terminal
+5. don't hardcode the path to chromedriver.exe in your scripts.
 
 ### MacOS
 Auto setup in MacOS is currently not implemented.
