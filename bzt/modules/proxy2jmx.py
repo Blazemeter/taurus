@@ -141,7 +141,7 @@ class Proxy2JMX(Service, Singletone):
         try:
             shutil.copy2(old_file, new_file)
         except IOError as exc:
-            raise TaurusInternalException("Can't copy loader: %s" % exc.message)
+            raise TaurusInternalException("Can't copy loader: %s" % exc)
 
     def shutdown(self):
         super(Proxy2JMX, self).shutdown()
