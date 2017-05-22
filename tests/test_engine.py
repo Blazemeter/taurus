@@ -1,11 +1,10 @@
 """ unit test """
-import os
 from bzt import TaurusConfigError
 from tests import BZTestCase, __dir__, local_paths_config
 
 from bzt.engine import ScenarioExecutor
 from bzt.six import string_types
-from bzt.utils import BetterDict, EXE_SUFFIX, is_windows
+from bzt.utils import BetterDict, is_windows
 from tests.mocks import EngineEmul
 
 

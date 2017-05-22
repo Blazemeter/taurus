@@ -4,8 +4,15 @@ import logging
 
 from psutil import Popen
 
-from bzt.utils import log_std_streams, get_uniq_name
+from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError
 from tests import BZTestCase
+
+
+class TestJavaVM(BZTestCase):
+    def test_missed_tool(self):
+        self.obj = JavaVM(logging.getLogger(''), tool_path='java-not-found')
+        self.assertEqual(False, self.obj.check_if_installed())
+        self.assertRaises(ToolError, self.obj.install)
 
 
 class TestLogStreams(BZTestCase):
