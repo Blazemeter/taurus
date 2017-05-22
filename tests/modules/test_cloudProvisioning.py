@@ -378,7 +378,7 @@ class TestCloudProvisioning(BZTestCase):
                             {
                                 "testId": 5619096,
                                 "test": {
-                                    "id": 5619096,
+                                    "id": 1,
                                     "name": "us-east-1 / some",
                                     "userId": 346988,
                                     "created": 1495459777,
@@ -424,7 +424,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
-        data = json.loads(self.mock.requests[10]['data'])
+        data = json.loads(self.mock.requests[11]['data'])
         self.assertFalse(data['items'][0]['test']['configuration']['dedicatedIpsEnabled'])
 
     def test_create_project(self):
@@ -519,7 +519,7 @@ class TestCloudProvisioning(BZTestCase):
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
-                    "name": "Taurus Collection", "items": [{"test": {"configuration": {}}}]
+                    "name": "Taurus Collection", "items": [{"test": {"id": 1, "configuration": {}}}]
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
                 'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
@@ -530,7 +530,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
-        data = json.loads(self.mock.requests[10]['data'])
+        data = json.loads(self.mock.requests[11]['data'])
         self.assertTrue(data['items'][0]['test']['configuration']['dedicatedIpsEnabled'])
 
     def test_toplevel_locations(self):
