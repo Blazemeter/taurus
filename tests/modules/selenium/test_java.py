@@ -10,7 +10,7 @@ from os.path import exists, join, dirname
 from bzt.engine import ScenarioExecutor
 from bzt.modules import java
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION, JavaC
-from bzt.utils import get_full_path
+from bzt.utils import get_full_path, ToolError
 from tests import __dir__, BZTestCase, local_paths_config
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
@@ -77,7 +77,9 @@ class TestTestNGTester(BZTestCase):
 
 class TestJavaC(BZTestCase):
     def test_missed_tool(self):
-        self.obj = JavaC()
+        self.obj = JavaC(logging.getLogger(''), tool_path='javac-not-found')
+        self.assertEqual(False, self.obj.check_if_installed())
+        self.assertRaises(ToolError)
 
 
 class TestJUnitTester(BZTestCase):
