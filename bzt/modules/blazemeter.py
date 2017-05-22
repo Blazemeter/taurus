@@ -29,10 +29,10 @@ from ssl import SSLError
 
 import os
 import yaml
-from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
+from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -912,6 +912,7 @@ class ProjectFinder(object):
         router = test_class(self.user, test, project, test_name, default_location, self.log)
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
+        router.dedicated_ips = self.settings.get("dedicated-ips", False)
         return router
 
     def _default_or_create_project(self, proj_name):
@@ -948,6 +949,7 @@ class BaseCloudTest(object):
         self.master = None
         self._workspaces = None
         self.cloud_mode = None
+        self.dedicated_ips = False
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -1094,7 +1096,10 @@ class CloudTaurusTest(BaseCloudTest):
 
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
-        self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
+
+        props = {'configuration': {'executionType': self.cloud_mode}}
+        props['dedicatedIpsEnabled'] = self.dedicated_ips
+        self._test.update_props(props)
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
@@ -1224,8 +1229,8 @@ class CloudCollectionTest(BaseCloudTest):
             raise TaurusInternalException()  # TODO: build unit test to catch this situation
 
         collection_draft = self._user.collection_draft(self._test_name, taurus_config, rfiles)
+        collection_draft['dedicatedIpsEnabled'] = self.dedicated_ips
         if self._test is None:
-
             self.log.debug("Creating cloud collection test")
             self._test = self._project.create_multi_test(collection_draft)
         else:

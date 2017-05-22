@@ -175,6 +175,15 @@ services:
   - pip install -r requirements.txt
 ```
 
+## Enabling Dedicated IPs Feature
+
+When your account in BlazeMeter allows you to use "Dedicated IPs" feature, you can enable it by setting in config file:
+```yaml
+modules:
+  blazemeter:
+    dedicated-ips: true
+```
+
 ## Worker Number Info
 
 There is a way to obtain worker index which can be used to coordinate distributed test data. For example, you can make sure that different workers will use different user logins or CSV file parts. To achieve that, you get some `env` variables for `shellexec` modules and some `properties` for `jmeter` module:

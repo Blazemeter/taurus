@@ -1,9 +1,9 @@
 import json
-import os
 import shutil
 import tempfile
 import time
 
+import os
 import yaml
 
 from bzt import TaurusConfigError, TaurusException, NormalShutdown
@@ -385,6 +385,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
+        self.assertFalse(json.loads(self.mock.requests[10]['data'])['dedicatedIpsEnabled'])
 
     def test_create_project(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
@@ -485,10 +486,11 @@ class TestCloudProvisioning(BZTestCase):
             }
         )
 
-        self.obj.settings.merge({"delete-test-files": False, "use-deprecated-api": False})
+        self.obj.settings.merge({"delete-test-files": False, "use-deprecated-api": False, 'dedicated-ips': True})
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
+        self.assertTrue(json.loads(self.mock.requests[10]['data'])['dedicatedIpsEnabled'])
 
     def test_toplevel_locations(self):
         self.obj.user.token = object()
@@ -838,10 +840,10 @@ class TestCloudProvisioning(BZTestCase):
                 'file-in-home-15.xml',  # 21 (testng-xml)
                 'file-in-home-16.java',  # 21 (script)
                 'bd_scenarios.js',  # 22 (script)
-                'file-in-home-17.js',   # 23 (sript)
+                'file-in-home-17.js',  # 23 (sript)
                 'example_spec.rb',  # 24 (script)
                 'file-in-home-18.rb',  # 25 (sript)
-                'file-in-home-19.jar'   # global testng settings (additional-classpath)
+                'file-in-home-19.jar'  # global testng settings (additional-classpath)
             })
         finally:
             os.environ['HOME'] = back_home
