@@ -73,6 +73,21 @@ services:
 
 You can learn more about Monitoring Service at its [page](Monitoring.md)
 
+## Virtual Display Service
+
+If your tests open windows (e.g. Selenium tests) and you want to run them in a headless
+environment, you can tell Taurus to run virtual display by using `virtual-display` service.
+
+`virtual-display` is build on top of [Xvfb](https://www.x.org/archive/X11R7.6/doc/man/man1/Xvfb.1.xhtml),
+so it's only available on Linux.
+
+```yaml
+services:
+- module: virtual-display
+  width: 1024
+  height: 768
+```
+
 ## Chrome Profiler Service
 
 This service allows you to extract frontend performance stats from Chrome.
