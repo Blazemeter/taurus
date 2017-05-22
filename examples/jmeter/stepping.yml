@@ -13,6 +13,7 @@ execution:
 scenarios:
   simple:
     think-time: 500ms
+    timeout: 1500ms
     requests:
     - http://blazedemo.com
     - url: http://blazedemo.com/vacation.html

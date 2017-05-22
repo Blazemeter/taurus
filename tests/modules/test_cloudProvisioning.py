@@ -367,9 +367,48 @@ class TestCloudProvisioning(BZTestCase):
             },
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
-                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
-                    "name": "Taurus Collection", "items": [{'configuration': {}}]
-                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {
+                    "api_version": 4,
+                    "error": None,
+                    "result": {
+                        "id": None,
+                        "name": "Taurus Collection",
+                        "collectionType": "taurus",
+                        "items": [
+                            {
+                                "testId": 5619096,
+                                "test": {
+                                    "id": 5619096,
+                                    "name": "us-east-1 / some",
+                                    "userId": 346988,
+                                    "created": 1495459777,
+                                    "updated": 1495459777,
+                                    "configuration": {
+                                        "location": "us-east-1",
+                                        "consoleSize": "m3.large",
+                                        "enginesSize": "m3.large",
+                                        "type": "taurus session",
+                                        "indexOffset": 0,
+                                        "collectionIndexOffset": 0,
+                                        "concurrency": 10,
+                                        "delayedStart": False,
+                                        "dedicatedIpsEnabled": False,
+                                        "javaVersion": "1.8",
+                                        "plugins": {
+                                            "taurus": {
+                                                "filename": "taurus.json"
+                                            }
+                                        }
+                                    }
+                                },
+                                "location": "us-east-1"
+                            }
+                        ],
+                        "filesToSplit": [],
+                        "dataFiles": [],
+                        "projectId": 179074
+                    }
+                },
                 'https://a.blazemeter.com/api/v4/multi-tests': {"result": {"id": 1}},
                 'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}}
             }
@@ -386,7 +425,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
         data = json.loads(self.mock.requests[10]['data'])
-        self.assertFalse(data['items'][0]['configuration']['dedicatedIpsEnabled'])
+        self.assertFalse(data['items'][0]['test']['configuration']['dedicatedIpsEnabled'])
 
     def test_create_project(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
@@ -480,7 +519,7 @@ class TestCloudProvisioning(BZTestCase):
             post={
                 'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
                 'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
-                    "name": "Taurus Collection", "items": [{"configuration": {}}]
+                    "name": "Taurus Collection", "items": [{"test": {"configuration": {}}}]
                 }},
                 'https://a.blazemeter.com/api/v4/multi-tests/1': {},
                 'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
@@ -492,7 +531,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)
         data = json.loads(self.mock.requests[10]['data'])
-        self.assertTrue(data['items'][0]['configuration']['dedicatedIpsEnabled'])
+        self.assertTrue(data['items'][0]['test']['configuration']['dedicatedIpsEnabled'])
 
     def test_toplevel_locations(self):
         self.obj.user.token = object()
