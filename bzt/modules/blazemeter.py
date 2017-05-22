@@ -338,7 +338,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
     def _postproc_phase2(self):
         try:
             self.__upload_artifacts()
-        except IOError:
+        except (IOError, TaurusNetworkError):
             self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
             self.set_last_status_check(self.parameters.get('forced-last-check', self._last_status_check))

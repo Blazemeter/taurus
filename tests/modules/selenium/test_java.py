@@ -9,7 +9,7 @@ from os import listdir
 from os.path import exists, join, dirname
 from bzt.engine import ScenarioExecutor
 from bzt.modules import java
-from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION
+from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION, JavaC
 from bzt.utils import get_full_path
 from tests import __dir__, BZTestCase, local_paths_config
 from tests.mocks import EngineEmul
@@ -73,6 +73,11 @@ class TestTestNGTester(BZTestCase):
             java.SELENIUM_DOWNLOAD_LINK = selenium_server_link
             java.TESTNG_DOWNLOAD_LINK = testng_link
             java.HAMCREST_DOWNLOAD_LINK = hamcrest_link
+
+
+class TestJavaC(BZTestCase):
+    def test_missed_tool(self):
+        self.obj = JavaC()
 
 
 class TestJUnitTester(BZTestCase):

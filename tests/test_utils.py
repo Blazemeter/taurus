@@ -4,8 +4,12 @@ import logging
 
 from psutil import Popen
 
-from bzt.utils import log_std_streams, get_uniq_name
+from bzt.utils import log_std_streams, get_uniq_name, JavaVM
 from tests import BZTestCase
+
+
+class TestJavaVM(BZTestCase):
+    pass
 
 
 class TestLogStreams(BZTestCase):

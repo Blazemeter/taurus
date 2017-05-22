@@ -213,10 +213,10 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         tools = []
         # only check javac if we need to compile. if we have JAR as script - we don't need javac
         if self.script and any(self._collect_script_files({'.java'})):
-            tools.append(JavaC("", "", self.log))
+            tools.append(JavaC(self.log))
 
         tools.append(TclLibrary(self.log))
-        tools.append(JavaVM("", "", self.log))
+        tools.append(JavaVM(self.log))
         link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
         tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
         tools.append(JUnitJar(self.junit_path, self.log, JUNIT_VERSION))
@@ -301,10 +301,10 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
         tools = []
         if self.script and any(self._collect_script_files({'.java'})):
-            tools.append(JavaC("", "", self.log))
+            tools.append(JavaC(self.log))
 
         tools.append(TclLibrary(self.log))
-        tools.append(JavaVM("", "", self.log))
+        tools.append(JavaVM(self.log))
         link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
         tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
         tools.append(TestNGJar(self.testng_path, TESTNG_DOWNLOAD_LINK))
@@ -360,13 +360,13 @@ class JsonJar(RequiredTool):
 
 
 class JavaC(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
+    def __init__(self, parent_logger, tool_path='javac', download_link=''):
         super(JavaC, self).__init__("JavaC", tool_path, download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         try:
-            output = subprocess.check_output(["javac", '-version'], stderr=subprocess.STDOUT)
+            output = subprocess.check_output([self.tool_path, '-version'], stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except (subprocess.CalledProcessError, OSError):

@@ -737,12 +737,12 @@ class RequiredTool(object):
 
 
 class JavaVM(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
+    def __init__(self, parent_logger, tool_path='java', download_link=''):
         super(JavaVM, self).__init__("JavaVM", tool_path, download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
-        cmd = ["java", '-version']
+        cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
