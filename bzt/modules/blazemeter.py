@@ -1230,6 +1230,9 @@ class CloudCollectionTest(BaseCloudTest):
         collection_draft = self._user.collection_draft(self._test_name, taurus_config, rfiles)
         for item in collection_draft['items']:
             item['test']['configuration']['dedicatedIpsEnabled'] = self.dedicated_ips
+            test = Test(self._user, {'id': item['test']['id']})
+            props = {'configuration': {'dedicatedIpsEnabled': self.dedicated_ips}}
+            test.update_props(props)
         if self._test is None:
             self.log.debug("Creating cloud collection test")
             self._test = self._project.create_multi_test(collection_draft)
