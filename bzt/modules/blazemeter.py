@@ -1097,8 +1097,7 @@ class CloudTaurusTest(BaseCloudTest):
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
 
-        props = {'configuration': {'executionType': self.cloud_mode}}
-        props['dedicatedIpsEnabled'] = self.dedicated_ips
+        props = {'configuration': {'executionType': self.cloud_mode, 'dedicatedIpsEnabled': self.dedicated_ips}}
         self._test.update_props(props)
 
     def launch_test(self):
@@ -1229,7 +1228,8 @@ class CloudCollectionTest(BaseCloudTest):
             raise TaurusInternalException()  # TODO: build unit test to catch this situation
 
         collection_draft = self._user.collection_draft(self._test_name, taurus_config, rfiles)
-        collection_draft['dedicatedIpsEnabled'] = self.dedicated_ips
+        for item in collection_draft['items']:
+            item['configuration']['dedicatedIpsEnabled'] = self.dedicated_ips
         if self._test is None:
             self.log.debug("Creating cloud collection test")
             self._test = self._project.create_multi_test(collection_draft)
