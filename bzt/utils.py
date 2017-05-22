@@ -748,7 +748,7 @@ class JavaVM(RequiredTool):
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (CalledProcessError, IOError) as exc:
+        except (CalledProcessError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
