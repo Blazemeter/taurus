@@ -7,7 +7,7 @@ virtualenv --clear build
 source build/bin/activate
 
 # install depends
-pip install --upgrade colorlog pyyaml psutil!=4.4.0 lxml cssselect nose nose-exclude urwid six pylint selenium progressbar33 locustio pyvirtualdisplay pynsist astunparse https://github.com/Blazemeter/apiritif/archive/master.zip
+pip install --upgrade colorlog pyyaml psutil!=4.4.0 lxml cssselect nose nose-exclude urwid six pylint selenium progressbar33 locustio pyvirtualdisplay pynsist astunparse https://github.com/Blazemeter/apiritif/archive/master.zip ipaddress
 pylint -d R0903,R0904,C0301,C0302,C0111,E1103,R0201,R0902,W0511,F0401,E0611,R0801,R0913,W0613,C0412,I0011,C0411 --extension-pkg-whitelist=lxml -f parseable bzt > build/pylint.out || echo
 
 # run unit tests
