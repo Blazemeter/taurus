@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.9.2
+## 1.9.2 <sup>14 may 2017</sup>
  - fix grinder having 100% errors
  - extract apiritif into standalone PyPi project
  - improve console message in case of BZA failed response

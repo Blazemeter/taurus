@@ -13,12 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import subprocess
 import traceback
-
 import os
-from bzt import ToolError, TaurusConfigError
 
+from subprocess import CalledProcessError, check_output, STDOUT
+
+from bzt import ToolError, TaurusConfigError
 from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools
 from bzt.utils import RequiredTool, is_windows, get_full_path, TclLibrary
@@ -84,10 +84,10 @@ class Ruby(RequiredTool):
 
     def check_if_installed(self):
         try:
-            output = subprocess.check_output([self.tool_path, '--version'], stderr=subprocess.STDOUT)
+            output = check_output([self.tool_path, '--version'], stderr=STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, OSError):
+        except (CalledProcessError, OSError):
             return False
 
     def install(self):
@@ -102,10 +102,10 @@ class RSpec(RequiredTool):
     def check_if_installed(self):
         try:
             rspec_exec = "rspec.bat" if is_windows() else "rspec"
-            output = subprocess.check_output([rspec_exec, '--version'], stderr=subprocess.STDOUT)
+            output = check_output([rspec_exec, '--version'], stderr=STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, OSError):
+        except (CalledProcessError, OSError):
             self.log.debug("RSpec check exception: %s", traceback.format_exc())
             return False
 

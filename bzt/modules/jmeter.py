@@ -895,7 +895,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         check tools
         """
-        required_tools = [JavaVM("", "", self.log), TclLibrary(self.log)]
+        required_tools = [JavaVM(self.log), TclLibrary(self.log)]
         for tool in required_tools:
             if not tool.check_if_installed():
                 tool.install()
