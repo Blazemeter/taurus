@@ -2,7 +2,7 @@
 
 ## Why Use Taurus with CI tools
 
-[Continuous Integration (CI\)](https://www.blazemeter.com/blog/how-include-load-testing-your-continuous-integration-environment-0) is a way to automate our tests and make the test process itself easier and more productive. With the help of CI it takes much less time to release, build, deploy and run tests automatically on a daily basis. At the same time, most performance testing tools are not well designed for a smooth CI pipeline integration. By using [Taurus](http://gettaurus.org/), an open source automation testing framework, combined with some continuous integration tools like [Bamboo](https://www.atlassian.com/software/bamboo), we can achieve outstanding results in automation of our performance gates. 
+[Continuous Integration (CI\)](https://www.blazemeter.com/blog/how-include-load-testing-your-continuous-integration-environment-0?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo) is a way to automate our tests and make the test process itself easier and more productive. With the help of CI it takes much less time to release, build, deploy and run tests automatically on a daily basis. At the same time, most performance testing tools are not well designed for a smooth CI pipeline integration. By using [Taurus](/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), an open source automation testing framework, combined with some continuous integration tools like [Bamboo](https://www.atlassian.com/software/bamboo), we can achieve outstanding results in automation of our performance gates. 
 
 ## An Introduction to Taurus
 
@@ -15,7 +15,7 @@ There are also many additional advantages:
 - As a Taurus script is basically just a text code file, it is much easier to use under control versioning systems like git or svn
 - Provides real-time reporting during test execution, which does not impact execution performance
 
-The installation of Taurus is very straightforward and should take just a few minutes, by using [this guide](/install/Installation). 
+The installation of Taurus is very straightforward and should take just a few minutes, by using [this guide](/install/Installation/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo). 
 
 ## An Introduction to Bamboo
 
@@ -28,7 +28,7 @@ Our workspace:
 - Taurus v.1.9.1 
 - Bamboo v.6.0.0
 
-First of all, let’s create a simple [YAML](/docs/YAMLTutorial) script named “script1.yml”
+First of all, let’s create a simple [YAML](/docs/YAMLTutorial/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo) script named “script1.yml”
 
 ```yaml
 execution:
@@ -44,7 +44,7 @@ scenarios:
       url: http://www.blazedemo.com/
 ```
 
-As you can see, Taurus script files are human readable. In the provided example we simulate simple get requests to _**blazedemo.com**_ from 20 different users for 1 minute. Ramp-up means the onboarding time for all users, and the hold-for parameter means that the target load is held for 1 minute. Taurus uses [JMeter](http://www.blazemeter.com/jmeter-load-testing) as a default test executor, but you can choose different [executors](/docs/ExecutionSettings): [Selenium](/docs/Selenium), [Gatling](/docs/Gatling), [Locust](/docs/Locust), etc.
+As you can see, Taurus script files are human readable. In the provided example we simulate simple get requests to _**blazedemo.com**_ from 20 different users for 1 minute. Ramp-up means the onboarding time for all users, and the hold-for parameter means that the target load is held for 1 minute. Taurus uses [JMeter](http://www.blazemeter.com/jmeter-load-testing?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo) as a default test executor, but you can choose different [executors](/docs/ExecutionSettings/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo): [Selenium](/docs/Selenium/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), [Gatling](/docs/Gatling/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), [Locust](/docs/Locust/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), etc.
 
 To run that script using Taurus execute the following command:
 
@@ -122,12 +122,10 @@ To do so and to see your tests results, change the command in the “Script body
 bzt /{path_to_yml_script}/script1.yml -report
 ```
 
-The “-report” command runs a [BlazeMeter](http://a.blazemeter.com/) reporter. It uploads your test to the BlazeMeter app, which contains everything you need to get as much as possible from your performance metrics. It’s a sufficient reporting functionality that feeds results to the server, so you don’t need to provide any additional configuration. The report link is received in the console text. This link is automatically opened in the browser and you will see the web application with your test execution:
+The “-report” command runs a [BlazeMeter](http://a.blazemeter.com/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo) reporter. It uploads your test to the BlazeMeter app, which contains everything you need to get as much as possible from your performance metrics. It’s a sufficient reporting functionality that feeds results to the server, so you don’t need to provide any additional configuration. The report link is received in the console text. This link is automatically opened in the browser and you will see the web application with your test execution:
 
 ![](bamboo10.png)
 
-[BlazeMeter reporting](https://www.blazemeter.com/blog/understanding-your-reports-part-4-how-read-your-load-testing-reports-blazemeter) provides the ability to see various parameters of test running. You can find all necessary information about time (duration time, response time, latency, etc), loading and request stats, information about errors, response codes and many other helpful parameters that allow us to make our test analyze deeper and fuller.
+[BlazeMeter reporting](https://www.blazemeter.com/blog/understanding-your-reports-part-4-how-read-your-load-testing-reports-blazemeter?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo) provides the ability to see various parameters of test running. You can find all necessary information about time (duration time, response time, latency, etc), loading and request stats, information about errors, response codes and many other helpful parameters that allow us to make our test analyze deeper and fuller.
 
 That’s it! Now you are able to run Taurus YAML test scripts via the Bamboo CI tool.
-
-To easily start load testing with BlazeMeter, just [request a demo](http://info.blazemeter.com/live-request-a-demo) or put your URL or JMX file in the box [at the top of the BlazeMeter blog](https://www.blazemeter.com/blog), and your test will start in minuted.
