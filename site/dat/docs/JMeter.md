@@ -590,7 +590,7 @@ scenarios:
       - http://example.com/checkout
 ```
 
-##### Include Scenario blocks
+##### Include Scenario Blocks
 `include-scenario` block allows you to include scenario in another one. You can use it to split your test plan into
 a few of independent scenarios that can be reused.
 
@@ -652,6 +652,27 @@ scenarios:
     - action: stop-now
       target: all-threads
 ```
+
+##### Set Variables Blocks
+
+`set-variables` block allows you to set JMeter variables from other variables.
+
+Example:
+```yaml
+scenarios:
+  set_vars_example:
+    variables:
+      foo: BAR
+    requests:
+    - http://blazedemo.com/?foo=${foo}
+    - set-variables:
+        foo: BAZ
+```
+
+This example will set initial value of `${foo}` to be "BAR", but after first iteration it will be
+changed to "BAZ".
+
+You can consider this block to be a syntactic sugar over JSR223 blocks, because that's exactly how it works.
 
 ## JMeter Test Log
 You can tune JTL file content with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max `full` logging can seriously load your system.
