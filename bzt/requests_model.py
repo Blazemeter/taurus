@@ -209,6 +209,8 @@ class RequestsParser(object):
             return IncludeScenarioBlock(name, req)
         elif 'action' in req:
             action = req.get('action')
+            if action not in ('pause', 'stop', 'stop-now', 'continue'):
+                raise TaurusConfigError("Action should be either 'pause', 'stop', 'stop-now' or 'continue'")
             target = req.get('target', 'current-thread')
             if target not in ('current-thread', 'all-threads'):
                 msg = "Target for action should be either 'current-thread' or 'all-threads' but '%s' found"
