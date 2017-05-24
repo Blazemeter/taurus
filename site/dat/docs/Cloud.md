@@ -192,3 +192,15 @@ Please note that for `cloud` provisioning actual Taurus execution will be done o
   * only following config sections are passed into cloud: `scenarios`, `execution`, `services`
   * `shellexec` module has `artifacts-dir` set as `default-cwd`
   * cloud workers execute Taurus under isolated [virtualenv](https://virtualenv.readthedocs.org/en/latest/)
+
+## Dedicated Ips
+
+If you wish to use dedicated ips, ensure that you have enough of them assigned to the Blazemeter workspace you are using.
+Dedicated ips must be in "idle" (available) state in order to get attached to your test engines.
+For each location, dedicated ips will only be used if enough are available for all the engines/sessions.
+Defaults to false.
+
+Example:
+```yaml
+dedicated-ips: true
+```
