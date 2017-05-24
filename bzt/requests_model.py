@@ -23,8 +23,17 @@ from bzt.utils import ensure_is_dict, dehumanize_time
 class Request(object):
     NAME = "request"
 
-    def __init__(self, config):
+    def __init__(self, config, scenario=None):
         self.config = config
+        self.scenario = scenario
+
+    def priority_option(self, name, default=None):
+        val = self.config.get(name, None)
+        if val is None:
+            val = self.scenario.get(name, None)
+        if val is None and default is not None:
+            val = default
+        return val
 
 
 class HTTPRequest(Request):
@@ -33,8 +42,7 @@ class HTTPRequest(Request):
     def __init__(self, config, scenario, engine):
         self.engine = engine
         self.log = self.engine.log.getChild(self.__class__.__name__)
-        super(HTTPRequest, self).__init__(config)
-        self.scenario = scenario
+        super(HTTPRequest, self).__init__(config, scenario)
         msg = "Option 'url' is mandatory for request but not found in %s" % config
         self.url = self.config.get("url", TaurusConfigError(msg))
         self.label = self.config.get("label", self.url)
@@ -48,14 +56,6 @@ class HTTPRequest(Request):
         self.think_time = self.config.get('think-time', None)
         self.follow_redirects = self.config.get('follow-redirects', None)
         self.body = self.__get_body()
-
-    def priority_option(self, name, default=None):
-        val = self.config.get(name, None)
-        if val is None:
-            val = self.scenario.get(name, None)
-        if val is None and default is not None:
-            val = default
-        return val
 
     def __get_body(self):
         body = self.config.get('body', None)
@@ -142,8 +142,8 @@ class ForEachBlock(Request):
 class TransactionBlock(Request):
     NAME = "transaction"
 
-    def __init__(self, name, requests, config):
-        super(TransactionBlock, self).__init__(config)
+    def __init__(self, name, requests, config, scenario):
+        super(TransactionBlock, self).__init__(config, scenario)
         self.name = name
         self.requests = requests
 
@@ -203,7 +203,7 @@ class RequestsParser(object):
             name = req.get('transaction')
             do_block = req.get('do', TaurusConfigError("'do' field is mandatory for transaction blocks"))
             do_requests = self.__parse_requests(do_block)
-            return TransactionBlock(name, do_requests, req)
+            return TransactionBlock(name, do_requests, req, self.scenario)
         elif 'include-scenario' in req:
             name = req.get('include-scenario')
             return IncludeScenarioBlock(name, req)

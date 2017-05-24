@@ -418,7 +418,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.engine.existing_artifact(self.reader.filename)
 
     def install_required_tools(self):
-        required_tools = [TclLibrary(self.log), JavaVM("", "", self.log)]
+        required_tools = [TclLibrary(self.log), JavaVM(self.log)]
         gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path

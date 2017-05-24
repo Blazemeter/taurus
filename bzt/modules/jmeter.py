@@ -159,7 +159,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         load = self.get_load()
 
-        modified = self.__get_modified_jmx(self.original_jmx, load)
+        modified = self.__get_modified_jmx(self.original_jmx, load, is_jmx_generated)
         self.modified_jmx = self.__save_modified_jmx(modified, self.original_jmx, is_jmx_generated)
 
         self.__set_jmeter_properties(scenario)
@@ -655,7 +655,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.log.debug("Enforcing parent sample for transaction controller")
             jmx.set_text('TransactionController > boolProp[name="TransactionController.parent"]', 'true')
 
-    def __get_modified_jmx(self, original, load):
+    def __get_modified_jmx(self, original, load, is_jmx_generated):
         """
         add two listeners to test plan:
             - to collect basic stats for KPIs
@@ -678,7 +678,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__apply_test_mode(jmx)
         self.__apply_load_settings(jmx, load)
         self.__add_result_listeners(jmx)
-        self.__force_tran_parent_sample(jmx)
+        if not is_jmx_generated:
+            self.__force_tran_parent_sample(jmx)
         self.__fill_empty_delimiters(jmx)
 
         return jmx
@@ -894,7 +895,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         check tools
         """
-        required_tools = [JavaVM("", "", self.log), TclLibrary(self.log)]
+        required_tools = [JavaVM(self.log), TclLibrary(self.log)]
         for tool in required_tools:
             if not tool.check_if_installed():
                 tool.install()
@@ -1807,7 +1808,7 @@ class JMeterScenarioBuilder(JMX):
 
     def compile_transaction_block(self, block):
         elements = []
-        controller = JMX._get_transaction_controller(block.name)
+        controller = JMX._get_transaction_controller(block.name, block.priority_option('force-parent-sample', True))
         children = etree.Element("hashTree")
         for compiled in self.compile_requests(block.requests):
             for element in compiled:
