@@ -1194,7 +1194,8 @@ class CloudCollectionTest(BaseCloudTest):
 
         for key in list(config.keys()):
             fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
-                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
+                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED,
+                      CloudProvisioning.DEDICATED_IPS_ENABLED)
             if key not in fields:
                 config.pop(key)
             elif not config[key]:
@@ -1388,6 +1389,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     LOC = "locations"
     LOC_WEIGHTED = "locations-weighted"
+    DEDICATED_IPS_ENABLED = "dedicated-ips-enabled"
 
     def __init__(self):
         super(CloudProvisioning, self).__init__()
