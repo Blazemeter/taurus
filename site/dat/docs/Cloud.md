@@ -175,6 +175,15 @@ services:
   - pip install -r requirements.txt
 ```
 
+## Enabling Dedicated IPs Feature
+
+When your account in BlazeMeter allows you to use "Dedicated IPs" feature, you can enable it by setting in config file:
+```yaml
+modules:
+  blazemeter:
+    dedicated-ips: true
+```
+
 ## Worker Number Info
 
 There is a way to obtain worker index which can be used to coordinate distributed test data. For example, you can make sure that different workers will use different user logins or CSV file parts. To achieve that, you get some `env` variables for `shellexec` modules and some `properties` for `jmeter` module:
@@ -192,15 +201,3 @@ Please note that for `cloud` provisioning actual Taurus execution will be done o
   * only following config sections are passed into cloud: `scenarios`, `execution`, `services`
   * `shellexec` module has `artifacts-dir` set as `default-cwd`
   * cloud workers execute Taurus under isolated [virtualenv](https://virtualenv.readthedocs.org/en/latest/)
-
-## Dedicated Ips
-
-If you wish to use dedicated ips, ensure that you have enough of them assigned to the Blazemeter workspace you are using.
-Dedicated ips must be in "idle" (available) state in order to get attached to your test engines.
-For each location, dedicated ips will only be used if enough are available for all the engines/sessions.
-Defaults to false.
-
-Example:
-```yaml
-dedicated-ips: true
-```

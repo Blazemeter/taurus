@@ -29,10 +29,10 @@ from ssl import SSLError
 
 import os
 import yaml
-from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
+from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -912,6 +912,7 @@ class ProjectFinder(object):
         router = test_class(self.user, test, project, test_name, default_location, self.log)
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
+        router.dedicated_ips = self.settings.get("dedicated-ips", False)
         return router
 
     def _default_or_create_project(self, proj_name):
@@ -948,6 +949,7 @@ class BaseCloudTest(object):
         self.master = None
         self._workspaces = None
         self.cloud_mode = None
+        self.dedicated_ips = False
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -1194,8 +1196,7 @@ class CloudCollectionTest(BaseCloudTest):
 
         for key in list(config.keys()):
             fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
-                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED,
-                      CloudProvisioning.DEDICATED_IPS)
+                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
             if key not in fields:
                 config.pop(key)
             elif not config[key]:
@@ -1215,6 +1216,9 @@ class CloudCollectionTest(BaseCloudTest):
             for key, value in iteritems(default_values):
                 if key in execution and execution[key] == value:
                     execution.pop(key)
+
+        if self.dedicated_ips:
+            config[CloudProvisioning.DEDICATED_IPS] = True
 
         assert isinstance(config, Configuration)
         return config
