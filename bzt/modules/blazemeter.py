@@ -1096,9 +1096,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
-
-        props = {'configuration': {'executionType': self.cloud_mode, 'dedicatedIpsEnabled': self.dedicated_ips}}
-        self._test.update_props(props)
+        self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
@@ -1219,6 +1217,9 @@ class CloudCollectionTest(BaseCloudTest):
                 if key in execution and execution[key] == value:
                     execution.pop(key)
 
+        if self.dedicated_ips:
+            config[CloudProvisioning.DEDICATED_IPS] = True
+
         assert isinstance(config, Configuration)
         return config
 
@@ -1228,12 +1229,8 @@ class CloudCollectionTest(BaseCloudTest):
             raise TaurusInternalException()  # TODO: build unit test to catch this situation
 
         collection_draft = self._user.collection_draft(self._test_name, taurus_config, rfiles)
-        for item in collection_draft['items']:
-            item['test']['configuration']['dedicatedIpsEnabled'] = self.dedicated_ips
-            test = Test(self._user, {'id': item['test']['id']})
-            props = {'configuration': {'dedicatedIpsEnabled': self.dedicated_ips}}
-            test.update_props(props)
         if self._test is None:
+
             self.log.debug("Creating cloud collection test")
             self._test = self._project.create_multi_test(collection_draft)
         else:
@@ -1396,6 +1393,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     LOC = "locations"
     LOC_WEIGHTED = "locations-weighted"
+    DEDICATED_IPS = "dedicated-ips"
 
     def __init__(self):
         super(CloudProvisioning, self).__init__()
