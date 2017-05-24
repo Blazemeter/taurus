@@ -264,7 +264,8 @@ class JMX(object):
                              guiclass="ArgumentsPanel", testclass="Arguments")
 
     @staticmethod
-    def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None, follow_redirects=True):
+    def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None, follow_redirects=True,
+                          use_random_host_ip=False, host_ips=()):
         """
         Generates HTTP request
         :type method: str
@@ -319,6 +320,13 @@ class JMX(object):
                 files_coll.append(file_elem)
             files_prop.append(files_coll)
             proxy.append(files_prop)
+
+        if use_random_host_ip and host_ips:
+            if len(host_ips) > 1:
+                expr = "${__chooseRandom(%s,randomAddr)}" % ",".join(host_ips)
+            else:
+                expr = host_ips[0]
+            proxy.append(JMX._string_prop("HTTPSampler.ipSource", expr))
 
         return proxy
 
