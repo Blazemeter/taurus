@@ -209,17 +209,14 @@ class RequestsParser(object):
             return IncludeScenarioBlock(name, req)
         elif 'action' in req:
             action = req.get('action')
-            if action in ('pause', 'stop', 'stop-now', 'continue'):
-                target = req.get('target', 'current-thread')
-                if target not in ('current-thread', 'all-threads'):
-                    msg = "Target for action should be either 'current-thread' or 'all-threads' but '%s' found"
-                    raise TaurusConfigError(msg % target)
-                duration = req.get('pause-duration', None)
-                if duration is not None:
-                    duration = dehumanize_time(duration)
-                return ActionBlock(action, target, duration, req)
-            else:
-                raise TaurusConfigError("Action should be either 'pause', 'stop', 'stop-now' or 'continue'")
+            target = req.get('target', 'current-thread')
+            if target not in ('current-thread', 'all-threads'):
+                msg = "Target for action should be either 'current-thread' or 'all-threads' but '%s' found"
+                raise TaurusConfigError(msg % target)
+            duration = req.get('pause-duration', None)
+            if duration is not None:
+                duration = dehumanize_time(duration)
+            return ActionBlock(action, target, duration, req)
         elif 'set-variables' in req:
             mapping = req.get('set-variables')
             return SetVariables(mapping, req)
