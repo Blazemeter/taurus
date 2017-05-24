@@ -1739,6 +1739,18 @@ class TestJMeterExecutor(BZTestCase):
                     }]}}})
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
+    def test_request_logic_set_vars(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "requests": [{
+                        "set-variables": {"foo": "bar"}}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertIsNotNone(xml_tree.find(".//JSR223PreProcessor"))
+        input = xml_tree.find(".//JSR223PreProcessor/stringProp[@name='script']")
+        self.assertEqual(input.text, "vars.put('foo', 'bar');")
+
     def test_request_null_headers(self):
         self.configure({
             'execution': {
