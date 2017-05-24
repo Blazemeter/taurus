@@ -1851,10 +1851,13 @@ class JMeterScenarioBuilder(JMX):
         # pause current thread for 0s
         test_action = JMX._get_action_block(action_index=1, target_index=0, duration_ms=0)
         children = etree.Element("hashTree")
-        jsr_settings = {"language": "groovy"}
-        fmt = "vars.put('%s', %r)"
-        jsr_settings["script-text"] = "\n".join(fmt % (var, expr) for var, expr in iteritems(block.mapping))
-        self.__add_jsr_elements(children, jsr_settings)
+        fmt = "vars.put('%s', %r);"
+        block.config["jsr223"] = [{
+            "language": "groovy",
+            "execute": "before",
+            "script-text": "\n".join(fmt % (var, expr) for var, expr in iteritems(block.mapping))
+        }]
+        self.__add_jsr_elements(children, block)
         return [test_action, children]
 
     def compile_requests(self, requests):

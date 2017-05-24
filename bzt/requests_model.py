@@ -219,12 +219,11 @@ class RequestsParser(object):
                 if duration is not None:
                     duration = dehumanize_time(duration)
                 return ActionBlock(action, target, duration, req)
-            elif action == 'set-variables':
-                mapping = copy.deepcopy(req)
-                mapping.pop('action')
-                return SetVariables(mapping, req)
             else:
                 raise TaurusConfigError("Action should be either 'pause', 'stop', 'stop-now' or 'continue'")
+        elif 'set-variables' in req:
+            mapping = req.get('set-variables')
+            return SetVariables(mapping, req)
         else:
             return HierarchicHTTPRequest(req, self.scenario, self.engine)
 
@@ -341,4 +340,7 @@ class ResourceFilesCollector(RequestVisitor):
         return self.executor.res_files_from_scenario(scenario)
 
     def visit_actionblock(self, _):
+        return []
+
+    def visit_setvariables(self, _):
         return []
