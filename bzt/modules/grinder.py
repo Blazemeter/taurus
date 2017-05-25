@@ -243,7 +243,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.settings["path"] = grinder_path
         download_link = self.settings.get("download-link", "")
         required_tools = [TclLibrary(self.log),
-                          JavaVM("", "", self.log),
+                          JavaVM(self.log),
                           Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link=download_link)]
 
         for tool in required_tools:

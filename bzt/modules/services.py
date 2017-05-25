@@ -182,7 +182,7 @@ class AppiumLoader(Service):
         self.tool_path = self.settings.get('path', 'appium')
 
         required_tools = [Node(self.log),
-                          JavaVM("", "", self.log),
+                          JavaVM(self.log),
                           Appium(self.tool_path, "", self.log)]
 
         for tool in required_tools:
@@ -241,7 +241,7 @@ class Appium(RequiredTool):
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, IOError, OSError) as exc:
+        except (subprocess.CalledProcessError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
@@ -261,7 +261,7 @@ class AndroidEmulator(RequiredTool):
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, IOError, OSError) as exc:
+        except (subprocess.CalledProcessError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 

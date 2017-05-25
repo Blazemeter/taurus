@@ -485,7 +485,7 @@ class TestCloudProvisioning(BZTestCase):
             }
         )
 
-        self.obj.settings.merge({"delete-test-files": False, "use-deprecated-api": False})
+        self.obj.settings.merge({"delete-test-files": False, "use-deprecated-api": False, 'dedicated-ips': True})
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudCollectionTest)

@@ -29,10 +29,10 @@ from ssl import SSLError
 
 import os
 import yaml
-from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
+from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -338,7 +338,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
     def _postproc_phase2(self):
         try:
             self.__upload_artifacts()
-        except IOError:
+        except (IOError, TaurusNetworkError):
             self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
             self.set_last_status_check(self.parameters.get('forced-last-check', self._last_status_check))
@@ -912,6 +912,7 @@ class ProjectFinder(object):
         router = test_class(self.user, test, project, test_name, default_location, self.log)
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
+        router.dedicated_ips = self.settings.get("dedicated-ips", False)
         return router
 
     def _default_or_create_project(self, proj_name):
@@ -948,6 +949,7 @@ class BaseCloudTest(object):
         self.master = None
         self._workspaces = None
         self.cloud_mode = None
+        self.dedicated_ips = False
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -1215,6 +1217,9 @@ class CloudCollectionTest(BaseCloudTest):
                 if key in execution and execution[key] == value:
                     execution.pop(key)
 
+        if self.dedicated_ips:
+            config[CloudProvisioning.DEDICATED_IPS] = True
+
         assert isinstance(config, Configuration)
         return config
 
@@ -1388,6 +1393,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     LOC = "locations"
     LOC_WEIGHTED = "locations-weighted"
+    DEDICATED_IPS = "dedicated-ips"
 
     def __init__(self):
         super(CloudProvisioning, self).__init__()

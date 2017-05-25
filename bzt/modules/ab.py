@@ -21,6 +21,8 @@ import time
 from math import ceil
 from os import path
 
+from subprocess import CalledProcessError
+
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
@@ -220,7 +222,7 @@ class ApacheBenchmark(RequiredTool):
         self.log.debug('Checking ApacheBenchmark: %s' % self.tool_path)
         try:
             shell_exec([self.tool_path, '-h'])
-        except OSError:
+        except (CalledProcessError, OSError):
             return False
         return True
 
