@@ -19,6 +19,7 @@ limitations under the License.
 import csv
 import fnmatch
 import itertools
+import ipaddress
 import json
 import logging
 import mimetypes
@@ -1127,3 +1128,23 @@ class LDJSONReader(object):
     def __del__(self):
         if self.fds is not None:
             self.fds.close()
+
+
+def get_host_ips(filter_loopbacks=True):
+    """
+    Returns a list of all IP addresses assigned to this host.
+
+    :param filter_loopbacks: filter out loopback addresses
+    """
+    ips = []
+    for _, interfaces in iteritems(psutil.net_if_addrs()):
+        for iface in interfaces:
+            addr = text_type(iface.address)
+            try:
+                ip = ipaddress.ip_address(addr)
+                if filter_loopbacks and ip.is_loopback:
+                    continue
+            except ValueError:
+                continue
+            ips.append(iface.address)
+    return ips

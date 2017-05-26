@@ -2313,6 +2313,40 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
         self.assertEquals('get-post', self.obj.reader.executor_label)
 
+    def test_source_ips(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "random-source-ip": True,
+                    "requests": [{
+                        "url": "http://example.com/",
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        ip_source = xml_tree.find(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.ipSource']")
+        self.assertIsNotNone(ip_source)
+        self.assertIsNotNone(ip_source.text)
+
+    def test_source_ips_request_level(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://example.com/",
+                        "random-source-ip": True,
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        ip_source = xml_tree.find(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.ipSource']")
+        self.assertIsNotNone(ip_source)
+        self.assertIsNotNone(ip_source.text)
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):
@@ -2349,3 +2383,16 @@ class TestJMX(BZTestCase):
         res = JMX()
         data = {"varname2": "1", "varname": 1, 2: 3}
         res.add_user_def_vars_elements(data)
+
+    def test_source_ips_single(self):
+        obj = JMX()
+        res = obj._get_http_request("/", "label", "method", 0, {}, True,
+                                    use_random_host_ip=True, host_ips=["192.168.1.1"])
+        self.assertEqual("192.168.1.1", res.find(".//stringProp[@name='HTTPSampler.ipSource']").text)
+
+    def test_source_ips_multiple(self):
+        obj = JMX()
+        res = obj._get_http_request("/", "label", "method", 0, {}, True,
+                                    use_random_host_ip=True, host_ips=["192.168.1.1", "192.168.1.2"])
+        self.assertEqual("${__chooseRandom(192.168.1.1,192.168.1.2,randomAddr)}",
+                         res.find(".//stringProp[@name='HTTPSampler.ipSource']").text)

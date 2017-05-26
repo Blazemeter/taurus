@@ -51,6 +51,10 @@ requires = ['pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama',
             'astunparse']
 
 requires += ['lxml == 3.6.0'] if platform.system() == 'Windows' else ['lxml >= 3.6.0']
+
+if sys.version_info.major < 3:
+    requires += ['ipaddress']  # backport of 'ipaddress' module to Python 2
+
 setup(
     name="bzt",
     version=bzt.VERSION,

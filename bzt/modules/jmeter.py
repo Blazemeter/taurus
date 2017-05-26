@@ -45,6 +45,7 @@ from bzt.requests_model import RequestVisitor, ResourceFilesCollector
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
+from bzt.utils import get_host_ips
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
@@ -1719,10 +1720,13 @@ class JMeterScenarioBuilder(JMX):
         else:
             body = request.body
 
+        use_random_host_ip = request.priority_option('random-source-ip', default=False)
+        host_ips = get_host_ips(filter_loopbacks=True) if use_random_host_ip else []
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body,
                                      request.priority_option('keepalive', default=True),
                                      request.upload_files, request.content_encoding,
-                                     request.priority_option('follow-redirects', default=True))
+                                     request.priority_option('follow-redirects', default=True),
+                                     use_random_host_ip, host_ips)
 
         children = etree.Element("hashTree")
 
