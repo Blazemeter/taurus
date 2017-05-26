@@ -381,7 +381,6 @@ def get_bza_report_info(engine, log):
         result.append((report_url, test_name if test_name is not None else report_url))
     else:
         bza_reporters = [_x for _x in engine.reporters if isinstance(_x, BlazeMeterUploader)]
-        """:type : list[bzt.modules.blazemeter.BlazeMeterUploader]"""
         for bza_reporter in bza_reporters:
             if bza_reporter.results_url:
                 test_name = bza_reporter.parameters.get("test", None)

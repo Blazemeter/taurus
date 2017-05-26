@@ -969,7 +969,7 @@ log.setLevel(logging.DEBUG)
             init.append(self.gen_empty_line_stmt())
 
         requests = []
-        for index, req in enumerate(self.scenario.get_requests()):
+        for req in self.scenario.get_requests():
             if not isinstance(req, HTTPRequest):
                 msg = "Apiritif script generator doesn't support '%s' blocks, skipping"
                 self.log.warning(msg, req.NAME)

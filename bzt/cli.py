@@ -28,14 +28,14 @@ import yaml
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt import TaurusException, ToolError
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from bzt.six import HTTPError, string_types, b, get_stacktrace
+from bzt.six import HTTPError, string_types, get_stacktrace
 from colorlog import ColoredFormatter
 from logging import Formatter
 
 import bzt
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
-from bzt.utils import run_once, is_int, BetterDict, is_piped
+from bzt.utils import run_once, is_int, BetterDict
 
 
 class CLI(object):

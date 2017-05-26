@@ -27,11 +27,6 @@ from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.services import VirtualDisplay
 from bzt.utils import BetterDict, get_files_recursive, get_full_path
 
-try:
-    from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
-except ImportError:
-    from pyvirtualdisplay import Display
-
 
 class AbstractSeleniumExecutor(ReportableExecutor):
     # TODO: deprecated, as it's replaced with virtual-display service
