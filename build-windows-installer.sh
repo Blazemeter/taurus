@@ -27,7 +27,6 @@ InstalledPip:
   IntCmp \$0 0 InstalledBzt CantInstallBzt CantInstallBzt
 
 InstalledBzt:
-  MessageBox MB_OK "hidden acitivity..."
   ; Move chrome-loader to resources
   nsExec::ExecToLog 'py -c "from bzt.modules.proxy2jmx import inject_loader; inject_loader(\"\$INSTDIR\")"'
   Goto EndInstall

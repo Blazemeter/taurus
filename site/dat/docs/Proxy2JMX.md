@@ -40,7 +40,6 @@ for chromedriver (don't place your chromedriver inside Windows directory). We st
 5. don't hardcode the path to chromedriver.exe in your scripts
 Take note: as proxy2jmx uses own proxy it doesn't support top level [proxy option](ConfigSyntax.md#Top-Level-Settings). 
 
-
 ### MacOS
 Auto setup in MacOS is currently not implemented.
 
