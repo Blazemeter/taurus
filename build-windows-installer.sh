@@ -21,13 +21,15 @@ cat << EOF > "$BUILD_DIR/taurus.nsi"
   IntCmp \$0 0 InstalledPip CantInstallPip CantInstallPip
 
 InstalledPip:
-
   ; Install Taurus
   nsExec::ExecToLog 'py -m pip install bzt>=${TAURUS_VERSION}'
   Pop \$0
   IntCmp \$0 0 InstalledBzt CantInstallBzt CantInstallBzt
 
 InstalledBzt:
+  MessageBox MB_OK "hidden acitivity..."
+  ; Move chrome-loader to resources
+  nsExec::ExecToLog 'py -c "from bzt.modules.proxy2jmx import inject_loader; inject_loader(\"\$INSTDIR\")"'
   Goto EndInstall
 
 CantInstallPip:
@@ -45,6 +47,8 @@ EndInstall:
 
 [% block uninstall_commands %]
 [[ super() ]]
+  ; Remove chrome-loader
+  nsExec::ExecToLog 'py -c "from bzt.modules.proxy2jmx import remove_loader; remove_loader()"'
   nsExec::ExecToLog 'py -m pip uninstall -y bzt'
 [% endblock %]
 
@@ -139,11 +143,16 @@ entry_point=bzt.soapui2yaml:main
 version=2.7.12
 bitness=64
 
+[Include]
+files = tmp/chrome-loader.exe
+
 [Build]
 nsi_template=taurus.nsi
 directory=.
 installer_name=${INSTALLER_NAME}
 EOF
 
+mkdir "$BUILD_DIR"/tmp
+x86_64-w64-mingw32-gcc -std=c99 -o "$BUILD_DIR"/tmp/chrome-loader.exe bzt/resources/chrome-loader.c
 pynsist "$BUILD_DIR/installer.cfg"
 # Installer was saved to ${BUILD_DIR}/${INSTALLER_NAME}

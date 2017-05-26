@@ -9,3 +9,4 @@ include bzt/resources/grinder-logger-1.0.jar
 include bzt/resources/pbench.conf
 include bzt/resources/rspec_taurus_plugin.rb
 include bzt/resources/mocha-taurus-plugin.js
+include bzt/resources/chrome_launcher.sh
