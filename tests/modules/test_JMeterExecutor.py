@@ -2317,7 +2317,7 @@ class TestJMeterExecutor(BZTestCase):
         self.configure({
             "execution": {
                 "scenario": {
-                    "use-random-source-ip": True,
+                    "random-source-ip": True,
                     "requests": [{
                         "url": "http://example.com/",
                     }]
@@ -2336,7 +2336,7 @@ class TestJMeterExecutor(BZTestCase):
                 "scenario": {
                     "requests": [{
                         "url": "http://example.com/",
-                        "use-random-source-ip": True,
+                        "random-source-ip": True,
                     }]
                 }
             }
