@@ -118,33 +118,39 @@ class TestProxy2JMX(BZTestCase):
         os.mkdir(join(art_dir, 'Chromium'))
         os.mkdir(join(art_dir, 'Chromium', 'Application'))
         os.mkdir(join(art_dir, 'chromedriver'))
-        src = join(get_full_path(__file__, step_up=3), 'bzt', 'resources', 'chrome.exe', 'loader.exe')
+        res_dir = join(get_full_path(__file__, step_up=3), 'bzt', 'resources')
+        src = join(res_dir, 'chrome-loader.c')
+        dst_loader = join(res_dir, 'chrome-loader.exe')
         dst_chrome = join(art_dir, 'Chromium', 'Application', 'chrome.exe')
         dst_chromedriver = join(art_dir, 'chromedriver', 'chromedriver.exe')
 
         shutil.copy2(src, dst_chrome)
         shutil.copy2(src, dst_chromedriver)
+        shutil.copy2(src, dst_loader)
 
-        required_env = {
-            'PATH_TO_CHROME': dst_chrome,
-            'ADDITIONAL_CHROME_PARAMS': '--proxy-server="http://host1:port1"',
-            'CHROME_LOADER_LOG': join(self.obj.engine.artifacts_dir, 'chrome-loader.log')}
+        try:
+            required_env = {
+                'PATH_TO_CHROME': dst_chrome,
+                'ADDITIONAL_CHROME_PARAMS': '--proxy-server="http://host1:port1"',
+                'CHROME_LOADER_LOG': join(self.obj.engine.artifacts_dir, 'chrome-loader.log')}
 
-        os.environ['PATH'] = join(art_dir, 'chromedriver') + os.pathsep + os.getenv('PATH')
+            os.environ['PATH'] = join(art_dir, 'chromedriver') + os.pathsep + os.getenv('PATH')
 
-        self.obj.startup()
+            self.obj.startup()
 
-        loader_dir = set(os.listdir(join(art_dir, 'chrome-loader')))
-        self.assertEqual(loader_dir, {'chrome.exe', 'chromedriver.exe'})
+            loader_dir = set(os.listdir(join(art_dir, 'chrome-loader')))
+            self.assertEqual(loader_dir, {'chrome.exe', 'chromedriver.exe'})
 
-        additional_env = self.obj.engine.provisioning.executors[0].additional_env
-        required_env = {str(key.upper()): str(required_env[key]) for key in required_env}
-        additional_env = {str(key.upper()): str(additional_env[key]) for key in additional_env}
+            additional_env = self.obj.engine.provisioning.executors[0].additional_env
+            required_env = {str(key.upper()): str(required_env[key]) for key in required_env}
+            additional_env = {str(key.upper()): str(additional_env[key]) for key in additional_env}
 
-        self.assertTrue(additional_env['PATH'].startswith(join(self.obj.engine.artifacts_dir, 'chrome-loader')))
-        for key in required_env:
-            self.assertIn(key, additional_env)
-            self.assertEqual(required_env[key], additional_env[key])
+            self.assertTrue(additional_env['PATH'].startswith(join(self.obj.engine.artifacts_dir, 'chrome-loader')))
+            for key in required_env:
+                self.assertIn(key, additional_env)
+                self.assertEqual(required_env[key], additional_env[key])
+        finally:
+            os.remove(dst_loader)
 
     def test_chrome_proxy(self):
         self.obj.responses = [
