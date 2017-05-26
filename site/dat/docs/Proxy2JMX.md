@@ -27,7 +27,7 @@ Full support of Chrome and Firefox.
 
 ### Microsoft Windows
 We provide support of Chrome browser at the moment. For correct work of proxy you have to prepare the right place
-for chromedriver (don't place your chromedriver inside Windows directory). We strongly recommend next way:
+for chromedriver (don't place your chromedriver inside Windows directory). We strongly recommend the next way:
 1. create directory (e.g. "c:\chromedriver")
 2. put chromedriver.exe into created directory and remove all another copies of chromedriver
 3. add directory to path:
@@ -37,7 +37,9 @@ for chromedriver (don't place your chromedriver inside Windows directory). We st
 3.4 add your path ("c:\chromedriver") to previous value (and don't forget about path separator `;`)
 3.5 save changes.
 4. don't run taurus from Admin account or Admin terminal
-5. don't hardcode the path to chromedriver.exe in your scripts.
+5. don't hardcode the path to chromedriver.exe in your scripts
+Take note: as proxy2jmx uses own proxy it doesn't support top level [proxy option](ConfigSyntax.md#Top-Level-Settings). 
+
 
 ### MacOS
 Auto setup in MacOS is currently not implemented.
