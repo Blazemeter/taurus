@@ -45,6 +45,16 @@ class TestProxy2JMX(BZTestCase):
         super(TestProxy2JMX, self).setUp()
         self.obj = Proxy2JMXEmul()
         self.obj.engine = EngineEmul()
+        res_dir = join(get_full_path(__file__, step_up=3), 'bzt', 'resources')
+        src = join(res_dir, 'chrome-loader.c')
+        dst_loader = join(res_dir, 'chrome-loader.exe')
+        shutil.copy2(src, dst_loader)
+
+    def tearDown(self):
+        res_dir = join(get_full_path(__file__, step_up=3), 'bzt', 'resources')
+        dst_loader = join(res_dir, 'chrome-loader.exe')
+        os.remove(dst_loader)
+        super(TestProxy2JMX, self).tearDown()
 
     def test_no_token(self):
         self.obj.settings = self.obj.engine.config.get('recorder')
@@ -118,7 +128,9 @@ class TestProxy2JMX(BZTestCase):
         os.mkdir(join(art_dir, 'Chromium'))
         os.mkdir(join(art_dir, 'Chromium', 'Application'))
         os.mkdir(join(art_dir, 'chromedriver'))
-        src = join(get_full_path(__file__, step_up=3), 'bzt', 'resources', 'chrome.exe', 'loader.exe')
+        res_dir = join(get_full_path(__file__, step_up=3), 'bzt', 'resources')
+        src = join(res_dir, 'chrome-loader.c')
+
         dst_chrome = join(art_dir, 'Chromium', 'Application', 'chrome.exe')
         dst_chromedriver = join(art_dir, 'chromedriver', 'chromedriver.exe')
 

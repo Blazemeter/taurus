@@ -135,13 +135,13 @@ class Proxy2JMX(Service, Singletone):
             self.log.warning('cromedriver.exe not found in directories described in PATH')
             return
 
-        # copy chrome loader into artifacts/chrome-loader/chrome.exe
-        old_file = join(get_full_path(__file__, step_up=2), 'resources', 'chrome.exe', 'loader.exe')
+        # copy chrome-loader.exe from resources into artifacts/chrome-loader/chrome.exe
+        old_file = join(get_full_path(__file__, step_up=2), 'resources', 'chrome-loader.exe')
         new_file = join(loader_dir, 'chrome.exe')
         try:
             shutil.copy2(old_file, new_file)
         except IOError as exc:
-            raise TaurusInternalException("Can't copy loader: %s" % exc.message)
+            raise TaurusInternalException("Can't copy loader: %s" % exc)
 
     def shutdown(self):
         super(Proxy2JMX, self).shutdown()
@@ -176,3 +176,34 @@ class Proxy2JMX(Service, Singletone):
             msg = "Problems with chrome tuning are encountered, "
             msg += "take look at http://http://gettaurus.org/docs/Proxy2JMX/ for help"
             self.log.warning(msg)
+
+
+def inject_loader(install_dir):
+    """ move loader from installation dir to bzt resources
+    (typically C:\Program Files\Taurus\chrome-loader.exe ->
+    C:\Program Files\Common Files\Python\2.7\lib\site-packages\bzt\resources\chrome-loader.exe) """
+    res_dir = join(get_full_path(__file__, step_up=2), "resources")
+    loader = 'chrome-loader.exe'
+    try:
+        if not isfile(join(res_dir, loader)):
+            print('Move %s from "%s" to "%s"...' % (loader, install_dir, res_dir))
+            shutil.move(join(install_dir, loader), res_dir)
+            print('Movement done')
+    except:
+        print('Movement failed')
+        raise
+
+
+def remove_loader():
+    """ remove loader from bzt resources for correct bzt removal "
+    (typically C:\Program Files\Common Files\Python\2.7\lib\site-packages\bzt\resources\chrome-loader.exe) """
+    res_dir = join(get_full_path(__file__, step_up=2), "resources")
+    loader = 'chrome-loader.exe'
+    try:
+        if isfile(join(res_dir, loader)):
+            print('Remove %s from "%s"...' % (loader, res_dir))
+            os.remove(join(res_dir, loader))
+            print('Removal done')
+    except:
+        print('Removal failed')
+        raise
