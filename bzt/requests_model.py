@@ -160,6 +160,9 @@ class IncludeScenarioBlock(Request):
         super(IncludeScenarioBlock, self).__init__(config)
         self.scenario_name = scenario_name
 
+    def __repr__(self):
+        return "IncludeScenarioBlock(scenario_name=%r)" % self.scenario_name
+
 
 class RequestsParser(object):
     def __init__(self, scenario, engine):
@@ -216,6 +219,9 @@ class RequestsParser(object):
             if duration is not None:
                 duration = dehumanize_time(duration)
             return ActionBlock(action, target, duration, req)
+        elif 'set-variables' in req:
+            mapping = req.get('set-variables')
+            return SetVariables(mapping, req)
         else:
             return HierarchicHTTPRequest(req, self.scenario, self.engine)
 
@@ -242,6 +248,12 @@ class ActionBlock(Request):
         self.action = action
         self.target = target
         self.duration = duration
+
+
+class SetVariables(Request):
+    def __init__(self, mapping, config):
+        super(SetVariables, self).__init__(config)
+        self.mapping = mapping
 
 
 class RequestVisitor(object):
@@ -326,4 +338,7 @@ class ResourceFilesCollector(RequestVisitor):
         return self.executor.res_files_from_scenario(scenario)
 
     def visit_actionblock(self, _):
+        return []
+
+    def visit_setvariables(self, _):
         return []
