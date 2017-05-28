@@ -437,6 +437,8 @@ class Engine(object):
         :type user_configs: list[str]
         :rtype: Configuration
         """
+        # "tab-replacement-spaces" is not documented 'cause it loads only from base configs
+        # so it's sort of half-working last resort
         self.config.tab_replacement_spaces = self.config.get(SETTINGS).get("tab-replacement-spaces", 4)
         self.config.load(user_configs)
         user_config = Configuration()
