@@ -1,0 +1,13 @@
+blockstart1:
+    simple tab: true
+    tab in: "	middle"
+    space: tab
+
+blockstart2:
+     tab: space
+    
+    # some comment
+blockstart3:
+	double: tab
+blockstart4:
+        tab-space: tab

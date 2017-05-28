@@ -1,0 +1,11 @@
+---
+blockstart1:
+  simple tab: true
+  space: tab
+  tab in: "\tmiddle"
+blockstart2:
+  tab: space
+blockstart3:
+  double: tab
+blockstart4:
+  tab-space: tab

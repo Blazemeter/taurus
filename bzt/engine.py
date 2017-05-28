@@ -20,7 +20,7 @@ import datetime
 import hashlib
 import json
 import logging
-import os
+import re
 import shutil
 import sys
 import threading
@@ -32,13 +32,14 @@ from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
 
+import os
 import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.requests_model import RequestsParser
-from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
+from bzt.six import build_opener, install_opener, urlopen, numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
@@ -578,6 +579,7 @@ class Configuration(BetterDict):
         super(Configuration, self).__init__()
         self.log = logging.getLogger('')
         self.dump_filename = None
+        self.tab_replacement_spaces = 4
 
     def load(self, config_files, callback=None):
         """
@@ -592,7 +594,7 @@ class Configuration(BetterDict):
                 configs = []
                 self.log.debug("Reading %s", config_file)
                 with open(config_file) as fds:
-                    contents = fds.read()
+                    contents = self._replace_tabs(fds.readlines(), config_file)
                     try:
                         self.log.debug("Reading %s as YAML", config_file)
                         configs.extend(yaml.load_all(contents))
@@ -603,6 +605,8 @@ class Configuration(BetterDict):
                             configs.append(json.loads(contents))
                         else:
                             raise
+            except KeyboardInterrupt:
+                raise
             except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
@@ -670,6 +674,21 @@ class Configuration(BetterDict):
                 if key.lower().endswith(suffix):
                     if value and isinstance(value, (string_types, text_type)):
                         container[key] = '*' * 8
+
+    def _replace_tabs(self, lines, fname):
+        self.log.debug("orig:\n%s", "".join(lines))
+        has_tab_intents = re.compile("^( *)(\t+)( *\S*)")
+        res = ""
+        for num, line in enumerate(lines):
+            replaced = has_tab_intents.sub(r"\1" + (" " * self.tab_replacement_spaces) + r"\3", line)
+            if replaced != line:
+                line = replaced
+                self.log.warning("Replaced leading tabs in file %s:%s", fname, num)
+                self.log.warning("Line content is: %s", replaced.strip())
+                self.log.warning("Please remember that YAML specification does not allow using tabs for indentation")
+            res += line
+        self.log.debug("Replaced content:\n%s", res)
+        return res
 
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
