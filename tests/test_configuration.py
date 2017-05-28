@@ -119,4 +119,5 @@ class TestConfiguration(BZTestCase):
         obj.load([__dir__() + "/resources/yaml/tabs-issue.yml"])
         fname = tempfile.mkstemp()[1]
         obj.dump(fname, Configuration.YAML)
+        # import shutil; shutil.copy(fname, __dir__() + "/resources/yaml/tabs-issue-spaces.yml")
         self.assertFilesEqual(__dir__() + "/resources/yaml/tabs-issue-spaces.yml", fname)
