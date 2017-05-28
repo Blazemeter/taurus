@@ -579,7 +579,7 @@ class Configuration(BetterDict):
         super(Configuration, self).__init__()
         self.log = logging.getLogger('')
         self.dump_filename = None
-        self.tab_replacement_spaces = 4
+        self.tab_replacement_spaces = 0
 
     def load(self, config_files, callback=None):
         """
@@ -592,19 +592,13 @@ class Configuration(BetterDict):
         for config_file in config_files:
             try:
                 configs = []
-                self.log.debug("Reading %s", config_file)
                 with open(config_file) as fds:
-                    contents = self._replace_tabs(fds.readlines(), config_file)
-                    try:
-                        self.log.debug("Reading %s as YAML", config_file)
-                        configs.extend(yaml.load_all(contents))
-                    except BaseException as yaml_load_exc:
-                        self.log.debug("Error when reading config file as YAML '%s': %s", config_file, yaml_load_exc)
-                        if contents.lstrip().startswith('{'):
-                            self.log.debug("Reading %s as JSON", config_file)
-                            configs.append(json.loads(contents))
-                        else:
-                            raise
+                    if self.tab_replacement_spaces:
+                        contents = self._replace_tabs(fds.readlines(), config_file)
+                    else:
+                        contents = fds.read()
+
+                    self._read_yaml_or_json(config_file, configs, contents)
             except KeyboardInterrupt:
                 raise
             except BaseException as exc:
@@ -615,6 +609,20 @@ class Configuration(BetterDict):
 
             if callback is not None:
                 callback(config_file)
+
+    def _read_yaml_or_json(self, config_file, configs, contents):
+        try:
+            self.log.debug("Reading %s as YAML", config_file)
+            configs.extend(yaml.load_all(contents))
+        except KeyboardInterrupt:
+            raise
+        except BaseException as yaml_load_exc:
+            self.log.debug("Error when reading config file as YAML '%s': %s", config_file, yaml_load_exc)
+            if contents.lstrip().startswith('{'):
+                self.log.debug("Reading %s as JSON", config_file)
+                configs.append(json.loads(contents))
+            else:
+                raise
 
     def set_dump_file(self, filename):
         """

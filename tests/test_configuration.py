@@ -116,6 +116,7 @@ class TestConfiguration(BZTestCase):
 
     def test_tabs(self):
         obj = Configuration()
+        obj.tab_replacement_spaces = 4
         obj.load([__dir__() + "/resources/yaml/tabs-issue.yml"])
         fname = tempfile.mkstemp()[1]
         obj.dump(fname, Configuration.YAML)
