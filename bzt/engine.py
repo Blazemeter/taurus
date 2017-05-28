@@ -437,8 +437,12 @@ class Engine(object):
         :type user_configs: list[str]
         :rtype: Configuration
         """
+        self.config.tab_replacement_spaces = self.config.get(SETTINGS).get("tab-replacement-spaces", 4)
         self.config.load(user_configs)
         user_config = Configuration()
+        user_config.log = self.log.getChild(Configuration.__name__)
+        user_config.tab_replacement_spaces = self.config.tab_replacement_spaces
+        user_config.warn_on_tab_replacement = False
         user_config.load(user_configs, self.__config_loaded)
         return user_config
 
@@ -580,6 +584,7 @@ class Configuration(BetterDict):
         self.log = logging.getLogger('')
         self.dump_filename = None
         self.tab_replacement_spaces = 0
+        self.warn_on_tab_replacement = True
 
     def load(self, config_files, callback=None):
         """
@@ -684,18 +689,17 @@ class Configuration(BetterDict):
                         container[key] = '*' * 8
 
     def _replace_tabs(self, lines, fname):
-        self.log.debug("orig:\n%s", "".join(lines))
         has_tab_intents = re.compile("^( *)(\t+)( *\S*)")
         res = ""
         for num, line in enumerate(lines):
             replaced = has_tab_intents.sub(r"\1" + (" " * self.tab_replacement_spaces) + r"\3", line)
             if replaced != line:
                 line = replaced
-                self.log.warning("Replaced leading tabs in file %s:%s", fname, num)
-                self.log.warning("Line content is: %s", replaced.strip())
-                self.log.warning("Please remember that YAML specification does not allow using tabs for indentation")
+                if self.warn_on_tab_replacement:
+                    self.log.warning("Replaced leading tabs in file %s, line %s", fname, num)
+                    self.log.warning("Line content is: %s", replaced.strip())
+                    self.log.warning("Please remember that YAML spec does not allow using tabs for indentation")
             res += line
-        self.log.debug("Replaced content:\n%s", res)
         return res
 
 
