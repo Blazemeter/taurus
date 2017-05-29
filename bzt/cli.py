@@ -158,7 +158,7 @@ class CLI(object):
 
         bzt_rc = os.path.expanduser(os.path.join('~', ".bzt-rc"))
         if os.path.exists(bzt_rc):
-            self.log.info("Using personal config: %s" % bzt_rc)
+            self.log.debug("Using personal config: %s" % bzt_rc)
         else:
             self.log.debug("Adding personal config: %s", bzt_rc)
             self.log.info("No personal config found, creating one at %s", bzt_rc)

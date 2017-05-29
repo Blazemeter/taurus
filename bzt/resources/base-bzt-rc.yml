@@ -1,9 +1,61 @@
+# General Settings
+
+#settings:
+#  default-executor: jmeter  # if you prefer using other executor by default - change this option
+#  artifacts-dir: ~/bzt-artifacts/%Y-%m-%d_%H-%M-%S.%f  # change the default place to store artifact files
+#  check-updates: true  # check for newer version of Taurus on startup
+#  check-interval: 1s  # interval for Taurus engine to check test status and do other actions
+#  proxy:  # custom proxy settings
+#    address: http://127.0.0.1:8080  # proxy server address
+#    username: user  # username and password used if authentication is configured on proxy server
+#    password: 12345
+
+---
+
+# CLI aliases - configure your "shortcuts" to apply config pieces
+
+#cli-aliases:  # user-defined config pieces to apply from command-line
+#  debug:  # this alias is called as '-debug' from command line
+#    settings:
+#      verbose: true
+#    modules:
+#      jmeter:
+#        gui: true
+#      console:
+#         disable: true
+
+---
+
+# BlazeMeter reporting settings
+
+#modules:
+#  blazemeter:
+#    token: <key id>:<key secret>  # API id and API secret joined with ':'
+#
+#    test: Test Name  # name for test to store reports
+#    project: Project Name  # name for project to store test, can be numeric project ID
+#    public-report: false  # set to true to create a public link to the report
+#
+#    browser-open: start  # auto-open the report in browser,
+#                         # can be "start", "end", "both", "none"
+#    send-interval: 30s   # send data each n-th second
+#    timeout: 5s  # connect and request timeout for BlazeMeter API
+#    artifact-upload-size-limit: 10  # limit max size of file (in megabytes)
+#                                   # that goes into zip for artifact upload, 10 by default
+#    check-interval: 5s  # interval which Taurus uses to query test status from BlazeMeter
+
+---
+
 # JMeter settings
 
 #modules:
 #  jmeter:
+#    properties:  # JMeter properties for every JMeter run
+#      prop_name: prop value
+#    system-properties:  # Java system properties
+#      sun.net.http.allowRestrictedHeaders: "true"
+#    memory-xmx: 4G  # allow JMeter to use up to 4G of memory
 #    path: ~/.bzt/jmeter-taurus/{version}/bin/jmeter  # path to local jmeter installation
-#    download-link: https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip  # download link
 #    version: 3.2  # version to use
 #    plugins:  # plugins to install
 #    - jpgc-json=2.2
@@ -18,146 +70,3 @@
 #  gatling:
 #    properties:
 #      gatling.data.file.bufferSize: 256 # output buffer size, 256 bytes by default
-
----
-
-# Grinder settings
-
-#modules:
-#  grinder:
-#    path: ~/.bzt/grinder-taurus/ # Path to Grinder. If no grinder.jar found in folder/lib/, Grinder tool will be automatically downloaded and installed in "path".
-#    download-link: http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}/grinder-{version}-binary.zip/download  # Link to download Grinder from
-#    report-by-url: false  # change results analysis to use URLs instead of test ID/test name
-
----
-
-# JUnit settings
-
-#modules:
-#  junit:
-#    path: ~/.bzt/selenium-taurus/tools/junit/junit.jar  # path to JUnit framework jar
-#    selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
-#    hamcrest-core: ~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar  # path to Hamcrest lib
-#    json-jar: ~/.bzt/selenium-taurus/tools/junit/json.jar  # path to JSON lib
-#    jar-name: compiled.jar,  # set name of jar file when compiling from java source files
-#    working-dir: classes  # set name of runner working directory within artifacts dir
-#    compile-target-java: 1.7  # -source and -target option value for javac
-
----
-
-# TestNG settings
-
-#modules:
-#  testng:
-#    path: ~/.bzt/selenium-taurus/tools/testng/testng.jar  # TestNG jar
-#    selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
-#    hamcrest-core: ~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar  # path to Hamcrest lib
-#    json-jar: ~/.bzt/selenium-taurus/tools/junit/json.jar  # path to JSON lib
-#    jar-name: compiled.jar,  # set name of jar file when compiling from java source files
-#    working-dir: classes  # set name of runner working directory within artifacts dir
-#    compile-target-java: 1.7  # -source and -target option value for javac
-
----
-
-# Nose settings
-
-#modules:
-#  nose:
-#    working-dir: classes  # set name of runner working directory within artifacts dir
-#    interpreter: /home/user/interpreter/python  # path to custom interpreter.
-
----
-
-# RSpec settings
-
-#modules:
-#  rspec:
-#    interpreter: /home/user/ruby-2.4/bin/ruby  # path to custom Ruby interpreter
-
----
-
-# locust?
-
----
-
-# Siege settings
-
-#modules:
-#  siege:
-#    path: /home/user/sources/siege/bin/siege  # path to 'siege' executable
-
----
-
-# Apache Benchmark settings
-
-#modules:
-#  ab:
-#    path: /home/john/build/apache2/bin/ab  # path to 'ab' binary
-
----
-
-# Tsung settings
-
-#modules:
-#  tsung:
-#    path: /usr/local/bin/tsung  # path to 'tsung' binary
-
----
-
-# Cloud provisioning settings
-
-#modules:
-#  cloud:
-#    token: ******:**************  # API id and API secret divided by :
-#    timeout: 10s  # BlazeMeter API client timeout
-#    browser-open: start  # auto-open browser on test start/end/both/none
-#    check-interval: 5s  # interval which Taurus uses to query test status from BlazeMeter
-#    public-report: false  # make test report public, disabled by default
-
----
-
-# BlazeMeter reporting settings
-
-#modules:
-#  blazemeter:
-#    token: ******:**************  # API id and API secret joined with ':'
-#    browser-open: start  # auto-open the report in browser,
-#                         # can be "start", "end", "both", "none"
-#    send-interval: 30s   # send data each n-th second
-#    timeout: 5s  # connect and request timeout for BlazeMeter API
-#    artifact-upload-size-limit: 5  # limit max size of file (in megabytes)
-#                                   # that goes into zip for artifact upload, 10 by default
-#    public-report: false  # set to true to create a public link to the report
-
----
-
-# Console reporter settings
-
-#modules:
-#  console:
-#    disable: false  # set to true to disable console reporter
-#
-#    screen: console
-#    # valid values are:
-#    # - console (ncurses-based dashboard, default for *nix systems)
-#    # - gui (window-based dashboard, default for Windows, requires Tkinter)
-#    # - dummy (text output into console for non-tty cases)
-
----
-
-# Appium settings
-
-#modules:
-#  appium:
-#    path: 'path/to/appium/executable'  # 'appium' executable path
-#    timeout: 20     # timeout for appium startup
-
----
-
-# Android Emulator service settings
-
-#modules:
-#  android-emulator:
-#    path: /home/user/Android/sdk/tools/emulator
-#    avd: android10_arm128
-#    timeout: 20     # timeout for android emulator startup, adb should be available through the PATH for startup detection
