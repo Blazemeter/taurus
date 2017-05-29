@@ -106,7 +106,7 @@ class Engine(object):
         self._set_up_proxy()
 
         if self.config.get(SETTINGS).get("check-updates", True):
-            install_id = self.config.get("install-id", uuid.getnode())
+            install_id = self.config.get("install-id", "%x" % uuid.getnode())
 
             def wrapper():
                 return self._check_updates(install_id)
@@ -612,7 +612,8 @@ class Configuration(BetterDict):
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
             for config in configs:
-                self.merge(config)
+                if config is not None:
+                    self.merge(config)
 
             if callback is not None:
                 callback(config_file)

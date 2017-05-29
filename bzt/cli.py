@@ -15,27 +15,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
+import os
 import platform
+import shutil
 import signal
 import sys
 import tempfile
 import traceback
+from logging import Formatter
 from optparse import OptionParser, Option
 from tempfile import NamedTemporaryFile
 
-import os
 import yaml
+from colorlog import ColoredFormatter
+
+import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt import TaurusException, ToolError
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from bzt.six import HTTPError, string_types, get_stacktrace
-from colorlog import ColoredFormatter
-from logging import Formatter
-
-import bzt
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
-from bzt.utils import run_once, is_int, BetterDict
+from bzt.six import HTTPError, string_types, get_stacktrace
+from bzt.utils import run_once, is_int, BetterDict, get_full_path
 
 
 class CLI(object):
@@ -155,15 +156,15 @@ class CLI(object):
         if self.options.no_system_configs is None:
             self.options.no_system_configs = False
 
-        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))
-        if os.path.isfile(user_file):
-            self.log.debug("Adding personal config: %s", user_file)
-            bzt_rc = [user_file]
+        bzt_rc = os.path.expanduser(os.path.join('~', ".bzt-rc"))
+        if os.path.exists(bzt_rc):
+            self.log.info("Using personal config: %s" % bzt_rc)
         else:
-            self.log.info("No personal config: %s", user_file)
-            bzt_rc = []
+            self.log.debug("Adding personal config: %s", bzt_rc)
+            self.log.info("No personal config found, creating one at %s", bzt_rc)
+            shutil.copy(os.path.join(get_full_path(__file__, step_up=1), 'resources', 'base-bzt-rc.yml'), bzt_rc)
 
-        merged_config = self.engine.configure(bzt_rc + configs, not self.options.no_system_configs)
+        merged_config = self.engine.configure([bzt_rc] + configs, not self.options.no_system_configs)
 
         # apply aliases
         for alias in self.options.aliases:
