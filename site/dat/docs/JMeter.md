@@ -5,7 +5,7 @@ This executor type is used by default, it uses [Apache JMeter](http://jmeter.apa
 ## JMeter Location & Auto-Installation
 
 If there is no JMeter installed at the configured `path`, Taurus will attempt to install latest JMeter and Plugins into
-this location, by default `~/.bzt/jmeter-taurus/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
+this location, by default `~/.bzt/jmeter-taurus/{version}/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
 ```yaml
 modules:
   jmeter:

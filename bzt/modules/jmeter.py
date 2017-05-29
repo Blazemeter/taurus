@@ -59,7 +59,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=' \
-                      'kg/apc/jmeter-plugins-manager/0.12/jmeter-plugins-manager-0.12.jar'
+                      'kg/apc/jmeter-plugins-manager/0.13/jmeter-plugins-manager-0.13.jar'
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
     JMETER_VER = "3.2"
     UDP_PORT_NUMBER = None
@@ -900,9 +900,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if not tool.check_if_installed():
                 tool.install()
 
-        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/")
-        jmeter_path = get_full_path(jmeter_path)
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
+        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
+        jmeter_path = get_full_path(jmeter_path)
         download_link = self.settings.get("download-link", None)
         plugins = self.settings.get("plugins", [])
         proxy = self.engine.config.get('settings').get('proxy')
@@ -1946,6 +1946,7 @@ class JMeter(RequiredTool):
         self.mirror_manager = JMeterMirrorsManager(self.log, self.version)
         self.plugins = plugins
         self.proxy_settings = proxy
+        self.tool_path=self.tool_path.format(version=self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
