@@ -1,6 +1,19 @@
 # Changelog
 
-## 1.9.2
+## 1.9.3 <sup>upcoming</sup>
+ - added Bamboo article
+ - create .bzt-rc file template if it not exists
+ - support dedicated IPs feature for BlazeMeter Cloud tests
+ - fix jmx2yaml password masking issue
+ - fix locust crash when empty host specified
+ - fix proxy2jmx chrome loader binary in windows installer
+ - add transaction controller "parent sample flag" support
+ - add binding to all local IPs into JMeter
+ - install JMeter into per-version directories
+ - auto-replace tabs with spaces, trying to workaround user's config issues
+ - make virtual display be service, detach it from Selenium
+
+## 1.9.2 <sup>14 may 2017</sup>
  - fix grinder having 100% errors
  - extract apiritif into standalone PyPi project
  - improve console message in case of BZA failed response
@@ -19,7 +32,6 @@
  - hostaliases support removed (was never working properly)
  - for JMeter, write scenario name into thread group name
  - add simple JMX downloading for Proxy2JMX
-
 
 ## 1.9.1 <sup>19 apr 2017</sup>
  - fix errors in reading Grinder KPI file
