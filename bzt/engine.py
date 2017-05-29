@@ -20,7 +20,7 @@ import datetime
 import hashlib
 import json
 import logging
-import os
+import re
 import shutil
 import sys
 import threading
@@ -32,6 +32,7 @@ from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
 
+import os
 import yaml
 from yaml.representer import SafeRepresenter
 
@@ -436,8 +437,14 @@ class Engine(object):
         :type user_configs: list[str]
         :rtype: Configuration
         """
+        # "tab-replacement-spaces" is not documented 'cause it loads only from base configs
+        # so it's sort of half-working last resort
+        self.config.tab_replacement_spaces = self.config.get(SETTINGS).get("tab-replacement-spaces", 4)
         self.config.load(user_configs)
         user_config = Configuration()
+        user_config.log = self.log.getChild(Configuration.__name__)
+        user_config.tab_replacement_spaces = self.config.tab_replacement_spaces
+        user_config.warn_on_tab_replacement = False
         user_config.load(user_configs, self.__config_loaded)
         return user_config
 
@@ -578,6 +585,8 @@ class Configuration(BetterDict):
         super(Configuration, self).__init__()
         self.log = logging.getLogger('')
         self.dump_filename = None
+        self.tab_replacement_spaces = 0
+        self.warn_on_tab_replacement = True
 
     def load(self, config_files, callback=None):
         """
@@ -590,19 +599,15 @@ class Configuration(BetterDict):
         for config_file in config_files:
             try:
                 configs = []
-                self.log.debug("Reading %s", config_file)
                 with open(config_file) as fds:
-                    contents = fds.read()
-                    try:
-                        self.log.debug("Reading %s as YAML", config_file)
-                        configs.extend(yaml.load_all(contents))
-                    except BaseException as yaml_load_exc:
-                        self.log.debug("Error when reading config file as YAML '%s': %s", config_file, yaml_load_exc)
-                        if contents.lstrip().startswith('{'):
-                            self.log.debug("Reading %s as JSON", config_file)
-                            configs.append(json.loads(contents))
-                        else:
-                            raise
+                    if self.tab_replacement_spaces:
+                        contents = self._replace_tabs(fds.readlines(), config_file)
+                    else:
+                        contents = fds.read()
+
+                    self._read_yaml_or_json(config_file, configs, contents)
+            except KeyboardInterrupt:
+                raise
             except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
@@ -611,6 +616,20 @@ class Configuration(BetterDict):
 
             if callback is not None:
                 callback(config_file)
+
+    def _read_yaml_or_json(self, config_file, configs, contents):
+        try:
+            self.log.debug("Reading %s as YAML", config_file)
+            configs.extend(yaml.load_all(contents))
+        except KeyboardInterrupt:
+            raise
+        except BaseException as yaml_load_exc:
+            self.log.debug("Error when reading config file as YAML '%s': %s", config_file, yaml_load_exc)
+            if contents.lstrip().startswith('{'):
+                self.log.debug("Reading %s as JSON", config_file)
+                configs.append(json.loads(contents))
+            else:
+                raise
 
     def set_dump_file(self, filename):
         """
@@ -670,6 +689,20 @@ class Configuration(BetterDict):
                 if key.lower().endswith(suffix):
                     if value and isinstance(value, (string_types, text_type)):
                         container[key] = '*' * 8
+
+    def _replace_tabs(self, lines, fname):
+        has_tab_intents = re.compile("^( *)(\t+)( *\S*)")
+        res = ""
+        for num, line in enumerate(lines):
+            replaced = has_tab_intents.sub(r"\1" + (" " * self.tab_replacement_spaces) + r"\3", line)
+            if replaced != line:
+                line = replaced
+                if self.warn_on_tab_replacement:
+                    self.log.warning("Replaced leading tabs in file %s, line %s", fname, num)
+                    self.log.warning("Line content is: %s", replaced.strip())
+                    self.log.warning("Please remember that YAML spec does not allow using tabs for indentation")
+            res += line
+        return res
 
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)

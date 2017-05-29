@@ -1,7 +1,6 @@
 # coding=utf-8
 import logging
 import tempfile
-from collections import OrderedDict
 
 from bzt import six
 from bzt.engine import Configuration
@@ -114,3 +113,12 @@ class TestConfiguration(BZTestCase):
         })
         obj.filter({"but-keep": True, "and-also-keep": {"nested": True}})
         self.assertEquals({"and-also-keep": {"nested": "value"}, "but-keep": "value"}, obj)
+
+    def test_tabs(self):
+        obj = Configuration()
+        obj.tab_replacement_spaces = 4
+        obj.load([__dir__() + "/resources/yaml/tabs-issue.yml"])
+        fname = tempfile.mkstemp()[1]
+        obj.dump(fname, Configuration.YAML)
+        # import shutil; shutil.copy(fname, __dir__() + "/resources/yaml/tabs-issue-spaces.yml")
+        self.assertFilesEqual(__dir__() + "/resources/yaml/tabs-issue-spaces.yml", fname)
