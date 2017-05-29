@@ -40,7 +40,7 @@ install:
 - pip install colorlog jsonpath-rw pyyaml psutil lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay astunparse
 - pip install git+https://github.com/Blazemeter/apiritif.git@master
 - pip install --upgrade codecov nose nose-exclude
-script: coverage run `which nosetests` --exclude-dir=tests/resources tests
+script: coverage run `which nosetests` --source=. --exclude-dir=tests/resources tests
 after_success:
 - coverage report -m
 - codecov
