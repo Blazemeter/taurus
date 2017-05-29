@@ -109,11 +109,10 @@ If you want to run headless tests on Linux using virtual framebuffer (Xvfb), you
 display by using following config piece:
 
 ```yaml
-modules:
-  selenium:
-    virtual-display:
-      width: 1024
-      height: 768
+services:
+- module: virtual-display
+  width: 1024
+  height: 768
 ```
 
 Note: SeleniumExecutor uses shared virtual display for all executions.
