@@ -355,6 +355,21 @@ class TestJMeterExecutor(BZTestCase):
         result = open(self.obj.modified_jmx).read()
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
 
+    def test_cookiemanager_3_2_bug(self):
+        self.configure({
+            'execution': {
+                'hold-for': '1s',
+                'concurrency': 10,
+                'scenario': {
+                    'requests': [
+                        'http://blazedemo.com/']}}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.original_jmx)
+        resource_elements = jmx.tree.findall(".//stringProp[@name='CookieManager.implementation']")
+        self.assertEqual(1, len(resource_elements))
+        new_implementation = "org.apache.jmeter.protocol.http.control.HC4CookieHandler"
+        self.assertEqual(resource_elements[0].text, new_implementation)
+
     def test_body_parse(self):
         self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
         self.obj.prepare()

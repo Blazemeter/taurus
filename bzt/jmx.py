@@ -654,6 +654,8 @@ class JMX(object):
         """
         mgr = etree.Element("CookieManager", guiclass="CookiePanel", testclass="CookieManager", testname="Cookies")
         mgr.append(JMX._bool_prop("CookieManager.clearEachIteration", True))
+        mgr.append(JMX._string_prop("CookieManager.implementation",
+                                    "org.apache.jmeter.protocol.http.control.HC4CookieHandler"))
         return mgr
 
     @staticmethod
