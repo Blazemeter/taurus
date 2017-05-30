@@ -82,7 +82,7 @@ class GatlingScriptBuilder(object):
 
             if req.body is not None:
                 if isinstance(req.body, str):
-                    exec_str += '\t\t\t\t.body(%(method)s(""""%(body)s"""))\n'
+                    exec_str += '\t\t\t\t.body(%(method)s(""""%(body)s""""))\n'
                     exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
                 else:
                     self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
