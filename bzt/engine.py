@@ -625,7 +625,7 @@ class Configuration(BetterDict):
         except KeyboardInterrupt:
             raise
         except BaseException as yaml_load_exc:
-            self.log.debug("Error when reading config file as YAML '%s': %s", config_file, yaml_load_exc)
+            self.log.debug("Cannot read config file as YAML '%s': %s", config_file, yaml_load_exc)
             if contents.lstrip().startswith('{'):
                 self.log.debug("Reading %s as JSON", config_file)
                 configs.append(json.loads(contents))
