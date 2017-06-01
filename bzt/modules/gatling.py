@@ -171,7 +171,7 @@ class GatlingScriptBuilder(object):
         data_sources = self.scenario.get('data-sources', [])
         if not isinstance(data_sources, list):
             raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
-        for index, data_source in enumerate(data_sources):
+        for index, _ in enumerate(data_sources):
             source = ensure_is_dict(data_sources, index, "path")
             source_path = source["path"]
             source_name = os.path.basename(source_path)
@@ -195,7 +195,7 @@ class GatlingScriptBuilder(object):
         data_sources = self.scenario.get('data-sources', [])
         if not isinstance(data_sources, list):
             raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
-        for index, data_source in enumerate(data_sources):
+        for index, _ in enumerate(data_sources):
             source = ensure_is_dict(data_sources, index, "path")
             source_path = source["path"]
             source_name = os.path.basename(source_path)
@@ -333,7 +333,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         data_sources = scenario.get('data-sources', [])
         if not isinstance(data_sources, list):
             raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
-        for index, data_source in enumerate(data_sources):
+        for index, _ in enumerate(data_sources):
             source = ensure_is_dict(data_sources, index, "path")
             source_path = self.engine.find_file(source["path"])
             self.engine.existing_artifact(source_path)
