@@ -10,4 +10,4 @@ include bzt/resources/pbench.conf
 include bzt/resources/rspec_taurus_plugin.rb
 include bzt/resources/mocha-taurus-plugin.js
 include bzt/resources/chrome_launcher.sh
-include bzt/resoruces/base-bzt-rc.yml
+include bzt/resources/base-bzt-rc.yml
