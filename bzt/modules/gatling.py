@@ -161,6 +161,48 @@ class GatlingScriptBuilder(object):
 
         return check_result
 
+    @staticmethod
+    def _get_feeder_name(source_filename):
+        return re.sub(r'[^A-Za-z0-9_]', '', ".".join(source_filename.split(".")[:-1])) + "Feed"
+
+    def _get_feeders(self):
+        feeder_defs = ""
+
+        data_sources = self.scenario.get('data-sources', [])
+        if not isinstance(data_sources, list):
+            raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
+        for index, data_source in enumerate(data_sources):
+            source = ensure_is_dict(data_sources, index, "path")
+            source_path = source["path"]
+            source_name = os.path.basename(source_path)
+            delimiter = source.get('delimiter', None)
+            loop_over = source.get("loop", True)
+            varname = self._get_feeder_name(source_name)
+            params = dict(varname=varname, filename=source_name, delimiter=delimiter)
+            if delimiter is not None:
+                tmpl = """val %(varname)s = separatedValues("%(filename)", '%(delimiter)')"""
+            else:
+                tmpl = 'val %(varname)s = csv("%(filename)s")'
+            line = self.indent(tmpl % params, level=1)
+            if loop_over:
+                line += '.circular'
+            feeder_defs += line + '\n'
+
+        return feeder_defs
+
+    def _get_scenario_feeds(self):
+        feeds = ''
+        data_sources = self.scenario.get('data-sources', [])
+        if not isinstance(data_sources, list):
+            raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
+        for index, data_source in enumerate(data_sources):
+            source = ensure_is_dict(data_sources, index, "path")
+            source_path = source["path"]
+            source_name = os.path.basename(source_path)
+            varname = self._get_feeder_name(source_name)
+            feeds += self.indent(".feed(%s)" % varname, level=2) + '\n'
+        return feeds
+
     def gen_test_case(self):
         template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script.tpl")
 
@@ -170,7 +212,9 @@ class GatlingScriptBuilder(object):
         params = {
             'class_name': self.class_name,
             'httpConf': self._get_http(),
-            '_exec': self._get_exec()
+            '_exec': self._get_exec(),
+            'feeders': self._get_feeders(),
+            'scenarioFeeds': self._get_scenario_feeds(),
         }
         return template_line % params
 
@@ -264,6 +308,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         if not self.script:
             if "requests" in scenario:
                 self.get_scenario()['simulation'], self.script = self.__generate_script()
+                self.__copy_data_sources()
             else:
                 msg = "There must be a script file or requests for its generation "
                 msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
@@ -282,6 +327,16 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             script.write(gen_script.gen_test_case())
 
         return simulation, file_name
+
+    def __copy_data_sources(self):
+        scenario = self.get_scenario()
+        data_sources = scenario.get('data-sources', [])
+        if not isinstance(data_sources, list):
+            raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
+        for index, data_source in enumerate(data_sources):
+            source = ensure_is_dict(data_sources, index, "path")
+            source_path = self.engine.find_file(source["path"])
+            self.engine.existing_artifact(source_path)
 
     def startup(self):
         """
