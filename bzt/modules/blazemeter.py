@@ -357,7 +357,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                 exc_class = self.engine.stopping_reason.__class__.__name__
                 note = "%s: %s" % (exc_class, str(self.engine.stopping_reason))
                 self.append_note_to_session(note)
-                self.append_note_to_master(note)
+                if self._master:
+                    self.append_note_to_master(note)
 
         except KeyboardInterrupt:
             raise

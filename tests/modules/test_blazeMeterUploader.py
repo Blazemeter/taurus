@@ -6,14 +6,15 @@ import time
 from io import BytesIO
 
 import os
-from tests import BZTestCase, random_datapoint, __dir__
 
+from bzt import TaurusException
 from bzt.bza import Master, Session
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader, ResultsFromBZA
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.six import HTTPError
 from bzt.six import iteritems, viewvalues
+from tests import BZTestCase, random_datapoint, __dir__
 from tests.mocks import EngineEmul, BZMock
 
 
@@ -212,21 +213,32 @@ class TestBlazeMeterUploader(BZTestCase):
 
     def test_direct_feeding(self):
         obj = BlazeMeterUploader()
+        self.sniff_log(obj.log)
         obj.engine = EngineEmul()
         mock = BZMock(obj._user)
         mock.mock_post.update({
             'https://data.blazemeter.com/submit.php?session_id=direct&signature=sign&test_id=None&user_id=None&pq=0&target=labels_bulk&update=1': {},
             'https://a.blazemeter.com/api/v4/image/direct/files?signature=sign': {"result": True},
+            'https://a.blazemeter.com/api/v4/sessions/direct/stop': {"result": True},
+        })
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/sessions/direct': {"result": {}}
+        })
+        mock.mock_patch.update({
+            'https://a.blazemeter.com/api/v4/sessions/direct': {"result": {}}
         })
         obj.parameters['session-id'] = 'direct'
         obj.parameters['signature'] = 'sign'
+        obj.settings['token'] = 'FakeToken'
         obj.prepare()
         obj.startup()
         obj.check()
         obj.shutdown()
+        obj.engine.stopping_reason = TaurusException("To cover")
         obj.post_process()
+        self.assertNotIn("Failed to finish online", self.log_recorder.warn_buff.getvalue())
         self.assertEquals('direct', obj._session['id'])
-        self.assertEqual(2, len(mock.requests))
+        self.assertEqual(7, len(mock.requests))
 
     def test_anonymous_feeding(self):
         obj = BlazeMeterUploader()
