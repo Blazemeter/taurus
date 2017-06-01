@@ -502,12 +502,21 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return self.widget
 
     def resource_files(self):
+        files = []
         scenario = self.get_scenario()
         script = scenario.get(Scenario.SCRIPT, None)
         if script:
-            return [script]
+            files.append(script)
         else:
-            return []
+            scenario = self.get_scenario()
+            data_sources = scenario.get('data-sources', [])
+            if not isinstance(data_sources, list):
+                raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
+            for index, _ in enumerate(data_sources):
+                source = ensure_is_dict(data_sources, index, "path")
+                source_path = self.engine.find_file(source["path"])
+                files.append(source_path)
+        return files
 
 
 class DataLogReader(ResultsReader):
