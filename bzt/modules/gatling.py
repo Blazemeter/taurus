@@ -45,6 +45,10 @@ class GatlingScriptBuilder(object):
         else:
             return addr
 
+    @staticmethod
+    def indent(str, level):
+        return "  " * level + str
+
     def _get_http(self):
         default_address = self.scenario.get('default-address', None)
         if default_address is None:
@@ -54,7 +58,8 @@ class GatlingScriptBuilder(object):
 
         scenario_headers = self.scenario.get_headers()
         for key in scenario_headers:
-            http_str += '\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': scenario_headers[key]}
+            http_str += self.indent('.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': scenario_headers[key]},
+                                    level=2)
         return http_str
 
     def _get_exec(self):
@@ -74,15 +79,16 @@ class GatlingScriptBuilder(object):
             else:
                 url = self.fixed_addr(req.url)
 
-            exec_template = 'exec(\n\t\t\thttp("%(req_label)s").%(method)s("%(url)s")\n'
+            exec_template = 'exec(\n' + self.indent('http("%(req_label)s").%(method)s("%(url)s")', level=2) + '\n'
             exec_str += exec_template % {'req_label': req.label, 'method': req.method.lower(), 'url': url}
 
             for key in req.headers:
-                exec_str += '\t\t\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]}
+                exec_str += self.indent('.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]},
+                                        level=3)
 
             if req.body is not None:
                 if isinstance(req.body, str):
-                    exec_str += '\t\t\t\t.body(%(method)s("""%(body)s"""))\n'
+                    exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
                     exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
                 else:
                     self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
@@ -90,9 +96,9 @@ class GatlingScriptBuilder(object):
             exec_str += self.__get_assertions(req.config.get('assert', []))
 
             if not req.priority_option('follow-redirects', default=True):
-                exec_str += '\t\t\t.disableFollowRedirect\n'
+                exec_str += self.indent('.disableFollowRedirect\n', level=3)
 
-            exec_str += '\t\t)'
+            exec_str += self.indent(')', level=1)
 
             think_time = int(dehumanize_time(req.priority_option('think-time')))
             if think_time:
@@ -129,7 +135,7 @@ class GatlingScriptBuilder(object):
             return ''
 
         first_check = True
-        check_result = '\t' * 4 + '.check(\n'
+        check_result = self.indent('.check(\n', level=3)
 
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
@@ -148,10 +154,10 @@ class GatlingScriptBuilder(object):
             for sample in a_contains:
                 if not first_check:
                     check_result += ',\n'
-                check_result += '\t' * 5 + check_template % {'sample': sample}
+                check_result += self.indent(check_template % {'sample': sample}, level=4)
                 first_check = False
 
-        check_result += ')\n'
+        check_result += '\n' + self.indent(')',level=3) + '\n'
 
         return check_result
 
