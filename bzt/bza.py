@@ -9,12 +9,12 @@ import time
 from collections import OrderedDict
 
 import requests
+
 from bzt import TaurusNetworkError, ManualShutdown, VERSION
 from bzt.six import cookielib
 from bzt.six import string_types
 from bzt.six import text_type
 from bzt.six import urlencode
-
 from bzt.utils import to_json, MultiPartForm
 
 
@@ -554,6 +554,10 @@ class Session(BZAObject):
 
     def stop(self):
         url = self.address + "/api/v4/sessions/%s/stop" % self['id']
+        self._request(url, method='POST')
+
+    def terminate(self):
+        url = self.address + "/api/v4/sessions/%s/terminate" % self['id']
         self._request(url, method='POST')
 
     def stop_anonymous(self):
