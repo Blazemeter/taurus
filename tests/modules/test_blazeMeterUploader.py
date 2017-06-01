@@ -238,7 +238,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.post_process()
         self.assertNotIn("Failed to finish online", self.log_recorder.warn_buff.getvalue())
         self.assertEquals('direct', obj._session['id'])
-        self.assertEqual(9, len(mock.requests))
+        self.assertEqual(7, len(mock.requests))
 
     def test_anonymous_feeding(self):
         obj = BlazeMeterUploader()
