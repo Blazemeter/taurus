@@ -9,6 +9,16 @@ ICON_RELPATH="../../site/img/taurus.ico"  # must have this path relative to the 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
+DOTS_IN_VERSION=`echo $TAURUS_VERSION | tr -d -c '.' | wc -m`
+if [ $DOTS_IN_VERSION -eq 2 ]   #   release
+then
+  BZT="bzt>=${TAURUS_VERSION}"
+else
+  BZT="http://gettaurus.org/snapshots/bzt-${TAURUS_VERSION}.tar.gz"
+fi
+echo "bzt: "
+echo $BZT
+
 # create NSIS script
 cat << EOF > "$BUILD_DIR/taurus.nsi"
 [% extends "pyapp_w_pylauncher.nsi" %]
@@ -22,7 +32,7 @@ cat << EOF > "$BUILD_DIR/taurus.nsi"
 
 InstalledPip:
   ; Install Taurus
-  nsExec::ExecToLog 'py -m pip install bzt>=${TAURUS_VERSION}'
+  nsExec::ExecToLog 'py -m pip install ${BZT}'
   Pop \$0
   IntCmp \$0 0 InstalledBzt CantInstallBzt CantInstallBzt
 
@@ -87,7 +97,7 @@ Function DumpLog
     System::Alloc \${NSIS_MAX_STRLEN}
     Pop \$3
     StrCpy \$2 0
-    System::Call "*(i, i, i, i, i, i, i, i, i) i \
+    System::Call "*(i,/ i, i, i, i, i, i, i, i) i \
       (0, 0, 0, 0, 0, r3, \${NSIS_MAX_STRLEN}) .r1"
     loop: StrCmp \$2 \$6 done
       System::Call "User32::SendMessageA(i, i, i, i) i \
