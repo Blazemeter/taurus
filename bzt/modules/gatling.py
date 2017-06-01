@@ -46,8 +46,8 @@ class GatlingScriptBuilder(object):
             return addr
 
     @staticmethod
-    def indent(str, level):
-        return "  " * level + str
+    def indent(text, level):
+        return "  " * level + text
 
     def _get_http(self):
         default_address = self.scenario.get('default-address', None)
