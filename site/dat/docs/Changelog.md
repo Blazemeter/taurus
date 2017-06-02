@@ -3,6 +3,7 @@
 ## 1.9.3 <sup>2 jun 2017</sup>
  - fix failure with JMeter cookie manager and "null"
  - install JMeter into per-version directories
+ - support `data-sources` for Gatling script generating
  - auto-replace tabs with spaces, trying to workaround user's config issues
  - create .bzt-rc file template if it not exists
  - support dedicated IPs feature for BlazeMeter Cloud tests
