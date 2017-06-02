@@ -4,7 +4,7 @@ import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 import scala.concurrent.duration._
 
-class TaurusSimulation_139886093198672 extends Simulation {
+class TaurusSimulation_140232100608208 extends Simulation {
   val concurrency = Integer.getInteger("concurrency", 1).toInt
   val rampUpTime = Integer.getInteger("ramp-up", 0).toInt
   val holdForTime = Integer.getInteger("hold-for", 0).toInt
@@ -13,12 +13,13 @@ class TaurusSimulation_139886093198672 extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
+
   var httpConf = http.baseURL("http://blazedemo.com")
     .header("H1", "V1")
 
-  var _scn = scenario("Taurus Scenario")
+  var testScenario = scenario("Taurus Scenario")
 
-  var _exec = exec(
+  var execution = exec(
     http("/reserve.php").post("/reserve.php")
       .header("H2", "V2")
       .body(StringBody("""Body Content"""))
@@ -31,24 +32,24 @@ class TaurusSimulation_139886093198672 extends Simulation {
   ).pause(2)
 
   if (iterationLimit == null)
-    _scn = _scn.forever{_exec}
+    testScenario = testScenario.forever{execution}
   else
-    _scn = _scn.repeat(iterationLimit.toInt){_exec}
+    testScenario = testScenario.repeat(iterationLimit.toInt){execution}
 
-  val _users =
+  val virtualUsers =
     if (rampUpTime > 0)
       rampUsers(concurrency) over (rampUpTime seconds)
     else
       atOnceUsers(concurrency)
 
-  var _setUp = setUp(_scn.inject(_users).protocols(httpConf))
+  var testSetup = setUp(testScenario.inject(virtualUsers).protocols(httpConf))
 
   if (throughput != null)
-    _setUp = _setUp.throttle(
+    testSetup = testSetup.throttle(
       reachRps(throughput) in (rampUpTime),
       holdFor(Int.MaxValue)
     )
 
   if (durationLimit > 0)
-    _setUp.maxDuration(durationLimit)
+    testSetup.maxDuration(durationLimit)
 }
