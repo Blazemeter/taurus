@@ -14,7 +14,7 @@ pylint -d R0903,R0904,C0301,C0302,C0111,E1103,R0201,R0902,W0511,F0401,E0611,R080
 ./run-test.sh
 
 # build a windows installer
-./build-windows-installer.sh `pwd`/../dist/bzt-*.tar.gz
+./build-windows-installer.sh ./dist/bzt-*.tar.gz
 
 # re-setup env
 deactivate
