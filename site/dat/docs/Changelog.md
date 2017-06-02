@@ -1,18 +1,18 @@
 # Changelog
 
-## 1.9.3 <sup>upcoming</sup>
+## 1.9.3 <sup>2 jun 2017</sup>
  - fix failure with JMeter cookie manager and "null"
+ - install JMeter into per-version directories
+ - auto-replace tabs with spaces, trying to workaround user's config issues
  - create .bzt-rc file template if it not exists
  - support dedicated IPs feature for BlazeMeter Cloud tests
+ - add transaction controller "parent sample flag" support
+ - add binding to all local IPs into JMeter
+ - make virtual display to be service, detach it from Selenium
  - fix jmx2yaml password masking issue
  - fix locust crash when empty host specified
  - fix proxy2jmx chrome loader binary in windows installer
  - fix Windows installer to ship Python egg within
- - add transaction controller "parent sample flag" support
- - add binding to all local IPs into JMeter
- - install JMeter into per-version directories
- - auto-replace tabs with spaces, trying to workaround user's config issues
- - make virtual display to be service, detach it from Selenium
  - added Bamboo article
  - Refactor Gatling script generation to generate nicely formatted scripts
 
