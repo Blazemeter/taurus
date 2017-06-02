@@ -9,15 +9,17 @@ ICON_RELPATH="../../site/img/taurus.ico"  # must have this path relative to the 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
-DOTS_IN_VERSION=`echo $TAURUS_VERSION | tr -d -c '.' | wc -m`
-if [ $DOTS_IN_VERSION -eq 2 ]   #   release
+if [ "$#" -ne 1 ]
 then
-  BZT="bzt>=${TAURUS_VERSION}"
-else
-  BZT="http://gettaurus.org/snapshots/bzt-${TAURUS_VERSION}.tar.gz"
+  echo "Usage: $0 <build_file>"
+  exit 1
 fi
-echo "bzt: "
-echo $BZT
+if ! [ -e "$1" ]; then
+  echo "$1 not found" >&2
+  exit 1
+fi
+BUILD_FILE="$1"
+BASE_BUILD_FILE=$(basename "$BUILD_FILE")
 
 # create NSIS script
 cat << EOF > "$BUILD_DIR/taurus.nsi"
@@ -32,7 +34,7 @@ cat << EOF > "$BUILD_DIR/taurus.nsi"
 
 InstalledPip:
   ; Install Taurus
-  nsExec::ExecToLog 'py -m pip install ${BZT}'
+  nsExec::ExecToLog 'py -m pip install --upgrade "\$INSTDIR\\${BASE_BUILD_FILE}"'
   Pop \$0
   IntCmp \$0 0 InstalledBzt CantInstallBzt CantInstallBzt
 
@@ -154,6 +156,7 @@ bitness=64
 
 [Include]
 files = tmp/chrome-loader.exe
+  ${BUILD_FILE}
 
 [Build]
 nsi_template=taurus.nsi
