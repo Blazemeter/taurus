@@ -168,11 +168,7 @@ class GatlingScriptBuilder(object):
     def _get_feeders(self):
         feeder_defs = ""
 
-        data_sources = self.scenario.get('data-sources', [])
-        if not isinstance(data_sources, list):
-            raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
-        for index, _ in enumerate(data_sources):
-            source = ensure_is_dict(data_sources, index, "path")
+        for source in self.scenario.get_data_sources():
             source_path = source["path"]
             source_name = os.path.basename(source_path)
             delimiter = source.get('delimiter', None)
@@ -192,11 +188,7 @@ class GatlingScriptBuilder(object):
 
     def _get_scenario_feeds(self):
         feeds = ''
-        data_sources = self.scenario.get('data-sources', [])
-        if not isinstance(data_sources, list):
-            raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
-        for index, _ in enumerate(data_sources):
-            source = ensure_is_dict(data_sources, index, "path")
+        for source in self.scenario.get_data_sources():
             source_path = source["path"]
             source_name = os.path.basename(source_path)
             varname = self._get_feeder_name(source_name)
@@ -330,11 +322,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def __copy_data_sources(self):
         scenario = self.get_scenario()
-        data_sources = scenario.get('data-sources', [])
-        if not isinstance(data_sources, list):
-            raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
-        for index, _ in enumerate(data_sources):
-            source = ensure_is_dict(data_sources, index, "path")
+        for source in scenario.get_data_sources():
             source_path = self.engine.find_file(source["path"])
             self.engine.existing_artifact(source_path)
 
@@ -509,11 +497,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             files.append(script)
         else:
             scenario = self.get_scenario()
-            data_sources = scenario.get('data-sources', [])
-            if not isinstance(data_sources, list):
-                raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
-            for index, _ in enumerate(data_sources):
-                source = ensure_is_dict(data_sources, index, "path")
+            for source in scenario.get_data_sources():
                 source_path = self.engine.find_file(source["path"])
                 files.append(source_path)
         return files
