@@ -417,6 +417,18 @@ class TestGatlingExecutor(BZTestCase):
         self.assertEqualFiles(__dir__() + "/../resources/gatling/generated_data_sources.scala", scala_file)
         self.assertTrue(os.path.exists(os.path.join(obj.engine.artifacts_dir, 'test1.csv')))
 
+    def test_resource_files_data_sources(self):
+        obj = self.getGatling()
+        csv_path = __dir__() + "/../resources/test1.csv"
+        obj.execution.merge({
+            "scenario": {
+                "data-sources": [csv_path],
+                "requests": ["http://blazedemo.com/"],
+            }
+        })
+        res_files = obj.resource_files()
+        self.assertEqual(res_files, [csv_path])
+
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
