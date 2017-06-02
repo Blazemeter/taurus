@@ -409,7 +409,7 @@ class TestGatlingExecutor(BZTestCase):
                 "data-sources": [
                   __dir__() + "/../resources/test1.csv",
                 ],
-                "requests": ["http://blazedemo.com/"],
+                "requests": ["http://blazedemo.com/?tag=${col1}"],
             }
         })
         obj.prepare()
