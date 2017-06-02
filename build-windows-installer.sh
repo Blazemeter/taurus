@@ -156,7 +156,7 @@ bitness=64
 
 [Include]
 files = tmp/chrome-loader.exe
-  ${BUILD_FILE}
+  ../../${BUILD_FILE}
 
 [Build]
 nsi_template=taurus.nsi
