@@ -1048,6 +1048,7 @@ class Scenario(UserDict, object):
     FIELD_RESP_CODE = "http-code"
     FIELD_HEADERS = "headers"
     FIELD_BODY = "body"
+    FIELD_DATA_SOURCES = 'data-sources'
 
     def __init__(self, engine, scenario=None):
         super(Scenario, self).__init__()
@@ -1100,6 +1101,14 @@ class Scenario(UserDict, object):
         """
         requests_parser = RequestsParser(self, self.engine)
         return requests_parser.extract_requests(require_url=require_url)
+
+    def get_data_sources(self):
+        data_sources = self.get(self.FIELD_DATA_SOURCES, [])
+        if not isinstance(data_sources, list):
+            raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
+        for index, _ in enumerate(data_sources):
+            ensure_is_dict(data_sources, index, "path")
+        return self.get(self.FIELD_DATA_SOURCES, [])
 
 
 class HavingInstallableTools(object):

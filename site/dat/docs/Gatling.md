@@ -109,6 +109,10 @@ execution:
 
 scenarios:
   complex_sample:
+    data-sources:
+    - path: buyouts.csv  # path to CSV file
+      delimiter: ','  # optional, set to comma by default
+      loop: true  # loop over data source file, true by default
     default-address: blazedemo.com
     headers:
       HEADER_1: VALUE_1
@@ -132,6 +136,7 @@ scenarios:
         - 200
         subject: http-code
         not: true
+    - /purchase.php?username=${username}&email=${email}  # usage of variables from the CSV data source
 ```
 
 ## Configuration Options

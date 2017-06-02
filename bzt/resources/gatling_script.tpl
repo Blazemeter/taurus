@@ -13,30 +13,31 @@ class %(class_name)s extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
+%(feeders)s
   var httpConf = %(httpConf)s
-  var _scn = scenario("Taurus Scenario")
-
-  var _exec = %(_exec)s
+  var testScenario = scenario("Taurus Scenario")
+%(scenarioFeeds)s
+  var execution = %(_exec)s
 
   if (iterationLimit == null)
-    _scn = _scn.forever{_exec}
+    testScenario = testScenario.forever{execution}
   else
-    _scn = _scn.repeat(iterationLimit.toInt){_exec}
+    testScenario = testScenario.repeat(iterationLimit.toInt){execution}
 
-  val _users =
+  val virtualUsers =
     if (rampUpTime > 0)
       rampUsers(concurrency) over (rampUpTime seconds)
     else
       atOnceUsers(concurrency)
 
-  var _setUp = setUp(_scn.inject(_users).protocols(httpConf))
+  var testSetup = setUp(testScenario.inject(virtualUsers).protocols(httpConf))
 
   if (throughput != null)
-    _setUp = _setUp.throttle(
+    testSetup = testSetup.throttle(
       reachRps(throughput) in (rampUpTime),
       holdFor(Int.MaxValue)
     )
 
   if (durationLimit > 0)
-    _setUp.maxDuration(durationLimit)
+    testSetup.maxDuration(durationLimit)
 }
