@@ -108,11 +108,26 @@ class TestConfiguration(BZTestCase):
             "and-also-keep": {
                 "nested": "value",
                 "while-dropping": "some"
+            },
+            "filter-subitems": {
+                "keep": "value",
+                "drop": "some"
             }
 
         })
-        obj.filter({"but-keep": True, "and-also-keep": {"nested": True}})
-        self.assertEquals({"and-also-keep": {"nested": "value"}, "but-keep": "value"}, obj)
+        rules = {
+            "but-keep": True,
+            "and-also-keep": {"nested": True},
+            "!filter-subitems": {"drop": True},
+        }
+        obj.filter(rules)
+
+        expected = {
+            "but-keep": "value",
+            "and-also-keep": {"nested": "value"},
+            "filter-subitems": {"keep": "value"},
+        }
+        self.assertEquals(expected, obj)
 
     def test_tabs(self):
         obj = Configuration()

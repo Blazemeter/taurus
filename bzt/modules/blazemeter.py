@@ -87,10 +87,30 @@ CLOUD_CONFIG_FILTER_RULES = {
         },
         "shellexec": {
             "env": True
-        }
+        },
+        "!blazemeter": {
+            "class": True,
+            "request-logging-limit": True,
+            "token": True,
+            "address": True,
+            "data-address": True,
+            "test": True,
+            "project": True,
+            "use-deprecated-api": True,
+            "default-location": True,
+            "browser-open": True,
+            "delete-test-files": True,
+            "report-name": True,
+            "timeout": True,
+            "public-report": True,
+            "check-interval": True,
+            "detach": True,
+        },
         # TODO: aggregator has plenty of relevant settings
     }
 }
+
+CLOUD_CONFIG_FILTER_RULES['modules']['!cloud'] = CLOUD_CONFIG_FILTER_RULES['modules']['!blazemeter']
 
 
 def send_with_retry(method):
