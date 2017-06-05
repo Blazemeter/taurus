@@ -976,9 +976,30 @@ class BaseCloudTest(object):
     def prepare_locations(self, executors, engine_config):
         pass
 
-    @abstractmethod
     def prepare_cloud_config(self, engine_config):
-        pass
+        config = copy.deepcopy(engine_config)
+
+        if not isinstance(config[ScenarioExecutor.EXEC], list):
+            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
+
+        provisioning = config.get(Provisioning.PROV)
+        for execution in config[ScenarioExecutor.EXEC]:
+            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
+            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
+
+        config.filter(CLOUD_CONFIG_FILTER_RULES)
+        config['local-bzt-version'] = engine_config.get('version', 'N/A')
+        for key in list(config.keys()):
+            if not config[key]:
+                config.pop(key)
+
+        self.cleanup_defaults(config)
+
+        if self.dedicated_ips:
+            config[CloudProvisioning.DEDICATED_IPS] = True
+
+        assert isinstance(config, Configuration)
+        return config
 
     @abstractmethod
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
@@ -1005,6 +1026,31 @@ class BaseCloudTest(object):
     def get_master_status(self):
         self._last_status = self.master.get_status()
         return self._last_status
+
+    @staticmethod
+    def cleanup_defaults(config):
+        # cleanup configuration from empty values
+        default_values = {
+            'concurrency': None,
+            'iterations': None,
+            'ramp-up': None,
+            'steps': None,
+            'throughput': None,
+            'hold-for': 0,
+            'files': []
+        }
+        for execution in config[ScenarioExecutor.EXEC]:
+            if isinstance(execution['concurrency'], dict):
+                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
+
+            if not execution['concurrency']:
+                execution['concurrency'] = None
+
+            for key, value in iteritems(default_values):
+                if key in execution and execution[key] == value:
+                    execution.pop(key)
+
+        return config
 
 
 class CloudTaurusTest(BaseCloudTest):
@@ -1051,53 +1097,6 @@ class CloudTaurusTest(BaseCloudTest):
             if location not in available_locations:
                 self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                 raise TaurusConfigError("Invalid location requested: %s" % location)
-
-    def prepare_cloud_config(self, engine_config):
-        config = copy.deepcopy(engine_config)
-
-        if not isinstance(config[ScenarioExecutor.EXEC], list):
-            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
-
-        provisioning = config.get(Provisioning.PROV)
-        for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
-            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
-
-        config.filter(CLOUD_CONFIG_FILTER_RULES)
-        config['local-bzt-version'] = engine_config.get('version', 'N/A')
-        for key in list(config.keys()):
-            if not config[key]:
-                config.pop(key)
-
-        self.cleanup_defaults(config)
-
-        assert isinstance(config, Configuration)
-        return config
-
-    @staticmethod
-    def cleanup_defaults(config):
-        # cleanup configuration from empty values
-        default_values = {
-            'concurrency': None,
-            'iterations': None,
-            'ramp-up': None,
-            'steps': None,
-            'throughput': None,
-            'hold-for': 0,
-            'files': []
-        }
-        for execution in config[ScenarioExecutor.EXEC]:
-            if isinstance(execution['concurrency'], dict):
-                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
-
-            if not execution['concurrency']:
-                execution['concurrency'] = None
-
-            for key, value in iteritems(default_values):
-                if key in execution and execution[key] == value:
-                    execution.pop(key)
-
-        return config
 
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
         if self._test is None:
@@ -1203,40 +1202,6 @@ class CloudCollectionTest(BaseCloudTest):
             if location not in available_locations:
                 self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                 raise TaurusConfigError("Invalid location requested: %s" % location)
-
-    def prepare_cloud_config(self, engine_config):
-        config = copy.deepcopy(engine_config)
-
-        if not isinstance(config[ScenarioExecutor.EXEC], list):
-            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
-
-        provisioning = config.pop(Provisioning.PROV)
-        for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
-            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
-
-        config.filter(CLOUD_CONFIG_FILTER_RULES)
-
-        # cleanup configuration from empty values
-        default_values = {
-            'concurrency': None,
-            'iterations': None,
-            'ramp-up': None,
-            'steps': None,
-            'throughput': None,
-            'hold-for': 0,
-            'files': []
-        }
-        for execution in config[ScenarioExecutor.EXEC]:
-            for key, value in iteritems(default_values):
-                if key in execution and execution[key] == value:
-                    execution.pop(key)
-
-        if self.dedicated_ips:
-            config[CloudProvisioning.DEDICATED_IPS] = True
-
-        assert isinstance(config, Configuration)
-        return config
 
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
         # TODO: handle delete_old_files ?
