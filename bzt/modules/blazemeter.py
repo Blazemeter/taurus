@@ -1215,13 +1215,7 @@ class CloudCollectionTest(BaseCloudTest):
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
-        for key in list(config.keys()):
-            fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
-                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
-            if key not in fields:
-                config.pop(key)
-            elif not config[key]:
-                config.pop(key)
+        config.filter(CLOUD_CONFIG_FILTER_RULES)
 
         # cleanup configuration from empty values
         default_values = {
