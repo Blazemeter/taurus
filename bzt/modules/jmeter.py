@@ -681,9 +681,23 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
+            self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
 
         return jmx
+
+    def __force_hc4_cookie_handler(self, jmx):
+        selector = "[testclass=CookieManager]"
+        fix_counter = 0
+        for node in jmx.get(selector):
+            name = "CookieManager.implementation"
+            if not node.get(name):
+                val = "org.apache.jmeter.protocol.http.control.HC4CookieHandler"
+                node.append(JMX._string_prop(name, val))
+                fix_counter += 1
+        if fix_counter:
+            self.log.info('%s obsolete CookieManagers are found and fixed' % fix_counter)
+
 
     def __save_modified_jmx(self, jmx, original_jmx_path, is_jmx_generated):
         script_name, _ = os.path.splitext(os.path.basename(original_jmx_path))
