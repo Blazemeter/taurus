@@ -62,6 +62,7 @@ scenarios:
       - waitByCSS(body)
       - clickByID(mySubmitButton)
       - pauseFor(5s)
+      - clearCookies()
       - keysByName(myInputName): keys_to_type
       - waitByID(myObjectToAppear): visible
       assert: # assert executed after actions
