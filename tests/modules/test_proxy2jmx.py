@@ -1,12 +1,11 @@
 import os
-import sys
 import json
 import shutil
 
 from bzt import TaurusConfigError
 from bzt.modules.proxy2jmx import Proxy2JMX, BZAProxy
 from bzt.modules.selenium import SeleniumExecutor
-from bzt.utils import is_windows, get_full_path
+from bzt.utils import is_windows, is_linux, get_full_path
 from tests import BZTestCase
 from tests.mocks import EngineEmul
 from os.path import join
@@ -179,8 +178,7 @@ class TestProxy2JMX(BZTestCase):
 
         self.obj.prepare()
         self.obj.engine.provisioning.executors = [SeleniumExecutor()]
-        is_linux = 'linux' in sys.platform.lower()
-        if is_linux:
+        if is_linux():
             self._check_linux()
         elif is_windows():
             self._check_windows()
