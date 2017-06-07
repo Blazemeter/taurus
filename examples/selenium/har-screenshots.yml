@@ -11,11 +11,6 @@ execution:
     iterations: 1
 
 services:
+- virtual-display
 - capturehar
 - screenshoter
-
-modules:
-  selenium:
-    virtual-display:
-      width: 1280
-      height: 800
