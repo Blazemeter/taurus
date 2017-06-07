@@ -8,4 +8,4 @@ execution:
       - url:  http://blazedemo.com
 
 services:
-- virtual-display:
+- virtual-display
