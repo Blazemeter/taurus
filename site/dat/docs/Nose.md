@@ -46,7 +46,7 @@ Action names are built as `<action>By<selector type>(<selector>)`. Sometimes act
   - `keysByID`, `keysByName`, `keysByLinkText`, `keysByCSS` and `keysByXPath` - to enter keys into input items, requires parameter.
   Like this: `keysByName(MyFormInputName): Value To Enter`
 
-There is special action `pauseFor(<time>)` which makes script to sleep for specified amount of time.
+There is special action `pauseFor(<time>)` which makes script to sleep for specified amount of time. Also, calling action `clearCookies()` will force `delete_all_cookies` method to be called on WebDriver object.
 
 Sample request scenario:
 ```yaml
@@ -56,7 +56,6 @@ scenarios:
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
     default-address: http://demo.blazemeter.com  # specify a base address, so you can use short urls in requests
-    store-cookie: false  # this will force "delete_all_cookies" to be called on WebDriver object
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform

@@ -257,7 +257,6 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
-                    "store-cookie": False,
                     "default-address": "http://blazedemo.com",
                     "timeout": "3.5s",
                     "requests": [{
@@ -273,6 +272,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "clickByXPath(//div[3]/form/select[2]//option[6])",
                             "clickByXPath(//input[@type='submit'])",
                             "pauseFor(3s)",
+                            "clearCookies()",
                             "clickByLinkText(destination of the week! The Beach!)"
                         ],
 
