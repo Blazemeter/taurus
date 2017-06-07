@@ -17,6 +17,7 @@ class TestRequests(unittest.TestCase):
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '<somewhere>/webdriver.log')
         cls.driver = webdriver.Firefox(profile)
+        cls.driver.delete_all_cookies()
         cls.driver.implicitly_wait(3.5)
         cls.driver.maximize_window()
         

@@ -56,7 +56,7 @@ scenarios:
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
     default-address: http://demo.blazemeter.com  # specify a base address, so you can use short urls in requests
-    store-cookies: false  # this will force "delete_all_cookies" to be called on WebDriver object
+    store-cookie: false  # this will force "delete_all_cookies" to be called on WebDriver object
     requests:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform

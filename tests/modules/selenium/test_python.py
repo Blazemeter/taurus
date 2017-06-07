@@ -257,6 +257,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "scenario": "loc_sc"}],
             "scenarios": {
                 "loc_sc": {
+                    "store-cookie": False,
                     "default-address": "http://blazedemo.com",
                     "timeout": "3.5s",
                     "requests": [{
