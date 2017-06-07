@@ -681,7 +681,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
-            self.__force_hc4_cookie_handler(jmx)
+            if self.settings.get('version', self.JMETER_VER) >= '3.2':
+                self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
 
         return jmx
@@ -697,7 +698,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 fix_counter += 1
         if fix_counter:
             self.log.info('%s obsolete CookieManagers are found and fixed' % fix_counter)
-
 
     def __save_modified_jmx(self, jmx, original_jmx_path, is_jmx_generated):
         script_name, _ = os.path.splitext(os.path.basename(original_jmx_path))
