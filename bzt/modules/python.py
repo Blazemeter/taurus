@@ -249,6 +249,9 @@ from selenium.webdriver.support.wait import WebDriverWait
         else:
             setup_method_def.append(self.gen_statement("cls.driver = webdriver.%s()" % browser))
 
+        if not self.scenario.get("store-cookie", True):
+            setup_method_def.append(self.gen_statement("cls.driver.delete_all_cookies()"))
+
         scenario_timeout = self.scenario.get("timeout", None)
         if scenario_timeout is None:
             scenario_timeout = '30s'
@@ -336,6 +339,9 @@ from selenium.webdriver.support.wait import WebDriverWait
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
             return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg))
+        elif atype == 'pause' and aby == 'for':
+            tpl = "sleep(%.f)"
+            return self.gen_statement(tpl % (dehumanize_time(selector),))
 
         raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
@@ -348,7 +354,7 @@ from selenium.webdriver.support.wait import WebDriverWait
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        expr = re.compile("^(click|wait|keys)(byName|byID|byCSS|byXPath|byLinkText)\((.+)\)$", re.IGNORECASE)
+        expr = re.compile("^(click|wait|keys|pause)(byName|byID|byCSS|byXPath|byLinkText|For)\((.+)\)$", re.IGNORECASE)
         res = expr.match(name)
         if not res:
             raise TaurusConfigError("Unsupported action: %s" % name)

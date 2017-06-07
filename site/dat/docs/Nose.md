@@ -46,6 +46,8 @@ Action names are built as `<action>By<selector type>(<selector>)`. Sometimes act
   - `keysByID`, `keysByName`, `keysByLinkText`, `keysByCSS` and `keysByXPath` - to enter keys into input items, requires parameter.
   Like this: `keysByName(MyFormInputName): Value To Enter`
 
+There is special action `pauseFor(<time>)` which makes script to sleep for specified amount of time.
+
 Sample request scenario:
 ```yaml
 scenarios:
@@ -59,6 +61,7 @@ scenarios:
       actions:  # holds list of actions to perform
       - waitByCSS(body)
       - clickByID(mySubmitButton)
+      - pauseFor(5s)
       - keysByName(myInputName): keys_to_type
       - waitByID(myObjectToAppear): visible
       assert: # assert executed after actions
