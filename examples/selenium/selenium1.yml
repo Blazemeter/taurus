@@ -8,8 +8,5 @@ execution:
     locations:
       us-west-1: 1
 
-modules:
-  selenium:
-    virtual-display:
-      width: 1024
-      height: 768
+services:
+- virtual-display
