@@ -258,7 +258,14 @@ class BetterDict(defaultdict):
     def filter(self, rules):
         keys = set(self.keys())
         for key in keys:
-            if key not in rules:
+            ikey = "!" + key
+            if ikey in rules:
+                if isinstance(rules.get(ikey), dict) and isinstance(self.get(key), BetterDict):
+                    inverted_rules = {x: True for x in self.get(key).keys() if x not in rules[ikey]}
+                    self.get(key).filter(inverted_rules)
+                    if not self.get(key):  # clear empty
+                        del self[key]
+            elif key not in rules:
                 del self[key]
             else:
                 if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
