@@ -355,7 +355,8 @@ class TestJMeterExecutor(BZTestCase):
         result = open(self.obj.modified_jmx).read()
         self.assertIn('<stringProp name="ConstantTimer.delay">750</stringProp>', result)
 
-    def test_cookiemanager_3_2_bug(self):
+    def test_cookiemanager_3_2_bug_requests(self):
+        """ specify implementation of CookieManager for case of generation from requests """
         self.configure({
             'execution': {
                 'hold-for': '1s',
@@ -369,6 +370,24 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(resource_elements))
         new_implementation = "org.apache.jmeter.protocol.http.control.HC4CookieHandler"
         self.assertEqual(resource_elements[0].text, new_implementation)
+
+    def test_cookiemanager_3_2_bug_jmx(self):
+        """ specify implementation of CookieManager for existing jmx """
+        self.configure({
+            'execution': {
+                'hold-for': '1s',
+                'concurrency': 10,
+                'scenario': {
+                    'script': __dir__() + '/../resources/jmeter/jmx/cookiemanagers.jmx'}}})
+        self.obj.prepare()
+        orig_jmx = JMX(self.obj.original_jmx)
+        mod_jmx = JMX(self.obj.modified_jmx)
+        orig_elements = orig_jmx.tree.findall(".//stringProp[@name='CookieManager.implementation']")
+        mod_elements = mod_jmx.tree.findall(".//stringProp[@name='CookieManager.implementation']")
+        self.assertEqual(0, len(orig_elements))
+        self.assertEqual(2, len(mod_elements))
+        new_implementation = "org.apache.jmeter.protocol.http.control.HC4CookieHandler"
+        self.assertTrue(all(re.text == new_implementation for re in mod_elements))
 
     def test_body_parse(self):
         self.configure(json.loads(open(__dir__() + "/../resources/json/get-post.json").read()))
@@ -814,16 +833,20 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_loops.text, "10")
         self.assertEqual(tg_forever.text, "false")
 
-        self.obj = get_jmeter()
-        self.obj.execution.merge({"scenario": {"script": __dir__() + "/../resources/jmeter/jmx/http.jmx"}})
-        self.obj.prepare()
-        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        tg = modified_xml_tree.find(".//ThreadGroup")
-        loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
-        tg_loops = loop_ctrl.find("*[@name='LoopController.loops']")
-        tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
-        self.assertEqual(tg_loops.text, "1")  # default value, not disabled
-        self.assertEqual(tg_forever.text, "false")
+        self.obj1 = get_jmeter()
+        script_path = __dir__() + "/../resources/jmeter/jmx/http.jmx"
+        self.obj1.execution.merge({"scenario": {"script": script_path}})
+        try:
+            self.obj1.prepare()
+            modified_xml_tree = etree.fromstring(open(self.obj1.modified_jmx, "rb").read())
+            tg = modified_xml_tree.find(".//ThreadGroup")
+            loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
+            tg_loops = loop_ctrl.find("*[@name='LoopController.loops']")
+            tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
+            self.assertEqual(tg_loops.text, "1")  # default value, not disabled
+            self.assertEqual(tg_forever.text, "false")
+        finally:
+            self.obj1.post_process()
 
     def test_distributed_gui(self):
         self.configure(yaml.load(open(__dir__() + "/../resources/yaml/distributed_gui.yml").read()))
