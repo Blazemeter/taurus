@@ -93,7 +93,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         if not self.widget:
             proto = "https" if self.pbench.use_ssl else 'http'
-            label = "Target: %s://%s:%s" % (proto, self.pbench.hostname, self.pbench.port)
+            label = "Pbench: %s://%s:%s" % (proto, self.pbench.hostname, self.pbench.port)
             self.widget = ExecutorWidget(self, label)
         return self.widget
 
