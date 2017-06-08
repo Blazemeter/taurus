@@ -25,6 +25,7 @@ from bzt import TaurusConfigError, TaurusInternalException
 
 from bzt.bza import BZAProxy
 from bzt.engine import Service, Singletone
+from bzt.modules import SubprocessedExecutor
 from bzt.modules.selenium import AbstractSeleniumExecutor
 from bzt.utils import is_windows, get_full_path
 
@@ -94,6 +95,12 @@ class Proxy2JMX(Service, Singletone):
                 if executor.label:
                     labels.append(executor.label)
                 executor.add_env(additional_env)
+
+            if isinstance(executor, SubprocessedExecutor):
+                if executor.label:
+                    labels.append(executor.label)
+                executor.env.update(additional_env)
+
         if len(labels) == 1:
             self.label += '_' + labels[0]
 

@@ -29,7 +29,7 @@ from bzt.utils import BetterDict, get_files_recursive, get_full_path
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
-    # TODO: deprecated, as it's replaced with virtual-display service
+    # FIXME: deprecated, as it's replaced with virtual-display service
     SHARED_VIRTUAL_DISPLAY = {}
 
     @abstractmethod
@@ -52,7 +52,6 @@ class AbstractSeleniumExecutor(ReportableExecutor):
 class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
-    :type virtual_display: Display
     :type runner: SubprocessedExecutor
     :type virtual_display_service: VirtualDisplay
     """
@@ -179,7 +178,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         """
         self.virtual_display_service.startup()
         self.start_time = time.time()
-        self.runner.env = self.additional_env
+        self.runner.env.update(self.additional_env)
         self.runner.startup()
 
     def check(self):
