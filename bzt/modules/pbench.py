@@ -269,10 +269,15 @@ class PBenchTool(object):
     def check_config(self):
         cmdline = [self.path, 'check', self.config_file]
         self.log.debug("Check pbench config with command: %s", cmdline)
+        out = open(self.engine.create_artifact('pbench_check', '.out'), 'wb')
+        err = open(self.engine.create_artifact('pbench_check', '.err'), 'wb')
         try:
-            subprocess.check_call(cmdline, stdout=subprocess.PIPE)
+            subprocess.check_call(cmdline, stdout=out, stderr=err)
         except CalledProcessError as exc:
-            raise ToolError("Config check has failed: %s" % exc)
+            raise ToolError("Config check has failed: %s\nLook at %s for details" % (exc, err.name))
+        finally:
+            out.close()
+            err.close()
 
     def start(self, config_file):
         cmdline = [self.path, 'run', config_file]
