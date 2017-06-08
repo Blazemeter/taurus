@@ -93,7 +93,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         if not self.widget:
             proto = "https" if self.pbench.use_ssl else 'http'
-            label = "Target: %s://%s:%s" % (proto, self.pbench.hostname, self.pbench.port)
+            label = "Pbench: %s://%s:%s" % (proto, self.pbench.hostname, self.pbench.port)
             self.widget = ExecutorWidget(self, label)
         return self.widget
 
@@ -246,7 +246,7 @@ class PBenchTool(object):
             return upper_iteration_limit * payload_count
 
     def _estimate_schedule_size(self, load, payload_count):
-        if load.throughput:
+        if load.throughput and load.duration:
             return self._estimate_schedule_size_rps(load, payload_count)
         else:
             return self._estimate_schedule_size_conc(load, payload_count)
@@ -269,19 +269,22 @@ class PBenchTool(object):
     def check_config(self):
         cmdline = [self.path, 'check', self.config_file]
         self.log.debug("Check pbench config with command: %s", cmdline)
+        out = open(self.engine.create_artifact('pbench_check', '.out'), 'wb')
+        err = open(self.engine.create_artifact('pbench_check', '.err'), 'wb')
         try:
-            subprocess.check_call(cmdline, stdout=subprocess.PIPE)
+            subprocess.check_call(cmdline, stdout=out, stderr=err)
         except CalledProcessError as exc:
-            raise ToolError("Config check has failed: %s" % exc)
+            raise ToolError("Config check has failed: %s\nLook at %s for details" % (exc, err.name))
+        finally:
+            out.close()
+            err.close()
 
     def start(self, config_file):
         cmdline = [self.path, 'run', config_file]
         stdout = sys.stdout if not isinstance(sys.stdout, StringIO) else None
         stderr = sys.stderr if not isinstance(sys.stderr, StringIO) else None
         try:
-            self.process = self.executor.execute(cmdline,
-                                                 stdout=stdout,
-                                                 stderr=stderr)
+            self.process = self.executor.execute(cmdline, stdout=stdout, stderr=stderr)
         except OSError as exc:
             raise ToolError("Failed to start phantom-benchmark utility: %s (%s)" % (exc, cmdline))
 
@@ -536,7 +539,7 @@ class Scheduler(object):
         for payload_len, payload_offset, payload, marker, meta_len, record_type in self._payload_reader():
             if self.load.throughput:
                 self.time_offset += self.__get_time_offset_rps()
-                if self.time_offset > self.load.duration:
+                if self.load.duration and self.time_offset > self.load.duration:
                     self.log.debug("Duration limit reached: %s", self.time_offset)
                     break
             else:  # concurrency schedule
