@@ -1,0 +1,3 @@
+fix widget label
+log of config check
+fix alone throughput problem (shedule is empty without hold-for/rampup)
