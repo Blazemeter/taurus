@@ -246,7 +246,7 @@ class PBenchTool(object):
             return upper_iteration_limit * payload_count
 
     def _estimate_schedule_size(self, load, payload_count):
-        if load.throughput:
+        if load.throughput and load.duration:
             return self._estimate_schedule_size_rps(load, payload_count)
         else:
             return self._estimate_schedule_size_conc(load, payload_count)
@@ -284,9 +284,7 @@ class PBenchTool(object):
         stdout = sys.stdout if not isinstance(sys.stdout, StringIO) else None
         stderr = sys.stderr if not isinstance(sys.stderr, StringIO) else None
         try:
-            self.process = self.executor.execute(cmdline,
-                                                 stdout=stdout,
-                                                 stderr=stderr)
+            self.process = self.executor.execute(cmdline, stdout=stdout, stderr=stderr)
         except OSError as exc:
             raise ToolError("Failed to start phantom-benchmark utility: %s (%s)" % (exc, cmdline))
 
@@ -541,7 +539,7 @@ class Scheduler(object):
         for payload_len, payload_offset, payload, marker, meta_len, record_type in self._payload_reader():
             if self.load.throughput:
                 self.time_offset += self.__get_time_offset_rps()
-                if self.time_offset > self.load.duration:
+                if self.load.duration and self.time_offset > self.load.duration:
                     self.log.debug("Duration limit reached: %s", self.time_offset)
                     break
             else:  # concurrency schedule
