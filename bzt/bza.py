@@ -81,11 +81,8 @@ class BZAObject(dict):
 
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
 
-        try:
-            response = self.http_request(method=log_method, url=url, data=data,
-                                         headers=headers, cookies=self._cookies, timeout=self.timeout)
-        except BaseException as exc:
-            raise TaurusNetworkError("%s", exc)
+        response = self.http_request(method=log_method, url=url, data=data, headers=headers, cookies=self._cookies,
+                                     timeout=self.timeout)
 
         resp = response.content
         if not isinstance(resp, str):
