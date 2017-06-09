@@ -128,6 +128,15 @@ if not is_windows():
             self.assertEqual(-1, items[5][0])  # instance became unlimited
             self.assertEqual(Scheduler.REC_TYPE_LOOP_START, items[6][5])  # looped payload
 
+        def test_schedule_throughput_only(self):
+            executor = PBenchExecutor()
+            executor.engine = EngineEmul()
+            executor.execution.merge({"throughput": 5})
+            obj = Scheduler(executor.get_load(),
+                            io.BytesIO(b("5 test1\ntest1\n5 test2\ntest2\n")), logging.getLogger(""))
+            items = list(obj.generate())
+            self.assertTrue(len(items) > 0)
+
         def test_schedule_concurrency_steps(self):
             executor = PBenchExecutor()
             executor.engine = EngineEmul()
@@ -161,7 +170,7 @@ if not is_windows():
             obj.get_widget()
             self.assertTrue(isinstance(obj.widget.progress, urwid.ProgressBar))
             self.assertEqual(obj.widget.duration, 30)
-            self.assertEqual(obj.widget.widgets[0].text, "Target: http://blazedemo.com:80")
+            self.assertEqual(obj.widget.widgets[0].text, "Pbench: http://blazedemo.com:80")
             obj.check()
             obj.shutdown()
 

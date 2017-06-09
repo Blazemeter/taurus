@@ -34,6 +34,8 @@ class TestRequests(unittest.TestCase):
         self.driver.find_element(By.XPATH, '//div[3]/form/select[1]//option[3]').click()
         self.driver.find_element(By.XPATH, '//div[3]/form/select[2]//option[6]').click()
         self.driver.find_element(By.XPATH, "//input[@type='submit']").click()
+        sleep(3)
+        self.driver.delete_all_cookies()
         self.driver.find_element(By.LINK_TEXT, 'destination of the week! The Beach!').click()
         body = self.driver.page_source
         re_pattern = re.compile(r'contained_text')

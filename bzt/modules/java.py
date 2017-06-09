@@ -91,7 +91,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         if not os.path.exists(self.working_dir):
             os.makedirs(self.working_dir)
 
-        self.reporting_setup(suffix="ldjson")
+        self.reporting_setup(suffix=".ldjson")
 
     def resource_files(self):
         resources = super(JavaTestRunner, self).resource_files()
