@@ -373,7 +373,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 
 class NoneTailer(object):
-    def get_lines(self, force=False):
+    def get_lines(self):
         if False:
             yield ''
         return
