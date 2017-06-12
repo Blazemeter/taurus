@@ -12,7 +12,7 @@ execution:
     script: tests/  # folder with your tests or path to one test script
 ```
 
-## Supported file types:
+## Supported File Types
 
 Test scenario may be presented not only as single file, folder or as a jar. Following variants are supported :
 
@@ -25,7 +25,7 @@ Test scenario may be presented not only as single file, folder or as a jar. Foll
 All `.java` files will be compiled and packed into jar file before running tests. All necessary tools will be
 downloaded and installed automatically into `~/.bzt/selenium-taurus`.
 
-## Configuration options:
+## Configuration Options
 
 ```yaml
 modules:

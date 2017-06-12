@@ -12,7 +12,7 @@ execution:
     script: tests/  # folder with your tests or path to one test script
 ```
 
-## Supported file types:
+## Supported File Types
 
 Test scenario may be presented not only as single file, folder or as a jar. Following variants are supported :
 
@@ -35,7 +35,7 @@ execution:
 modules:
   testng:
     autodetect-xml: False    # default value: True
-```     
+```
 If no TestNG configuration is found — Taurus will launch all tests from the test suite.
 
 Just like JUnit runner, TestNG runner supports the `additional-classpath` option on the scenario and settings (i.e. modules.testng) levels.
