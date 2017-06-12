@@ -958,6 +958,10 @@ def is_windows():
     return platform.system() == 'Windows'
 
 
+def is_linux():
+    return 'linux' in sys.platform.lower()
+
+
 EXE_SUFFIX = ".bat" if is_windows() else ".sh"
 
 

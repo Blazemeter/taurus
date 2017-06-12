@@ -210,6 +210,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def post_process(self):
         self.virtual_display_service.post_process()
+        self.runner.post_process()
 
         if os.path.exists("geckodriver.log"):
             self.engine.existing_artifact("geckodriver.log", True)

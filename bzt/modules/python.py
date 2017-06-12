@@ -17,7 +17,6 @@ import ast
 import copy
 import os
 import re
-import select
 import sys
 from abc import abstractmethod
 from collections import OrderedDict
@@ -114,11 +113,11 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
 
     def post_process(self):
         super(NoseTester, self).post_process()
-        self.__log_lines(True)
+        self.__log_lines()
 
-    def __log_lines(self, force=False):
+    def __log_lines(self):
         lines = []
-        for line in self._tailer.get_lines(force):
+        for line in self._tailer.get_lines():
             if not IGNORED_LINE.match(line):
                 lines.append(line)
 
@@ -374,7 +373,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 
 class NoneTailer(object):
-    def get_lines(self, force=False):
+    def get_lines(self):
         if False:
             yield ''
         return
@@ -384,17 +383,10 @@ class FileTailer(NoneTailer):
     def __init__(self, filename):
         super(FileTailer, self).__init__()
         self._fds = open(filename)
-        self._poller = select.poll()
-        self._poller.register(self._fds)
 
-    def get_lines(self, force=False):
-        readable = self._poller.poll(0)
-        for _, _ in readable:
-            yield self._fds.readline().rstrip()
-
-        if force:
-            for line in self._fds.readlines():
-                yield line.rstrip()
+    def get_lines(self):
+        for line in self._fds.readlines():
+            yield line.rstrip()
 
     def __del__(self):
         if self._fds:
