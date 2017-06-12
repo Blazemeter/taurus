@@ -30,7 +30,7 @@ from bzt.modules import SubprocessedExecutor
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time
-from bzt.utils import BetterDict, ensure_is_dict, is_linux
+from bzt.utils import BetterDict, ensure_is_dict
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
@@ -104,7 +104,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         nose_command_line += [self.script]
         self._start_subprocess(nose_command_line)
 
-        if self.__is_verbose() and is_linux():
+        if self.__is_verbose():
             self._tailer = FileTailer(self.stdout_file)
 
     def check(self):
