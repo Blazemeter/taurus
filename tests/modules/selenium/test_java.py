@@ -1,4 +1,6 @@
+import json
 import logging
+import os
 import shutil
 import time
 import traceback
@@ -73,6 +75,24 @@ class TestTestNGTester(BZTestCase):
             java.SELENIUM_DOWNLOAD_LINK = selenium_server_link
             java.TESTNG_DOWNLOAD_LINK = testng_link
             java.HAMCREST_DOWNLOAD_LINK = hamcrest_link
+
+    def test_failed_setup(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../../resources/selenium/testng/TestNGFailingSetup.java"}})
+        self.obj.settings['autodetect-xml'] = False
+        self.obj.prepare()
+        self.obj.startup()
+        while self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.obj.post_process()
+        samples = [
+            json.loads(line)
+            for line in open(os.path.join(self.obj.engine.artifacts_dir, 'TestNGTester.ldjson')).readlines()
+        ]
+        self.assertEqual(samples[0]["status"], "FAILED")
+        self.assertEqual(samples[1]["status"], "SKIPPED")
 
 
 class TestJavaC(BZTestCase):
