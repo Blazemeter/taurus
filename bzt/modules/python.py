@@ -43,7 +43,6 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(NoseTester, self).__init__()
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
-        self.generated_methods = BetterDict()
         self._tailer = NoneTailer()
 
     def prepare(self):
@@ -55,7 +54,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
-        self.reporting_setup(translation_table=self.generated_methods, suffix=".ldjson")
+        self.reporting_setup(suffix=".ldjson")
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
@@ -66,7 +65,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
-        self.generated_methods.merge(builder.build_source_code())
+        builder.build_source_code()
         builder.save(filename)
         return filename
 
@@ -140,6 +139,8 @@ class SeleniumScriptBuilder(PythonGenerator):
     IMPORTS = """import unittest
 import re
 from time import sleep
+
+from apiritif import transaction
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
@@ -166,10 +167,10 @@ from selenium.webdriver.support.wait import WebDriverWait
         test_class.append(self.gen_teardownclass_method())
         test_class.append(self.gen_setup_method())
 
-        counter = 0
-        methods = {}
         requests = self.scenario.get_requests(require_url=False)
         default_address = self.scenario.get("default-address", None)
+
+        test_method = self.gen_test_method('test_requests')
 
         for req in requests:
             if req.label:
@@ -178,21 +179,16 @@ from selenium.webdriver.support.wait import WebDriverWait
                 label = req.url
             else:
                 raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
-            mod_label = re.sub('[^0-9a-zA-Z]+', '_', label[:30])
-            method_name = 'test_%05d_%s' % (counter, mod_label)
-            test_method = self.gen_test_method(method_name)
-            methods[method_name] = label
-            counter += 1
-            test_class.append(test_method)
 
             if req.url is not None:
-                self._add_url_request(default_address, req, test_method)
+                test_method.append(self.gen_statement("with transaction(%r):" % label, indent=8))
+                self._add_url_request(default_address, req, test_method, indent=12)
 
             for action_config in req.config.get("actions", []):
                 test_method.append(self.gen_action(action_config))
 
             if "assert" in req.config:
-                test_method.append(self.gen_statement("body = self.driver.page_source"))
+                test_method.append(self.gen_statement("body = self.driver.page_source", indent=12))
                 for assert_config in req.config.get("assert"):
                     for elm in self.gen_assertion(assert_config):
                         test_method.append(elm)
@@ -201,20 +197,19 @@ from selenium.webdriver.support.wait import WebDriverWait
             if think_time is not None:
                 test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
 
-            test_method.append(self.gen_statement("pass"))  # just to stub empty case
             test_method.append(self.gen_new_line())
 
-        return methods
+        test_class.append(test_method)
 
-    def _add_url_request(self, default_address, req, test_method):
+    def _add_url_request(self, default_address, req, test_method, indent=8):
         parsed_url = parse.urlparse(req.url)
         if default_address is not None and not parsed_url.netloc:
             url = default_address + req.url
         else:
             url = req.url
         if req.timeout is not None:
-            test_method.append(self.gen_impl_wait(req.timeout))
-        test_method.append(self.gen_statement("self.driver.get('%s')" % url))
+            test_method.append(self.gen_impl_wait(req.timeout, indent=indent))
+        test_method.append(self.gen_statement("self.driver.get('%s')" % url, indent=indent))
 
     def gen_setup_method(self):
         timeout = self.scenario.get("timeout", None)
@@ -261,8 +256,8 @@ from selenium.webdriver.support.wait import WebDriverWait
         setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
-    def gen_impl_wait(self, timeout, target='self'):
-        return self.gen_statement("%s.driver.implicitly_wait(%s)" % (target, dehumanize_time(timeout)))
+    def gen_impl_wait(self, timeout, target='self', indent=8):
+        return self.gen_statement("%s.driver.implicitly_wait(%s)" % (target, dehumanize_time(timeout)), indent=indent)
 
     def gen_test_method(self, name):
         self.log.debug("Generating test method %s", name)
@@ -987,7 +982,6 @@ log.setLevel(logging.DEBUG)
 
     def build_source_code(self):
         self.tree = self.build_tree()
-        return {}
 
     def save(self, filename):
         with open(filename, 'wt') as fds:
