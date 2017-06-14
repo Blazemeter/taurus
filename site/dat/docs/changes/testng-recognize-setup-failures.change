@@ -1,0 +1,1 @@
+TestNG: Recognize `setUp()` failures as test failures
