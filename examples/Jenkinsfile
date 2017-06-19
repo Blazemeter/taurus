@@ -1,10 +1,11 @@
 node {
     stage("clean") {
-        cleanWs()   // requires workspace cleanup plugin to be installed
+        // clean if needed
+        // cleanWs()   // requires workspace cleanup plugin to be installed
+        sh "pwd && ls -la"
     }
     
     stage("run test") {
-        sh "pwd && ls -la"
         bzt "./examples/jmeter/stepping.yml -o settings.artifacts-dir=./artifacts"
     }
 
