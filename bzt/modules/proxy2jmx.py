@@ -17,7 +17,6 @@ limitations under the License.
 """
 
 import shutil
-import sys
 from os.path import join, isfile
 
 import os
@@ -27,7 +26,7 @@ from bzt.bza import BZAProxy
 from bzt.engine import Service, Singletone
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.selenium import AbstractSeleniumExecutor
-from bzt.utils import is_windows, get_full_path
+from bzt.utils import is_windows, is_linux, get_full_path
 
 
 class Proxy2JMX(Service, Singletone):
@@ -59,9 +58,8 @@ class Proxy2JMX(Service, Singletone):
         self.log.info('Starting BlazeMeter recorder...')
 
         labels = []
-        is_linux = 'linux' in sys.platform.lower()
         additional_env = {}
-        if is_linux:
+        if is_linux():
             self.log.info('Set proxy for selenium: %s', self.proxy_addr)
             additional_env.update({'http_proxy': self.proxy_addr,  # set vars anyway for case
                                   'https_proxy': self.proxy_addr,  # linux system can't say correct name
