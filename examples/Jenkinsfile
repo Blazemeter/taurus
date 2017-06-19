@@ -1,0 +1,14 @@
+node {
+    stage("clean") {
+        cleanWs()   // requires workspace cleanup plugin to be installed
+    }
+    
+    stage("run test") {
+        bzt "examples/jmeter/stepping.yml -o settings.artifacts-dir=./artifacts"
+    }
+
+    stage("post-proc") {
+	archiveArtifacts artifacts: 'artifacts/*.log'
+	junit '**/junit.xml'
+    }
+}
