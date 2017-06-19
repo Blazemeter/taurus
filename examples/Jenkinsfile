@@ -4,7 +4,8 @@ node {
     }
     
     stage("run test") {
-        bzt "examples/jmeter/stepping.yml -o settings.artifacts-dir=./artifacts"
+        sh "pwd && ls -la"
+        bzt "./examples/jmeter/stepping.yml -o settings.artifacts-dir=./artifacts"
     }
 
     stage("post-proc") {
