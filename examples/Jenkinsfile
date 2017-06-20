@@ -1,17 +1,20 @@
 node {
-    stage("clean and checkout") {
-        // clean if needed
-        // cleanWs()   // requires workspace cleanup plugin to be installed
-	checkout scm
+    stage("clean") {
+        cleanWs()   // requires workspace cleanup plugin to be installed
         sh "pwd && ls -la"
     }
     
+    stage("checkout") {
+        checkout scm
+        sh "pwd && ls -la"
+    }
+
     stage("run test") {
-        bzt "./examples/jmeter/stepping.yml -o settings.artifacts-dir=./artifacts -report"
+        bzt "./examples/jmeter/stepping.yml -report"
     }
 
     stage("post-proc") {
-	archiveArtifacts artifacts: 'artifacts/*.log'
-	junit '**/xunit.xml'
+        archiveArtifacts artifacts: '**/*.log'
+        junit '**/xunit.xml'
     }
 }

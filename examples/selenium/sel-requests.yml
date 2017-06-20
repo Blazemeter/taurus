@@ -38,3 +38,6 @@ execution:
   - scenario: req
     executor: selenium
     hold-for: 1m
+
+#services:
+#- virtual-display
