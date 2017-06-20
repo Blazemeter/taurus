@@ -10,11 +10,11 @@ node {
     }
 
     stage("run test") {
-        bzt "./examples/jmeter/stepping.yml -report -o settings.artifacts-dir=./artifacts"
+        bzt "examples/jmeter/stepping.yml -report -o settings.artifacts-dir=artifacts"
     }
 
     stage("post-proc") {
-        archiveArtifacts artifacts: './artifacts/*.log'
-        junit './artifacts/xunit.xml'
+        archiveArtifacts artifacts: 'artifacts/*.log'
+        junit 'artifacts/xunit.xml'
     }
 }
