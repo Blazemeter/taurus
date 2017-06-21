@@ -5,6 +5,7 @@ execution:
   throughput: 25
   ramp-up: 2m
   steps: 5
+  #executor: gatling
 
   locations:
     eu-west-1: 2
@@ -24,6 +25,7 @@ scenarios:
           template: $1$
           subject: url
     - url: http://blazedemo.com/purchase.php?mykey=${key}
+    - url: http://blazedemo.com/purchase.php?mykey=500
 
 
 reporting:
