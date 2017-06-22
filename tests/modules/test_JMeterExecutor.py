@@ -48,8 +48,8 @@ class TestJMeterExecutor(BZTestCase):
         self.obj = get_jmeter()
 
     def tearDown(self):
-        # if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
-        #     os.remove(self.obj.modified_jmx)
+        if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
+            os.remove(self.obj.modified_jmx)
         super(TestJMeterExecutor, self).tearDown()
 
     def configure(self, config):
