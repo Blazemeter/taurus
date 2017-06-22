@@ -827,7 +827,7 @@ class DatapointSerializer(object):
                 "min": 0,
                 "max": 0,
                 "sum": 1000 * item[KPISet.AVG_LATENCY] * item[KPISet.SAMPLE_COUNT],
-                "n": 1000 * item[KPISet.SAMPLE_COUNT],
+                "n": item[KPISet.SAMPLE_COUNT],
                 "std": 0,
                 "avg": 1000 * item[KPISet.AVG_LATENCY]
             },
