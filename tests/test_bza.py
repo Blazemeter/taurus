@@ -1,4 +1,3 @@
-#encoding: utf-8
 from unittest import skipUnless
 
 from bzt.bza import User
