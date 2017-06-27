@@ -175,6 +175,14 @@ services:
   - pip install -r requirements.txt
 ```
 
+## Enabling Delayed Start Feature
+
+This tells the server not to start each engine as soon as it's ready, but rather to wait until all engines are ready, then start them all at once:
+```yaml
+modules:
+  blazemeter:
+    delayed-start: true
+
 ## Enabling Dedicated IPs Feature
 
 When your account in BlazeMeter allows you to use "Dedicated IPs" feature, you can enable it by setting in config file:
