@@ -159,6 +159,7 @@ modules: # TODO: cleanup as much as possible from defaults
   blazemeter:
     dedicated-ips: false
     delayed-start: false
+    shared-folders: []
 
   cloud:
     default-location: us-central1-a
