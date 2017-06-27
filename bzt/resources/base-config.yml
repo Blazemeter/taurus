@@ -156,6 +156,10 @@ services:
     - conn-all
 
 modules: # TODO: cleanup as much as possible from defaults
+  blazemeter:
+    dedicated-ips: false
+    delayed-start: false
+
   cloud:
     default-location: us-central1-a
 
