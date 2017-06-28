@@ -1,7 +1,14 @@
 # Changelog
 
-## 1.9.4 <sup>next</sup>
+## 1.9.4 <sup>28 jun 2017</sup>
+ - add `data-sources` support to Gatling YAML scripting
+ - TestNG: Recognize `setUp()` failures as test failures
+ - add ``
  - fix browser with report not open on recent MacOS
+ - fix implementation field issues with Cookie Manager of JMeter
+ - fix crash `-v` used on Windows with nose executor
+ - minor fixes around PBench executor
+ - send more `blazemeter` module settings into cloud
  
 ## 1.9.3 <sup>2 jun 2017</sup>
  - fix failure with JMeter cookie manager and "null"
