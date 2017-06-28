@@ -1949,7 +1949,7 @@ class TestJMeterExecutor(BZTestCase):
         varnames = dataset.find('stringProp[@name="variableNames"]')
         self.assertEqual(varnames.text, "a,b,c")
 
-    def test_functional_mode_flag(self):
+    def test_func_mode_jmeter_2_13(self):
         self.obj.engine.aggregator.is_functional = True
         self.obj.execution.merge({
             'scenario': {
@@ -1958,12 +1958,34 @@ class TestJMeterExecutor(BZTestCase):
                 ],
             }
         })
-        self.obj.execution.merge(self.obj.engine.config)
+        self.obj.settings.merge({"version": "2.13"})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         functional_switch = xml_tree.find('.//TestPlan/boolProp[@name="TestPlan.functional_mode"]')
-        self.assertIsNotNone(functional_switch)
         self.assertEqual(functional_switch.text, "true")
+        connect_time_flag = xml_tree.find('.//ResultCollector/objProp/value/connectTime')
+        self.assertEqual(connect_time_flag.text, "true")
+        bytes_flag = xml_tree.find('.//ResultCollector/objProp/value/bytes')  # 'bytes' in JMeter 2.13
+        self.assertEqual(bytes_flag.text, "true")
+
+    def test_func_mode_jmeter_3_xx(self):
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.execution.merge({
+            'scenario': {
+                "requests": [
+                    "http://example.com/",
+                ],
+            }
+        })
+        self.obj.settings.merge({"version": "3.2"})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        functional_switch = xml_tree.find('.//TestPlan/boolProp[@name="TestPlan.functional_mode"]')
+        self.assertEqual(functional_switch.text, "true")
+        connect_time_flag = xml_tree.find('.//ResultCollector/objProp/value/connectTime')
+        self.assertEqual(connect_time_flag.text, "true")
+        bytes_flag = xml_tree.find('.//ResultCollector/objProp/value/sentBytes')  # 'sentBytes' since JMeter 3
+        self.assertEqual(bytes_flag.text, "true")
 
     def test_functional_reader_pass(self):
         engine_obj = EngineEmul()

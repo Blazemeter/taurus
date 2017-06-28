@@ -155,8 +155,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             else:
                 raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
-        if isinstance(self.engine.aggregator, FunctionalAggregator):
-            self.settings.merge({"xml-jtl-flags": {"connectTime": True, "sentBytes": True}})
+        if self.engine.aggregator.is_functional:
+            flags = {"connectTime": True}
+            version = str(self.settings.get("version", self.JMETER_VER))
+            if version.startswith("2"):
+                flags["bytes"] = True
+            else:
+                flags["sentBytes"] = True
+            self.settings.merge({"xml-jtl-flags": flags})
 
         load = self.get_load()
 
