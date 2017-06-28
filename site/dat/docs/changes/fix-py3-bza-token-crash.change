@@ -1,1 +1,0 @@
-Fix a crash when using Python 3 and reporting to BM with token
