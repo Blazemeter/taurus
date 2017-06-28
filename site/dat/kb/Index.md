@@ -9,7 +9,8 @@
  1. [Reporting and Results Analysis on Taurus](Reporting)
  1. [Integrating Taurus with Jenkins](Jenkins)
  1. [How to Quickly and Easily Write Selenium Scripts on Taurus](SeleniumActions)
- 1. [How to Easily Run Taurus with Bamboo](Bamboo) 
+ 1. [How to Easily Run Taurus with Bamboo](Bamboo)
+ 1. [Running Taurus with TeamCity](TeamCity)
 
 
 # Third-Party Articles
