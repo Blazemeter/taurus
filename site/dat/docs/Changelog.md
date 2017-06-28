@@ -1,14 +1,16 @@
 # Changelog
 
 ## 1.9.4 <sup>28 jun 2017</sup>
+ - add `clearCookies` and `pauseFor` actions for Selenium YAML
  - add `data-sources` support to Gatling YAML scripting
+ - add [TeamCity](/kb/TeamCity) article to KB
+ - send more `blazemeter` module settings into cloud
  - TestNG: Recognize `setUp()` failures as test failures
- - add ``
  - fix browser with report not open on recent MacOS
  - fix implementation field issues with Cookie Manager of JMeter
  - fix crash `-v` used on Windows with nose executor
  - minor fixes around PBench executor
- - send more `blazemeter` module settings into cloud
+ - fix functional mode breaks on JMeter 2.13
  
 ## 1.9.3 <sup>2 jun 2017</sup>
  - fix failure with JMeter cookie manager and "null"
