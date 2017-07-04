@@ -85,3 +85,27 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         dummy += '.bat' if is_windows() else ''
         self.obj.settings.merge({"interpreter": dummy})
         self.obj.prepare()
+
+    def test_rspec_report_extras(self):
+        # NOTE: cloud functional tests rely on sample['extras'] being a dict
+        # this test verifies it
+        self.configure({
+            'execution': {
+                'iterations': 1,
+                'scenario': {'script': __dir__() + '/../../resources/selenium/ruby/example_spec.rb'},
+                'executor': 'selenium'
+            },
+        })
+        self.obj.settings.merge(self.obj.engine.config.get("modules").get("selenium"))
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.assertTrue(os.path.exists(self.obj.runner.report_file))
+        lines = open(self.obj.runner.report_file).readlines()
+        self.assertEqual(len(lines), 3)
+        for line in lines:
+            sample = json.loads(line)
+            self.assertIsNotNone(sample['extras'])
+            self.assertIsInstance(sample['extras'], dict)
