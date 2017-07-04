@@ -34,13 +34,13 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "rspec_taurus_plugin.rb")
-        self._script = None
+        self.script = None
 
     def prepare(self):
         super(RSpecTester, self).prepare()
         self.install_required_tools()
-        self._script = self.get_script_path()
-        if not self._script:
+        self.script = self.get_script_path()
+        if not self.script:
             raise TaurusConfigError("Script not passed to runner %s" % self)
 
         self.reporting_setup(suffix='.ldjson')
@@ -65,7 +65,7 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
             "--report-file",
             self.report_file,
             "--test-suite",
-            self._script
+            self.script
         ]
         load = self.get_load()
         if load.iterations:
