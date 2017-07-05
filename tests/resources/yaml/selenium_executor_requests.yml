@@ -6,27 +6,26 @@ execution:
     timeout: 10
     think-time: 1s500ms
     requests:
-    - url: "http://demo.blazemeter.com/"
+    - url: "http://blazedemo.com/"
       assert:
       - contains:
-        - blazemeter
-        - Trusted
+        - BlazeMeter
+        - Travel The World
         subject: body
         regexp: false
         not: false
       - contains:
-        - Scalable
-        - Testing
+        - Simple
+        - Travel
         regexp: true
         not: false
       - contains:
         - NOTPRESENT
         regexp: true
         not: true
-    - url: "http://demo.blazemeter.com/"
+    - url: "http://blazedemo.com/"
       think-time: 1s
       timeout: 2
       assert:
-      - Customers
-      - www
-    - url: "http://demo.blazemeter.com/"
+      - Find Flights
+    - url: "http://blazedemo.com/"
