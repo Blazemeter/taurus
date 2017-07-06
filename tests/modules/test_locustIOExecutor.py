@@ -4,6 +4,7 @@ import time
 
 import os
 from bzt import six, ToolError
+from bzt.modules.jmeter import JTLReader
 from tests import BZTestCase, __dir__
 
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -275,3 +276,28 @@ class TestLocustIOExecutor(BZTestCase):
             header_line = jtl[0].strip()
             expected = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
             self.assertEqual(header_line, expected)
+
+    def test_jtl_quoting_issue(self):
+        self.obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 1,
+            "scenario": {
+                "default-address": "http://httpbin.org/status/503",
+                "requests": [
+                    "/"
+                ]
+            }
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+
+        kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
+        self.assertTrue(os.path.exists(kpi_path))
+
+        reader = JTLReader(kpi_path, self.obj.log, None)
+        for point in reader.datapoints():
+            pass
