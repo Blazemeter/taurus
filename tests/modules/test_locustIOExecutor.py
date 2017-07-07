@@ -3,8 +3,11 @@ import sys
 import time
 
 import os
+import unittest
+
 from bzt import six, ToolError
 from bzt.modules.jmeter import JTLReader
+from bzt.six import PY2
 from tests import BZTestCase, __dir__
 
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -277,6 +280,7 @@ class TestLocustIOExecutor(BZTestCase):
             expected = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
             self.assertEqual(header_line, expected)
 
+    @unittest.skipUnless(PY2, "Locust is having issues with py3")
     def test_jtl_quoting_issue(self):
         self.obj.execution.merge({
             "concurrency": 1,
