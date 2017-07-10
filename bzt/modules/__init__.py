@@ -29,9 +29,11 @@ class ReportableExecutor(ScenarioExecutor):
         super(ReportableExecutor, self).__init__()
         self.report_file = None
         self.reported = True
+        self.register_reader = True
 
     def reporting_setup(self, prefix=None, suffix=None, translation_table=None):
         if not self.reported:
+            self.log.debug("Skipping reporting setup for executor %s", self)
             return
 
         if translation_table is None:
@@ -47,6 +49,10 @@ class ReportableExecutor(ScenarioExecutor):
             self.report_file = self.engine.create_artifact(prefix, suffix)
 
         self.report_file = self.report_file.replace(os.path.sep, '/')
+
+        if not self.register_reader:
+            self.log.debug("Skipping reader setup for executor %s", self)
+            return
 
         if self.engine.is_functional_mode():
             self.reader = FuncSamplesReader(self.report_file, self.engine, self.log, translation_table)
