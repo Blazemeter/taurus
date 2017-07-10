@@ -1388,7 +1388,7 @@ class JTLErrorsReader(object):
                 return
 
         self.fds.seek(self.offset)
-        read = self.fds.read(sys.maxsize if final_pass else 1024 * 1024)
+        read = self.fds.read(1024 * 1024)
         if read.strip():
             try:
                 self.parser.feed(read)  # "Huge input lookup" error without capping :)
