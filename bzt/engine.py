@@ -106,7 +106,7 @@ class Engine(object):
         self._set_up_proxy()
 
         if self.config.get(SETTINGS).get("check-updates", True):
-            install_id = self.config.get("install-id", self.generate_id())
+            install_id = self.config.get("install-id", self._generate_id())
 
             def wrapper():
                 return self._check_updates(install_id)
@@ -116,31 +116,31 @@ class Engine(object):
 
         return merged_config
 
-    def generate_id(self):
+    def _generate_id(self):
         if os.getenv("JENKINS_HOME"):
-            preffix = "jenkins"
+            prefix = "jenkins"
         elif os.getenv("TRAVIS"):
-            preffix = "travis"
+            prefix = "travis"
         elif any([key.startswith("bamboo") for key in os.environ.keys]):
-            preffix = "bamboo"
+            prefix = "bamboo"
         elif os.getenv("TEAMCITY_VERSION"):
-            preffix = "teamcity"
+            prefix = "teamcity"
         elif os.getenv("DOCKER_HOST"):
-            preffix = "docker"
+            prefix = "docker"
         elif os.getenv("AWS_"):
-            preffix = "amazon"
+            prefix = "amazon"
         elif os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("CLOUDSDK_CONFIG"):
-            preffix = "google_cloud"
+            prefix = "google_cloud"
         elif os.getenv("WEBJOBS_NAME"):
-            preffix = "azure"
+            prefix = "azure"
         elif is_linux():
-            preffix = 'linux'
+            prefix = 'linux'
         elif is_windows():
-            preffix = 'windows'
+            prefix = 'windows'
         else:
-            preffix = 'macos'
+            prefix = 'macos'
 
-        return "%s-%x" % (preffix, uuid.getnode())
+        return "%s-%x" % (prefix, uuid.getnode())
 
     def prepare(self):
         """
