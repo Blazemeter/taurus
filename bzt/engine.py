@@ -121,7 +121,7 @@ class Engine(object):
             prefix = "jenkins"
         elif os.getenv("TRAVIS"):
             prefix = "travis"
-        elif any([key.startswith("bamboo") for key in os.environ.keys]):
+        elif any([key.startswith("bamboo") for key in os.environ.keys()]):
             prefix = "bamboo"
         elif os.getenv("TEAMCITY_VERSION"):
             prefix = "teamcity"
