@@ -36,13 +36,12 @@ import os
 import yaml
 from yaml.representer import SafeRepresenter
 
-import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import str_representer
 
 SETTINGS = "settings"
@@ -106,7 +105,7 @@ class Engine(object):
         self._set_up_proxy()
 
         if self.config.get(SETTINGS).get("check-updates", True):
-            install_id = self.config.get("install-id", "%x" % uuid.getnode())
+            install_id = self.config.get("install-id", self.generate_id())
 
             def wrapper():
                 return self._check_updates(install_id)
@@ -115,6 +114,32 @@ class Engine(object):
             thread.start()
 
         return merged_config
+
+    def generate_id(self):
+        if os.getenv("JENKINS_HOME"):
+            preffix = "jenkins"
+        elif os.getenv("TRAVIS"):
+            preffix = "travis"
+        elif any([key.startswith("bamboo") for key in os.environ.keys]):
+            preffix = "bamboo"
+        elif os.getenv("TEAMCITY_VERSION"):
+            preffix = "teamcity"
+        elif os.getenv("DOCKER_HOST"):
+            preffix = "docker"
+        elif os.getenv("AWS_"):
+            preffix = "amazon"
+        elif os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("CLOUDSDK_CONFIG"):
+            preffix = "google_cloud"
+        elif os.getenv("WEBJOBS_NAME"):
+            preffix = "azure"
+        elif is_linux():
+            preffix = 'linux'
+        elif is_windows():
+            preffix = 'windows'
+        else:
+            preffix = 'macos'
+
+        return "%s-%x" % (preffix, uuid.getnode())
 
     def prepare(self):
         """
