@@ -36,6 +36,7 @@ import os
 import yaml
 from yaml.representer import SafeRepresenter
 
+import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
 from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types
