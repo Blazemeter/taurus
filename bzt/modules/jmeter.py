@@ -19,9 +19,11 @@ import copy
 import csv
 import fnmatch
 import json
+import os
 import re
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 import traceback
@@ -29,11 +31,9 @@ from collections import Counter, namedtuple
 from distutils.version import LooseVersion
 from math import ceil
 
-import os
-from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from cssselect import GenericTranslator
 
+from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
@@ -42,10 +42,11 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import RequestVisitor, ResourceFilesCollector
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
+from bzt.utils import get_host_ips
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
-from bzt.utils import get_host_ips
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
@@ -983,7 +984,7 @@ class JTLReader(ResultsReader):
         :type last_pass: bool
         """
         if self.errors_reader:
-            self.errors_reader.read_file()
+            self.errors_reader.read_file(last_pass)
 
         for row in self.csvreader.read(last_pass):
             label = unicode_decode(row["label"])
@@ -1370,7 +1371,7 @@ class JTLErrorsReader(object):
         if self.fds:
             self.fds.close()
 
-    def read_file(self):
+    def read_file(self, final_pass=False):
         """
         Read the next part of the file
         """
@@ -1387,7 +1388,7 @@ class JTLErrorsReader(object):
                 return
 
         self.fds.seek(self.offset)
-        read = self.fds.read(1024 * 1024)
+        read = self.fds.read(sys.maxsize if final_pass else 1024 * 1024)
         if read.strip():
             try:
                 self.parser.feed(read)  # "Huge input lookup" error without capping :)
@@ -1400,20 +1401,21 @@ class JTLErrorsReader(object):
         for _action, elem in self.parser.read_events():
             del _action
             if elem.getparent() is not None and elem.getparent().tag == 'testResults':
-                if elem.get('s'):
-                    result = elem.get('s')
-                else:
-                    result = elem.xpath('success')[0].text
-                if result == 'false':
-                    if elem.items():
-                        self.__extract_standard(elem)
-                    else:
-                        self.__extract_nonstandard(elem)
-
-                # cleanup processed from the memory
-                elem.clear()
+                self._parse_element(elem)
+                elem.clear()  # cleanup processed from the memory
                 while elem.getprevious() is not None:
                     del elem.getparent()[0]
+
+    def _parse_element(self, elem):
+        if elem.get('s'):
+            result = elem.get('s')
+        else:
+            result = elem.xpath('success')[0].text
+        if result == 'false':
+            if elem.items():
+                self._extract_standard(elem)
+            else:
+                self._extract_nonstandard(elem)
 
     def get_data(self, max_ts):
         """
@@ -1431,7 +1433,7 @@ class JTLErrorsReader(object):
 
         return result
 
-    def __extract_standard(self, elem):
+    def _extract_standard(self, elem):
         t_stamp = int(elem.get("ts")) / 1000
         label = elem.get("lb")
         r_code = elem.get("rc")
@@ -1453,7 +1455,7 @@ class JTLErrorsReader(object):
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
 
-    def __extract_nonstandard(self, elem):
+    def _extract_nonstandard(self, elem):
         t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
         label = self.__get_child(elem, "label")
         message = self.__get_child(elem, "responseMessage")
@@ -1983,7 +1985,7 @@ class JMeter(RequiredTool):
         self.mirror_manager = JMeterMirrorsManager(self.log, self.version)
         self.plugins = plugins
         self.proxy_settings = proxy
-        self.tool_path=self.tool_path.format(version=self.version)
+        self.tool_path = self.tool_path.format(version=self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
