@@ -1,0 +1,3 @@
+Fix concurrency for cloud-based Selenium tests
+
+And also fix VU counting for reporting
