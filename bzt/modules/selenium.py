@@ -52,7 +52,7 @@ class AbstractSeleniumExecutor(ReportableExecutor):
 class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
     """
     Selenium executor
-    :type runner: SubprocessedExecutor
+    :type runner: bzt.modules.SubprocessedExecutor
     :type virtual_display_service: VirtualDisplay
     """
 
@@ -66,6 +66,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.script = None
         self.generated_methods = BetterDict()
         self.runner_working_dir = None
+        self.register_reader = True
         self.virtual_display_service = Service()  # TODO: remove compatibility with deprecated virtual-display setting
 
     def add_env(self, env):
@@ -85,8 +86,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         self.runner.parameters = self.parameters
         self.runner.provisioning = self.provisioning
-        self.runner.execution = self.execution
+        self.runner.execution = copy.deepcopy(self.execution)
+        self.runner.execution['files'] = self.execution.get('files', [])
         self.runner.execution['executor'] = runner_type
+        self.runner.register_reader = self.register_reader
 
         if runner_type == "nose":
             self.runner.execution["test-mode"] = "selenium"

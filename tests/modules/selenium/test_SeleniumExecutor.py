@@ -113,7 +113,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        with open(os.path.join(self.obj.engine.artifacts_dir, self.obj.execution['executor'] + ".err")) as fds:
+        with open(os.path.join(self.obj.engine.artifacts_dir, self.obj.runner.execution['executor'] + ".err")) as fds:
             contents = fds.read()
             msg = "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(), contents)
             self.assertEqual(3, contents.count("ok"), msg)
