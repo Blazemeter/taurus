@@ -108,7 +108,7 @@ class AndroidEmulatorLoader(Service):
             # try to read sdk path from env..
             sdk_path = os.environ.get('ANDROID_HOME')
             if sdk_path:
-                env_tool_path = os.path.join(sdk_path, 'tool', 'emulator')
+                env_tool_path = os.path.join(sdk_path, 'tools', 'emulator')
                 self.tool_path = get_full_path(env_tool_path)
                 self.settings['path'] = self.tool_path
             else:
