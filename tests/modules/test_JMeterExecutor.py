@@ -592,6 +592,37 @@ class TestJMeterExecutor(BZTestCase):
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
 
+    def test_get_classpath_from_files(self):
+        res_dir = __dir__() + '/../resources/'
+        self.configure(
+            {'execution': {
+                'concurrency': 200,
+                'hold-for': '1m',
+                'files': [
+                    res_dir + 'selenium/junit/jar',
+                    res_dir + 'selenium/testng/jars/test-suite.jar'],
+                'scenario': {
+                    'properties': {'one': 'two', 'user.classpath': 'user_class_path'},
+                    'script': res_dir + 'jmeter/jmx/http.jmx'}}})
+        self.obj.prepare()
+
+        prop_file_path = os.path.join(self.obj.engine.artifacts_dir, "jmeter-bzt.properties")
+        self.assertTrue(os.path.exists(prop_file_path))
+        with open(prop_file_path) as prop_file:
+            contents = prop_file.readlines()
+        cp_lines = [line for line in contents if line.startswith('user.classpath')]
+        self.assertEqual(len(cp_lines), 1)
+        user_cp = cp_lines[0][len('user.classpath='): -1]
+        user_cp_elements = user_cp.split(os.pathsep)
+        self.assertEqual(len(user_cp_elements), 4)
+        targets = [self.obj.engine.artifacts_dir,
+                   self.obj.execution['files'][0],
+                   get_full_path(self.obj.execution['files'][1], step_up=1)]
+        targets = [get_full_path(target).replace(os.path.sep, '/') for target in targets]
+        targets.append(self.obj.get_scenario()['properties']['user.classpath'])
+
+        self.assertEqual(set(targets), set(user_cp_elements))
+
     def test_user_def_vars_override(self):
         self.configure(
             {'execution': {'concurrency': 200, 'throughput': 100, 'hold-for': '1m', 'scenario': {
