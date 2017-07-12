@@ -217,11 +217,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         props_local.update({"jmeter.save.saveservice.timestamp_format": "ms"})
         props_local.update({"sampleresult.default.encoding": "UTF-8"})
         props.merge(props_local)
-        user_cp = self.engine.artifacts_dir
-        if 'user.classpath' in props:
-            user_cp += os.pathsep + props['user.classpath']
 
-        props['user.classpath'] = user_cp.replace(os.path.sep, "/")  # replace to avoid Windows issue
+        user_cp = [self.engine.artifacts_dir]
+
+        for _file in self.execution.get('files', []):
+            full_path = get_full_path(_file)
+            if os.path.isdir(full_path):
+                user_cp.append(full_path)
+            elif full_path.lower().endswith('.jar'):
+                user_cp.append((get_full_path(_file, step_up=1)))
+
+        if 'user.classpath' in props:
+            user_cp.append(props['user.classpath'])
+
+        props['user.classpath'] = os.pathsep.join(user_cp).replace(os.path.sep, "/")  # replace to avoid Windows issue
+
         if props:
             self.log.debug("Additional properties: %s", props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
