@@ -568,30 +568,19 @@ class TestJMeterExecutor(BZTestCase):
     def test_add_cookies(self):
         self.configure({'execution': {
             'scenario': {
-                'cookies': [{"name": "n1", "value": "v1"}, {"name": "n2", "value": "v2"}],
+                'cookies': {"n0": {"value": "v0"}, "n1": "v1"},
                 'requests': ['http://blazedemo.com']}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
 
-        cookes_query = 'collectionProp[@name="CookieManager.cookies"]/elementProp'
+        cookes_query = './/collectionProp[@name="CookieManager.cookies"]/elementProp'
         cookies = xml_tree.findall(cookes_query)
+
         self.assertEqual(2, len(cookies))
-
-        file_query = 'elementProp[@name="HTTPsampler.Files"]/collectionProp[@name="HTTPFileArgs.files"]/elementProp'
-        files = request.findall(file_query)
-        self.assertEqual(len(files), 2)
-        self.assertEqual(files[0].get('name'), "stats.csv")
-        self.assertEqual(files[0].find('stringProp[@name="File.path"]').text, "stats.csv")
-
-        timer_ = ".//kg.apc.jmeter.timers.VariableThroughputTimer"
-        timer_ += "[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']"
-        shaper_elements = xml_tree.findall(timer_)
-        self.assertEqual(1, len(shaper_elements))
-        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
-
-        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='49']").text)
-        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='1567']").text)
-        self.assertEqual("60", shaper_coll_element.find(".//stringProp[@name='53']").text)
+        self.assertEqual('n0', cookies[0].attrib['name'])
+        self.assertEqual('v0', cookies[0].find('.//stringProp[@name="Cookie.value"]').text)
+        self.assertEqual('n1', cookies[1].attrib['name'])
+        self.assertEqual('v1', cookies[1].find('.//stringProp[@name="Cookie.value"]').text)
 
     def test_add_shaper_ramp_up(self):
         self.configure(

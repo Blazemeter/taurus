@@ -662,12 +662,12 @@ class JMX(object):
             cookies_coll = JMX._collection_prop("CookieManager.cookies")
             mgr.append(cookies_coll)
             for cookie in cookies:
-                cookie_dict = cookie #ensure_is_dict(cookies, cookie, "value")
+                cookie_dict = ensure_is_dict(cookies, cookie, "value")
                 coll_elem = etree.Element(
                     "elementProp",
-                    name=cookie_dict["name"],
+                    name=cookie,
                     elementType="Cookie",
-                    testname=cookie_dict["name"])
+                    testname=cookie)
                 coll_elem.append(JMX._string_prop("Cookie.value", cookie_dict["value"]))
                 cookies_coll.append(coll_elem)
 
