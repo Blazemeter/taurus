@@ -23,7 +23,7 @@ BASE_BUILD_FILE=$(basename "$BUILD_FILE")
 
 # create NSIS script
 cat << EOF > "$BUILD_DIR/taurus.nsi"
-[% extends "pyapp_w_pylauncher.nsi" %]
+[% extends "pyapp_installpy.nsi" %]
 
 [% block install_commands %]
 [[ super() ]]
@@ -151,7 +151,7 @@ entry_point=bzt.jmx2yaml:main
 entry_point=bzt.soapui2yaml:main
 
 [Python]
-version=2.7.12
+version=3.5.3
 bitness=64
 
 [Include]
