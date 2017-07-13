@@ -24,6 +24,7 @@ from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException
 from bzt.engine import Scenario, BetterDict
+from bzt.utils import ensure_is_dict
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types
 
 
@@ -648,7 +649,7 @@ class JMX(object):
         return mgr
 
     @staticmethod
-    def _get_cookie_mgr():
+    def _get_cookie_mgr(scenario):
         """
         :rtype: lxml.etree.Element
         """
@@ -656,6 +657,20 @@ class JMX(object):
         mgr.append(JMX._bool_prop("CookieManager.clearEachIteration", True))
         mgr.append(JMX._string_prop("CookieManager.implementation",
                                     "org.apache.jmeter.protocol.http.control.HC4CookieHandler"))
+        cookies = scenario.get(Scenario.COOKIES, [])
+        if cookies:
+            cookies_coll = JMX._collection_prop("CookieManager.cookies")
+            mgr.append(cookies_coll)
+            for cookie in cookies:
+                cookie_dict = cookie #ensure_is_dict(cookies, cookie, "value")
+                coll_elem = etree.Element(
+                    "elementProp",
+                    name=cookie_dict["name"],
+                    elementType="Cookie",
+                    testname=cookie_dict["name"])
+                coll_elem.append(JMX._string_prop("Cookie.value", cookie_dict["value"]))
+                cookies_coll.append(coll_elem)
+
         return mgr
 
     @staticmethod
