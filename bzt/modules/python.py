@@ -189,31 +189,32 @@ import apiritif
                 if req.timeout is not None:
                     test_method.append(self.gen_impl_wait(req.timeout, indent=12))
                 transaction_contents.append(self.gen_statement("self.driver.get(%r)" % url, indent=12))
-                transaction_contents.append(self.gen_new_line())
+                transaction_contents.append(self.gen_new_line(indent=0))
 
             actions = req.config.get("actions", [])
             for action_config in actions:
                 transaction_contents.append(self.gen_action(action_config, indent=12))
             if actions:
-                transaction_contents.append(self.gen_new_line())
+                transaction_contents.append(self.gen_new_line(indent=0))
 
             if transaction_contents:
                 for line in transaction_contents:
                     test_method.append(line)
             else:
                 test_method.append(self.gen_statement('pass', indent=12))
+            test_method.append(self.gen_new_line(indent=0))
 
             if "assert" in req.config:
                 test_method.append(self.gen_statement("body = self.driver.page_source"))
                 for assert_config in req.config.get("assert"):
                     for elm in self.gen_assertion(assert_config):
                         test_method.append(elm)
-                test_method.append(self.gen_new_line())
+                test_method.append(self.gen_new_line(indent=0))
 
             think_time = req.priority_option('think-time')
             if think_time is not None:
                 test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
-                test_method.append(self.gen_new_line())
+                test_method.append(self.gen_new_line(indent=0))
 
         test_class.append(test_method)
         return {}
@@ -234,7 +235,7 @@ import apiritif
             timeout = '30s'
         scenario_timeout = dehumanize_time(timeout)
         test_method.append(self.gen_impl_wait(scenario_timeout))
-        test_method.append(self.gen_new_line())
+        test_method.append(self.gen_new_line(indent=0))
 
     def gen_setup_method(self):
         self.log.debug("Generating setUp test method")
@@ -267,7 +268,7 @@ import apiritif
             setup_method_def.append(statement)
         else:
             setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
-        setup_method_def.append(self.gen_new_line())
+        setup_method_def.append(self.gen_new_line(indent=0))
         return setup_method_def
 
     def gen_impl_wait(self, timeout, indent=8):
@@ -282,7 +283,7 @@ import apiritif
         self.log.debug("Generating tearDown test method")
         tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
         tear_down_method_def.append(self.gen_statement("self.driver.quit()"))
-        tear_down_method_def.append(self.gen_new_line())
+        tear_down_method_def.append(self.gen_new_line(indent=0))
         return tear_down_method_def
 
     def gen_assertion(self, assertion_config):
