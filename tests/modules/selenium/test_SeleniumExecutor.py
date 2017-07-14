@@ -255,7 +255,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
 class TestReportReader(BZTestCase):
     def test_report_reader(self):
-        reader = LoadSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", logging.getLogger(), None)
+        reader = LoadSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", logging.getLogger())
         items = list(reader._read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0][1], 'testFailure')
@@ -282,7 +282,7 @@ class TestReportReader(BZTestCase):
         self.assertEqual(len(items), 2)
 
     def test_func_reader(self):
-        reader = FuncSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", EngineEmul(), logging.getLogger(), None)
+        reader = FuncSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", EngineEmul(), logging.getLogger())
         items = list(reader.read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0].test_case, 'testFailure')

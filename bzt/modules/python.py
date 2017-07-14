@@ -65,6 +65,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
+        builder.build_source_code()
         builder.save(filename)
         return filename
 

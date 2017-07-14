@@ -43,3 +43,4 @@ class TestRequests(unittest.TestCase):
 
         with apiritif.transaction('empty'):
             pass
+
