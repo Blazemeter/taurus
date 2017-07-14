@@ -161,15 +161,13 @@ import apiritif
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         self.root.append(test_class)
-        test_class.append(self.gen_statement("driver = None", indent=4))
-        test_class.append(self.gen_new_line())
-        test_class.append(self.gen_setupclass_method())
-        test_class.append(self.gen_teardownclass_method())
         test_class.append(self.gen_setup_method())
+        test_class.append(self.gen_teardown_method())
 
         requests = self.scenario.get_requests(require_url=False)
         default_address = self.scenario.get("default-address", None)
         test_method = self.gen_test_method('test_requests')
+        self.gen_setup(test_method)
 
         for req in requests:
             if req.label:
@@ -230,64 +228,60 @@ import apiritif
             test_method.append(self.gen_impl_wait(req.timeout))
         test_method.append(self.gen_statement("self.driver.get('%s')" % url))
 
-    def gen_setup_method(self):
+    def gen_setup(self, test_method):
         timeout = self.scenario.get("timeout", None)
         if timeout is None:
             timeout = '30s'
         scenario_timeout = dehumanize_time(timeout)
-        setup_method_def = self.gen_method_definition('setUp', ['self'])
-        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
-        setup_method_def.append(self.gen_new_line())
-        return setup_method_def
+        test_method.append(self.gen_impl_wait(scenario_timeout))
+        test_method.append(self.gen_new_line())
 
-    def gen_setupclass_method(self):
+    def gen_setup_method(self):
         self.log.debug("Generating setUp test method")
         browsers = ["Firefox", "Chrome", "Ie", "Opera"]
         browser = self.scenario.get("browser", "Firefox")
         if browser not in browsers:
             raise TaurusConfigError("Unsupported browser name: %s" % browser)
 
-        setup_method_def = self.gen_decorator_statement('classmethod')
-        setup_method_def.append(self.gen_method_definition("setUpClass", ["cls"]))
+        setup_method_def = self.gen_method_definition("setUp", ["self"])
 
         if browser == 'Firefox':
             setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
             statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
             log_set = self.gen_statement(statement)
             setup_method_def.append(log_set)
-            setup_method_def.append(self.gen_statement("cls.driver = webdriver.Firefox(profile)"))
+            setup_method_def.append(self.gen_statement("self.driver = webdriver.Firefox(profile)"))
         elif browser == 'Chrome':
-            statement = "cls.driver = webdriver.Chrome(service_log_path=%s)"
+            statement = "self.driver = webdriver.Chrome(service_log_path=%s)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         else:
-            setup_method_def.append(self.gen_statement("cls.driver = webdriver.%s()" % browser))
+            setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
 
         scenario_timeout = self.scenario.get("timeout", None)
         if scenario_timeout is None:
             scenario_timeout = '30s'
-        setup_method_def.append(self.gen_impl_wait(scenario_timeout, target='cls'))
+        setup_method_def.append(self.gen_impl_wait(scenario_timeout))
         if self.window_size:
             args = (self.window_size[0], self.window_size[1])  # to force tuple
-            statement = self.gen_statement("cls.driver.set_window_size(%s, %s)" % args)
+            statement = self.gen_statement("self.driver.set_window_size(%s, %s)" % args)
             setup_method_def.append(statement)
         else:
-            setup_method_def.append(self.gen_statement("cls.driver.maximize_window()"))
+            setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
         setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
-    def gen_impl_wait(self, timeout, target='self', indent=8):
-        return self.gen_statement("%s.driver.implicitly_wait(%s)" % (target, dehumanize_time(timeout)), indent=indent)
+    def gen_impl_wait(self, timeout, indent=8):
+        return self.gen_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout), indent=indent)
 
     def gen_test_method(self, name):
         self.log.debug("Generating test method %s", name)
         test_method = self.gen_method_definition(name, ["self"])
         return test_method
 
-    def gen_teardownclass_method(self):
+    def gen_teardown_method(self):
         self.log.debug("Generating tearDown test method")
-        tear_down_method_def = self.gen_decorator_statement('classmethod')
-        tear_down_method_def.append(self.gen_method_definition("tearDownClass", ["cls"]))
-        tear_down_method_def.append(self.gen_statement("cls.driver.quit()"))
+        tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
+        tear_down_method_def.append(self.gen_statement("self.driver.quit()"))
         tear_down_method_def.append(self.gen_new_line())
         return tear_down_method_def
 
