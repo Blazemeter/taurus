@@ -31,13 +31,10 @@ class ReportableExecutor(ScenarioExecutor):
         self.reported = True
         self.register_reader = True
 
-    def reporting_setup(self, prefix=None, suffix=None, translation_table=None):
+    def reporting_setup(self, prefix=None, suffix=None):
         if not self.reported:
             self.log.debug("Skipping reporting setup for executor %s", self)
             return
-
-        if translation_table is None:
-            translation_table = {}
 
         if "report-file" in self.execution:
             self.report_file = self.execution.get("report-file")
@@ -55,11 +52,11 @@ class ReportableExecutor(ScenarioExecutor):
             return
 
         if self.engine.is_functional_mode():
-            self.reader = FuncSamplesReader(self.report_file, self.engine, self.log, translation_table)
+            self.reader = FuncSamplesReader(self.report_file, self.engine, self.log)
             if isinstance(self.engine.aggregator, FunctionalAggregator):
                 self.engine.aggregator.add_underling(self.reader)
         else:
-            self.reader = LoadSamplesReader(self.report_file, self.log, translation_table)
+            self.reader = LoadSamplesReader(self.report_file, self.log)
             if isinstance(self.engine.aggregator, ConsolidatingAggregator):
                 self.engine.aggregator.add_underling(self.reader)
 

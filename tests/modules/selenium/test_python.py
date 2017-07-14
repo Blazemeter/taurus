@@ -206,7 +206,7 @@ class TestNoseRunner(BZTestCase):
 
     def test_report_reading(self):
         reader = FuncSamplesReader(__dir__() + "/../../resources/apiritif/transactions.ldjson",
-                                   self.obj.engine, self.obj.log, [])
+                                   self.obj.engine, self.obj.log)
         items = list(reader.read(last_pass=True))
         self.assertEqual(len(items), 6)
         self.assertEqual(items[0].test_case, "test_1_single_request")
@@ -240,7 +240,7 @@ class TestNoseRunner(BZTestCase):
         self.assertNotEquals(self.obj.process, None)
         with open(self.obj.report_file) as fds:
             self.obj.log.debug("Report: %s", fds.read())
-        reader = LoadSamplesReader(self.obj.report_file, self.obj.log, [])
+        reader = LoadSamplesReader(self.obj.report_file, self.obj.log)
         samples = list(reader._read(last_pass=True))
         self.assertEqual(len(samples), 1)
         tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count = samples[0]
