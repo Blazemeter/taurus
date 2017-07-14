@@ -43,7 +43,6 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(NoseTester, self).__init__()
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
-        self.generated_methods = BetterDict()
         self._tailer = NoneTailer()
 
     def prepare(self):
@@ -55,7 +54,7 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
-        self.reporting_setup(translation_table=self.generated_methods, suffix=".ldjson")
+        self.reporting_setup(suffix=".ldjson")
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
@@ -66,7 +65,6 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
-        self.generated_methods.merge(builder.build_source_code())
         builder.save(filename)
         return filename
 
