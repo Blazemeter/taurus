@@ -147,6 +147,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 
+import apiritif
 """
 
     def __init__(self, scenario, parent_logger, wdlog):
@@ -166,10 +167,9 @@ from selenium.webdriver.support.wait import WebDriverWait
         test_class.append(self.gen_teardownclass_method())
         test_class.append(self.gen_setup_method())
 
-        counter = 0
-        methods = {}
         requests = self.scenario.get_requests(require_url=False)
         default_address = self.scenario.get("default-address", None)
+        test_method = self.gen_test_method('test_requests')
 
         for req in requests:
             if req.label:
@@ -178,33 +178,47 @@ from selenium.webdriver.support.wait import WebDriverWait
                 label = req.url
             else:
                 raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
-            mod_label = re.sub('[^0-9a-zA-Z]+', '_', label[:30])
-            method_name = 'test_%05d_%s' % (counter, mod_label)
-            test_method = self.gen_test_method(method_name)
-            methods[method_name] = label
-            counter += 1
-            test_class.append(test_method)
+
+            test_method.append(self.gen_statement('with apiritif.transaction(%r):' % label, indent=8))
+            transaction_contents = []
 
             if req.url is not None:
-                self._add_url_request(default_address, req, test_method)
+                parsed_url = parse.urlparse(req.url)
+                if default_address is not None and not parsed_url.netloc:
+                    url = default_address + req.url
+                else:
+                    url = req.url
+                if req.timeout is not None:
+                    test_method.append(self.gen_impl_wait(req.timeout, indent=12))
+                transaction_contents.append(self.gen_statement("self.driver.get(%r)" % url, indent=12))
+                transaction_contents.append(self.gen_new_line())
 
-            for action_config in req.config.get("actions", []):
-                test_method.append(self.gen_action(action_config))
+            actions = req.config.get("actions", [])
+            for action_config in actions:
+                transaction_contents.append(self.gen_action(action_config, indent=12))
+            if actions:
+                transaction_contents.append(self.gen_new_line())
+
+            if transaction_contents:
+                for line in transaction_contents:
+                    test_method.append(line)
+            else:
+                test_method.append(self.gen_statement('pass', indent=12))
 
             if "assert" in req.config:
                 test_method.append(self.gen_statement("body = self.driver.page_source"))
                 for assert_config in req.config.get("assert"):
                     for elm in self.gen_assertion(assert_config):
                         test_method.append(elm)
+                test_method.append(self.gen_new_line())
 
             think_time = req.priority_option('think-time')
             if think_time is not None:
                 test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
+                test_method.append(self.gen_new_line())
 
-            test_method.append(self.gen_statement("pass"))  # just to stub empty case
-            test_method.append(self.gen_new_line())
-
-        return methods
+        test_class.append(test_method)
+        return {}
 
     def _add_url_request(self, default_address, req, test_method):
         parsed_url = parse.urlparse(req.url)
@@ -261,8 +275,8 @@ from selenium.webdriver.support.wait import WebDriverWait
         setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
-    def gen_impl_wait(self, timeout, target='self'):
-        return self.gen_statement("%s.driver.implicitly_wait(%s)" % (target, dehumanize_time(timeout)))
+    def gen_impl_wait(self, timeout, target='self', indent=8):
+        return self.gen_statement("%s.driver.implicitly_wait(%s)" % (target, dehumanize_time(timeout)), indent=indent)
 
     def gen_test_method(self, name):
         self.log.debug("Generating test method %s", name)
@@ -310,7 +324,7 @@ from selenium.webdriver.support.wait import WebDriverWait
                 assertion_elements.append(self.gen_statement(method))
         return assertion_elements
 
-    def gen_action(self, action_config):
+    def gen_action(self, action_config, indent=8):
         aby, atype, param, selector = self._parse_action(action_config)
 
         bys = {
@@ -327,19 +341,19 @@ from selenium.webdriver.support.wait import WebDriverWait
             else:
                 action = "send_keys(%r)" % param
 
-            return self.gen_statement(tpl % (bys[aby], selector, action))
+            return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
-            return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg))
+            return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg), indent=indent)
         elif atype == 'pause' and aby == 'for':
             tpl = "sleep(%.f)"
-            return self.gen_statement(tpl % (dehumanize_time(selector),))
+            return self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent)
         elif atype == 'clear' and aby == 'cookies':
-            return self.gen_statement("self.driver.delete_all_cookies()")
+            return self.gen_statement("self.driver.delete_all_cookies()", indent=indent)
 
         raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
