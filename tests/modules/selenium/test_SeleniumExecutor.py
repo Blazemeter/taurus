@@ -151,15 +151,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.execution.merge({
             "scenario": "req_sel"})
         self.obj.prepare()
-        gen_methods = self.obj.runner.generated_methods
         name1 = 'test_00000_http_blazedemo_com'
-        url1 = 'http://blazedemo.com'
         name2 = 'test_00001_Main_Page'
-        label2 = 'Main Page'
         name3 = 'test_00002_just_for_lulz'
-        label3 = 'just_for_lulz'
-        self.assertEqual(url1, gen_methods[name1])
-        self.assertEqual(label2, gen_methods[name2])
         reader = self.obj.runner.reader
         reader.report_reader.json_reader = LDJSONReaderEmul()
         reader.report_reader.json_reader.data.extend([
@@ -174,9 +168,9 @@ class TestSeleniumStuff(SeleniumTestCase):
                 'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
             }])
         res = list(reader._read())
-        self.assertIn(url1, res[0])
-        self.assertIn(label2, res[1])
-        self.assertIn(label3, res[2])
+        self.assertIn('http_blazedemo_com', res[0])
+        self.assertIn('Main_Page', res[1])
+        self.assertIn('just_for_lulz', res[2])
 
     def test_dont_copy_local_script_to_artifacts(self):
         "ensures that .java file is not copied into artifacts-dir"
