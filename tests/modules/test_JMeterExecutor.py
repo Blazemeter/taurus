@@ -568,8 +568,10 @@ class TestJMeterExecutor(BZTestCase):
     def test_add_cookies(self):
         self.configure({'execution': {
             'scenario': {
-                'cookies': {"n0": {"value": "v0"}, "n1": "v1"},
-                'requests': ['http://blazedemo.com']}}})
+                'cookies': [
+                    {"name": "n0", "value": "v0", "domain": "blazedemo.com"},
+                    {"name": "n1", "value": "v1", "domain": "blazemeter.com", "path": "/pricing", "secure": "true"}],
+                'requests': ['http://blazedemo.com', "http://blazemeter.com/pricing"]}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
 
@@ -579,8 +581,20 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(2, len(cookies))
         self.assertEqual('n0', cookies[0].attrib['name'])
         self.assertEqual('v0', cookies[0].find('.//stringProp[@name="Cookie.value"]').text)
+        self.assertEqual('blazedemo.com', cookies[0].find('.//stringProp[@name="Cookie.domain"]').text)
+        self.assertIn(cookies[0].find('.//stringProp[@name="Cookie.path"]').text, ['', None])
+        self.assertEqual('false', cookies[0].find('.//boolProp[@name="Cookie.secure"]').text)
+        self.assertEqual('0', cookies[0].find('.//longProp[@name="Cookie.expires"]').text)
+        self.assertEqual('true', cookies[0].find('.//boolProp[@name="Cookie.path_specified"]').text)
+        self.assertEqual('true', cookies[0].find('.//boolProp[@name="Cookie.domain_specified"]').text)
         self.assertEqual('n1', cookies[1].attrib['name'])
         self.assertEqual('v1', cookies[1].find('.//stringProp[@name="Cookie.value"]').text)
+        self.assertEqual('blazemeter.com', cookies[1].find('.//stringProp[@name="Cookie.domain"]').text)
+        self.assertEqual('/pricing', cookies[1].find('.//stringProp[@name="Cookie.path"]').text)
+        self.assertEqual('true', cookies[1].find('.//boolProp[@name="Cookie.secure"]').text)
+        self.assertEqual('0', cookies[1].find('.//longProp[@name="Cookie.expires"]').text)
+        self.assertEqual('true', cookies[1].find('.//boolProp[@name="Cookie.path_specified"]').text)
+        self.assertEqual('true', cookies[1].find('.//boolProp[@name="Cookie.domain_specified"]').text)
 
     def test_add_shaper_ramp_up(self):
         self.configure(

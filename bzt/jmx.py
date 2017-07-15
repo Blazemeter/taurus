@@ -22,7 +22,7 @@ from itertools import chain
 
 from cssselect import GenericTranslator
 
-from bzt import TaurusInternalException
+from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario, BetterDict
 from bzt.utils import ensure_is_dict
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types
@@ -662,14 +662,29 @@ class JMX(object):
             cookies_coll = JMX._collection_prop("CookieManager.cookies")
             mgr.append(cookies_coll)
             for cookie in cookies:
-                cookie_dict = ensure_is_dict(cookies, cookie, "value")
-                coll_elem = etree.Element(
-                    "elementProp",
-                    name=cookie,
-                    elementType="Cookie",
-                    testname=cookie)
-                coll_elem.append(JMX._string_prop("Cookie.value", cookie_dict["value"]))
-                cookies_coll.append(coll_elem)
+                if not isinstance(cookie, dict):
+                    raise TaurusConfigError("Cookie must be dictionary: %s" % cookie)
+                c_name = cookie.get("name", TaurusConfigError("Name of cookie isn't found: %s" % cookie))
+                c_value = cookie.get("value", TaurusConfigError("Value of cookie isn't found: %s" % cookie))
+                c_domain = cookie.get("domain", TaurusConfigError("Domain of cookie isn't found: %s" % cookie))
+                c_path = cookie.get("path", "")
+                c_secure = cookie.get("secure", False)
+
+                # follow params are hardcoded in JMeter
+                c_expires = 0
+                c_path_specified = True
+                c_domain_specified = True
+
+                c_elem = etree.Element("elementProp", name=c_name, elementType="Cookie", testname=c_name)
+                c_elem.append(JMX._string_prop("Cookie.value", c_value))
+                c_elem.append(JMX._string_prop("Cookie.domain", c_domain))
+                c_elem.append(JMX._string_prop("Cookie.path", c_path))
+                c_elem.append(JMX._bool_prop("Cookie.secure", c_secure))
+                c_elem.append(JMX._long_prop("Cookie.expires", c_expires))
+                c_elem.append(JMX._bool_prop("Cookie.path_specified", c_path_specified))
+                c_elem.append(JMX._bool_prop("Cookie.domain_specified", c_domain_specified))
+
+                cookies_coll.append(c_elem)
 
         return mgr
 
