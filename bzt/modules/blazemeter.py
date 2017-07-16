@@ -17,6 +17,7 @@ limitations under the License.
 """
 import copy
 import logging
+import os
 import platform
 import sys
 import time
@@ -27,7 +28,6 @@ from collections import defaultdict, OrderedDict
 from functools import wraps
 from ssl import SSLError
 
-import os
 import yaml
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
@@ -149,6 +149,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.kpi_buffer = []
         self.send_interval = 30
         self._last_status_check = time.time()
+        self.send_data = True
+        self.upload_artifacts = True
         self.send_monitoring = True
         self.monitoring_buffer = None
         self.send_custom_metrics = False
@@ -198,6 +200,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             exc = TaurusConfigError("Need signature for session")
             self._session.data_signature = self.parameters.get("signature", exc)
             self._session.kpi_target = self.parameters.get("kpi-target", self._session.kpi_target)
+            self.send_data = self.parameters.get("send-data", self.send_data)
+            self.upload_artifacts = self.parameters.get("upload-artifacts", self.upload_artifacts)
         else:
             try:
                 self._user.ping()  # to check connectivity and auth
@@ -339,12 +343,16 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.log.debug("KPI bulk buffer len in post-proc: %s", len(self.kpi_buffer))
         try:
             self.log.info("Sending remaining KPI data to server...")
-            self.__send_data(self.kpi_buffer, False, True)
-            self.kpi_buffer = []
+            if self.send_data:
+                self.__send_data(self.kpi_buffer, False, True)
+                self.kpi_buffer = []
+
             if self.send_monitoring:
                 self.__send_monitoring()
+
             if self.send_custom_metrics:
                 self.__send_custom_metrics()
+
             if self.send_custom_tables:
                 self.__send_custom_tables()
         finally:
@@ -357,7 +365,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
     def _postproc_phase2(self):
         try:
-            self.__upload_artifacts()
+            if self.upload_artifacts:
+                self.__upload_artifacts()
         except (IOError, TaurusNetworkError):
             self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
@@ -422,13 +431,14 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.log.debug("KPI bulk buffer len: %s", len(self.kpi_buffer))
         if self.last_dispatch < (time.time() - self.send_interval):
             self.last_dispatch = time.time()
-            if len(self.kpi_buffer):
+            if self.send_data and len(self.kpi_buffer):
                 self.__send_data(self.kpi_buffer)
                 self.kpi_buffer = []
-                if self.send_monitoring:
-                    self.__send_monitoring()
-                if self.send_custom_metrics:
-                    self.__send_custom_metrics()
+
+            if self.send_monitoring:
+                self.__send_monitoring()
+            if self.send_custom_metrics:
+                self.__send_custom_metrics()
         return super(BlazeMeterUploader, self).check()
 
     @send_with_retry
@@ -447,7 +457,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         Send online data
         :param data: DataPoint
         """
-        self.kpi_buffer.append(data)
+        if self.send_data:
+            self.kpi_buffer.append(data)
 
     def set_last_status_check(self, value):
         self._last_status_check = value
