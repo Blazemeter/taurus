@@ -237,7 +237,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.post_process()
         self.assertNotIn("Failed to finish online", self.log_recorder.warn_buff.getvalue())
         self.assertEquals('direct', obj._session['id'])
-        self.assertEqual(7, len(mock.requests), "Requests were: %s" % mock.requests)
+        self.assertEqual(8, len(mock.requests), "Requests were: %s" % mock.requests)
 
     def test_anonymous_feeding(self):
         obj = BlazeMeterUploader()
@@ -260,7 +260,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.shutdown()
         obj.post_process()
         self.assertEquals(1, obj._session['id'])
-        self.assertEqual(4, len(mock.requests), "Requests were: %s" % mock.requests)
+        self.assertEqual(5, len(mock.requests), "Requests were: %s" % mock.requests)
 
     def test_401(self):
         obj = BlazeMeterUploader()
