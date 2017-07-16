@@ -64,7 +64,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.end_time = None
         self.runner = None
         self.script = None
-        self.generated_methods = BetterDict()
         self.runner_working_dir = None
         self.register_reader = True
         self.virtual_display_service = Service()  # TODO: remove compatibility with deprecated virtual-display setting
