@@ -1,5 +1,14 @@
 # Running Taurus with TeamCity
-Taurus is an open source framework for performance tests automation. It can be used to run scripts from scratch as well as allows to run tests from other open source tools including JMeter, Gatling, Selenium or Locust. It hides complexity of existing automation tools and provides user-friendly and convenient wrapper. One of the main strength of Taurus is that it can be integrated with any of continuous integration (CI) servers in few steps. Usage of CI servers helps us to automate tests execution and avoid routine actions to run our scripts again and again. In this article we are going to find out how we can easily run our Taurus performance script in the TeamCity continuous integration server while you also can find tutorials for other CI solutions: [Jenkins](Jenkins) and [Bamboo](Bamboo).
+
+_By: Iurii Bushnev, June 2017_
+
+Taurus is an open source framework for performance tests automation. It can be used to run scripts from scratch as well as allows to run tests from other open source tools. These include [JMeter](http://jmeter.apache.org/), [Gatling](http://gatling.io/), [Selenium](http://www.seleniumhq.org/) or [Locust](http://locust.io/). 
+
+Taurus simplifies use of existing automation tools and provides a user-friendly and convenient "wrapper". One of Taurus's main strengths is that it can be integrated with any [continuous integration (CI)](https://www.blazemeter.com/jenkins?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-teamcity) servers in just a few steps. Using CI servers helps us automate test execution and avoid the routine actions if running our scripts again and again. 
+
+In this article we are going to find out how we can easily run our Taurus performance script in the TeamCity continuous integration server. You can also find tutorials for other CI solutions: [Jenkins](Jenkins) and [Bamboo](Bamboo) on the Taurus website.
+
+## Creating a Taurus Script
 First of all, let’s create our first Taurus performance script:
 
 ```yaml
@@ -15,50 +24,67 @@ scenarios:
       - url: http://blazedemo.com/
 ```
 
-Taurus scripts can be written using JSON or YAML formats. As you can see, it is human readable and you don’t need to be a genius to find out that current script performs url requests to [http://blazedemo.com/](http://blazedemo.com/) web page using with 100 users during 1 minute while users coming onboard during first 40 seconds. If you have already installed Taurus framework (installation steps can be found [here](../docs/Installation)) then existing script can be easily run by such command:
+Taurus scripts can be written using JSON or YAML formats. As you can see, it is human readable.
+ 
+ You don’t need to be a genius to find out that this current script performs:
+  - URL requests to [http://blazedemo.com/](http://blazedemo.com/) web page 
+  - with 100 users 
+  - during 1 minute 
+  - while users are onboard during the first 40 seconds. 
+  
+If you have already installed the Taurus framework (installation steps can be found [here](../docs/Installation)) then the existing script can be easily run by this command:
 
 ```
 bzt [path to the script]
 ```
 
-Let’s save our created script with ‘BlazeDemoTest.yml’ and run the command:
+Let’s save our created script as ‘BlazeDemoTest.yml’ and run the command:
 
 ```
 bzt /Users/BlazeMeter/tests/BlazeDemoTest.yml
 ```
 
-As soon as script has been started, we will real time performance metrics.
+As soon as script has been started, we will get real time performance metrics.
 
 ![](teamcity1.png)
 
-Now we are ready to move created script into TeamCity integration server.
-TeamCity is one of the most popular continuous integration servers developed by JetBrains team. It is a commercial software but open source projects can request a free license. The main advantage of this continuous integration server is that it provides very great usability out of the box. It has user friendly interface which makes it easy to use even for someone new to continuous integration solutions.
+## Running Your Taurus Script in TeamCity
+
+Now we are ready to move the created script into the TeamCity integration server.
+
+TeamCity is one of the most popular [continuous integration](https://www.blazemeter.com/blog/continuous-integration-101-how-run-jmeter-jenkins?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-teamcity) servers. It was developed by JetBrains company and it is a commercial software. However, open source projects can request a free license. 
+
+The main advantage of this continuous integration server is that it provides great usability out-of-the-box. It also has a user friendly interface which makes it easy to use, even for someone new to continuous integration solutions.
+
 Let’s assume that you already have TeamCity integration server. If no, you can find straight forward installation steps on JetBrains [official website](https://confluence.jetbrains.com/display/TCD10/Installation).
+
 First of all, we should create a new project.
 
 ![](teamcity2.png)
 
-During project creation you should see few integration options. You can choose one of them depending on your needs: if you want to integrate source code from some custom repository, GitHub, Bitbucket or Visual Studio Team service. We are not going to cover these integrations and for our needs it is enough to use “Manually” option. In this case we just need to define some name for our project, unique project id and description (which is not mandatory).
+During project creation you will see a few integration options:
 
 ![](teamcity3.png)
 
-After project has been created you will be redirected to the main project page. Basically, project is a container for different build configurations while build configuration (build plan) is a sequence of execution steps to perform some specific job: deploy specific service, run some tests and so on. Therefore, if you want to run your tests in CI you need to create a separate build configuration:
+You can choose one of them depending on your needs. You can integrate your source code from a custom repository, GitHub, Bitbucket or the Visual Studio Team service. We are not going to cover these integrations. For our needs, the "Manually" option is enough. In this case we just need to define a name for our project, a unique project id and a description (which is not mandatory).
+
+After the project has been created you will be redirected to the main project page. Basically, a project is a container for different build configurations, while the build configuration (build plan) is a sequence of execution steps to perform a specific job. Jobs include deploying a specific service, runing tests, and so on. Therefore, if you want to run your tests in CI you need to create a separate build configuration:
 
 ![](teamcity4.png)
 
-‘Create Build configuration’ page looks exactly the same as ‘Create Project’ and we need to define name, build configuration id and optional description:
+The ‘Create Build Configuration’ page looks exactly the same as ‘Create Project’. We need to define name, build configuration id and include an optional description:
 
 ![](teamcity5.png)
 
-On the second page you can specify version control settings in case if you want to checkout performance script from source code repository. We are going to use performance script from local machine, that’s why you can just skip that step and click on “Create” button without specifying any additional settings.
+On the second page you can specify version control settings, if you want to checkout a performance script from its source code repository. We are going to use a performance script from local machine, so, you can just skip this step and click on the “Create” button without specifying any additional settings.
 
 ![](teamcity6.png)
 
-Each build configuration consists of build steps which provide logical separation.For example, we can have one build configuration to run smoke, integration and performance tests. In this case we will have one build configuration and 3 steps inside to run each type of tests accordingly.
+Each build configuration consists of build steps that create logical separation. For example, we can have one build configuration to run three different kinds of tests: smoke, integration and performance. In this case, we will have one build configuration and three steps inside it to run each type of test.
 
 ![](teamcity7.png)
 
-To execute our performance tests we need to use ‘Command Line’ runner with ‘Custom script’ run option. In custom script input we should specify the same command which we used before in command line to run our performance script.
+To execute our performance tests we need to use the ‘Command Line’ runner with the ‘Custom script’ run option. In the custom script input we should specify the same command we used before to run our performance script in the command line.
 
 ![](teamcity8.png)
 
@@ -66,27 +92,17 @@ Click on ‘Save’ and we will see that the first build step was created. Now w
 
 ![](teamcity9.png)
 
-To run build configuration you need to use the button ‘Run’ in top right corner.
+To run the build configuration you need to use the ‘Run’ button in the top right corner.
 
 ![](teamcity10.png)
 
-On ‘Build Log’ tab you can see real-time logs coming from performance script execution.
-
-![](teamcity11.png)
-
-But when we will go through log file you can see that details are not human readable. Taurus use ASCII-art graphs to show real time dashboards while you run script in terminal. But the same ASCII-art graphs looks pretty ugly when you are trying just to use that in simple log files:
-
-![](teamcity12.png)
-
-Taurus provides number of [options how you can tune your reports](../docs/Reporting). First of all, it might be useful to turn off console graph report. To do that you can go back to your created build step and add command line argument *‘-o modules.console.disable=true’*:
-
-![](teamcity13.png)
-
-After that you will only reasonable information in a log file:
+In the ‘Build Log’ tab you can see real-time logs coming from the performance script execution.
 
 ![](teamcity14.png)
 
-Another great option provided by Taurus is integration with BlazeMeter reporting out of the box. We can use blazemeter reporter to upload our test results to BlazeMeter.com which provides great reporting and performance analytical functionality. For that we can add one more command line option. But this time we can use another way of reporting configuration. Instead of specifying command like parameters, we can open our script and add ‘reporting’ section with ‘blazemeter’ module parameters:
+Another great option provided by Taurus is integration with BlazeMeter reporting out-of-the-box. We can use the `blazemeter` reporter module to upload our test results into blazemeter.com. BlazeMeter provides great reporting and analytics for performance tests. 
+
+To do that, just add one more command line option. But this time we can use a different way of reporting configuration. Instead of specifying command line parameters, we can open our script and add a `reporting` section with `blazemeter` module parameters:
 
 ```yaml
 execution:
@@ -105,12 +121,13 @@ reporting:
   project: Taurus with TeamCity
 ```
 
-After we run our build plan again, our script will automatically initialize separate browser tab pointed to Blazemter application which is collecting statistics from build plan execution and show all useful metrics in real time:
+After we run our build plan again, our script will automatically initialize a separate browser tab directed to the BlazeMeter application.  The BlazeMeter applications collects the statistics from build plan execution and show all useful metrics in real time:
 
 ![](teamcity15.png)
 
-If for some reason browser with reporting was not initialized automatically, you can find the link in build execution logs:
+If for any reason browser with the reports has not opened automatically, you can find the link in the build execution logs:
 
 ![](teamcity16.png)
 
-As a result of these straightforward steps with help of Taurus and TeamCity continuous integration server you can easily automate performance verification of your app and get detailed test reports in real-time.
+Congratulations! You can now integrate Taurus and TeamCity to easily automate the performance verification of your app and get detailed test reports in real-time.
+
