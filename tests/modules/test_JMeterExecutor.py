@@ -561,8 +561,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(shaper_elements))
         shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
-        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='49']").text)
-        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='1567']").text)
+        self.assertEqual("${__P(taurus.tst_hold,100)}", shaper_coll_element.find(".//stringProp[@name='49']").text)
+        self.assertEqual("${__P(taurus.tst_hold,100)}", shaper_coll_element.find(".//stringProp[@name='1567']").text)
         self.assertEqual("60", shaper_coll_element.find(".//stringProp[@name='53']").text)
 
     def test_add_cookies(self):
@@ -612,8 +612,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[0].text)
         self.assertEqual("60", shaper_coll_element.findall(".//stringProp[@name='53']")[0].text)
 
-        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='49']")[1].text)
-        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[1].text)
+        self.assertEqual("${__P(taurus.tst_hold,10)}", shaper_coll_element.findall(".//stringProp[@name='49']")[1].text)
+        self.assertEqual("${__P(taurus.tst_hold,10)}", shaper_coll_element.findall(".//stringProp[@name='1567']")[1].text)
         self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
 
     def test_user_def_vars_from_requests(self):
