@@ -2481,6 +2481,11 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(ip_source)
         self.assertIsNotNone(ip_source.text)
 
+    def test_jtl_doublequoting(self):
+        obj = JTLReader(__dir__() + "/../resources/jmeter/jtl/doublequoting.jtl", logging.getLogger(), None)
+        for datapoint in obj.datapoints(True):
+            pass
+
 
 class TestJMX(BZTestCase):
     def test_jmx_unicode_checkmark(self):

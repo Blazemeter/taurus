@@ -1320,7 +1320,7 @@ class IncrementalCSVReader(object):
             self.partial_buffer = ""
 
             if self.csv_reader is None:
-                dialect = guess_csv_dialect(line)
+                dialect = guess_csv_dialect(line, force_doublequote=True)  # TODO: configurable doublequoting?
                 self.csv_reader = csv.DictReader(self.buffer, [], dialect=dialect)
                 self.csv_reader.fieldnames += line.strip().split(self.csv_reader.dialect.delimiter)
                 self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)
