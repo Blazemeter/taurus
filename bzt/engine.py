@@ -1071,6 +1071,7 @@ class Scenario(UserDict, object):
     """
 
     SCRIPT = "script"
+    COOKIES = "cookies"
     FIELD_RESP_CODE = "http-code"
     FIELD_HEADERS = "headers"
     FIELD_BODY = "body"

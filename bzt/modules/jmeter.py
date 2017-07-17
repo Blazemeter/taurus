@@ -1573,7 +1573,7 @@ class JMeterScenarioBuilder(JMX):
             elements.append(self._get_cache_mgr())
             elements.append(etree.Element("hashTree"))
         if scenario.get("store-cookie", True):
-            elements.append(self._get_cookie_mgr())
+            elements.append(self._get_cookie_mgr(scenario))
             elements.append(etree.Element("hashTree"))
         if scenario.get("use-dns-cache-mgr", True):
             elements.append(self.get_dns_cache_mgr())
