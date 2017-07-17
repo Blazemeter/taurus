@@ -18,14 +18,18 @@ import time
 from abc import abstractmethod
 
 import os
-from bzt import TaurusConfigError
+
+import subprocess
+
+from bzt import TaurusConfigError, ToolError
 from urwid import Text, Pile
 
 from bzt.engine import FileLister, Service
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.services import VirtualDisplay
-from bzt.utils import BetterDict, get_files_recursive, get_full_path
+from bzt.six import binary_type
+from bzt.utils import BetterDict, get_files_recursive, get_full_path, RequiredTool, shell_exec, unzip
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -255,3 +259,81 @@ class SeleniumWidget(Pile, PrioritizedWidget):
             self.summary_stats.set_text('In progress...')
 
         self._invalidate()
+
+
+class ChromeDriver(RequiredTool):
+    """
+    JMeter tool
+    """
+
+    def __init__(self, tool_path, parent_logger, download_link):
+        super(ChromeDriver, self).__init__("ChromeDriver", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        self.log.debug("Trying chromedriver: %s", self.tool_path)
+        try:
+            proc = shell_exec([self.tool_path, '--version'], stderr=subprocess.STDOUT)
+            out, err = proc.communicate()
+            self.log.debug("chromedriver check: %s / %s", out, err)
+            return True
+        except OSError:
+            self.log.debug("chromedriver check failed.")
+            return False
+
+    def install(self):
+        dest = get_full_path(self.tool_path, step_up=1)
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+
+        # downlod and unzip
+        dist = self._download(use_link=True)
+        try:
+            self.log.info("Unzipping %s to %s", dest)
+            unzip(dist, dest)
+        finally:
+            os.remove(dist)
+
+        # set exec permissions
+        os.chmod(os.path.join(dest, 'chromedriver'), 0o755)
+
+        if not self.check_if_installed():
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)
+
+
+class GeckoDriver(RequiredTool):
+    """
+    JMeter tool
+    """
+
+    def __init__(self, tool_path, parent_logger, download_link):
+        super(GeckoDriver, self).__init__("GeckoDriver", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        self.log.debug("Trying geckodriver: %s", self.tool_path)
+        try:
+            proc = shell_exec([self.tool_path, '--version'], stderr=subprocess.STDOUT)
+            out, err = proc.communicate()
+            self.log.debug("geckodriver check: %s / %s", out, err)
+            return True
+        except OSError:
+            self.log.debug("geckodriver check failed.")
+            return False
+
+    def install(self):
+        dest = get_full_path(self.tool_path, step_up=1)
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+
+        # downlod and unzip
+        dist = self._download(use_link=True)
+        try:
+            self.log.info("Unzipping %s to %s", dest)
+            unzip(dist, dest)
+        finally:
+            os.remove(dist)
+
+        # set exec permissions
+        os.chmod(os.path.join(dest, 'geckodriver'), 0o755)
+
+        if not self.check_if_installed():
+            raise ToolError("Unable to run %s after installation!" % self.tool_name)
