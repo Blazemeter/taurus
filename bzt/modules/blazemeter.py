@@ -24,7 +24,7 @@ import time
 import traceback
 import zipfile
 from abc import abstractmethod
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, Counter
 from functools import wraps
 from ssl import SSLError
 
@@ -1625,7 +1625,7 @@ class ResultsFromBZA(ResultsProvider):
         if self.master is None:
             return
 
-        data, aggr_raw = self.query_data()
+        data, errors, aggr_raw = self.query_data()
         aggr = {}
         for label in aggr_raw:
             aggr[label['labelName']] = label
@@ -1638,6 +1638,21 @@ class ResultsFromBZA(ResultsProvider):
         for label in data:
             if label.get('label') == 'ALL':
                 timestamps.extend([kpi['ts'] for kpi in label.get('kpis', [])])
+
+        for e_record in errors:
+            _id = e_record["_id"]
+            if _id == "ALL":
+                _id = ""
+            self.cumulative[_id] = KPISet()
+
+            for error in e_record['errors']:
+                kpi_error = KPISet.error_item_skel(
+                    error=error['m'],
+                    ret_c=error['rc'],
+                    cnt=error['count'],
+                    errtype=KPISet.ERRTYPE_ERROR,   # TODO: what about asserts?
+                    urls=Counter())
+                self.cumulative[_id][KPISet.ERRORS].append(kpi_error)
 
         for tstmp in timestamps:
             point = DataPoint(tstmp)
@@ -1655,6 +1670,8 @@ class ResultsFromBZA(ResultsProvider):
                     point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
             point.recalculate()
+            point[DataPoint.CUMULATIVE] = self.cumulative
+
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
 
@@ -1681,6 +1698,15 @@ class ResultsFromBZA(ResultsProvider):
             self.log.info("Succeeded with retry")
 
         try:
+            errors = self.master.get_errors()
+        except (URLError, TaurusNetworkError):
+            self.log.warning("Failed to get errors, will retry in %s seconds...", self.master.timeout)
+            self.log.debug("Full exception: %s", traceback.format_exc())
+            time.sleep(self.master.timeout)
+            errors = self.master.get_errors()
+            self.log.info("Succeeded with retry")
+
+        try:
             aggr = self.master.get_aggregate_report()
         except (URLError, TaurusNetworkError):
             self.log.warning("Failed to get aggregate results, will retry in %s seconds...", self.master.timeout)
@@ -1689,7 +1715,7 @@ class ResultsFromBZA(ResultsProvider):
             aggr = self.master.get_aggregate_report()
             self.log.info("Succeeded with retry")
 
-        return data, aggr
+        return data, errors, aggr
 
 
 class CloudProvWidget(Pile, PrioritizedWidget):
