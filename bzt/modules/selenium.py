@@ -337,3 +337,5 @@ class GeckoDriver(RequiredTool):
 
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
+
+        # TODO: check for compatible browser versions?
