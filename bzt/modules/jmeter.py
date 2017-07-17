@@ -23,7 +23,6 @@ import os
 import re
 import socket
 import subprocess
-import sys
 import tempfile
 import time
 import traceback
@@ -691,7 +690,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.add_user_def_vars_elements(user_def_vars))
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-        self.__apply_modifications(jmx)
+        headers = self.get_scenario().get_headers()
+        if headers:
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, JMX._get_header_mgr(headers))
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
         self.__apply_test_mode(jmx)
         self.__apply_load_settings(jmx, load)
@@ -701,6 +703,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if self.settings.get('version', self.JMETER_VER) >= '3.2':
                 self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
+
+        self.__apply_modifications(jmx)
 
         return jmx
 
@@ -1565,10 +1569,6 @@ class JMeterScenarioBuilder(JMX):
 
     def __gen_managers(self, scenario):
         elements = []
-        headers = scenario.get_headers()
-        if headers:
-            elements.append(self._get_header_mgr(headers))
-            elements.append(etree.Element("hashTree"))
         if scenario.get("store-cache", True):
             elements.append(self._get_cache_mgr())
             elements.append(etree.Element("hashTree"))

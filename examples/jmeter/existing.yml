@@ -6,6 +6,8 @@ execution:
 
 scenarios:
   existing:
+    headers:
+      add-one: myval
     script: existing.jmx
     modifications:
       disable:
