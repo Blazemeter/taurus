@@ -535,7 +535,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
 
         if load.hold:
-            jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
+            load_val = "${__P(taurus.tst_hold,%s)}" % load.throughput
+            jmx.add_rps_shaper_schedule(etree_shaper, load_val, load_val, load.hold)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
@@ -569,7 +570,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time)
             else:
                 if load.hold:
-                    jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time + load.hold)
+                    load_val = "${__P(taurus.tst_hold,%s)}" % step_load
+                    jmx.add_rps_shaper_schedule(step_shaper, load_val, load_val, step_time + load.hold)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, step_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
