@@ -2156,6 +2156,14 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(sample.extras)
         self.assertEqual(sample.extras["requestCookies"], {'hello': 'world', 'visited': 'yes'})
 
+    def test_functional_reader_extract(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../resources/jmeter/jtl/crash_trace.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertNotEqual(len(samples), 0)
+
     def test_jsr223_block(self):
         script = __dir__() + "/../resources/jmeter/jsr223_script.js"
         self.configure({

@@ -1061,7 +1061,7 @@ class FuncJTLReader(FunctionalResultsReader):
         super(FuncJTLReader, self).__init__()
         self.executor_label = "JMeter"
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.parser = etree.XMLPullParser(events=('end',))
+        self.parser = etree.XMLPullParser(events=('end',), recover=True)
         self.offset = 0
         self.filename = filename
         self.engine = engine
