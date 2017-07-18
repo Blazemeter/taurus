@@ -23,7 +23,6 @@ import os
 import re
 import socket
 import subprocess
-import sys
 import tempfile
 import time
 import traceback
@@ -536,7 +535,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
 
         if load.hold:
-            jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
+            load_val = "${__P(taurus.tst_hold,%s)}" % load.throughput
+            jmx.add_rps_shaper_schedule(etree_shaper, load_val, load_val, load.hold)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
@@ -570,7 +570,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time)
             else:
                 if load.hold:
-                    jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time + load.hold)
+                    load_val = "${__P(taurus.tst_hold,%s)}" % step_load
+                    jmx.add_rps_shaper_schedule(step_shaper, load_val, load_val, step_time + load.hold)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, step_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
@@ -691,7 +692,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.add_user_def_vars_elements(user_def_vars))
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-        self.__apply_modifications(jmx)
+        headers = self.get_scenario().get_headers()
+        if headers:
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, JMX._get_header_mgr(headers))
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
         self.__apply_test_mode(jmx)
         self.__apply_load_settings(jmx, load)
@@ -701,6 +705,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if self.settings.get('version', self.JMETER_VER) >= '3.2':
                 self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
+
+        self.__apply_modifications(jmx)
 
         return jmx
 
@@ -1314,7 +1320,7 @@ class IncrementalCSVReader(object):
             self.partial_buffer = ""
 
             if self.csv_reader is None:
-                dialect = guess_csv_dialect(line)
+                dialect = guess_csv_dialect(line, force_doublequote=True)  # TODO: configurable doublequoting?
                 self.csv_reader = csv.DictReader(self.buffer, [], dialect=dialect)
                 self.csv_reader.fieldnames += line.strip().split(self.csv_reader.dialect.delimiter)
                 self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)
@@ -1565,10 +1571,6 @@ class JMeterScenarioBuilder(JMX):
 
     def __gen_managers(self, scenario):
         elements = []
-        headers = scenario.get_headers()
-        if headers:
-            elements.append(self._get_header_mgr(headers))
-            elements.append(etree.Element("hashTree"))
         if scenario.get("store-cache", True):
             elements.append(self._get_cache_mgr())
             elements.append(etree.Element("hashTree"))

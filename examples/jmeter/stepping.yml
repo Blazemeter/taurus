@@ -5,6 +5,7 @@ execution:
   throughput: 25
   ramp-up: 2m
   steps: 5
+  hold-for: 1m
   #executor: gatling
 
   locations:
