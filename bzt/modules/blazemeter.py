@@ -1620,12 +1620,32 @@ class ResultsFromBZA(ResultsProvider):
         self.master = master
         self.min_ts = 0
         self.log = logging.getLogger('')
+        self.prev_errors = BetterDict()
+        self.cur_errors = BetterDict()
+        self.treat_errors = True
+
+    def _get_err_diff(self):
+        # find diff of self.prev_errors and self.cur_errors
+        diff = {}
+        for label in self.cur_errors:
+            if label not in self.prev_errors:
+                diff[label] = self.cur_errors[label]
+            else:
+                for msg in self.cur_errors[label]:
+                    if msg not in self.prev_errors[label]:
+                        diff[label] = {msg: self.cur_errors[label][msg]}
+                    else:
+                        delta = self.cur_errors[label][msg]['count'] - self.prev_errors[label][msg]['count']
+                        if delta > 0:
+                            diff[label] = {msg: {'count': delta, 'rc': self.cur_errors[label][msg]['rc']}}
+
+        return diff
 
     def _calculate_datapoints(self, final_pass=False):
         if self.master is None:
             return
 
-        data, errors, aggr_raw = self.query_data()
+        data, aggr_raw = self.query_data()
         aggr = {}
         for label in aggr_raw:
             aggr[label['labelName']] = label
@@ -1639,20 +1659,7 @@ class ResultsFromBZA(ResultsProvider):
             if label.get('label') == 'ALL':
                 timestamps.extend([kpi['ts'] for kpi in label.get('kpis', [])])
 
-        for e_record in errors:
-            _id = e_record["_id"]
-            if _id == "ALL":
-                _id = ""
-            self.cumulative[_id] = KPISet()
-
-            for error in e_record['errors']:
-                kpi_error = KPISet.error_item_skel(
-                    error=error['m'],
-                    ret_c=error['rc'],
-                    cnt=error['count'],
-                    errtype=KPISet.ERRTYPE_ERROR,   # TODO: what about asserts?
-                    urls=Counter())
-                self.cumulative[_id][KPISet.ERRORS].append(kpi_error)
+        self.treat_errors = True
 
         for tstmp in timestamps:
             point = DataPoint(tstmp)
@@ -1660,7 +1667,6 @@ class ResultsFromBZA(ResultsProvider):
                 for kpi in label.get('kpis', []):
                     if kpi['ts'] != tstmp:
                         continue
-
                     label_str = label.get('label')
                     if label_str is None or label_str not in aggr:
                         self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
@@ -1670,10 +1676,62 @@ class ResultsFromBZA(ResultsProvider):
                     point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
             point.recalculate()
-            point[DataPoint.CUMULATIVE] = self.cumulative
+
+            if self.treat_errors:
+                self.treat_errors = False
+                self.cur_errors = self.__get_errors_from_BZA()
+                err_diff = self._get_err_diff()
+                if err_diff:
+                    for label in err_diff:
+                        point_label = '' if label == 'ALL' else label
+                        kpiset = point[DataPoint.CURRENT].get(point_label, KPISet())
+                        kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
+                    self.prev_errors = self.cur_errors
 
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
+
+    def __get_errors_from_BZA(self):
+        #
+        # This method reads error report from BZA
+        #
+        # internal errors format:
+        # <request_label>:
+        #   <error_message>:
+        #     'count': <count of errors>
+        #     'rc': <response code>
+        #
+        result = {}
+        try:
+            errors = self.master.get_errors()
+        except (URLError, TaurusNetworkError):
+            self.log.warning("Failed to get errors, will retry in %s seconds...", self.master.timeout)
+            self.log.debug("Full exception: %s", traceback.format_exc())
+            time.sleep(self.master.timeout)
+            errors = self.master.get_errors()
+            self.log.info("Succeeded with retry")
+
+        for e_record in errors:
+            _id = e_record["_id"]
+            if _id == "ALL":
+                _id = ""
+            result[_id] = {}
+            for error in e_record['errors']:
+                result[_id][error['m']] = {'count': error['count'], 'rc': error['rc']}
+
+        return result
+
+    def __get_kpi_errors(self, errors):
+        result = []
+        for msg in errors:
+            kpi_error = KPISet.error_item_skel(
+                error=msg,
+                ret_c=errors[msg]['rc'],
+                cnt=errors[msg]['count'],
+                errtype=KPISet.ERRTYPE_ERROR,  # TODO: what about asserts?
+                urls=Counter())
+            result.append(kpi_error)
+        return result
 
     def __get_kpiset(self, aggr, kpi, label):
         kpiset = KPISet()
@@ -1698,15 +1756,6 @@ class ResultsFromBZA(ResultsProvider):
             self.log.info("Succeeded with retry")
 
         try:
-            errors = self.master.get_errors()
-        except (URLError, TaurusNetworkError):
-            self.log.warning("Failed to get errors, will retry in %s seconds...", self.master.timeout)
-            self.log.debug("Full exception: %s", traceback.format_exc())
-            time.sleep(self.master.timeout)
-            errors = self.master.get_errors()
-            self.log.info("Succeeded with retry")
-
-        try:
             aggr = self.master.get_aggregate_report()
         except (URLError, TaurusNetworkError):
             self.log.warning("Failed to get aggregate results, will retry in %s seconds...", self.master.timeout)
@@ -1715,7 +1764,7 @@ class ResultsFromBZA(ResultsProvider):
             aggr = self.master.get_aggregate_report()
             self.log.info("Succeeded with retry")
 
-        return data, errors, aggr
+        return data, aggr
 
 
 class CloudProvWidget(Pile, PrioritizedWidget):
