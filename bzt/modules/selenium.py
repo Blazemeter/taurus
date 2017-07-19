@@ -21,7 +21,7 @@ from abc import abstractmethod
 from urwid import Text, Pile
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import FileLister, Service
+from bzt.engine import FileLister, Service, HavingInstallableTools
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.services import VirtualDisplay
@@ -50,7 +50,7 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         pass
 
 
-class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
+class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     Selenium executor
     :type runner: bzt.modules.SubprocessedExecutor
