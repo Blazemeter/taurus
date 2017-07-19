@@ -32,6 +32,7 @@ import socket
 import stat
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 import webbrowser
@@ -46,6 +47,8 @@ from webbrowser import GenericBrowser
 
 import os
 import psutil
+import shutil
+
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree
 from progressbar import ProgressBar, Percentage, Bar, ETA
@@ -610,6 +613,21 @@ def unzip(source_filename, dest_dir, rel_path=None):
             zfd.extract(member, dest_dir)
 
 
+def untar(source_filename, dest_dir, rel_path=None):
+    with tarfile.open(source_filename, "r|*") as tar:
+        for member in tar:
+            if member.isfile():
+                if member.name is None:
+                    continue
+                if rel_path is not None and not member.name.startswith(rel_path):
+                    continue
+
+                filename = os.path.basename(member.name)
+                destination = os.path.join(dest_dir, filename)
+                with open(destination, "wb") as output:
+                    shutil.copyfileobj(tar.extractfile(member), output, member.size)
+
+
 def make_boundary(text=None):
     """
     Generate boundary id
@@ -962,6 +980,14 @@ def is_windows():
 
 def is_linux():
     return 'linux' in sys.platform.lower()
+
+
+def is_mac():
+    return 'darwin' in sys.platform.lower()
+
+
+def platform_bitness():
+    return 64 if sys.maxsize > 2 ** 32 else 32
 
 
 EXE_SUFFIX = ".bat" if is_windows() else ".sh"
