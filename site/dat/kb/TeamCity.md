@@ -1,6 +1,6 @@
 # Running Taurus with TeamCity
 
-_By: Iurii Bushnev, June 2017_
+_By: Yuri Bushnev, June 2017_
 
 Taurus is an open source framework for performance tests automation. It can be used to run scripts from scratch as well as allows to run tests from other open source tools. These include [JMeter](http://jmeter.apache.org/), [Gatling](http://gatling.io/), [Selenium](http://www.seleniumhq.org/) or [Locust](http://locust.io/). 
 
