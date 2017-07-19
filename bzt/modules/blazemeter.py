@@ -1633,12 +1633,15 @@ class ResultsFromBZA(ResultsProvider):
             else:
                 for msg in self.cur_errors[label]:
                     if msg not in self.prev_errors[label]:
-                        diff[label] = {msg: self.cur_errors[label][msg]}
+                        if label not in diff:
+                            diff[label] = {}
+                        diff[label][msg] = self.cur_errors[label][msg]
                     else:
                         delta = self.cur_errors[label][msg]['count'] - self.prev_errors[label][msg]['count']
                         if delta > 0:
-                            diff[label] = {msg: {'count': delta, 'rc': self.cur_errors[label][msg]['rc']}}
-
+                            if label not in diff:
+                                diff[label] = {}
+                            diff[label][msg] = {'count': delta, 'rc': self.cur_errors[label][msg]['rc']}
         return diff
 
     def _calculate_datapoints(self, final_pass=False):
@@ -1675,8 +1678,6 @@ class ResultsFromBZA(ResultsProvider):
                     kpiset = self.__get_kpiset(aggr, kpi, label_str)
                     point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
-            point.recalculate()
-
             if self.treat_errors:
                 self.treat_errors = False
                 self.cur_errors = self.__get_errors_from_BZA()
@@ -1687,6 +1688,8 @@ class ResultsFromBZA(ResultsProvider):
                         kpiset = point[DataPoint.CURRENT].get(point_label, KPISet())
                         kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
                     self.prev_errors = self.cur_errors
+
+            point.recalculate()
 
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point

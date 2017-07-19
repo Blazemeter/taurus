@@ -5,7 +5,6 @@ import os
 import shutil
 import time
 from io import BytesIO
-from collections import Counter
 
 from bzt import TaurusException
 from bzt.bza import Master, Session
@@ -437,6 +436,13 @@ def dummy_urlopen(*args, **kwargs):
 
 class TestAResultsFromBZA(BZTestCase):
     @staticmethod
+    def _convevert_kpi_errors(errors):
+        result = {}
+        for error in errors:
+            result[error['msg']] = {'count': error['cnt'], 'rc': error['rc']}
+        return result
+
+    @staticmethod
     def get_errors_mock(errors):
         # return mock of server response for errors specified in internal format (see __get_errors_from_BZA())
         result = []
@@ -466,7 +472,7 @@ class TestAResultsFromBZA(BZTestCase):
         mock = BZMock()
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {
-                "api_version": 2,
+                "api_version": 4,
                 "error": None,
                 "result": [{
                     "sessions": ["r-t-5746a8e38569a"],
@@ -491,7 +497,9 @@ class TestAResultsFromBZA(BZTestCase):
             'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
                 "api_version": 4,
                 "error": None,
-                "result": []},
+                "result": [{
+                    "labelName": "ALL", "99line": 1050, "90line": 836, "95line": 912}, {
+                    "labelName": "http://blazedemo.com", "99line": 1050, "90line": 836, "95line": 912}]},
             'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=1464248744&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
                 "api_version": 4,
                 "error": None,
@@ -503,40 +511,71 @@ class TestAResultsFromBZA(BZTestCase):
                         "n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
                         "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248744
                     }, {"n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
-                              "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248745}
-                             ]}]},
-            'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
+                        "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248745}]}]},
+            'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=1464248745&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
                 "api_version": 4,
                 "error": None,
-                "result": []}})
+                "result": [{
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "label": "ALL",
+                    "kpis": [{
+                        "n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
+                        "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248745}]}]}})
 
         obj = ResultsFromBZA()
         obj.master = Master(data={"id": 1})
         mock.apply(obj.master)
 
+        # set cumulative errors from BM
         mock.mock_get.update(self.get_errors_mock({'ALL': {"Not found": {"count": 10, "rc": "404"}}}))
-        for _ in range(2):
-            res = list(obj.datapoints(False))
-            self.assertEqual(1, len(res))
-            cumul = res[0][DataPoint.CUMULATIVE]
-            self.assertEqual(1, len(cumul.keys()))
-            errors = cumul[""]["errors"]
-            self.assertEqual(errors,
-                             [{'msg': 'Not found', 'cnt': 10, 'type': 0, 'urls': Counter(), 'rc': u'404'}])
+
+        # frame [0, 1464248744)
+        res1 = list(obj.datapoints(False))
+        self.assertEqual(1, len(res1))
+        cumul = res1[0][DataPoint.CUMULATIVE]
+        cur = res1[0][DataPoint.CURRENT]
+        self.assertEqual(1, len(cumul.keys()))
+        self.assertEqual(1, len(cur.keys()))
+        errors_1 = {'Not found': {'count': 10, 'rc': u'404'}}
+        self.assertEqual(self._convevert_kpi_errors(cumul[""]["errors"]), errors_1)     # all error data is written
+        self.assertEqual(self._convevert_kpi_errors(cur[""]["errors"]), errors_1)       # to 'current' and 'cumulative'
+
+        # frame [1464248744, 1464248745)
+        res2 = list(obj.datapoints(False))
+        self.assertEqual(1, len(res2))
+        cumul = res2[0][DataPoint.CUMULATIVE]
+        cur = res2[0][DataPoint.CURRENT]
+        self.assertEqual(1, len(cumul.keys()))
+        self.assertEqual(1, len(cur.keys()))
+        self.assertEqual(self._convevert_kpi_errors(cumul[""]["errors"]), errors_1)         # the same errors,
+        self.assertEqual(cur[""]["errors"], [])                 # new errors not found
 
         mock.mock_get.update(self.get_errors_mock({
             "ALL": {
                 "Not found": {
                     "count": 11, "rc": "404"},      # add 1 error
                 "Found": {
-                    "count": 2, "rc": "200"}},      # add new message (error id)
-            "label1:": {
+                    "count": 2, "rc": "200"}},      # add new message (error ID)
+            "label1": {
                 "Strange behaviour": {
                     "count": 666, "rc": "666"}}}))  # add new label
-        res = list(obj.datapoints(True))
-        cumul = res[0][DataPoint.CUMULATIVE]
+        res3 = list(obj.datapoints(True))    # let's add the last timestamp [1464248745]
+        self.assertEqual(1, len(res3))
+        cumul = res3[0][DataPoint.CUMULATIVE]
+        cur = res3[0][DataPoint.CURRENT]
+        errors_all_full = {
+            'Not found': {'count': 11, 'rc': '404'},
+            'Found': {'count': 2, 'rc': '200'}}
+        errors_all_update = {
+            'Not found': {'count': 1, 'rc': '404'},
+            'Found': {'count': 2, 'rc': '200'}}
 
-
+        errors_label1 = {'Strange behaviour': {'count': 666, 'rc': '666'}}
+        self.assertEqual(errors_label1, self._convevert_kpi_errors(cumul["label1"]["errors"]))
+        self.assertEqual(errors_all_full, self._convevert_kpi_errors(cumul[""]["errors"]))
+        self.assertEqual(errors_label1, self._convevert_kpi_errors(cur["label1"]["errors"]))
+        self.assertEqual(errors_all_update, self._convevert_kpi_errors(cur[""]["errors"]))
 
     def test_datapoint(self):
         mock = BZMock()
