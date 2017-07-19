@@ -28,7 +28,7 @@ try:
 except ImportError:
     from pyvirtualdisplay import Display
 
-from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
+from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException, ManualShutdown
 from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
@@ -65,6 +65,9 @@ class InstallChecker(Service, Singletone):
         for mod_name in modules.keys():
             try:
                 self._check_module(mod_name)
+            except KeyboardInterrupt:
+                self.log.warning("Stopping tool installation")
+                raise ManualShutdown("Tool installation was interrupted manually")
             except BaseException as exc:
                 self.log.error("Failed to instantiate module %s", mod_name)
                 self.log.debug("%s", get_stacktrace(exc))
