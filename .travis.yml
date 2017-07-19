@@ -15,7 +15,7 @@ matrix:
 #    language: generic
 
 addons:
-  firefox: "54.0"
+  firefox: "51.0.1"
   apt:
     packages:
       - oracle-java8-set-default
