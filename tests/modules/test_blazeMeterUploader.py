@@ -450,8 +450,7 @@ class TestResultsFromBZA(BZTestCase):
         assertions_list = []
         if not assertions:
             assertions = {}
-        for _id in list(errors.keys()) + list(assertions.keys()):
-
+        for _id in list(set(list(errors.keys()) + list(assertions.keys()))):    # unique keys from both dictionaries
             if errors.get(_id):
                 errors_list = []
                 for msg in errors[_id]:
