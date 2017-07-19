@@ -434,104 +434,98 @@ def dummy_urlopen(*args, **kwargs):
     return DummyHttpResponse()
 
 
-class TestResultsFromBZA(BZTestCase):
-    def test_datapoint(self):
+class TestAResultsFromBZA(BZTestCase):
+    def test_adatapoint(self):
         mock = BZMock()
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {
                 "api_version": 2,
                 "error": None,
-                "result": [
-                    {
-                        "sessions": [
-                            "r-t-5746a8e38569a"
-                        ],
-                        "id": "ALL",
-                        "name": "ALL"
-                    },
-                    {
-                        "sessions": [
-                            "r-t-5746a8e38569a"
-                        ],
-                        "id": "e843ff89a5737891a10251cbb0db08e5",
-                        "name": "http://blazedemo.com/"
-                    }
-                ]
-            },
+                "result": [{
+                    "sessions": ["r-t-5746a8e38569a"],
+                    "id": "ALL",
+                    "name": "ALL"
+                }, {
+                    "sessions": ["r-t-5746a8e38569a"],
+                    "id": "e843ff89a5737891a10251cbb0db08e5",
+                    "name": "http://blazedemo.com/"}]},
             'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=0&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
                 "api_version": 2,
                 "error": None,
-                "result": [
-                    {
-                        "labelId": "ALL",
-                        "labelName": "ALL",
-                        "label": "ALL",
-                        "kpis": [
-                            {
-                                "n": 1,
-                                "na": 1,
-                                "ec": 0,
-                                "p90": 0,
-                                "t_avg": 817,
-                                "lt_avg": 82,
-                                "by_avg": 0,
-                                "n_avg": 1,
-                                "ec_avg": 0,
-                                "ts": 1464248743
-                            }
-                        ]
-                    }
-                ]
-            },
+                "result": [{
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "label": "ALL",
+                    "kpis": [{
+                        "n": 1,
+                        "na": 1,
+                        "ec": 0,
+                        "p90": 0,
+                        "t_avg": 817,
+                        "lt_avg": 82,
+                        "by_avg": 0,
+                        "n_avg": 1,
+                        "ec_avg": 0,
+                        "ts": 1464248743}]}]},
             'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
                 "api_version": 2,
                 "error": None,
-                "result": [
-                    {
-                        "labelId": "ALL",
-                        "labelName": "ALL",
-                        "samples": 152,
-                        "avgResponseTime": 786,
-                        "90line": 836,
-                        "95line": 912,
-                        "99line": 1050,
-                        "minResponseTime": 531,
-                        "maxResponseTime": 1148,
-                        "avgLatency": 81,
-                        "geoMeanResponseTime": None,
-                        "stDev": 108,
-                        "duration": 119,
-                        "avgBytes": 0,
-                        "avgThroughput": 1.2773109243697,
-                        "medianResponseTime": 0,
-                        "errorsCount": 0,
-                        "errorsRate": 0,
-                        "hasLabelPassedThresholds": None
-                    },
-                    {
-                        "labelId": "e843ff89a5737891a10251cbb0db08e5",
-                        "labelName": "http://blazedemo.com/",
-                        "samples": 152,
-                        "avgResponseTime": 786,
-                        "90line": 836,
-                        "95line": 912,
-                        "99line": 1050,
-                        "minResponseTime": 531,
-                        "maxResponseTime": 1148,
-                        "avgLatency": 81,
-                        "geoMeanResponseTime": None,
-                        "stDev": 108,
-                        "duration": 119,
-                        "avgBytes": 0,
-                        "avgThroughput": 1.2773109243697,
-                        "medianResponseTime": 0,
-                        "errorsCount": 0,
-                        "errorsRate": 0,
-                        "hasLabelPassedThresholds": None
-                    }
-                ]
-            }
-        })
+                "result": [{
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "samples": 152,
+                    "avgResponseTime": 786,
+                    "90line": 836,
+                    "95line": 912,
+                    "99line": 1050,
+                    "minResponseTime": 531,
+                    "maxResponseTime": 1148,
+                    "avgLatency": 81,
+                    "geoMeanResponseTime": None,
+                    "stDev": 108,
+                    "duration": 119,
+                    "avgBytes": 0,
+                    "avgThroughput": 1.2773109243697,
+                    "medianResponseTime": 0,
+                    "errorsCount": 0,
+                    "errorsRate": 0,
+                    "hasLabelPassedThresholds": None
+                }, {
+                    "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                    "labelName": "http://blazedemo.com/",
+                    "samples": 152,
+                    "avgResponseTime": 786,
+                    "90line": 836,
+                    "95line": 912,
+                    "99line": 1050,
+                    "minResponseTime": 531,
+                    "maxResponseTime": 1148,
+                    "avgLatency": 81,
+                    "geoMeanResponseTime": None,
+                    "stDev": 108,
+                    "duration": 119,
+                    "avgBytes": 0,
+                    "avgThroughput": 1.2773109243697,
+                    "medianResponseTime": 0,
+                    "errorsCount": 0,
+                    "errorsRate": 0,
+                    "hasLabelPassedThresholds": None}]},
+            "https://a.blazemeter.com/api/v4/masters/1/reports/errorsreport/data?noDataError=false": {
+                "api_version": 4,
+                "error": None,
+                "result": [{
+                    "_id": "ALL",
+                    "name": "ALL",
+                    "samplesNotCounted": 0,
+                    "assertionsNotCounted": 0,
+                    "otherErrorsCount": 0,
+                    "failedEmbeddedResourcesSpilloverCount": 0,
+                    "url": None,
+                    "empty": False,
+                    "errors": [],
+                    "assertions": [],
+                    "failedEmbeddedResources": []
+                }]}})
 
         obj = ResultsFromBZA()
         obj.master = Master(data={"id": 1})
