@@ -119,7 +119,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
             return self.virtual_display_service.get_virtual_display()
 
     def _get_chromedriver_link(self):
-        settings = self.settings.get('selenium-tools').get('chromedriver')
+        settings = self.settings.get('chromedriver')
         link = settings.get('download-link', SeleniumExecutor.CHROMEDRIVER_DOWNLOAD_LINK)
         version = settings.get('version', SeleniumExecutor.CHROMEDRIVER_VERSION)
         if is_windows():
@@ -132,13 +132,13 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def _get_chromedriver_path(self):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        settings = self.settings.get('selenium-tools').get('chromedriver')
+        settings = self.settings.get('chromedriver')
         version = settings.get('version', SeleniumExecutor.CHROMEDRIVER_VERSION)
         filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
         return os.path.join(base_dir, 'chromedriver', version, filename)
 
     def _get_geckodriver_link(self):
-        settings = self.settings.get('selenium-tools').get('geckodriver')
+        settings = self.settings.get('geckodriver')
         link = settings.get('download-link', SeleniumExecutor.GECKODRIVER_DOWNLOAD_LINK)
         version = settings.get('version', SeleniumExecutor.GECKODRIVER_VERSION)
         if is_windows():
@@ -154,7 +154,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     def _get_geckodriver_path(self):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        settings = self.settings.get('selenium-tools').get('geckodriver')
+        settings = self.settings.get('geckodriver')
         version = settings.get('version', SeleniumExecutor.GECKODRIVER_VERSION)
         filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
         return os.path.join(base_dir, 'geckodriver', version, filename)
