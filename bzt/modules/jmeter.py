@@ -1061,7 +1061,7 @@ class FuncJTLReader(FunctionalResultsReader):
         super(FuncJTLReader, self).__init__()
         self.executor_label = "JMeter"
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.parser = etree.XMLPullParser(events=('end',))
+        self.parser = etree.XMLPullParser(events=('end',), recover=True)
         self.offset = 0
         self.filename = filename
         self.engine = engine
@@ -1320,7 +1320,7 @@ class IncrementalCSVReader(object):
             self.partial_buffer = ""
 
             if self.csv_reader is None:
-                dialect = guess_csv_dialect(line)
+                dialect = guess_csv_dialect(line, force_doublequote=True)  # TODO: configurable doublequoting?
                 self.csv_reader = csv.DictReader(self.buffer, [], dialect=dialect)
                 self.csv_reader.fieldnames += line.strip().split(self.csv_reader.dialect.delimiter)
                 self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)

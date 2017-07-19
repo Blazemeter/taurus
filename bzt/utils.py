@@ -551,15 +551,17 @@ def humanize_time(secs):
     return '%02d:%02d:%02d' % (hours, mins, secs)
 
 
-def guess_csv_dialect(header):
+def guess_csv_dialect(header, force_doublequote=False):
     """ completely arbitrary fn to detect the delimiter
 
     :type header: str
     :rtype: csv.Dialect
     """
     possible_delims = ",;\t"
-
-    return csv.Sniffer().sniff(header, delimiters=possible_delims)
+    dialect = csv.Sniffer().sniff(header, delimiters=possible_delims)
+    if force_doublequote:
+        dialect.doublequote = True
+    return dialect
 
 
 def load_class(full_name):

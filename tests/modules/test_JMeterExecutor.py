@@ -2156,6 +2156,14 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNotNone(sample.extras)
         self.assertEqual(sample.extras["requestCookies"], {'hello': 'world', 'visited': 'yes'})
 
+    def test_functional_reader_extract(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../resources/jmeter/jtl/crash_trace.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertNotEqual(len(samples), 0)
+
     def test_jsr223_block(self):
         script = __dir__() + "/../resources/jmeter/jsr223_script.js"
         self.configure({
@@ -2480,6 +2488,11 @@ class TestJMeterExecutor(BZTestCase):
         ip_source = xml_tree.find(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.ipSource']")
         self.assertIsNotNone(ip_source)
         self.assertIsNotNone(ip_source.text)
+
+    def test_jtl_doublequoting(self):
+        obj = JTLReader(__dir__() + "/../resources/jmeter/jtl/doublequoting.jtl", logging.getLogger(), None)
+        for datapoint in obj.datapoints(True):
+            pass
 
 
 class TestJMX(BZTestCase):
