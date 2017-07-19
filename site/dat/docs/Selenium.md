@@ -103,6 +103,32 @@ reporting:
 
 Selenium executor supports building test script from the `requests` option of `scenario`. Look at [Nose executor manual page](Nose.md#Request-Scenario) for more information. 
 
+## Automatic Installation of Web Driver
+
+By default, Taurus will download ChromeDriver and GeckoDriver and put them in PATH when running tests.
+
+You can configure this behaviour with the following options:
+```yaml
+execution:
+- executor: selenium
+  iterations: 1
+  scenario: simple
+  
+scenarios:
+  simple:
+    requests:
+    - http://blazedemo.com/
+
+modules:
+  selenium:
+    chromedriver:
+      version: 2.30
+      download-link: https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip
+    geckodriver:
+      version: 0.17.0
+      download-link: https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}
+```
+
 ## Using Virtual Display on Linux
 
 If you want to run headless tests on Linux using virtual framebuffer (Xvfb), you can tell Taurus to run virtual
