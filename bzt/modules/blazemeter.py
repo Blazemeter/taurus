@@ -1630,18 +1630,20 @@ class ResultsFromBZA(ResultsProvider):
         for label in self.cur_errors:
             if label not in self.prev_errors:
                 diff[label] = self.cur_errors[label]
-            else:
-                for msg in self.cur_errors[label]:
-                    if msg not in self.prev_errors[label]:
-                        if label not in diff:
-                            diff[label] = {}
-                        diff[label][msg] = self.cur_errors[label][msg]
-                    else:
-                        delta = self.cur_errors[label][msg]['count'] - self.prev_errors[label][msg]['count']
-                        if delta > 0:
-                            if label not in diff:
-                                diff[label] = {}
-                            diff[label][msg] = {'count': delta, 'rc': self.cur_errors[label][msg]['rc']}
+                continue
+
+            for msg in self.cur_errors[label]:
+                if msg not in self.prev_errors[label]:
+                    prev_count = 0
+                else:
+                    prev_count = self.prev_errors[label][msg]['count']
+
+                delta = self.cur_errors[label][msg]['count'] - prev_count
+                if delta > 0:
+                    if label not in diff:
+                        diff[label] = {}
+                    diff[label][msg] = {'count': delta, 'rc': self.cur_errors[label][msg]['rc']}
+
         return diff
 
     def _calculate_datapoints(self, final_pass=False):
