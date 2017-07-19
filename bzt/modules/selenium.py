@@ -64,7 +64,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
     GECKODRIVER_DOWNLOAD_LINK = "https://github.com/mozilla/geckodriver/releases/download/v{version}/" \
                                 "geckodriver-v{version}-{arch}.{ext}"
-    GECKODRIVER_VERSION = "0.18.0"
+    GECKODRIVER_VERSION = "0.17.0"
 
     SELENIUM_TOOLS_DIR = get_full_path("~/.bzt/selenium-taurus/tools")
 
