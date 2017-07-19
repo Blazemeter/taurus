@@ -1622,7 +1622,7 @@ class ResultsFromBZA(ResultsProvider):
         self.log = logging.getLogger('')
         self.prev_errors = BetterDict()
         self.cur_errors = BetterDict()
-        self.treat_errors = True
+        self.handle_errors = True
 
     def _get_err_diff(self):
         # find diff of self.prev_errors and self.cur_errors
@@ -1662,7 +1662,7 @@ class ResultsFromBZA(ResultsProvider):
             if label.get('label') == 'ALL':
                 timestamps.extend([kpi['ts'] for kpi in label.get('kpis', [])])
 
-        self.treat_errors = True
+        self.handle_errors = True
 
         for tstmp in timestamps:
             point = DataPoint(tstmp)
@@ -1678,8 +1678,8 @@ class ResultsFromBZA(ResultsProvider):
                     kpiset = self.__get_kpiset(aggr, kpi, label_str)
                     point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
-            if self.treat_errors:
-                self.treat_errors = False
+            if self.handle_errors:
+                self.handle_errors = False
                 self.cur_errors = self.__get_errors_from_BZA()
                 err_diff = self._get_err_diff()
                 if err_diff:
@@ -1721,7 +1721,8 @@ class ResultsFromBZA(ResultsProvider):
             result[_id] = {}
             for error in e_record['errors']:
                 result[_id][error['m']] = {'count': error['count'], 'rc': error['rc']}
-
+            for assertion in e_record['assertions']:
+                result[_id][assertion['failureMessage']] = {'count': assertion['failures'], 'rc': assertion['name']}
         return result
 
     def __get_kpi_errors(self, errors):

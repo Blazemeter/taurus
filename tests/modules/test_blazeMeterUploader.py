@@ -434,29 +434,43 @@ def dummy_urlopen(*args, **kwargs):
     return DummyHttpResponse()
 
 
-class TestAResultsFromBZA(BZTestCase):
+class TestResultsFromBZA(BZTestCase):
     @staticmethod
-    def _convevert_kpi_errors(errors):
+    def convert_kpi_errors(errors):
         result = {}
         for error in errors:
             result[error['msg']] = {'count': error['cnt'], 'rc': error['rc']}
         return result
 
     @staticmethod
-    def get_errors_mock(errors):
+    def get_errors_mock(errors, assertions=None):
         # return mock of server response for errors specified in internal format (see __get_errors_from_BZA())
         result = []
-        for _id in errors:
-            errors_list = []
-            for msg in errors[_id]:
-                errors_list.append({
-                    "m": msg,
-                    "count": errors[_id][msg]["count"],
-                    "rc": errors[_id][msg]["rc"]})
+        errors_list = []
+        assertions_list = []
+        if not assertions:
+            assertions = {}
+        for _id in errors.keys() + assertions.keys():
+
+            if errors.get(_id):
+                errors_list = []
+                for msg in errors[_id]:
+                    errors_list.append({
+                        "m": msg,
+                        "count": errors[_id][msg]["count"],
+                        "rc": errors[_id][msg]["rc"]})
+            if assertions.get(_id):
+                assertions_list = []
+                for msg in assertions[_id]:
+                    assertions_list.append({
+                        "failureMessage": msg,
+                        "failures": assertions[_id][msg]["count"],
+                        "name": "All Assertions"})
+
             result.append({
                 "_id": _id,
                 "name": _id,
-                "assertions": [],
+                "assertions": assertions_list,
                 "samplesNotCounted": 0,
                 "assertionsNotCounted": 0,
                 "otherErrorsCount": 0,
@@ -468,7 +482,7 @@ class TestAResultsFromBZA(BZTestCase):
                 "error": None,
                 "result": result}}
 
-    def test_a_get_errors(self):
+    def test_get_errors(self):
         mock = BZMock()
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {
@@ -538,8 +552,8 @@ class TestAResultsFromBZA(BZTestCase):
         self.assertEqual(1, len(cumul.keys()))
         self.assertEqual(1, len(cur.keys()))
         errors_1 = {'Not found': {'count': 10, 'rc': u'404'}}
-        self.assertEqual(self._convevert_kpi_errors(cumul[""]["errors"]), errors_1)     # all error data is written
-        self.assertEqual(self._convevert_kpi_errors(cur[""]["errors"]), errors_1)       # to 'current' and 'cumulative'
+        self.assertEqual(self.convert_kpi_errors(cumul[""]["errors"]), errors_1)     # all error data is written
+        self.assertEqual(self.convert_kpi_errors(cur[""]["errors"]), errors_1)       # to 'current' and 'cumulative'
 
         # frame [1464248744, 1464248745)
         res2 = list(obj.datapoints(False))
@@ -548,34 +562,38 @@ class TestAResultsFromBZA(BZTestCase):
         cur = res2[0][DataPoint.CURRENT]
         self.assertEqual(1, len(cumul.keys()))
         self.assertEqual(1, len(cur.keys()))
-        self.assertEqual(self._convevert_kpi_errors(cumul[""]["errors"]), errors_1)         # the same errors,
-        self.assertEqual(cur[""]["errors"], [])                 # new errors not found
+        self.assertEqual(self.convert_kpi_errors(cumul[""]["errors"]), errors_1)    # the same errors,
+        self.assertEqual(cur[""]["errors"], [])                                     # new errors not found
 
         mock.mock_get.update(self.get_errors_mock({
             "ALL": {
                 "Not found": {
-                    "count": 11, "rc": "404"},      # add 1 error
+                    "count": 11, "rc": "404"},          # one more error
                 "Found": {
-                    "count": 2, "rc": "200"}},      # add new message (error ID)
+                    "count": 2, "rc": "200"}},          # new error message (error ID)
             "label1": {
                 "Strange behaviour": {
-                    "count": 666, "rc": "666"}}}))  # add new label
+                    "count": 666, "rc": "666"}}}, {     # new error label
+            "ALL": {"assertion_example": {"count": 33}}}))
+
         res3 = list(obj.datapoints(True))    # let's add the last timestamp [1464248745]
         self.assertEqual(1, len(res3))
         cumul = res3[0][DataPoint.CUMULATIVE]
         cur = res3[0][DataPoint.CURRENT]
         errors_all_full = {
             'Not found': {'count': 11, 'rc': '404'},
-            'Found': {'count': 2, 'rc': '200'}}
+            'Found': {'count': 2, 'rc': '200'},
+            'assertion_example': {'count': 33, 'rc': 'All Assertions'}}
         errors_all_update = {
             'Not found': {'count': 1, 'rc': '404'},
-            'Found': {'count': 2, 'rc': '200'}}
+            'Found': {'count': 2, 'rc': '200'},
+            'assertion_example': {'count': 33, 'rc': 'All Assertions'}}
 
         errors_label1 = {'Strange behaviour': {'count': 666, 'rc': '666'}}
-        self.assertEqual(errors_label1, self._convevert_kpi_errors(cumul["label1"]["errors"]))
-        self.assertEqual(errors_all_full, self._convevert_kpi_errors(cumul[""]["errors"]))
-        self.assertEqual(errors_label1, self._convevert_kpi_errors(cur["label1"]["errors"]))
-        self.assertEqual(errors_all_update, self._convevert_kpi_errors(cur[""]["errors"]))
+        self.assertEqual(errors_label1, self.convert_kpi_errors(cumul["label1"]["errors"]))
+        self.assertEqual(errors_all_full, self.convert_kpi_errors(cumul[""]["errors"]))
+        self.assertEqual(errors_label1, self.convert_kpi_errors(cur["label1"]["errors"]))
+        self.assertEqual(errors_all_update, self.convert_kpi_errors(cur[""]["errors"]))
 
     def test_datapoint(self):
         mock = BZMock()
