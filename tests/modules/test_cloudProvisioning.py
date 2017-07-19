@@ -961,9 +961,9 @@ class TestCloudProvisioning(BZTestCase):
                             "errorsCount": 0,
                             "errorsRate": 0,
                             "hasLabelPassedThresholds": None
-                        }]}
-            }
-        )
+                        }]},
+                'https://a.blazemeter.com/api/v4/masters/1/reports/errorsreport/data?noDataError=false': {
+                    'result': []}})
 
         self.obj.settings["check-interval"] = "1s"
 
@@ -980,7 +980,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.results_reader.min_ts = 0  # to make it request same URL
         self.obj.engine.aggregator.check()
 
-        self.assertEqual(22, len(self.mock.requests))
+        self.assertEqual(24, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()
@@ -1199,8 +1199,9 @@ class TestResultsFromBZA(BZTestCase):
                         "errorsCount": 0,
                         "errorsRate": 0,
                         "hasLabelPassedThresholds": None
-                    }]}
-        })
+                    }]},
+            'https://a.blazemeter.com/api/v4/masters/1/reports/errorsreport/data?noDataError=false': {
+                'result': []}})
 
         obj = ResultsFromBZA()
         obj.master = Master(data={'id': 1})
