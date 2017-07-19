@@ -66,8 +66,7 @@ class InstallChecker(Service, Singletone):
             try:
                 self._check_module(mod_name)
             except KeyboardInterrupt:
-                self.log.warning("Stopping tool installation")
-                raise ManualShutdown("Tool installation was interrupted manually")
+                raise  # let the engine handle it
             except BaseException as exc:
                 self.log.error("Failed to instantiate module %s", mod_name)
                 self.log.debug("%s", get_stacktrace(exc))
