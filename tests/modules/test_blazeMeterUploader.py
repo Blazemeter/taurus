@@ -450,7 +450,7 @@ class TestResultsFromBZA(BZTestCase):
         assertions_list = []
         if not assertions:
             assertions = {}
-        for _id in errors.keys() + assertions.keys():
+        for _id in list(errors.keys()) + list(assertions.keys()):
 
             if errors.get(_id):
                 errors_list = []
