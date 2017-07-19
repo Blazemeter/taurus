@@ -5,6 +5,7 @@ import os
 import shutil
 import time
 from io import BytesIO
+from collections import Counter
 
 from bzt import TaurusException
 from bzt.bza import Master, Session
@@ -435,7 +436,109 @@ def dummy_urlopen(*args, **kwargs):
 
 
 class TestAResultsFromBZA(BZTestCase):
-    def test_adatapoint(self):
+    @staticmethod
+    def get_errors_mock(errors):
+        # return mock of server response for errors specified in internal format (see __get_errors_from_BZA())
+        result = []
+        for _id in errors:
+            errors_list = []
+            for msg in errors[_id]:
+                errors_list.append({
+                    "m": msg,
+                    "count": errors[_id][msg]["count"],
+                    "rc": errors[_id][msg]["rc"]})
+            result.append({
+                "_id": _id,
+                "name": _id,
+                "assertions": [],
+                "samplesNotCounted": 0,
+                "assertionsNotCounted": 0,
+                "otherErrorsCount": 0,
+                "errors": errors_list})
+
+        return {
+            "https://a.blazemeter.com/api/v4/masters/1/reports/errorsreport/data?noDataError=false": {
+                "api_version": 4,
+                "error": None,
+                "result": result}}
+
+    def test_a_get_errors(self):
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {
+                "api_version": 2,
+                "error": None,
+                "result": [{
+                    "sessions": ["r-t-5746a8e38569a"],
+                    "id": "ALL",
+                    "name": "ALL"
+                }, {
+                    "sessions": ["r-t-5746a8e38569a"],
+                    "id": "e843ff89a5737891a10251cbb0db08e5",
+                    "name": "http://blazedemo.com/"}]},
+            'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=0&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                "api_version": 4,
+                "error": None,
+                "result": [{
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "label": "ALL",
+                    "kpis": [{
+                        "n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
+                        "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248743
+                    }, {"n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
+                        "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248744}]}]},
+            'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
+                "api_version": 4,
+                "error": None,
+                "result": []},
+            'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=1464248744&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                "api_version": 4,
+                "error": None,
+                "result": [{
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "label": "ALL",
+                    "kpis": [{
+                        "n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
+                        "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248744
+                    }, {"n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
+                              "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248745}
+                             ]}]},
+            'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
+                "api_version": 4,
+                "error": None,
+                "result": []}})
+
+        obj = ResultsFromBZA()
+        obj.master = Master(data={"id": 1})
+        mock.apply(obj.master)
+
+        mock.mock_get.update(self.get_errors_mock({'ALL': {"Not found": {"count": 10, "rc": "404"}}}))
+        for _ in range(2):
+            res = list(obj.datapoints(False))
+            self.assertEqual(1, len(res))
+            cumul = res[0][DataPoint.CUMULATIVE]
+            self.assertEqual(1, len(cumul.keys()))
+            errors = cumul[""]["errors"]
+            self.assertEqual(errors,
+                             [{'msg': 'Not found', 'cnt': 10, 'type': 0, 'urls': Counter(), 'rc': u'404'}])
+
+        mock.mock_get.update(self.get_errors_mock({
+            "ALL": {
+                "Not found": {
+                    "count": 11, "rc": "404"},      # add 1 error
+                "Found": {
+                    "count": 2, "rc": "200"}},      # add new message (error id)
+            "label1:": {
+                "Strange behaviour": {
+                    "count": 666, "rc": "666"}}}))  # add new label
+        res = list(obj.datapoints(True))
+        cumul = res[0][DataPoint.CUMULATIVE]
+
+
+
+    def test_datapoint(self):
         mock = BZMock()
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {
@@ -509,23 +612,9 @@ class TestAResultsFromBZA(BZTestCase):
                     "medianResponseTime": 0,
                     "errorsCount": 0,
                     "errorsRate": 0,
-                    "hasLabelPassedThresholds": None}]},
-            "https://a.blazemeter.com/api/v4/masters/1/reports/errorsreport/data?noDataError=false": {
-                "api_version": 4,
-                "error": None,
-                "result": [{
-                    "_id": "ALL",
-                    "name": "ALL",
-                    "samplesNotCounted": 0,
-                    "assertionsNotCounted": 0,
-                    "otherErrorsCount": 0,
-                    "failedEmbeddedResourcesSpilloverCount": 0,
-                    "url": None,
-                    "empty": False,
-                    "errors": [],
-                    "assertions": [],
-                    "failedEmbeddedResources": []
-                }]}})
+                    "hasLabelPassedThresholds": None}]}})
+
+        mock.mock_get.update(self.get_errors_mock({"ALL": {}}))
 
         obj = ResultsFromBZA()
         obj.master = Master(data={"id": 1})
