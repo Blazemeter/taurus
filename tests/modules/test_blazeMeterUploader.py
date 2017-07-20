@@ -446,20 +446,20 @@ class TestResultsFromBZA(BZTestCase):
     def get_errors_mock(errors, assertions=None):
         # return mock of server response for errors specified in internal format (see __get_errors_from_BZA())
         result = []
-        errors_list = []
-        assertions_list = []
         if not assertions:
             assertions = {}
         for _id in list(set(list(errors.keys()) + list(assertions.keys()))):    # unique keys from both dictionaries
+
+            errors_list = []
             if errors.get(_id):
-                errors_list = []
                 for msg in errors[_id]:
                     errors_list.append({
                         "m": msg,
                         "count": errors[_id][msg]["count"],
                         "rc": errors[_id][msg]["rc"]})
+
+            assertions_list = []
             if assertions.get(_id):
-                assertions_list = []
                 for msg in assertions[_id]:
                     assertions_list.append({
                         "failureMessage": msg,
@@ -474,7 +474,6 @@ class TestResultsFromBZA(BZTestCase):
                 "assertionsNotCounted": 0,
                 "otherErrorsCount": 0,
                 "errors": errors_list})
-
         return {
             "https://a.blazemeter.com/api/v4/masters/1/reports/errorsreport/data?noDataError=false": {
                 "api_version": 4,
