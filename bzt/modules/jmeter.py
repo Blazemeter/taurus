@@ -1980,7 +1980,7 @@ class JMeter(RequiredTool):
         self.mirror_manager = JMeterMirrorsManager(self.log, self.version)
         self.plugins = plugins
         self.proxy_settings = proxy
-        self.tool_path=self.tool_path.format(version=self.version)
+        self.tool_path = self.tool_path.format(version=self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
@@ -2103,6 +2103,19 @@ class JMeter(RequiredTool):
 
         cleaner = JarCleaner(self.log)
         cleaner.clean(os.path.join(dest, 'lib'))
+
+    def concurrent_thread_group_installed(self):
+        """
+        Simple check if ConcurrentThreadGroup is available
+        :return:
+        """
+        ext_dir = os.path.join(self.tool_path, 'lib', 'ext')
+        if os.path.isdir(ext_dir):
+            list_of_jars = [file_name for file_name in os.listdir(ext_dir) if file_name.endswith('.jar')]
+            if any([file_name.startswith('jmeter-plugins-casutg') for file_name in list_of_jars]):
+                return True
+
+        return False
 
 
 class JarCleaner(object):
