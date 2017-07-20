@@ -379,7 +379,7 @@ class DataPoint(BetterDict):
         for val in self[self.CUMULATIVE].values():
             val.recalculate()
 
-    def merge_point(self, src):
+    def merge_point(self, src, do_recalculate=True):
         """
 
         :type src: DataPoint
@@ -393,7 +393,8 @@ class DataPoint(BetterDict):
         self.__merge_kpis(src[self.CURRENT], self[self.CURRENT], src[DataPoint.SOURCE_ID])
         self.__merge_kpis(src[self.CUMULATIVE], self[self.CUMULATIVE], src[DataPoint.SOURCE_ID])
 
-        self.recalculate()
+        if do_recalculate:
+            self.recalculate()
 
 
 class ResultsProvider(object):
