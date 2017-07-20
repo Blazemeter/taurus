@@ -480,10 +480,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                     self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
                     group_concurrency = JMeterExecutor.__get_concurrency_from_tg(group)
                     on_error = JMeterExecutor.__get_tg_action_on_error(group)
-                    if group_concurrency:
-                        new_group = JMX.get_thread_group(group_concurrency, 0, -1, testname, on_error)
-                    else:
-                        new_group = JMX.get_thread_group(1, 0, -1, testname, on_error)
+
+                    new_group = JMX.get_thread_group(
+                        concurrency=group_concurrency,
+                        iterations=-1,
+                        testname=testname,
+                        on_error=on_error)
+
                     group.getparent().replace(group, new_group)
 
     @staticmethod
@@ -1893,7 +1896,7 @@ class JMeterScenarioBuilder(JMX):
         Generate the test plan
         """
 
-        thread_group = self.get_thread_group(concurrency=1, rampup=0, iterations=-1, testname=self.executor.label)
+        thread_group = self.get_thread_group(iterations=-1, testname=self.executor.label)
         thread_group_ht = etree.Element("hashTree", type="tg")
 
         # NOTE: set realistic dns-cache and JVM prop by default?
