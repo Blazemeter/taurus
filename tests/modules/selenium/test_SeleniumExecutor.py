@@ -252,6 +252,11 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEqual(len(own_resources), 2)
         self.assertEqual(len(all_resources), 3)
 
+    def test_add_env_path(self):
+        self.obj.add_env({"PATH": os.pathsep.join(["foo", "bar"])})
+        self.obj.add_env({"PATH": os.pathsep.join(["bar", "baz"])})
+        self.assertEqual(self.obj.additional_env, {"PATH": os.pathsep.join(["foo", "bar", "baz"])})
+
 
 class TestReportReader(BZTestCase):
     def test_report_reader(self):

@@ -1,6 +1,6 @@
 # How to Easily Run Taurus with Bamboo
 
-_By: Iurii Bushnev, May 2017_
+_By: Yuri Bushnev, May 2017_
 
 ## Why Use Taurus with CI tools
 

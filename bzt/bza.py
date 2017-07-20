@@ -79,7 +79,7 @@ class BZAObject(dict):
         if isinstance(data, text_type):
             data = data.encode("utf8")
 
-        if isinstance(data, dict):
+        if isinstance(data, (dict, list)):
             data = to_json(data)
             headers["Content-Type"] = "application/json"
 
@@ -98,8 +98,7 @@ class BZAObject(dict):
                 result = json.loads(resp) if len(resp) else {}
                 if 'error' in result and result['error']:
                     raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
-            except ValueError as exc:
-
+            except ValueError:
                 raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
 
         if raw_result:

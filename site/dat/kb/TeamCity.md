@@ -1,10 +1,10 @@
 # Running Taurus with TeamCity
 
-_By: Iurii Bushnev, June 2017_
+_By: Yuri Bushnev, June 2017_
 
 Taurus is an open source framework for performance tests automation. It can be used to run scripts from scratch as well as allows to run tests from other open source tools. These include [JMeter](http://jmeter.apache.org/), [Gatling](http://gatling.io/), [Selenium](http://www.seleniumhq.org/) or [Locust](http://locust.io/). 
 
-Taurus simplifies use of existing automation tools and provides a user-friendly and convenient "wrapper". One of Taurus's main strengths is that it can be integrated with any [continuous integration (CI)](https://www.blazemeter.com/jenkins?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-teamcity) servers in just a few steps. Using CI servers helps us automate test execution and avoid the routine actions if running our scripts again and again. 
+Taurus simplifies use of existing automation tools and provides a user-friendly and convenient "wrapper". One of Taurus's main strengths is that it can be integrated with any [continuous integration](https://www.blazemeter.com/jenkins?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-teamcity) servers in just a few steps. Using CI servers helps us automate test execution and avoid the routine actions if running our scripts again and again. 
 
 In this article we are going to find out how we can easily run our Taurus performance script in the TeamCity continuous integration server. You can also find tutorials for other CI solutions: [Jenkins](Jenkins) and [Bamboo](Bamboo) on the Taurus website.
 
@@ -34,13 +34,13 @@ Taurus scripts can be written using JSON or YAML formats. As you can see, it is 
   
 If you have already installed the Taurus framework (installation steps can be found [here](../docs/Installation)) then the existing script can be easily run by this command:
 
-```
+```bash
 bzt [path to the script]
 ```
 
 Let’s save our created script as ‘BlazeDemoTest.yml’ and run the command:
 
-```
+```bash
 bzt /Users/BlazeMeter/tests/BlazeDemoTest.yml
 ```
 
