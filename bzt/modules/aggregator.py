@@ -24,7 +24,6 @@ from abc import abstractmethod
 from collections import Counter
 
 from bzt import TaurusInternalException, TaurusConfigError
-
 from bzt.engine import Aggregator
 from bzt.six import iteritems
 from bzt.utils import BetterDict, dehumanize_time
@@ -229,7 +228,7 @@ class KPISet(BetterDict):
         :type src: KPISet
         :return:
         """
-        src.recalculate()
+        src.recalculate() # TODO: could be not resource efficient strat
 
         self.sum_cn += src.sum_cn
         self.sum_lt += src.sum_lt
@@ -260,7 +259,6 @@ class KPISet(BetterDict):
     @staticmethod
     def from_dict(obj):
         """
-
         :type obj: dict
         :rtype: KPISet
         """

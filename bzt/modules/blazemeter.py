@@ -730,7 +730,7 @@ class DatapointSerializer(object):
             for dpoint in data_buffer:
                 time_stamp = dpoint[DataPoint.TIMESTAMP]
                 for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
-                    exc = TaurusInternalException('Cumulative KPISet non-consistent')
+                    exc = TaurusInternalException('Cumulative KPISet is non-consistent')
                     report_item = report_items.get(label, exc)
                     report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
