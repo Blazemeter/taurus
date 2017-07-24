@@ -1573,19 +1573,18 @@ class ThreadGroupProcessor:
         :return:
         """
         for group in self._enabled_thread_groups(jmx, exclude=[self.tg]):
-            if group.tag != 'ThreadGroup':
-                testname = group.get('testname')
-                self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
-                group_concurrency = ThreadGroupProcessor._get_concurrency_from_tg(group)
-                on_error = ThreadGroupProcessor._get_tg_action_on_error(group)
+            testname = group.get('testname')
+            self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
+            group_concurrency = ThreadGroupProcessor._get_concurrency_from_tg(group)
+            on_error = ThreadGroupProcessor._get_tg_action_on_error(group)
 
-                new_group = JMX.get_thread_group(
-                    concurrency=group_concurrency,
-                    iterations=-1,
-                    testname=testname,
-                    on_error=on_error)
+            new_group = JMX.get_thread_group(
+                concurrency=group_concurrency,
+                iterations=-1,
+                testname=testname,
+                on_error=on_error)
 
-                group.getparent().replace(group, new_group)
+            group.getparent().replace(group, new_group)
 
     @staticmethod
     def _get_concurrency_from_tg(thread_group):
