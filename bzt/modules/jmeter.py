@@ -1336,6 +1336,7 @@ class JTLErrorsReader(object):
                 return child.text
 
 
+# todo: join with JMeterScenarioBuilder?
 class ThreadGroupProcessor:
     THREAD_GROUPS = {'TG': 'jmeterTestPlan>hashTree>hashTree>ThreadGroup',
                      'STG': r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup',
@@ -1360,8 +1361,8 @@ class ThreadGroupProcessor:
             raise TaurusInternalException('You must set executor tool for choosing of Thread Group')
 
         if self.load.iterations or self.load.concurrency or self.load.duration:
-            if (not executor.settings.get('force_ctg', True) or
-                    (not executor.tool.ctg_pluting_installed) or  # todo: warning
+            if (not executor.settings.get('force_ctg', False) or    # todo: change with 'True'
+                    (not executor.tool.ctg_plugin_installed()) or  # todo: warning
                     (not self.load.duration) or
                     (self.load.duration and self.load.iterations)):
                 tg = 'TG'
@@ -1370,7 +1371,7 @@ class ThreadGroupProcessor:
         return tg
 
     def create(self, testname):
-        if self.tg == 'TG':
+        if self.tg is None or self.tg == 'TG':
             return JMX.get_thread_group(iterations=-1, testname=testname)
         elif self.tg == 'CTG':
             pass    # todo: provide concurrency_thread_group
@@ -1468,7 +1469,7 @@ class ThreadGroupProcessor:
         """
         rampup_sel = ".//*[@name='ThreadGroup.ramp_time']"
 
-        for group in self._enabled_thread_groups(jmx, include=[self.tg]):
+        for group in self._enabled_thread_groups(jmx):
             prop = group.find(rampup_sel)
             prop.text = str(int(self.load.ramp_up))
 
@@ -1499,7 +1500,7 @@ class ThreadGroupProcessor:
         flag_sel = "elementProp>[name='LoopController.continue_forever']"
         flag_xpath = GenericTranslator().css_to_xpath(flag_sel)
 
-        for group in self._enabled_thread_groups(jmx, include=[self.tg]):
+        for group in self._enabled_thread_groups(jmx):
             sprop = group.xpath(xpath)
             bprop = group.xpath(flag_xpath)
             bprop[0].text = 'false'
@@ -1516,7 +1517,7 @@ class ThreadGroupProcessor:
         dur_sel = "[name='ThreadGroup.duration']"
         dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
 
-        for group in jmx.enabled_thread_groups():
+        for group in self._enabled_thread_groups(jmx):
             group.xpath(sched_xpath)[0].text = 'true'
             group.xpath(dur_xpath)[0].text = str(int(self.load.duration))
             loops_element = group.find(".//elementProp[@name='ThreadGroup.main_controller']")
@@ -1532,7 +1533,7 @@ class ThreadGroupProcessor:
         tnum_sel = ".//*[@name='ThreadGroup.num_threads']"
 
         orig_sum = 0.0
-        for group in self._enabled_thread_groups(jmx, include=[self.tg]):
+        for group in self._enabled_thread_groups(jmx):
             othread = group.find(tnum_sel)
             try:
                 orig_sum += int(othread.text)
@@ -1541,7 +1542,7 @@ class ThreadGroupProcessor:
                 orig_sum += 1
         self.log.debug("Original threads: %s", orig_sum)
         leftover = self.load.concurrency
-        for group in self._enabled_thread_groups(jmx, include=[self.tg]):
+        for group in self._enabled_thread_groups(jmx):
             othread = group.find(tnum_sel)
             try:
                 orig = int(othread.text)
@@ -1605,12 +1606,13 @@ class ThreadGroupProcessor:
         """
         Get thread groups that are enabled
         """
-        if not (include or exclude) or (include and exclude):
+        if include and exclude:
             msg = 'Unacceptable params in enabled_thread_groups: include=%s, exclude=%s'
             raise TaurusInternalException(msg % (include, exclude))
-
-        if exclude:
+        elif exclude:
             include = list(set(list(self.THREAD_GROUPS.keys())) - set(exclude))
+        elif not include:   # both lists are empty, take preferred group by default
+            include = [self.tg]
 
         groups = [jmx.get(self.THREAD_GROUPS[key]) for key in include]
         tgroups = chain(*groups)
@@ -2192,7 +2194,7 @@ class JMeter(RequiredTool):
         Simple check if ConcurrentThreadGroup is available
         :return:
         """
-        ext_dir = os.path.join(self.tool_path, 'lib', 'ext')
+        ext_dir = os.path.join(get_full_path(self.tool_path, step_up=2), 'lib', 'ext')
         if os.path.isdir(ext_dir):
             list_of_jars = [file_name for file_name in os.listdir(ext_dir) if file_name.endswith('.jar')]
             if any([file_name.startswith('jmeter-plugins-casutg') for file_name in list_of_jars]):
