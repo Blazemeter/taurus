@@ -1423,7 +1423,8 @@ class ThreadGroupProcessor:
             jmx.add_rps_shaper_schedule(etree_shaper, 1, self.load.throughput, self.load.ramp_up)
 
         if self.load.hold:
-            jmx.add_rps_shaper_schedule(etree_shaper, self.load.throughput, self.load.throughput, self.load.hold)
+            load_val = "${__P(taurus.tst_hold,%s)}" % self.load.throughput
+            jmx.add_rps_shaper_schedule(etree_shaper, load_val, load_val, self.load.hold)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
