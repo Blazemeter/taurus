@@ -1355,39 +1355,44 @@ class ThreadGroupProcessor:
         :param executor:
         :return:
         """
-        tg = None
+        tg = 'TG'  # regular ThreadGroup
+        if not executor.settings.get('force_ctg', False):
+            return tg
 
-        if not executor.tool:
+        msg = 'Thread group detection: %s, use regular ThreadGroup'
+
+        if not self.load.duration:
+            self.log.debug(msg, 'duration not found')
+        elif self.load.ramp_up and self.load.hold and self.load.iterations:
+            self.log.debug(msg, 'hold-for, ramp-up and duration are found')
+        elif not executor.tool:
             raise TaurusInternalException('You must set executor tool for choosing of Thread Group')
+        elif not executor.tool.ctg_plugin_installed():
+            self.log.warning(msg % 'plugin for ConcurrentThreadGroup not found')
+        else:
+            tg = 'CTG'
 
-        if self.load.iterations or self.load.concurrency or self.load.duration:
-            if (not executor.settings.get('force_ctg', False) or    # todo: change with 'True'
-                    (not executor.tool.ctg_plugin_installed()) or  # todo: warning
-                    (not self.load.duration) or
-                    (self.load.duration and self.load.iterations)):
-                tg = 'TG'
-            else:
-                tg = 'CTG'
         return tg
 
     def create(self, testname):
-        if self.tg is None or self.tg == 'TG':
+        if self.tg == 'TG':
             return JMX.get_thread_group(iterations=-1, testname=testname)
         elif self.tg == 'CTG':
-            pass    # todo: provide concurrency_thread_group
+            return JMX.get_concurrency_thread_group(testname=testname)
         else:
             raise TaurusInternalException('Cannot create unsupported thread group: %s' % self.tg)
 
     def modify(self, jmx):
-        if not self.tg:
-            self.log.debug('Target thread group not found, modification is skipped')
+        if not (self.load.iterations or self.load.concurrency or self.load.duration):
+            self.log.debug('No iterations/concurrency/duration found, modification is skipped')
             return
+
         if self.tg == 'TG':
             self._modify_tg(jmx)
         elif self.tg == 'CTG':
             self._modify_ctg()
         else:
-            raise TaurusInternalException('Cannot create unsupported thread group: %s' % self.tg)
+            raise TaurusInternalException('Cannot modify unsupported thread group: %s' % self.tg)
 
     def _modify_tg(self, jmx):
         self._convert_to_normal_tg(jmx)

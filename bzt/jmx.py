@@ -558,33 +558,28 @@ class JMX(object):
         return udv_element
 
     @staticmethod
-    def get_stepping_thread_group(concurrency, step_threads, step_time, hold_for, tg_name):
+    def get_concurrency_thread_group(testname="ConcurrencyThreadGroup"):
         """
-        :return: etree element, Stepping Thread Group
+        :return: etree element, Concurrency Thread Group
         """
-        stepping_thread_group = etree.Element("kg.apc.jmeter.threads.SteppingThreadGroup",
-                                              guiclass="kg.apc.jmeter.threads.SteppingThreadGroupGui",
-                                              testclass="kg.apc.jmeter.threads.SteppingThreadGroup",
-                                              testname=tg_name, enabled="true")
-        stepping_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", "continue"))
-        stepping_thread_group.append(JMX._string_prop("ThreadGroup.num_threads", concurrency))
-        stepping_thread_group.append(JMX._string_prop("Threads initial delay", 0))
-        stepping_thread_group.append(JMX._string_prop("Start users count", step_threads))
-        stepping_thread_group.append(JMX._string_prop("Start users count burst", 0))
-        stepping_thread_group.append(JMX._string_prop("Start users period", step_time))
-        stepping_thread_group.append(JMX._string_prop("Stop users count", ""))
-        stepping_thread_group.append(JMX._string_prop("Stop users period", 1))
-        stepping_thread_group.append(JMX._string_prop("flighttime", int(hold_for)))
-        stepping_thread_group.append(JMX._string_prop("rampUp", 0))
+        name = 'com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup'
+        concurrency_thread_group = etree.Element(
+            name, guiclass=name + "Gui", testclass=name, testname=testname, enabled="true")
+        virtual_user_controller = etree.Element(
+            "elementProp",
+            name="ThreadGroup.main_controller",
+            elementType="com.blazemeter.jmeter.control.VirtualUserController")
+        concurrency_thread_group.append(virtual_user_controller)
+        concurrency_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", "continue"))
+        concurrency_thread_group.append(JMX._string_prop("TargetLevel", ""))
+        concurrency_thread_group.append(JMX._string_prop("RampUp", ""))
+        concurrency_thread_group.append(JMX._string_prop("Steps", ""))
+        concurrency_thread_group.append(JMX._string_prop("Hold", ""))
+        concurrency_thread_group.append(JMX._string_prop("LogFilename", ""))
+        concurrency_thread_group.append(JMX._string_prop("Iterations", ""))
+        concurrency_thread_group.append(JMX._string_prop("Unit", "S"))
 
-        loop_controller = etree.Element("elementProp", name="ThreadGroup.main_controller", elementType="LoopController",
-                                        guiclass="LoopControlPanel", testclass="LoopController",
-                                        testname="Loop Controller", enabled="true")
-        loop_controller.append(JMX._bool_prop("LoopController.continue_forever", False))
-        loop_controller.append(JMX.int_prop("LoopController.loops", -1))
-
-        stepping_thread_group.append(loop_controller)
-        return stepping_thread_group
+        return concurrency_thread_group
 
     @staticmethod
     def get_dns_cache_mgr():
