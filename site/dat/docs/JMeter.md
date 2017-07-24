@@ -680,6 +680,24 @@ changed to "BAZ".
 
 You can consider this block to be a syntactic sugar over JSR223 blocks, because that's exactly how it works.
 
+## User cookies
+Taurus allows you to set up some user cookies with follow syntax:
+```yaml
+scenarios:
+  little_cookies:
+    requests:
+    - http://blazedemo.com/login
+    - https://blazemeter.com/pricing
+    cookies:
+    - name: n0  # name of cookie, required
+      value: v0 # value of cookie, required
+      domain: blazedemo.com # hosts to which the cookie will be sent, required
+    - name: n1
+      value: v1
+      domain: blazemeter.com
+      path: /pricing  # must exist in the request for sending cookie
+      secure: true    # send only through https, optional, defalut: false
+```
 ## JMeter Test Log
 You can tune JTL file content with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max `full` logging can seriously load your system.
 ```yaml

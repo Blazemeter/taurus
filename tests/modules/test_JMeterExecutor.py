@@ -561,9 +561,40 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(1, len(shaper_elements))
         shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
-        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='49']").text)
-        self.assertEqual("100", shaper_coll_element.find(".//stringProp[@name='1567']").text)
+        self.assertEqual("${__P(taurus.tst_hold,100)}", shaper_coll_element.find(".//stringProp[@name='49']").text)
+        self.assertEqual("${__P(taurus.tst_hold,100)}", shaper_coll_element.find(".//stringProp[@name='1567']").text)
         self.assertEqual("60", shaper_coll_element.find(".//stringProp[@name='53']").text)
+
+    def test_add_cookies(self):
+        self.configure({'execution': {
+            'scenario': {
+                'cookies': [
+                    {"name": "n0", "value": "v0", "domain": "blazedemo.com"},
+                    {"name": "n1", "value": "v1", "domain": "blazemeter.com", "path": "/pricing", "secure": "true"}],
+                'requests': ['http://blazedemo.com', "http://blazemeter.com/pricing"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+
+        cookes_query = './/collectionProp[@name="CookieManager.cookies"]/elementProp'
+        cookies = xml_tree.findall(cookes_query)
+
+        self.assertEqual(2, len(cookies))
+        self.assertEqual('n0', cookies[0].attrib['name'])
+        self.assertEqual('v0', cookies[0].find('.//stringProp[@name="Cookie.value"]').text)
+        self.assertEqual('blazedemo.com', cookies[0].find('.//stringProp[@name="Cookie.domain"]').text)
+        self.assertIn(cookies[0].find('.//stringProp[@name="Cookie.path"]').text, ['', None])
+        self.assertEqual('false', cookies[0].find('.//boolProp[@name="Cookie.secure"]').text)
+        self.assertEqual('0', cookies[0].find('.//longProp[@name="Cookie.expires"]').text)
+        self.assertEqual('true', cookies[0].find('.//boolProp[@name="Cookie.path_specified"]').text)
+        self.assertEqual('true', cookies[0].find('.//boolProp[@name="Cookie.domain_specified"]').text)
+        self.assertEqual('n1', cookies[1].attrib['name'])
+        self.assertEqual('v1', cookies[1].find('.//stringProp[@name="Cookie.value"]').text)
+        self.assertEqual('blazemeter.com', cookies[1].find('.//stringProp[@name="Cookie.domain"]').text)
+        self.assertEqual('/pricing', cookies[1].find('.//stringProp[@name="Cookie.path"]').text)
+        self.assertEqual('true', cookies[1].find('.//boolProp[@name="Cookie.secure"]').text)
+        self.assertEqual('0', cookies[1].find('.//longProp[@name="Cookie.expires"]').text)
+        self.assertEqual('true', cookies[1].find('.//boolProp[@name="Cookie.path_specified"]').text)
+        self.assertEqual('true', cookies[1].find('.//boolProp[@name="Cookie.domain_specified"]').text)
 
     def test_add_shaper_ramp_up(self):
         self.configure(
@@ -581,8 +612,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[0].text)
         self.assertEqual("60", shaper_coll_element.findall(".//stringProp[@name='53']")[0].text)
 
-        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='49']")[1].text)
-        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[1].text)
+        self.assertEqual("${__P(taurus.tst_hold,10)}", shaper_coll_element.findall(".//stringProp[@name='49']")[1].text)
+        self.assertEqual("${__P(taurus.tst_hold,10)}", shaper_coll_element.findall(".//stringProp[@name='1567']")[1].text)
         self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
 
     def test_user_def_vars_from_requests(self):
@@ -591,6 +622,37 @@ class TestJMeterExecutor(BZTestCase):
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
         self.assertEqual(1, len(udv_elements))
+
+    def test_get_classpath_from_files(self):
+        res_dir = __dir__() + '/../resources/'
+        self.configure(
+            {'execution': {
+                'concurrency': 200,
+                'hold-for': '1m',
+                'files': [
+                    res_dir + 'selenium/junit/jar',
+                    res_dir + 'selenium/testng/jars/test-suite.jar'],
+                'scenario': {
+                    'properties': {'one': 'two', 'user.classpath': 'user_class_path'},
+                    'script': res_dir + 'jmeter/jmx/http.jmx'}}})
+        self.obj.prepare()
+
+        prop_file_path = os.path.join(self.obj.engine.artifacts_dir, "jmeter-bzt.properties")
+        self.assertTrue(os.path.exists(prop_file_path))
+        with open(prop_file_path) as prop_file:
+            contents = prop_file.readlines()
+        cp_lines = [line for line in contents if line.startswith('user.classpath')]
+        self.assertEqual(len(cp_lines), 1)
+        user_cp = cp_lines[0][len('user.classpath='): -1]
+        user_cp_elements = user_cp.split(os.pathsep)
+        self.assertEqual(len(user_cp_elements), 4)
+        targets = [self.obj.engine.artifacts_dir,
+                   self.obj.execution['files'][0],
+                   get_full_path(self.obj.execution['files'][1], step_up=1)]
+        targets = [get_full_path(target).replace(os.path.sep, '/') for target in targets]
+        targets.append(self.obj.get_scenario()['properties']['user.classpath'])
+
+        self.assertEqual(set(targets), set(user_cp_elements))
 
     def test_user_def_vars_override(self):
         self.configure(
@@ -1949,7 +2011,7 @@ class TestJMeterExecutor(BZTestCase):
         varnames = dataset.find('stringProp[@name="variableNames"]')
         self.assertEqual(varnames.text, "a,b,c")
 
-    def test_functional_mode_flag(self):
+    def test_func_mode_jmeter_2_13(self):
         self.obj.engine.aggregator.is_functional = True
         self.obj.execution.merge({
             'scenario': {
@@ -1958,12 +2020,34 @@ class TestJMeterExecutor(BZTestCase):
                 ],
             }
         })
-        self.obj.execution.merge(self.obj.engine.config)
+        self.obj.settings.merge({"version": "2.13"})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         functional_switch = xml_tree.find('.//TestPlan/boolProp[@name="TestPlan.functional_mode"]')
-        self.assertIsNotNone(functional_switch)
         self.assertEqual(functional_switch.text, "true")
+        connect_time_flag = xml_tree.find('.//ResultCollector/objProp/value/connectTime')
+        self.assertEqual(connect_time_flag.text, "true")
+        bytes_flag = xml_tree.find('.//ResultCollector/objProp/value/bytes')  # 'bytes' in JMeter 2.13
+        self.assertEqual(bytes_flag.text, "true")
+
+    def test_func_mode_jmeter_3_xx(self):
+        self.obj.engine.aggregator.is_functional = True
+        self.obj.execution.merge({
+            'scenario': {
+                "requests": [
+                    "http://example.com/",
+                ],
+            }
+        })
+        self.obj.settings.merge({"version": "3.2"})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        functional_switch = xml_tree.find('.//TestPlan/boolProp[@name="TestPlan.functional_mode"]')
+        self.assertEqual(functional_switch.text, "true")
+        connect_time_flag = xml_tree.find('.//ResultCollector/objProp/value/connectTime')
+        self.assertEqual(connect_time_flag.text, "true")
+        bytes_flag = xml_tree.find('.//ResultCollector/objProp/value/sentBytes')  # 'sentBytes' since JMeter 3
+        self.assertEqual(bytes_flag.text, "true")
 
     def test_functional_reader_pass(self):
         engine_obj = EngineEmul()
@@ -2071,6 +2155,14 @@ class TestJMeterExecutor(BZTestCase):
         sample = samples[1]
         self.assertIsNotNone(sample.extras)
         self.assertEqual(sample.extras["requestCookies"], {'hello': 'world', 'visited': 'yes'})
+
+    def test_functional_reader_extract(self):
+        engine_obj = EngineEmul()
+        obj = FuncJTLReader(__dir__() + "/../resources/jmeter/jtl/crash_trace.jtl",
+                            engine_obj,
+                            logging.getLogger(''))
+        samples = list(obj.read(last_pass=True))
+        self.assertNotEqual(len(samples), 0)
 
     def test_jsr223_block(self):
         script = __dir__() + "/../resources/jmeter/jsr223_script.js"
@@ -2396,6 +2488,11 @@ class TestJMeterExecutor(BZTestCase):
         ip_source = xml_tree.find(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.ipSource']")
         self.assertIsNotNone(ip_source)
         self.assertIsNotNone(ip_source.text)
+
+    def test_jtl_doublequoting(self):
+        obj = JTLReader(__dir__() + "/../resources/jmeter/jtl/doublequoting.jtl", logging.getLogger(), None)
+        for datapoint in obj.datapoints(True):
+            pass
 
 
 class TestJMX(BZTestCase):

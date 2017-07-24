@@ -19,6 +19,7 @@ import copy
 import csv
 import fnmatch
 import json
+import os
 import re
 import socket
 import subprocess
@@ -35,6 +36,7 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNet
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from cssselect import GenericTranslator
 
+from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.jmx import JMX
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
@@ -43,10 +45,11 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import RequestVisitor, ResourceFilesCollector
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
+from bzt.utils import get_host_ips
 from bzt.utils import shell_exec, ensure_is_dict, dehumanize_time, BetterDict, guess_csv_dialect
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
-from bzt.utils import get_host_ips
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
@@ -159,8 +162,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             else:
                 raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
-        if isinstance(self.engine.aggregator, FunctionalAggregator):
-            self.settings.merge({"xml-jtl-flags": {"connectTime": True, "sentBytes": True}})
+        if self.engine.aggregator.is_functional:
+            flags = {"connectTime": True}
+            version = str(self.settings.get("version", self.JMETER_VER))
+            if version.startswith("2"):
+                flags["bytes"] = True
+            else:
+                flags["sentBytes"] = True
+            self.settings.merge({"xml-jtl-flags": flags})
 
         load = self.get_load()
 
@@ -214,11 +223,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         props_local.update({"jmeter.save.saveservice.timestamp_format": "ms"})
         props_local.update({"sampleresult.default.encoding": "UTF-8"})
         props.merge(props_local)
-        user_cp = self.engine.artifacts_dir
-        if 'user.classpath' in props:
-            user_cp += os.pathsep + props['user.classpath']
 
-        props['user.classpath'] = user_cp.replace(os.path.sep, "/")  # replace to avoid Windows issue
+        user_cp = [self.engine.artifacts_dir]
+
+        for _file in self.execution.get('files', []):
+            full_path = get_full_path(_file)
+            if os.path.isdir(full_path):
+                user_cp.append(full_path)
+            elif full_path.lower().endswith('.jar'):
+                user_cp.append((get_full_path(_file, step_up=1)))
+
+        if 'user.classpath' in props:
+            user_cp.append(props['user.classpath'])
+
+        props['user.classpath'] = os.pathsep.join(user_cp).replace(os.path.sep, "/")  # replace to avoid Windows issue
+
         if props:
             self.log.debug("Additional properties: %s", props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
@@ -456,7 +475,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.add_user_def_vars_elements(user_def_vars))
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-        self.__apply_modifications(jmx)
+        headers = self.get_scenario().get_headers()
+        if headers:
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, JMX._get_header_mgr(headers))
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
         self.__apply_test_mode(jmx)
         self.tg_proc.modify(jmx)
@@ -466,6 +488,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if self.settings.get('version', self.JMETER_VER) >= '3.2':
                 self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
+
+        self.__apply_modifications(jmx)
 
         return jmx
 
@@ -759,7 +783,7 @@ class JTLReader(ResultsReader):
         :type last_pass: bool
         """
         if self.errors_reader:
-            self.errors_reader.read_file()
+            self.errors_reader.read_file(last_pass)
 
         for row in self.csvreader.read(last_pass):
             label = unicode_decode(row["label"])
@@ -820,7 +844,7 @@ class FuncJTLReader(FunctionalResultsReader):
         super(FuncJTLReader, self).__init__()
         self.executor_label = "JMeter"
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.parser = etree.XMLPullParser(events=('end',))
+        self.parser = etree.XMLPullParser(events=('end',), recover=True)
         self.offset = 0
         self.filename = filename
         self.engine = engine
@@ -1079,7 +1103,7 @@ class IncrementalCSVReader(object):
             self.partial_buffer = ""
 
             if self.csv_reader is None:
-                dialect = guess_csv_dialect(line)
+                dialect = guess_csv_dialect(line, force_doublequote=True)  # TODO: configurable doublequoting?
                 self.csv_reader = csv.DictReader(self.buffer, [], dialect=dialect)
                 self.csv_reader.fieldnames += line.strip().split(self.csv_reader.dialect.delimiter)
                 self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)
@@ -1146,7 +1170,7 @@ class JTLErrorsReader(object):
         if self.fds:
             self.fds.close()
 
-    def read_file(self):
+    def read_file(self, final_pass=False):
         """
         Read the next part of the file
         """
@@ -1176,20 +1200,21 @@ class JTLErrorsReader(object):
         for _action, elem in self.parser.read_events():
             del _action
             if elem.getparent() is not None and elem.getparent().tag == 'testResults':
-                if elem.get('s'):
-                    result = elem.get('s')
-                else:
-                    result = elem.xpath('success')[0].text
-                if result == 'false':
-                    if elem.items():
-                        self.__extract_standard(elem)
-                    else:
-                        self.__extract_nonstandard(elem)
-
-                # cleanup processed from the memory
-                elem.clear()
+                self._parse_element(elem)
+                elem.clear()  # cleanup processed from the memory
                 while elem.getprevious() is not None:
                     del elem.getparent()[0]
+
+    def _parse_element(self, elem):
+        if elem.get('s'):
+            result = elem.get('s')
+        else:
+            result = elem.xpath('success')[0].text
+        if result == 'false':
+            if elem.items():
+                self._extract_standard(elem)
+            else:
+                self._extract_nonstandard(elem)
 
     def get_data(self, max_ts):
         """
@@ -1207,7 +1232,7 @@ class JTLErrorsReader(object):
 
         return result
 
-    def __extract_standard(self, elem):
+    def _extract_standard(self, elem):
         t_stamp = int(elem.get("ts")) / 1000
         label = elem.get("lb")
         r_code = elem.get("rc")
@@ -1229,7 +1254,7 @@ class JTLErrorsReader(object):
         KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
         KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
 
-    def __extract_nonstandard(self, elem):
+    def _extract_nonstandard(self, elem):
         t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
         label = self.__get_child(elem, "label")
         message = self.__get_child(elem, "responseMessage")
@@ -1612,15 +1637,11 @@ class JMeterScenarioBuilder(JMX):
 
     def __gen_managers(self, scenario):
         elements = []
-        headers = scenario.get_headers()
-        if headers:
-            elements.append(self._get_header_mgr(headers))
-            elements.append(etree.Element("hashTree"))
         if scenario.get("store-cache", True):
             elements.append(self._get_cache_mgr())
             elements.append(etree.Element("hashTree"))
         if scenario.get("store-cookie", True):
-            elements.append(self._get_cookie_mgr())
+            elements.append(self._get_cookie_mgr(scenario))
             elements.append(etree.Element("hashTree"))
         if scenario.get("use-dns-cache-mgr", True):
             elements.append(self.get_dns_cache_mgr())

@@ -42,7 +42,7 @@ from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import str_representer
 
 SETTINGS = "settings"
@@ -106,7 +106,7 @@ class Engine(object):
         self._set_up_proxy()
 
         if self.config.get(SETTINGS).get("check-updates", True):
-            install_id = self.config.get("install-id", "%x" % uuid.getnode())
+            install_id = self.config.get("install-id", self._generate_id())
 
             def wrapper():
                 return self._check_updates(install_id)
@@ -115,6 +115,32 @@ class Engine(object):
             thread.start()
 
         return merged_config
+
+    def _generate_id(self):
+        if os.getenv("JENKINS_HOME"):
+            prefix = "jenkins"
+        elif os.getenv("TRAVIS"):
+            prefix = "travis"
+        elif any([key.startswith("bamboo") for key in os.environ.keys()]):
+            prefix = "bamboo"
+        elif os.getenv("TEAMCITY_VERSION"):
+            prefix = "teamcity"
+        elif os.getenv("DOCKER_HOST"):
+            prefix = "docker"
+        elif os.getenv("AWS_"):
+            prefix = "amazon"
+        elif os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("CLOUDSDK_CONFIG"):
+            prefix = "google_cloud"
+        elif os.getenv("WEBJOBS_NAME"):
+            prefix = "azure"
+        elif is_linux():
+            prefix = 'linux'
+        elif is_windows():
+            prefix = 'windows'
+        else:
+            prefix = 'macos'
+
+        return "%s-%x" % (prefix, uuid.getnode())
 
     def prepare(self):
         """
@@ -1045,6 +1071,7 @@ class Scenario(UserDict, object):
     """
 
     SCRIPT = "script"
+    COOKIES = "cookies"
     FIELD_RESP_CODE = "http-code"
     FIELD_HEADERS = "headers"
     FIELD_BODY = "body"

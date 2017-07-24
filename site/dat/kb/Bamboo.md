@@ -1,5 +1,7 @@
 # How to Easily Run Taurus with Bamboo
 
+_By: Yuri Bushnev, May 2017_
+
 ## Why Use Taurus with CI tools
 
 [Continuous Integration (CI\)](https://www.blazemeter.com/blog/how-include-load-testing-your-continuous-integration-environment-0?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo) is a way to automate our tests and make the test process itself easier and more productive. With the help of CI it takes much less time to release, build, deploy and run tests automatically on a daily basis. At the same time, most performance testing tools are not well designed for a smooth CI pipeline integration. By using [Taurus](/?utm_source=taurus&&utm_medium=KB&utm_campaign=taurus-bamboo), an open source automation testing framework, combined with some continuous integration tools like [Bamboo](https://www.atlassian.com/software/bamboo), we can achieve outstanding results in automation of our performance gates. 

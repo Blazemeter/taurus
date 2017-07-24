@@ -122,16 +122,12 @@ class TestReportReader(object):
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
-    def __init__(self, filename, parent_logger, translation_table=None):
+    def __init__(self, filename, parent_logger):
         super(TestReportReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.json_reader = LDJSONReader(filename, self.log)
-        self.translation_table = translation_table or {}
 
     def process_label(self, label):
-        if label in self.translation_table:
-            return self.translation_table[label]
-
         if isinstance(label, string_types):
             if label.startswith('test_') and label[5:10].isdigit():
                 return label[11:]
@@ -152,9 +148,9 @@ class LoadSamplesReader(ResultsReader):
         "BROKEN": "500",
     }
 
-    def __init__(self, filename, parent_logger, translation_table):
+    def __init__(self, filename, parent_logger):
         super(LoadSamplesReader, self).__init__()
-        self.report_reader = TestReportReader(filename, parent_logger, translation_table)
+        self.report_reader = TestReportReader(filename, parent_logger)
         self.read_records = 0
 
     def extract_sample(self, item):
@@ -180,8 +176,8 @@ class LoadSamplesReader(ResultsReader):
 class FuncSamplesReader(FunctionalResultsReader):
     FIELDS_EXTRACTED_TO_ARTIFACTS = ["requestBody", "responseBody", "requestCookiesRaw"]
 
-    def __init__(self, filename, engine, parent_logger, translation_table):
-        self.report_reader = TestReportReader(filename, parent_logger, translation_table)
+    def __init__(self, filename, engine, parent_logger):
+        self.report_reader = TestReportReader(filename, parent_logger)
         self.engine = engine
         self.read_records = 0
 

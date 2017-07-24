@@ -28,7 +28,7 @@ try:
 except ImportError:
     from pyvirtualdisplay import Display
 
-from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
+from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException, ManualShutdown
 from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
@@ -65,6 +65,8 @@ class InstallChecker(Service, Singletone):
         for mod_name in modules.keys():
             try:
                 self._check_module(mod_name)
+            except KeyboardInterrupt:
+                raise  # let the engine handle it
             except BaseException as exc:
                 self.log.error("Failed to instantiate module %s", mod_name)
                 self.log.debug("%s", get_stacktrace(exc))
@@ -108,7 +110,7 @@ class AndroidEmulatorLoader(Service):
             # try to read sdk path from env..
             sdk_path = os.environ.get('ANDROID_HOME')
             if sdk_path:
-                env_tool_path = os.path.join(sdk_path, 'tool', 'emulator')
+                env_tool_path = os.path.join(sdk_path, 'tools', 'emulator')
                 self.tool_path = get_full_path(env_tool_path)
                 self.settings['path'] = self.tool_path
             else:
@@ -131,7 +133,7 @@ class AndroidEmulatorLoader(Service):
         while not self.tool_is_started():
             time.sleep(1)
             if time.time() - start_time > self.startup_timeout:
-                raise ToolError("Android emulator %s cannot be loaded", self.avd)
+                raise ToolError("Android emulator %s cannot be loaded" % self.avd)
         self.log.info('Android emulator %s was started successfully', self.avd)
 
     def tool_is_started(self):

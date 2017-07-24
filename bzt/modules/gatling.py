@@ -157,7 +157,7 @@ class GatlingScriptBuilder(object):
                 check_result += self.indent(check_template % {'sample': sample}, level=4)
                 first_check = False
 
-        check_result += '\n' + self.indent(')',level=3) + '\n'
+        check_result += '\n' + self.indent(')', level=3) + '\n'
 
         return check_result
 
@@ -667,12 +667,15 @@ class DataLogReader(ResultsReader):
         """
         open gatling simulation.log
         """
-        prog = re.compile("^%s-[0-9]+$" % self.dir_prefix)
+        if os.path.isfile(self.basedir):
+            self.filename = self.basedir
+        else:
+            prog = re.compile("^%s-[0-9]+$" % self.dir_prefix)
 
-        for fname in os.listdir(self.basedir):
-            if prog.match(fname):
-                self.filename = os.path.join(self.basedir, fname, "simulation.log")
-                break
+            for fname in os.listdir(self.basedir):
+                if prog.match(fname):
+                    self.filename = os.path.join(self.basedir, fname, "simulation.log")
+                    break
 
         if not self.filename:
             self.log.debug("File is empty: %s", self.filename)

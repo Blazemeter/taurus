@@ -61,7 +61,11 @@ class BZAObject(dict):
         headers["X-Client-Version"] = VERSION
 
         if isinstance(self.token, string_types) and ':' in self.token:
-            headers['Authorization'] = 'Basic ' + base64.b64encode(self.token)
+            token = self.token
+            if isinstance(token, text_type):
+                token = token.encode('ascii')
+            token = base64.b64encode(token).decode('ascii')
+            headers['Authorization'] = 'Basic ' + token
         elif self.token:
             headers["X-Api-Key"] = self.token
 
@@ -75,7 +79,7 @@ class BZAObject(dict):
         if isinstance(data, text_type):
             data = data.encode("utf8")
 
-        if isinstance(data, dict):
+        if isinstance(data, (dict, list)):
             data = to_json(data)
             headers["Content-Type"] = "application/json"
 
@@ -94,8 +98,7 @@ class BZAObject(dict):
                 result = json.loads(resp) if len(resp) else {}
                 if 'error' in result and result['error']:
                     raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
-            except ValueError as exc:
-
+            except ValueError:
                 raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
 
         if raw_result:
@@ -522,6 +525,11 @@ class Master(BZAObject):
         res = self._request(url)
         return res['result']
 
+    def get_errors(self):
+        url = self.address + "/api/v4/masters/%s/reports/errorsreport/data?noDataError=false" % self['id']
+        res = self._request(url)
+        return res['result']
+
     def force_start(self):
         url = self.address + "/api/v4/masters/%s/force-start" % self['id']
         self._request(url, method="POST")
@@ -533,7 +541,6 @@ class Master(BZAObject):
     def get_full(self):
         url = self.address + "/api/v4/masters/%s/full" % self['id']
         return self._request(url)['result']
-
 
 class Session(BZAObject):
     def __init__(self, proto=None, data=None):
@@ -662,3 +669,7 @@ class BZAProxy(BZAObject):
         self._request(self.address + '/api/latest/proxy/recording/clear', method='POST')
 
         return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])
+
+    def get_json(self):
+        response = self._request(self.address + '/api/latest/proxy/download?format=json', raw_result=True)
+        return response

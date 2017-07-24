@@ -14,18 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
+import os
 import time
 from abc import abstractmethod
 
-import os
-from bzt import TaurusConfigError
 from urwid import Text, Pile
 
-from bzt.engine import FileLister, Service
+from bzt import TaurusConfigError, ToolError
+from bzt.engine import FileLister, Service, HavingInstallableTools
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.services import VirtualDisplay
-from bzt.utils import BetterDict, get_files_recursive, get_full_path
+from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
+from bzt.utils import is_windows, is_mac, platform_bitness
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -49,14 +50,23 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         pass
 
 
-class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
+class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools):
     """
     Selenium executor
-    :type runner: SubprocessedExecutor
+    :type runner: bzt.modules.SubprocessedExecutor
     :type virtual_display_service: VirtualDisplay
     """
 
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha"]
+
+    CHROMEDRIVER_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
+    CHROMEDRIVER_VERSION = "2.30"
+
+    GECKODRIVER_DOWNLOAD_LINK = "https://github.com/mozilla/geckodriver/releases/download/v{version}/" \
+                                "geckodriver-v{version}-{arch}.{ext}"
+    GECKODRIVER_VERSION = "0.17.0"
+
+    SELENIUM_TOOLS_DIR = get_full_path("~/.bzt/selenium-taurus/tools")
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
@@ -64,11 +74,22 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         self.end_time = None
         self.runner = None
         self.script = None
-        self.generated_methods = BetterDict()
         self.runner_working_dir = None
+        self.register_reader = True
         self.virtual_display_service = Service()  # TODO: remove compatibility with deprecated virtual-display setting
+        self.webdrivers = []
 
     def add_env(self, env):
+        if "PATH" in self.additional_env and "PATH" in env:
+            old_path = self.additional_env["PATH"]
+            new_path = env["PATH"]
+            merged_path = []
+            for item in old_path.split(os.pathsep) + new_path.split(os.pathsep):
+                if item in merged_path:
+                    continue
+                else:
+                    merged_path.append(item)
+            env["PATH"] = os.pathsep.join(merged_path)
         self.additional_env.update(env)
 
     def get_runner_working_dir(self):
@@ -85,8 +106,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
 
         self.runner.parameters = self.parameters
         self.runner.provisioning = self.provisioning
-        self.runner.execution = self.execution
+        self.runner.execution = copy.deepcopy(self.execution)
+        self.runner.execution['files'] = self.execution.get('files', [])
         self.runner.execution['executor'] = runner_type
+        self.runner.register_reader = self.register_reader
 
         if runner_type == "nose":
             self.runner.execution["test-mode"] = "selenium"
@@ -95,7 +118,71 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister):
         if isinstance(self.virtual_display_service, VirtualDisplay):
             return self.virtual_display_service.get_virtual_display()
 
+    def _get_chromedriver_link(self):
+        settings = self.settings.get('chromedriver')
+        link = settings.get('download-link', SeleniumExecutor.CHROMEDRIVER_DOWNLOAD_LINK)
+        version = settings.get('version', SeleniumExecutor.CHROMEDRIVER_VERSION)
+        if is_windows():
+            arch = 'win32'
+        elif is_mac():
+            arch = 'mac64'
+        else:
+            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
+        return link.format(version=version, arch=arch)
+
+    def _get_chromedriver_path(self):
+        base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
+        settings = self.settings.get('chromedriver')
+        version = settings.get('version', SeleniumExecutor.CHROMEDRIVER_VERSION)
+        filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
+        return os.path.join(base_dir, 'chromedriver', version, filename)
+
+    def _get_geckodriver_link(self):
+        settings = self.settings.get('geckodriver')
+        link = settings.get('download-link', SeleniumExecutor.GECKODRIVER_DOWNLOAD_LINK)
+        version = settings.get('version', SeleniumExecutor.GECKODRIVER_VERSION)
+        if is_windows():
+            arch = 'win32' if platform_bitness() == 32 else 'win64'
+            ext = 'zip'
+        elif is_mac():
+            arch = 'macos'
+            ext = 'tar.gz'
+        else:
+            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
+            ext = 'tar.gz'
+        return link.format(version=version, arch=arch, ext=ext)
+
+    def _get_geckodriver_path(self):
+        base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
+        settings = self.settings.get('geckodriver')
+        version = settings.get('version', SeleniumExecutor.GECKODRIVER_VERSION)
+        filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
+        return os.path.join(base_dir, 'geckodriver', version, filename)
+
+    def install_required_tools(self):
+        chromedriver_path = self._get_chromedriver_path()
+        chromedriver_link = self._get_chromedriver_link()
+        geckodriver_path = self._get_geckodriver_path()
+        geckodriver_link = self._get_geckodriver_link()
+
+        self.webdrivers = [ChromeDriver(chromedriver_path, self.log, chromedriver_link),
+                           GeckoDriver(geckodriver_path, self.log, geckodriver_link)]
+
+        for tool in self.webdrivers:
+            if not tool.check_if_installed():
+                self.log.info("Installing %s...", tool.tool_name)
+                tool.install()
+
+    def _add_webdrivers_to_path(self):
+        path_var = os.getenv("PATH")
+        paths = [driver.get_driver_dir() for driver in self.webdrivers]
+        path = os.pathsep.join(paths) + os.pathsep + path_var
+        self.add_env({"PATH": path})
+
     def prepare(self):
+        self.install_required_tools()
+        self._add_webdrivers_to_path()
+
         if self.get_load().concurrency and self.get_load().concurrency > 1:
             msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
             msg += 'For details look at http://gettaurus.org/docs/Cloud.md'
@@ -253,3 +340,71 @@ class SeleniumWidget(Pile, PrioritizedWidget):
             self.summary_stats.set_text('In progress...')
 
         self._invalidate()
+
+
+class ChromeDriver(RequiredTool):
+    def __init__(self, tool_path, parent_logger, download_link):
+        super(ChromeDriver, self).__init__("ChromeDriver", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        return os.path.exists(self.tool_path)
+
+    def get_driver_dir(self):
+        return get_full_path(self.tool_path, step_up=1)
+
+    def install(self):
+        dest = self.get_driver_dir()
+        if not os.path.exists(dest):
+            os.makedirs(dest)
+
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        dist = self._download(use_link=True)
+        try:
+            self.log.info("Unzipping %s to %s", dist, dest)
+            unzip(dist, dest)
+        finally:
+            os.remove(dist)
+
+        if not is_windows():
+            os.chmod(self.tool_path, 0o755)
+
+        if not self.check_if_installed():
+            raise ToolError("Unable to find %s after installation!" % self.tool_name)
+
+
+class GeckoDriver(RequiredTool):
+    def __init__(self, tool_path, parent_logger, download_link):
+        super(GeckoDriver, self).__init__("GeckoDriver", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        return os.path.exists(self.tool_path)
+
+    def get_driver_dir(self):
+        return get_full_path(self.tool_path, step_up=1)
+
+    def install(self):
+        dest = self.get_driver_dir()
+        if not os.path.exists(dest):
+            os.makedirs(dest)
+
+        self.log.info("Will install %s into %s", self.tool_name, dest)
+        dist = self._download(use_link=True)
+        try:
+            if self.download_link.endswith('.zip'):
+                self.log.info("Unzipping %s to %s", dist, dest)
+                unzip(dist, dest)
+            else:
+                self.log.info("Untaring %s to %s", dist, dest)
+                untar(dist, dest)
+        finally:
+            os.remove(dist)
+
+        if not is_windows():
+            os.chmod(self.tool_path, 0o755)
+
+        if not self.check_if_installed():
+            raise ToolError("Unable to find %s after installation!" % self.tool_name)
+
+        # TODO: check for compatible browser versions?

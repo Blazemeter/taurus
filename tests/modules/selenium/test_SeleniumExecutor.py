@@ -113,10 +113,10 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        with open(os.path.join(self.obj.engine.artifacts_dir, self.obj.execution['executor'] + ".err")) as fds:
+        with open(os.path.join(self.obj.engine.artifacts_dir, self.obj.runner.execution['executor'] + ".err")) as fds:
             contents = fds.read()
             msg = "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(), contents)
-            self.assertEqual(3, contents.count("ok"), msg)
+            self.assertEqual(1, contents.count("ok"), msg)
             self.assertEqual(1, contents.count("OK"))
 
     def test_fail_on_zero_results(self):
@@ -151,15 +151,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.execution.merge({
             "scenario": "req_sel"})
         self.obj.prepare()
-        gen_methods = self.obj.runner.generated_methods
         name1 = 'test_00000_http_blazedemo_com'
-        url1 = 'http://blazedemo.com'
         name2 = 'test_00001_Main_Page'
-        label2 = 'Main Page'
         name3 = 'test_00002_just_for_lulz'
-        label3 = 'just_for_lulz'
-        self.assertEqual(url1, gen_methods[name1])
-        self.assertEqual(label2, gen_methods[name2])
         reader = self.obj.runner.reader
         reader.report_reader.json_reader = LDJSONReaderEmul()
         reader.report_reader.json_reader.data.extend([
@@ -174,9 +168,9 @@ class TestSeleniumStuff(SeleniumTestCase):
                 'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
             }])
         res = list(reader._read())
-        self.assertIn(url1, res[0])
-        self.assertIn(label2, res[1])
-        self.assertIn(label3, res[2])
+        self.assertIn('http_blazedemo_com', res[0])
+        self.assertIn('Main_Page', res[1])
+        self.assertIn('just_for_lulz', res[2])
 
     def test_dont_copy_local_script_to_artifacts(self):
         "ensures that .java file is not copied into artifacts-dir"
@@ -258,10 +252,15 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEqual(len(own_resources), 2)
         self.assertEqual(len(all_resources), 3)
 
+    def test_add_env_path(self):
+        self.obj.add_env({"PATH": os.pathsep.join(["foo", "bar"])})
+        self.obj.add_env({"PATH": os.pathsep.join(["bar", "baz"])})
+        self.assertEqual(self.obj.additional_env, {"PATH": os.pathsep.join(["foo", "bar", "baz"])})
+
 
 class TestReportReader(BZTestCase):
     def test_report_reader(self):
-        reader = LoadSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", logging.getLogger(), None)
+        reader = LoadSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", logging.getLogger())
         items = list(reader._read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0][1], 'testFailure')
@@ -288,7 +287,7 @@ class TestReportReader(BZTestCase):
         self.assertEqual(len(items), 2)
 
     def test_func_reader(self):
-        reader = FuncSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", EngineEmul(), logging.getLogger(), None)
+        reader = FuncSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", EngineEmul(), logging.getLogger())
         items = list(reader.read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0].test_case, 'testFailure')

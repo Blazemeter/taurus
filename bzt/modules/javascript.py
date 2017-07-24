@@ -54,7 +54,7 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
 
         self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
         self.install_required_tools()
-        self.reporting_setup(suffix='ldjson')
+        self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
         tools = []

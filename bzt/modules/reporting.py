@@ -326,10 +326,15 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
             errors = []
             for er_dict in labels[key][KPISet.ERRORS]:
-                err_message = str(er_dict["rc"])
-                err_type = str(er_dict["msg"])
-                err_desc = "total errors of this type:" + str(er_dict["cnt"])
-                err_element = etree.Element("error", message=err_message, type=err_type)
+                self.log.info(er_dict)
+                rc = str(er_dict["rc"])
+                msg = str(er_dict["msg"])
+                cnt = str(er_dict["cnt"])
+                if er_dict["type"] == KPISet.ERRTYPE_ASSERT:
+                    err_element = etree.Element("failure", message=msg, type="Assertion Failure")
+                else:
+                    err_element = etree.Element("error", message=msg, type="Error")
+                err_desc = "%s\n(status code is %s)\n(total errors of this type: %s)" % (msg, rc, cnt)
                 err_element.text = err_desc
                 errors.append(err_element)
 
