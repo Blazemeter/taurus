@@ -18,7 +18,6 @@ limitations under the License.
 import logging
 import os
 import traceback
-from itertools import chain
 
 from cssselect import GenericTranslator
 
@@ -34,7 +33,6 @@ class JMX(object):
     :param original: path to existing JMX to load. If it is None, then creates
     empty test plan
     """
-
     TEST_PLAN_SEL = "jmeterTestPlan>hashTree>hashTree"
     THR_GROUP_SEL = TEST_PLAN_SEL + ">hashTree[type=tg]"
 
@@ -108,23 +106,6 @@ class JMX(object):
         self.log.debug("Saving JMX to: %s", filename)
         with open(filename, "wb") as fhd:
             self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
-
-    def enabled_thread_groups(self, all_types=False):
-        """
-        Get thread groups that are enabled
-        :type all_types: bool
-        """
-        if all_types:
-            prefix = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.'
-            ultimate_tgroup = self.get(prefix + 'UltimateThreadGroup')
-            stepping_tgroup = self.get(prefix + 'SteppingThreadGroup')
-            tgroups = chain(ultimate_tgroup, stepping_tgroup)
-        else:
-            tgroups = self.get('jmeterTestPlan>hashTree>hashTree>ThreadGroup')
-
-        for group in tgroups:
-            if group.get("enabled") != 'false':
-                yield group
 
     @staticmethod
     def _flag(flag_name, bool_value):
@@ -1053,3 +1034,5 @@ class JMX(object):
         action.append(JMX.int_prop("ActionProcessor.target", target_index))
         action.append(JMX._string_prop("ActionProcessor.duration", str(duration_ms)))
         return action
+
+

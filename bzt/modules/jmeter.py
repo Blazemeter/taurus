@@ -30,6 +30,7 @@ from distutils.version import LooseVersion
 from math import ceil
 
 import os
+from itertools import chain
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from cssselect import GenericTranslator
@@ -83,6 +84,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.resource_files_collector = None
         self.stdout_file = None
         self.stderr_file = None
+        self.tool = None
+        self.tg_proc = None
 
     def get_scenario(self, name=None, cache_scenario=True):
         scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
@@ -143,6 +146,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
         self.install_required_tools()
+        self.tg_proc = ThreadGroupProcessor(self)
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
 
         is_jmx_generated = False
@@ -355,213 +359,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             return False
 
     @staticmethod
-    def __apply_ramp_up(jmx, ramp_up):
-        """
-        Apply ramp up period in seconds to ThreadGroup.ramp_time
-        :param jmx: JMX
-        :param ramp_up: int ramp_up period
-        :return:
-        """
-        rampup_sel = ".//*[@name='ThreadGroup.ramp_time']"
-
-        for group in jmx.enabled_thread_groups():
-            prop = group.find(rampup_sel)
-            prop.text = str(ramp_up)
-
-    @staticmethod
-    def __apply_stepping_ramp_up(jmx, load):
-        """
-        Change all thread groups to step groups, use ramp-up/steps
-        :param jmx: JMX
-        :param load: load
-        :return:
-        """
-        step_time = int(load.ramp_up / load.steps)
-        thread_groups = jmx.tree.findall(".//ThreadGroup")
-        for thread_group in thread_groups:
-            thread_cnc = int(thread_group.find(".//*[@name='ThreadGroup.num_threads']").text)
-            tg_name = thread_group.attrib["testname"]
-            thread_step = int(ceil(float(thread_cnc) / load.steps))
-            step_group = JMX.get_stepping_thread_group(thread_cnc, thread_step, step_time, load.hold + step_time,
-                                                       tg_name)
-            thread_group.getparent().replace(thread_group, step_group)
-
-    @staticmethod
-    def __apply_duration(jmx, duration):
-        """
-        Apply duration to ThreadGroup.duration
-        :param jmx: JMX
-        :param duration: int
-        :return:
-        """
-        sched_sel = "[name='ThreadGroup.scheduler']"
-        sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
-        dur_sel = "[name='ThreadGroup.duration']"
-        dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
-
-        for group in jmx.enabled_thread_groups():
-            group.xpath(sched_xpath)[0].text = 'true'
-            group.xpath(dur_xpath)[0].text = str(int(duration))
-            loops_element = group.find(".//elementProp[@name='ThreadGroup.main_controller']")
-            loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
-            loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
-
-    @staticmethod
-    def __apply_iterations(jmx, iterations):
-        """
-        Apply iterations to LoopController.loops
-        :param jmx: JMX
-        :param iterations: int
-        :return:
-        """
-        sel = "elementProp>[name='LoopController.loops']"
-        xpath = GenericTranslator().css_to_xpath(sel)
-
-        flag_sel = "elementProp>[name='LoopController.continue_forever']"
-        flag_xpath = GenericTranslator().css_to_xpath(flag_sel)
-
-        for group in jmx.enabled_thread_groups():
-            sprop = group.xpath(xpath)
-            bprop = group.xpath(flag_xpath)
-            if iterations:
-                bprop[0].text = 'false'
-                sprop[0].text = str(iterations)
-
-    def __apply_concurrency(self, jmx, concurrency):
-        """
-        Apply concurrency to ThreadGroup.num_threads
-        :type jmx: JMX
-        :type concurrency: int
-        """
-        # TODO: what to do when they used non-standard thread groups?
-        tnum_sel = ".//*[@name='ThreadGroup.num_threads']"
-
-        orig_sum = 0.0
-        for group in jmx.enabled_thread_groups():
-            othread = group.find(tnum_sel)
-            try:
-                orig_sum += int(othread.text)
-            except ValueError:
-                self.log.debug("Using value 1 since cannot parse int: %s", othread.text)
-                orig_sum += 1
-        self.log.debug("Original threads: %s", orig_sum)
-        leftover = concurrency
-        for group in jmx.enabled_thread_groups():
-            othread = group.find(tnum_sel)
-            try:
-                orig = int(othread.text)
-            except ValueError:
-                self.log.debug("Using value 1 since cannot parse int: %s", othread.text)
-                orig = 1
-
-            new = int(round(concurrency * orig / orig_sum))
-            if new < 1:
-                new = 1  # TODO: cover with test
-            leftover -= new
-            othread.text = str(new)
-        if leftover < 0:
-            msg = "Had to add %s more threads to maintain thread group proportion"
-            self.log.warning(msg, -leftover)
-        elif leftover > 0:
-            msg = "%s threads left undistributed due to thread group proportion"
-            self.log.warning(msg, leftover)
-
-    def __convert_to_normal_tg(self, jmx, load):
-        """
-        Convert all TGs to simple ThreadGroup
-        :param jmx: JMX
-        :param load:
-        :return:
-        """
-        if load.iterations or load.concurrency or load.duration:
-            for group in jmx.enabled_thread_groups(all_types=True):
-                if group.tag != 'ThreadGroup':
-                    testname = group.get('testname')
-                    self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
-                    group_concurrency = JMeterExecutor.__get_concurrency_from_tg(group)
-                    on_error = JMeterExecutor.__get_tg_action_on_error(group)
-
-                    new_group = JMX.get_thread_group(
-                        concurrency=group_concurrency,
-                        iterations=-1,
-                        testname=testname,
-                        on_error=on_error)
-
-                    group.getparent().replace(group, new_group)
-
-    @staticmethod
-    def __get_concurrency_from_tg(thread_group):
-        """
-        :param thread_group: etree.Element
-        :return:
-        """
-        concurrency_element = thread_group.find(".//stringProp[@name='ThreadGroup.num_threads']")
-        if concurrency_element is not None:
-            return int(concurrency_element.text)
-
-    @staticmethod
-    def __get_tg_action_on_error(thread_group):
-        action = thread_group.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
-        if action is not None:
-            return action.text
-
-    def __add_shaper(self, jmx, load):
-        """
-        Add shaper
-        :param jmx: JMX
-        :param load: namedtuple("LoadSpec",
-                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration'))
-        :return:
-        """
-        if not load.duration:
-            self.log.warning("You must set 'ramp-up' and/or 'hold-for' when using 'throughput' option")
-            return
-
-        etree_shaper = jmx.get_rps_shaper()
-        if load.ramp_up:
-            jmx.add_rps_shaper_schedule(etree_shaper, 1, load.throughput, load.ramp_up)
-
-        if load.hold:
-            jmx.add_rps_shaper_schedule(etree_shaper, load.throughput, load.throughput, load.hold)
-
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
-
-    def __add_stepping_shaper(self, jmx, load):
-        """
-        adds stepping shaper
-        1) warning if any ThroughputTimer found
-        2) add VariableThroughputTimer to test plan
-        :param jmx: JMX
-        :param load: load
-        :return:
-        """
-        if not load.ramp_up:
-            self.log.warning("You should set up 'ramp-up' for usage of 'steps'")
-            return
-
-        timers_patterns = ["ConstantThroughputTimer", "kg.apc.jmeter.timers.VariableThroughputTimer"]
-
-        for timer_pattern in timers_patterns:
-            for timer in jmx.tree.findall(".//%s" % timer_pattern):
-                self.log.warning("Test plan already use %s", timer.attrib['testname'])
-
-        step_rps = int(round(float(load.throughput) / load.steps))
-        step_time = int(round(float(load.ramp_up) / load.steps))
-        step_shaper = jmx.get_rps_shaper()
-
-        for step in range(1, int(load.steps + 1)):
-            step_load = step * step_rps
-            if step != load.steps:
-                jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time)
-            else:
-                if load.hold:
-                    jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time + load.hold)
-
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, step_shaper)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
-
-    @staticmethod
     def __disable_listeners(jmx):
         """
         Set ResultCollector to disabled
@@ -592,24 +389,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         else:
             element = jmx._get_functional_mode_prop(func_mode)
             jmx.append(test_plan_selector, element)
-
-    def __apply_load_settings(self, jmx, load):
-        self.__convert_to_normal_tg(jmx, load)
-        if load.concurrency:
-            self.__apply_concurrency(jmx, load.concurrency)
-        if load.hold or (load.ramp_up and not load.iterations):
-            JMeterExecutor.__apply_duration(jmx, int(load.duration))
-        if load.iterations:
-            JMeterExecutor.__apply_iterations(jmx, int(load.iterations))
-        if load.ramp_up:
-            JMeterExecutor.__apply_ramp_up(jmx, int(load.ramp_up))
-            if load.steps:
-                JMeterExecutor.__apply_stepping_ramp_up(jmx, load)
-        if load.throughput:
-            if load.steps:
-                self.__add_stepping_shaper(jmx, load)
-            else:
-                self.__add_shaper(jmx, load)
 
     @staticmethod
     def __fill_empty_delimiters(jmx):
@@ -680,7 +459,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__apply_modifications(jmx)
 
         self.__apply_test_mode(jmx)
-        self.__apply_load_settings(jmx, load)
+        self.tg_proc.modify(jmx)
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
@@ -924,12 +703,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         download_link = self.settings.get("download-link", None)
         plugins = self.settings.get("plugins", [])
         proxy = self.engine.config.get('settings').get('proxy')
-        tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, proxy)
+        self.tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, proxy)
 
-        if self._need_to_install(tool):
-            tool.install()
+        if self._need_to_install(self.tool):
+            self.tool.install()
 
-        self.settings['path'] = tool.tool_path
+        self.settings['path'] = self.tool.tool_path
 
     @staticmethod
     def _need_to_install(tool):
@@ -1532,6 +1311,290 @@ class JTLErrorsReader(object):
                 return child.text
 
 
+class ThreadGroupProcessor:
+    THREAD_GROUPS = {'TG': 'jmeterTestPlan>hashTree>hashTree>ThreadGroup',
+                     'STG': r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup',
+                     'UTG': r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup',
+                     'CTG': r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.'
+                            r'threads\.concurrency\.ConcurrencyThreadGroup'}
+
+    def __init__(self, executor):
+        self.log = executor.log.getChild(self.__class__.__name__)
+        self.load = executor.get_load()
+        self.tg = self._detect_tg(executor)
+
+    def _detect_tg(self, executor):
+        """
+        Detect preferred thread group
+        :param executor:
+        :return:
+        """
+        tg = None
+
+        if not executor.tool:
+            raise TaurusInternalException('You must set executor tool for choosing of Thread Group')
+
+        if self.load.iterations or self.load.concurrency or self.load.duration:
+            if (not executor.settings.get('force_ctg', True) or
+                    (not executor.tool.ctg_pluting_installed) or  # todo: warning
+                    (not self.load.duration) or
+                    (self.load.duration and self.load.iterations)):
+                tg = 'TG'
+            else:
+                tg = 'CTG'
+        return tg
+
+    def create(self, testname):
+        if self.tg == 'TG':
+            return JMX.get_thread_group(iterations=-1, testname=testname)
+        elif self.tg == 'CTG':
+            pass    # todo: provide concurrency_thread_group
+        else:
+            raise TaurusInternalException('Cannot create unsupported thread group: %s' % self.tg)
+
+    def modify(self, jmx):
+        if not self.tg:
+            self.log.debug('Target thread group not found, modification is skipped')
+            return
+        if self.tg == 'TG':
+            self._modify_tg(jmx)
+        elif self.tg == 'CTG':
+            self._modify_ctg()
+        else:
+            raise TaurusInternalException('Cannot create unsupported thread group: %s' % self.tg)
+
+    def _modify_tg(self, jmx):
+        self._convert_to_normal_tg(jmx)
+
+        if self.load.concurrency:
+            self._apply_concurrency(jmx)
+        if self.load.hold or (self.load.ramp_up and not self.load.iterations):
+            self._apply_duration(jmx)
+        if self.load.iterations:
+            self._apply_iterations(jmx)
+        if self.load.ramp_up:
+            self._apply_ramp_up(jmx)
+        if self.load.steps:
+            self._apply_stepping_ramp_up(jmx)
+        if self.load.throughput:
+            if self.load.steps:
+                self._add_stepping_shaper(jmx)
+            else:
+                self._add_shaper(jmx)
+
+    def _add_shaper(self, jmx):
+        """
+        Add shaper
+        :param jmx: JMX
+        :return:
+        """
+        if not self.load.duration:
+            self.log.warning("You must set 'ramp-up' and/or 'hold-for' when using 'throughput' option")
+            return
+
+        etree_shaper = jmx.get_rps_shaper()
+        if self.load.ramp_up:
+            jmx.add_rps_shaper_schedule(etree_shaper, 1, self.load.throughput, self.load.ramp_up)
+
+        if self.load.hold:
+            jmx.add_rps_shaper_schedule(etree_shaper, self.load.throughput, self.load.throughput, self.load.hold)
+
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
+    def _add_stepping_shaper(self, jmx):
+        """
+        adds stepping shaper
+        1) warning if any ThroughputTimer found
+        2) add VariableThroughputTimer to test plan
+        :param jmx: JMX
+        :return:
+        """
+        if not self.load.ramp_up:
+            self.log.warning("You should set up 'ramp-up' for usage of 'steps'")
+            return
+
+        timers_patterns = ["ConstantThroughputTimer", "kg.apc.jmeter.timers.VariableThroughputTimer"]
+
+        for timer_pattern in timers_patterns:
+            for timer in jmx.tree.findall(".//%s" % timer_pattern):
+                self.log.warning("Test plan already use %s", timer.attrib['testname'])
+
+        step_rps = int(round(float(self.load.throughput) / self.load.steps))
+        step_time = int(round(float(self.load.ramp_up) / self.load.steps))
+        step_shaper = jmx.get_rps_shaper()
+
+        for step in range(1, int(self.load.steps + 1)):
+            step_load = step * step_rps
+            if step != self.load.steps:
+                jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time)
+            else:
+                if self.load.hold:
+                    jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time + self.load.hold)
+
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, step_shaper)
+        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
+    def _apply_ramp_up(self, jmx):
+        """
+        Apply ramp up period in seconds to ThreadGroup.ramp_time
+        :param jmx: JMX
+        :return:
+        """
+        rampup_sel = ".//*[@name='ThreadGroup.ramp_time']"
+
+        for group in self._enabled_thread_groups(jmx, include=[self.tg]):
+            prop = group.find(rampup_sel)
+            prop.text = str(int(self.load.ramp_up))
+
+    def _apply_stepping_ramp_up(self, jmx):
+        """
+        Change all thread groups to step groups, use ramp-up/steps
+        :param jmx: JMX
+        :return:
+        """
+        step_time = int(self.load.ramp_up / self.load.steps)
+        thread_groups = jmx.tree.findall(".//ThreadGroup")
+        for thread_group in thread_groups:
+            thread_cnc = int(thread_group.find(".//*[@name='ThreadGroup.num_threads']").text)
+            tg_name = thread_group.attrib["testname"]
+            thread_step = int(ceil(float(thread_cnc) / self.load.steps))
+            step_group = JMX.get_stepping_thread_group(
+                thread_cnc, thread_step, step_time, self.load.hold + step_time, tg_name)
+            thread_group.getparent().replace(thread_group, step_group)
+
+    def _apply_iterations(self, jmx):
+        """
+        Apply iterations to LoopController.loops
+        :param jmx: JMX
+        :return:
+        """
+        sel = "elementProp>[name='LoopController.loops']"
+        xpath = GenericTranslator().css_to_xpath(sel)
+        flag_sel = "elementProp>[name='LoopController.continue_forever']"
+        flag_xpath = GenericTranslator().css_to_xpath(flag_sel)
+
+        for group in self._enabled_thread_groups(jmx, include=[self.tg]):
+            sprop = group.xpath(xpath)
+            bprop = group.xpath(flag_xpath)
+            bprop[0].text = 'false'
+            sprop[0].text = str(int(self.load.iterations))
+
+    def _apply_duration(self, jmx):
+        """
+        Apply duration to ThreadGroup.duration
+        :param jmx: JMX
+        :return:
+        """
+        sched_sel = "[name='ThreadGroup.scheduler']"
+        sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
+        dur_sel = "[name='ThreadGroup.duration']"
+        dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
+
+        for group in jmx.enabled_thread_groups():
+            group.xpath(sched_xpath)[0].text = 'true'
+            group.xpath(dur_xpath)[0].text = str(int(self.load.duration))
+            loops_element = group.find(".//elementProp[@name='ThreadGroup.main_controller']")
+            loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
+            loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
+
+    def _apply_concurrency(self, jmx):
+        """
+        Apply concurrency to ThreadGroup.num_threads
+        :type jmx: JMX
+        """
+        # TODO: what to do when they used non-standard thread groups?
+        tnum_sel = ".//*[@name='ThreadGroup.num_threads']"
+
+        orig_sum = 0.0
+        for group in self._enabled_thread_groups(jmx, include=[self.tg]):
+            othread = group.find(tnum_sel)
+            try:
+                orig_sum += int(othread.text)
+            except ValueError:
+                self.log.debug("Using value 1 since cannot parse int: %s", othread.text)
+                orig_sum += 1
+        self.log.debug("Original threads: %s", orig_sum)
+        leftover = self.load.concurrency
+        for group in self._enabled_thread_groups(jmx, include=[self.tg]):
+            othread = group.find(tnum_sel)
+            try:
+                orig = int(othread.text)
+            except ValueError:
+                self.log.debug("Using value 1 since cannot parse int: %s", othread.text)
+                orig = 1
+
+            new = int(round(self.load.concurrency * orig / orig_sum))
+            if new < 1:
+                new = 1  # TODO: cover with test
+            leftover -= new
+            othread.text = str(new)
+        if leftover < 0:
+            msg = "Had to add %s more threads to maintain thread group proportion"
+            self.log.warning(msg, -leftover)
+        elif leftover > 0:
+            msg = "%s threads left undistributed due to thread group proportion"
+            self.log.warning(msg, leftover)
+
+    def _modify_ctg(self):
+        pass
+
+    def _convert_to_normal_tg(self, jmx):
+        """
+        Convert all TGs to simple ThreadGroup
+        :param jmx: JMX
+        :return:
+        """
+        for group in self._enabled_thread_groups(jmx, exclude=[self.tg]):
+            if group.tag != 'ThreadGroup':
+                testname = group.get('testname')
+                self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
+                group_concurrency = ThreadGroupProcessor._get_concurrency_from_tg(group)
+                on_error = ThreadGroupProcessor._get_tg_action_on_error(group)
+
+                new_group = JMX.get_thread_group(
+                    concurrency=group_concurrency,
+                    iterations=-1,
+                    testname=testname,
+                    on_error=on_error)
+
+                group.getparent().replace(group, new_group)
+
+    @staticmethod
+    def _get_concurrency_from_tg(thread_group):
+        """
+        :param thread_group: etree.Element
+        :return:
+        """
+        concurrency_element = thread_group.find(".//stringProp[@name='ThreadGroup.num_threads']")
+        if concurrency_element is not None:
+            return int(concurrency_element.text)
+
+    @staticmethod
+    def _get_tg_action_on_error(thread_group):
+        action = thread_group.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
+        if action is not None:
+            return action.text
+
+    def _enabled_thread_groups(self, jmx, include=None, exclude=None):
+        """
+        Get thread groups that are enabled
+        """
+        if not (include or exclude) or (include and exclude):
+            msg = 'Unacceptable params in enabled_thread_groups: include=%s, exclude=%s'
+            raise TaurusInternalException(msg % (include, exclude))
+
+        if exclude:
+            include = list(set(list(self.THREAD_GROUPS.keys())) - set(exclude))
+
+        groups = [jmx.get(self.THREAD_GROUPS[key]) for key in include]
+        tgroups = chain(*groups)
+
+        for group in tgroups:
+            if group.get("enabled") != 'false':
+                yield group
+
+
 class JMeterScenarioBuilder(JMX):
     """
     Helper to build JMeter test plan from Scenario
@@ -1539,7 +1602,6 @@ class JMeterScenarioBuilder(JMX):
     :param executor: ScenarioExecutor
     :param original: inherited from JMX
     """
-
     def __init__(self, executor, original=None):
         super(JMeterScenarioBuilder, self).__init__(original)
         self.executor = executor
@@ -1896,7 +1958,7 @@ class JMeterScenarioBuilder(JMX):
         Generate the test plan
         """
 
-        thread_group = self.get_thread_group(iterations=-1, testname=self.executor.label)
+        thread_group = self.executor.tg_proc.create(testname=self.executor.label)
         thread_group_ht = etree.Element("hashTree", type="tg")
 
         # NOTE: set realistic dns-cache and JVM prop by default?
@@ -2104,7 +2166,7 @@ class JMeter(RequiredTool):
         cleaner = JarCleaner(self.log)
         cleaner.clean(os.path.join(dest, 'lib'))
 
-    def concurrent_thread_group_installed(self):
+    def ctg_plugin_installed(self):
         """
         Simple check if ConcurrentThreadGroup is available
         :return:
