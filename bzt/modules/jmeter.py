@@ -1401,12 +1401,9 @@ class ThreadGroupProcessor:
         if self.load.ramp_up:
             self._apply_ramp_up(jmx)
         if self.load.steps:
-            self._apply_stepping_ramp_up(jmx)
+            self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
         if self.load.throughput:
-            if self.load.steps:
-                self._add_stepping_shaper(jmx)
-            else:
-                self._add_shaper(jmx)
+            self._add_shaper(jmx)
 
     def _add_shaper(self, jmx):
         """
@@ -1429,39 +1426,6 @@ class ThreadGroupProcessor:
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-    def _add_stepping_shaper(self, jmx):
-        """
-        adds stepping shaper
-        1) warning if any ThroughputTimer found
-        2) add VariableThroughputTimer to test plan
-        :param jmx: JMX
-        :return:
-        """
-        if not self.load.ramp_up:
-            self.log.warning("You should set up 'ramp-up' for usage of 'steps'")
-            return
-
-        timers_patterns = ["ConstantThroughputTimer", "kg.apc.jmeter.timers.VariableThroughputTimer"]
-
-        for timer_pattern in timers_patterns:
-            for timer in jmx.tree.findall(".//%s" % timer_pattern):
-                self.log.warning("Test plan already use %s", timer.attrib['testname'])
-
-        step_rps = int(round(float(self.load.throughput) / self.load.steps))
-        step_time = int(round(float(self.load.ramp_up) / self.load.steps))
-        step_shaper = jmx.get_rps_shaper()
-
-        for step in range(1, int(self.load.steps + 1)):
-            step_load = step * step_rps
-            if step != self.load.steps:
-                jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time)
-            else:
-                if self.load.hold:
-                    jmx.add_rps_shaper_schedule(step_shaper, step_load, step_load, step_time + self.load.hold)
-
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, step_shaper)
-        jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
-
     def _apply_ramp_up(self, jmx):
         """
         Apply ramp up period in seconds to ThreadGroup.ramp_time
@@ -1473,22 +1437,6 @@ class ThreadGroupProcessor:
         for group in self._enabled_thread_groups(jmx):
             prop = group.find(rampup_sel)
             prop.text = str(int(self.load.ramp_up))
-
-    def _apply_stepping_ramp_up(self, jmx):
-        """
-        Change all thread groups to step groups, use ramp-up/steps
-        :param jmx: JMX
-        :return:
-        """
-        step_time = int(self.load.ramp_up / self.load.steps)
-        thread_groups = jmx.tree.findall(".//ThreadGroup")
-        for thread_group in thread_groups:
-            thread_cnc = int(thread_group.find(".//*[@name='ThreadGroup.num_threads']").text)
-            tg_name = thread_group.attrib["testname"]
-            thread_step = int(ceil(float(thread_cnc) / self.load.steps))
-            step_group = JMX.get_stepping_thread_group(
-                thread_cnc, thread_step, step_time, self.load.hold + step_time, tg_name)
-            thread_group.getparent().replace(thread_group, step_group)
 
     def _apply_iterations(self, jmx):
         """
