@@ -149,7 +149,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
         self.install_required_tools()
-        self.tg_proc = ThreadGroupProcessor(self)
+        self.tg_proc = LoadSettingsProcessor(self)
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
 
         is_jmx_generated = False
@@ -1337,7 +1337,7 @@ class JTLErrorsReader(object):
 
 
 # todo: join with JMeterScenarioBuilder?
-class ThreadGroupProcessor:
+class LoadSettingsProcessor(object):
     THREAD_GROUPS = {'TG': 'jmeterTestPlan>hashTree>hashTree>ThreadGroup',
                      'STG': r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup',
                      'UTG': r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup',
@@ -1356,7 +1356,7 @@ class ThreadGroupProcessor:
         :return:
         """
         tg = 'TG'  # regular ThreadGroup
-        if not executor.settings.get('force_ctg', True):
+        if not executor.settings.get('force-ctg', True):
             return tg
 
         msg = 'Thread group detection: %s, regular ThreadGroup will be used'
@@ -1373,14 +1373,6 @@ class ThreadGroupProcessor:
             tg = 'CTG'
 
         return tg
-
-    def create(self, testname):
-        if self.tg == 'TG':
-            return JMX.get_thread_group(iterations=-1, testname=testname)
-        elif self.tg == 'CTG':
-            return JMX.get_concurrency_thread_group(testname=testname)
-        else:
-            raise TaurusInternalException('Cannot create unsupported thread group: %s' % self.tg)
 
     def modify(self, jmx):
         if not (self.load.iterations or self.load.concurrency or self.load.duration):
@@ -1532,8 +1524,8 @@ class ThreadGroupProcessor:
         for group in self._enabled_thread_groups(jmx, exclude=[self.tg]):
             testname = group.get('testname')
             self.log.warning("Converting %s (%s) to ConcurrencyThreadGroup", group.tag, testname)
-            group_concurrency = ThreadGroupProcessor._get_concurrency_from_tg(group)
-            on_error = ThreadGroupProcessor._get_action_on_error(group)
+            group_concurrency = LoadSettingsProcessor._get_concurrency_from_tg(group)
+            on_error = LoadSettingsProcessor._get_action_on_error(group)
 
             new_group = JMX.get_concurrency_thread_group(
                 concurrency=group_concurrency,
@@ -1552,8 +1544,8 @@ class ThreadGroupProcessor:
         for group in self._enabled_thread_groups(jmx, exclude=[self.tg]):
             testname = group.get('testname')
             self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
-            group_concurrency = ThreadGroupProcessor._get_concurrency_from_tg(group)
-            on_error = ThreadGroupProcessor._get_action_on_error(group)
+            group_concurrency = LoadSettingsProcessor._get_concurrency_from_tg(group)
+            on_error = LoadSettingsProcessor._get_action_on_error(group)
 
             new_group = JMX.get_thread_group(
                 concurrency=group_concurrency,
@@ -1968,7 +1960,7 @@ class JMeterScenarioBuilder(JMX):
         Generate the test plan
         """
 
-        thread_group = self.executor.tg_proc.create(testname=self.executor.label)
+        thread_group = JMX.get_thread_group(iterations=-1, testname=self.executor.label)
         thread_group_ht = etree.Element("hashTree", type="tg")
 
         # NOTE: set realistic dns-cache and JVM prop by default?
