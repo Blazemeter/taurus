@@ -558,7 +558,8 @@ class JMX(object):
         return udv_element
 
     @staticmethod
-    def get_concurrency_thread_group(testname="ConcurrencyThreadGroup"):
+    def get_concurrency_thread_group(
+            concurrency=None, rampup=None, hold_for=None, on_error="continue", testname="ConcurrencyThreadGroup"):
         """
         :return: etree element, Concurrency Thread Group
         """
@@ -570,11 +571,19 @@ class JMX(object):
             name="ThreadGroup.main_controller",
             elementType="com.blazemeter.jmeter.control.VirtualUserController")
         concurrency_thread_group.append(virtual_user_controller)
-        concurrency_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", "continue"))
-        concurrency_thread_group.append(JMX._string_prop("TargetLevel", ""))
-        concurrency_thread_group.append(JMX._string_prop("RampUp", ""))
+        concurrency_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
+
+        if not concurrency:
+            concurrency = 1
+        if not rampup:
+            rampup = ""
+        if not hold_for:
+            hold_for = ""
+
+        concurrency_thread_group.append(JMX._string_prop("TargetLevel", str(concurrency)))
+        concurrency_thread_group.append(JMX._string_prop("RampUp", str(rampup)))
         concurrency_thread_group.append(JMX._string_prop("Steps", ""))
-        concurrency_thread_group.append(JMX._string_prop("Hold", ""))
+        concurrency_thread_group.append(JMX._string_prop("Hold", str(hold_for)))
         concurrency_thread_group.append(JMX._string_prop("LogFilename", ""))
         concurrency_thread_group.append(JMX._string_prop("Iterations", ""))
         concurrency_thread_group.append(JMX._string_prop("Unit", "S"))
