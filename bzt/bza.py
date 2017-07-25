@@ -525,6 +525,11 @@ class Master(BZAObject):
         res = self._request(url)
         return res['result']
 
+    def get_errors(self):
+        url = self.address + "/api/v4/masters/%s/reports/errorsreport/data?noDataError=false" % self['id']
+        res = self._request(url)
+        return res['result']
+
     def force_start(self):
         url = self.address + "/api/v4/masters/%s/force-start" % self['id']
         self._request(url, method="POST")
@@ -536,7 +541,6 @@ class Master(BZAObject):
     def get_full(self):
         url = self.address + "/api/v4/masters/%s/full" % self['id']
         return self._request(url)['result']
-
 
 class Session(BZAObject):
     def __init__(self, proto=None, data=None):

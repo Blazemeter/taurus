@@ -27,9 +27,9 @@ from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools, Scenario
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager
 
-SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.3/" \
-                         "selenium-server-standalone-3.3.0.jar"
-SELENIUM_VERSION = "3.0"  # FIXME: unused, remove it
+SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.4/" \
+                         "selenium-server-standalone-3.4.0.jar"
+SELENIUM_VERSION = "3.4"  # FIXME: unused, remove it
 
 JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/" \
                       "{version}/junit-{version}.jar"

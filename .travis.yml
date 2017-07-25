@@ -22,16 +22,11 @@ addons:
 
 before_install: |
   if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-    wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-macos.tar.gz -O geckodriver.tar.gz
     sh -e Xvfb :99 -ac -screen 0 1024x768x8
   else
-    wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-linux64.tar.gz -O geckodriver.tar.gz
     export DISPLAY=:99.0
     sh -e /etc/init.d/xvfb start
   fi
-  mkdir geckodriver
-  tar -xzf geckodriver.tar.gz
-  export PATH=$PATH:`pwd`
 
 install:
 - nvm install 4.2

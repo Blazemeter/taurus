@@ -24,7 +24,7 @@ import time
 import traceback
 import zipfile
 from abc import abstractmethod
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, Counter
 from functools import wraps
 from ssl import SSLError
 
@@ -1620,6 +1620,31 @@ class ResultsFromBZA(ResultsProvider):
         self.master = master
         self.min_ts = 0
         self.log = logging.getLogger('')
+        self.prev_errors = BetterDict()
+        self.cur_errors = BetterDict()
+        self.handle_errors = True
+
+    def _get_err_diff(self):
+        # find diff of self.prev_errors and self.cur_errors
+        diff = {}
+        for label in self.cur_errors:
+            if label not in self.prev_errors:
+                diff[label] = self.cur_errors[label]
+                continue
+
+            for msg in self.cur_errors[label]:
+                if msg not in self.prev_errors[label]:
+                    prev_count = 0
+                else:
+                    prev_count = self.prev_errors[label][msg]['count']
+
+                delta = self.cur_errors[label][msg]['count'] - prev_count
+                if delta > 0:
+                    if label not in diff:
+                        diff[label] = {}
+                    diff[label][msg] = {'count': delta, 'rc': self.cur_errors[label][msg]['rc']}
+
+        return diff
 
     def _calculate_datapoints(self, final_pass=False):
         if self.master is None:
@@ -1639,13 +1664,14 @@ class ResultsFromBZA(ResultsProvider):
             if label.get('label') == 'ALL':
                 timestamps.extend([kpi['ts'] for kpi in label.get('kpis', [])])
 
+        self.handle_errors = True
+
         for tstmp in timestamps:
             point = DataPoint(tstmp)
             for label in data:
                 for kpi in label.get('kpis', []):
                     if kpi['ts'] != tstmp:
                         continue
-
                     label_str = label.get('label')
                     if label_str is None or label_str not in aggr:
                         self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
@@ -1654,9 +1680,64 @@ class ResultsFromBZA(ResultsProvider):
                     kpiset = self.__get_kpiset(aggr, kpi, label_str)
                     point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
+            if self.handle_errors:
+                self.handle_errors = False
+                self.cur_errors = self.__get_errors_from_BZA()
+                err_diff = self._get_err_diff()
+                if err_diff:
+                    for label in err_diff:
+                        point_label = '' if label == 'ALL' else label
+                        kpiset = point[DataPoint.CURRENT].get(point_label, KPISet())
+                        kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
+                    self.prev_errors = self.cur_errors
+
             point.recalculate()
+
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
+
+    def __get_errors_from_BZA(self):
+        #
+        # This method reads error report from BZA
+        #
+        # internal errors format:
+        # <request_label>:
+        #   <error_message>:
+        #     'count': <count of errors>
+        #     'rc': <response code>
+        #
+        result = {}
+        try:
+            errors = self.master.get_errors()
+        except (URLError, TaurusNetworkError):
+            self.log.warning("Failed to get errors, will retry in %s seconds...", self.master.timeout)
+            self.log.debug("Full exception: %s", traceback.format_exc())
+            time.sleep(self.master.timeout)
+            errors = self.master.get_errors()
+            self.log.info("Succeeded with retry")
+
+        for e_record in errors:
+            _id = e_record["_id"]
+            if _id == "ALL":
+                _id = ""
+            result[_id] = {}
+            for error in e_record['errors']:
+                result[_id][error['m']] = {'count': error['count'], 'rc': error['rc']}
+            for assertion in e_record['assertions']:
+                result[_id][assertion['failureMessage']] = {'count': assertion['failures'], 'rc': assertion['name']}
+        return result
+
+    def __get_kpi_errors(self, errors):
+        result = []
+        for msg in errors:
+            kpi_error = KPISet.error_item_skel(
+                error=msg,
+                ret_c=errors[msg]['rc'],
+                cnt=errors[msg]['count'],
+                errtype=KPISet.ERRTYPE_ERROR,  # TODO: what about asserts?
+                urls=Counter())
+            result.append(kpi_error)
+        return result
 
     def __get_kpiset(self, aggr, kpi, label):
         kpiset = KPISet()
