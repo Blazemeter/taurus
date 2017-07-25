@@ -77,7 +77,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister):
         self.stdout_file = None
         self.stderr_file = None
 
-    def _start_subprocess(self, cmdline):
+    def _start_subprocess(self, cmdline, **kwargs):
         prefix = self.execution.get("executor", None) or "executor"
         self.stdout_file = self.engine.create_artifact(prefix, ".out")
         std_out = open(self.stdout_file, "wt")
@@ -85,7 +85,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister):
         self.stderr_file = self.engine.create_artifact(prefix, ".err")
         std_err = open(self.stderr_file, "wt")
         self.opened_descriptors.append(std_err)
-        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env)
+        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env, **kwargs)
 
     def resource_files(self):
         scenario = self.get_scenario()

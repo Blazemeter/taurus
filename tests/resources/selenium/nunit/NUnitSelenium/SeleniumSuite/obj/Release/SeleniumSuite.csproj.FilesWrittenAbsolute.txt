@@ -1,0 +1,6 @@
+/home/dmand/src/taurus/tests/resources/selenium/nunit/NUnitSelenium/SeleniumSuite/obj/Release/.NETFramework,Version=v4.5.AssemblyAttribute.cs
+/home/dmand/src/taurus/tests/resources/selenium/nunit/NUnitSelenium/SeleniumSuite/bin/Release/SeleniumSuite.dll
+/home/dmand/src/taurus/tests/resources/selenium/nunit/NUnitSelenium/SeleniumSuite/obj/Release/SeleniumSuite.dll
+/home/dmand/src/taurus/tests/resources/selenium/nunit/NUnitSelenium/SeleniumSuite/bin/Release/nunit.framework.dll
+/home/dmand/src/taurus/tests/resources/selenium/nunit/NUnitSelenium/SeleniumSuite/bin/Release/WebDriver.dll
+/home/dmand/src/taurus/tests/resources/selenium/nunit/NUnitSelenium/SeleniumSuite/bin/Release/WebDriver.Support.dll
