@@ -88,7 +88,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.stdout_file = None
         self.stderr_file = None
         self.tool = None
-        self.tg_proc = None
 
     def get_scenario(self, name=None, cache_scenario=True):
         scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
@@ -149,7 +148,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
         self.install_required_tools()
-        self.tg_proc = LoadSettingsProcessor(self)
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
 
         is_jmx_generated = False
@@ -481,7 +479,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
         self.__apply_test_mode(jmx)
-        self.tg_proc.modify(jmx)
+        LoadSettingsProcessor(self).modify(jmx)
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
@@ -1386,6 +1384,9 @@ class LoadSettingsProcessor(object):
         else:
             raise TaurusInternalException('Cannot modify unsupported thread group: %s' % self.tg)
 
+        if self.load.throughput:
+            self._add_shaper(jmx)
+
     def _modify_tg(self, jmx):
         self._convert_to_normal_tg(jmx)
 
@@ -1399,8 +1400,6 @@ class LoadSettingsProcessor(object):
             self._apply_ramp_up_tg(jmx)
         if self.load.steps:
             self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
-        if self.load.throughput:
-            self._add_shaper_tg(jmx)
 
     def _modify_ctg(self, jmx):
         self._convert_to_ctg(jmx)
@@ -1409,7 +1408,7 @@ class LoadSettingsProcessor(object):
             self._apply_concurrency_ctg(jmx)
         # to be continue...
 
-    def _add_shaper_tg(self, jmx):
+    def _add_shaper(self, jmx):
         """
         Add shaper
         :param jmx: JMX
