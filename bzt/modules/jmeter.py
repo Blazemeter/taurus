@@ -1388,16 +1388,33 @@ class LoadSettingsProcessor(object):
             self._add_shaper(jmx)
 
     def _modify_tg(self, jmx):
-        self._convert_to_normal_tg(jmx)
+        concurrency = []
+        for group in self._enabled_thread_groups(jmx):
+            concurrency.append(LoadSettingsProcessor._get_concurrency_from_tg(group))
 
         if self.load.concurrency:
-            self._apply_concurrency_tg(jmx)
-        if self.load.hold or (self.load.ramp_up and not self.load.iterations):
-            self._apply_duration_tg(jmx)
-        if self.load.iterations:
-            self._apply_iterations_tg(jmx)
-        if self.load.ramp_up:
-            self._apply_ramp_up_tg(jmx)
+            total_old_concurrency = sum(concurrency)
+            if total_old_concurrency == 0:
+                total_old_concurrency = 1   # to avoid zero division
+            for idx in range(len(concurrency)):
+                concurrency[idx] = int(round(self.load.concurrency * concurrency[idx] / total_old_concurrency))
+                if concurrency[idx] < 1:
+                    concurrency[idx] = 1
+            total_new_concurrency = sum(concurrency)
+            leftover = total_old_concurrency - total_new_concurrency
+            if leftover < 0:
+                msg = "Had to add %s more threads to maintain thread group proportion"
+                self.log.warning(msg, -leftover)
+            elif leftover > 0:
+                msg = "%s threads left undistributed due to thread group proportion"
+                self.log.warning(msg, leftover)
+
+        for idx, group in enumerate(self._enabled_thread_groups(jmx)):
+            self._convert_to_normal_tg(group, concurrency[idx])
+            self._apply_duration_tg(group)
+            self._apply_iterations_tg(group)
+            self._apply_ramp_up_tg(group)
+
         if self.load.steps:
             self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
 
@@ -1429,90 +1446,45 @@ class LoadSettingsProcessor(object):
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-    def _apply_ramp_up_tg(self, jmx):
+    def _apply_ramp_up_tg(self, group):
         """
         Apply ramp up period in seconds to ThreadGroup.ramp_time
-        :param jmx: JMX
-        :return:
         """
-        rampup_sel = ".//*[@name='ThreadGroup.ramp_time']"
-
-        for group in self._enabled_thread_groups(jmx):
+        if self.load.ramp_up:
+            rampup_sel = ".//*[@name='ThreadGroup.ramp_time']"
             prop = group.find(rampup_sel)
             prop.text = str(int(self.load.ramp_up))
 
-    def _apply_iterations_tg(self, jmx):
+    def _apply_iterations_tg(self, group):
         """
         Apply iterations to LoopController.loops
-        :param jmx: JMX
-        :return:
         """
-        sel = "elementProp>[name='LoopController.loops']"
-        xpath = GenericTranslator().css_to_xpath(sel)
-        flag_sel = "elementProp>[name='LoopController.continue_forever']"
-        flag_xpath = GenericTranslator().css_to_xpath(flag_sel)
+        if self.load.iterations:
+            sel = "elementProp>[name='LoopController.loops']"
+            xpath = GenericTranslator().css_to_xpath(sel)
+            flag_sel = "elementProp>[name='LoopController.continue_forever']"
+            flag_xpath = GenericTranslator().css_to_xpath(flag_sel)
 
-        for group in self._enabled_thread_groups(jmx):
             sprop = group.xpath(xpath)
             bprop = group.xpath(flag_xpath)
             bprop[0].text = 'false'
             sprop[0].text = str(int(self.load.iterations))
 
-    def _apply_duration_tg(self, jmx):
+    def _apply_duration_tg(self, group):
         """
         Apply duration to ThreadGroup.duration
-        :param jmx: JMX
-        :return:
         """
-        sched_sel = "[name='ThreadGroup.scheduler']"
-        sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
-        dur_sel = "[name='ThreadGroup.duration']"
-        dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
+        if self.load.hold or (self.load.ramp_up and not self.load.iterations):
+            sched_sel = "[name='ThreadGroup.scheduler']"
+            sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
+            dur_sel = "[name='ThreadGroup.duration']"
+            dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
 
-        for group in self._enabled_thread_groups(jmx):
             group.xpath(sched_xpath)[0].text = 'true'
             group.xpath(dur_xpath)[0].text = str(int(self.load.duration))
             loops_element = group.find(".//elementProp[@name='ThreadGroup.main_controller']")
             loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
             loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
-
-    def _apply_concurrency_tg(self, jmx):
-        """
-        Apply concurrency to ThreadGroup.num_threads
-        :type jmx: JMX
-        """
-        # TODO: what to do when they used non-standard thread groups?
-        tnum_sel = ".//*[@name='ThreadGroup.num_threads']"
-
-        orig_sum = 0.0
-        for group in self._enabled_thread_groups(jmx):
-            othread = group.find(tnum_sel)
-            try:
-                orig_sum += int(othread.text)
-            except ValueError:
-                self.log.debug("Using value 1 since cannot parse int: %s", othread.text)
-                orig_sum += 1
-        self.log.debug("Original threads: %s", orig_sum)
-        leftover = self.load.concurrency
-        for group in self._enabled_thread_groups(jmx):
-            othread = group.find(tnum_sel)
-            try:
-                orig = int(othread.text)
-            except ValueError:
-                self.log.debug("Using value 1 since cannot parse int: %s", othread.text)
-                orig = 1
-
-            new = int(round(self.load.concurrency * orig / orig_sum))
-            if new < 1:
-                new = 1  # TODO: cover with test
-            leftover -= new
-            othread.text = str(new)
-        if leftover < 0:
-            msg = "Had to add %s more threads to maintain thread group proportion"
-            self.log.warning(msg, -leftover)
-        elif leftover > 0:
-            msg = "%s threads left undistributed due to thread group proportion"
-            self.log.warning(msg, leftover)
 
     def _convert_to_ctg(self, jmx):
         """
@@ -1533,26 +1505,21 @@ class LoadSettingsProcessor(object):
 
             group.getparent().replace(group, new_group)
 
-
-    def _convert_to_normal_tg(self, jmx):
+    def _convert_to_normal_tg(self, group, group_concurrency):
         """
         Convert all TGs to simple ThreadGroup
-        :param jmx: JMX
-        :return:
         """
-        for group in self._enabled_thread_groups(jmx, exclude=[self.tg]):
-            testname = group.get('testname')
-            self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
-            group_concurrency = LoadSettingsProcessor._get_concurrency_from_tg(group)
-            on_error = LoadSettingsProcessor._get_action_on_error(group)
+        testname = group.get('testname')
+        self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
+        on_error = LoadSettingsProcessor._get_action_on_error(group)
 
-            new_group = JMX.get_thread_group(
-                concurrency=group_concurrency,
-                iterations=-1,
-                testname=testname,
-                on_error=on_error)
+        new_group = JMX.get_thread_group(
+            concurrency=group_concurrency,
+            iterations=-1,
+            testname=testname,
+            on_error=on_error)
 
-            group.getparent().replace(group, new_group)
+        group.getparent().replace(group, new_group)
 
     @staticmethod
     def _get_concurrency_from_tg(thread_group):
@@ -1560,6 +1527,7 @@ class LoadSettingsProcessor(object):
         :param thread_group: etree.Element
         :return:
         """
+        # TODO: what to do when they used non-standard thread groups?
         concurrency_element = thread_group.find(".//stringProp[@name='ThreadGroup.num_threads']")
         if concurrency_element is not None:
             return int(concurrency_element.text)
@@ -1580,19 +1548,11 @@ class LoadSettingsProcessor(object):
         if action is not None:
             return action.text
 
-    def _enabled_thread_groups(self, jmx, include=None, exclude=None):
+    def _enabled_thread_groups(self, jmx):
         """
         Get thread groups that are enabled
         """
-        if include and exclude:
-            msg = 'Unacceptable params in enabled_thread_groups: include=%s, exclude=%s'
-            raise TaurusInternalException(msg % (include, exclude))
-        elif exclude:
-            include = list(set(list(self.THREAD_GROUPS.keys())) - set(exclude))
-        elif not include:   # both lists are empty, take preferred group by default
-            include = [self.tg]
-
-        groups = [jmx.get(self.THREAD_GROUPS[key]) for key in include]
+        groups = [jmx.get(self.THREAD_GROUPS[key]) for key in self.THREAD_GROUPS.keys()]
         tgroups = chain(*groups)
 
         for group in tgroups:
