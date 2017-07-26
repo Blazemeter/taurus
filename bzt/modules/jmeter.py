@@ -28,17 +28,12 @@ import time
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
-from math import ceil
 
-import os
-from itertools import chain
-from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
-from bzt.jmx import JMX
+from bzt.jmx import JMX, ThreadGroupHandler
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
@@ -1334,18 +1329,12 @@ class JTLErrorsReader(object):
                 return child.text
 
 
-# todo: join with JMeterScenarioBuilder?
 class LoadSettingsProcessor(object):
-    THREAD_GROUPS = {'TG': 'jmeterTestPlan>hashTree>hashTree>ThreadGroup',
-                     'STG': r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup',
-                     'UTG': r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup',
-                     'CTG': r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.'
-                            r'threads\.concurrency\.ConcurrencyThreadGroup'}
-
     def __init__(self, executor):
         self.log = executor.log.getChild(self.__class__.__name__)
         self.load = executor.get_load()
         self.tg = self._detect_thread_group(executor)
+        self.tg_handler = ThreadGroupHandler(self.log)
 
     def _detect_thread_group(self, executor):
         """
@@ -1389,17 +1378,17 @@ class LoadSettingsProcessor(object):
 
     def _modify_tg(self, jmx):
         concurrency = []
-        for group in self._enabled_thread_groups(jmx):
-            concurrency.append(LoadSettingsProcessor._get_concurrency_from_tg(group))
+        for group in self.tg_handler.groups(jmx):
+            concurrency.append(group.get_concurrency())
 
-        if self.load.concurrency:
-            total_old_concurrency = sum(concurrency)
-            if total_old_concurrency == 0:
-                total_old_concurrency = 1   # to avoid zero division
+        if concurrency and self.load.concurrency:
+            total_old_concurrency = sum(concurrency)    # t_o_c != 0 because of logic of group.get_concurrency()
+
             for idx in range(len(concurrency)):
                 concurrency[idx] = int(round(self.load.concurrency * concurrency[idx] / total_old_concurrency))
                 if concurrency[idx] < 1:
                     concurrency[idx] = 1
+
             total_new_concurrency = sum(concurrency)
             leftover = total_old_concurrency - total_new_concurrency
             if leftover < 0:
@@ -1409,20 +1398,17 @@ class LoadSettingsProcessor(object):
                 msg = "%s threads left undistributed due to thread group proportion"
                 self.log.warning(msg, leftover)
 
-        for idx, group in enumerate(self._enabled_thread_groups(jmx)):
-            self._convert_to_normal_tg(group, concurrency[idx])
-            self._apply_duration_tg(group)
-            self._apply_iterations_tg(group)
-            self._apply_ramp_up_tg(group)
+        for idx, group in enumerate(self.tg_handler.groups(jmx)):
+            group = group.convert2tg(concurrency[idx])  # todo: is it safe?
+            group.apply_duration(self.load)
+            group.apply_iterations(self.load)
+            group.apply_ramp_up(self.load)
 
         if self.load.steps:
             self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
 
     def _modify_ctg(self, jmx):
-        self._convert_to_ctg(jmx)
-
-        if self.load.concurrency:
-            self._apply_concurrency_ctg(jmx)
+        pass
         # to be continue...
 
     def _add_shaper(self, jmx):
@@ -1446,92 +1432,6 @@ class LoadSettingsProcessor(object):
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
-    def _apply_ramp_up_tg(self, group):
-        """
-        Apply ramp up period in seconds to ThreadGroup.ramp_time
-        """
-        if self.load.ramp_up:
-            rampup_sel = ".//*[@name='ThreadGroup.ramp_time']"
-            prop = group.find(rampup_sel)
-            prop.text = str(int(self.load.ramp_up))
-
-    def _apply_iterations_tg(self, group):
-        """
-        Apply iterations to LoopController.loops
-        """
-        if self.load.iterations:
-            sel = "elementProp>[name='LoopController.loops']"
-            xpath = GenericTranslator().css_to_xpath(sel)
-            flag_sel = "elementProp>[name='LoopController.continue_forever']"
-            flag_xpath = GenericTranslator().css_to_xpath(flag_sel)
-
-            sprop = group.xpath(xpath)
-            bprop = group.xpath(flag_xpath)
-            bprop[0].text = 'false'
-            sprop[0].text = str(int(self.load.iterations))
-
-    def _apply_duration_tg(self, group):
-        """
-        Apply duration to ThreadGroup.duration
-        """
-        if self.load.hold or (self.load.ramp_up and not self.load.iterations):
-            sched_sel = "[name='ThreadGroup.scheduler']"
-            sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
-            dur_sel = "[name='ThreadGroup.duration']"
-            dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
-
-            group.xpath(sched_xpath)[0].text = 'true'
-            group.xpath(dur_xpath)[0].text = str(int(self.load.duration))
-            loops_element = group.find(".//elementProp[@name='ThreadGroup.main_controller']")
-            loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
-            loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
-
-    def _convert_to_ctg(self, jmx):
-        """
-        Convert all TGs to simple ThreadGroup
-        :param jmx: JMX
-        :return:
-        """
-        for group in self._enabled_thread_groups(jmx, exclude=[self.tg]):
-            testname = group.get('testname')
-            self.log.warning("Converting %s (%s) to ConcurrencyThreadGroup", group.tag, testname)
-            group_concurrency = LoadSettingsProcessor._get_concurrency_from_tg(group)
-            on_error = LoadSettingsProcessor._get_action_on_error(group)
-
-            new_group = JMX.get_concurrency_thread_group(
-                concurrency=group_concurrency,
-                testname=testname,
-                on_error=on_error)
-
-            group.getparent().replace(group, new_group)
-
-    def _convert_to_normal_tg(self, group, group_concurrency):
-        """
-        Convert all TGs to simple ThreadGroup
-        """
-        testname = group.get('testname')
-        self.log.warning("Converting %s (%s) to normal ThreadGroup", group.tag, testname)
-        on_error = LoadSettingsProcessor._get_action_on_error(group)
-
-        new_group = JMX.get_thread_group(
-            concurrency=group_concurrency,
-            iterations=-1,
-            testname=testname,
-            on_error=on_error)
-
-        group.getparent().replace(group, new_group)
-
-    @staticmethod
-    def _get_concurrency_from_tg(thread_group):
-        """
-        :param thread_group: etree.Element
-        :return:
-        """
-        # TODO: what to do when they used non-standard thread groups?
-        concurrency_element = thread_group.find(".//stringProp[@name='ThreadGroup.num_threads']")
-        if concurrency_element is not None:
-            return int(concurrency_element.text)
-
     @staticmethod
     def _get_concurrency_from_ctg(thread_group):
         """
@@ -1541,23 +1441,6 @@ class LoadSettingsProcessor(object):
         concurrency_element = thread_group.find(".//stringProp[@name='TargetLevel']")
         if concurrency_element is not None:
             return int(concurrency_element.text)
-
-    @staticmethod
-    def _get_action_on_error(thread_group):
-        action = thread_group.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
-        if action is not None:
-            return action.text
-
-    def _enabled_thread_groups(self, jmx):
-        """
-        Get thread groups that are enabled
-        """
-        groups = [jmx.get(self.THREAD_GROUPS[key]) for key in self.THREAD_GROUPS.keys()]
-        tgroups = chain(*groups)
-
-        for group in tgroups:
-            if group.get("enabled") != 'false':
-                yield group
 
 
 class JMeterScenarioBuilder(JMX):

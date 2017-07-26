@@ -19,6 +19,7 @@ import logging
 import os
 import traceback
 
+from itertools import chain
 from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
@@ -1069,5 +1070,140 @@ class JMX(object):
         action.append(JMX.int_prop("ActionProcessor.target", target_index))
         action.append(JMX._string_prop("ActionProcessor.duration", str(duration_ms)))
         return action
+
+
+class AbstractThreadGroup(object):
+    XPATH = None
+
+    def __init__(self, element, logger):
+        self.element = element
+        self.name = self.__class__.__name__
+        self.log = logger.getChild(self.name)
+
+    def create(self):
+        return None
+
+    def get_concurrency(self):
+        self.log.warning("Getting of concurrency isn't suported for %s, choose 1" % self.name)
+        return 1
+
+    def _get_action_on_error(self):
+        action = self.element.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
+        if action is not None:
+            return action.text
+
+    def convert2tg(self, group_concurrency):
+        """
+        Convert all TGs to simple ThreadGroup
+        """
+        testname = self.element.get('testname')
+        self.log.warning("Converting %s (%s) to normal ThreadGroup", self.name, testname)
+        on_error = self._get_action_on_error()
+
+        new_group = JMX.get_thread_group(
+            concurrency=group_concurrency,
+            iterations=-1,
+            testname=testname,
+            on_error=on_error)
+
+        self.element.getparent().replace(self.element, new_group)
+
+        return ThreadGroup(self.element, self.log)
+
+
+class ThreadGroup(AbstractThreadGroup):
+    XPATH = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
+    CONCURRENCY_SEL = ".//stringProp[@name='ThreadGroup.num_threads']"
+
+    def get_concurrency(self):
+        concurrency_element = self.element.find(self.CONCURRENCY_SEL)
+        try:
+            concurrency = int(concurrency_element.text)
+        except ValueError:
+            msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
+            self.log.warning(msg, concurrency_element.text, self.name)
+            concurrency = 1
+
+        return concurrency
+
+    def apply_duration(self, load):
+        """
+        Apply duration to ThreadGroup.duration
+        """
+        if load.hold or (load.ramp_up and not load.iterations):
+            sched_sel = "[name='ThreadGroup.scheduler']"
+            sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
+            dur_sel = "[name='ThreadGroup.duration']"
+            dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
+
+            self.element.xpath(sched_xpath)[0].text = 'true'
+            self.element.xpath(dur_xpath)[0].text = str(int(load.duration))
+            loops_element = self.element.find(".//elementProp[@name='ThreadGroup.main_controller']")
+            loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
+            loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
+
+    def apply_iterations(self, load):
+        """
+        Apply iterations to LoopController.loops
+        """
+        if load.iterations:
+            sel = "elementProp>[name='LoopController.loops']"
+            xpath = GenericTranslator().css_to_xpath(sel)
+            flag_sel = "elementProp>[name='LoopController.continue_forever']"
+            flag_xpath = GenericTranslator().css_to_xpath(flag_sel)
+
+            sprop = self.element.xpath(xpath)
+            bprop = self.element.xpath(flag_xpath)
+            bprop[0].text = 'false'
+            sprop[0].text = str(int(load.iterations))
+
+    def apply_ramp_up(self, load):
+        """
+        Apply ramp up period in seconds to ThreadGroup.ramp_time
+        """
+        if load.ramp_up:
+            rampup_sel = ".//*[@name='ThreadGroup.ramp_time']"
+            prop = self.element.find(rampup_sel)
+            prop.text = str(int(load.ramp_up))
+
+
+class SteppingThreadGroup(AbstractThreadGroup):
+    XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup'
+    CONCURRENCY_SEL = ".//stringProp[@name='ThreadGroup.num_threads']"
+
+    def get_concurrency(self):
+        concurrency_element = self.element.find(self.CONCURRENCY_SEL)
+        try:
+            concurrency = int(concurrency_element.text)
+        except ValueError:
+            msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
+            self.log.warning(msg, concurrency_element.text, self.name)
+            concurrency = 1
+
+        return concurrency
+
+
+class UltimateThreadGroup(AbstractThreadGroup):
+    XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup'
+
+
+class ConcurrencyThreadGroup(AbstractThreadGroup):
+    XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.concurrency\.ConcurrencyThreadGroup'
+
+
+class ThreadGroupHandler(object):
+    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup]
+
+    def __init__(self, logger):
+        self.log = logger.getChild(self.__class__.__name__)
+
+    def groups(self, jmx):
+        """
+        Get wrappers for thread groups that are enabled
+        """
+        for _class in self.CLASSES:
+            for group in jmx.get(_class.XPATH):
+                if group.get("enabled") != 'false':
+                    yield _class(group, self.log)
 
 
