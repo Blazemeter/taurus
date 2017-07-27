@@ -1377,7 +1377,10 @@ class LoadSettingsProcessor(object):
             for idx, group in enumerate(self.tg_handler.groups(jmx)):
                 self.tg_handler.convert2tg(group, self.load, concurrency[idx])
         elif self.tg == self.CTG:
-            pass
+            # as follow conversion changes types of groups (and their order)
+            # we need to fix groups parsing order with list()
+            for idx, group in enumerate(list(self.tg_handler.groups(jmx))):
+                self.tg_handler.convert2ctg(group, self.load, concurrency[idx])
         else:
             self.log.warning('Unsupported preferred thread group: %s', self.tg)
 

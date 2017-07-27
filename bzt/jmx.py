@@ -1079,14 +1079,14 @@ class AbstractThreadGroup(object):
 
     def __init__(self, element, logger):
         self.element = element
-        self.name = self.__class__.__name__
-        self.log = logger.getChild(self.name)
+        self.gtype = self.__class__.__name__
+        self.log = logger.getChild(self.gtype)
 
     def create(self):   # todo: delegate content of group creation to itself?
         return None
 
     def get_concurrency(self):
-        self.log.warning("Getting of concurrency isn't suported for %s, choose 1" % self.name)
+        self.log.warning("Getting of concurrency isn't suported for %s, choose 1" % self.gtype)
         return 1
 
     def get_action_on_error(self):
@@ -1105,7 +1105,7 @@ class ThreadGroup(AbstractThreadGroup):
             concurrency = int(concurrency_element.text)
         except ValueError:
             msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, concurrency_element.text, self.name)
+            self.log.warning(msg, concurrency_element.text, self.gtype)
             concurrency = 1
 
         return concurrency
@@ -1121,7 +1121,7 @@ class SteppingThreadGroup(AbstractThreadGroup):
             concurrency = int(concurrency_element.text)
         except ValueError:
             msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, concurrency_element.text, self.name)
+            self.log.warning(msg, concurrency_element.text, self.gtype)
             concurrency = 1
 
         return concurrency
@@ -1155,7 +1155,7 @@ class ThreadGroupHandler(object):
         Convert TGs to simple ThreadGroup for load applying
         """
         testname = group.element.get('testname')
-        self.log.warning("Converting %s (%s) to normal ThreadGroup", group.name, testname)
+        self.log.warning("Converting %s (%s) to normal ThreadGroup", group.gtype, testname)
         on_error = group.get_action_on_error()
         iterations = load.iterations
         if not iterations:
@@ -1180,5 +1180,24 @@ class ThreadGroupHandler(object):
             loops_element = new_group_element.find(".//elementProp[@name='ThreadGroup.main_controller']")
             loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
             loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
+
+        group.element.getparent().replace(group.element, new_group_element)
+
+    def convert2ctg(self, group, load, concurrency):
+        """
+        Convert TGs to ConcurrencyThreadGroup for load applying
+        """
+        testname = group.element.get('testname')    # todo: add to group interface
+        self.log.warning("Converting %s (%s) to ConcurrencyThreadGroup", group.gtype, testname)
+        on_error = group.get_action_on_error()
+        iterations = load.iterations
+
+        # todo: add steps and iterations
+        new_group_element = JMX.get_concurrency_thread_group(
+            concurrency=concurrency,
+            rampup=load.ramp_up,
+            hold_for=load.hold,
+            on_error=on_error,
+            testname=testname)
 
         group.element.getparent().replace(group.element, new_group_element)
