@@ -1330,6 +1330,9 @@ class JTLErrorsReader(object):
 
 
 class LoadSettingsProcessor(object):
+    TG = 'ThreadGroup'
+    CTG = 'ConcurrencyThreadGroup'
+
     def __init__(self, executor):
         self.log = executor.log.getChild(self.__class__.__name__)
         self.load = executor.get_load()
@@ -1342,7 +1345,7 @@ class LoadSettingsProcessor(object):
         :param executor:
         :return:
         """
-        tg = 'TG'  # regular ThreadGroup
+        tg = self.TG
         if not executor.settings.get('force-ctg', True):
             return tg
 
@@ -1357,7 +1360,7 @@ class LoadSettingsProcessor(object):
         elif not executor.tool.ctg_plugin_installed():
             self.log.warning(msg % 'plugin for ConcurrentThreadGroup not found')
         else:
-            tg = 'CTG'
+            tg = self.CTG
 
         return tg
 
@@ -1366,23 +1369,32 @@ class LoadSettingsProcessor(object):
             self.log.debug('No iterations/concurrency/duration found, thread group modification is skipped')
             return
 
-        if self.tg == 'TG':
-            self._modify_tg(jmx)
-        elif self.tg == 'CTG':
-            self._modify_ctg(jmx)
+        concurrency = self._get_concurrencies(jmx)
+
+        if self.tg == self.TG:
+            if self.load.steps:
+                self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
+            for idx, group in enumerate(self.tg_handler.groups(jmx)):
+                self.tg_handler.convert2tg(group, self.load, concurrency[idx])
+        elif self.tg == self.CTG:
+            pass
         else:
-            raise TaurusInternalException('Cannot modify unsupported thread group: %s' % self.tg)
+            self.log.warning('Unsupported preferred thread group: %s', self.tg)
 
         if self.load.throughput:
             self._add_shaper(jmx)
 
-    def _modify_tg(self, jmx):
+    def _get_concurrencies(self, jmx):
+        """
+        Collect concurrency values and
+        calculate target concurrency for every thread group
+        """
         concurrency = []
         for group in self.tg_handler.groups(jmx):
             concurrency.append(group.get_concurrency())
 
         if concurrency and self.load.concurrency:
-            total_old_concurrency = sum(concurrency)    # t_o_c != 0 because of logic of group.get_concurrency()
+            total_old_concurrency = sum(concurrency)  # t_o_c != 0 because of logic of group.get_concurrency()
 
             for idx in range(len(concurrency)):
                 concurrency[idx] = int(round(self.load.concurrency * concurrency[idx] / total_old_concurrency))
@@ -1397,16 +1409,7 @@ class LoadSettingsProcessor(object):
             elif leftover > 0:
                 msg = "%s threads left undistributed due to thread group proportion"
                 self.log.warning(msg, leftover)
-
-        for idx, group in enumerate(self.tg_handler.groups(jmx)):
-            self.tg_handler.convert2tg(group, self.load, concurrency[idx])
-
-        if self.load.steps:
-            self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
-
-    def _modify_ctg(self, jmx):
-        pass
-        # to be continue...
+        return concurrency
 
     def _add_shaper(self, jmx):
         """

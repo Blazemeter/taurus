@@ -1152,7 +1152,7 @@ class ThreadGroupHandler(object):
 
     def convert2tg(self, group, load, concurrency):
         """
-        Convert all TGs to simple ThreadGroup
+        Convert TGs to simple ThreadGroup for load applying
         """
         testname = group.element.get('testname')
         self.log.warning("Converting %s (%s) to normal ThreadGroup", group.name, testname)
