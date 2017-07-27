@@ -485,8 +485,10 @@ class JMX(object):
         trg.append(JMX._string_prop("ThreadGroup.num_threads", concurrency))
 
         if not rampup:
-            rampup = 0
-        trg.append(JMX._string_prop("ThreadGroup.ramp_time", str(int(rampup))))
+            rampup = ""
+        else:
+            rampup = str(int(rampup))
+        trg.append(JMX._string_prop("ThreadGroup.ramp_time", rampup))
 
         trg.append(JMX._string_prop("ThreadGroup.start_time", ""))
         trg.append(JMX._string_prop("ThreadGroup.end_time", ""))
@@ -1148,7 +1150,7 @@ class ThreadGroupHandler(object):
                 if group.get("enabled") != 'false':
                     yield _class(group, self.log)
 
-    def convert2tg(self, group, load, group_concurrency):
+    def convert2tg(self, group, load, concurrency):
         """
         Convert all TGs to simple ThreadGroup
         """
@@ -1160,7 +1162,7 @@ class ThreadGroupHandler(object):
             iterations = -1
 
         new_group_element = JMX.get_thread_group(
-            concurrency=group_concurrency,
+            concurrency=concurrency,
             iterations=iterations,
             rampup=load.ramp_up,
             testname=testname,
