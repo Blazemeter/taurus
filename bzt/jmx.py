@@ -485,8 +485,8 @@ class JMX(object):
         trg.append(JMX._string_prop("ThreadGroup.num_threads", concurrency))
 
         if not rampup:
-            rampup = ""
-        trg.append(JMX._string_prop("ThreadGroup.ramp_time", rampup))
+            rampup = 0
+        trg.append(JMX._string_prop("ThreadGroup.ramp_time", str(int(rampup))))
 
         trg.append(JMX._string_prop("ThreadGroup.start_time", ""))
         trg.append(JMX._string_prop("ThreadGroup.end_time", ""))
@@ -1080,35 +1080,17 @@ class AbstractThreadGroup(object):
         self.name = self.__class__.__name__
         self.log = logger.getChild(self.name)
 
-    def create(self):
+    def create(self):   # todo: delegate content of group creation to itself?
         return None
 
     def get_concurrency(self):
         self.log.warning("Getting of concurrency isn't suported for %s, choose 1" % self.name)
         return 1
 
-    def _get_action_on_error(self):
+    def get_action_on_error(self):
         action = self.element.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
         if action is not None:
             return action.text
-
-    def convert2tg(self, group_concurrency):
-        """
-        Convert all TGs to simple ThreadGroup
-        """
-        testname = self.element.get('testname')
-        self.log.warning("Converting %s (%s) to normal ThreadGroup", self.name, testname)
-        on_error = self._get_action_on_error()
-
-        new_group = JMX.get_thread_group(
-            concurrency=group_concurrency,
-            iterations=-1,
-            testname=testname,
-            on_error=on_error)
-
-        self.element.getparent().replace(self.element, new_group)
-
-        return ThreadGroup(self.element, self.log)
 
 
 class ThreadGroup(AbstractThreadGroup):
@@ -1125,46 +1107,6 @@ class ThreadGroup(AbstractThreadGroup):
             concurrency = 1
 
         return concurrency
-
-    def apply_duration(self, load):
-        """
-        Apply duration to ThreadGroup.duration
-        """
-        if load.hold or (load.ramp_up and not load.iterations):
-            sched_sel = "[name='ThreadGroup.scheduler']"
-            sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
-            dur_sel = "[name='ThreadGroup.duration']"
-            dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
-
-            self.element.xpath(sched_xpath)[0].text = 'true'
-            self.element.xpath(dur_xpath)[0].text = str(int(load.duration))
-            loops_element = self.element.find(".//elementProp[@name='ThreadGroup.main_controller']")
-            loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
-            loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
-
-    def apply_iterations(self, load):
-        """
-        Apply iterations to LoopController.loops
-        """
-        if load.iterations:
-            sel = "elementProp>[name='LoopController.loops']"
-            xpath = GenericTranslator().css_to_xpath(sel)
-            flag_sel = "elementProp>[name='LoopController.continue_forever']"
-            flag_xpath = GenericTranslator().css_to_xpath(flag_sel)
-
-            sprop = self.element.xpath(xpath)
-            bprop = self.element.xpath(flag_xpath)
-            bprop[0].text = 'false'
-            sprop[0].text = str(int(load.iterations))
-
-    def apply_ramp_up(self, load):
-        """
-        Apply ramp up period in seconds to ThreadGroup.ramp_time
-        """
-        if load.ramp_up:
-            rampup_sel = ".//*[@name='ThreadGroup.ramp_time']"
-            prop = self.element.find(rampup_sel)
-            prop.text = str(int(load.ramp_up))
 
 
 class SteppingThreadGroup(AbstractThreadGroup):
@@ -1206,4 +1148,35 @@ class ThreadGroupHandler(object):
                 if group.get("enabled") != 'false':
                     yield _class(group, self.log)
 
+    def convert2tg(self, group, load, group_concurrency):
+        """
+        Convert all TGs to simple ThreadGroup
+        """
+        testname = group.element.get('testname')
+        self.log.warning("Converting %s (%s) to normal ThreadGroup", group.name, testname)
+        on_error = group.get_action_on_error()
+        iterations = load.iterations
+        if not iterations:
+            iterations = -1
 
+        new_group_element = JMX.get_thread_group(
+            concurrency=group_concurrency,
+            iterations=iterations,
+            rampup=load.ramp_up,
+            testname=testname,
+            on_error=on_error)
+
+        group.element.getparent().replace(group.element, new_group_element)
+
+        # add scheduler if necessary
+        if load.hold or (load.ramp_up and not load.iterations):
+            sched_sel = "[name='ThreadGroup.scheduler']"
+            sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
+            dur_sel = "[name='ThreadGroup.duration']"
+            dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
+
+            group.element.xpath(sched_xpath)[0].text = 'true'
+            group.element.xpath(dur_xpath)[0].text = str(int(load.duration))
+            loops_element = group.element.find(".//elementProp[@name='ThreadGroup.main_controller']")
+            loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
+            loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))

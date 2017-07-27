@@ -1399,10 +1399,7 @@ class LoadSettingsProcessor(object):
                 self.log.warning(msg, leftover)
 
         for idx, group in enumerate(self.tg_handler.groups(jmx)):
-            group = group.convert2tg(concurrency[idx])  # todo: is it safe?
-            group.apply_duration(self.load)
-            group.apply_iterations(self.load)
-            group.apply_ramp_up(self.load)
+            self.tg_handler.convert2tg(group, self.load, concurrency[idx])
 
         if self.load.steps:
             self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
