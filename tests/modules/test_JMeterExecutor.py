@@ -28,7 +28,7 @@ def get_jmeter():
     path = dir_name + "/../resources/jmeter/jmeter-loader" + EXE_SUFFIX
     obj = JMeterExecutor()
     obj.engine = EngineEmul()
-    obj.settings.merge({'path': path})
+    obj.settings.merge({'path': path, 'force-ctg': False})
     return obj
 
 
