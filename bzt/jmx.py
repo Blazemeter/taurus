@@ -1168,8 +1168,6 @@ class ThreadGroupHandler(object):
             testname=testname,
             on_error=on_error)
 
-        group.element.getparent().replace(group.element, new_group_element)
-
         # add scheduler if necessary
         if load.hold or (load.ramp_up and not load.iterations):
             sched_sel = "[name='ThreadGroup.scheduler']"
@@ -1177,8 +1175,10 @@ class ThreadGroupHandler(object):
             dur_sel = "[name='ThreadGroup.duration']"
             dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
 
-            group.element.xpath(sched_xpath)[0].text = 'true'
-            group.element.xpath(dur_xpath)[0].text = str(int(load.duration))
-            loops_element = group.element.find(".//elementProp[@name='ThreadGroup.main_controller']")
+            new_group_element.xpath(sched_xpath)[0].text = 'true'
+            new_group_element.xpath(dur_xpath)[0].text = str(int(load.duration))
+            loops_element = new_group_element.find(".//elementProp[@name='ThreadGroup.main_controller']")
             loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
             loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
+
+        group.element.getparent().replace(group.element, new_group_element)
