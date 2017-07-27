@@ -19,7 +19,6 @@ import logging
 import os
 import traceback
 
-from itertools import chain
 from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
@@ -1082,7 +1081,7 @@ class AbstractThreadGroup(object):
         self.gtype = self.__class__.__name__
         self.log = logger.getChild(self.gtype)
 
-    def create(self):   # todo: delegate content of group creation to itself?
+    def create(self):  # todo: delegate content of group creation to itself?
         return None
 
     def get_concurrency(self):
@@ -1187,7 +1186,7 @@ class ThreadGroupHandler(object):
         """
         Convert TGs to ConcurrencyThreadGroup for load applying
         """
-        testname = group.element.get('testname')    # todo: add to group interface
+        testname = group.element.get('testname')  # todo: add to group interface
         self.log.warning("Converting %s (%s) to ConcurrencyThreadGroup", group.gtype, testname)
         on_error = group.get_action_on_error()
         iterations = load.iterations

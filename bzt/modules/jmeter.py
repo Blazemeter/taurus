@@ -1356,7 +1356,8 @@ class LoadSettingsProcessor(object):
         elif self.load.ramp_up and self.load.hold and self.load.iterations:
             self.log.debug(msg, 'hold-for, ramp-up and duration are found')
         elif not executor.tool:
-            raise TaurusInternalException('You must set executor tool for choosing of Thread Group')
+            msg = 'You must set executor tool (%s) for choosing of ConcurrencyThreadGroup'
+            raise self.log.warning(msg, executor.tool_name)
         elif not executor.tool.ctg_plugin_installed():
             self.log.warning(msg % 'plugin for ConcurrentThreadGroup not found')
         else:
@@ -1453,6 +1454,7 @@ class JMeterScenarioBuilder(JMX):
     :param executor: ScenarioExecutor
     :param original: inherited from JMX
     """
+
     def __init__(self, executor, original=None):
         super(JMeterScenarioBuilder, self).__init__(original)
         self.executor = executor
