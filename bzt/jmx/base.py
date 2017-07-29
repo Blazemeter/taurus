@@ -1,5 +1,5 @@
 """
-Module holds all stuff regarding JMX format
+Module holds base stuff regarding JMX format
 
 Copyright 2015 BlazeMeter Inc.
 
