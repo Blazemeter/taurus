@@ -472,7 +472,7 @@ class JMX(object):
                              elementType="LoopController",
                              guiclass="LoopControlPanel",
                              testclass="LoopController")
-        loop.append(JMX._bool_prop("LoopController.continue_forever", iterations < 0))
+        loop.append(JMX._bool_prop("LoopController.continue_forever", False))   # always false except of root LC
         if not iterations:
             iterations = 1
         loop.append(JMX._string_prop("LoopController.loops", iterations))
@@ -1032,7 +1032,7 @@ class JMX(object):
             iterations = loops
         controller = etree.Element("LoopController", guiclass="LoopControlPanel", testclass="LoopController",
                                    testname="Loop Controller")
-        controller.append(JMX._bool_prop("LoopController.continue_forever", True))
+        controller.append(JMX._bool_prop("LoopController.continue_forever", False))  # always false except of root LC
         controller.append(JMX._string_prop("LoopController.loops", str(iterations)))
         return controller
 

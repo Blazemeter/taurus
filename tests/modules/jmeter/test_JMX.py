@@ -51,3 +51,4 @@ class TestJMX(BZTestCase):
                                     use_random_host_ip=True, host_ips=["192.168.1.1", "192.168.1.2"])
         self.assertEqual("${__chooseRandom(192.168.1.1,192.168.1.2,randomAddr)}",
                          res.find(".//stringProp[@name='HTTPSampler.ipSource']").text)
+
