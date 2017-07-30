@@ -1,6 +1,57 @@
 # coding=utf-8
-from bzt.jmx import JMX
+import logging
+
+from bzt.engine import Engine, ScenarioExecutor, Provisioning
+from bzt.jmx import JMX, LoadSettingsProcessor
 from tests import BZTestCase, RESOURCES_DIR
+
+
+class MockReqTool(object):
+    def __init__(self, has_ctg):
+        self.has_ctg = has_ctg
+
+    def ctg_plugin_installed(self):
+        return self.has_ctg
+
+
+class MockExecutor(ScenarioExecutor):
+    def __init__(self, load=None, settings=None, has_ctg=None):
+        super(MockExecutor, self).__init__()
+        if load is None: load = {}
+        if settings is None: settings = {}
+        if has_ctg is None: has_ctg = True
+
+        self.engine = Engine(logging.getLogger(''))
+        self.execution = load
+        self.settings = settings
+        self.tool = MockReqTool(has_ctg)
+
+
+class TestLoadSettingsProcessor(BZTestCase):
+    def configure(self, jmx_file=None, load=None, settings=None, has_ctg=None):
+        executor = MockExecutor(load, settings, has_ctg)
+        executor.engine.config.merge({Provisioning.PROV: 'local'})
+        self.obj = LoadSettingsProcessor(executor)
+        if jmx_file:
+            self.jmx = JMX(jmx_file)
+
+    def get_groupset(self, testname=None):
+        groupset = []
+        for group in self.obj.tg_handler.groups(self.jmx):
+            # 'testname == None' means 'get all groups'
+            if not testname or (testname and group.element.attrib['testname'] == testname):
+                groupset.append(group)
+        return groupset
+
+    def test_keep_original(self):
+        self.configure(jmx_file=RESOURCES_DIR + 'jmeter/jmx/issue_no_iterations.jmx')
+        self.sniff_log(self.obj.log)
+        self.obj.modify(self.jmx)
+        msg = "No iterations/concurrency/duration found, thread group modification is skipped"
+        self.assertIn(msg, self.log_recorder.debug_buff.getvalue())
+        groupset = self.get_groupset()
+        self.assertEqual(1, len(groupset))
+        self.assertEqual(30, groupset[0].get_concurrency())
 
 
 class TestJMX(BZTestCase):
@@ -51,4 +102,3 @@ class TestJMX(BZTestCase):
                                     use_random_host_ip=True, host_ips=["192.168.1.1", "192.168.1.2"])
         self.assertEqual("${__chooseRandom(192.168.1.1,192.168.1.2,randomAddr)}",
                          res.find(".//stringProp[@name='HTTPSampler.ipSource']").text)
-
