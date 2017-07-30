@@ -196,6 +196,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             self._session = Session(self._user, {'id': sess_id})
             self._session['userId'] = self.parameters.get("user-id", None)
             self._session['testId'] = self.parameters.get("test-id", None)
+            data_address = self.settings.get("data-address", None)
+            if data_address:
+                self._session['data-address'] = data_address
             self._test = Test(self._user, {'id': self._session['testId']})
             exc = TaurusConfigError("Need signature for session")
             self._session.data_signature = self.parameters.get("signature", exc)
