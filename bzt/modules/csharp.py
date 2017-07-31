@@ -56,7 +56,7 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         if load.iterations:
             cmdline += ['--iterations', str(load.iterations)]
         if load.hold:
-            cmdline += ['--duration', str(load.hold)]
+            cmdline += ['--duration', str(int(load.hold))]
 
         if is_windows():
             path = os.environ["PATH"]
