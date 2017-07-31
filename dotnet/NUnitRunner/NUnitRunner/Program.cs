@@ -143,7 +143,7 @@ namespace NUnitRunner
             Console.WriteLine("\t <executable> ARGS");
             Console.WriteLine("\t --iterations N - number of iterations over test suite to make");
 			Console.WriteLine("\t --duration T - duration limit of test suite execution");
-            Console.WriteLine("\t --report REPORT_FILE - filename of report file");
+            Console.WriteLine("\t --report-file REPORT_FILE - filename of report file");
             Console.WriteLine("\t --target TARGET_ASSEMBLY - assembly which will be used to load tests from");
             Console.WriteLine("\t --help - show this message and exit");
             Environment.Exit(0);

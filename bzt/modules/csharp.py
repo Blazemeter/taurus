@@ -14,19 +14,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+from subprocess import check_output, CalledProcessError, STDOUT
 
-from bzt import TaurusConfigError
+from bzt import TaurusConfigError, ToolError
 from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools
-from bzt.utils import get_full_path
+from bzt.utils import get_full_path, is_windows, RequiredTool
 
 
 class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
+    def __init__(self):
+        super(NUnitExecutor, self).__init__()
+        self.runner_dir = os.path.join(get_full_path(__file__, step_up=2), "resources", "NUnitRunner")
+        self.runner_executable = os.path.join(self.runner_dir, "NUnitRunner.exe")
+
     def install_required_tools(self):
-        # TODO: check for mono (in case of non-windows) and nuget
-        # TODO: `nuget install NUNit` and NUnit.Console
-        # TODO: `nuget install Selenium?`
-        pass
+        if not is_windows():
+            mono = Mono("mono", "", self.log)
+            mono.check_if_installed()
 
     def prepare(self):
         super(NUnitExecutor, self).prepare()
@@ -51,11 +56,48 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         return file_list
 
     def startup(self):
-        # mono packages/NUnit.ConsoleRunner.3.7.0/tools/nunit3-console.exe
-        #   SeleniumSuite/bin/Release/SeleniumSuite.dll -noresult
-        script_dir = self.script
-        target_assembly = self._collect_files({".dll"})
-        cmdline = ["packages/NUnit.ConsoleRunner.3.7.0/tools/nunit3-console.exe"]
-        cmdline += target_assembly
-        cmdline += ["-noresult"]
-        self._start_subprocess(cmdline, cwd=script_dir)
+        if is_windows():
+            cmdline = []
+        else:
+            cmdline = ["mono"]
+
+        cmdline += [self.runner_executable,
+                    "--target", self.script,
+                    "--report-file", self.report_file]
+
+        load = self.get_load()
+        if load.iterations:
+            cmdline += ['--iterations', str(load.iterations)]
+        if load.hold:
+            cmdline += ['--duration', str(load.hold)]
+
+        if is_windows():
+            path = os.environ["PATH"]
+            path += os.pathsep + self.runner_dir
+            self.env.update({"PATH": path})
+        else:
+            mono_path = os.environ.get("MONO_PATH")
+            if mono_path:
+                mono_path += os.pathsep + self.runner_dir
+            else:
+                mono_path = self.runner_dir
+            self.env.update({"MONO_PATH": mono_path})
+
+        self._start_subprocess(cmdline)
+
+
+class Mono(RequiredTool):
+    def __init__(self, tool_path, download_link, parent_logger):
+        super(Mono, self).__init__("Mono", tool_path, download_link)
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        try:
+            output = check_output([self.tool_path, '--version'], stderr=STDOUT)
+            self.log.debug("%s output: %s", self.tool_name, output)
+            return True
+        except (CalledProcessError, OSError):
+            return False
+
+    def install(self):
+        raise ToolError("%s is not operable or not available. Consider installing it" % self.tool_name)

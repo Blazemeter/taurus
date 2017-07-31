@@ -251,7 +251,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             script_type = 'rspec'
         elif '.js' in file_types:
             script_type = 'mocha'
-        elif '.cs' in file_types or '.sln' in file_types:
+        elif '.dll' in file_types or '.exe' in file_types:
             script_type = 'nunit'
         else:
             raise TaurusConfigError("Supported script files not found, script detection is failed")
