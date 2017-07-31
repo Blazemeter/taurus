@@ -33,6 +33,7 @@ before_install: |
   fi
 
 install:
+- mono --version
 - nvm install 4.2
 - nvm use 4.2
 - gem install rspec
