@@ -76,6 +76,7 @@ namespace NUnitRunner
                     XmlNode node = xmlDoc.FirstChild;
                     if (node.Name == "test-case")
                     {
+                        Console.WriteLine(report);
                         /*
                          test-case
                             id=0-1001
