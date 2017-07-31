@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Xml;
 
 using Mono.Options;
 using Newtonsoft.Json;
 using NUnit.Engine;
-using NUnit.Engine.Extensibility;
 
 
 namespace NUnitRunner
@@ -96,7 +96,9 @@ namespace NUnitRunner
                         ReportItem item = new ReportItem();
                         DateTime start = DateTime.Parse(node.Attributes["start-time"].Value);
                         item.StartTime = (start.ToUniversalTime().Ticks - 621355968000000000) / 10000000;
-                        item.Duration = Double.Parse(node.Attributes["duration"].Value);
+                        item.Duration = Double.Parse(node.Attributes["duration"].Value,
+                                                     NumberStyles.AllowDecimalPoint,
+                                                     NumberFormatInfo.InvariantInfo);
                         item.TestCase = node.Attributes["methodname"].Value;
                         item.TestSuite = node.Attributes["classname"].Value;
                         item.ErrorMessage = "";
