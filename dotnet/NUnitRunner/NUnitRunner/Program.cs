@@ -17,7 +17,7 @@ namespace NUnitRunner
         {
             public string reportFile = "report.ldjson";
             public int iterations = 0;
-            public float durationLimit = 0;
+            public double durationLimit = 0;
             public string targetAssembly = null;
             public bool shouldShowHelp = false;
         }
@@ -155,7 +155,7 @@ namespace NUnitRunner
             
 			var optionSet = new OptionSet {
 				{ "i|iterations=", "number of iterations over test suite to make.", (int n) => opts.iterations = n },
-				{ "d|duration=", "duration of test suite execution.", (float h) => opts.durationLimit = h },
+				{ "d|duration=", "duration of test suite execution.", d => opts.durationLimit = Double.Parse(d) },
 				{ "r|report-file=", "Name of report file", r => opts.reportFile = r },
                 { "t|target=", "Test suite", t => opts.targetAssembly = t },
 				{ "h|help", "show this message and exit", h => opts.shouldShowHelp = h != null },
