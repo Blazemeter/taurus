@@ -43,15 +43,49 @@ class TestLoadSettingsProcessor(BZTestCase):
                 groupset.append(group)
         return groupset
 
-    def test_keep_original(self):
-        self.configure(jmx_file=RESOURCES_DIR + 'jmeter/jmx/issue_no_iterations.jmx')
+    def test_keep_original_TG(self):
+        self.configure(jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)     # because no duration
         self.sniff_log(self.obj.log)
         self.obj.modify(self.jmx)
         msg = "No iterations/concurrency/duration found, thread group modification is skipped"
         self.assertIn(msg, self.log_recorder.debug_buff.getvalue())
         groupset = self.get_groupset()
-        self.assertEqual(1, len(groupset))
-        self.assertEqual(30, groupset[0].get_concurrency())
+        groups = [group.gtype for group in groupset]
+        self.assertEqual(4, len(set(groups)))   # no one group was modified
+
+    def test_concurrency_TG_cs(self):
+        self.configure(load={'concurrency': 70, 'steps': 5},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)     # because no duration
+        self.sniff_log(self.obj.log)
+        self.obj.modify(self.jmx)
+        msg = "Stepping ramp-up isn't supported for regular ThreadGroup"
+        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+
+        result = {}
+        for group in self.get_groupset():
+            self.assertEqual('ThreadGroup', group.gtype)
+            result[group.testname()] = group.concurrency()
+
+        self.assertEqual(result, {'TG.01': 10, 'CTG.02': 15, 'STG.03': 20, 'UTG.04': 25})
+
+    def test_concurrency_CTG_rs(self):
+        self.configure(load={'concurrency': 70, 'ramp-up': 100, 'steps': 5},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
+        self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
+        self.sniff_log(self.obj.log)
+        self.obj.modify(self.jmx)
+
+        conc_vals = {}
+        for group in self.get_groupset():
+            self.assertEqual(group.gtype, "ConcurrencyThreadGroup")
+            self.assertEqual("5", group.element.find(".//*[@name='Steps']").text)
+            self.assertEqual("100", group.element.find(".//*[@name='RampUp']").text)
+            self.assertIn(group.element.find(".//*[@name='Hold']").text, ("", "0"))
+            conc_vals[group.testname()] = group.concurrency()
+
+        self.assertEqual(conc_vals, {'TG.01': 10, 'CTG.02': 15, 'STG.03': 20, 'UTG.04': 25})
 
 
 class TestJMX(BZTestCase):

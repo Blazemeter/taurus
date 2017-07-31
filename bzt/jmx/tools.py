@@ -70,6 +70,7 @@ class RequestCompiler(RequestVisitor):
 
 class AbstractThreadGroup(object):
     XPATH = None
+    CONCURRENCY_SEL = None
 
     def __init__(self, element, logger):
         self.element = element
@@ -79,9 +80,23 @@ class AbstractThreadGroup(object):
     def create(self):  # todo: delegate content of group creation to itself?
         return None
 
-    def get_concurrency(self):
-        self.log.warning("Getting of concurrency isn't suported for %s, choose 1" % self.gtype)
-        return 1
+    def testname(self):
+        return self.element.get('testname')
+
+    def concurrency(self):
+        if not self.CONCURRENCY_SEL:
+            self.log.warning('Getting of concurrency for %s group not implemented', self.gtype)
+            return 1
+
+        concurrency_element = self.element.find(self.CONCURRENCY_SEL)
+        try:
+            concurrency = int(concurrency_element.text)
+        except ValueError:
+            msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
+            self.log.warning(msg, concurrency_element.text, self.gtype)
+            concurrency = 1
+
+        return concurrency
 
     def get_action_on_error(self):
         action = self.element.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
@@ -93,23 +108,11 @@ class ThreadGroup(AbstractThreadGroup):
     XPATH = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
     CONCURRENCY_SEL = ".//*[@name='ThreadGroup.num_threads']"
 
-    def get_concurrency(self):
-        concurrency_element = self.element.find(self.CONCURRENCY_SEL)
-        try:
-            concurrency = int(concurrency_element.text)
-        except ValueError:
-            msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, concurrency_element.text, self.gtype)
-            concurrency = 1
-
-        return concurrency
-
-
 class SteppingThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup'
     CONCURRENCY_SEL = ".//*[@name='ThreadGroup.num_threads']"
 
-    def get_concurrency(self):
+    def concurrency(self):
         concurrency_element = self.element.find(self.CONCURRENCY_SEL)
         try:
             concurrency = int(concurrency_element.text)
@@ -123,11 +126,13 @@ class SteppingThreadGroup(AbstractThreadGroup):
 
 class UltimateThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup'
+    CONCURRENCY_SEL = ".//*[@name='53']"
 
 
 class ConcurrencyThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.concurrency\.ConcurrencyThreadGroup'
     CONCURRENCY_SEL = ".//*[@name='TargetLevel']"
+
 
 class ThreadGroupHandler(object):
     CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup]
@@ -148,8 +153,7 @@ class ThreadGroupHandler(object):
         """
         Convert TGs to simple ThreadGroup for load applying
         """
-        testname = group.element.get('testname')
-        self.log.warning("Converting %s (%s) to normal ThreadGroup", group.gtype, testname)
+        self.log.warning("Converting %s (%s) to normal ThreadGroup", group.gtype, group.testname())
         on_error = group.get_action_on_error()
 
         new_group_element = JMX.get_thread_group(
@@ -157,7 +161,7 @@ class ThreadGroupHandler(object):
             rampup=load.ramp_up,
             hold=load.hold,
             iterations=load.iterations,
-            testname=testname,
+            testname=group.testname(),
             on_error=on_error)
 
         group.element.getparent().replace(group.element, new_group_element)
@@ -166,17 +170,17 @@ class ThreadGroupHandler(object):
         """
         Convert TGs to ConcurrencyThreadGroup for load applying
         """
-        testname = group.element.get('testname')  # todo: add to group interface
-        self.log.warning("Converting %s (%s) to ConcurrencyThreadGroup", group.gtype, testname)
+        self.log.warning("Converting %s (%s) to ConcurrencyThreadGroup", group.gtype, group.testname())
         on_error = group.get_action_on_error()
 
         # todo: add steps and iterations?
         new_group_element = JMX.get_concurrency_thread_group(
             concurrency=concurrency,
             rampup=load.ramp_up,
-            hold_for=load.hold,
+            hold=load.hold,
+            steps=load.steps,
             on_error=on_error,
-            testname=testname)
+            testname=group.testname())
 
         group.element.getparent().replace(group.element, new_group_element)
 
@@ -247,10 +251,10 @@ class LoadSettingsProcessor(object):
         """
         concurrency = []
         for group in self.tg_handler.groups(jmx):
-            concurrency.append(group.get_concurrency())
+            concurrency.append(group.concurrency())
 
         if concurrency and self.load.concurrency:
-            total_old_concurrency = sum(concurrency)  # t_o_c != 0 because of logic of group.get_concurrency()
+            total_old_concurrency = sum(concurrency)  # t_o_c != 0 because of logic of group.concurrency()
 
             for idx in range(len(concurrency)):
                 concurrency[idx] = int(round(1.0 * self.load.concurrency * concurrency[idx] / total_old_concurrency))
