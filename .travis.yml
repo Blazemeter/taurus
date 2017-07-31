@@ -5,16 +5,12 @@ matrix:
   include:
   - os: linux
     python: 2.7
-    mono: latest
   - os: linux
     python: 3.3
-    mono: latest
   - os: linux
     python: 3.4
-    mono: latest
   - os: linux
     python: 3.5
-    mono: latest
 #  - os: osx
 #    language: generic
 
@@ -23,6 +19,7 @@ addons:
   apt:
     packages:
       - oracle-java8-set-default
+      - mono-runtime
 
 before_install: |
   if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
