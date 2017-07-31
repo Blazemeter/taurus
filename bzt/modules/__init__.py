@@ -85,6 +85,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister):
         self.stderr_file = self.engine.create_artifact(prefix, ".err")
         std_err = open(self.stderr_file, "wt")
         self.opened_descriptors.append(std_err)
+        self.log.debug("Running process with env %s", self.env)
         self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env, **kwargs)
 
     def resource_files(self):
