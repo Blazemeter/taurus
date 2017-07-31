@@ -77,6 +77,19 @@ class SubprocessedExecutor(ReportableExecutor, FileLister):
         self.stdout_file = None
         self.stderr_file = None
 
+    def update_env(self, env):
+        if "PATH" in self.env and "PATH" in env:
+            old_path = self.env["PATH"]
+            new_path = env["PATH"]
+            merged_path = []
+            for item in old_path.split(os.pathsep) + new_path.split(os.pathsep):
+                if item in merged_path:
+                    continue
+                else:
+                    merged_path.append(item)
+            env["PATH"] = os.pathsep.join(merged_path)
+        self.env.update(env)
+
     def _start_subprocess(self, cmdline):
         prefix = self.execution.get("executor", None) or "executor"
         self.stdout_file = self.engine.create_artifact(prefix, ".out")

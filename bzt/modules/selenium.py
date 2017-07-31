@@ -267,7 +267,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         """
         self.virtual_display_service.startup()
         self.start_time = time.time()
-        self.runner.env.update(self.additional_env)
+        self.runner.update_env(self.additional_env)
         self.runner.startup()
 
     def check(self):
