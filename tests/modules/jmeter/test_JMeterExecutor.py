@@ -867,7 +867,7 @@ class TestJMeterExecutor(BZTestCase):
         modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         tg = modified_xml_tree.find(".//ThreadGroup")
         loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
-        tg_loops = loop_ctrl.find(".//intProp[@name='LoopController.loops']")
+        tg_loops = loop_ctrl.find(".//stringProp[@name='LoopController.loops']")
         tg_forever = loop_ctrl.find(".//boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(tg_loops.text, "-1")
         self.assertEqual(tg_forever.text, "false")

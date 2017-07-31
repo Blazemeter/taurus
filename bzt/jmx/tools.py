@@ -91,7 +91,7 @@ class AbstractThreadGroup(object):
 
 class ThreadGroup(AbstractThreadGroup):
     XPATH = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
-    CONCURRENCY_SEL = ".//stringProp[@name='ThreadGroup.num_threads']"
+    CONCURRENCY_SEL = ".//*[@name='ThreadGroup.num_threads']"
 
     def get_concurrency(self):
         concurrency_element = self.element.find(self.CONCURRENCY_SEL)
@@ -107,7 +107,7 @@ class ThreadGroup(AbstractThreadGroup):
 
 class SteppingThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup'
-    CONCURRENCY_SEL = ".//stringProp[@name='ThreadGroup.num_threads']"
+    CONCURRENCY_SEL = ".//*[@name='ThreadGroup.num_threads']"
 
     def get_concurrency(self):
         concurrency_element = self.element.find(self.CONCURRENCY_SEL)
@@ -151,29 +151,14 @@ class ThreadGroupHandler(object):
         testname = group.element.get('testname')
         self.log.warning("Converting %s (%s) to normal ThreadGroup", group.gtype, testname)
         on_error = group.get_action_on_error()
-        iterations = load.iterations
-        if not iterations:
-            iterations = -1
 
         new_group_element = JMX.get_thread_group(
             concurrency=concurrency,
-            iterations=iterations,
             rampup=load.ramp_up,
+            hold=load.hold,
+            iterations=load.iterations,
             testname=testname,
             on_error=on_error)
-
-        # add scheduler if necessary
-        if load.hold or (load.ramp_up and not load.iterations):
-            sched_sel = "[name='ThreadGroup.scheduler']"
-            sched_xpath = GenericTranslator().css_to_xpath(sched_sel)
-            dur_sel = "[name='ThreadGroup.duration']"
-            dur_xpath = GenericTranslator().css_to_xpath(dur_sel)
-
-            new_group_element.xpath(sched_xpath)[0].text = 'true'
-            new_group_element.xpath(dur_xpath)[0].text = str(int(load.duration))
-            loops_element = new_group_element.find(".//elementProp[@name='ThreadGroup.main_controller']")
-            loops_loop_count = loops_element.find("*[@name='LoopController.loops']")
-            loops_loop_count.getparent().replace(loops_loop_count, JMX.int_prop("LoopController.loops", -1))
 
         group.element.getparent().replace(group.element, new_group_element)
 
@@ -184,9 +169,8 @@ class ThreadGroupHandler(object):
         testname = group.element.get('testname')  # todo: add to group interface
         self.log.warning("Converting %s (%s) to ConcurrencyThreadGroup", group.gtype, testname)
         on_error = group.get_action_on_error()
-        iterations = load.iterations
 
-        # todo: add steps and iterations
+        # todo: add steps and iterations?
         new_group_element = JMX.get_concurrency_thread_group(
             concurrency=concurrency,
             rampup=load.ramp_up,
@@ -221,8 +205,8 @@ class LoadSettingsProcessor(object):
 
         if not self.load.duration:
             self.log.debug(msg, 'duration not found')
-        elif self.load.ramp_up and self.load.hold and self.load.iterations:
-            self.log.debug(msg, 'hold-for, ramp-up and duration are found')
+        elif self.load.iterations:
+            self.log.debug(msg, 'iterations are found')
         elif not executor.tool:
             msg = 'You must set executor tool (%s) for choosing of ConcurrencyThreadGroup'
             raise self.log.warning(msg, executor.tool_name)
@@ -675,7 +659,7 @@ class JMeterScenarioBuilder(JMX):
         Generate the test plan
         """
 
-        thread_group = JMX.get_thread_group(iterations=-1, testname=self.executor.label)
+        thread_group = JMX.get_thread_group(testname=self.executor.label)
         thread_group_ht = etree.Element("hashTree", type="tg")
 
         # NOTE: set realistic dns-cache and JVM prop by default?

@@ -454,15 +454,32 @@ class JMX(object):
         return res
 
     @staticmethod
-    def get_thread_group(concurrency=None, rampup=None, iterations=None, testname="ThreadGroup", on_error="continue"):
+    def get_thread_group(
+            concurrency=None, rampup=0, hold=0, iterations=None, testname="ThreadGroup", on_error="continue"):
         """
-        Generates ThreadGroup with 1 thread and 1 loop
+        Generates ThreadGroup
 
-        :param iterations:
-        :param rampup:
         :param concurrency:
+        :param rampup:
+        :param hold:
+        :param iterations:
+        :param testname:
+        :param on_error:
         :return:
         """
+        rampup = int(rampup)
+        hold = int(hold)
+
+        if not concurrency:
+            concurrency = 1
+
+        if not iterations:
+            iterations = -1
+
+        scheduler = False
+        if hold or (rampup and not iterations):
+            scheduler = True
+
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname)
         if on_error is not None:
@@ -473,26 +490,15 @@ class JMX(object):
                              guiclass="LoopControlPanel",
                              testclass="LoopController")
         loop.append(JMX._bool_prop("LoopController.continue_forever", False))   # always false except of root LC
-        if not iterations:
-            iterations = 1
         loop.append(JMX._string_prop("LoopController.loops", iterations))
-
         trg.append(loop)
 
-        if not concurrency:
-            concurrency = 1
         trg.append(JMX._string_prop("ThreadGroup.num_threads", concurrency))
-
-        if not rampup:
-            rampup = ""
-        else:
-            rampup = str(int(rampup))
         trg.append(JMX._string_prop("ThreadGroup.ramp_time", rampup))
-
         trg.append(JMX._string_prop("ThreadGroup.start_time", ""))
         trg.append(JMX._string_prop("ThreadGroup.end_time", ""))
-        trg.append(JMX._bool_prop("ThreadGroup.scheduler", False))
-        trg.append(JMX._long_prop("ThreadGroup.duration", 0))
+        trg.append(JMX._bool_prop("ThreadGroup.scheduler", scheduler))
+        trg.append(JMX._string_prop("ThreadGroup.duration", rampup + hold))
 
         return trg
 
