@@ -19,7 +19,7 @@ addons:
   apt:
     packages:
       - oracle-java8-set-default
-      - mono-runtime
+      - mono-complete
 
 before_install: |
   if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
