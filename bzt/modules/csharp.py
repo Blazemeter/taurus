@@ -42,19 +42,6 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.install_required_tools()
         self.reporting_setup(suffix=".ldjson")
 
-    def _collect_files(self, extensions):
-        file_list = []
-        if os.path.isdir(self.script):
-            for root, _, files in os.walk(self.script):
-                for test_file in files:
-                    if os.path.splitext(test_file)[1].lower() in extensions:
-                        path = get_full_path(os.path.join(root, test_file))
-                        file_list.append(path)
-        else:
-            if os.path.splitext(self.script)[1].lower() in extensions:
-                file_list.append(get_full_path(self.script))
-        return file_list
-
     def startup(self):
         if is_windows():
             cmdline = []
