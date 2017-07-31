@@ -783,79 +783,9 @@ class TestJMeterExecutor(BZTestCase):
                 'distributed': ['127.0.0.1'],
                 'hold-for': '2m'}})
         self.obj.prepare()
-        load = self.obj.get_load()
-        orig_xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
         modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
-        orig_tgs = orig_xml_tree.findall(".//ThreadGroup")
-        self.assertEqual(len(mod_stepping_tgs), len(orig_tgs))
-        for orig_th, step_th in zip(orig_tgs, mod_stepping_tgs):
-            orig_num_threads = int(orig_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
-            mod_num_threads = int(step_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
-            self.assertEqual(orig_num_threads, mod_num_threads)
-
-            self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
-                             str(int(load.ramp_up / load.steps)))
-            self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
-                             str(int(orig_num_threads / load.steps)))
-
-    def test_stepping_tg_ramp_proportion(self):
-        """
-        Tested with concurrency proportions
-        :return:
-        """
-        self.configure({
-            'execution': {
-                'steps': 4,  # from 5 to 4
-                'concurrency': 100,  # from 170 to 100
-                'scenario': {
-                    'script': RESOURCES_DIR + '/jmeter/jmx/stepping_ramp_up.jmx'},
-                'ramp-up': '1m',
-                'distributed': ['127.0.0.1'],
-                'hold-for': '2m'}})
-        self.obj.prepare()
-        load = self.obj.get_load()
-        orig_xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
-        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        mod_stepping_tgs = modified_xml_tree.findall(".//kg.apc.jmeter.threads.SteppingThreadGroup")
-        orig_tgs = orig_xml_tree.findall(".//ThreadGroup")
-        self.assertEqual(len(mod_stepping_tgs), len(orig_tgs))
-        orig_summ_cnc = sum([int(x.find(".//stringProp[@name='ThreadGroup.num_threads']").text) for x in orig_tgs])
-        for orig_th, step_th in zip(orig_tgs, mod_stepping_tgs):
-            orig_num_threads = int(orig_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
-            mod_num_threads = int(step_th.find(".//stringProp[@name='ThreadGroup.num_threads']").text)
-
-            self.assertEqual(round(orig_num_threads * (float(load.concurrency) / orig_summ_cnc)), mod_num_threads)
-            self.assertEqual(step_th.find(".//stringProp[@name='Start users period']").text,
-                             str(int(load.ramp_up / load.steps)))
-            self.assertEqual(step_th.find(".//stringProp[@name='Start users count']").text,
-                             str(int(ceil(float(load.concurrency) / orig_summ_cnc * orig_num_threads / load.steps))))
-
-    def test_step_shaper(self):
-        self.configure({
-            'execution': {
-                'steps': 5,
-                'throughput': 100,
-                'concurrency': 170,
-                'scenario': {
-                    'script': RESOURCES_DIR + '/jmeter/jmx/stepping_ramp_up.jmx'},
-                'ramp-up': '1m',
-                'distributed': ['127.0.0.1'],
-                'hold-for': '2m'}})
-        self.obj.prepare()
-        load = self.obj.get_load()
-        modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        timer = modified_xml_tree.findall(".//kg.apc.jmeter.timers.VariableThroughputTimer")
-        self.assertEqual(len(timer), 1)
-        for num, step_collection in enumerate(timer[0].findall(".//load_profile")):
-            step_start_rps = step_collection.find(".//stringProp[@name='49']")
-            step_stop_rps = step_collection.find(".//stringProp[@name='1567']")
-            self.assertTrue(step_start_rps == step_stop_rps == str(int(round(float(load.throughput) / load.steps))))
-            if num + 1 == load.steps:
-                self.assertEqual(step_collection.find(".//stringProp[@name='53']"),
-                                 load.hold + load.ramp_up / load.steps)
-            else:
-                self.assertEqual(step_collection.find(".//stringProp[@name='53']"), load.ramp_up / load.steps)
+        self.assertEqual(0, len(mod_stepping_tgs))  # generation of STG is obsolete
 
     def test_duration_loops_bug(self):
         self.obj.execution.merge({

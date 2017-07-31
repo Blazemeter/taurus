@@ -127,7 +127,7 @@ class UltimateThreadGroup(AbstractThreadGroup):
 
 class ConcurrencyThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.concurrency\.ConcurrencyThreadGroup'
-
+    CONCURRENCY_SEL = ".//*[@name='TargetLevel']"
 
 class ThreadGroupHandler(object):
     CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup]
@@ -253,7 +253,7 @@ class LoadSettingsProcessor(object):
             total_old_concurrency = sum(concurrency)  # t_o_c != 0 because of logic of group.get_concurrency()
 
             for idx in range(len(concurrency)):
-                concurrency[idx] = int(round(self.load.concurrency * concurrency[idx] / total_old_concurrency))
+                concurrency[idx] = int(round(1.0 * self.load.concurrency * concurrency[idx] / total_old_concurrency))
                 if concurrency[idx] < 1:
                     concurrency[idx] = 1
 
@@ -287,16 +287,6 @@ class LoadSettingsProcessor(object):
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
-
-    @staticmethod
-    def _get_concurrency_from_ctg(thread_group):
-        """
-        :param thread_group: etree.Element
-        :return:
-        """
-        concurrency_element = thread_group.find(".//stringProp[@name='TargetLevel']")
-        if concurrency_element is not None:
-            return int(concurrency_element.text)
 
 
 class JMeterScenarioBuilder(JMX):
