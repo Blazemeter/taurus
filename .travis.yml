@@ -20,6 +20,7 @@ addons:
     packages:
       - oracle-java8-set-default
       - mono-complete
+      - nuget
 
 before_install: |
   if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
