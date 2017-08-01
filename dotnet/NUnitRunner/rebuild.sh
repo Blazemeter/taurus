@@ -2,6 +2,6 @@
 HERE=$(dirname $0)
 
 nuget restore "$HERE/NUnitRunner/packages.config" -SolutionDirectory "$HERE"
-xbuild /target:clean
+xbuild /target:clean "$HERE/NUnitRunner.sln"
 xbuild /p:Configuration=Release "$HERE/NUnitRunner.sln"
-cp "$HERE/NUnitRunner/bin/Release/*" "$HERE/../../bzt/resources/NUnitRunner/"
+cp $HERE/NUnitRunner/bin/Release/* $HERE/../../bzt/resources/NUnitRunner/
