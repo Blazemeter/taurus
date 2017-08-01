@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.5 <sup>next</sup>
+ - fix NPE with junit runner and null script
+
 ## 1.9.4 <sup>28 jun 2017</sup>
  - add `clearCookies` and `pauseFor` actions for Selenium YAML
  - add `data-sources` support to Gatling YAML scripting
