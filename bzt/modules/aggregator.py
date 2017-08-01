@@ -24,7 +24,6 @@ from abc import abstractmethod
 from collections import Counter
 
 from bzt import TaurusInternalException, TaurusConfigError
-
 from bzt.engine import Aggregator
 from bzt.six import iteritems
 from bzt.utils import BetterDict, dehumanize_time
@@ -229,7 +228,7 @@ class KPISet(BetterDict):
         :type src: KPISet
         :return:
         """
-        src.recalculate()
+        src.recalculate() # TODO: could be not resource efficient strat
 
         self.sum_cn += src.sum_cn
         self.sum_lt += src.sum_lt
@@ -260,7 +259,6 @@ class KPISet(BetterDict):
     @staticmethod
     def from_dict(obj):
         """
-
         :type obj: dict
         :rtype: KPISet
         """
@@ -379,7 +377,7 @@ class DataPoint(BetterDict):
         for val in self[self.CUMULATIVE].values():
             val.recalculate()
 
-    def merge_point(self, src):
+    def merge_point(self, src, do_recalculate=True):
         """
 
         :type src: DataPoint
@@ -393,7 +391,8 @@ class DataPoint(BetterDict):
         self.__merge_kpis(src[self.CURRENT], self[self.CURRENT], src[DataPoint.SOURCE_ID])
         self.__merge_kpis(src[self.CUMULATIVE], self[self.CUMULATIVE], src[DataPoint.SOURCE_ID])
 
-        self.recalculate()
+        if do_recalculate:
+            self.recalculate()
 
 
 class ResultsProvider(object):
