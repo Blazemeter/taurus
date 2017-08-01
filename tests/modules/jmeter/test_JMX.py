@@ -43,7 +43,7 @@ class TestLoadSettingsProcessor(BZTestCase):
                 groupset.append(group)
         return groupset
 
-    def test_keep_original_TG(self):
+    def test_keep_original(self):
         self.configure(jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)     # because no duration
         self.sniff_log(self.obj.log)
@@ -54,7 +54,8 @@ class TestLoadSettingsProcessor(BZTestCase):
         groups = [group.gtype for group in groupset]
         self.assertEqual(4, len(set(groups)))   # no one group was modified
 
-    def test_concurrency_TG_cs(self):
+    def test_TG_cs(self):
+        """ ThreadGroup: concurrency, steps """
         self.configure(load={'concurrency': 70, 'steps': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)     # because no duration
@@ -68,14 +69,15 @@ class TestLoadSettingsProcessor(BZTestCase):
         msg = "Stepping ramp-up isn't supported for regular ThreadGroup"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
 
-        result = {}
+        conc_vals = {}
         for group in self.get_groupset():
             self.assertEqual('ThreadGroup', group.gtype)
-            result[group.testname()] = group.concurrency()
+            conc_vals[group.testname()] = group.concurrency()
 
-        self.assertEqual(result, {'TG.01': 14, 'CTG.02': 21, 'STG.03': 28, 'UTG.04': 7})
+        self.assertEqual(conc_vals, {'TG.01': 14, 'CTG.02': 21, 'STG.03': 28, 'UTG.04': 7})
 
-    def test_concurrency_CTG_rs(self):
+    def test_CTG_crs(self):
+        """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
         self.configure(load={'concurrency': 70, 'ramp-up': 100, 'steps': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
