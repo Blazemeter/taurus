@@ -241,7 +241,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.post_process()
         self.assertNotIn("Failed to finish online", self.log_recorder.warn_buff.getvalue())
         self.assertEquals('direct', obj._session['id'])
-        self.assertEqual(11, len(mock.requests), "Requests were: %s" % mock.requests)
+        self.assertEqual(9, len(mock.requests), "Requests were: %s" % mock.requests)
 
     def test_anonymous_feeding(self):
         obj = BlazeMeterUploader()
@@ -332,7 +332,7 @@ class TestBlazeMeterUploader(BZTestCase):
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
         self.assertIn(log_line, log_buff)
         logging.warning("\n".join([x['url'] for x in mock.requests]))
-        self.assertEqual(16, len(mock.requests))
+        self.assertEqual(14, len(mock.requests))
 
     def test_new_project_existing_test(self):
         obj = BlazeMeterUploader()
