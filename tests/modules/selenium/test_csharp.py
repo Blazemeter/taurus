@@ -9,7 +9,7 @@ class TestNUnitExecutor(SeleniumTestCase):
     def test_single_iteration(self):
         self.obj.execution.merge({
             "scenario": {
-                "script": __dir__() + "/../../resources/selenium/nunit/plain-nunit-suite/NUnitSuite.dll"
+                "script": __dir__() + "/../../resources/selenium/nunit/assemblies/NUnitSuite.dll"
             }
         })
         self.obj.prepare()
@@ -26,7 +26,7 @@ class TestNUnitExecutor(SeleniumTestCase):
         self.obj.execution.merge({
             "iterations": 2,
             "scenario": {
-                "script": __dir__() + "/../../resources/selenium/nunit/plain-nunit-suite/NUnitSuite.dll"
+                "script": __dir__() + "/../../resources/selenium/nunit/assemblies/NUnitSuite.dll"
             }
         })
         self.obj.prepare()
@@ -42,7 +42,7 @@ class TestNUnitExecutor(SeleniumTestCase):
         self.obj.execution.merge({
             "hold-for": "5s",
             "scenario": {
-                "script": __dir__() + "/../../resources/selenium/nunit/plain-nunit-suite/NUnitSuite.dll"
+                "script": __dir__() + "/../../resources/selenium/nunit/assemblies/NUnitSuite.dll"
             }
         })
         self.obj.prepare()
@@ -58,7 +58,7 @@ class TestNUnitExecutor(SeleniumTestCase):
     def test_selenium_run(self):
         self.obj.execution.merge({
             "scenario": {
-                "script": __dir__() + "/../../resources/selenium/nunit/selenium-suite/SeleniumSuite.dll"
+                "script": __dir__() + "/../../resources/selenium/nunit/assemblies/SeleniumSuite.dll"
             }
         })
         self.obj.prepare()
