@@ -637,7 +637,7 @@ class Session(BZAObject):
 
     def notify_monitoring_file(self, file_name):
         data = {
-            'file_name': file_name,
+            'fileName': file_name,
         }
         data_str = json.dumps(data)
         self.send_kpi_data(data_str, submit_target='engine_health')
