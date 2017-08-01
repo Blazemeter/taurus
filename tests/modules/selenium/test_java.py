@@ -36,7 +36,7 @@ class TestTestNGTester(BZTestCase):
         self.obj.settings['autodetect-xml'] = False
         self.obj.prepare()
         self.obj.startup()
-        while self.obj.check():
+        while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
         self.obj.post_process()
@@ -83,7 +83,7 @@ class TestTestNGTester(BZTestCase):
         self.obj.settings['autodetect-xml'] = False
         self.obj.prepare()
         self.obj.startup()
-        while self.obj.check():
+        while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
         self.obj.post_process()
