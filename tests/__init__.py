@@ -38,6 +38,8 @@ def __dir__():
     filename = inspect.getouterframes(inspect.currentframe())[1][1]
     return os.path.dirname(filename)
 
+RESOURCES_DIR = __dir__() + '/resources/'
+
 
 def r(mul=5):
     return 1 + int(mul * random()) / 1000.0
