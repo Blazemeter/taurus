@@ -136,39 +136,34 @@ class ThreadGroupHandler(object):
                 if group.get("enabled") != "false":
                     yield _class(group, self.log)
 
-    def convert2tg(self, group, load, concurrency):
+    def convert(self, group, target, load, concurrency):
         """
-        Convert a thread group to base ThreadGroup for applying of load
+        Convert a thread group to ThreadGroup/ConcurrencyThreadGroup for applying of load
         """
-        msg = "Converting %s (%s) to ThreadGroup and apply load parameters"
-        self.log.warning(msg, group.gtype, group.testname())
+        if target not in []: pass
+        msg = "Converting %s (%s) to %s and apply load parameters"
+        self.log.info(msg, group.gtype, group.testname(), target)
         on_error = group.get_action_on_error()
 
-        new_group_element = JMX.get_thread_group(
-            concurrency=concurrency,
-            rampup=load.ramp_up,
-            hold=load.hold,
-            iterations=load.iterations,
-            testname=group.testname(),
-            on_error=on_error)
-
-        group.element.getparent().replace(group.element, new_group_element)
-
-    def convert2ctg(self, group, load, concurrency):
-        """
-        Convert a thread group to ConcurrencyThreadGroup for applying of
-        """
-        msg = "Converting %s (%s) to ConcurrencyThreadGroup and apply load parameters"
-        self.log.warning(msg, group.gtype, group.testname())
-        on_error = group.get_action_on_error()
-
-        new_group_element = JMX.get_concurrency_thread_group(
-            concurrency=concurrency,
-            rampup=load.ramp_up,
-            hold=load.hold,
-            steps=load.steps,
-            testname=group.testname(),
-            on_error=on_error)
+        if target == ThreadGroup.__name__:
+            new_group_element = JMX.get_thread_group(
+                concurrency=concurrency,
+                rampup=load.ramp_up,
+                hold=load.hold,
+                iterations=load.iterations,
+                testname=group.testname(),
+                on_error=on_error)
+        elif target == ConcurrencyThreadGroup.__name__:
+            new_group_element = JMX.get_concurrency_thread_group(
+                concurrency=concurrency,
+                rampup=load.ramp_up,
+                hold=load.hold,
+                steps=load.steps,
+                testname=group.testname(),
+                on_error=on_error)
+        else:
+            self.log.warning('Unsupported preferred thread group: %s', target)
+            return
 
         group.element.getparent().replace(group.element, new_group_element)
 
@@ -214,31 +209,27 @@ class LoadSettingsProcessor(object):
             self.log.debug('No iterations/concurrency/duration found, thread group modification is skipped')
             return
 
-        concurrency = self._get_concurrencies(jmx)
+        # IMPORTANT: fix groups order as changing of element type changes order of getting of groups
+        groups = list(self.tg_handler.groups(jmx))
+        target_list = zip(groups, self._get_concurrencies(groups))
 
-        if self.tg == self.TG:
-            if self.load.steps:
-                self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
-            for idx, group in enumerate(self.tg_handler.groups(jmx)):
-                self.tg_handler.convert2tg(group, self.load, concurrency[idx])
-        elif self.tg == self.CTG:
-            # as follow conversion changes types of groups (and their order)
-            # we need to fix groups parsing order with list()
-            for idx, group in enumerate(list(self.tg_handler.groups(jmx))):
-                self.tg_handler.convert2ctg(group, self.load, concurrency[idx])
-        else:
-            self.log.warning('Unsupported preferred thread group: %s', self.tg)
+        for group, concurrency in target_list:
+            self.tg_handler.convert(group=group, target=self.tg, load=self.load, concurrency=concurrency)
 
         if self.load.throughput:
             self._add_shaper(jmx)
 
-    def _get_concurrencies(self, jmx):
+        if self.tg == self.TG:
+            if self.load.steps:
+                self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
+
+    def _get_concurrencies(self, groups):
         """
         Collect concurrency values and
         calculate target concurrency for every thread group
         """
         concurrency_list = []
-        for group in self.tg_handler.groups(jmx):
+        for group in groups:
             concurrency_list.append(group.concurrency())
 
         if concurrency_list and self.load.concurrency:
