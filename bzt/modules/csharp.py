@@ -58,14 +58,7 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         if load.hold:
             cmdline += ['--duration', str(int(load.hold))]
 
-        if is_windows():
-            if "PATH" in self.env:
-                path = self.env["PATH"]
-            else:
-                path = os.environ["PATH"]
-            path += os.pathsep + self.runner_dir
-            self.env.update({"PATH": path})
-        else:
+        if not is_windows():
             mono_path = os.environ.get("MONO_PATH")
             if mono_path:
                 mono_path += os.pathsep + self.runner_dir
