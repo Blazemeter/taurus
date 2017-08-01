@@ -23,7 +23,7 @@ following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fif
 jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. 
 If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.
 
-`force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for modifications of jmx files purpose. This group 
+`force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group 
 provide `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default) 
 
 ## Run Existing JMX File

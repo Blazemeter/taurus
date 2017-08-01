@@ -140,7 +140,6 @@ class ThreadGroupHandler(object):
         """
         Convert a thread group to ThreadGroup/ConcurrencyThreadGroup for applying of load
         """
-        if target not in []: pass
         msg = "Converting %s (%s) to %s and apply load parameters"
         self.log.info(msg, group.gtype, group.testname(), target)
         on_error = group.get_action_on_error()
@@ -236,7 +235,7 @@ class LoadSettingsProcessor(object):
             total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.concurrency()
 
             for idx, concurrency in enumerate(concurrency_list):
-                part_of_load = 1.0 * self.load.concurrency * concurrency_list[idx] / total_old_concurrency
+                part_of_load = 1.0 * self.load.concurrency * concurrency / total_old_concurrency
                 if part_of_load < 1:
                     concurrency_list[idx] = 1
                 else:
