@@ -454,8 +454,8 @@ class JMX(object):
         return res
 
     @staticmethod
-    def get_thread_group(
-            concurrency=None, rampup=0, hold=0, iterations=None, testname="ThreadGroup", on_error="continue"):
+    def get_thread_group(concurrency=None, rampup=0, hold=0, iterations=None,
+                         testname="ThreadGroup", on_error="continue"):
         """
         Generates ThreadGroup
 
@@ -492,7 +492,7 @@ class JMX(object):
                              elementType="LoopController",
                              guiclass="LoopControlPanel",
                              testclass="LoopController")
-        loop.append(JMX._bool_prop("LoopController.continue_forever", False))   # always false except of root LC
+        loop.append(JMX._bool_prop("LoopController.continue_forever", False))  # always false except of root LC
         loop.append(JMX._string_prop("LoopController.loops", iterations))
         trg.append(loop)
 
@@ -580,7 +580,7 @@ class JMX(object):
         if not concurrency:
             concurrency = 1
 
-        if steps is None:   # zero means infinity of steps
+        if steps is None:  # zero means infinity of steps
             steps = 1
 
         name = 'com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup'
