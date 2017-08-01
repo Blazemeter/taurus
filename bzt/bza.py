@@ -578,7 +578,7 @@ class Session(BZAObject):
         """
         Sends online data
 
-        :type submit_target: object
+        :type submit_target: str
         :param is_check_response:
         :type data: str
         """
@@ -591,7 +591,7 @@ class Session(BZAObject):
 
         if response and 'response_code' in response and response['response_code'] != 200:
             raise TaurusNetworkError("Failed to feed data to %s, response code %s" %
-                                     (response['response_code'], submit_target))
+                                     (submit_target, response['response_code']))
 
         if response and 'result' in response and is_check_response:
             result = response['result']['session']
@@ -604,7 +604,7 @@ class Session(BZAObject):
         file_name = '%s-%s-c.monitoring.json' % (self['id'], engine_id)
         self.upload_file(file_name, to_json(data))
         if not self.monitoring_upload_notified:
-            self.log.info("Sending engine health notification")
+            self.log.debug("Sending engine health notification")
             self.notify_monitoring_file(file_name)
             self.monitoring_upload_notified = True
 
