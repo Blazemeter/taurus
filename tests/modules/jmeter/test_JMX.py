@@ -59,7 +59,12 @@ class TestLoadSettingsProcessor(BZTestCase):
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)     # because no duration
         self.sniff_log(self.obj.log)
+
         self.obj.modify(self.jmx)
+
+        msg = 'Getting of concurrency for UltimateThreadGroup not implemented'
+        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+
         msg = "Stepping ramp-up isn't supported for regular ThreadGroup"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
 
@@ -68,14 +73,18 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual('ThreadGroup', group.gtype)
             result[group.testname()] = group.concurrency()
 
-        self.assertEqual(result, {'TG.01': 10, 'CTG.02': 15, 'STG.03': 20, 'UTG.04': 25})
+        self.assertEqual(result, {'TG.01': 14, 'CTG.02': 21, 'STG.03': 28, 'UTG.04': 7})
 
     def test_concurrency_CTG_rs(self):
         self.configure(load={'concurrency': 70, 'ramp-up': 100, 'steps': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
         self.sniff_log(self.obj.log)
+
         self.obj.modify(self.jmx)
+
+        msg = 'Getting of concurrency for UltimateThreadGroup not implemented'
+        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
 
         conc_vals = {}
         for group in self.get_groupset():
@@ -85,7 +94,7 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertIn(group.element.find(".//*[@name='Hold']").text, ("", "0"))
             conc_vals[group.testname()] = group.concurrency()
 
-        self.assertEqual(conc_vals, {'TG.01': 10, 'CTG.02': 15, 'STG.03': 20, 'UTG.04': 25})
+        self.assertEqual(conc_vals, {'TG.01': 14, 'CTG.02': 21, 'STG.03': 28, 'UTG.04': 7})
 
 
 class TestJMX(BZTestCase):

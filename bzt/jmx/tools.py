@@ -85,7 +85,7 @@ class AbstractThreadGroup(object):
 
     def concurrency(self):
         if not self.CONCURRENCY_SEL:
-            self.log.warning('Getting of concurrency for %s group not implemented', self.gtype)
+            self.log.warning('Getting of concurrency for %s not implemented', self.gtype)
             return 1
 
         concurrency_element = self.element.find(self.CONCURRENCY_SEL)
@@ -127,7 +127,6 @@ class SteppingThreadGroup(AbstractThreadGroup):
 
 class UltimateThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup'
-    CONCURRENCY_SEL = ".//*[@name='53']"
 
 
 class ConcurrencyThreadGroup(AbstractThreadGroup):
