@@ -111,17 +111,6 @@ class SteppingThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup'
     CONCURRENCY_SEL = ".//*[@name='ThreadGroup.num_threads']"
 
-    def concurrency(self):
-        concurrency_element = self.element.find(self.CONCURRENCY_SEL)
-        try:
-            concurrency = int(concurrency_element.text)
-        except ValueError:
-            msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, concurrency_element.text, self.gtype)
-            concurrency = 1
-
-        return concurrency
-
 
 class UltimateThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup'
@@ -144,14 +133,15 @@ class ThreadGroupHandler(object):
         """
         for _class in self.CLASSES:
             for group in jmx.get(_class.XPATH):
-                if group.get("enabled") != 'false':
+                if group.get("enabled") != "false":
                     yield _class(group, self.log)
 
     def convert2tg(self, group, load, concurrency):
         """
-        Convert TGs to simple ThreadGroup for load applying
+        Convert a thread group to base ThreadGroup for applying of load
         """
-        self.log.warning("Converting %s (%s) to normal ThreadGroup", group.gtype, group.testname())
+        msg = "Converting %s (%s) to ThreadGroup and apply load parameters"
+        self.log.warning(msg, group.gtype, group.testname())
         on_error = group.get_action_on_error()
 
         new_group_element = JMX.get_thread_group(
@@ -166,9 +156,10 @@ class ThreadGroupHandler(object):
 
     def convert2ctg(self, group, load, concurrency):
         """
-        Convert TGs to ConcurrencyThreadGroup for load applying
+        Convert a thread group to ConcurrencyThreadGroup for applying of
         """
-        self.log.warning("Converting %s (%s) to ConcurrencyThreadGroup", group.gtype, group.testname())
+        msg = "Converting %s (%s) to ConcurrencyThreadGroup and apply load parameters"
+        self.log.warning(msg, group.gtype, group.testname())
         on_error = group.get_action_on_error()
 
         new_group_element = JMX.get_concurrency_thread_group(
@@ -176,8 +167,8 @@ class ThreadGroupHandler(object):
             rampup=load.ramp_up,
             hold=load.hold,
             steps=load.steps,
-            on_error=on_error,
-            testname=group.testname())
+            testname=group.testname(),
+            on_error=on_error)
 
         group.element.getparent().replace(group.element, new_group_element)
 
@@ -246,19 +237,21 @@ class LoadSettingsProcessor(object):
         Collect concurrency values and
         calculate target concurrency for every thread group
         """
-        concurrency = []
+        concurrency_list = []
         for group in self.tg_handler.groups(jmx):
-            concurrency.append(group.concurrency())
+            concurrency_list.append(group.concurrency())
 
-        if concurrency and self.load.concurrency:
-            total_old_concurrency = sum(concurrency)  # t_o_c != 0 because of logic of group.concurrency()
+        if concurrency_list and self.load.concurrency:
+            total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.concurrency()
 
-            for idx in range(len(concurrency)):
-                concurrency[idx] = int(round(1.0 * self.load.concurrency * concurrency[idx] / total_old_concurrency))
-                if concurrency[idx] < 1:
-                    concurrency[idx] = 1
+            for idx, concurrency in enumerate(concurrency_list):
+                part_of_load = 1.0 * self.load.concurrency * concurrency_list[idx] / total_old_concurrency
+                if part_of_load < 1:
+                    concurrency_list[idx] = 1
+                else:
+                    concurrency_list[idx] = int(round(part_of_load))
 
-            total_new_concurrency = sum(concurrency)
+            total_new_concurrency = sum(concurrency_list)
             leftover = total_old_concurrency - total_new_concurrency
             if leftover < 0:
                 msg = "Had to add %s more threads to maintain thread group proportion"
@@ -266,7 +259,7 @@ class LoadSettingsProcessor(object):
             elif leftover > 0:
                 msg = "%s threads left undistributed due to thread group proportion"
                 self.log.warning(msg, leftover)
-        return concurrency
+        return concurrency_list
 
     def _add_shaper(self, jmx):
         """
