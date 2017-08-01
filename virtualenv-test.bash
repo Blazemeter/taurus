@@ -29,6 +29,7 @@ cd ..
 
 # prepare and run functional tests
 rm -rf ~/.bzt
+mkdir -p build/etc/bzt.d/
 ln -sf /etc/bzt.d/50-pbench-enhanced.json build/etc/bzt.d/
 echo '{"settings": {"artifacts-dir":"build/test/%Y-%m-%d_%H-%M-%S.%f"}}' > build/etc/bzt.d/99-artifacts-dir.json
 echo '{"install-id": "UnitTest"}' > build/etc/bzt.d/99-zinstallID.json
