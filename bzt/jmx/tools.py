@@ -15,19 +15,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import re
-import os
 import json
+import os
+import re
 import traceback
-
-from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
 from bzt.jmx import JMX
+from bzt.requests_model import RequestVisitor
 from bzt.six import etree, iteritems
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, get_host_ips, get_full_path, guess_csv_dialect
-from bzt.requests_model import RequestVisitor
 
 
 class RequestCompiler(RequestVisitor):
@@ -722,4 +720,3 @@ class JMeterScenarioBuilder(JMX):
                 delimiter = ","  # default value
 
         return delimiter
-
