@@ -1,4 +1,5 @@
 import json
+import subprocess
 import time
 
 from tests import __dir__
@@ -6,6 +7,11 @@ from tests.modules.selenium import SeleniumTestCase
 
 
 class TestNUnitExecutor(SeleniumTestCase):
+    @classmethod
+    def setUpClass(cls):
+        # TODO: build NUnit runner
+        subprocess.call([__dir__() + "/../../../dotnet/NUnitRunner/rebuild.sh"])
+
     def test_single_iteration(self):
         self.obj.execution.merge({
             "scenario": {
