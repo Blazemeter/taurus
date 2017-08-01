@@ -542,11 +542,13 @@ class Master(BZAObject):
         url = self.address + "/api/v4/masters/%s/full" % self['id']
         return self._request(url)['result']
 
+
 class Session(BZAObject):
     def __init__(self, proto=None, data=None):
         super(Session, self).__init__(proto, data)
         self.data_signature = None
         self.kpi_target = 'labels_bulk'
+        self.monitoring_upload_notified = False
 
     def fetch(self):
         url = self.address + "/api/v4/sessions/%s" % self['id']
@@ -572,21 +574,24 @@ class Session(BZAObject):
         data = {"signature": self.data_signature, "testId": self['testId'], "sessionId": self['id']}
         self._request(url, data)
 
-    def send_kpi_data(self, data, is_check_response=True):
+    def send_kpi_data(self, data, is_check_response=True, submit_target=None):
         """
         Sends online data
 
+        :type submit_target: str
         :param is_check_response:
         :type data: str
         """
+        submit_target = self.kpi_target if submit_target is None else submit_target
         url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
         url %= self['id'], self.data_signature, self['testId'], self['userId']
-        url += "&pq=0&target=%s&update=1" % self.kpi_target
+        url += "&pq=0&target=%s&update=1" % submit_target
         hdr = {"Content-Type": "application/json"}
         response = self._request(url, data, headers=hdr)
 
         if response and 'response_code' in response and response['response_code'] != 200:
-            raise TaurusNetworkError("Failed to feed data, response code %s" % response['response_code'])
+            raise TaurusNetworkError("Failed to feed data to %s, response code %s" %
+                                     (submit_target, response['response_code']))
 
         if response and 'result' in response and is_check_response:
             result = response['result']['session']
@@ -596,7 +601,12 @@ class Session(BZAObject):
                 raise ManualShutdown("The test was interrupted through Web UI")
 
     def send_monitoring_data(self, engine_id, data):
-        self.upload_file('%s-%s-c.monitoring.json' % (self['id'], engine_id), to_json(data))
+        file_name = '%s-%s-c.monitoring.json' % (self['id'], engine_id)
+        self.upload_file(file_name, to_json(data))
+        if not self.monitoring_upload_notified:
+            self.log.debug("Sending engine health notification")
+            self.notify_monitoring_file(file_name)
+            self.monitoring_upload_notified = True
 
     def upload_file(self, filename, contents=None):
         """
@@ -624,6 +634,13 @@ class Session(BZAObject):
     def get_logs(self):
         url = self.address + "/api/v4/sessions/%s/reports/logs" % self['id']
         return self._request(url)['result']['data']
+
+    def notify_monitoring_file(self, file_name):
+        data = {
+            'fileName': file_name,
+        }
+        data_str = json.dumps(data)
+        self.send_kpi_data(data_str, submit_target='engine_health')
 
 
 class BZAProxy(BZAObject):
