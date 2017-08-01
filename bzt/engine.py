@@ -965,7 +965,6 @@ class ScenarioExecutor(EngineModule):
         steps = self.execution.get(ScenarioExecutor.STEPS, None)
         hold = dehumanize_time(self.execution.get(ScenarioExecutor.HOLD_FOR, 0))
         if ramp_up is None:
-            ramp_up = 0
             duration = hold
         else:
             ramp_up = dehumanize_time(ramp_up)

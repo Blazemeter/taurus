@@ -467,6 +467,9 @@ class JMX(object):
         :param on_error:
         :return:
         """
+        if not rampup:
+            rampup = 0
+
         rampup = int(rampup)
         hold = int(hold)
 
@@ -571,6 +574,9 @@ class JMX(object):
         """
         :return: etree element, Concurrency Thread Group
         """
+        if not rampup:
+            rampup = 0
+
         if not concurrency:
             concurrency = 1
 
