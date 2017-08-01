@@ -96,7 +96,7 @@ class AbstractThreadGroup(object):
 
         return concurrency
 
-    def get_action_on_error(self):
+    def on_error(self):
         action = self.element.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
         if action is not None:
             return action.text
@@ -142,7 +142,7 @@ class ThreadGroupHandler(object):
         """
         msg = "Converting %s (%s) to %s and apply load parameters"
         self.log.info(msg, group.gtype, group.testname(), target)
-        on_error = group.get_action_on_error()
+        on_error = group.on_error()
 
         if target == ThreadGroup.__name__:
             new_group_element = JMX.get_thread_group(
@@ -168,8 +168,8 @@ class ThreadGroupHandler(object):
 
 
 class LoadSettingsProcessor(object):
-    TG = 'ThreadGroup'
-    CTG = 'ConcurrencyThreadGroup'
+    TG = ThreadGroup.__name__
+    CTG = ConcurrencyThreadGroup.__name__
 
     def __init__(self, executor):
         self.log = executor.log.getChild(self.__class__.__name__)
@@ -195,7 +195,7 @@ class LoadSettingsProcessor(object):
             self.log.debug(msg, 'iterations are found')
         elif not executor.tool:
             msg = 'You must set executor tool (%s) for choosing of ConcurrencyThreadGroup'
-            raise self.log.warning(msg, executor.tool_name)
+            raise TaurusInternalException(msg % executor.tool_name)
         elif not executor.tool.ctg_plugin_installed():
             self.log.warning(msg % 'plugin for ConcurrentThreadGroup not found')
         else:
@@ -218,9 +218,8 @@ class LoadSettingsProcessor(object):
         if self.load.throughput:
             self._add_shaper(jmx)
 
-        if self.tg == self.TG:
-            if self.load.steps:
-                self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
+        if self.load.steps and self.tg == self.TG:
+            self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
 
     def _get_concurrencies(self, groups):
         """

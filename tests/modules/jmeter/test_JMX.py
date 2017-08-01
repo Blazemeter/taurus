@@ -69,12 +69,18 @@ class TestLoadSettingsProcessor(BZTestCase):
         msg = "Stepping ramp-up isn't supported for regular ThreadGroup"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
 
-        conc_vals = {}
+        res_values = {}
         for group in self.get_groupset():
             self.assertEqual('ThreadGroup', group.gtype)
-            conc_vals[group.testname()] = group.concurrency()
+            self.assertEqual("false", group.element.find(".//*[@name='LoopController.continue_forever']").text)
+            self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)   # no loop limit
+            res_values[group.testname()] = {'conc': group.concurrency(), 'on_error': group.on_error()}
 
-        self.assertEqual(conc_vals, {'TG.01': 14, 'CTG.02': 21, 'STG.03': 28, 'UTG.04': 7})
+        self.assertEqual(res_values,
+                         {'TG.01': {'conc': 14, 'on_error': 'startnextloop'},
+                          'CTG.02': {'conc': 21, 'on_error': 'stopthread'},
+                          'STG.03': {'conc': 28, 'on_error': 'stoptest'},
+                          'UTG.04': {'conc': 7, 'on_error': 'stoptestnow'}})
 
     def test_CTG_crs(self):
         """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
@@ -88,15 +94,69 @@ class TestLoadSettingsProcessor(BZTestCase):
         msg = 'Getting of concurrency for UltimateThreadGroup not implemented'
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
 
-        conc_vals = {}
+        res_values = {}
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ConcurrencyThreadGroup")
             self.assertEqual("5", group.element.find(".//*[@name='Steps']").text)
             self.assertEqual("100", group.element.find(".//*[@name='RampUp']").text)
+            self.assertEqual("S", group.element.find(".//*[@name='Unit']").text)
             self.assertIn(group.element.find(".//*[@name='Hold']").text, ("", "0"))
-            conc_vals[group.testname()] = group.concurrency()
 
-        self.assertEqual(conc_vals, {'TG.01': 14, 'CTG.02': 21, 'STG.03': 28, 'UTG.04': 7})
+            res_values[group.testname()] = {'conc': group.concurrency(), 'on_error': group.on_error()}
+
+        self.assertEqual(res_values,
+                         {'TG.01': {'conc': 14, 'on_error': 'startnextloop'},
+                          'CTG.02': {'conc': 21, 'on_error': 'stopthread'},
+                          'STG.03': {'conc': 28, 'on_error': 'stoptest'},
+                          'UTG.04': {'conc': 7, 'on_error': 'stoptestnow'}})
+
+    def test_CTG_h(self):
+        """ ConcurrencyThreadGroup: hold-for """
+        self.configure(load={'hold-for': 70.5}, jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
+        self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
+
+        self.obj.modify(self.jmx)
+
+        res_values = {}
+        for group in self.get_groupset():
+            self.assertEqual("70", group.element.find(".//*[@name='Hold']").text)
+
+            res_values[group.testname()] = group.concurrency()
+
+        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1})
+
+    def test_TG_ci(self):
+        """ ThreadGroup: concurrency, iterations """
+        self.configure(load={'concurrency': 1, 'iterations': 7},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)
+
+        self.obj.modify(self.jmx)
+
+        for group in self.get_groupset():
+            self.assertEqual(1, group.concurrency())
+            self.assertEqual("false", group.element.find(".//*[@name='ThreadGroup.scheduler']").text)
+            self.assertEqual("7", group.element.find(".//*[@name='LoopController.loops']").text)
+
+    def test_TG_hr(self):
+        """ ThreadGroup: hold-for, ramp-up, no plugin """
+        self.configure(load={'ramp-up': 10, 'hold-for': 20},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx',
+                       has_ctg=False)
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)
+
+        self.obj.modify(self.jmx)
+
+        res_values = {}
+        for group in self.get_groupset():
+            self.assertEqual("true", group.element.find(".//*[@name='ThreadGroup.scheduler']").text)
+            self.assertEqual("true", group.element.find(".//*[@name='ThreadGroup.scheduler']").text)
+            self.assertEqual(str(10 + 20), group.element.find(".//*[@name='ThreadGroup.duration']").text)
+            self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
+
+            res_values[group.testname()] = group.concurrency()
+
+        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1})
 
 
 class TestJMX(BZTestCase):
