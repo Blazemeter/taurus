@@ -108,6 +108,7 @@ class ThreadGroup(AbstractThreadGroup):
     XPATH = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
     CONCURRENCY_SEL = ".//*[@name='ThreadGroup.num_threads']"
 
+
 class SteppingThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup'
     CONCURRENCY_SEL = ".//*[@name='ThreadGroup.num_threads']"
@@ -173,7 +174,6 @@ class ThreadGroupHandler(object):
         self.log.warning("Converting %s (%s) to ConcurrencyThreadGroup", group.gtype, group.testname())
         on_error = group.get_action_on_error()
 
-        # todo: add steps and iterations?
         new_group_element = JMX.get_concurrency_thread_group(
             concurrency=concurrency,
             rampup=load.ramp_up,
