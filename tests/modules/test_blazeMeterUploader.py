@@ -37,6 +37,7 @@ class TestBlazeMeterUploader(BZTestCase):
             'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1' +
             '&pq=0&target=labels_bulk&update=1': {},
             'https://a.blazemeter.com/api/v4/sessions/1/stop': {"result": True},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1': {'result': {'session': {}}}
         })
 
         mock.mock_patch.update({
@@ -162,7 +163,9 @@ class TestBlazeMeterUploader(BZTestCase):
                 {"result": True},
                 {"result": True},
             ],
-            'https://a.blazemeter.com/api/v4/sessions/1/stop': {}
+            'https://a.blazemeter.com/api/v4/sessions/1/stop': {},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1':
+                {"result": {'session': {}}}
         })
 
         obj = BlazeMeterUploader()
@@ -194,7 +197,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.log.parent.addHandler(handler)
         obj.engine.config.get('modules').get('shellexec').get('env')['TAURUS_INDEX_ALL'] = 1
         obj.post_process()
-        self.assertEqual(22, len(mock.requests))
+        self.assertEqual(25, len(mock.requests))
         obj.engine.log.parent.removeHandler(handler)
 
     def test_monitoring_buffer_limit_option(self):
@@ -219,6 +222,7 @@ class TestBlazeMeterUploader(BZTestCase):
             'https://data.blazemeter.com/submit.php?session_id=direct&signature=sign&test_id=None&user_id=None&pq=0&target=labels_bulk&update=1': {},
             'https://a.blazemeter.com/api/v4/image/direct/files?signature=sign': {"result": True},
             'https://a.blazemeter.com/api/v4/sessions/direct/stop': {"result": True},
+            'https://data.blazemeter.com/submit.php?session_id=direct&signature=sign&test_id=None&user_id=None&pq=0&target=engine_health&update=1': {'result': {'session': {}}}
         })
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/sessions/direct': {"result": {}}
@@ -237,7 +241,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.post_process()
         self.assertNotIn("Failed to finish online", self.log_recorder.warn_buff.getvalue())
         self.assertEquals('direct', obj._session['id'])
-        self.assertEqual(8, len(mock.requests), "Requests were: %s" % mock.requests)
+        self.assertEqual(11, len(mock.requests), "Requests were: %s" % mock.requests)
 
     def test_anonymous_feeding(self):
         obj = BlazeMeterUploader()
@@ -253,6 +257,7 @@ class TestBlazeMeterUploader(BZTestCase):
             }},
             'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {},
             'https://a.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1': {'result': {'session': {}}},
         })
         obj.prepare()
         obj.startup()
@@ -260,7 +265,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.shutdown()
         obj.post_process()
         self.assertEquals(1, obj._session['id'])
-        self.assertEqual(5, len(mock.requests), "Requests were: %s" % mock.requests)
+        self.assertEqual(6, len(mock.requests), "Requests were: %s" % mock.requests)
 
     def test_401(self):
         obj = BlazeMeterUploader()
@@ -327,7 +332,7 @@ class TestBlazeMeterUploader(BZTestCase):
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
         self.assertIn(log_line, log_buff)
         logging.warning("\n".join([x['url'] for x in mock.requests]))
-        self.assertEqual(14, len(mock.requests))
+        self.assertEqual(16, len(mock.requests))
 
     def test_new_project_existing_test(self):
         obj = BlazeMeterUploader()
