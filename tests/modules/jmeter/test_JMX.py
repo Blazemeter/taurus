@@ -53,10 +53,11 @@ class TestLoadSettingsProcessor(BZTestCase):
         groupset = self.get_groupset()
         groups = [group.gtype for group in groupset]
         self.assertEqual(4, len(set(groups)))   # no one group was modified
+        self.assertEqual("", self.log_recorder.warn_buff.getvalue())
 
     def test_TG_cs(self):
         """ ThreadGroup: concurrency, steps """
-        self.configure(load={'concurrency': 70, 'steps': 5},
+        self.configure(load={'concurrency': 69, 'steps': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)     # because no duration
         self.sniff_log(self.obj.log)
@@ -64,6 +65,9 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
 
         msg = 'Getting of concurrency for UltimateThreadGroup not implemented'
+        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+
+        msg = "Had to add 1 more threads to maintain thread group proportion"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
 
         msg = "Stepping ramp-up isn't supported for regular ThreadGroup"
@@ -84,7 +88,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
     def test_CTG_crs(self):
         """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
-        self.configure(load={'concurrency': 70, 'ramp-up': 100, 'steps': 5},
+        self.configure(load={'concurrency': 71, 'ramp-up': 100, 'steps': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
         self.sniff_log(self.obj.log)
@@ -92,6 +96,9 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
 
         msg = 'Getting of concurrency for UltimateThreadGroup not implemented'
+        self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
+
+        msg = "1 threads left undistributed due to thread group proportion"
         self.assertIn(msg, self.log_recorder.warn_buff.getvalue())
 
         res_values = {}

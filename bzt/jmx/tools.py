@@ -241,7 +241,7 @@ class LoadSettingsProcessor(object):
                     concurrency_list[idx] = int(round(part_of_load))
 
             total_new_concurrency = sum(concurrency_list)
-            leftover = total_old_concurrency - total_new_concurrency
+            leftover = self.load.concurrency - total_new_concurrency
             if leftover < 0:
                 msg = "Had to add %s more threads to maintain thread group proportion"
                 self.log.warning(msg, -leftover)
