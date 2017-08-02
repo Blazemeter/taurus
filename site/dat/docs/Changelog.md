@@ -9,6 +9,7 @@
  - install chromedriver and geckodriver automatically for Selenium tests
  - load errors info from BlazeMeter when using cloud provisioning
  - rearrange JUnit XML error reporting attributes
+ - enable PBench to record microsecond values and BlazeMeter uploader to report them
  - eliminate potential race condition in Mocha plugin
  - fix doublequoting error in JTL reader
  - recover from invalid characters in JTL files

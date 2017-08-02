@@ -601,7 +601,7 @@ class PBenchKPIReader(ResultsReader):
         """
 
         def mcs2sec(val):
-            return int(int(val) / 1000.0) / 1000.0
+            return int(val) / 1000000.0
 
         if self.stats_reader:
             self.stats_reader.read_file(last_pass)

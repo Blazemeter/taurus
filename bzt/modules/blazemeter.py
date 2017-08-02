@@ -165,6 +165,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.report_name = None
+        self._dpoint_serializer = DatapointSerializer(self)
 
     def prepare(self):
         """
@@ -179,6 +180,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.public_report = self.settings.get("public-report", self.public_report)
+        self._dpoint_serializer.multi = self.settings.get("report-times-multiplier", self._dpoint_serializer.multi)
         token = self.settings.get("token", "")
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
@@ -449,7 +451,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if not self._session:
             return
 
-        serialized = DatapointSerializer(self).get_kpi_body(data, is_final)
+        serialized = self._dpoint_serializer.get_kpi_body(data, is_final)
         self._session.send_kpi_data(serialized, do_check)
 
     def aggregated_second(self, data):
@@ -703,6 +705,7 @@ class DatapointSerializer(object):
         """
         super(DatapointSerializer, self).__init__()
         self.owner = owner
+        self.multi = 1000  # miltiplier factor for reporting
 
     def get_kpi_body(self, data_buffer, is_final):
         # - reporting format:
@@ -787,15 +790,15 @@ class DatapointSerializer(object):
             "failed": cumul[KPISet.FAILURES],
             "hits": cumul[KPISet.SAMPLE_COUNT],
 
-            "avg": int(1000 * cumul[KPISet.AVG_RESP_TIME]),
-            "min": int(1000 * cumul[KPISet.PERCENTILES]["0.0"]) if "0.0" in cumul[KPISet.PERCENTILES] else 0,
-            "max": int(1000 * cumul[KPISet.PERCENTILES]["100.0"]) if "100.0" in cumul[KPISet.PERCENTILES] else 0,
-            "std": int(1000 * cumul[KPISet.STDEV_RESP_TIME]),
-            "tp90": int(1000 * cumul[KPISet.PERCENTILES]["90.0"]) if "90.0" in cumul[KPISet.PERCENTILES] else 0,
-            "tp95": int(1000 * cumul[KPISet.PERCENTILES]["95.0"]) if "95.0" in cumul[KPISet.PERCENTILES] else 0,
-            "tp99": int(1000 * cumul[KPISet.PERCENTILES]["99.0"]) if "99.0" in cumul[KPISet.PERCENTILES] else 0,
+            "avg": int(self.multi * cumul[KPISet.AVG_RESP_TIME]),
+            "min": int(self.multi * cumul[KPISet.PERCENTILES]["0.0"]) if "0.0" in cumul[KPISet.PERCENTILES] else 0,
+            "max": int(self.multi * cumul[KPISet.PERCENTILES]["100.0"]) if "100.0" in cumul[KPISet.PERCENTILES] else 0,
+            "std": int(self.multi * cumul[KPISet.STDEV_RESP_TIME]),
+            "tp90": int(self.multi * cumul[KPISet.PERCENTILES]["90.0"]) if "90.0" in cumul[KPISet.PERCENTILES] else 0,
+            "tp95": int(self.multi * cumul[KPISet.PERCENTILES]["95.0"]) if "95.0" in cumul[KPISet.PERCENTILES] else 0,
+            "tp99": int(self.multi * cumul[KPISet.PERCENTILES]["99.0"]) if "99.0" in cumul[KPISet.PERCENTILES] else 0,
 
-            "latencyAvg": int(1000 * cumul[KPISet.AVG_LATENCY]),
+            "latencyAvg": int(self.multi * cumul[KPISet.AVG_LATENCY]),
             "latencyMax": 0,
             "latencyMin": 0,
             "latencySTD": 0,
@@ -827,20 +830,21 @@ class DatapointSerializer(object):
             "failed": item[KPISet.FAILURES],
             "rc": rc_list,
             "t": {
-                "min": int(1000 * item[KPISet.PERCENTILES]["0.0"]) if "0.0" in item[KPISet.PERCENTILES] else 0,
-                "max": int(1000 * item[KPISet.PERCENTILES]["100.0"]) if "100.0" in item[KPISet.PERCENTILES] else 0,
-                "sum": 1000 * item[KPISet.AVG_RESP_TIME] * item[KPISet.SAMPLE_COUNT],
+                "min": int(self.multi * item[KPISet.PERCENTILES]["0.0"]) if "0.0" in item[KPISet.PERCENTILES] else 0,
+                "max": int(self.multi * item[KPISet.PERCENTILES]["100.0"]) if "100.0" in item[
+                    KPISet.PERCENTILES] else 0,
+                "sum": self.multi * item[KPISet.AVG_RESP_TIME] * item[KPISet.SAMPLE_COUNT],
                 "n": item[KPISet.SAMPLE_COUNT],
-                "std": 1000 * item[KPISet.STDEV_RESP_TIME],
-                "avg": 1000 * item[KPISet.AVG_RESP_TIME]
+                "std": self.multi * item[KPISet.STDEV_RESP_TIME],
+                "avg": self.multi * item[KPISet.AVG_RESP_TIME]
             },
             "lt": {
                 "min": 0,
                 "max": 0,
-                "sum": 1000 * item[KPISet.AVG_LATENCY] * item[KPISet.SAMPLE_COUNT],
+                "sum": self.multi * item[KPISet.AVG_LATENCY] * item[KPISet.SAMPLE_COUNT],
                 "n": item[KPISet.SAMPLE_COUNT],
                 "std": 0,
-                "avg": 1000 * item[KPISet.AVG_LATENCY]
+                "avg": self.multi * item[KPISet.AVG_LATENCY]
             },
             "by": {
                 "min": 0,
