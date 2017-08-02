@@ -27,11 +27,11 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         super(NUnitExecutor, self).__init__()
         self.runner_dir = os.path.join(get_full_path(__file__, step_up=2), "resources", "NUnitRunner")
         self.runner_executable = os.path.join(self.runner_dir, "NUnitRunner.exe")
+        self.mono = Mono("mono", "", self.log)
 
     def install_required_tools(self):
         if not is_windows():
-            mono = Mono("mono", "", self.log)
-            mono.check_if_installed()
+            self.mono.check_if_installed()
 
     def prepare(self):
         super(NUnitExecutor, self).prepare()
@@ -43,10 +43,10 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix=".ldjson")
 
     def startup(self):
-        if is_windows():
-            cmdline = []
-        else:
-            cmdline = ["mono"]
+        cmdline = []
+        if not is_windows():
+            if self.mono.tool_path:
+                cmdline.append(self.mono.tool_path)
 
         cmdline += [self.runner_executable,
                     "--target", self.script,
