@@ -1,4 +1,4 @@
-#!/bin/bash -xe
+#! /bin/sh
 
 ./build-sdist.sh
 
