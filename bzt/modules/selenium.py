@@ -57,7 +57,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     :type virtual_display_service: VirtualDisplay
     """
 
-    SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha"]
+    SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit"]
 
     CHROMEDRIVER_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
     CHROMEDRIVER_VERSION = "2.30"
@@ -251,6 +251,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             script_type = 'rspec'
         elif '.js' in file_types:
             script_type = 'mocha'
+        elif '.dll' in file_types or '.exe' in file_types:
+            script_type = 'nunit'
         else:
             raise TaurusConfigError("Supported script files not found, script detection is failed")
 
