@@ -42,8 +42,11 @@ namespace NUnitRunner
             public RecordingListener(string reportFile)
             {
                 this.reportFile = reportFile;
-                this.writer = new StreamWriter(reportFile);
-			}
+                this.writer = new StreamWriter(reportFile)
+                {
+                    AutoFlush = true
+                };
+            }
 
             public void CloseFile()
             {
