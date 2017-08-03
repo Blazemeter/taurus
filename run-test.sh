@@ -7,3 +7,5 @@ python -m nose tests \
     --with-xunit --xunit-file=build/xunit.xml \
     -v || echo Tests failed
 
+
+./build-sdist.sh
