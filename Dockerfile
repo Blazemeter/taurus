@@ -42,6 +42,8 @@ RUN apt-get -y update \
     phantomjs \
     ruby ruby-dev \
     nodejs \
+    mono-complete \
+    nuget \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
   && pip install --upgrade selenium \
@@ -49,8 +51,9 @@ RUN apt-get -y update \
   && gem install rspec \
   && gem install selenium-webdriver \
   && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
+  && nuget update -self \
   && apt-get clean \
-  && firefox --version && google-chrome-stable --version
+  && firefox --version && google-chrome-stable --version && mono --version && nuget | head -1
 
 COPY bzt/resources/chrome_launcher.sh /tmp
 RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
@@ -58,7 +61,9 @@ RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
   && chmod +x /opt/google/chrome/google-chrome
 
 COPY . /tmp/bzt-src
-RUN pip install /tmp/bzt-src \
+WORKDIR /tmp/bzt-src
+RUN ./build-sdist.sh \
+  && pip install dist/bzt-*.tar.gz \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 
