@@ -161,4 +161,10 @@ execution:
     requests:
       - url: http://blazedemo.com/
 
+- executor: nunit
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/nunit/AssemblyDemo/SeleniumSuite.dll
 
