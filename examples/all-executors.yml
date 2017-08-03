@@ -2,6 +2,11 @@
 services:
 - virtual-display
 
+reporting:
+- module: passfail
+  criteria:
+  - fail>0 for 1s
+
 execution:
 
 - executor: jmeter

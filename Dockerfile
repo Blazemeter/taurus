@@ -1,7 +1,6 @@
 FROM ubuntu:16.04
 
-ENV CHROMEDRIVER_VERSION=2.28
-ENV GECKODRIVER_VERSION=0.15.0
+ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 ADD https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
@@ -50,25 +49,21 @@ RUN apt-get -y update \
   && gem install rspec \
   && gem install selenium-webdriver \
   && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
-  && wget http://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip -P /tmp \
-  && unzip -d /usr/bin /tmp/chromedriver_linux64.zip \
-  && wget https://github.com/mozilla/geckodriver/releases/download/v${GECKODRIVER_VERSION}/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz -P /tmp \
-  && tar -xzf /tmp/geckodriver-v${GECKODRIVER_VERSION}-linux64.tar.gz --directory /usr/local/bin \
   && apt-get clean \
-  && firefox --version && google-chrome-stable --version && /usr/bin/chromedriver --version && geckodriver --version
+  && firefox --version && google-chrome-stable --version
 
 COPY bzt/resources/chrome_launcher.sh /tmp
 RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
   && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
   && chmod +x /opt/google/chrome/google-chrome
-ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 COPY . /tmp/bzt-src
 RUN pip install /tmp/bzt-src \
+  && echo '{"modules": {"selenium": {"chromedriver": {"version": "2.28"}}}}' > /etc/bzt.d/50-chromedriver.json \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 
-RUN bzt -install-tools && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (cat /tmp/all-executors-artifacts/webdriver-1.log; exit 1)
+RUN bzt -install-tools -v && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (ls -lh /tmp/all-executors-artifacts && cat /tmp/all-executors-artifacts/webdriver.log && cat /tmp/all-executors-artifacts/nose.err; exit 1)
 
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/* \
