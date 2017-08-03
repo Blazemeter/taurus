@@ -59,7 +59,6 @@ RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
 
 COPY . /tmp/bzt-src
 RUN pip install /tmp/bzt-src \
-  && echo '{"modules": {"selenium": {"chromedriver": {"version": "2.28"}}}}' > /etc/bzt.d/50-chromedriver.json \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 

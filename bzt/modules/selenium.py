@@ -60,7 +60,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit"]
 
     CHROMEDRIVER_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-    CHROMEDRIVER_VERSION = "2.30"
+    CHROMEDRIVER_VERSION = "2.29"
 
     GECKODRIVER_DOWNLOAD_LINK = "https://github.com/mozilla/geckodriver/releases/download/v{version}/" \
                                 "geckodriver-v{version}-{arch}.{ext}"
