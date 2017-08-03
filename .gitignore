@@ -23,3 +23,5 @@ node_modules
 .npm
 
 /examples/BOOTH1/converted/
+
+bzt/resources/NUnitRunner/*

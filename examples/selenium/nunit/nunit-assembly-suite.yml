@@ -1,0 +1,5 @@
+execution:
+- executor: selenium
+  iterations: 10
+  scenario:
+    script: AssemblyDemo/SeleniumSuite.dll

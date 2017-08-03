@@ -19,6 +19,7 @@ addons:
   apt:
     packages:
       - oracle-java8-set-default
+      - mono-complete
 
 before_install: |
   if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
@@ -29,6 +30,7 @@ before_install: |
   fi
 
 install:
+- mono --version
 - nvm install 4.2
 - nvm use 4.2
 - gem install rspec

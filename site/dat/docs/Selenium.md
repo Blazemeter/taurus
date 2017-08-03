@@ -5,6 +5,7 @@ Selenium is virtual executor provided you ability to run functional tests locall
 - [Nose](Nose.md) (Python)
 - [RSpec](RSpec.md) (Ruby)
 - [Mocha](Mocha.md) (JavaScript)
+- [NUnit](NUnit.md) (C#)
 
 Selenium Grid isn't supported for tests described with Taurus language, but if you have your own test suite that uses
 Selenium Grid to manage browser instances - Taurus will run these tests just fine.
@@ -30,6 +31,8 @@ Test scenario may be presented not only as single file but as a folder (or, in c
   - .rb/folder
   - .js/single file
   - .js/folder
+  - .dll/single file
+  - .dll/folder
 
 ## Specifying Test Runner Explicitly
 
@@ -42,6 +45,7 @@ Supported values:
 - `nose`: [Nose](Nose.md)-based Python tests
 - `rspec`: [RSpec](RSpec.md)-based Ruby tests
 - `mocha`: [Mocha](Mocha.md)-based JavaScript tests
+- `nunit`: [NUnit](NUnit.md)-based C# tests
 
 Usage:
 ```yaml

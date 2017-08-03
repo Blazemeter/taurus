@@ -32,6 +32,8 @@ modules:
     class: bzt.modules.ruby.RSpecTester
   mocha:
     class: bzt.modules.javascript.MochaTester
+  nunit:
+    class: bzt.modules.csharp.NUnitExecutor
 
   # service & infra modules
   local:

@@ -85,6 +85,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister):
         self.stderr_file = self.engine.create_artifact(prefix, ".err")
         std_err = open(self.stderr_file, "wt")
         self.opened_descriptors.append(std_err)
+        self.log.debug("Running process with env %s", self.env)
         self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env)
 
     def resource_files(self):
@@ -99,10 +100,12 @@ class SubprocessedExecutor(ReportableExecutor, FileLister):
         ret_code = self.process.poll()
         if ret_code is not None:
             if ret_code != 0:
+                with open(self.stdout_file) as fds:
+                    std_out = fds.read()
                 with open(self.stderr_file) as fds:
                     std_err = fds.read()
-                msg = "Test runner %s (%s) has failed with retcode %s \n %s"
-                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code, std_err.strip()))
+                msg = "Test runner %s (%s) has failed with retcode %s \nSTDOUT: %s \nSTDERR: %s"
+                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code, std_out.strip(), std_err.strip()))
             return True
         return False
 
