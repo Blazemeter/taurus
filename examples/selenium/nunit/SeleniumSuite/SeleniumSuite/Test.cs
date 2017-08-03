@@ -19,17 +19,17 @@ namespace SeleniumSuite
 		}
 
 		[Test()]
-		public void PassingTest()
+		public void IndexPage()
 		{
 			driver.Navigate().GoToUrl("http://blazedemo.com");
 			Assert.AreEqual(driver.Title, "BlazeDemo");
 		}
 
 		[Test()]
-		public void FailingTest()
+		public void ReservePage()
 		{
 			driver.Navigate().GoToUrl("http://blazedemo.com/reserve.php");
-			Assert.AreEqual(driver.Title, "BlazeDemo");
+			Assert.AreEqual(driver.Title, "BlazeDemo - reserve");
 		}
 
 	    [TearDown]
