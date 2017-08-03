@@ -67,7 +67,7 @@ RUN ./build-sdist.sh \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 
-RUN bzt -install-tools -v && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (ls -lh /tmp/all-executors-artifacts && cat /tmp/all-executors-artifacts/testng.out&& cat /tmp/all-executors-artifacts/testng.err&& cat /tmp/all-executors-artifacts/TestNGTester.ldjson; exit 1)
+RUN bzt -install-tools -v && bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (ls -lh /tmp/all-executors-artifacts ; exit 1)
 
 RUN mkdir /bzt-configs \
   && rm -rf /tmp/* \
