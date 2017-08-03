@@ -10,9 +10,7 @@ source build/bin/activate
 pip install --upgrade colorlog pyyaml psutil!=4.4.0 lxml cssselect nose nose-exclude urwid six selenium progressbar33 locustio pyvirtualdisplay pynsist astunparse https://github.com/Blazemeter/apiritif/archive/master.zip ipaddress
 
 # run unit tests if not in Jenkins
-if [ -z "$JENKINS_HOME" ]; then
     ./run-test.sh
-fi
 
 # build source distribution
 ./build-sdist.sh
