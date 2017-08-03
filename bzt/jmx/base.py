@@ -1,5 +1,5 @@
 """
-Module holds all stuff regarding JMX format
+Module holds base stuff regarding JMX format
 
 Copyright 2015 BlazeMeter Inc.
 
@@ -18,7 +18,6 @@ limitations under the License.
 import logging
 import os
 import traceback
-from itertools import chain
 
 from cssselect import GenericTranslator
 
@@ -34,7 +33,6 @@ class JMX(object):
     :param original: path to existing JMX to load. If it is None, then creates
     empty test plan
     """
-
     TEST_PLAN_SEL = "jmeterTestPlan>hashTree>hashTree"
     THR_GROUP_SEL = TEST_PLAN_SEL + ">hashTree[type=tg]"
 
@@ -108,23 +106,6 @@ class JMX(object):
         self.log.debug("Saving JMX to: %s", filename)
         with open(filename, "wb") as fhd:
             self.tree.write(fhd, pretty_print=True, encoding="UTF-8", xml_declaration=True)
-
-    def enabled_thread_groups(self, all_types=False):
-        """
-        Get thread groups that are enabled
-        :type all_types: bool
-        """
-        if all_types:
-            prefix = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.'
-            ultimate_tgroup = self.get(prefix + 'UltimateThreadGroup')
-            stepping_tgroup = self.get(prefix + 'SteppingThreadGroup')
-            tgroups = chain(ultimate_tgroup, stepping_tgroup)
-        else:
-            tgroups = self.get('jmeterTestPlan>hashTree>hashTree>ThreadGroup')
-
-        for group in tgroups:
-            if group.get("enabled") != 'false':
-                yield group
 
     @staticmethod
     def _flag(flag_name, bool_value):
@@ -473,15 +454,35 @@ class JMX(object):
         return res
 
     @staticmethod
-    def get_thread_group(concurrency=None, rampup=None, iterations=None, testname="ThreadGroup", on_error="continue"):
+    def get_thread_group(concurrency=None, rampup=0, hold=0, iterations=None,
+                         testname="ThreadGroup", on_error="continue"):
         """
-        Generates ThreadGroup with 1 thread and 1 loop
+        Generates ThreadGroup
 
-        :param iterations:
-        :param rampup:
         :param concurrency:
+        :param rampup:
+        :param hold:
+        :param iterations:
+        :param testname:
+        :param on_error:
         :return:
         """
+        if not rampup:
+            rampup = 0
+
+        rampup = int(rampup)
+        hold = int(hold)
+
+        if not concurrency:
+            concurrency = 1
+
+        if not iterations:
+            iterations = -1
+
+        scheduler = False
+        if hold or (rampup and not iterations):
+            scheduler = True
+
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname)
         if on_error is not None:
@@ -491,25 +492,16 @@ class JMX(object):
                              elementType="LoopController",
                              guiclass="LoopControlPanel",
                              testclass="LoopController")
-        loop.append(JMX._bool_prop("LoopController.continue_forever", iterations < 0))
-        if not iterations:
-            iterations = 1
+        loop.append(JMX._bool_prop("LoopController.continue_forever", False))  # always false except of root LC
         loop.append(JMX._string_prop("LoopController.loops", iterations))
-
         trg.append(loop)
 
-        if not concurrency:
-            concurrency = 1
         trg.append(JMX._string_prop("ThreadGroup.num_threads", concurrency))
-
-        if not rampup:
-            rampup = ""
         trg.append(JMX._string_prop("ThreadGroup.ramp_time", rampup))
-
         trg.append(JMX._string_prop("ThreadGroup.start_time", ""))
         trg.append(JMX._string_prop("ThreadGroup.end_time", ""))
-        trg.append(JMX._bool_prop("ThreadGroup.scheduler", False))
-        trg.append(JMX._long_prop("ThreadGroup.duration", 0))
+        trg.append(JMX._bool_prop("ThreadGroup.scheduler", scheduler))
+        trg.append(JMX._string_prop("ThreadGroup.duration", rampup + hold))
 
         return trg
 
@@ -577,33 +569,38 @@ class JMX(object):
         return udv_element
 
     @staticmethod
-    def get_stepping_thread_group(concurrency, step_threads, step_time, hold_for, tg_name):
+    def get_concurrency_thread_group(
+            concurrency=None, rampup=0, hold=0, steps=None, on_error="continue", testname="ConcurrencyThreadGroup"):
         """
-        :return: etree element, Stepping Thread Group
+        :return: etree element, Concurrency Thread Group
         """
-        stepping_thread_group = etree.Element("kg.apc.jmeter.threads.SteppingThreadGroup",
-                                              guiclass="kg.apc.jmeter.threads.SteppingThreadGroupGui",
-                                              testclass="kg.apc.jmeter.threads.SteppingThreadGroup",
-                                              testname=tg_name, enabled="true")
-        stepping_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", "continue"))
-        stepping_thread_group.append(JMX._string_prop("ThreadGroup.num_threads", concurrency))
-        stepping_thread_group.append(JMX._string_prop("Threads initial delay", 0))
-        stepping_thread_group.append(JMX._string_prop("Start users count", step_threads))
-        stepping_thread_group.append(JMX._string_prop("Start users count burst", 0))
-        stepping_thread_group.append(JMX._string_prop("Start users period", step_time))
-        stepping_thread_group.append(JMX._string_prop("Stop users count", ""))
-        stepping_thread_group.append(JMX._string_prop("Stop users period", 1))
-        stepping_thread_group.append(JMX._string_prop("flighttime", int(hold_for)))
-        stepping_thread_group.append(JMX._string_prop("rampUp", 0))
+        if not rampup:
+            rampup = 0
 
-        loop_controller = etree.Element("elementProp", name="ThreadGroup.main_controller", elementType="LoopController",
-                                        guiclass="LoopControlPanel", testclass="LoopController",
-                                        testname="Loop Controller", enabled="true")
-        loop_controller.append(JMX._bool_prop("LoopController.continue_forever", False))
-        loop_controller.append(JMX.int_prop("LoopController.loops", -1))
+        if not concurrency:
+            concurrency = 1
 
-        stepping_thread_group.append(loop_controller)
-        return stepping_thread_group
+        if steps is None:  # zero means infinity of steps
+            steps = 1
+
+        name = 'com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup'
+        concurrency_thread_group = etree.Element(
+            name, guiclass=name + "Gui", testclass=name, testname=testname, enabled="true")
+        virtual_user_controller = etree.Element(
+            "elementProp",
+            name="ThreadGroup.main_controller",
+            elementType="com.blazemeter.jmeter.control.VirtualUserController")
+        concurrency_thread_group.append(virtual_user_controller)
+        concurrency_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
+        concurrency_thread_group.append(JMX._string_prop("TargetLevel", str(concurrency)))
+        concurrency_thread_group.append(JMX._string_prop("RampUp", str(int(rampup))))
+        concurrency_thread_group.append(JMX._string_prop("Steps", steps))
+        concurrency_thread_group.append(JMX._string_prop("Hold", str(int(hold))))
+        concurrency_thread_group.append(JMX._string_prop("LogFilename", ""))
+        concurrency_thread_group.append(JMX._string_prop("Iterations", ""))
+        concurrency_thread_group.append(JMX._string_prop("Unit", "S"))
+
+        return concurrency_thread_group
 
     @staticmethod
     def get_dns_cache_mgr():
@@ -1045,7 +1042,7 @@ class JMX(object):
             iterations = loops
         controller = etree.Element("LoopController", guiclass="LoopControlPanel", testclass="LoopController",
                                    testname="Loop Controller")
-        controller.append(JMX._bool_prop("LoopController.continue_forever", True))
+        controller.append(JMX._bool_prop("LoopController.continue_forever", False))  # always false except of root LC
         controller.append(JMX._string_prop("LoopController.loops", str(iterations)))
         return controller
 

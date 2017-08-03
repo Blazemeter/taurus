@@ -1,7 +1,22 @@
 # Changelog
 
 ## 1.9.5 <sup>next</sup>
+ - force Concurrency Thread Group for JMeter when possible
+ - allow specifying manual cookies for JMeter tests
+ - add JAR files from `files` into JMeter classpath
+ - allow JMeter headers to be set as modification to existing JMX
+ - use apiritif transactions in generated selenium scripts
+ - install chromedriver and geckodriver automatically for Selenium tests
+ - load errors info from BlazeMeter when using cloud provisioning
+ - rearrange JUnit XML error reporting attributes
+ - enable PBench to record microsecond values and BlazeMeter uploader to report them
+ - eliminate potential race condition in Mocha plugin
+ - fix doublequoting error in JTL reader
+ - recover from invalid characters in JTL files
+ - fix CSV quotation crash in Locust module 
  - fix NPE with junit runner and null script
+ - fix RSpec functional mode tests
+ - fix Selenium concurrency and VU count for cloud provisioning
 
 ## 1.9.4 <sup>28 jun 2017</sup>
  - add `clearCookies` and `pauseFor` actions for Selenium YAML

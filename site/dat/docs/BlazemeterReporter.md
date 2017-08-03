@@ -63,6 +63,7 @@ modules:
     browser-open: start  # auto-open the report in browser, 
                          # can be "start", "end", "both", "none"
     send-interval: 30s   # send data each n-th second
+    report-times-multiplier: 1000  # multiplying factor for response times, advanced option
     timeout: 5s  # connect and request timeout for BlazeMeter API
     artifact-upload-size-limit: 5  # limit max size of file (in megabytes)
                                    # that goes into zip for artifact upload, 10 by default

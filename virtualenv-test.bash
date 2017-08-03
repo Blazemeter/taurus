@@ -32,12 +32,15 @@ cd ..
 
 # prepare and run functional tests
 rm -rf ~/.bzt
-ln -sf /etc/bzt.d/50-pbench-enhanced.json build/etc/bzt.d/
+if [ -f /etc/bzt.d/50-pbench-enhanced.json ]; then
+    mkdir -p build/etc/bzt.d/
+    ln -sf /etc/bzt.d/50-pbench-enhanced.json build/etc/bzt.d/
+fi
 echo '{"settings": {"artifacts-dir":"build/test/%Y-%m-%d_%H-%M-%S.%f"}}' > build/etc/bzt.d/99-artifacts-dir.json
 echo '{"install-id": "UnitTest"}' > build/etc/bzt.d/99-zinstallID.json
 mkdir -p ~/.bzt/selenium-taurus/mocha
 npm install selenium-webdriver@2.53.3 --prefix ~/.bzt/selenium-taurus/mocha
 
 export DBUS_SESSION_BUS_ADDRESS=/dev/null  # https://github.com/SeleniumHQ/docker-selenium/issues/87
-bzt -install-tools
+bzt -install-tools -v
 bzt examples/all-executors.yml -o modules.console.disable=true -sequential -o modules.rspec.interpreter=ruby2.0 -o 'modules.selenium.chromedriver.version="2.27"'

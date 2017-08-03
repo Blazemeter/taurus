@@ -40,7 +40,9 @@ If no TestNG configuration is found — Taurus will launch all tests from the te
 
 Just like JUnit runner, TestNG runner supports the `additional-classpath` option on the scenario and settings (i.e. modules.testng) levels.
 
-## Configuration options:
+## Configuration Options:
+
+In most of the cases, you don't need to change these options, this is for advanced users.
 
 ```yaml
 modules:
@@ -51,5 +53,5 @@ modules:
     json-jar: ~/.bzt/selenium-taurus/tools/junit/json.jar  # path to JSON lib
     jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
     working-dir: classes  # set name of runner working directory within artifacts dir
-    compile-target-java: 1.7  # -source and -target option value for javac
+    compile-target-java: 1.8  # -source and -target option value for javac
 ```
