@@ -5,7 +5,7 @@ python $(dirname $0)/setup.py clean
 
 echo "Building NUnit plugin"
 pushd $(dirname $0)/dotnet/NUnitRunner
-./build.sh
+./rebuild.sh
 popd
 
 echo "Creating source distribution"
