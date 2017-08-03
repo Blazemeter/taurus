@@ -29,7 +29,7 @@ public class TestNGExample {
     @Test
     public void blazedemoTitleIsRight() {
         this.driver.get("http://blazedemo.com/");
-        Assert.assertEquals(this.driver.getTitle(), "Simple Flights App");
+        Assert.assertEquals(this.driver.getTitle(), "BlazeDemo");
     }
 
 }
