@@ -751,12 +751,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def get_error_diagnostics(self):
         diagnostics = []
-        with open(self.stdout_file.name) as fds:
-            diagnostics.append("JMeter's STDOUT:\n" + fds.read())
-        with open(self.stderr_file.name) as fds:
-            diagnostics.append("JMeter's STDERR:\n" + fds.read())
-        with open(self.jmeter_log) as fds:
-            diagnostics.append("JMeter's log:\n" + fds.read())
+        if self.stdout_file is not None:
+            with open(self.stdout_file.name) as fds:
+                diagnostics.append("JMeter's STDOUT:\n" + fds.read())
+        if self.stderr_file is not None:
+            with open(self.stderr_file.name) as fds:
+                diagnostics.append("JMeter's STDERR:\n" + fds.read())
+        if self.jmeter_log is not None and os.path.exists(self.jmeter_log):
+            with open(self.jmeter_log) as fds:
+                diagnostics.append("JMeter's log:\n" + fds.read())
         return diagnostics
 
 
