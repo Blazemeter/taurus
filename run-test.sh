@@ -9,4 +9,3 @@ if [ -z "$NO_UNITTESTS" ]; then
         -v || echo Tests failed
 fi
 
-./build-sdist.sh

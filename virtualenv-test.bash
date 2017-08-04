@@ -7,10 +7,10 @@ virtualenv --clear build
 source build/bin/activate
 
 # install depends
-pip install --upgrade colorlog pyyaml psutil!=4.4.0 lxml cssselect nose nose-exclude urwid six selenium progressbar33 locustio pyvirtualdisplay pynsist astunparse https://github.com/Blazemeter/apiritif/archive/master.zip ipaddress
+pip install --upgrade colorlog pyyaml psutil!=4.4.0 lxml cssselect nose nose-exclude urwid six selenium progressbar33 locustio pyvirtualdisplay pynsist astunparse https://github.com/Blazemeter/apiritif/archive/master.zip ipaddressls
 
 # run unit tests if not in Jenkins
-    ./run-test.sh
+./run-test.sh
 
 # build source distribution
 ./build-sdist.sh
@@ -42,4 +42,4 @@ npm install selenium-webdriver@2.53.3 --prefix ~/.bzt/selenium-taurus/mocha
 
 export DBUS_SESSION_BUS_ADDRESS=/dev/null  # https://github.com/SeleniumHQ/docker-selenium/issues/87
 bzt -install-tools -v
-bzt examples/all-executors.yml -o modules.console.disable=true -sequential -o modules.rspec.interpreter=ruby2.0 -o 'modules.selenium.chromedriver.version="2.27"'
+bzt examples/all-executors.yml -o modules.console.disable=true -sequential
