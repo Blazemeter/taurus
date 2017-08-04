@@ -7,7 +7,7 @@ virtualenv --clear build
 source build/bin/activate
 
 # install depends
-pip install --upgrade colorlog pyyaml psutil!=4.4.0 lxml cssselect nose nose-exclude urwid six selenium progressbar33 locustio pyvirtualdisplay pynsist astunparse https://github.com/Blazemeter/apiritif/archive/master.zip ipaddressls
+pip install --upgrade colorlog pyyaml psutil!=4.4.0 lxml cssselect nose nose-exclude urwid six selenium progressbar33 locustio pyvirtualdisplay pynsist astunparse https://github.com/Blazemeter/apiritif/archive/master.zip ipaddress
 
 # run unit tests if not in Jenkins
 ./run-test.sh
