@@ -31,7 +31,7 @@ import datetime
 import psutil
 
 from bzt import resources, TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
@@ -40,7 +40,7 @@ from bzt.utils import RequiredTool, IncrementableProgressBar
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
 
 
-class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     :type pbench: PBenchTool
     :type widget: ExecutorWidget
@@ -79,10 +79,8 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         retcode = self.pbench.process.poll()
         if retcode is not None:
             if retcode != 0:
-                raise ToolError("Phantom-benchmark exit code: %s" % retcode)
-
+                raise ToolError("Phantom-benchmark exit code: %s" % retcode, self.get_error_diagnostics())
             return True
-
         return False
 
     def get_widget(self):
@@ -115,6 +113,17 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if not tool.check_if_installed():
             tool.install()
 
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.pbench is not None:
+            if self.pbench.stdout_file is not None:
+                with open(self.pbench.stdout_file.name) as fds:
+                    diagnostics.append("PBench STDOUT:\n" + fds.read())
+            if self.pbench.stderr_file is not None:
+                with open(self.pbench.stderr_file.name) as fds:
+                    diagnostics.append("PBench STDERR:\n" + fds.read())
+        return diagnostics
+
 
 class PBenchTool(object):
     SSL_STR = "transport_t ssl_transport = transport_ssl_t { timeout = 1s }\n transport = ssl_transport"
@@ -142,6 +151,8 @@ class PBenchTool(object):
         self.hostname = 'localhost'
         self.port = 80
         self._target = {"scheme": None, "netloc": None}
+        self.stdout_file = None
+        self.stderr_file = None
 
     def generate_config(self, scenario, load, hostaliases=()):
         self.kpi_file = self.engine.create_artifact("pbench-kpi", ".txt")
@@ -281,10 +292,10 @@ class PBenchTool(object):
 
     def start(self, config_file):
         cmdline = [self.path, 'run', config_file]
-        stdout = sys.stdout if not isinstance(sys.stdout, StringIO) else None
-        stderr = sys.stderr if not isinstance(sys.stderr, StringIO) else None
+        self.stdout_file = open(self.executor.engine.create_artifact("pbench", ".out"), 'w')
+        self.stderr_file = open(self.executor.engine.create_artifact("pbench", ".err"), 'w')
         try:
-            self.process = self.executor.execute(cmdline, stdout=stdout, stderr=stderr)
+            self.process = self.executor.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
         except OSError as exc:
             raise ToolError("Failed to start phantom-benchmark utility: %s (%s)" % (exc, cmdline))
 

@@ -21,7 +21,7 @@ from abc import abstractmethod
 from urwid import Text, Pile
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import FileLister, Service, HavingInstallableTools
+from bzt.engine import FileLister, Service, HavingInstallableTools, SelfDiagnosable
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.services import VirtualDisplay
@@ -50,7 +50,7 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         pass
 
 
-class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     Selenium executor
     :type runner: bzt.modules.SubprocessedExecutor
@@ -311,6 +311,17 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         if not self.widget:
             self.widget = SeleniumWidget(self.script, self.runner.stdout_file)
         return self.widget
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.runner:
+            diagnostics.extend(self.runner.get_error_diagnostics())
+        gecko_logs = ["geckodriver.log", os.path.join(self.engine.artifacts_dir, "geckodriver.log")]
+        for possible_log in gecko_logs:
+            if os.path.exists(possible_log):
+                with open(possible_log) as fds:
+                    diagnostics.append("Geckodriver log:\n" + fds.read())
+        return diagnostics
 
 
 class SeleniumWidget(Pile, PrioritizedWidget):

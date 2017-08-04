@@ -23,7 +23,7 @@ import traceback
 import copy
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools
+from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
@@ -31,7 +31,7 @@ from bzt.six import etree, parse, iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
 
 
-class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     Tsung executor module
     """
@@ -115,7 +115,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("Tsung exited with non-zero code: %s" % ret_code)
+            raise ToolError("Tsung exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
         return True
 
     def shutdown(self):
@@ -146,6 +146,16 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
             return [script]
         else:
             return []
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.__out is not None:
+            with open(self.__out.name) as fds:
+                diagnostics.append("Tsung STDOUT:\n" + fds.read())
+        if self.__err is not None:
+            with open(self.__err.name) as fds:
+                diagnostics.append("Tsung STDERR:\n" + fds.read())
+        return diagnostics
 
 
 class TsungStatsReader(ResultsReader):

@@ -23,7 +23,7 @@ import os
 from bzt import TaurusConfigError, ToolError
 from bzt.six import iteritems
 
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
@@ -31,7 +31,7 @@ from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
 
-class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     Grinder executor module
     """
@@ -198,7 +198,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
-                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode)
+                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode,
+                                self.get_error_diagnostics())
 
             return True
         return False
@@ -272,6 +273,16 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             resource_files.append(prop_file)
 
         return resource_files
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.stdout_file is not None:
+            with open(self.stdout_file.name) as fds:
+                diagnostics.append("Grinder STDOUT:\n" + fds.read())
+        if self.stderr_file is not None:
+            with open(self.stderr_file.name) as fds:
+                diagnostics.append("Grinder STDERR:\n" + fds.read())
+        return diagnostics
 
 
 class DataLogReader(ResultsReader):
