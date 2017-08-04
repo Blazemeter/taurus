@@ -135,41 +135,40 @@ execution:
   hold-for: 10s
   iterations: 10
   scenario:
-    script: BOOTH1/Blazedemo.java
+    script: functional/JUnitTest.java
 
 - executor: testng
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
-    script: selenium/TestNGExample.java
+    script: functional/TestNGTest.java
 
 - executor: rspec
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
-    script: selenium/rspec_example.rb
+    script: functional/rspec_example.rb
 
 - executor: mocha
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
-    script: selenium/mocha_example.js
+    script: functional/mocha_example.js
 
 - executor: nose
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
-    requests:
-      - url: http://blazedemo.com/
+    script: functional/test_nose.py
 
 - executor: nunit
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
-    script: selenium/nunit/AssemblyDemo/SeleniumSuite.dll
+    script: selenium/nunit/AssemblyDemo/NUnitSuite.dll
 
