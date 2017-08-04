@@ -281,6 +281,9 @@ class CLI(object):
             self.log.log(log_level, "Internal Error: %s", exc)
         elif isinstance(exc, ToolError):
             self.log.log(log_level, "Child Process Error: %s", exc)
+            if exc.diagnostics is not None:
+                for line in exc.diagnostics:
+                    self.log.log(log_level, line)
         elif isinstance(exc, TaurusNetworkError):
             self.log.log(log_level, "Network Error: %s", exc)
         else:

@@ -1145,3 +1145,13 @@ class HavingInstallableTools(object):
 
 class Singletone(object):
     pass
+
+
+class SelfDiagnosable(object):
+    @abstractmethod
+    def get_error_diagnostics(self):
+        """
+
+        :rtype: list[str]
+        """
+        pass
