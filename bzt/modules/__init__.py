@@ -124,9 +124,9 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable):
         diagnostics = []
         class_name = self.__class__.__name__
         if self.stdout_file is not None:
-            with open(self.stdout_file.name) as fds:
+            with open(self.stdout_file) as fds:
                 diagnostics.append(class_name + " STDOUT:\n" + fds.read())
         if self.stderr_file is not None:
-            with open(self.stderr_file.name) as fds:
+            with open(self.stderr_file) as fds:
                 diagnostics.append(class_name + " STDERR:\n" + fds.read())
         return diagnostics
