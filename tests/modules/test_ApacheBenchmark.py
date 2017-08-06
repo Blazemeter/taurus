@@ -118,6 +118,26 @@ class TestApacheBenchExecutor(BZTestCase):
         obj.post_process()
         self.assertNotEquals(obj.process, None)
 
+    def test_diagnostics(self):
+        obj = ApacheBenchmarkExecutor()
+        obj.engine = EngineEmul()
+        obj.settings.merge({
+            "path": get_res_path(TOOL_NAME),})
+        obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 1,
+            "scenario": {
+                "requests": ["http://blazedemo.com"]
+            }
+        })
+        obj.prepare()
+        obj.startup()
+        while not obj.check():
+            time.sleep(obj.engine.check_interval)
+        obj.shutdown()
+        obj.post_process()
+        self.assertIsNotNone(obj.get_error_diagnostics())
+
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):

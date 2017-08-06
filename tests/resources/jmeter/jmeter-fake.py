@@ -37,6 +37,15 @@ def files():
     shutil.copy(jtl_file, os.path.join(artifacts_dir, matches[0]))
 
 
+def write_log():
+    sys.stdout.write("STDOUT message\n")
+    sys.stderr.write("STDERR message\n")
+    with open(os.path.join(get_artifacts_dir(), 'jmeter.log'), 'w') as fds:
+        fds.write("LOG DEBUG: 1\n")
+        fds.write("LOG ERROR: 2\n")
+        fds.write("LOG DEBUG: 3\n")
+
+
 mode = get_mode()
 
 # mode is gotten via environment variable $TEST_MODE
@@ -46,5 +55,7 @@ elif mode == 'server':  # test_JMeterExecutor.test_shutdown_soft
     udp_server()
 elif mode == 'heap':    # test_JMeterExecutor.test_jvm_heap*
     print(os.environ['JVM_ARGS'])
+elif mode == 'log':
+    write_log()
 else:                   # test if jmeter is installed
     print('JMeter is installed')

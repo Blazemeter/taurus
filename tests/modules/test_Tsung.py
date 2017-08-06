@@ -139,6 +139,23 @@ class TestTsungExecutor(BZTestCase):
         cid_param = '-i %s' % self.obj.tsung_controller_id
         self.assertIn(cid_param, stdout)
 
+    def test_diagnostics(self):
+        self.obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 1,
+            "hold-for": "5s",
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "requests": ["/"]}
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.assertIsNotNone(self.obj.get_error_diagnostics())
+
 
 class TestTsungConfig(BZTestCase):
     def setUp(self):

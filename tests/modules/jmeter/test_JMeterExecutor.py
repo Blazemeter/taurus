@@ -2421,3 +2421,30 @@ class TestJMeterExecutor(BZTestCase):
     def test_jtl_doublequoting(self):
         obj = JTLReader(RESOURCES_DIR + "/jmeter/jtl/doublequoting.jtl", logging.getLogger(), None)
         list(obj.datapoints(True))
+
+    def test_diagnostics(self):
+        self.configure({
+            "execution": {
+                "iterations": 1,
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                    }]
+                }
+            }
+        })
+        self.obj.prepare()
+        self.obj._env['TEST_MODE'] = 'log'
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        self.obj.post_process()
+        diagnostics = self.obj.get_error_diagnostics()
+        self.assertIsNotNone(diagnostics)
+        diag_str = "\n".join(diagnostics)
+        self.assertIn("STDOUT message", diag_str)
+        self.assertIn("STDERR message", diag_str)
+        self.assertNotIn("LOG DEBUG: 1", diag_str)
+        self.assertIn("LOG ERROR: 2", diag_str)
+        self.assertIn("LOG DEBUG: 3", diag_str)
