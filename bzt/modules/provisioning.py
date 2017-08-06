@@ -162,7 +162,6 @@ class Local(Provisioning):
                         diagnostics = None
                         if isinstance(executor, SelfDiagnosable):
                             diagnostics = executor.get_error_diagnostics()
-                            self.log.info("diagnostics: %s", diagnostics)
                         raise ToolError(message, diagnostics)
                 except BaseException as exc:
                     msg = "Exception in post_process of %s: %s %s"

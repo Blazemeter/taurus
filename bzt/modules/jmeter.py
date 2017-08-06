@@ -27,6 +27,7 @@ import time
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
+from itertools import dropwhile
 
 from cssselect import GenericTranslator
 
@@ -749,6 +750,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         return True
 
+    @staticmethod
+    def __trim_jmeter_log(log_contents):
+        lines = [line for line in log_contents.split("\n") if line]
+        relevant_lines = list(dropwhile(lambda line: "ERROR" not in line, lines))
+        if relevant_lines:
+            return "\n".join(relevant_lines)
+        else:
+            return log_contents
+
     def get_error_diagnostics(self):
         diagnostics = []
         if self.stdout_file is not None:
@@ -759,7 +769,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 diagnostics.append("JMeter STDERR:\n" + fds.read())
         if self.jmeter_log is not None and os.path.exists(self.jmeter_log):
             with open(self.jmeter_log) as fds:
-                diagnostics.append("JMeter log:\n" + fds.read())
+                log_contents = fds.read()
+                trimmed_log = self.__trim_jmeter_log(log_contents)
+                diagnostics.append("JMeter log:\n" + trimmed_log)
         return diagnostics
 
 
