@@ -387,9 +387,12 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             while not self.obj.check():
                 time.sleep(1)
             self.fail()
+        except ToolError as exc:
+            diagnostics = "\n".join(exc.diagnostics)
+            self.assertIn("Nothing to test", diagnostics)
         except BaseException as exc:
             logging.debug(traceback.format_exc())
-            self.assertIn("Nothing to test", exc.args[0])
+            self.fail("Unexpected exception %s, expected ToolError" % exc)
         self.obj.shutdown()
 
     def test_resource_files_collection_remote_java(self):

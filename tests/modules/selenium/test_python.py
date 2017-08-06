@@ -88,7 +88,8 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
                 time.sleep(1)
             self.fail()
         except ToolError as exc:
-            self.assertIn("Nothing to test.", exc.args[0])
+            diagnostics = "\n".join(exc.diagnostics)
+            self.assertIn("Nothing to test.", diagnostics)
         self.obj.shutdown()
 
     def test_resource_files_collection_remote_nose(self):
@@ -111,8 +112,9 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
                 if finished:
                     self.fail("Should've failed with 'nothing to test'")
             except ToolError as exc:
-                self.assertIn("Catch that", str(exc))
-                self.assertIn("Nothing to test", str(exc))
+                diagnostics = "\n".join(exc.diagnostics)
+                self.assertIn("Catch that", diagnostics)
+                self.assertIn("Nothing to test", diagnostics)
                 break
 
     def test_long_iterations_value(self):
