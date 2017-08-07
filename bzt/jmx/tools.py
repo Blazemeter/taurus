@@ -141,7 +141,7 @@ class ThreadGroupHandler(object):
         Convert a thread group to ThreadGroup/ConcurrencyThreadGroup for applying of load
         """
         msg = "Converting %s (%s) to %s and apply load parameters"
-        self.log.info(msg, group.gtype, group.testname(), target)
+        self.log.debug(msg, group.gtype, group.testname(), target)
         on_error = group.on_error()
 
         if target == ThreadGroup.__name__:
