@@ -26,6 +26,13 @@ from bzt.engine import Scenario, BetterDict
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types
 
 
+def cond_int(val):
+    if isinstance(val, float):
+        return int(val)
+
+    return val
+
+
 class JMX(object):
     """
     A class to manipulate and generate JMX test plans for JMeter
@@ -470,8 +477,8 @@ class JMX(object):
         if not rampup:
             rampup = 0
 
-        rampup = int(rampup)
-        hold = int(hold)
+        rampup = cond_int(rampup)
+        hold = cond_int(hold)
 
         if not concurrency:
             concurrency = 1
@@ -533,9 +540,9 @@ class JMX(object):
         """
         shaper_collection = shaper_etree.find(".//collectionProp[@name='load_profile']")
         coll_prop = self._collection_prop("1817389797")
-        start_rps_prop = self._string_prop("49", start_rps)
-        end_rps_prop = self._string_prop("1567", end_rps)
-        duration_prop = self._string_prop("53", int(duration))
+        start_rps_prop = self._string_prop("49", cond_int(start_rps))
+        end_rps_prop = self._string_prop("1567", cond_int(end_rps))
+        duration_prop = self._string_prop("53", cond_int(duration))
         coll_prop.append(start_rps_prop)
         coll_prop.append(end_rps_prop)
         coll_prop.append(duration_prop)
@@ -593,9 +600,9 @@ class JMX(object):
         concurrency_thread_group.append(virtual_user_controller)
         concurrency_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
         concurrency_thread_group.append(JMX._string_prop("TargetLevel", str(concurrency)))
-        concurrency_thread_group.append(JMX._string_prop("RampUp", str(int(rampup))))
+        concurrency_thread_group.append(JMX._string_prop("RampUp", str(cond_int(rampup))))
         concurrency_thread_group.append(JMX._string_prop("Steps", steps))
-        concurrency_thread_group.append(JMX._string_prop("Hold", str(int(hold))))
+        concurrency_thread_group.append(JMX._string_prop("Hold", str(cond_int(hold))))
         concurrency_thread_group.append(JMX._string_prop("LogFilename", ""))
         concurrency_thread_group.append(JMX._string_prop("Iterations", ""))
         concurrency_thread_group.append(JMX._string_prop("Unit", "S"))

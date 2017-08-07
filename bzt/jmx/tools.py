@@ -141,7 +141,7 @@ class ThreadGroupHandler(object):
         Convert a thread group to ThreadGroup/ConcurrencyThreadGroup for applying of load
         """
         msg = "Converting %s (%s) to %s and apply load parameters"
-        self.log.info(msg, group.gtype, group.testname(), target)
+        self.log.debug(msg, group.gtype, group.testname(), target)
         on_error = group.on_error()
 
         if target == ThreadGroup.__name__:
@@ -265,8 +265,7 @@ class LoadSettingsProcessor(object):
             jmx.add_rps_shaper_schedule(etree_shaper, 1, self.load.throughput, self.load.ramp_up)
 
         if self.load.hold:
-            load_val = "${__P(taurus.tst_hold,%s)}" % self.load.throughput
-            jmx.add_rps_shaper_schedule(etree_shaper, load_val, load_val, self.load.hold)
+            jmx.add_rps_shaper_schedule(etree_shaper, self.load.throughput, self.load.throughput, self.load.hold)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
