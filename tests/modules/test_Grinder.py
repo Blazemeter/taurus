@@ -208,6 +208,24 @@ class TestGrinderExecutor(BZTestCase):
         cookies = re.findall(r"defaults.setUseCookies\(1\)", script)
         self.assertEquals(1, len(cookies))
 
+    def test_diagnostics(self):
+        obj = GrinderExecutor()
+        obj.kpi_file = os.path.abspath(__dir__() + '/../resources/grinder/test.log')
+        obj.engine = EngineEmul()
+        obj.settings.merge({'path': __dir__() + "/../resources/grinder/fake_grinder.jar"})
+        obj.execution.merge({"hold-for": 2,
+                             "scenario": {"keepalive": False, "requests": ['http://blazedemo.com']}})
+        obj.prepare()
+        try:
+            obj.cmd_line = __dir__() + "/../resources/grinder/grinder" + EXE_SUFFIX
+            obj.startup()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+        finally:
+            obj.shutdown()
+        obj.post_process()
+        self.assertIsNotNone(obj.get_error_diagnostics())
+
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):

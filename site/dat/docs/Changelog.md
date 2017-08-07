@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.9.5 <sup>next</sup>
+ - add `nunit` executor for NUnit-based tests (Selenium and others)
+ - add executor self-diagnostics in case of failure (output STDOUT/STDERR and log files into Taurus log)
  - force Concurrency Thread Group for JMeter when possible
  - allow specifying manual cookies for JMeter tests
  - add JAR files from `files` into JMeter classpath
@@ -11,7 +13,7 @@
  - rearrange JUnit XML error reporting attributes
  - enable PBench to record microsecond values and BlazeMeter uploader to report them
  - eliminate potential race condition in Mocha plugin
- - bump up pmgr to 0.14
+ - bump up pmgr to 0.15
  - allow spaces around comparison operators in passfail criteria
  - fix doublequoting error in JTL reader
  - recover from invalid characters in JTL files

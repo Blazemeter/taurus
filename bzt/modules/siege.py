@@ -22,7 +22,7 @@ from math import ceil
 from os import path
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
@@ -30,7 +30,7 @@ from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
-class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister):
+class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister, SelfDiagnosable):
     def __init__(self):
         super(SiegeExecutor, self).__init__()
         self.log = logging.getLogger('')
@@ -138,7 +138,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("Siege tool exited with non-zero code: %s" % ret_code)
+            raise ToolError("Siege tool exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
         return True
 
     def get_widget(self):
@@ -166,6 +166,16 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         if not siege.check_if_installed():
             siege.install()
         return tool_path
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.__out is not None:
+            with open(self.__out.name) as fds:
+                diagnostics.append("Siege STDOUT:\n" + fds.read())
+        if self.__err is not None:
+            with open(self.__err.name) as fds:
+                diagnostics.append("Siege STDERR:\n" + fds.read())
+        return diagnostics
 
 
 class DataLogReader(ResultsReader):

@@ -429,6 +429,20 @@ class TestGatlingExecutor(BZTestCase):
         res_files = obj.resource_files()
         self.assertEqual(res_files, [csv_path])
 
+    def test_diagnostics(self):
+        obj = self.getGatling()
+        obj.execution.merge({"scenario": {"script": __dir__() + "/../resources/gatling/simulations.jar",
+                                          "simulation": "tests.gatling.BasicSimulation"}})
+        obj.prepare()
+        try:
+            obj.startup()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+        finally:
+            obj.shutdown()
+        obj.post_process()
+        self.assertIsNotNone(obj.get_error_diagnostics())
+
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):

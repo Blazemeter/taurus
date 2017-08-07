@@ -305,3 +305,23 @@ class TestLocustIOExecutor(BZTestCase):
         reader = JTLReader(kpi_path, self.obj.log, None)
         for point in reader.datapoints():
             pass
+
+    def test_diagnostics(self):
+        self.obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 1,
+            "scenario": {
+                "default-address": "http://httpbin.org/status/503",
+                "requests": [
+                    "/"
+                ]
+            }
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+        diagnostics = self.obj.get_error_diagnostics()
+        self.assertIsNotNone(diagnostics)
