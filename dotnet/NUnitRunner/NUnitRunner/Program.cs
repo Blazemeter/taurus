@@ -210,6 +210,10 @@ namespace NUnitRunner
             TestPackage package = new TestPackage(opts.targetAssembly);
 			ITestRunner runner = engine.GetRunner(package);
 
+            int testCount = runner.CountTestCases(TestFilter.Empty);
+            if (testCount < 1)
+                throw new ArgumentException("Nothing to run, no tests were loaded");
+
             try
             {
                 DateTime startTime = DateTime.Now;
