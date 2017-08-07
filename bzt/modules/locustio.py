@@ -27,7 +27,7 @@ import os
 from bzt import ToolError, TaurusConfigError
 from bzt.six import PY3, iteritems
 
-from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
@@ -36,7 +36,7 @@ from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator
 from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time
 
 
-class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
         self.kpi_jtl = None
@@ -47,6 +47,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.expected_slaves = 0
         self.scenario = None
         self.script = None
+        self.log_file = None
 
     def prepare(self):
         self.install_required_tools()
@@ -92,8 +93,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         if os.getenv("PYTHONPATH"):
             env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
 
+        self.log_file = self.engine.create_artifact("locust", ".log")
         args = [sys.executable, wrapper, '-f', self.script]
-        args += ['--logfile=%s' % self.engine.create_artifact("locust", ".log")]
+        args += ['--logfile=%s' % self.log_file]
         args += ["--no-web", "--only-summary", ]
         args += ["--clients=%d" % concurrency, "--hatch-rate=%d" % hatch]
         if load.iterations:
@@ -173,6 +175,16 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             return True
         else:
             return False
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.__out is not None:
+            with open(self.__out.name) as fds:
+                diagnostics.append("Locust STDOUT:\n" + fds.read())
+        if self.log_file is not None and os.path.exists(self.log_file):
+            with open(self.log_file) as fds:
+                diagnostics.append("Locust log:\n" + fds.read())
+        return diagnostics
 
 
 class LocustIO(RequiredTool):

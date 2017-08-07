@@ -27,11 +27,12 @@ import time
 import traceback
 from collections import Counter, namedtuple
 from distutils.version import LooseVersion
+from itertools import dropwhile
 
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
@@ -45,7 +46,7 @@ from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBar
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
 
 
-class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     JMeter executor module
 
@@ -273,7 +274,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
-                raise ToolError("JMeter exited with non-zero code: %s" % self.retcode)
+                raise ToolError("JMeter exited with non-zero code: %s" % self.retcode, self.get_error_diagnostics())
 
             return True
         return False
@@ -748,6 +749,30 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             tool.tool_path = os.path.join(tool.tool_path, end_str_l)
 
         return True
+
+    @staticmethod
+    def __trim_jmeter_log(log_contents):
+        lines = [line for line in log_contents.split("\n") if line]
+        relevant_lines = list(dropwhile(lambda line: "ERROR" not in line, lines))
+        if relevant_lines:
+            return "\n".join(relevant_lines)
+        else:
+            return log_contents
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.stdout_file is not None:
+            with open(self.stdout_file.name) as fds:
+                diagnostics.append("JMeter STDOUT:\n" + fds.read())
+        if self.stderr_file is not None:
+            with open(self.stderr_file.name) as fds:
+                diagnostics.append("JMeter STDERR:\n" + fds.read())
+        if self.jmeter_log is not None and os.path.exists(self.jmeter_log):
+            with open(self.jmeter_log) as fds:
+                log_contents = fds.read()
+                trimmed_log = self.__trim_jmeter_log(log_contents)
+                diagnostics.append("JMeter log:\n" + trimmed_log)
+        return diagnostics
 
 
 class JTLReader(ResultsReader):

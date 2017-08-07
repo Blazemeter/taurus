@@ -299,6 +299,30 @@ if not is_windows():
             })
             obj.prepare()
 
+        def test_diagnostics(self):
+            obj = PBenchExecutor()
+            obj.engine = EngineEmul()
+            obj.settings = BetterDict()
+            obj.engine.config.merge({
+                "provisioning": "test",
+                ScenarioExecutor.EXEC: [
+                    {
+                        "throughput": 10,
+                        "hold-for": 30,
+                        "scenario": {
+                            "default-address": "http://blazedemo.com/",
+                            "requests": ["/"]}}]})
+            obj.execution = obj.engine.config['execution'][0]
+            obj.settings.merge({
+                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
+            })
+            obj.prepare()
+            obj.startup()
+            for _ in range(3):
+                obj.check()
+            obj.shutdown()
+            obj.post_process()
+            self.assertIsNotNone(obj.get_error_diagnostics())
 
     class TestScheduler(BZTestCase):
         def _get_pbench(self):

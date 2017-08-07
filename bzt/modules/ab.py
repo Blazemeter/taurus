@@ -24,7 +24,7 @@ from os import path
 from subprocess import CalledProcessError
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
@@ -32,7 +32,7 @@ from bzt.six import iteritems
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
-class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools):
+class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
     """
     Apache Benchmark executor module
     """
@@ -130,7 +130,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("ab tool exited with non-zero code: %s" % ret_code)
+            raise ToolError("ab tool exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
         return True
 
     def shutdown(self):
@@ -148,6 +148,16 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         if not ab_tool.check_if_installed():
             ab_tool.install()
         return tool_path
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.__out is not None:
+            with open(self.__out.name) as fds:
+                diagnostics.append("ab STDOUT:\n" + fds.read())
+        if self.__err is not None:
+            with open(self.__err.name) as fds:
+                diagnostics.append("ab STDERR:\n" + fds.read())
+        return diagnostics
 
 
 class TSVDataReader(ResultsReader):

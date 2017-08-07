@@ -18,7 +18,7 @@ limitations under the License.
 import os
 
 from bzt import ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, SelfDiagnosable
 from bzt.utils import shutdown_process
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
@@ -61,7 +61,7 @@ class ReportableExecutor(ScenarioExecutor):
                 self.engine.aggregator.add_underling(self.reader)
 
 
-class SubprocessedExecutor(ReportableExecutor, FileLister):
+class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable):
     """
     Class for subprocessed executors
 
@@ -100,12 +100,8 @@ class SubprocessedExecutor(ReportableExecutor, FileLister):
         ret_code = self.process.poll()
         if ret_code is not None:
             if ret_code != 0:
-                with open(self.stdout_file) as fds:
-                    std_out = fds.read()
-                with open(self.stderr_file) as fds:
-                    std_err = fds.read()
-                msg = "Test runner %s (%s) has failed with retcode %s \nSTDOUT: %s \nSTDERR: %s"
-                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code, std_out.strip(), std_err.strip()))
+                msg = "Test runner %s (%s) has failed with retcode %s"
+                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code), self.get_error_diagnostics())
             return True
         return False
 
@@ -123,3 +119,14 @@ class SubprocessedExecutor(ReportableExecutor, FileLister):
 
     def has_results(self):
         return bool(self.reader) and bool(self.reader.read_records)
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        class_name = self.__class__.__name__
+        if self.stdout_file is not None:
+            with open(self.stdout_file) as fds:
+                diagnostics.append(class_name + " STDOUT:\n" + fds.read())
+        if self.stderr_file is not None:
+            with open(self.stderr_file) as fds:
+                diagnostics.append(class_name + " STDERR:\n" + fds.read())
+        return diagnostics

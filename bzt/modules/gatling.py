@@ -21,7 +21,7 @@ import subprocess
 import time
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
@@ -211,7 +211,7 @@ class GatlingScriptBuilder(object):
         return template_line % params
 
 
-class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     Gatling executor module
     """
@@ -439,7 +439,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         if self.retcode is not None:
             if self.retcode != 0:
-                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode)
+                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode,
+                                self.get_error_diagnostics())
 
             return True
         return False
@@ -501,6 +502,19 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 source_path = self.engine.find_file(source["path"])
                 files.append(source_path)
         return files
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.stdout_file is not None:
+            with open(self.stdout_file.name) as fds:
+                diagnostics.append("Gatling STDOUT:\n" + fds.read())
+        if self.stderr_file is not None:
+            with open(self.stderr_file.name) as fds:
+                diagnostics.append("Gatling STDERR:\n" + fds.read())
+        if self.reader and self.reader.filename:
+            with open(self.reader.filename) as fds:
+                diagnostics.append("Simulation log:\n" + fds.read())
+        return diagnostics
 
 
 class DataLogReader(ResultsReader):
