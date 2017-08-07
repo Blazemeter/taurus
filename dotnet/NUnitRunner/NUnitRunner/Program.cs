@@ -173,7 +173,7 @@ namespace NUnitRunner
 				ShowHelp();
 
 			if (opts.targetAssembly == null)
-				throw new Exception("Target test suite wasn't provided");
+				throw new Exception("Target test suite wasn't provided. Is your file actually NUnit test DLL?");
 
             if (opts.iterations == 0)
 				if (opts.durationLimit > 0)
