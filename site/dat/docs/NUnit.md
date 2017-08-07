@@ -26,5 +26,5 @@ test suite project with building instructions in Taurus's repo at
 Under non-Windows operating systems, Taurus requires Mono to be installed. Mono 4 is the preferred
 version.
 
-Note: when running tests, you should have NUnit's DLL (nunit.framework.dll) lying in the same
-directory as DLL with your tests.
+Note: when running tests, you should have NUnit's DLL (nunit.framework.dll) placed in the same
+directory as the DLL assembly with your tests. Furthermore, any DLLs referenced from your DLL should also be in that same directory. 
