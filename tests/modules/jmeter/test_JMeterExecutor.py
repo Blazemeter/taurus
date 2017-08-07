@@ -558,11 +558,17 @@ class TestJMeterExecutor(BZTestCase):
         timer_ += "[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']"
         shaper_elements = xml_tree.findall(timer_)
         self.assertEqual(1, len(shaper_elements))
-        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
 
-        self.assertEqual("${__P(taurus.tst_hold,100)}", shaper_coll_element.find(".//stringProp[@name='49']").text)
-        self.assertEqual("${__P(taurus.tst_hold,100)}", shaper_coll_element.find(".//stringProp[@name='1567']").text)
-        self.assertEqual("60", shaper_coll_element.find(".//stringProp[@name='53']").text)
+        shaper_collection = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
+        coll_elements = shaper_collection.findall(".//collectionProp")
+
+        self.assertEqual(1, len(coll_elements))
+
+        val_strings = coll_elements[0].findall(".//stringProp")
+
+        self.assertEqual("100", val_strings[0].text)
+        self.assertEqual("100", val_strings[1].text)
+        self.assertEqual("60", val_strings[2].text)
 
     def test_add_cookies(self):
         self.configure({'execution': {
@@ -605,15 +611,22 @@ class TestJMeterExecutor(BZTestCase):
         timer_ += "[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']"
         shaper_elements = xml_tree.findall(timer_)
         self.assertEqual(1, len(shaper_elements))
-        shaper_coll_element = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
+        shaper_collection = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
+        coll_elements = shaper_collection.findall(".//collectionProp")
 
-        self.assertEqual("1", shaper_coll_element.findall(".//stringProp[@name='49']")[0].text)
-        self.assertEqual("10", shaper_coll_element.findall(".//stringProp[@name='1567']")[0].text)
-        self.assertEqual("60", shaper_coll_element.findall(".//stringProp[@name='53']")[0].text)
+        self.assertEqual(2, len(coll_elements))
 
-        self.assertEqual("${__P(taurus.tst_hold,10)}", shaper_coll_element.findall(".//stringProp[@name='49']")[1].text)
-        self.assertEqual("${__P(taurus.tst_hold,10)}", shaper_coll_element.findall(".//stringProp[@name='1567']")[1].text)
-        self.assertEqual("120", shaper_coll_element.findall(".//stringProp[@name='53']")[1].text)
+        val_strings = coll_elements[0].findall(".//stringProp")
+
+        self.assertEqual("1", val_strings[0].text)
+        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("60", val_strings[2].text)
+
+        val_strings = coll_elements[1].findall(".//stringProp")
+
+        self.assertEqual("10", val_strings[0].text)
+        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("120", val_strings[2].text)
 
     def test_user_def_vars_from_requests(self):
         self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))
