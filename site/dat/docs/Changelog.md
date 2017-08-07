@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.9.5 <sup>next</sup>
+ - add `nunit` executor for NUnit-based tests (Selenium and others)
+ - add executor self-diagnostics in case of failure (output STDOUT/STDERR and log files into Taurus log)
  - force Concurrency Thread Group for JMeter when possible
  - allow specifying manual cookies for JMeter tests
  - add JAR files from `files` into JMeter classpath
