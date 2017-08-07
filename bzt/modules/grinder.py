@@ -278,10 +278,14 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         diagnostics = []
         if self.stdout_file is not None:
             with open(self.stdout_file.name) as fds:
-                diagnostics.append("Grinder STDOUT:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Grinder STDOUT:\n" + contents)
         if self.stderr_file is not None:
             with open(self.stderr_file.name) as fds:
-                diagnostics.append("Grinder STDERR:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Grinder STDOUT:\n" + contents)
         return diagnostics
 
 

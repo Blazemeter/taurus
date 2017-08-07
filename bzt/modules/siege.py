@@ -171,10 +171,14 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         diagnostics = []
         if self.__out is not None:
             with open(self.__out.name) as fds:
-                diagnostics.append("Siege STDOUT:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Siege STDOUT:\n" + contents)
         if self.__err is not None:
             with open(self.__err.name) as fds:
-                diagnostics.append("Siege STDERR:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Siege STDERR:\n" + contents)
         return diagnostics
 
 

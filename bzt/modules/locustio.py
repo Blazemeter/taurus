@@ -180,10 +180,14 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         diagnostics = []
         if self.__out is not None:
             with open(self.__out.name) as fds:
-                diagnostics.append("Locust STDOUT:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Locust STDOUT:\n" + contents)
         if self.log_file is not None and os.path.exists(self.log_file):
             with open(self.log_file) as fds:
-                diagnostics.append("Locust log:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Locust log:\n" + contents)
         return diagnostics
 
 
