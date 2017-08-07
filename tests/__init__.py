@@ -10,7 +10,11 @@ from logging import Handler
 from random import random
 from unittest.case import TestCase
 
+import sys
+
+from bzt import ToolError
 from bzt.cli import CLI
+from bzt.engine import SelfDiagnosable
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.six import u
 from bzt.utils import run_once, EXE_SUFFIX
@@ -105,6 +109,16 @@ class BZTestCase(TestCase):
         self.captured_logger.addHandler(self.log_recorder)
 
     def tearDown(self):
+        exc, _, _ = sys.exc_info()
+        if exc:
+            try:
+                if hasattr(self, 'obj') and isinstance(self.obj, SelfDiagnosable):
+                    diags = self.obj.get_error_diagnostics()
+                    if diags:
+                        for line in diags:
+                            logging.info(line)
+            except BaseException:
+                pass
         if self.captured_logger:
             self.captured_logger.removeHandler(self.log_recorder)
             self.log_recorder.close()
