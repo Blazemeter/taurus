@@ -82,7 +82,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         args = [self.tool_path]
         load = self.get_load()
         load_iterations = load.iterations if load.iterations is not None else 1
-        load_concurrency = load.concurrency if load.concurrency is not None else 1
+        load_concurrency = load.get_concurrency if load.get_concurrency is not None else 1
 
         if load.hold:
             hold = int(ceil(dehumanize_time(load.hold)))

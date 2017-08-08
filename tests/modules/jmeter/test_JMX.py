@@ -78,7 +78,7 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual('ThreadGroup', group.gtype)
             self.assertEqual("false", group.element.find(".//*[@name='LoopController.continue_forever']").text)
             self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)   # no loop limit
-            res_values[group.testname()] = {'conc': group.concurrency(), 'on_error': group.on_error()}
+            res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'on_error': group.get_on_error()}
 
         self.assertEqual(res_values,
                          {'TG.01': {'conc': 14, 'on_error': 'startnextloop'},
@@ -109,7 +109,7 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual("S", group.element.find(".//*[@name='Unit']").text)
             self.assertIn(group.element.find(".//*[@name='Hold']").text, ("", "0"))
 
-            res_values[group.testname()] = {'conc': group.concurrency(), 'on_error': group.on_error()}
+            res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'on_error': group.get_on_error()}
 
         self.assertEqual(res_values,
                          {'TG.01': {'conc': 14, 'on_error': 'startnextloop'},
@@ -128,7 +128,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual("70", group.element.find(".//*[@name='Hold']").text)
 
-            res_values[group.testname()] = group.concurrency()
+            res_values[group.get_testname()] = group.get_concurrency()
 
         self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1})
 
@@ -141,7 +141,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.obj.modify(self.jmx)
 
         for group in self.get_groupset():
-            self.assertEqual(1, group.concurrency())
+            self.assertEqual(1, group.get_concurrency())
             self.assertEqual("false", group.element.find(".//*[@name='ThreadGroup.scheduler']").text)
             self.assertEqual("7", group.element.find(".//*[@name='LoopController.loops']").text)
 
@@ -161,7 +161,7 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual(str(10 + 20), group.element.find(".//*[@name='ThreadGroup.duration']").text)
             self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
 
-            res_values[group.testname()] = group.concurrency()
+            res_values[group.get_testname()] = group.get_concurrency()
 
         self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1})
 
