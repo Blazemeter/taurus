@@ -397,8 +397,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         else:
             params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'false'
             params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
-        if load.concurrency is not None:
-            params_for_scala['concurrency'] = load.concurrency
+        if load.get_concurrency is not None:
+            params_for_scala['concurrency'] = load.get_concurrency
         if load.ramp_up is not None:
             params_for_scala['ramp-up'] = int(load.ramp_up)
         if load.hold is not None:
