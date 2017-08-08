@@ -183,7 +183,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.install_required_tools()
         self._add_webdrivers_to_path()
 
-        if self.get_load().get_concurrency and self.get_load().get_concurrency > 1:
+        if self.get_load().concurrency and self.get_load().concurrency > 1:
             msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
             msg += 'For details look at http://gettaurus.org/docs/Cloud.md'
             self.log.warning(msg)

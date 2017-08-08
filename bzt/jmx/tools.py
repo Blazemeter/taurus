@@ -233,7 +233,7 @@ class LoadSettingsProcessor(object):
         return tg
 
     def modify(self, jmx):
-        if not (self.load.iterations or self.load.get_concurrency or self.load.duration):
+        if not (self.load.iterations or self.load.concurrency or self.load.duration):
             self.log.debug('No iterations/concurrency/duration found, thread group modification is skipped')
             return
 
@@ -259,18 +259,18 @@ class LoadSettingsProcessor(object):
         for group in groups:
             concurrency_list.append(group.get_concurrency())
 
-        if concurrency_list and self.load.get_concurrency:
+        if concurrency_list and self.load.concurrency:
             total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.get_concurrency()
 
             for idx, concurrency in enumerate(concurrency_list):
-                part_of_load = 1.0 * self.load.get_concurrency * concurrency / total_old_concurrency
+                part_of_load = 1.0 * self.load.concurrency * concurrency / total_old_concurrency
                 if part_of_load < 1:
                     concurrency_list[idx] = 1
                 else:
                     concurrency_list[idx] = int(round(part_of_load))
 
             total_new_concurrency = sum(concurrency_list)
-            leftover = self.load.get_concurrency - total_new_concurrency
+            leftover = self.load.concurrency - total_new_concurrency
             if leftover < 0:
                 msg = "Had to add %s more threads to maintain thread group proportion"
                 self.log.warning(msg, -leftover)

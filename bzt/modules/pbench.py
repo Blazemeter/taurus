@@ -165,7 +165,7 @@ class PBenchTool(object):
         with open(conf_path) as _fhd:
             tpl = _fhd.read()
 
-        instances = load.get_concurrency if load.get_concurrency else 1
+        instances = load.concurrency if load.concurrency else 1
 
         timeout = scenario.get("timeout", None)
         if timeout is None:
@@ -249,7 +249,7 @@ class PBenchTool(object):
             return load.iterations * payload_count
         else:
             if ramp_up:
-                instances = float(load.get_concurrency) if load.get_concurrency else 1.0
+                instances = float(load.concurrency) if load.concurrency else 1.0
                 concurrency_iterations = instances / payload_count
                 upper_iteration_limit = int(concurrency_iterations) + 2
             elif load.hold:
@@ -499,7 +499,7 @@ class Scheduler(object):
         else:
             self.iteration_limit = load.iterations
 
-        self.concurrency = load.get_concurrency if load.get_concurrency is not None else 1
+        self.concurrency = load.concurrency if load.concurrency is not None else 1
 
         self.step_len = load.ramp_up / load.steps if load.steps and load.ramp_up else 0
         if load.throughput:

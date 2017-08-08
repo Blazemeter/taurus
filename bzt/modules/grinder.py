@@ -112,17 +112,17 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         load = self.get_load()
 
-        if load.iterations or load.get_concurrency:
+        if load.iterations or load.concurrency:
             fds.write("grinder.runs=%s\n" % load.iterations or 0)
 
-        if load.get_concurrency:
-            fds.write("grinder.threads=%s\n" % load.get_concurrency)
+        if load.concurrency:
+            fds.write("grinder.threads=%s\n" % load.concurrency)
 
         if load.duration:
             fds.write("grinder.duration=%s\n" % int(load.duration * 1000))
 
         fds.write("# taurus load values in case you need them\n")
-        fds.write("taurus.concurrency=%s\n" % load.get_concurrency)
+        fds.write("taurus.concurrency=%s\n" % load.concurrency)
         fds.write("taurus.throughput=%s\n" % load.throughput)
         fds.write("taurus.ramp_up=%s\n" % load.ramp_up)
         fds.write("taurus.steps=%s\n" % load.steps)

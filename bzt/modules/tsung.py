@@ -314,7 +314,7 @@ class TsungConfig(object):
 
     def apply_load_profile(self, load):
         # do not apply unspecified load profile
-        if not load.get_concurrency and not load.hold:
+        if not load.concurrency and not load.hold:
             return
         original_load = self.find("//tsung/load")
         generated_load = self.__gen_load(load)
@@ -376,7 +376,7 @@ class TsungConfig(object):
         :param load:
         :return:
         """
-        concurrency = load.get_concurrency if load.get_concurrency is not None else 1
+        concurrency = load.concurrency if load.concurrency is not None else 1
         load_elem = etree.Element("load")
         if load.duration:
             duration, unit = self.__time_to_tsung_time(int(round(load.duration)))

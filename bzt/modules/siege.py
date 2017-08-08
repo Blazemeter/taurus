@@ -119,7 +119,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         else:
             args += ['--benchmark']
 
-        load_concurrency = load.get_concurrency
+        load_concurrency = load.concurrency
         args += ['--concurrent', str(load_concurrency)]
         self.reader.concurrency = load_concurrency
 
