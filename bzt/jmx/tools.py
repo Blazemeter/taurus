@@ -78,25 +78,37 @@ class AbstractThreadGroup(object):
     def create(self):  # todo: delegate content of group creation to itself?
         return None
 
-    def testname(self):
+    def get_testname(self):
         return self.element.get('testname')
 
-    def concurrency(self):
+    def set_concurrency(self, concurrency=None):
+        self.log.warning('Setting of concurrency for %s not implemented', self.gtype)
+
+    def set_ramp_up(self, ramp_up=None):
+        self.log.warning('Setting of ramp-up for %s not implemented', self.gtype)
+
+    def get_ramp_up(self, pure=False):
+        self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
+
+    def get_concurrency(self, pure=False):
         if not self.CONCURRENCY_SEL:
             self.log.warning('Getting of concurrency for %s not implemented', self.gtype)
             return 1
 
-        concurrency_element = self.element.find(self.CONCURRENCY_SEL)
+        concurrency_str = self.element.find(self.CONCURRENCY_SEL).text
+        if pure:
+            return concurrency_str
+
         try:
-            concurrency = int(concurrency_element.text)
+            concurrency = int(concurrency_str)
         except ValueError:
             msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, concurrency_element.text, self.gtype)
+            self.log.warning(msg, concurrency_str, self.gtype)
             concurrency = 1
 
         return concurrency
 
-    def on_error(self):
+    def get_on_error(self):
         action = self.element.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
         if action is not None:
             return action.text
@@ -119,6 +131,29 @@ class UltimateThreadGroup(AbstractThreadGroup):
 class ConcurrencyThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.concurrency\.ConcurrencyThreadGroup'
     CONCURRENCY_SEL = ".//*[@name='TargetLevel']"
+    RAMP_UP_SEL = ".//*[@name='RampUp']"
+
+    def set_concurrency(self, concurrency=None):
+        concurrency_prop = self.element.find(self.CONCURRENCY_SEL)
+        concurrency_prop.text = str(concurrency)
+
+    def get_ramp_up(self, pure=False):
+        ramp_up_str = self.element.find(self.RAMP_UP_SEL).text
+        if pure:
+            return ramp_up_str
+
+        try:
+            ramp_up = int(ramp_up_str)
+        except ValueError:
+            msg = "Parsing ramp-up '%s' in group '%s' failed, choose 1"
+            self.log.warning(msg, ramp_up_str, self.gtype)
+            ramp_up = 0
+
+        return ramp_up
+
+    def set_ramp_up(self, ramp_up=None):
+        ramp_up_element = self.element.find(self.RAMP_UP_SEL)
+        ramp_up_element.text = str(ramp_up)
 
 
 class ThreadGroupHandler(object):
@@ -141,8 +176,8 @@ class ThreadGroupHandler(object):
         Convert a thread group to ThreadGroup/ConcurrencyThreadGroup for applying of load
         """
         msg = "Converting %s (%s) to %s and apply load parameters"
-        self.log.debug(msg, group.gtype, group.testname(), target)
-        on_error = group.on_error()
+        self.log.debug(msg, group.gtype, group.get_testname(), target)
+        on_error = group.get_on_error()
 
         if target == ThreadGroup.__name__:
             new_group_element = JMX.get_thread_group(
@@ -150,7 +185,7 @@ class ThreadGroupHandler(object):
                 rampup=load.ramp_up,
                 hold=load.hold,
                 iterations=load.iterations,
-                testname=group.testname(),
+                testname=group.get_testname(),
                 on_error=on_error)
         elif target == ConcurrencyThreadGroup.__name__:
             new_group_element = JMX.get_concurrency_thread_group(
@@ -158,7 +193,7 @@ class ThreadGroupHandler(object):
                 rampup=load.ramp_up,
                 hold=load.hold,
                 steps=load.steps,
-                testname=group.testname(),
+                testname=group.get_testname(),
                 on_error=on_error)
         else:
             self.log.warning('Unsupported preferred thread group: %s', target)
@@ -228,10 +263,10 @@ class LoadSettingsProcessor(object):
         """
         concurrency_list = []
         for group in groups:
-            concurrency_list.append(group.concurrency())
+            concurrency_list.append(group.get_concurrency())
 
         if concurrency_list and self.load.concurrency:
-            total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.concurrency()
+            total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.get_concurrency()
 
             for idx, concurrency in enumerate(concurrency_list):
                 part_of_load = 1.0 * self.load.concurrency * concurrency / total_old_concurrency
