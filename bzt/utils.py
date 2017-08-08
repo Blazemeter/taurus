@@ -196,16 +196,15 @@ class BetterDict(defaultdict):
             raise TaurusInternalException("Loaded object is not dict [%s]: %s" % (src.__class__, src))
 
         for key, val in iteritems(src):
-            if len(key) and key[0] == '~':  # overwrite flag
-                if key[1:] in self:
-                    self.pop(key[1:])
-                key = key[1:]
-
-            if len(key) and key[0] == '^':  # eliminate flag
+            if key.startswith("^"):  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
                 if key[1:] in self:
                     self.pop(key[1:])
                 continue
+            elif key.startswith("~"):  # overwrite flag
+                if key[1:] in self:
+                    self.pop(key[1:])
+                key = key[1:]
 
             if isinstance(val, dict):
                 dst = self.get(key)
