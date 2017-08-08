@@ -554,8 +554,7 @@ class TestJMeterExecutor(BZTestCase):
                                       'scenario': {'script': RESOURCES_DIR + '/jmeter/jmx/http.jmx'}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        timer_ = ".//kg.apc.jmeter.timers.VariableThroughputTimer"
-        timer_ += "[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']"
+        timer_ = ".//%s[@testclass='%s']" % (JMX.THR_TIMER, JMX.THR_TIMER)
         shaper_elements = xml_tree.findall(timer_)
         self.assertEqual(1, len(shaper_elements))
 
@@ -607,8 +606,7 @@ class TestJMeterExecutor(BZTestCase):
                            'scenario': {'script': RESOURCES_DIR + '/jmeter/jmx/http.jmx'}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        timer_ = ".//kg.apc.jmeter.timers.VariableThroughputTimer"
-        timer_ += "[@testclass='kg.apc.jmeter.timers.VariableThroughputTimer']"
+        timer_ = ".//%s[@testclass='%s']" % (JMX.THR_TIMER, JMX.THR_TIMER)
         shaper_elements = xml_tree.findall(timer_)
         self.assertEqual(1, len(shaper_elements))
         shaper_collection = shaper_elements[0].find(".//collectionProp[@name='load_profile']")

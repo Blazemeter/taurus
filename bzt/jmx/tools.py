@@ -139,7 +139,7 @@ class ConcurrencyThreadGroup(AbstractThreadGroup):
         try:
             ramp_up = int(ramp_up_element.text)
         except ValueError:
-            msg = "Parsing rampup '%s' in group '%s' failed, choose 1"
+            msg = "Parsing ramp-up '%s' in group '%s' failed, choose 1"
             self.log.warning(msg, ramp_up_element.text, self.gtype)
             ramp_up = 0
 
