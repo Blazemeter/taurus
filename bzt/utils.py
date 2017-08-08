@@ -50,7 +50,8 @@ import psutil
 import shutil
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type,
+from bzt.six import zip_longest
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
@@ -236,7 +237,7 @@ class BetterDict(defaultdict):
 
     def __merge_list_elements(self, left, right, key):
         merged = []
-        for lefty, righty in itertools.zip_longest(left, right):
+        for lefty, righty in zip_longest(left, right):
             if lefty is None:
                 merged.append(righty)
                 continue

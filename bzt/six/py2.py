@@ -18,6 +18,7 @@ limitations under the License.
 # pylint: skip-file
 
 import cookielib
+import itertools
 import types
 import traceback
 import urllib
@@ -61,6 +62,8 @@ SimpleHTTPRequestHandler = BaseHTTPServer.BaseHTTPRequestHandler
 viewvalues = operator.methodcaller("viewvalues")
 
 r_input = raw_input
+
+zip_longest = itertools.izip_longest
 
 
 def iteritems(dictionary, **kw):
