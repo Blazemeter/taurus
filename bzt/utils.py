@@ -206,7 +206,7 @@ class BetterDict(defaultdict):
                 if key[1:] in self:
                     self.pop(key[1:])
                 key = key[1:]
-            elif key.startswith("%"):
+            elif key.startswith("/"):
                 merge_list_items = True
                 key = key[1:]
 
@@ -237,13 +237,20 @@ class BetterDict(defaultdict):
     @staticmethod
     def __merge_list_elements(left, right):
         merged = []
-        for existing, new in zip(left, right):
-            if isinstance(new, BetterDict):
-                if isinstance(existing, BetterDict):
-                    existing.merge(new)
-                    merged.append(existing)
+        for lefty, righty in itertools.zip_longest(left, right):
+            if lefty is None:
+                merged.append(righty)
+                continue
+            if righty is None:
+                merged.append(lefty)
+                continue
+
+            if isinstance(righty, BetterDict):
+                if isinstance(lefty, BetterDict):
+                    lefty.merge(righty)
+                    merged.append(lefty)
                 else:
-                    merged.append(new)
+                    merged.append(righty)
         return merged
 
     def __ensure_list_type(self, values):

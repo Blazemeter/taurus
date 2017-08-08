@@ -158,7 +158,7 @@ class TestConfiguration(BZTestCase):
         })
         self.assertEqual(obj["foo"], "baz")
 
-    def test_list_merge(self):
+    def test_elementwise_merge(self):
         obj = Configuration()
         obj.merge({
             "execution": [{
@@ -167,6 +167,23 @@ class TestConfiguration(BZTestCase):
             }],
         })
         obj.merge({
-            "%execution": [{"iterations": 20}],
+            "/execution": [{"iterations": 20}],
         })
         self.assertEqual(obj["execution"][0]["iterations"], 20)
+
+    def test_elementwise_merge_do_not_erase(self):
+        obj = Configuration()
+        obj.merge({
+            "execution": [{
+                "executor": "jmeter",
+                "iterations": 10,
+            }, {
+                "executor": "selenium",
+                "iterations": 30,
+            }],
+        })
+        obj.merge({
+            "/execution": [{"iterations": 20}],
+        })
+        self.assertEqual(obj["execution"][0]["iterations"], 20)
+        self.assertEqual(obj["execution"][1]["iterations"], 30)
