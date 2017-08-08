@@ -87,20 +87,23 @@ class AbstractThreadGroup(object):
     def set_ramp_up(self, ramp_up=None):
         self.log.warning('Setting of ramp-up for %s not implemented', self.gtype)
 
-    def get_ramp_up(self):
+    def get_ramp_up(self, pure=False):
         self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
 
-    def get_concurrency(self):
+    def get_concurrency(self, pure=False):
         if not self.CONCURRENCY_SEL:
             self.log.warning('Getting of concurrency for %s not implemented', self.gtype)
             return 1
 
-        concurrency_element = self.element.find(self.CONCURRENCY_SEL)
+        concurrency_str = self.element.find(self.CONCURRENCY_SEL).text
+        if pure:
+            return concurrency_str
+
         try:
-            concurrency = int(concurrency_element.text)
+            concurrency = int(concurrency_str)
         except ValueError:
             msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, concurrency_element.text, self.gtype)
+            self.log.warning(msg, concurrency_str, self.gtype)
             concurrency = 1
 
         return concurrency
@@ -134,13 +137,16 @@ class ConcurrencyThreadGroup(AbstractThreadGroup):
         concurrency_prop = self.element.find(self.CONCURRENCY_SEL)
         concurrency_prop.text = str(concurrency)
 
-    def get_ramp_up(self):
-        ramp_up_element = self.element.find(self.RAMP_UP_SEL)
+    def get_ramp_up(self, pure=False):
+        ramp_up_str = self.element.find(self.RAMP_UP_SEL).text
+        if pure:
+            return ramp_up_str
+
         try:
-            ramp_up = int(ramp_up_element.text)
+            ramp_up = int(ramp_up_str)
         except ValueError:
             msg = "Parsing ramp-up '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, ramp_up_element.text, self.gtype)
+            self.log.warning(msg, ramp_up_str, self.gtype)
             ramp_up = 0
 
         return ramp_up
