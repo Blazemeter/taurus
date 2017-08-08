@@ -226,7 +226,7 @@ class BetterDict(defaultdict):
                     self[key] = []
                 if isinstance(self[key], list):
                     if merge_list_items:
-                        self[key] = self.__merge_list_elements(self[key], val)
+                        self[key] = self.__merge_list_elements(self[key], val, key)
                     else:
                         self[key].extend(val)
                 else:
@@ -234,8 +234,7 @@ class BetterDict(defaultdict):
             else:
                 self[key] = val
 
-    @staticmethod
-    def __merge_list_elements(left, right):
+    def __merge_list_elements(self, left, right, key):
         merged = []
         for lefty, righty in itertools.zip_longest(left, right):
             if lefty is None:
@@ -250,6 +249,7 @@ class BetterDict(defaultdict):
                     lefty.merge(righty)
                     merged.append(lefty)
                 else:
+                    self.log.warning("Overwriting the value of %r when merging configs", key)
                     merged.append(righty)
         return merged
 
