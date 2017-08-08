@@ -234,7 +234,8 @@ class BetterDict(defaultdict):
             else:
                 self[key] = val
 
-    def __merge_list_elements(self, left, right):
+    @staticmethod
+    def __merge_list_elements(left, right):
         merged = []
         for existing, new in zip(left, right):
             if isinstance(new, BetterDict):
