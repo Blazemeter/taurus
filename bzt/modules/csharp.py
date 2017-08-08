@@ -31,7 +31,9 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
 
     def install_required_tools(self):
         if not is_windows():
-            self.mono.check_if_installed()
+            self.log.debug("Checking for Mono")
+            if not self.mono.check_if_installed():
+                self.mono.install()
 
     def prepare(self):
         super(NUnitExecutor, self).prepare()
