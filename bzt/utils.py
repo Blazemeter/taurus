@@ -196,6 +196,7 @@ class BetterDict(defaultdict):
             raise TaurusInternalException("Loaded object is not dict [%s]: %s" % (src.__class__, src))
 
         for key, val in iteritems(src):
+            merge_list_items = False
             if key.startswith("^"):  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
                 if key[1:] in self:
@@ -204,6 +205,9 @@ class BetterDict(defaultdict):
             elif key.startswith("~"):  # overwrite flag
                 if key[1:] in self:
                     self.pop(key[1:])
+                key = key[1:]
+            elif key.startswith("%"):
+                merge_list_items = True
                 key = key[1:]
 
             if isinstance(val, dict):
@@ -221,11 +225,25 @@ class BetterDict(defaultdict):
                 if key not in self:
                     self[key] = []
                 if isinstance(self[key], list):
-                    self[key].extend(val)
+                    if merge_list_items:
+                        self[key] = self.__merge_list_elements(self[key], val)
+                    else:
+                        self[key].extend(val)
                 else:
                     self[key] = val
             else:
                 self[key] = val
+
+    def __merge_list_elements(self, left, right):
+        merged = []
+        for existing, new in zip(left, right):
+            if isinstance(new, BetterDict):
+                if isinstance(existing, BetterDict):
+                    existing.merge(new)
+                    merged.append(existing)
+                else:
+                    merged.append(new)
+        return merged
 
     def __ensure_list_type(self, values):
         """

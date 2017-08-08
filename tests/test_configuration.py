@@ -137,3 +137,36 @@ class TestConfiguration(BZTestCase):
         obj.dump(fname, Configuration.YAML)
         # import shutil; shutil.copy(fname, __dir__() + "/resources/yaml/tabs-issue-spaces.yml")
         self.assertFilesEqual(__dir__() + "/resources/yaml/tabs-issue-spaces.yml", fname)
+
+    def test_merge_removal(self):
+        obj = Configuration()
+        obj.merge({
+            "foo": "bar",
+        })
+        obj.merge({
+            "^foo": "baz",
+        })
+        self.assertNotIn("foo", obj)
+
+    def test_merge_overwrite(self):
+        obj = Configuration()
+        obj.merge({
+            "foo": {"bar": "baz"},
+        })
+        obj.merge({
+            "~foo": "baz",
+        })
+        self.assertEqual(obj["foo"], "baz")
+
+    def test_list_merge(self):
+        obj = Configuration()
+        obj.merge({
+            "execution": [{
+                "executor": "jmeter",
+                "iterations": 10,
+            }],
+        })
+        obj.merge({
+            "%execution": [{"iterations": 20}],
+        })
+        self.assertEqual(obj["execution"][0]["iterations"], 20)
