@@ -507,13 +507,19 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         diagnostics = []
         if self.stdout_file is not None:
             with open(self.stdout_file.name) as fds:
-                diagnostics.append("Gatling STDOUT:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Gatling STDOUT:\n" + contents)
         if self.stderr_file is not None:
             with open(self.stderr_file.name) as fds:
-                diagnostics.append("Gatling STDERR:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Gatling STDERR:\n" + contents)
         if self.reader and self.reader.filename:
             with open(self.reader.filename) as fds:
-                diagnostics.append("Simulation log:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Simulation log:\n" + contents)
         return diagnostics
 
 

@@ -153,10 +153,14 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         diagnostics = []
         if self.__out is not None:
             with open(self.__out.name) as fds:
-                diagnostics.append("ab STDOUT:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("ab STDOUT:\n" + contents)
         if self.__err is not None:
             with open(self.__err.name) as fds:
-                diagnostics.append("ab STDERR:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("ab STDERR:\n" + contents)
         return diagnostics
 
 

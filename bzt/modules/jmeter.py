@@ -763,15 +763,20 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         diagnostics = []
         if self.stdout_file is not None:
             with open(self.stdout_file.name) as fds:
-                diagnostics.append("JMeter STDOUT:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("JMeter STDOUT:\n" + contents)
         if self.stderr_file is not None:
             with open(self.stderr_file.name) as fds:
-                diagnostics.append("JMeter STDERR:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("JMeter STDERR:\n" + contents)
         if self.jmeter_log is not None and os.path.exists(self.jmeter_log):
             with open(self.jmeter_log) as fds:
-                log_contents = fds.read()
+                log_contents = fds.read().strip()
                 trimmed_log = self.__trim_jmeter_log(log_contents)
-                diagnostics.append("JMeter log:\n" + trimmed_log)
+                if trimmed_log:
+                    diagnostics.append("JMeter log:\n" + trimmed_log)
         return diagnostics
 
 

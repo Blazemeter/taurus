@@ -151,10 +151,14 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         diagnostics = []
         if self.__out is not None:
             with open(self.__out.name) as fds:
-                diagnostics.append("Tsung STDOUT:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Tsung STDOUT:\n" + contents)
         if self.__err is not None:
             with open(self.__err.name) as fds:
-                diagnostics.append("Tsung STDERR:\n" + fds.read())
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Tsung STDERR:\n" + contents)
         return diagnostics
 
 

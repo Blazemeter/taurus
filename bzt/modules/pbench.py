@@ -118,7 +118,9 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if self.pbench is not None:
             if self.pbench.stdout_file is not None:
                 with open(self.pbench.stdout_file.name) as fds:
-                    diagnostics.append("PBench STDOUT:\n" + fds.read())
+                    contents = fds.read().strip()
+                    if contents.strip():
+                        diagnostics.append("PBench STDOUT:\n" + contents)
             if self.pbench.stderr_file is not None:
                 with open(self.pbench.stderr_file.name) as fds:
                     diagnostics.append("PBench STDERR:\n" + fds.read())

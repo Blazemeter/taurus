@@ -37,22 +37,7 @@ class SeleniumTestCase(BZTestCase):
             self.obj.execution = self.obj.execution[0]
 
     def tearDown(self):
-        exc, _, _ = sys.exc_info()
-        if exc:
-            try:
-                stdout_path = os.path.join(self.obj.engine.artifacts_dir, "selenium.out")
-                if os.path.exists(stdout_path):
-                    stdout = open(stdout_path).read()
-                    logging.info('Selenium stdout: """\n%s\n"""', stdout)
-            except BaseException:
-                pass
-            try:
-                stdout_path = os.path.join(self.obj.engine.artifacts_dir, "selenium.err")
-                if os.path.exists(stdout_path):
-                    stderr = open(stdout_path).read()
-                    logging.info('Selenium stderr: """\n%s\n"""', stderr)
-            except BaseException:
-                pass
+        super(SeleniumTestCase, self).tearDown()
         if isinstance(self.obj, SeleniumExecutor):
             if isinstance(self.obj.virtual_display_service, VirtualDisplay):
                 self.obj.virtual_display_service.free_virtual_display()
