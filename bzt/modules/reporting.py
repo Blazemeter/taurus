@@ -396,9 +396,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
             attrs = {
                 "name": suite_name,
                 "tests": str(len(samples)),
-                "errors": str(len([sample.status == "BROKEN" for sample in samples])),
-                "skipped": str(len([sample.status == "SKIPPED" for sample in samples])),
-                "failures": str(len([sample.status == "FAILED" for sample in samples])),
+                "errors": str(len([sample for sample in samples if sample.status == "BROKEN"])),
+                "skipped": str(len([sample for sample in samples if sample.status == "SKIPPED"])),
+                "failures": str(len([sample for sample in samples if sample.status == "FAILED"])),
                 "time": str(round(duration, 3)),
                 # TODO: "timestamp" attribute
             }

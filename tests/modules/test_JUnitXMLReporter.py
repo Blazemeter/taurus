@@ -3,13 +3,15 @@ import os
 import tempfile
 from collections import Counter
 
+from bzt.modules import FuncSamplesReader
+from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus, DataCriterion
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
 from bzt.utils import BetterDict
-from tests import BZTestCase
+from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
 
@@ -324,4 +326,22 @@ class TestJUnitXML(BZTestCase):
         obj.parameters.merge({"filename": path_from_config, "data-source": "pass-fail"})
         obj.prepare()
         obj.last_second = DataPoint(0)
+        obj.post_process()
+
+    def test_functional_report(self):
+        engine = EngineEmul()
+        aggregator = FunctionalAggregator()
+        aggregator.engine = engine
+        engine.aggregator = aggregator
+
+        obj = JUnitXMLReporter()
+        obj.engine = engine
+        obj.parameters = BetterDict()
+
+        reader = FuncSamplesReader(__dir__() + "/../resources/functional/nose.ldjson", engine, logging.getLogger())
+        aggregator.add_underling(reader)
+
+        aggregator.prepare()
+        obj.prepare()
+        aggregator.post_process()
         obj.post_process()
