@@ -253,7 +253,7 @@ class TestNoseRunner(BZTestCase):
             "execution": [{
                 "iterations": 1,
                 "scenario": {
-                    "script": __dir__() + "/../resources/functional/test_all.py"
+                    "script": __dir__() + "/../../resources/functional/test_all.py"
                 }
             }]
         })
