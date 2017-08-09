@@ -248,6 +248,28 @@ class TestNoseRunner(BZTestCase):
         tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count = samples[0]
         self.assertIsNotNone(error)
 
+    def test_status_skipped(self):
+        self.configure({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "script": __dir__() + "/../resources/functional/test_all.py"
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        reader = FuncSamplesReader(self.obj.report_file, self.obj.engine, self.obj.log)
+        samples = list(reader.read(last_pass=True))
+        self.assertEqual(len(samples), 4)
+        self.assertIsNotNone(samples[-1].status)
+
 
 class TestSeleniumScriptBuilder(SeleniumTestCase):
     def test_build_script(self):
