@@ -392,13 +392,40 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
             xunit.report_test_case('bzt_pass_fail', disp_name, errors)
 
     def process_functional(self, xunit):
-        if self.cumulative_results is None:
-            return
-
-        for suite_name, test_suite in iteritems(self.cumulative_results):
-            xunit.report_test_suite(suite_name)
-            for sample in test_suite:
-                xunit.report_test_case(sample.test_suite, sample.test_case)
+        for suite_name, samples in iteritems(self.cumulative_results):
+            duration = max(s.start_time for s in samples) - min(s.start_time for s in samples)
+            duration += max(samples, key=lambda s: s.start_time).duration
+            attrs = {
+                "name": suite_name,
+                "tests": str(len(samples)),
+                "errors": str(len([sample.status == "BROKEN" for sample in samples])),
+                "skipped": str(len([sample.status == "SKIPPED" for sample in samples])),
+                "failures": str(len([sample.status == "FAILED" for sample in samples])),
+                "time": str(round(duration, 3)),
+                # TODO: "timestamp" attribute
+            }
+            xunit.add_test_suite(suite_name, attributes=attrs)
+            for sample in samples:
+                attrs = {
+                    "classname": sample.test_suite,
+                    "name": sample.test_case,
+                    "time": str(round(sample.duration, 3))
+                }
+                children = []
+                if sample.status == "BROKEN":
+                    error = etree.Element("error", type=sample.error_msg)
+                    if sample.error_trace:
+                        error.text = sample.error_trace
+                    children.append(error)
+                elif sample.status == "FAILED":
+                    failure = etree.Element("failure", message=sample.error_msg)
+                    if sample.error_trace:
+                        failure.text = sample.error_trace
+                    children.append(failure)
+                elif sample.status == "SKIPPED":
+                    skipped = etree.Element("skipped")
+                    children.append(skipped)
+                xunit.add_test_case(suite_name, attributes=attrs, children=children)
 
 
 def get_bza_report_info(engine, log):
