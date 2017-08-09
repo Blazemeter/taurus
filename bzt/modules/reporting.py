@@ -334,7 +334,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
         """
         :type xunit: XUnitFileWriter
         """
-        xunit.add_test_suite('sample_labels')
+        xunit.report_test_suite('sample_labels')
         labels = self.last_second[DataPoint.CUMULATIVE]
 
         for key in sorted(labels.keys()):
@@ -355,13 +355,13 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
                 err_element.text = err_desc
                 errors.append(err_element)
 
-            xunit.add_test_case('sample_labels', key, errors)
+            xunit.report_test_case('sample_labels', key, errors)
 
     def process_pass_fail(self, xunit):
         """
         :type xunit: XUnitFileWriter
         """
-        xunit.add_test_suite('bzt_pass_fail')
+        xunit.report_test_suite('bzt_pass_fail')
         mods = self.engine.reporters + self.engine.services  # TODO: remove it after passfail is only reporter
         pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
         self.log.debug("Processing passfail objects: %s", pass_fail_objects)
@@ -389,16 +389,16 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
             else:
                 errors = ()
 
-            xunit.add_test_case('bzt_pass_fail', disp_name, errors)
+            xunit.report_test_case('bzt_pass_fail', disp_name, errors)
 
     def process_functional(self, xunit):
         if self.cumulative_results is None:
             return
 
         for suite_name, test_suite in iteritems(self.cumulative_results):
-            xunit.add_test_suite(suite_name)
+            xunit.report_test_suite(suite_name)
             for sample in test_suite:
-                xunit.add_test_case(sample.test_suite, sample.test_case)
+                xunit.report_test_case(sample.test_suite, sample.test_case)
 
 
 def get_bza_report_info(engine, log):
@@ -465,24 +465,42 @@ class XUnitFileWriter(object):
         except BaseException:
             raise TaurusInternalException("Cannot create file %s" % fname)
 
-    def add_test_suite(self, suite_name, package_name="bzt"):
-        if suite_name not in self.test_suites:
-            suite = etree.Element("testsuite", name=suite_name, package=package_name)
-            self.test_suites[suite_name] = suite
+    def report_test_suite(self, suite_name):
+        """
+        :type suite_name: str
+        :type children: list[bzt.six.etree.Element]
+        """
+        self.add_test_suite(suite_name, attributes={"name": suite_name, "package_name": "bzt"})
 
-    def add_test_case(self, suite_name, case_name, children=()):
+    def report_test_case(self, suite_name, case_name, children=None):
         """
         :type suite_name: str
         :type case_name: str
         :type children: list[bzt.six.etree.Element]
         """
-        test_case = etree.Element("testcase", classname=self.class_name, name=case_name)
+        children = children or []
         if self.report_urls:
-            system_out_etree = etree.SubElement(test_case, "system-out")
-            system_out_etree.text = "".join(self.report_urls)
+            system_out = etree.Element("system-out")
+            system_out.text = "".join(self.report_urls)
+            children.insert(0, system_out)
+        self.add_test_case(suite_name, attributes={"classname": self.class_name, "name": case_name}, children=children)
+
+    def add_test_suite(self, suite_name, attributes=None, children=()):
+        attributes = attributes or {}
+
+        suite = etree.Element("testsuite", **attributes)
 
         for child in children:
-            test_case.append(child)
+            suite.append(child)
 
-        test_suite = self.test_suites.get(suite_name)
-        test_suite.append(test_case)
+        if not suite_name in self.test_suites:
+            self.test_suites[suite_name] = suite
+
+    def add_test_case(self, suite_name, attributes=None, children=()):
+        attributes = attributes or {}
+        case = etree.Element("testcase", **attributes)
+
+        for child in children:
+            case.append(child)
+
+        self.test_suites[suite_name].append(case)
