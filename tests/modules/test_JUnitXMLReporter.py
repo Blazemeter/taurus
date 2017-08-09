@@ -228,9 +228,11 @@ class TestJUnitXML(BZTestCase):
 
         logging.info("File: %s", f_contents)
         xml_tree = etree.fromstring(f_contents)
-        self.assertEqual('testsuite', xml_tree.tag)
-        self.assertListEqual(['sample_labels', "bzt"], xml_tree.values())
-        test_cases = xml_tree.getchildren()
+        self.assertEqual('testsuites', xml_tree.tag)
+        suite = xml_tree.getchildren()[0]
+        self.assertEqual('testsuite', suite.tag)
+        self.assertListEqual(['sample_labels', "bzt"], suite.values())
+        test_cases = suite.getchildren()
         self.assertEqual(3, len(test_cases))
         self.assertEqual('testcase', test_cases[0].tag)
         self.assertEqual('error', test_cases[0].getchildren()[1].tag)
@@ -290,8 +292,10 @@ class TestJUnitXML(BZTestCase):
 
         logging.info("File: %s", f_contents)
         xml_tree = etree.fromstring(f_contents)
-        self.assertEqual('testsuite', xml_tree.tag)
-        test_cases = xml_tree.getchildren()
+        self.assertEqual('testsuites', xml_tree.tag)
+        suite = xml_tree.getchildren()[0]
+        self.assertEqual('testsuite', suite.tag)
+        test_cases = suite.getchildren()
         self.assertEqual(4, len(test_cases))
         self.assertEqual('testcase', test_cases[0].tag)
         self.assertEqual('error', test_cases[0].getchildren()[1].tag)

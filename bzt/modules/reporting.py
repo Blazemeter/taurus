@@ -453,11 +453,10 @@ class XUnitFileWriter(object):
                 if dirname and not os.path.exists(dirname):
                     os.makedirs(dirname)
 
-            suites = list(iteritems(self.test_suites))
-            first_suite = suites[0][1]
-            etree_obj = etree.ElementTree(first_suite)
-            for _, suite in suites[1:]:
-                first_suite.addnext(suite)
+            testsuites = etree.Element("testsuites")
+            for _, suite in iteritems(self.test_suites):
+                testsuites.append(suite)
+            etree_obj = etree.ElementTree(testsuites)
 
             self.log.info("Writing JUnit XML report into: %s", fname)
             with open(get_full_path(fname), 'wb') as _fds:
@@ -498,6 +497,7 @@ class XUnitFileWriter(object):
 
     def add_test_case(self, suite_name, attributes=None, children=()):
         attributes = attributes or {}
+
         case = etree.Element("testcase", **attributes)
 
         for child in children:
