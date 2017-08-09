@@ -196,16 +196,19 @@ class BetterDict(defaultdict):
             raise TaurusInternalException("Loaded object is not dict [%s]: %s" % (src.__class__, src))
 
         for key, val in iteritems(src):
-            if len(key) and key[0] == '~':  # overwrite flag
-                if key[1:] in self:
-                    self.pop(key[1:])
-                key = key[1:]
-
-            if len(key) and key[0] == '^':  # eliminate flag
+            merge_list_items = False
+            if key.startswith("^"):  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
                 if key[1:] in self:
                     self.pop(key[1:])
                 continue
+            elif key.startswith("~"):  # overwrite flag
+                if key[1:] in self:
+                    self.pop(key[1:])
+                key = key[1:]
+            elif key.startswith("$"):
+                merge_list_items = True
+                key = key[1:]
 
             if isinstance(val, dict):
                 dst = self.get(key)
@@ -222,11 +225,24 @@ class BetterDict(defaultdict):
                 if key not in self:
                     self[key] = []
                 if isinstance(self[key], list):
-                    self[key].extend(val)
+                    if merge_list_items:
+                        self.__merge_list_elements(self[key], val, key)
+                    else:
+                        self[key].extend(val)
                 else:
                     self[key] = val
             else:
                 self[key] = val
+
+    def __merge_list_elements(self, left, right, key):
+        for index, righty in enumerate(right):
+            lefty = left[index]
+            if isinstance(lefty, BetterDict):
+                if isinstance(righty, BetterDict):
+                    lefty.merge(righty)
+                    continue
+            self.log.warning("Overwriting the value of %r when merging configs", key)
+            left[index] = righty
 
     def __ensure_list_type(self, values):
         """
