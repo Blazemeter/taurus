@@ -307,26 +307,24 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
 
         test_data_source = self.parameters.get("data-source", "sample-labels")
 
-        if test_data_source == "sample-labels":
-            if not self.last_second:
-                self.log.warning("No last second data to generate XUnit.xml")
-            else:
+        if self.cumulative_results is None:
+            if test_data_source == "sample-labels":
+                if not self.last_second:
+                    self.log.warning("No last second data to generate XUnit.xml")
+                else:
+                    writer = XUnitFileWriter(self.engine)
+                    self.process_sample_labels(writer)
+                    writer.save_report(filename)
+            elif test_data_source == "pass-fail":
                 writer = XUnitFileWriter(self.engine)
-                self.process_sample_labels(writer)
+                self.process_pass_fail(writer)
                 writer.save_report(filename)
-        elif test_data_source == "pass-fail":
-            writer = XUnitFileWriter(self.engine)
-            self.process_pass_fail(writer)
-            writer.save_report(filename)
-        elif test_data_source == "functional":
-            if not self.cumulative_results:
-                self.log.warning("No results were obtained to generate XUnit.xml")
             else:
-                writer = XUnitFileWriter(self.engine)
-                self.process_functional(writer)
-                writer.save_report(filename)
+                raise TaurusConfigError("Unsupported data source: %s" % test_data_source)
         else:
-            raise TaurusConfigError("Unsupported data source: %s" % test_data_source)
+            writer = XUnitFileWriter(self.engine)
+            self.process_functional(writer)
+            writer.save_report(filename)
 
         self.report_file_path = filename  # TODO: just for backward compatibility, remove later
 
