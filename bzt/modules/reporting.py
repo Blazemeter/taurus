@@ -270,7 +270,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         return res
 
 
-class JUnitXMLReporter(Reporter, AggregatorListener):
+class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListener):
     """
     A reporter that exports results in Jenkins JUnit XML format.
     """
@@ -279,13 +279,22 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         super(JUnitXMLReporter, self).__init__()
         self.last_second = None
         self.report_file_path = None
+        self.cumulative_results = None
 
     def prepare(self):
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
+        elif isinstance(self.engine.aggregator, FunctionalAggregator):
+            self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):
         self.last_second = data
+
+    def aggregated_results(self, _, cumulative_results):
+        """
+        :type cumulative_results: bzt.modules.functional.ResultsTree
+        """
+        self.cumulative_results = cumulative_results
 
     def post_process(self):
         """
@@ -302,13 +311,20 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             if not self.last_second:
                 self.log.warning("No last second data to generate XUnit.xml")
             else:
-                writer = XUnitFileWriter(self.engine, 'sample_labels')
+                writer = XUnitFileWriter(self.engine)
                 self.process_sample_labels(writer)
                 writer.save_report(filename)
         elif test_data_source == "pass-fail":
-            writer = XUnitFileWriter(self.engine, 'bzt_pass_fail')
+            writer = XUnitFileWriter(self.engine)
             self.process_pass_fail(writer)
             writer.save_report(filename)
+        elif test_data_source == "functional":
+            if not self.cumulative_results:
+                self.log.warning("No results were obtained to generate XUnit.xml")
+            else:
+                writer = XUnitFileWriter(self.engine)
+                self.process_functional(writer)
+                writer.save_report(filename)
         else:
             raise TaurusConfigError("Unsupported data source: %s" % test_data_source)
 
@@ -318,6 +334,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         :type xunit: XUnitFileWriter
         """
+        xunit.add_test_suite('sample_labels')
         labels = self.last_second[DataPoint.CUMULATIVE]
 
         for key in sorted(labels.keys()):
@@ -338,12 +355,13 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
                 err_element.text = err_desc
                 errors.append(err_element)
 
-            xunit.add_test_case(key, errors)
+            xunit.add_test_case('sample_labels', key, errors)
 
     def process_pass_fail(self, xunit):
         """
         :type xunit: XUnitFileWriter
         """
+        xunit.add_test_suite('bzt_pass_fail')
         mods = self.engine.reporters + self.engine.services  # TODO: remove it after passfail is only reporter
         pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
         self.log.debug("Processing passfail objects: %s", pass_fail_objects)
@@ -371,7 +389,16 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             else:
                 errors = ()
 
-            xunit.add_test_case(disp_name, errors)
+            xunit.add_test_case('bzt_pass_fail', disp_name, errors)
+
+    def process_functional(self, xunit):
+        if self.cumulative_results is None:
+            return
+
+        for suite_name, test_suite in iteritems(self.cumulative_results):
+            xunit.add_test_suite(suite_name)
+            for sample in test_suite:
+                xunit.add_test_case(sample.test_suite, sample.test_case)
 
 
 def get_bza_report_info(engine, log):
@@ -401,7 +428,7 @@ class XUnitFileWriter(object):
     REPORT_FILE_NAME = "xunit"
     REPORT_FILE_EXT = ".xml"
 
-    def __init__(self, engine, suite_name):
+    def __init__(self, engine):
         """
         :type engine: bzt.engine.Engine
         :type suite_name: str
@@ -409,7 +436,7 @@ class XUnitFileWriter(object):
         super(XUnitFileWriter, self).__init__()
         self.engine = engine
         self.log = engine.log.getChild(self.__class__.__name__)
-        self.test_suite = etree.Element("testsuite", name=suite_name, package="bzt")
+        self.test_suites = OrderedDict()
         bza_report_info = get_bza_report_info(engine, self.log)
         self.class_name = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
         self.report_urls = ["BlazeMeter report link: %s\n" % info_item[0] for info_item in bza_report_info]
@@ -426,15 +453,26 @@ class XUnitFileWriter(object):
                 if dirname and not os.path.exists(dirname):
                     os.makedirs(dirname)
 
-            etree_obj = etree.ElementTree(self.test_suite)
+            suites = list(iteritems(self.test_suites))
+            first_suite = suites[0][1]
+            etree_obj = etree.ElementTree(first_suite)
+            for _, suite in suites[1:]:
+                first_suite.addnext(suite)
+
             self.log.info("Writing JUnit XML report into: %s", fname)
             with open(get_full_path(fname), 'wb') as _fds:
                 etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
         except BaseException:
             raise TaurusInternalException("Cannot create file %s" % fname)
 
-    def add_test_case(self, case_name, children=()):
+    def add_test_suite(self, suite_name, package_name="bzt"):
+        if suite_name not in self.test_suites:
+            suite = etree.Element("testsuite", name=suite_name, package=package_name)
+            self.test_suites[suite_name] = suite
+
+    def add_test_case(self, suite_name, case_name, children=()):
         """
+        :type suite_name: str
         :type case_name: str
         :type children: list[bzt.six.etree.Element]
         """
@@ -445,4 +483,6 @@ class XUnitFileWriter(object):
 
         for child in children:
             test_case.append(child)
-        self.test_suite.append(test_case)
+
+        test_suite = self.test_suites.get(suite_name)
+        test_suite.append(test_case)
