@@ -207,7 +207,7 @@ class BetterDict(defaultdict):
                 if key[1:] in self:
                     self.pop(key[1:])
                 key = key[1:]
-            elif key.startswith("/"):
+            elif key.startswith("$"):
                 merge_list_items = True
                 key = key[1:]
 
@@ -227,7 +227,7 @@ class BetterDict(defaultdict):
                     self[key] = []
                 if isinstance(self[key], list):
                     if merge_list_items:
-                        self[key] = self.__merge_list_elements(self[key], val, key)
+                        self.__merge_list_elements(self[key], val, key)
                     else:
                         self[key].extend(val)
                 else:
@@ -236,23 +236,14 @@ class BetterDict(defaultdict):
                 self[key] = val
 
     def __merge_list_elements(self, left, right, key):
-        merged = []
-        for lefty, righty in zip_longest(left, right):
-            if lefty is None:
-                merged.append(righty)
-                continue
-            if righty is None:
-                merged.append(lefty)
-                continue
-
-            if isinstance(righty, BetterDict):
-                if isinstance(lefty, BetterDict):
+        for index, righty in enumerate(right):
+            lefty = left[index]
+            if isinstance(lefty, BetterDict):
+                if isinstance(righty, BetterDict):
                     lefty.merge(righty)
-                    merged.append(lefty)
-                else:
-                    self.log.warning("Overwriting the value of %r when merging configs", key)
-                    merged.append(righty)
-        return merged
+                    continue
+            self.log.warning("Overwriting the value of %r when merging configs", key)
+            left[index] = righty
 
     def __ensure_list_type(self, values):
         """

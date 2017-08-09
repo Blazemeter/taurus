@@ -167,7 +167,7 @@ class TestConfiguration(BZTestCase):
             }],
         })
         obj.merge({
-            "/execution": [{"iterations": 20}],
+            "$execution": [{"iterations": 20}],
         })
         self.assertEqual(obj["execution"][0]["iterations"], 20)
 
@@ -183,7 +183,7 @@ class TestConfiguration(BZTestCase):
             }],
         })
         obj.merge({
-            "/execution": [{"iterations": 20}],
+            "$execution": [{"iterations": 20}],
         })
         self.assertEqual(obj["execution"][0]["iterations"], 20)
         self.assertEqual(obj["execution"][1]["iterations"], 30)
