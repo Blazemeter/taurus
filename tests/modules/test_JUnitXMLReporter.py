@@ -345,3 +345,5 @@ class TestJUnitXML(BZTestCase):
         obj.prepare()
         aggregator.post_process()
         obj.post_process()
+
+        self.assertFilesEqual(obj.report_file_path, __dir__() + "/../resources/functional/xunit-report.xml")
