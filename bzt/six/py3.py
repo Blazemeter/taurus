@@ -18,7 +18,6 @@ limitations under the License.
 # pylint: skip-file
 
 import io
-import itertools
 import operator
 import collections
 import traceback
@@ -63,8 +62,6 @@ SimpleHTTPRequestHandler = BaseHTTPServer.SimpleHTTPRequestHandler
 
 viewvalues = operator.methodcaller("values")
 r_input = input
-
-zip_longest = itertools.zip_longest
 
 
 def iteritems(dictionary, **kw):
