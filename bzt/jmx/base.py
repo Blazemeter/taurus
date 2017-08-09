@@ -588,7 +588,7 @@ class JMX(object):
             concurrency = 1
 
         if steps is None:  # zero means infinity of steps
-            steps = 1
+            steps = 0
 
         name = 'com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup'
         concurrency_thread_group = etree.Element(
