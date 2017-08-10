@@ -104,7 +104,9 @@ settings:
     username: user  # username and password used if authentication is configured on proxy server
     password: 12345
   check-updates: true  # check for newer version of Taurus on startup
-  verbose: false  # whenever you run bzt with -v option, it sets debug=true, some modules might use it for debug features
+  verbose: false  # whenever you run bzt with -v option, it sets debug=true, 
+                  # some modules might use it for debug features,
+                  # setting this through config also switches CLI verbosity
 ```
 
 ## Human-Readable Time Specifications

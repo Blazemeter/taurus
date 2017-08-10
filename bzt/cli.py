@@ -45,6 +45,7 @@ class CLI(object):
 
     :param options: OptionParser parsed parameters
     """
+    console_handler = logging.StreamHandler(sys.stdout)
 
     def __init__(self, options):
         self.signal_count = 0
@@ -98,19 +99,17 @@ class CLI(object):
             logger.addHandler(file_handler)
 
         # log something to console
-        console_handler = logging.StreamHandler(sys.stdout)
-
         if options.verbose:
-            console_handler.setLevel(logging.DEBUG)
-            console_handler.setFormatter(fmt_verbose)
+            CLI.console_handler.setLevel(logging.DEBUG)
+            CLI.console_handler.setFormatter(fmt_verbose)
         elif options.quiet:
-            console_handler.setLevel(logging.WARNING)
-            console_handler.setFormatter(fmt_regular)
+            CLI.console_handler.setLevel(logging.WARNING)
+            CLI.console_handler.setFormatter(fmt_regular)
         else:
-            console_handler.setLevel(logging.INFO)
-            console_handler.setFormatter(fmt_regular)
+            CLI.console_handler.setLevel(logging.INFO)
+            CLI.console_handler.setFormatter(fmt_regular)
 
-        logger.addHandler(console_handler)
+        logger.addHandler(CLI.console_handler)
 
         logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
 
@@ -177,6 +176,13 @@ class CLI(object):
             overrider = ConfigOverrider(self.log)
             overrider.apply_overrides(self.options.option, self.engine.config)
 
+        settings = self.engine.config.get(SETTINGS)
+        settings.get('verbose', bool(self.options.verbose))  # respect value from config
+        if self.options.verbose:  # force verbosity if cmdline asked for it
+            settings['verbose'] = True
+
+        if settings.get('verbose'):
+            CLI.console_handler.setLevel(logging.DEBUG)
         self.engine.create_artifacts_dir(configs, merged_config)
         self.engine.default_cwd = os.getcwd()
 
@@ -199,7 +205,6 @@ class CLI(object):
         :type configs: list
         :return: integer exit code
         """
-        self.engine.config.get(SETTINGS)['verbose'] = self.options.verbose
         jmx_shorthands = []
         try:
             jmx_shorthands = self.__get_jmx_shorthands(configs)
