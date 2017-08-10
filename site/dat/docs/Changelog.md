@@ -15,6 +15,7 @@
  - eliminate potential race condition in Mocha plugin
  - `settings.verbose` switches verbosity on for CLI
  - bump up pmgr to 0.15
+ - optimize Grinder kpi log reading
  - allow spaces around comparison operators in passfail criteria
  - fix doublequoting error in JTL reader
  - recover from invalid characters in JTL files
