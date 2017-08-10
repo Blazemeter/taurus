@@ -718,10 +718,10 @@ class Configuration(BetterDict):
                         container[key] = '*' * 8
 
     def _replace_tabs(self, lines, fname):
-        has_tab_intents = re.compile("^( *)(\t+)( *\S*)")
+        has_tab_indents = re.compile("^( *)(\t+)( *\S*)")
         res = ""
         for num, line in enumerate(lines):
-            replaced = has_tab_intents.sub(r"\1" + (" " * self.tab_replacement_spaces) + r"\3", line)
+            replaced = has_tab_indents.sub(r"\1" + (" " * self.tab_replacement_spaces) + r"\3", line)
             if replaced != line:
                 line = replaced
                 if self.warn_on_tab_replacement:

@@ -55,7 +55,8 @@ The rules for merging multiple configuration files into single are following:
  3. Loaded dictionary is merged recursively into configuration, dictionaries are merged and lists are joined.
  4. If dictionary key has `~` prefix, it will overwrite the value instead of merging
  5. If dictionary key has `^` prefix, it will delete the corresponding key/value pair
- 6. If dictionary values has different type, eg. string value vs array, the value will be overwritten and the warning message will be issued
+ 6. If dictionary key has `$` prefix and the value under that key is a list, it will perform element-wise merging of corresponding list items.
+ 7. If dictionary values has different type, eg. string value vs array, the value will be overwritten and the warning message will be issued
 
 Most of configuration elements have their default values and also have some shorthand forms to specify trivial cases. We encourage users to learn these rules to speed up configuration files creation and make them short.
 

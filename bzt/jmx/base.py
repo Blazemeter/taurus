@@ -42,6 +42,7 @@ class JMX(object):
     """
     TEST_PLAN_SEL = "jmeterTestPlan>hashTree>hashTree"
     THR_GROUP_SEL = TEST_PLAN_SEL + ">hashTree[type=tg]"
+    THR_TIMER = "kg.apc.jmeter.timers.VariableThroughputTimer"
 
     def __init__(self, original=None, test_plan_name="BZT Generated Test Plan"):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -518,13 +519,12 @@ class JMX(object):
         :return: etree.Element
         """
 
-        throughput_timer_element = etree.Element("kg.apc.jmeter.timers.VariableThroughputTimer",
-                                                 guiclass="kg.apc.jmeter.timers.VariableThroughputTimerGui",
-                                                 testclass="kg.apc.jmeter.timers.VariableThroughputTimer",
+        throughput_timer_element = etree.Element(self.THR_TIMER,
+                                                 guiclass=self.THR_TIMER + "Gui",
+                                                 testclass=self.THR_TIMER,
                                                  testname="jp@gc - Throughput Shaping Timer",
                                                  enabled="true")
         shaper_load_prof = self._collection_prop("load_profile")
-
         throughput_timer_element.append(shaper_load_prof)
 
         return throughput_timer_element
@@ -588,7 +588,7 @@ class JMX(object):
             concurrency = 1
 
         if steps is None:  # zero means infinity of steps
-            steps = 1
+            steps = 0
 
         name = 'com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup'
         concurrency_thread_group = etree.Element(

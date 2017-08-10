@@ -254,7 +254,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         elif '.dll' in file_types or '.exe' in file_types:
             script_type = 'nunit'
         else:
-            raise TaurusConfigError("Supported script files not found, script detection is failed")
+            if os.path.isfile(script_name):
+                message = "Unsupported script type: %r" % script_name
+            else:
+                message = "Directory %r doesn't contain supported scripts" % script_name
+            raise TaurusConfigError(message)
 
         self.log.debug("Detected script type: %s", script_type)
 
