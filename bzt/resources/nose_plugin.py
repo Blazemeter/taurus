@@ -84,7 +84,10 @@ class BZTPlugin(Plugin):
         test_fqn = test.id()  # [package].module.class.method
         class_name, method_name = test_fqn.split('.')[-2:]
 
-        self.current_sample = Sample(test_case=method_name, test_suite=class_name, start_time=time.time())
+        self.current_sample = Sample(test_case=method_name,
+                                     test_suite=class_name,
+                                     start_time=time.time(),
+                                     status="SKIPPED")
         self.current_sample.extras.update({
             "file": test_file,
             "full_name": test_fqn,
