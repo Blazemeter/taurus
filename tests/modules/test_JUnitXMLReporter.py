@@ -3,13 +3,15 @@ import os
 import tempfile
 from collections import Counter
 
+from bzt.modules import FuncSamplesReader
+from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus, DataCriterion
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
 from bzt.utils import BetterDict
-from tests import BZTestCase
+from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
 
@@ -228,9 +230,11 @@ class TestJUnitXML(BZTestCase):
 
         logging.info("File: %s", f_contents)
         xml_tree = etree.fromstring(f_contents)
-        self.assertEqual('testsuite', xml_tree.tag)
-        self.assertListEqual(['sample_labels', "bzt"], xml_tree.values())
-        test_cases = xml_tree.getchildren()
+        self.assertEqual('testsuites', xml_tree.tag)
+        suite = xml_tree.getchildren()[0]
+        self.assertEqual('testsuite', suite.tag)
+        self.assertListEqual(['sample_labels', "bzt"], suite.values())
+        test_cases = suite.getchildren()
         self.assertEqual(3, len(test_cases))
         self.assertEqual('testcase', test_cases[0].tag)
         self.assertEqual('error', test_cases[0].getchildren()[1].tag)
@@ -290,8 +294,10 @@ class TestJUnitXML(BZTestCase):
 
         logging.info("File: %s", f_contents)
         xml_tree = etree.fromstring(f_contents)
-        self.assertEqual('testsuite', xml_tree.tag)
-        test_cases = xml_tree.getchildren()
+        self.assertEqual('testsuites', xml_tree.tag)
+        suite = xml_tree.getchildren()[0]
+        self.assertEqual('testsuite', suite.tag)
+        test_cases = suite.getchildren()
         self.assertEqual(4, len(test_cases))
         self.assertEqual('testcase', test_cases[0].tag)
         self.assertEqual('error', test_cases[0].getchildren()[1].tag)
@@ -321,3 +327,23 @@ class TestJUnitXML(BZTestCase):
         obj.prepare()
         obj.last_second = DataPoint(0)
         obj.post_process()
+
+    def test_functional_report(self):
+        engine = EngineEmul()
+        aggregator = FunctionalAggregator()
+        aggregator.engine = engine
+        engine.aggregator = aggregator
+
+        obj = JUnitXMLReporter()
+        obj.engine = engine
+        obj.parameters = BetterDict()
+
+        reader = FuncSamplesReader(__dir__() + "/../resources/functional/nose.ldjson", engine, logging.getLogger())
+        aggregator.add_underling(reader)
+
+        aggregator.prepare()
+        obj.prepare()
+        aggregator.post_process()
+        obj.post_process()
+
+        self.assertFilesEqual(obj.report_file_path, __dir__() + "/../resources/functional/xunit-report.xml")
