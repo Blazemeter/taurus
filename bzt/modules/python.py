@@ -1183,3 +1183,83 @@ class JMeterExprCompiler(object):
                 result = ast.Name(id=varname, ctx=ast.Load())
         self.log.debug("Compile: %r -> %r", expr, result)
         return result
+
+
+class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
+    """
+    Python selenium tests runner
+    """
+
+    def __init__(self):
+        super(PyTestExecutor, self).__init__()
+        self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "pytest_runner.py")
+        self._tailer = NoneTailer()
+
+    def prepare(self):
+        self.install_required_tools()
+        self.script = self.get_script_path()
+        if not self.script:
+            raise TaurusConfigError("'script' should be present for pytest executor")
+        self.reporting_setup(suffix=".ldjson")
+
+    def __is_verbose(self):
+        engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
+        executor_verbose = self.settings.get("verbose", engine_verbose)
+        return executor_verbose
+
+    def install_required_tools(self):
+        """
+        we need installed nose plugin
+        """
+        if sys.version >= '3':
+            self.log.warning("You are using Python 3, make sure that your scripts are able to run in Python 3")
+
+        self._check_tools([TaurusPytestRunner(self.runner_path, "")])
+
+    def startup(self):
+        """
+        run python tests
+        """
+        executable = self.settings.get("interpreter", sys.executable)
+
+        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+
+        cmdline = [executable, self.runner_path, '--report-file', self.report_file]
+
+        load = self.get_load()
+        if load.iterations:
+            cmdline += ['-i', str(load.iterations)]
+
+        if load.hold:
+            cmdline += ['-d', str(load.hold)]
+
+        cmdline += [self.script]
+        self._start_subprocess(cmdline)
+
+        if self.__is_verbose():
+            self._tailer = FileTailer(self.stdout_file)
+
+    def check(self):
+        self.__log_lines()
+        return super(PyTestExecutor, self).check()
+
+    def post_process(self):
+        super(PyTestExecutor, self).post_process()
+        self.__log_lines()
+
+    def __log_lines(self):
+        lines = []
+        for line in self._tailer.get_lines():
+            if not IGNORED_LINE.match(line):
+                lines.append(line)
+
+        if lines:
+            self.log.info("\n".join(lines))
+
+
+class TaurusPytestRunner(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(TaurusPytestRunner, self).__init__("TaurusPytestRunner", tool_path, download_link)
+
+    def install(self):
+        raise ToolError("Automatic installation of Taurus py.test plugin isn't implemented")
