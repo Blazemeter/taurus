@@ -4,6 +4,7 @@ ADD https://deb.nodesource.com/setup_6.x /tmp
 RUN apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
+  && add-apt-repository ppa:yandex-load/main \
   && bash /tmp/setup_6.x \
   && apt-get -y update \
   && apt-get -y install --no-install-recommends \

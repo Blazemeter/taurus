@@ -5,7 +5,6 @@ ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 ADD https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 RUN date \
-  && add-apt-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
