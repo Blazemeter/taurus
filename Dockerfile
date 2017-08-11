@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM taurus-os-base
 
 ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
@@ -7,7 +7,6 @@ ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_6.x /tmp
 RUN date && apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
-  && apt-add-repository multiverse \
   && add-apt-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
@@ -15,23 +14,8 @@ RUN date && apt-get -y update \
   && bash /tmp/setup_6.x \
   && apt-get -y update \
   && date \
-  && apt-get -y install --no-install-recommends mono-complete \
-  && date \
   && apt-get -y install --no-install-recommends \
-    kmod \
-    unzip \
-    build-essential \
-    libxslt1-dev \
-    zlib1g-dev \
-    libxi6 \
-    libgconf-2-4 \
-    libexif12 \
-    udev \
-    python-dev \
-    python-pip \
-    default-jdk \
-    xvfb \
-    libyaml-dev \
+    nodejs \
     siege \
     tsung \
     apache2-utils \
@@ -42,18 +26,13 @@ RUN date && apt-get -y update \
     pepperflashplugin-nonfree \
     flashplugin-installer \
     phantomjs \
-    ruby ruby-dev \
-    nodejs \
-    nuget \
   && date \
-  && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
   && pip install --upgrade selenium \
   && npm install -g mocha \
   && gem install rspec \
   && gem install selenium-webdriver \
   && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
-  && nuget update -self \
   && apt-get clean \
   && firefox --version && google-chrome-stable --version && mono --version && nuget | head -1
 
