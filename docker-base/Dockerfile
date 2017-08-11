@@ -5,8 +5,6 @@ RUN date && apt-get -y update \
   && apt-add-repository multiverse \
   && apt-get -y update \
   && date \
-  && apt-get -y install --no-install-recommends mono-complete \
-  && date \
   && apt-get -y install --no-install-recommends \
     kmod \
     unzip \
@@ -17,15 +15,17 @@ RUN date && apt-get -y update \
     libgconf-2-4 \
     libexif12 \
     udev \
+    xvfb \
     python-dev \
     python-pip \
     default-jdk \
-    xvfb \
     libyaml-dev \
     ruby ruby-dev \
-    nodejs \
-    nuget \
-  && date \
+    nodejs
+RUN date \
+  && apt-get -y install --no-install-recommends mono-complete \
+  && apt-get -y install --no-install-recommends nuget \
   && nuget update -self \
+  && date \
   && pip install --upgrade setuptools pip \
   && apt-get clean

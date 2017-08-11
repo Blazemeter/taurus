@@ -1,4 +1,4 @@
-FROM bzt-os:latest
+FROM taurus-os-base
 
 ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
@@ -13,8 +13,6 @@ RUN date && apt-get -y update \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
   && bash /tmp/setup_6.x \
   && apt-get -y update \
-  && date \
-  && apt-get -y install --no-install-recommends mono-complete \
   && date \
   && apt-get -y install --no-install-recommends \
     siege \
@@ -34,7 +32,6 @@ RUN date && apt-get -y update \
   && gem install rspec \
   && gem install selenium-webdriver \
   && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
-  && nuget update -self \
   && apt-get clean \
   && firefox --version && google-chrome-stable --version && mono --version && nuget | head -1
 
