@@ -5,7 +5,7 @@ ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 ADD https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_6.x /tmp
-RUN apt-get -y update \
+RUN date && apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
   && add-apt-repository ppa:yandex-load/main \
@@ -14,8 +14,9 @@ RUN apt-get -y update \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
   && bash /tmp/setup_6.x \
   && apt-get -y update \
-  && apt-get -y install --no-install-recommends \
-    mono-complete \
+  && date \
+  && apt-get -y install --no-install-recommends mono-complete \
+  && date \
   && apt-get -y install --no-install-recommends \
     kmod \
     unzip \
@@ -44,6 +45,7 @@ RUN apt-get -y update \
     ruby ruby-dev \
     nodejs \
     nuget \
+  && date \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
   && pip install --upgrade selenium \
