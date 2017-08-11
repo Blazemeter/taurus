@@ -6,6 +6,8 @@ RUN date && apt-get -y update \
   && apt-get -y update \
   && date \
   && apt-get -y install --no-install-recommends \
+    mc \
+    tzdata \
     kmod \
     unzip \
     build-essential \
@@ -21,10 +23,9 @@ RUN date && apt-get -y update \
     default-jdk \
     libyaml-dev \
     ruby ruby-dev \
-    nodejs
-RUN date \
-  && apt-get -y install --no-install-recommends mono-complete \
-  && apt-get -y install --no-install-recommends nuget \
+  && date \
+  && apt-get -y install --no-install-recommends mono-complete nuget \
+  && date \
   && nuget update -self \
   && date \
   && pip install --upgrade setuptools pip \

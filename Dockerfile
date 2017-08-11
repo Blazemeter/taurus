@@ -15,6 +15,7 @@ RUN date && apt-get -y update \
   && apt-get -y update \
   && date \
   && apt-get -y install --no-install-recommends \
+    nodejs \
     siege \
     tsung \
     apache2-utils \
