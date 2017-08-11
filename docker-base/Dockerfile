@@ -36,4 +36,5 @@ RUN apt-get -y update \
   && npm install -g mocha \
   && gem install rspec \
   && pip install --upgrade setuptools pip \
-  && apt-get clean
+  && apt-get clean \
+  && rm -rf /tmp/*
