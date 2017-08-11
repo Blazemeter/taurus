@@ -16,6 +16,7 @@ limitations under the License.
 import json
 import sys
 import time
+import traceback
 from optparse import OptionParser
 
 import pytest
@@ -45,40 +46,42 @@ class RecordingPlugin(object):
         self._report_fds.write("%s\n" % json.dumps(sample.to_dict()))
         self._report_fds.flush()
 
-    def write_stdout_report(self, label):
+    def _write_stdout_report(self, label):
         # report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
         # failed = self.test_count - self.success_count
         # sys.stdout.write(report_pattern % (label, self.test_count, self.success_count, failed))
         # sys.stdout.flush()
         pass
 
-    def pytest_collection_modifyitems(self, config, items):
-        # you can count the tests from len(items)
-        print("items collected: %s" % items)
-        pass
-
-    def pytest_runtest_setup(self, item):
-        # when test is set up, before the test is started
-        print("runtest setup %s" % item)
-        pass
-
-    def pytest_runtest_teardown(self, item, nextitem):
-        # after test is finished
-        print("runtest teardown %s" % item)
-        pass
-
-    def pytest_runtest_makereport(self, item, call):
-        print("runtest makereport: %s %s" % (item, call))
-        if call.when == 'call':
+    def pytest_runtest_makereport(self, item, call, __multicall__):
+        report = __multicall__.execute()
+        print("runtest makereport: %s %s %s" % (item, call, report))
+        filename, lineno, test_name = report.location
+        if report.when == 'setup':
+            pass
+        elif report.when == 'call':
             module_name = item.module.__name__
-            duration = call.stop - call.start
-            status = 'FAILED' if call.excinfo is not None else 'PASSED'
             sample = Sample(test_case=item.name,
                             test_suite=module_name,
-                            start_time=call.start,
-                            duration=duration,
-                            status=status)
+                            start_time=call.start)
+            sample.duration = report.duration
+
+            if report.passed:
+                sample.status = 'PASSED'
+            elif report.skipped:
+                sample.status = 'SKIPPED'
+            elif report.failed:
+                sample.status = 'FAILED'
+                exc_info = call.excinfo
+                sample.error_msg = exc_info.exconly()
+                sample.error_trace = "\n".join(traceback.format_tb(exc_info.tb))
+
+            sample.extras = {"filename": filename, "lineno": lineno}
+
             self._write_sample(sample)
+        elif report.when == 'teardown':
+            pass
+        return report
 
 
 def run_pytest(targets, report_path, iteration_limit, duration_limit):
