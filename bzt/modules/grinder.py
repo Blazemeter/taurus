@@ -409,7 +409,7 @@ class DataLogReader(ResultsReader):
     def __parse_prev_line(self, worker_id, lines, lnum, r_code, bytes_count):
         url = ''
         error_msg = None
-        for lineNo in reversed(xrange(max(lnum - 100, 0), lnum)):  # looking max 100 lines back. TODO: parameterize?
+        for lineNo in reversed(range(max(lnum - 100, 0), lnum)):  # looking max 100 lines back. TODO: parameterize?
             line = lines[lineNo].strip()
             matched = self.DETAILS_REGEX.match(line)
             if not matched:

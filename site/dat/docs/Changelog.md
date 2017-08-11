@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.9.6 <sup>1next</sup>
+ - fix Grinder on python 3 not working
+
 ## 1.9.5 <sup>11 aug 2017</sup>
  - add `nunit` executor for NUnit-based tests (Selenium and others)
  - add executor self-diagnostics in case of failure (output STDOUT/STDERR and log files into Taurus log)
