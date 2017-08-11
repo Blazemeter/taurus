@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.9.5 <sup>next</sup>
+## 1.9.5 <sup>11 aug 2017</sup>
  - add `nunit` executor for NUnit-based tests (Selenium and others)
  - add executor self-diagnostics in case of failure (output STDOUT/STDERR and log files into Taurus log)
  - force Concurrency Thread Group for JMeter when possible
@@ -16,13 +16,17 @@
  - `settings.verbose` switches verbosity on for CLI
  - bump up pmgr to 0.15
  - optimize Grinder kpi log reading
+ - add configuration prefix `$` for elementwise list merging
  - allow spaces around comparison operators in passfail criteria
+ - add `junit-xml` support for functional mode
  - fix doublequoting error in JTL reader
  - recover from invalid characters in JTL files
  - fix CSV quotation crash in Locust module 
  - fix NPE with junit runner and null script
  - fix RSpec functional mode tests
  - fix Selenium concurrency and VU count for cloud provisioning
+ - fix test status handling for skipped tests in Nose plugin
+ - add `python -m bzt` launcher
 
 ## 1.9.4 <sup>28 jun 2017</sup>
  - add `clearCookies` and `pauseFor` actions for Selenium YAML

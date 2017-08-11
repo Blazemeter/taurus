@@ -2,4 +2,4 @@
 
 ./build-sdist.sh
 
-python $(dirname $0)/setup.py upload
+python $(dirname $0)/setup.py sdist upload
