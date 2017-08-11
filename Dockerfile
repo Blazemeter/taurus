@@ -1,4 +1,4 @@
-FROM taurus-os-base
+FROM undera/taurus-os-base:latest
 
 ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
