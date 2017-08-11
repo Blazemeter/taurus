@@ -14,7 +14,8 @@ RUN apt-get -y update \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
   && bash /tmp/setup_6.x \
   && apt-get -y update \
-  && apt-cache policy firefox \
+  && apt-get -y install --no-install-recommends \
+    mono-complete \
   && apt-get -y install --no-install-recommends \
     kmod \
     unzip \
@@ -42,7 +43,6 @@ RUN apt-get -y update \
     phantomjs \
     ruby ruby-dev \
     nodejs \
-    mono-complete \
     nuget \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
