@@ -1186,10 +1186,6 @@ class JMeterExprCompiler(object):
 
 
 class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
-    """
-    Python selenium tests runner
-    """
-
     def __init__(self):
         super(PyTestExecutor, self).__init__()
         self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "pytest_runner.py")
