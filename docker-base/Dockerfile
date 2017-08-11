@@ -1,10 +1,11 @@
 FROM ubuntu:16.04
 
-RUN date && apt-get -y update \
+ADD https://deb.nodesource.com/setup_6.x /tmp
+RUN apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
+  && bash /tmp/setup_6.x \
   && apt-get -y update \
-  && date \
   && apt-get -y install --no-install-recommends \
     mc \
     tzdata \
@@ -23,10 +24,16 @@ RUN date && apt-get -y update \
     default-jdk \
     libyaml-dev \
     ruby ruby-dev \
-  && date \
+    nodejs \
+    siege \
+    tsung \
+    apache2-utils \
+    phantom \
+    phantom-ssl \
+    phantomjs \
   && apt-get -y install --no-install-recommends mono-complete nuget \
-  && date \
   && nuget update -self \
-  && date \
+  && npm install -g mocha \
+  && gem install rspec \
   && pip install --upgrade setuptools pip \
   && apt-get clean
