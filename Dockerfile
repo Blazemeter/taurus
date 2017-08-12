@@ -21,6 +21,7 @@ RUN date \
   && gem install selenium-webdriver \
   && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
   && apt-get clean \
+  && rm -rf /tmp/* \
   && date \
   && firefox --version && google-chrome-stable --version && mono --version && nuget | head -1
 
