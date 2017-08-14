@@ -13,7 +13,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules import java
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION, JavaC
 from bzt.utils import get_full_path, ToolError
-from tests import __dir__, BZTestCase, local_paths_config, RESOURCES_DIR, BASE_CONFIG
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BASE_CONFIG, BUILD_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
@@ -42,7 +42,7 @@ class TestTestNGTester(BZTestCase):
         self.obj.post_process()
 
     def test_install_tools(self):
-        dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
+        dummy_installation_path = BUILD_DIR + "selenium-taurus"
         base_link = "file:///" + RESOURCES_DIR + "selenium"
 
         shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
@@ -118,7 +118,7 @@ class TestJUnitTester(BZTestCase):
         check installation of selenium-server, junit
         :return:
         """
-        dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
+        dummy_installation_path = BUILD_DIR + "selenium-taurus"
         base_link = "file:///" + RESOURCES_DIR + "selenium"
 
         shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
@@ -177,7 +177,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.obj = None
 
     def test_junit_mirrors(self):
-        dummy_installation_path = __dir__() + "/../../build/tmp/selenium-taurus"
+        dummy_installation_path = BUILD_DIR + "selenium-taurus"
         shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
         junit_path = join(dummy_installation_path, "tools", "junit", "junit.jar")
         objjm = JUnitJar(junit_path, logging.getLogger(), JUNIT_VERSION)

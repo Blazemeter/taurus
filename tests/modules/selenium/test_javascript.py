@@ -5,7 +5,7 @@ import time
 from os.path import join, exists, dirname
 from bzt.modules import javascript
 from bzt.utils import get_full_path
-from tests import __dir__, RESOURCES_DIR
+from tests import BUILD_DIR, RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
 
 
@@ -89,7 +89,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertEqual(len(lines), 9)
 
     def test_install_mocha(self):
-        dummy_installation_path = get_full_path(__dir__() + "/../../../build/tmp/selenium-taurus/mocha")
+        dummy_installation_path = get_full_path(BUILD_DIR + "selenium-taurus/mocha")
         mocha_link = get_full_path(RESOURCES_DIR + "selenium/mocha-3.1.0.tgz")
         wd_link = get_full_path(RESOURCES_DIR + "selenium/selenium-webdriver-1.0.0.tgz")
 

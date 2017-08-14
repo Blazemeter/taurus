@@ -6,7 +6,7 @@ import time
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.six import u
 from bzt.utils import EXE_SUFFIX, get_full_path
-from tests import BZTestCase, __dir__, RESOURCES_DIR
+from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 from bzt.modules.provisioning import Local
 from bzt import ToolError, TaurusConfigError
@@ -79,7 +79,7 @@ class TestGatlingExecutor(BZTestCase):
         self.assertEqual(out_lines[-2], 'TRUE')  # $NO_PAUSE
 
     def test_install_Gatling(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/gatling-taurus/bin/gatling" + EXE_SUFFIX)
+        path = os.path.abspath(BUILD_DIR + "gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
         download_link = "file:///" + RESOURCES_DIR + "gatling/gatling-dist-{version}_{version}.zip"

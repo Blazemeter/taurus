@@ -5,7 +5,7 @@ import time
 
 import os
 from bzt import ToolError
-from tests import BZTestCase, __dir__, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.grinder import GrinderExecutor, DataLogReader
@@ -16,7 +16,7 @@ from tests.mocks import EngineEmul
 
 class TestGrinderExecutor(BZTestCase):
     def test_install_Grinder(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/grinder-taurus/lib/grinder.jar")
+        path = os.path.abspath(BUILD_DIR + "grinder-taurus/lib/grinder.jar")
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
         grinder_link = GrinderExecutor.DOWNLOAD_LINK
@@ -48,7 +48,7 @@ class TestGrinderExecutor(BZTestCase):
             GrinderExecutor.MIRRORS_SOURCE = mirrors_source
 
     def test_install_Grinder_link(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/grinder-taurus/lib/grinder.jar")
+        path = os.path.abspath(BUILD_DIR + "grinder-taurus/lib/grinder.jar")
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
         self.assertFalse(os.path.exists(path))

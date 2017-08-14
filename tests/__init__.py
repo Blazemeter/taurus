@@ -46,6 +46,7 @@ root_dir = __dir__() + '/../'
 os.chdir(root_dir)
 
 RESOURCES_DIR = __dir__() + "/resources/"
+BUILD_DIR = __dir__() + "/../build/tmp/"
 BASE_CONFIG = __dir__() + "/../bzt/resources/base-config.yml"
 
 
