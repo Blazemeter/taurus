@@ -14,7 +14,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, A
 from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchTool
 from bzt.six import parse, b
 from bzt.utils import BetterDict, is_windows
-from tests import BZTestCase, __dir__
+from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 if not is_windows():
@@ -32,7 +32,7 @@ if not is_windows():
                     "modules-path": "/home/undera/Sources/phantom/lib/phantom"})
             else:
                 obj.settings.merge({
-                    "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh")})
+                    "path": RESOURCES_DIR + "pbench/phantom.sh"})
 
             obj.execution.merge({
                 "log-responses": "proto_error",
@@ -163,7 +163,7 @@ if not is_windows():
                             "requests": ["/"]}}]})
             obj.execution = obj.engine.config['execution'][0]
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
+                "path": RESOURCES_DIR + "pbench/phantom.sh",
             })
             obj.prepare()
             obj.startup()
@@ -180,10 +180,10 @@ if not is_windows():
             obj.settings = BetterDict()
             obj.engine.config = BetterDict()
             obj.engine.config.merge(yaml.load(
-                open(__dir__() + "/../resources/yaml/phantom_improved_request.yml").read()))
+                open(RESOURCES_DIR + "yaml/phantom_improved_request.yml").read()))
             obj.execution = obj.engine.config['execution'][0]
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
+                "path": RESOURCES_DIR + "pbench/phantom.sh",
             })
             obj.prepare()
             with open(obj.pbench.schedule_file) as fds:
@@ -201,10 +201,10 @@ if not is_windows():
             obj.engine = EngineEmul()
             obj.settings = BetterDict()
             obj.engine.config = BetterDict()
-            obj.engine.config.merge(yaml.load(open(__dir__() + "/../resources/yaml/phantom_request_same_address.yml").read()))
+            obj.engine.config.merge(yaml.load(open(RESOURCES_DIR + "yaml/phantom_request_same_address.yml").read()))
             obj.execution = obj.engine.config['execution'][0]
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
+                "path": RESOURCES_DIR + "pbench/phantom.sh",
             })
             self.assertRaises(TaurusConfigError, obj.prepare)
 
@@ -230,7 +230,7 @@ if not is_windows():
                     {'execution': {"executor": "pbench", "scenario": {"script": "script.src"}}})
             obj.execution = obj.engine.config['execution']
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
+                "path": RESOURCES_DIR + "pbench/phantom.sh",
             })
             resource_files = obj.resource_files()
             self.assertEqual(1, len(resource_files))
@@ -244,13 +244,13 @@ if not is_windows():
             obj.engine.config.merge({
                 ScenarioExecutor.EXEC: {
                     "executor": "pbench",
-                    "scenario": {"script": __dir__() + "/../resources/pbench/pbench.src"}
+                    "scenario": {"script": RESOURCES_DIR + "pbench/pbench.src"}
                 },
                 "provisioning": "test"
             })
             obj.execution = obj.engine.config['execution']
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
+                "path": RESOURCES_DIR + "pbench/phantom.sh"
             })
             obj.prepare()
 
@@ -271,7 +271,7 @@ if not is_windows():
             })
             obj.execution = obj.engine.config['execution']
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
+                "path": RESOURCES_DIR + "pbench/phantom.sh",
                 "enhanced": True,
             })
             obj.prepare()
@@ -295,7 +295,7 @@ if not is_windows():
             })
             obj.execution = obj.engine.config['execution']
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
+                "path": RESOURCES_DIR + "pbench/phantom.sh",
             })
             obj.prepare()
 
@@ -314,7 +314,7 @@ if not is_windows():
                             "requests": ["/"]}}]})
             obj.execution = obj.engine.config['execution'][0]
             obj.settings.merge({
-                "path": os.path.join(os.path.dirname(__file__), "..", "resources", "pbench", "phantom.sh"),
+                "path": RESOURCES_DIR + "pbench/phantom.sh",
             })
             obj.prepare()
             obj.startup()

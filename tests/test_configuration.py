@@ -5,16 +5,16 @@ import tempfile
 from bzt import six
 from bzt.engine import Configuration
 from bzt.utils import BetterDict
-from tests import BZTestCase, __dir__
+from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG
 
 
 class TestConfiguration(BZTestCase):
     def test_load(self):
         obj = Configuration()
         configs = [
-            __dir__() + "/../bzt/resources/base-config.yml",
-            __dir__() + "/resources/json/jmx.json",
-            __dir__() + "/resources/json/concurrency.json"
+            BASE_CONFIG,
+            RESOURCES_DIR + "json/jmx.json",
+            RESOURCES_DIR + "json/concurrency.json"
         ]
         obj.load(configs)
         logging.debug("config:\n%s", obj)
@@ -32,9 +32,9 @@ class TestConfiguration(BZTestCase):
     def test_merge(self):
         obj = Configuration()
         configs = [
-            __dir__() + "/resources/yaml/test.yml",
-            __dir__() + "/resources/json/merge1.json",
-            __dir__() + "/resources/json/merge2.json",
+            RESOURCES_DIR + "yaml/test.yml",
+            RESOURCES_DIR + "json/merge1.json",
+            RESOURCES_DIR + "json/merge2.json",
         ]
         obj.load(configs)
         fname = tempfile.mkstemp()[1]
@@ -132,11 +132,11 @@ class TestConfiguration(BZTestCase):
     def test_tabs(self):
         obj = Configuration()
         obj.tab_replacement_spaces = 4
-        obj.load([__dir__() + "/resources/yaml/tabs-issue.yml"])
+        obj.load([RESOURCES_DIR + "yaml/tabs-issue.yml"])
         fname = tempfile.mkstemp()[1]
         obj.dump(fname, Configuration.YAML)
-        # import shutil; shutil.copy(fname, __dir__() + "/resources/yaml/tabs-issue-spaces.yml")
-        self.assertFilesEqual(__dir__() + "/resources/yaml/tabs-issue-spaces.yml", fname)
+        # import shutil; shutil.copy(fname, RESOURCES_DIR + "yaml/tabs-issue-spaces.yml")
+        self.assertFilesEqual(RESOURCES_DIR + "yaml/tabs-issue-spaces.yml", fname)
 
     def test_merge_removal(self):
         obj = Configuration()
