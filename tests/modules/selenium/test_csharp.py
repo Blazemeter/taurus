@@ -3,7 +3,7 @@ import time
 
 from bzt.modules.csharp import NUnitExecutor
 from bzt.utils import is_windows
-from tests import __dir__
+from tests import RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
 
 
@@ -14,14 +14,14 @@ class TestNUnitExecutor(SeleniumTestCase):
     def setup_mock(self):
         self.assertIsInstance(self.obj.runner, NUnitExecutor)
         self.obj.runner.mono.tool_path = None
-        self.obj.runner.runner_dir = __dir__() + "/../../resources/selenium/nunit/bin/"
-        self.obj.runner.runner_executable = __dir__() + "/../../resources/selenium/nunit/bin/" + RUNNER_EXECUTABLE
+        self.obj.runner.runner_dir = RESOURCES_DIR + "selenium/nunit/bin/"
+        self.obj.runner.runner_executable = RESOURCES_DIR + "selenium/nunit/bin/" + RUNNER_EXECUTABLE
         self.obj.runner.env.update({"ARTIFACTS_DIR": self.obj.engine.artifacts_dir})
 
     def test_startup(self):
         self.obj.execution.merge({
             "scenario": {
-                "script": __dir__() + "/../../resources/selenium/nunit/assemblies/NUnitSuite.dll"
+                "script": RESOURCES_DIR + "selenium/nunit/assemblies/NUnitSuite.dll"
             }
         })
         self.obj.prepare()

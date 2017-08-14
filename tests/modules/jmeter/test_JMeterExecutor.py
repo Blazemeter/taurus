@@ -18,7 +18,7 @@ from bzt.jmx.tools import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
-from tests import BZTestCase, __dir__, RESOURCES_DIR
+from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 
 
@@ -256,8 +256,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(fake.tool_path, os.path.join('*', end_str))
 
     def test_install_jmeter_2_13(self):
-
-        path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
@@ -300,7 +299,7 @@ class TestJMeterExecutor(BZTestCase):
             set_jmeter_executor_vars(jmeter_vars)
 
     def test_install_jmeter_3_0(self):
-        path = os.path.abspath(__dir__() + "/../../build/tmp/jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
