@@ -12,7 +12,6 @@ from unittest.case import TestCase
 
 import sys
 
-from bzt import ToolError
 from bzt.cli import CLI
 from bzt.engine import SelfDiagnosable
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -41,6 +40,10 @@ logging.info("Bootstrapped test")
 def __dir__():
     filename = inspect.getouterframes(inspect.currentframe())[1][1]
     return os.path.dirname(filename)
+
+# execute tests regardless of working directory
+root_dir = __dir__() + '/../'
+os.chdir(root_dir)
 
 RESOURCES_DIR = __dir__() + "/resources/"
 BASE_CONFIG = __dir__() + "/../bzt/resources/base-config.yml"
