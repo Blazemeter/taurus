@@ -41,8 +41,10 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         super(FinalStatus, self).__init__()
         self.last_sec = None
         self.cumulative_results = None
-        self.start_time = time.time()
+        self.start_time = None
         self.end_time = None
+        self.first_ts = float("inf")
+        self.last_ts = 0
 
     def startup(self):
         self.start_time = time.time()
@@ -60,6 +62,8 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
 
         :type data: bzt.modules.aggregator.DataPoint
         """
+        self.first_ts = min(self.first_ts, data[DataPoint.TIMESTAMP])
+        self.last_ts = max(self.last_ts, data[DataPoint.TIMESTAMP])
         self.last_sec = data
 
     def aggregated_results(self, results, cumulative_results):
@@ -183,9 +187,10 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         self.log.info("Dumping final status as XML: %s", filename)
         root = etree.Element("FinalStatus")
 
-        duration_elem = etree.Element("TestDuration")
-        duration_elem.text = str(round(self.end_time - self.start_time, 3))
-        root.append(duration_elem)
+        if self.first_ts < float("inf") and self.last_ts > 0:
+            duration_elem = etree.Element("TestDuration")
+            duration_elem.text = str(round(self.last_ts - self.first_ts, 3))
+            root.append(duration_elem)
 
         report_info = get_bza_report_info(self.engine, self.log)
         if report_info:
