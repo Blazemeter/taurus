@@ -307,4 +307,4 @@ class TestFinalStatusReporter(BZTestCase):
         self.assertTrue(os.path.exists(xml_report))
         with open(xml_report) as fds:
             report_content = fds.read()
-        self.assertIn('<TestDuration>10</TestDuration>', report_content)
+        self.assertIn('<TestDuration>10.0</TestDuration>', report_content)

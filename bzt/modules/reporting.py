@@ -189,7 +189,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
 
         if self.first_ts < float("inf") and self.last_ts > 0:
             duration_elem = etree.Element("TestDuration")
-            duration_elem.text = str(round(self.last_ts - self.first_ts, 3))
+            duration_elem.text = str(round(float(self.last_ts - self.first_ts), 3))
             root.append(duration_elem)
 
         report_info = get_bza_report_info(self.engine, self.log)
