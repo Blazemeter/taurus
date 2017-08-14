@@ -8,6 +8,8 @@ ADD https://deb.nodesource.com/setup_6.x /tmp
 RUN apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
+  && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF \
+  && echo "deb http://download.mono-project.com/repo/ubuntu xenial main" | tee /etc/apt/sources.list.d/mono-official.list \
   && add-apt-repository ppa:yandex-load/main \
   && apt-add-repository ppa:nilarimogard/webupd8 \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
