@@ -28,10 +28,13 @@ class RecordingPlugin(object):
     def __init__(self, report_path):
         self._report_path = report_path
         self._report_fds = None
+        self.test_count = 0
+        self.failed_tests = 0
+        self.passed_tests = 0
+        self._sample = None
 
     def prepare(self):
         if self._report_fds is None:
-            print("opening file")
             self._report_fds = open(self._report_path, 'w')
 
     def post_process(self):
@@ -47,40 +50,63 @@ class RecordingPlugin(object):
         self._report_fds.flush()
 
     def _write_stdout_report(self, label):
-        # report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
-        # failed = self.test_count - self.success_count
-        # sys.stdout.write(report_pattern % (label, self.test_count, self.success_count, failed))
-        # sys.stdout.flush()
-        pass
+        report_pattern = "%s,Total:%d Passed:%d Failed:%d\n"
+        sys.stdout.write(report_pattern % (label, self.test_count, self.passed_tests, self.failed_tests))
+        sys.stdout.flush()
+
+    def _fill_sample(self, report, call, item, status):
+        filename, lineno, _ = report.location
+
+        if self._sample is None:
+            self._sample = Sample()
+            self._sample.test_case = item.name
+            self._sample.test_suite = item.module.__name__
+            self._sample.start_time = call.start
+            self._sample.extras = {"filename": filename, "lineno": lineno}
+
+        self._sample.status = status
+        self._sample.duration = time.time() - self._sample.start_time
+
+        if call.excinfo is not None:
+            self._sample.error_msg = call.excinfo.exconly().strip()
+            self._sample.error_trace = "\n".join(traceback.format_tb(call.excinfo.tb)).strip()
+
+    def _report_sample(self, label):
+        self.test_count += 1
+        if self._sample.status == "PASSED":
+            self.passed_tests += 1
+        elif self._sample.status in ["BROKEN", "FAILED"]:
+            self.failed_tests += 1
+
+        self._write_sample(self._sample)
+        self._write_stdout_report(label)
+        self._sample = None
 
     def pytest_runtest_makereport(self, item, call, __multicall__):
         report = __multicall__.execute()
         print("runtest makereport: %s %s %s" % (item, call, report))
         filename, lineno, test_name = report.location
-        if report.when == 'setup':
-            pass
-        elif report.when == 'call':
-            module_name = item.module.__name__
-            sample = Sample(test_case=item.name,
-                            test_suite=module_name,
-                            start_time=call.start)
-            sample.duration = report.duration
-
+        if report.when == 'call':
             if report.passed:
-                sample.status = 'PASSED'
-            elif report.skipped:
-                sample.status = 'SKIPPED'
+                self._fill_sample(report, call, item, "PASSED")
             elif report.failed:
-                sample.status = 'FAILED'
-                exc_info = call.excinfo
-                sample.error_msg = exc_info.exconly()
-                sample.error_trace = "\n".join(traceback.format_tb(exc_info.tb))
-
-            sample.extras = {"filename": filename, "lineno": lineno}
-
-            self._write_sample(sample)
+                self._fill_sample(report, call, item, "FAILED")
+            elif report.skipped:
+                import pudb; pudb.set_trace()
+                self._fill_sample(report, call, item, "SKIPPED")
+        elif report.when == 'setup':
+            if report.failed:
+                self._fill_sample(report, call, item, "BROKEN")
+            elif report.skipped:
+                self._fill_sample(report, call, item, "SKIPPED")
         elif report.when == 'teardown':
-            pass
+            if not report.passed:
+                if self._sample.status not in ["FAILED", "BROKEN"]:
+                    self._fill_sample(report, call, item, "BROKEN")
+                else:
+                    self._sample.status = "BROKEN"
+            if not item.get_marker("unreported") or self._sample.status in ["FAILED", "BROKEN"]:
+                self._report_sample(test_name)
         return report
 
 
@@ -99,6 +125,8 @@ def run_pytest(targets, report_path, iteration_limit, duration_limit):
                 break
     finally:
         plugin.post_process()
+        if plugin.test_count == 0:
+            raise ValueError("Nothing to test. No tests were found.")
 
 if __name__ == '__main__':
     parser = OptionParser()

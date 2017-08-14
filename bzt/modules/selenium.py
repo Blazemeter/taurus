@@ -57,7 +57,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     :type virtual_display_service: VirtualDisplay
     """
 
-    SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit"]
+    SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest"]
 
     CHROMEDRIVER_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
     CHROMEDRIVER_VERSION = "2.29"
@@ -246,7 +246,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             else:
                 script_type = 'junit'
         elif '.py' in file_types:
-            script_type = 'nose'
+            script_type = 'pytest'
         elif '.rb' in file_types:
             script_type = 'rspec'
         elif '.js' in file_types:

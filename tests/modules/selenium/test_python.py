@@ -4,7 +4,7 @@ import time
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader
-from bzt.modules.python import NoseTester
+from bzt.modules.python import NoseTester, PyTestExecutor
 from tests import __dir__, BZTestCase
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
@@ -828,3 +828,31 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.log.info(test_script)
         self.assertIn("'/?rs={}'.format(apiritif.random_string(3))", test_script)
         self.assertIn("'/?rs={}'.format(apiritif.random_string(4, 'abcdef'))", test_script)
+
+
+class TestPyTestExecutor(BZTestCase):
+    def setUp(self):
+        super(TestPyTestExecutor, self).setUp()
+        self.obj = PyTestExecutor()
+        self.obj.engine = EngineEmul()
+
+    def configure(self, config):
+        self.obj.engine.config.merge(config)
+        self.obj.execution = self.obj.engine.config["execution"][0]
+
+    def test_full_single_script(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "script": __dir__() + "/../../resources/selenium/pytest/test_statuses.py"
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
