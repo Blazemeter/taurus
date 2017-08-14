@@ -269,3 +269,23 @@ class TestFinalStatusReporter(BZTestCase):
         with open(xml_report) as fds:
             report_content = fds.read()
         self.assertIn('<ReportURL>http://report/link</ReportURL>', report_content)
+
+    def test_xml_report_test_duration(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        xml_report = obj.engine.create_artifact("status", ".xml")
+        obj.parameters.merge({
+            "dump-xml": xml_report,
+        })
+
+        obj.start_time = 0
+        obj.end_time = 3.1415
+
+        obj.aggregated_second(self.__get_datapoint())
+        obj.post_process()
+
+        self.assertTrue(os.path.exists(xml_report))
+        with open(xml_report) as fds:
+            report_content = fds.read()
+        self.assertIn('<TestDuration>3.142</TestDuration>', report_content)

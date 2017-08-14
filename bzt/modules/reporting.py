@@ -71,13 +71,14 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         """
         self.cumulative_results = cumulative_results
 
+    def shutdown(self):
+        self.end_time = time.time()
+
     def post_process(self):
         """
         Log basic stats
         """
         super(FinalStatus, self).post_process()
-
-        self.end_time = time.time()
 
         if self.parameters.get("test-duration", True):
             self.__report_duration()
@@ -181,6 +182,11 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __dump_xml(self, filename):
         self.log.info("Dumping final status as XML: %s", filename)
         root = etree.Element("FinalStatus")
+
+        duration_elem = etree.Element("TestDuration")
+        duration_elem.text = str(round(self.end_time - self.start_time, 3))
+        root.append(duration_elem)
+
         report_info = get_bza_report_info(self.engine, self.log)
         if report_info:
             link, _ = report_info[0]
