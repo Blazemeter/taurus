@@ -6,7 +6,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.jmx2yaml import JMX2YAML
 from bzt.utils import get_full_path
 
-from tests import BZTestCase, __dir__, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 
@@ -33,7 +33,7 @@ class TestConverter(BZTestCase):
         return yml1 == yml2
 
     def _get_jmx2yaml(self, path, file_name=None, dump_jmx=None):
-        return JMX2YAML(FakeOptions(file_name=file_name, dump_jmx=dump_jmx), __dir__() + path)
+        return JMX2YAML(FakeOptions(file_name=file_name, dump_jmx=dump_jmx), path)
 
     def _get_tmp(self, prefix='test', suffix='.yml'):
         return self.engine.create_artifact(prefix, suffix)
