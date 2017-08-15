@@ -15,8 +15,6 @@ RUN apt-get -y update \
   && bash /tmp/setup_6.x \
   && apt-get -y update \
   && apt-get -y install --no-install-recommends \
-    mono-complete \
-  && apt-get -y install --no-install-recommends \
     mc \
     tzdata \
     kmod \
@@ -45,7 +43,7 @@ RUN apt-get -y update \
     phantomjs \
     ruby ruby-dev \
     nodejs \
-    nuget \
+    mono-complete nuget \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
   && pip install --upgrade selenium \
