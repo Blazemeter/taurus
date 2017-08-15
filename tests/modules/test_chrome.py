@@ -4,7 +4,7 @@ import time
 from bzt.modules.chrome import ChromeProfiler, MetricReporter
 from bzt.modules.monitoring import MonitoringListener
 from bzt.six import iteritems
-from tests import BZTestCase, __dir__
+from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 
@@ -23,7 +23,7 @@ class TestMetricExtraction(BZTestCase):
         listener = RecordingListener()
         obj.add_listener(listener)
 
-        shutil.copy(__dir__() + "/../resources/chrome/trace.json", obj.engine.artifacts_dir)
+        shutil.copy(RESOURCES_DIR + "chrome/trace.json", obj.engine.artifacts_dir)
 
         obj.prepare()
         obj.startup()
@@ -45,7 +45,7 @@ class TestMetricExtraction(BZTestCase):
         listener = RecordingListener()
         obj.add_listener(listener)
 
-        shutil.copy(__dir__() + "/../resources/chrome/trace.json", obj.engine.artifacts_dir)
+        shutil.copy(RESOURCES_DIR + "chrome/trace.json", obj.engine.artifacts_dir)
 
         obj.prepare()
         obj.startup()
@@ -53,7 +53,7 @@ class TestMetricExtraction(BZTestCase):
             obj.check()
             time.sleep(1)
 
-        shutil.copy(__dir__() + "/../resources/chrome/trace.json", obj.engine.artifacts_dir)
+        shutil.copy(RESOURCES_DIR + "chrome/trace.json", obj.engine.artifacts_dir)
         for _ in range(3):
             obj.check()
             time.sleep(1)
@@ -73,7 +73,7 @@ class TestMetricExtraction(BZTestCase):
             }
         })
 
-        shutil.copy(__dir__() + "/../resources/chrome/trace.json", obj.engine.artifacts_dir)
+        shutil.copy(RESOURCES_DIR + "chrome/trace.json", obj.engine.artifacts_dir)
 
         obj.prepare()
         obj.startup()
@@ -101,7 +101,7 @@ class TestMetricExtraction(BZTestCase):
         listener = RecordingListener()
         obj.add_listener(listener)
 
-        shutil.copy(__dir__() + "/../resources/chrome/trace.json", obj.engine.artifacts_dir)
+        shutil.copy(RESOURCES_DIR + "chrome/trace.json", obj.engine.artifacts_dir)
 
         obj.prepare()
         obj.startup()
@@ -132,7 +132,7 @@ class TestMetricReporter(BZTestCase):
                 }
             }
         })
-        shutil.copy(__dir__() + "/../resources/chrome/trace.json", engine.artifacts_dir)
+        shutil.copy(RESOURCES_DIR + "chrome/trace.json", engine.artifacts_dir)
 
         reporter = MetricReporter()
         self.sniff_log(reporter.log)

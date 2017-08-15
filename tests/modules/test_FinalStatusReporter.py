@@ -19,6 +19,8 @@ class TestFinalStatusReporter(BZTestCase):
         self.sniff_log(obj.log)
         obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False, "test-duration": False})
 
+        obj.startup()
+        obj.shutdown()
         obj.aggregated_second(self.__get_datapoint())
         obj.post_process()
         self.assertIn("29656 failed samples: http://192.168.1.1/anotherquery\n", self.log_recorder.info_buff.getvalue())
@@ -30,8 +32,9 @@ class TestFinalStatusReporter(BZTestCase):
         self.sniff_log(obj.log)
         obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False, "test-duration": False})
 
+        obj.startup()
+        obj.shutdown()
         obj.aggregated_second(self.__get_datapoint())
-
         obj.post_process()
         target_output = ("Average times: total 0.001, latency 0.000, connect 0.000\n"
                          "Percentile 0.0%: 0.000\n"
@@ -51,6 +54,8 @@ class TestFinalStatusReporter(BZTestCase):
         self.sniff_log(obj.log)
         obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True, "test-duration": False})
         obj.aggregated_second(self.__get_datapoint())
+        obj.startup()
+        obj.shutdown()
         obj.post_process()
 
         self.assertEqual("Samples count: 59314, 50.00% failures\n", self.log_recorder.info_buff.getvalue())
@@ -65,6 +70,8 @@ class TestFinalStatusReporter(BZTestCase):
         obj.parameters = BetterDict()
         self.sniff_log(obj.log)
         obj.prepare()
+        obj.startup()
+        obj.shutdown()
         obj.start_time -= 120005
         obj.post_process()
         self.assertEqual("Test duration: 1 day, 9:20:05\n", self.log_recorder.info_buff.getvalue())
@@ -80,6 +87,8 @@ class TestFinalStatusReporter(BZTestCase):
         })
 
         obj.aggregated_second(random_datapoint(time.time()))
+        obj.startup()
+        obj.shutdown()
         obj.post_process()
         self.assertIn("XML", self.log_recorder.info_buff.getvalue())
 
@@ -89,6 +98,8 @@ class TestFinalStatusReporter(BZTestCase):
         obj.parameters = BetterDict()
         self.sniff_log(obj.log)
         obj.prepare()
+        obj.startup()
+        obj.shutdown()
         obj.aggregated_results(*self.__get_func_tree())
         obj.post_process()
         info_log = self.log_recorder.info_buff.getvalue()
@@ -106,6 +117,8 @@ class TestFinalStatusReporter(BZTestCase):
         self.sniff_log(obj.log)
         obj.parameters.merge({"report-tests": "all", "print-stacktrace": False})
         obj.prepare()
+        obj.startup()
+        obj.shutdown()
         obj.aggregated_results(*self.__get_func_tree())
         obj.post_process()
         info_log = self.log_recorder.info_buff.getvalue()
@@ -116,8 +129,8 @@ class TestFinalStatusReporter(BZTestCase):
         self.assertNotIn("stacktrace2", info_log)
         self.assertNotIn("stacktrace3", info_log)
 
-    def __get_datapoint(self):
-        datapoint = DataPoint(None, None)
+    def __get_datapoint(self, ts=0):
+        datapoint = DataPoint(ts, None)
         cumul_data = datapoint[DataPoint.CUMULATIVE]
         cumul_data[""] = KPISet.from_dict(
             {KPISet.AVG_CONN_TIME: 7.890211417203362e-06,
@@ -241,6 +254,9 @@ class TestFinalStatusReporter(BZTestCase):
         rep.results_url = "http://report/link"
         obj.engine.reporters.append(rep)
 
+        obj.startup()
+        obj.shutdown()
+
         obj.aggregated_second(self.__get_datapoint())
         obj.post_process()
 
@@ -262,6 +278,9 @@ class TestFinalStatusReporter(BZTestCase):
         prov.results_url = "http://report/link"
         obj.engine.provisioning = prov
 
+        obj.startup()
+        obj.shutdown()
+
         obj.aggregated_second(self.__get_datapoint())
         obj.post_process()
 
@@ -269,3 +288,23 @@ class TestFinalStatusReporter(BZTestCase):
         with open(xml_report) as fds:
             report_content = fds.read()
         self.assertIn('<ReportURL>http://report/link</ReportURL>', report_content)
+
+    def test_xml_report_test_duration(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        xml_report = obj.engine.create_artifact("status", ".xml")
+        obj.parameters.merge({
+            "dump-xml": xml_report,
+        })
+
+        obj.startup()
+        obj.aggregated_second(self.__get_datapoint(ts=90))
+        obj.aggregated_second(self.__get_datapoint(ts=100))
+        obj.shutdown()
+        obj.post_process()
+
+        self.assertTrue(os.path.exists(xml_report))
+        with open(xml_report) as fds:
+            report_content = fds.read()
+        self.assertIn('<TestDuration>10.0</TestDuration>', report_content)

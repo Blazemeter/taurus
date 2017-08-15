@@ -1,13 +1,13 @@
 import logging
 
 from bzt.modules.soapui import SoapUIScriptConverter
-from tests import BZTestCase, __dir__
+from tests import BZTestCase, RESOURCES_DIR
 
 
 class TestSoapUIConverter(BZTestCase):
     def test_minimal(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        config = obj.convert_script(__dir__() + "/../resources/soapui/project.xml")
+        config = obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
 
         self.assertIn("execution", config)
         self.assertEqual(3, len(config["execution"]))
@@ -67,7 +67,7 @@ class TestSoapUIConverter(BZTestCase):
 
     def test_find_test_case(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        config = obj.convert_script(__dir__() + "/../resources/soapui/project.xml")
+        config = obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
 
         scenarios = config["scenarios"]
         self.assertEqual(len(scenarios), 3)
@@ -80,7 +80,7 @@ class TestSoapUIConverter(BZTestCase):
         obj = SoapUIScriptConverter(logging.getLogger(''))
         self.sniff_log(obj.log)
 
-        config = obj.convert_script(__dir__() + "/../resources/soapui/project.xml")
+        config = obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
 
         scenarios = config["scenarios"]
         self.assertEqual(len(scenarios), 3)
@@ -96,13 +96,13 @@ class TestSoapUIConverter(BZTestCase):
         obj = SoapUIScriptConverter(logging.getLogger(''))
         self.sniff_log(obj.log)
 
-        obj.convert_script(__dir__() + "/../resources/soapui/project.xml")
+        obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
         self.assertIn("No requests extracted for scenario TestSuite 1-EmptyTestCase, skipping it",
                       self.log_recorder.warn_buff.getvalue())
 
     def test_rest_service_name_as_base_address(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        config = obj.convert_script(__dir__() + "/../resources/soapui/youtube-sample.xml")
+        config = obj.convert_script(RESOURCES_DIR + "soapui/youtube-sample.xml")
         scenarios = config["scenarios"]
         scenario = scenarios["TestSuite-TestCase"]
         self.assertEqual(len(scenario["requests"]), 5)
@@ -111,7 +111,7 @@ class TestSoapUIConverter(BZTestCase):
 
     def test_project_suite_case_level_properties(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        config = obj.convert_script(__dir__() + "/../resources/soapui/flickr-sample.xml")
+        config = obj.convert_script(RESOURCES_DIR + "soapui/flickr-sample.xml")
         scenarios = config["scenarios"]
         scenario = scenarios["TestSuite-TestCase"]
         self.assertEqual(len(scenario["variables"]), 2)
@@ -120,7 +120,7 @@ class TestSoapUIConverter(BZTestCase):
 
     def test_rest_parameters(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        config = obj.convert_script(__dir__() + "/../resources/soapui/flickr-sample.xml")
+        config = obj.convert_script(RESOURCES_DIR + "soapui/flickr-sample.xml")
         scenarios = config["scenarios"]
         scenario = scenarios["TestSuite-TestCase"]
         self.assertEqual(len(scenario["requests"]), 4)
@@ -131,7 +131,7 @@ class TestSoapUIConverter(BZTestCase):
 
     def test_soap_conversion(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        config = obj.convert_script(__dir__() + "/../resources/soapui/globalweather.xml")
+        config = obj.convert_script(RESOURCES_DIR + "soapui/globalweather.xml")
         self.assertEqual(len(config["scenarios"]), 3)
         merged = config["scenarios"]["GWSOAPMerged-Test"]
         split1 = config["scenarios"]["GWSOAPSplit-GetCities"]
@@ -152,7 +152,7 @@ class TestSoapUIConverter(BZTestCase):
 
     def test_rest_templated_params_interpolation(self):
         obj = SoapUIScriptConverter(logging.getLogger(''))
-        config = obj.convert_script(__dir__() + "/../resources/soapui/gmaps-sample.xml")
+        config = obj.convert_script(RESOURCES_DIR + "soapui/gmaps-sample.xml")
         self.assertEqual(len(config["scenarios"]), 9)
         scenario = config["scenarios"]["Directions API TestSuite-Simple Tests"]
 
