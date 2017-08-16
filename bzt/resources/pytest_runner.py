@@ -126,6 +126,7 @@ def run_pytest(targets, report_path, iteration_limit, duration_limit):
         if plugin.test_count == 0:
             raise ValueError("Nothing to test. No tests were found.")
 
+
 if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option('-r', '--report-file', action='store', default='report.ldjson')
