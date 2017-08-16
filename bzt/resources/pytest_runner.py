@@ -86,8 +86,6 @@ class RecordingPlugin(object):
     def pytest_runtest_makereport(self, item, call):
         outcome = (yield)
         report = outcome.get_result()
-        print("runtest makereport: %s %s %s" % (item, call.excinfo, report))
-        print("report: skipped=%s failed=%s passed=%s" % (report.skipped, report.failed, report.passed))
         filename, lineno, test_name = report.location
         if report.when == 'call':
             if report.passed:
@@ -108,9 +106,6 @@ class RecordingPlugin(object):
                 else:
                     self._sample.status = "BROKEN"
             self._report_sample(test_name)
-
-    def pytest_runtest_logreport(self, report):
-        print(report)
 
 
 def run_pytest(targets, report_path, iteration_limit, duration_limit):
