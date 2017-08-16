@@ -462,31 +462,21 @@ class JMX(object):
         return res
 
     @staticmethod
-    def get_thread_group(concurrency=None, rampup=0, hold=0, iterations=None,
+    def get_thread_group(concurrency=1, rampup=0, hold=0, duration=0, iterations=-1,
                          testname="ThreadGroup", on_error="continue"):
         """
         Generates ThreadGroup
 
-        :param concurrency:
-        :param rampup:
-        :param hold:
-        :param iterations:
-        :param testname:
-        :param on_error:
-        :return:
+        Expected values (by JMeter):
+          ThreadGroup.num_threads (concurrency): int
+          ThreadGroup.ramp_time (rampup): int
+          ThreadGroup.scheduler (need to hold): boolean
+          ThreadGroup.duration (rampup + hold): int
+          LoopController.loops (iterations): int
+          LoopController.continue_forever: boolean
+
+        :return: etree element, ThreadGroup
         """
-        if not rampup:
-            rampup = 0
-
-        rampup = cond_int(rampup)
-        hold = cond_int(hold)
-
-        if not concurrency:
-            concurrency = 1
-
-        if not iterations:
-            iterations = -1
-
         scheduler = False
         if hold or (rampup and not iterations):
             scheduler = True
@@ -495,6 +485,7 @@ class JMX(object):
                             testclass="ThreadGroup", testname=testname)
         if on_error is not None:
             trg.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
+
         loop = etree.Element("elementProp",
                              name="ThreadGroup.main_controller",
                              elementType="LoopController",
@@ -504,19 +495,20 @@ class JMX(object):
         loop.append(JMX._string_prop("LoopController.loops", iterations))
         trg.append(loop)
 
-        trg.append(JMX._string_prop("ThreadGroup.num_threads", concurrency))
-        trg.append(JMX._string_prop("ThreadGroup.ramp_time", rampup))
+        trg.append(JMX._string_prop("ThreadGroup.num_threads", cond_int(concurrency)))
+        trg.append(JMX._string_prop("ThreadGroup.ramp_time", cond_int(rampup)))
         trg.append(JMX._string_prop("ThreadGroup.start_time", ""))
         trg.append(JMX._string_prop("ThreadGroup.end_time", ""))
         trg.append(JMX._bool_prop("ThreadGroup.scheduler", scheduler))
-        trg.append(JMX._string_prop("ThreadGroup.duration", rampup + hold))
+        trg.append(JMX._string_prop("ThreadGroup.duration", cond_int(duration)))
 
         return trg
 
     def get_rps_shaper(self):
         """
+        Generate Shaper
 
-        :return: etree.Element
+        :return: etree.Element VariableThroughputTimer
         """
 
         throughput_timer_element = etree.Element(self.THR_TIMER,
@@ -531,21 +523,24 @@ class JMX(object):
 
     def add_rps_shaper_schedule(self, shaper_etree, start_rps, end_rps, duration):
         """
-        Adds schedule to rps shaper
-        :param shaper_etree:
-        :param start_rps:
-        :param end_rps:
-        :param duration:
-        :return:
+        Add shedule to Shaper
+
+        Expected values (by JMeter):
+          <first> ('start_rps'): float
+          <second> ('end_rps'): float
+          <third> ('duration'): int
         """
         shaper_collection = shaper_etree.find(".//collectionProp[@name='load_profile']")
         coll_prop = self._collection_prop("1817389797")
-        start_rps_prop = self._string_prop("49", cond_int(start_rps))
-        end_rps_prop = self._string_prop("1567", cond_int(end_rps))
+
+        start_rps_prop = self._string_prop("49", start_rps)
+        end_rps_prop = self._string_prop("1567", end_rps)
         duration_prop = self._string_prop("53", cond_int(duration))
+
         coll_prop.append(start_rps_prop)
         coll_prop.append(end_rps_prop)
         coll_prop.append(duration_prop)
+
         shaper_collection.append(coll_prop)
 
     @staticmethod
@@ -576,20 +571,20 @@ class JMX(object):
         return udv_element
 
     @staticmethod
-    def get_concurrency_thread_group(
-            concurrency=None, rampup=0, hold=0, steps=None, on_error="continue", testname="ConcurrencyThreadGroup"):
+    def get_concurrency_thread_group(concurrency=1, rampup=0, hold=0, steps=0,
+                                     testname="ConcurrencyThreadGroup", on_error="continue"):
         """
-        :return: etree element, Concurrency Thread Group
+
+        Generates ConcurrencyThreadGroup
+
+        Expected values (by JMeter):
+          Targetlevel (concurrency): int
+          RampUp (rampup): float
+          Steps (steps): boolean
+          Hold (hold): float
+
+        :return: etree element, ConcurrencyThreadGroup
         """
-        if not rampup:
-            rampup = 0
-
-        if not concurrency:
-            concurrency = 1
-
-        if steps is None:  # zero means infinity of steps
-            steps = 0
-
         name = 'com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup'
         concurrency_thread_group = etree.Element(
             name, guiclass=name + "Gui", testclass=name, testname=testname, enabled="true")
@@ -599,10 +594,10 @@ class JMX(object):
             elementType="com.blazemeter.jmeter.control.VirtualUserController")
         concurrency_thread_group.append(virtual_user_controller)
         concurrency_thread_group.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
-        concurrency_thread_group.append(JMX._string_prop("TargetLevel", str(concurrency)))
-        concurrency_thread_group.append(JMX._string_prop("RampUp", str(cond_int(rampup))))
-        concurrency_thread_group.append(JMX._string_prop("Steps", steps))
-        concurrency_thread_group.append(JMX._string_prop("Hold", str(cond_int(hold))))
+        concurrency_thread_group.append(JMX._string_prop("TargetLevel", cond_int(concurrency)))
+        concurrency_thread_group.append(JMX._string_prop("RampUp", rampup))
+        concurrency_thread_group.append(JMX._string_prop("Steps", cond_int(steps)))
+        concurrency_thread_group.append(JMX._string_prop("Hold", hold))
         concurrency_thread_group.append(JMX._string_prop("LogFilename", ""))
         concurrency_thread_group.append(JMX._string_prop("Iterations", ""))
         concurrency_thread_group.append(JMX._string_prop("Unit", "S"))
