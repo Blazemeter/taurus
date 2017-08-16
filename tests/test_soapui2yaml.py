@@ -2,7 +2,7 @@ import yaml
 
 from bzt.soapui2yaml import SoapUI2YAML, process
 
-from tests import BZTestCase, __dir__
+from tests import BZTestCase, __dir__, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 
@@ -28,19 +28,19 @@ class TestConverter(BZTestCase):
         return self.engine.create_artifact(prefix, suffix)
 
     def test_convert(self):
-        source = __dir__() + "/resources/soapui/project.xml"
+        source = RESOURCES_DIR + "soapui/project.xml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result, test_case="index")
         process(options, [source])
         actual = yaml.load(open(result).read())
-        expected = yaml.load(open(__dir__() + "/resources/soapui/project.xml.yml").read())
+        expected = yaml.load(open(RESOURCES_DIR + "soapui/project.xml.yml").read())
         self.assertEqual(actual, expected)
 
     def test_flickr(self):
-        source = __dir__() + "/resources/soapui/flickr-sample.xml"
+        source = RESOURCES_DIR + "soapui/flickr-sample.xml"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
         process(options, [source])
         actual = yaml.load(open(result).read())
-        expected = yaml.load(open(__dir__() + "/resources/soapui/flickr-sample.xml.yml").read())
+        expected = yaml.load(open(RESOURCES_DIR + "soapui/flickr-sample.xml.yml").read())
         self.assertEqual(actual, expected)

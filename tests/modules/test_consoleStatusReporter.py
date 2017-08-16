@@ -1,8 +1,7 @@
 import sys
 import time
 
-import os
-from tests import BZTestCase, r, rc, __dir__
+from tests import BZTestCase, r, rc, RESOURCES_DIR
 
 from bzt.engine import Provisioning, ScenarioExecutor
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -35,12 +34,11 @@ class TestConsoleStatusReporter(BZTestCase):
         return point
 
     def get_jmeter(self):
-        dir_name = os.path.dirname(__file__)
-        path = dir_name + "/../resources/jmeter/jmeter-loader" + EXE_SUFFIX
+        path = RESOURCES_DIR + "jmeter/jmeter-loader" + EXE_SUFFIX
         obj = JMeterExecutor()
         obj.settings.merge({'path': path})
         obj.execution.merge({"scenario": {
-            "script": __dir__() + "/../resources/jmeter/jmx/dummy.jmx"}})
+            "script": RESOURCES_DIR + "jmeter/jmx/dummy.jmx"}})
         return obj
 
     def test_1(self):

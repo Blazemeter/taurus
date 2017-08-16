@@ -327,10 +327,13 @@ class DataLogReader(ResultsReader):
             lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
         self.offset = self.fds.tell()
 
+        start = time.time()
+        cnt = 0
         for lnum, line in enumerate(lines):
+            cnt += 1
             data_fields, worker_id = self.__split(line)
             if not data_fields:
-                self.log.debug("Skipping line: %s", line)
+                self.log.debug("Skipping line: %s", line.strip())
                 continue
 
             worker_id = worker_id.split('.')[1]
@@ -364,6 +367,8 @@ class DataLogReader(ResultsReader):
             source_id = ''  # maybe use worker_id somehow?
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
                   latency, r_code, error_msg, source_id, bytes_count
+        end = time.time()
+        self.log.debug("Log reading speed: %s lines/s", len(lines) / (end - start))
 
     def __split(self, line):
         if not line.endswith("\n"):
@@ -404,7 +409,7 @@ class DataLogReader(ResultsReader):
     def __parse_prev_line(self, worker_id, lines, lnum, r_code, bytes_count):
         url = ''
         error_msg = None
-        for lineNo in reversed(range(lnum)):
+        for lineNo in reversed(range(max(lnum - 100, 0), lnum)):  # looking max 100 lines back. TODO: parameterize?
             line = lines[lineNo].strip()
             matched = self.DETAILS_REGEX.match(line)
             if not matched:

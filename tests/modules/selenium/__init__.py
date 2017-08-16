@@ -1,10 +1,5 @@
-import logging
-import sys
-
-import os
-
 from bzt.modules.services import VirtualDisplay
-from tests import BZTestCase, __dir__, local_paths_config
+from tests import BZTestCase, local_paths_config, BASE_CONFIG
 
 from bzt.modules.selenium import SeleniumExecutor
 from tests.mocks import EngineEmul
@@ -22,7 +17,7 @@ class SeleniumTestCase(BZTestCase):
     def setUp(self):
         super(SeleniumTestCase, self).setUp()
         engine_obj = EngineEmul()
-        paths = [__dir__() + "/../../../bzt/resources/base-config.yml", local_paths_config()]
+        paths = [BASE_CONFIG, local_paths_config()]
         engine_obj.configure(paths)  # FIXME: avoid using whole engine in particular module test!
         self.obj = SeleniumExecutor()
         self.obj.settings = engine_obj.config.get("modules").get("selenium")

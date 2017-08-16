@@ -11,7 +11,7 @@ from bzt.modules.passfail import PassFailStatus, DataCriterion
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
 from bzt.utils import BetterDict
-from tests import BZTestCase, __dir__
+from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 
@@ -338,7 +338,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine = engine
         obj.parameters = BetterDict()
 
-        reader = FuncSamplesReader(__dir__() + "/../resources/functional/nose.ldjson", engine, logging.getLogger())
+        reader = FuncSamplesReader(RESOURCES_DIR + "functional/nose.ldjson", engine, logging.getLogger())
         aggregator.add_underling(reader)
 
         aggregator.prepare()
@@ -346,4 +346,4 @@ class TestJUnitXML(BZTestCase):
         aggregator.post_process()
         obj.post_process()
 
-        self.assertFilesEqual(obj.report_file_path, __dir__() + "/../resources/functional/xunit-report.xml")
+        self.assertFilesEqual(obj.report_file_path, RESOURCES_DIR + "functional/xunit-report.xml")

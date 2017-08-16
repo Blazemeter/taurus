@@ -13,7 +13,7 @@ from bzt.modules.provisioning import Local
 from bzt.modules.python import NoseTester
 from bzt.six import StringIO
 from bzt.utils import LDJSONReader
-from tests import BZTestCase, __dir__
+from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
@@ -44,7 +44,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.configure({
             ScenarioExecutor.EXEC: {
                 "executor": "selenium",
-                "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/invalid.java"}
+                "scenario": {"script": RESOURCES_DIR + "selenium/invalid/invalid.java"}
             }
         })
         self.assertRaises(ToolError, self.obj.prepare)
@@ -56,7 +56,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/not_found"}
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/not_found"}
         }})
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
@@ -67,7 +67,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/SeleniumTest.java"}
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SeleniumTest.java"}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -82,7 +82,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/SimpleTest.java"}
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -97,7 +97,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         """
         self.configure({ScenarioExecutor.EXEC: {
             "executor": "selenium",
-            "scenario": {"script": __dir__() + "/../../resources/selenium/invalid/selenium1.java"}
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/selenium1.java"}
         }})
         self.obj.prepare()
         self.obj.startup()
@@ -106,7 +106,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.shutdown()
 
     def test_requests(self):
-        self.configure(yaml.load(open(__dir__() + "/../../resources/yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
@@ -120,7 +120,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             self.assertEqual(1, contents.count("OK"))
 
     def test_fail_on_zero_results(self):
-        self.configure(yaml.load(open(__dir__() + "/../../resources/yaml/selenium_executor_requests.yml").read()))
+        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]
@@ -175,7 +175,7 @@ class TestSeleniumStuff(SeleniumTestCase):
     def test_dont_copy_local_script_to_artifacts(self):
         "ensures that .java file is not copied into artifacts-dir"
         filename = "BlazeDemo.java"
-        script_path = __dir__() + "/../../resources/" + filename
+        script_path = RESOURCES_DIR + "" + filename
         self.obj.execution.merge({
             "scenario": {
                 "script": script_path,
@@ -192,7 +192,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.engine.file_search_paths = [self.obj.engine.artifacts_dir]
 
         script_name = "BlazeDemo.java"
-        test_script = __dir__() + "/../../resources/" + script_name
+        test_script = RESOURCES_DIR + "" + script_name
         artifacts_script = os.path.join(self.obj.engine.artifacts_dir, script_name)
         shutil.copy2(test_script, artifacts_script)
 
@@ -229,7 +229,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
     def test_force_runner(self):
         self.obj.execution.merge({
-            'scenario': {'script': __dir__() + '/../../resources/selenium/junit/jar/'},
+            'scenario': {'script': RESOURCES_DIR + 'selenium/junit/jar/'},
             'runner': 'nose',
         })
         self.obj.prepare()
@@ -238,13 +238,13 @@ class TestSeleniumStuff(SeleniumTestCase):
     def test_additional_classpath_resource_files(self):
         self.obj.execution.merge({
             'scenario': {
-                'script': __dir__() + '/../../resources/selenium/junit/jar/dummy.jar',
+                'script': RESOURCES_DIR + 'selenium/junit/jar/dummy.jar',
                 'runner': 'junit',
-                'additional-classpath': [__dir__() + '/../../resources/selenium/junit/jar/another_dummy.jar']}})
+                'additional-classpath': [RESOURCES_DIR + 'selenium/junit/jar/another_dummy.jar']}})
         self.obj.settings.merge({
             'selenium-tools': {
                 'junit': {
-                    'additional-classpath': [__dir__() + '/../../resources/selenium/testng/jars/testng-suite.jar']}}})
+                    'additional-classpath': [RESOURCES_DIR + 'selenium/testng/jars/testng-suite.jar']}}})
         own_resources = self.obj.resource_files()
         all_resources = list(set(self.obj.get_resource_files()))
 
@@ -260,7 +260,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
 class TestReportReader(BZTestCase):
     def test_report_reader(self):
-        reader = LoadSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", logging.getLogger())
+        reader = LoadSamplesReader(RESOURCES_DIR + "selenium/report.ldjson", logging.getLogger())
         items = list(reader._read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0][1], 'testFailure')
@@ -287,7 +287,7 @@ class TestReportReader(BZTestCase):
         self.assertEqual(len(items), 2)
 
     def test_func_reader(self):
-        reader = FuncSamplesReader(__dir__() + "/../../resources/selenium/report.ldjson", EngineEmul(), logging.getLogger())
+        reader = FuncSamplesReader(RESOURCES_DIR + "selenium/report.ldjson", EngineEmul(), logging.getLogger())
         items = list(reader.read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0].test_case, 'testFailure')

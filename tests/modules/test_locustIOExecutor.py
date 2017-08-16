@@ -8,7 +8,7 @@ import unittest
 from bzt import six, ToolError
 from bzt.modules.jmeter import JTLReader
 from bzt.six import PY2
-from tests import BZTestCase, __dir__
+from tests import BZTestCase, __dir__, RESOURCES_DIR
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
@@ -19,7 +19,7 @@ from tests.mocks import EngineEmul
 class TestLocustIOExecutor(BZTestCase):
     def setUp(self):
         super(TestLocustIOExecutor, self).setUp()
-        sys.path.append(__dir__() + "/../resources/locust/")
+        sys.path.append(RESOURCES_DIR + "locust/")
         self.obj = LocustIOExecutor()
         self.obj.engine = EngineEmul()
         self.obj.engine.config['provisioning'] = 'local'
@@ -32,7 +32,7 @@ class TestLocustIOExecutor(BZTestCase):
             "iterations": 10,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": __dir__() + "/../resources/locust/simple.py"
+                "script": RESOURCES_DIR + "locust/simple.py"
             }
         })
         self.obj.prepare()
@@ -55,7 +55,7 @@ class TestLocustIOExecutor(BZTestCase):
             "hold-for": 30,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": __dir__() + "/../resources/locust/simple.py"
+                "script": RESOURCES_DIR + "locust/simple.py"
             }
         })
 
@@ -79,7 +79,7 @@ class TestLocustIOExecutor(BZTestCase):
             "slaves": 1,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": __dir__() + "/../resources/locust/simple.py"
+                "script": RESOURCES_DIR + "locust/simple.py"
             }
         })
 
@@ -100,7 +100,7 @@ class TestLocustIOExecutor(BZTestCase):
         if six.PY3:
             logging.warning("No locust available for python 3")
 
-        obj = SlavesReader(__dir__() + "/../resources/locust/locust-slaves.ldjson", 2, logging.getLogger(""))
+        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves.ldjson", 2, logging.getLogger(""))
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(107, len(points))
         for point in points:
@@ -111,7 +111,7 @@ class TestLocustIOExecutor(BZTestCase):
         if six.PY3:
             logging.warning("No locust available for python 3")
 
-        obj = SlavesReader(__dir__() + "/../resources/locust/locust-slaves2.ldjson", 2, logging.getLogger(""))
+        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves2.ldjson", 2, logging.getLogger(""))
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(60, len(points))
         for point in points:
@@ -128,7 +128,7 @@ class TestLocustIOExecutor(BZTestCase):
             "hold-for": 30,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": __dir__() + "/../resources/locust/simple.py"
+                "script": RESOURCES_DIR + "locust/simple.py"
             }
         })
         resource_files = self.obj.resource_files()
@@ -162,7 +162,7 @@ class TestLocustIOExecutor(BZTestCase):
             "hold-for": 30,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": __dir__() + "/../resources/locust/simple.py"
+                "script": RESOURCES_DIR + "locust/simple.py"
             }
         })
         self.obj.prepare()
@@ -230,7 +230,7 @@ class TestLocustIOExecutor(BZTestCase):
 
         self.obj.execution = self.obj.engine.config.get('execution')[0]
         self.obj.prepare()
-        self.assertFilesEqual(__dir__() + "/../resources/locust/generated_from_requests_1.py", self.obj.script)
+        self.assertFilesEqual(RESOURCES_DIR + "locust/generated_from_requests_1.py", self.obj.script)
 
     def test_build_script_none_def_addr(self):
         self.sniff_log(self.obj.log)

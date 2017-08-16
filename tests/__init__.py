@@ -12,7 +12,6 @@ from unittest.case import TestCase
 
 import sys
 
-from bzt import ToolError
 from bzt.cli import CLI
 from bzt.engine import SelfDiagnosable
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -42,7 +41,13 @@ def __dir__():
     filename = inspect.getouterframes(inspect.currentframe())[1][1]
     return os.path.dirname(filename)
 
-RESOURCES_DIR = __dir__() + '/resources/'
+# execute tests regardless of working directory
+root_dir = __dir__() + '/../'
+os.chdir(root_dir)
+
+RESOURCES_DIR = __dir__() + "/resources/"
+BUILD_DIR = __dir__() + "/../build/tmp/"
+BASE_CONFIG = __dir__() + "/../bzt/resources/base-config.yml"
 
 
 def r(mul=5):
@@ -139,13 +144,13 @@ def local_paths_config():
     settings = {
         "modules": {
             "jmeter": {
-                "path": dirname + "/resources/jmeter/jmeter-loader" + EXE_SUFFIX,
+                "path": RESOURCES_DIR + "jmeter/jmeter-loader" + EXE_SUFFIX,
             },
             "grinder": {
-                "path": dirname + "/resources/grinder/fake_grinder.jar",
+                "path": RESOURCES_DIR + "grinder/fake_grinder.jar",
             },
             "gatling": {
-                "path": dirname + "/resources/gatling/gatling" + EXE_SUFFIX,
+                "path": RESOURCES_DIR + "gatling/gatling" + EXE_SUFFIX,
             },
             "junit": {
                 "path": dirname + "/../build/selenium/tools/junit/junit.jar",

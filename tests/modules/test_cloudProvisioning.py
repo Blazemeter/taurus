@@ -13,7 +13,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from bzt.utils import get_full_path
-from tests import BZTestCase, __dir__
+from tests import BZTestCase, __dir__, RESOURCES_DIR, BASE_CONFIG
 from tests.mocks import EngineEmul, ModuleMock
 from tests.modules.test_blazemeter import BZMock
 
@@ -21,7 +21,7 @@ from tests.modules.test_blazemeter import BZMock
 class TestCloudProvisioning(BZTestCase):
     @staticmethod
     def __get_user_info():
-        with open(__dir__() + "/../resources/json/blazemeter-api-user.json") as fhd:
+        with open(RESOURCES_DIR + "json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
 
     def setUp(self):
@@ -688,7 +688,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/sessions/s1/reports/logs': {"result": {"data": [
                     {
                         'filename': "artifacts.zip",
-                        'dataUrl': "file://" + __dir__() + '/../resources/artifacts-1.zip'
+                        'dataUrl': "file://" + RESOURCES_DIR + 'artifacts-1.zip'
                     }
                 ]}}
             },
@@ -731,9 +731,7 @@ class TestCloudProvisioning(BZTestCase):
 
         # FIXME: refactor this method!
         self.sniff_log(self.obj.log)
-        self.obj.engine.configure([
-            __dir__() + '/../../bzt/resources/base-config.yml',
-            __dir__() + '/../resources/yaml/resource_files.yml'], read_config_files=False)
+        self.obj.engine.configure([BASE_CONFIG, RESOURCES_DIR + 'yaml/resource_files.yml'], read_config_files=False)
         self.obj.settings = self.obj.engine.config['modules']['cloud']
         self.obj.settings.merge({'delete-test-files': False})
 
@@ -752,7 +750,7 @@ class TestCloudProvisioning(BZTestCase):
                               'fullname': get_full_path(os.path.join('~', _file))}
                              for _file in files_in_home]
 
-            shutil.copyfile(__dir__() + '/../resources/jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
+            shutil.copyfile(RESOURCES_DIR + 'jmeter/jmx/dummy.jmx', files_in_home[0]['fullname'])
 
             dir_path = get_full_path(os.path.join('~', 'example-of-directory'))
             os.mkdir(dir_path)

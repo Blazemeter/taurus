@@ -191,12 +191,12 @@ sudo pip install bzt
 
 ## Docker Image
 
-Taurus has [Docker image](https://hub.docker.com/r/undera/taurus/) that allows you to run tool as container.
+Taurus has [Docker image](https://hub.docker.com/r/blazemeter/taurus/) that allows you to run tool as container.
 
 To use it, create a directory, for example `/tmp/my-test`, put all configs and additional files like JMXses there, then start Docker like this:
 
 ```bash
-sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config.yml
+sudo docker run --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config.yml
 ```
 
 Make note that `/tmp/my-test` was passed in `-v` Docker option, it's crucial. Here's [what happens](https://github.com/Blazemeter/taurus/blob/master/Dockerfile) inside the container:
