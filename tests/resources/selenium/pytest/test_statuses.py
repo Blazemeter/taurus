@@ -13,6 +13,6 @@ def test_broken():
     raise Exception("Ima broke")
 
 
-@pytest.mark.skip(reason="skippy")
 def test_skipped():
+    pytest.skip("yo")
     raise Exception("If you see it - ima broke")

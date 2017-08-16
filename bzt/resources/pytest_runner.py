@@ -82,9 +82,12 @@ class RecordingPlugin(object):
         self._write_stdout_report(label)
         self._sample = None
 
-    def pytest_runtest_makereport(self, item, call, __multicall__):
-        report = __multicall__.execute()
-        print("runtest makereport: %s %s %s" % (item, call, report))
+    @pytest.mark.hookwrapper
+    def pytest_runtest_makereport(self, item, call):
+        outcome = (yield)
+        report = outcome.get_result()
+        print("runtest makereport: %s %s %s" % (item, call.excinfo, report))
+        print("report: skipped=%s failed=%s passed=%s" % (report.skipped, report.failed, report.passed))
         filename, lineno, test_name = report.location
         if report.when == 'call':
             if report.passed:
@@ -92,7 +95,6 @@ class RecordingPlugin(object):
             elif report.failed:
                 self._fill_sample(report, call, item, "FAILED")
             elif report.skipped:
-                import pudb; pudb.set_trace()
                 self._fill_sample(report, call, item, "SKIPPED")
         elif report.when == 'setup':
             if report.failed:
@@ -105,9 +107,10 @@ class RecordingPlugin(object):
                     self._fill_sample(report, call, item, "BROKEN")
                 else:
                     self._sample.status = "BROKEN"
-            if not item.get_marker("unreported") or self._sample.status in ["FAILED", "BROKEN"]:
-                self._report_sample(test_name)
-        return report
+            self._report_sample(test_name)
+
+    def pytest_runtest_logreport(self, report):
+        print(report)
 
 
 def run_pytest(targets, report_path, iteration_limit, duration_limit):
