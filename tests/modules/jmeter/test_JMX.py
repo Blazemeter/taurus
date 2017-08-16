@@ -105,7 +105,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ConcurrencyThreadGroup")
             self.assertEqual("5", group.element.find(".//*[@name='Steps']").text)
-            self.assertEqual("100", group.element.find(".//*[@name='RampUp']").text)
+            self.assertEqual("100.0", group.element.find(".//*[@name='RampUp']").text)
             self.assertEqual("S", group.element.find(".//*[@name='Unit']").text)
             self.assertIn(group.element.find(".//*[@name='Hold']").text, ("", "0"))
 
@@ -126,7 +126,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         res_values = {}
         for group in self.get_groupset():
-            self.assertEqual("70", group.element.find(".//*[@name='Hold']").text)
+            self.assertEqual("70.5", group.element.find(".//*[@name='Hold']").text)
 
             res_values[group.get_testname()] = group.get_concurrency()
 

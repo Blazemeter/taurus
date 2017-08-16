@@ -473,7 +473,6 @@ class JMX(object):
           ThreadGroup.scheduler (need to hold): boolean
           ThreadGroup.duration (rampup + hold): int
           LoopController.loops (iterations): int
-          LoopController.continue_forever: boolean
 
         :return: etree element, ThreadGroup
         """
@@ -481,19 +480,18 @@ class JMX(object):
         if hold or (rampup and not iterations):
             scheduler = True
 
+        concurrency = concurrency or 1
+        rampup = rampup or 0
+        hold = hold or 0
+        duration = duration or 0
+        iterations = iterations or -1
+
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname)
-        if on_error is not None:
+        if on_error:
             trg.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
 
-        loop = etree.Element("elementProp",
-                             name="ThreadGroup.main_controller",
-                             elementType="LoopController",
-                             guiclass="LoopControlPanel",
-                             testclass="LoopController")
-        loop.append(JMX._bool_prop("LoopController.continue_forever", False))  # always false except of root LC
-        loop.append(JMX._string_prop("LoopController.loops", iterations))
-        trg.append(loop)
+        trg.append(JMX._get_loop_controller(iterations))
 
         trg.append(JMX._string_prop("ThreadGroup.num_threads", cond_int(concurrency)))
         trg.append(JMX._string_prop("ThreadGroup.ramp_time", cond_int(rampup)))
@@ -585,6 +583,11 @@ class JMX(object):
 
         :return: etree element, ConcurrencyThreadGroup
         """
+        concurrency = concurrency or 1
+        rampup = rampup or 0
+        hold = hold or 0
+        steps = steps or 0
+
         name = 'com.blazemeter.jmeter.threads.concurrency.ConcurrencyThreadGroup'
         concurrency_thread_group = etree.Element(
             name, guiclass=name + "Gui", testclass=name, testname=testname, enabled="true")
@@ -1038,14 +1041,24 @@ class JMX(object):
 
     @staticmethod
     def _get_loop_controller(loops):
+        """
+        Generates Loop Controller
+
+        Expected values (by JMeter):
+          LoopController.loops (iterations): int
+          LoopController.continue_forever: boolean
+
+        :return: etree element, LoopController
+        """
         if loops == 'forever':
             iterations = -1
         else:
-            iterations = loops
-        controller = etree.Element("LoopController", guiclass="LoopControlPanel", testclass="LoopController",
-                                   testname="Loop Controller")
+            iterations = loops or -1
+
+        controller = etree.Element("LoopController", guiclass="LoopControlPanel",
+                                   testclass="LoopController", testname="Loop Controller")
         controller.append(JMX._bool_prop("LoopController.continue_forever", False))  # always false except of root LC
-        controller.append(JMX._string_prop("LoopController.loops", str(iterations)))
+        controller.append(JMX._string_prop("LoopController.loops", cond_int(iterations)))
         return controller
 
     @staticmethod

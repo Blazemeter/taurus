@@ -185,6 +185,7 @@ class ThreadGroupHandler(object):
                 rampup=load.ramp_up,
                 hold=load.hold,
                 iterations=load.iterations,
+                duration=load.duration,
                 testname=group.get_testname(),
                 on_error=on_error)
         elif target == ConcurrencyThreadGroup.__name__:
