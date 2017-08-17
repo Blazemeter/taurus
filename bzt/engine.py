@@ -963,7 +963,19 @@ class ScenarioExecutor(EngineModule):
                                          hold=hold, iterations=iterations, duration=None, steps=steps)
 
     @staticmethod
-    def _set_load_defaults(load):
+    def weak_conversion(val, private, func, default=None):
+        try:
+            res = func(val)
+        except:
+            if private:
+                res = val   # return pure value
+            else:
+                res = default
+
+        return res
+
+    @staticmethod
+    def _set_load_defaults(load, private):
         """
         Set default values for load params, fill missed params if possible
         """
@@ -992,26 +1004,35 @@ class ScenarioExecutor(EngineModule):
         """
         Check if load params values are allowed for executor
         """
-        msg = ''
-        if not isinstance(load.concurrency, numeric_types + (type(None),)):
-            msg += "Invalid concurrency value[%s]: %s " % (type(load.concurrency).__name__, load.concurrency)
-        if not isinstance(load.throughput, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(load.throughput).__name__, load.throughput)
+        msg = ""
+        if not isinstance(load.concurrency, numeric_types):
+            msg += "Non-numeric concurrency value[%s]: %s " % (type(load.concurrency).__name__, load.concurrency)
+        if not isinstance(load.throughput, numeric_types):
+            msg += "Non-numeric throughput value[%s]: %s " % (type(load.throughput).__name__, load.throughput)
         if not isinstance(load.steps, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(load.steps).__name__, load.steps)
+            msg += "Non-numeric steps value[%s]: %s " % (type(load.steps).__name__, load.steps)
         if not isinstance(load.iterations, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(load.iterations).__name__, load.iterations)
+            msg += "Non-numeric iterations value[%s]: %s " % (type(load.iterations).__name__, load.iterations)
+        if not isinstance(load.hold, numeric_types):
+            msg += "Non-numeric hold value[%s]: %s " % (type(load.hold).__name__, load.hold)
+        if not isinstance(load.ramp_up, numeric_types):
+            msg += "Non-numeric ramp_up value[%s]: %s " % (type(load.ramp_up).__name__, load.ramp_up)
 
-        if msg:
-            raise TaurusConfigError(msg)
+        return msg
 
-    def get_load(self):
+    def get_load(self, private=False):
         """
         Helper method to read load specification
+        :param private: get specific executor data (properties, etc.)
         """
         raw_params = self._read_load()
-        params = self._set_load_defaults(raw_params)
-        self._check_load(params)
+        params = self._set_load_defaults(raw_params, private)
+        err_msg = self._check_load(params)
+        if err_msg:
+            if private:
+                self.log.warning(err_msg)
+            else:
+                raise TaurusConfigError(err_msg)
 
         return params
 

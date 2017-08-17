@@ -481,7 +481,6 @@ class JMX(object):
             scheduler = True
 
         concurrency = concurrency or 1
-        hold = hold or 0
         duration = duration or 0
         iterations = iterations or -1
 

@@ -85,6 +85,20 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.engine.create_artifacts_dir()
         self.obj.prepare()
 
+    def test_prop_rampup(self):
+        self.obj.execution.merge({
+            "concurrency": 10,
+            "ramp-up": "${__P('my_prop')}",
+            "iterations": 100,
+            "scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/two_tg.jmx"}})
+
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
+        selector += '>stringProp[name=ThreadGroup\.ramp_time]'
+        thr = jmx.get(selector)
+        self.assertEquals("${__P('my_prop')}", thr[0].text)
+
     def test_jmx_2tg(self):
         self.obj.execution.merge({
             "concurrency": 1051,
@@ -563,8 +577,8 @@ class TestJMeterExecutor(BZTestCase):
 
         val_strings = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("100", val_strings[0].text)
-        self.assertEqual("100", val_strings[1].text)
+        self.assertEqual("100.0", val_strings[0].text)
+        self.assertEqual("100.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
     def test_add_cookies(self):
@@ -615,13 +629,13 @@ class TestJMeterExecutor(BZTestCase):
         val_strings = coll_elements[0].findall(".//stringProp")
 
         self.assertEqual("1", val_strings[0].text)
-        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("10.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
         val_strings = coll_elements[1].findall(".//stringProp")
 
-        self.assertEqual("10", val_strings[0].text)
-        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("10.0", val_strings[0].text)
+        self.assertEqual("10.0", val_strings[1].text)
         self.assertEqual("120", val_strings[2].text)
 
     def test_user_def_vars_from_requests(self):
