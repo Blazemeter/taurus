@@ -491,7 +491,14 @@ class JMX(object):
         if on_error:
             trg.append(JMX._string_prop("ThreadGroup.on_sample_error", on_error))
 
-        trg.append(JMX._get_loop_controller(iterations))
+        loop = etree.Element("elementProp",
+                             name="ThreadGroup.main_controller",
+                             elementType="LoopController",
+                             guiclass="LoopControlPanel",
+                             testclass="LoopController")
+        loop.append(JMX._bool_prop("LoopController.continue_forever", False))  # always false except of root LC
+        loop.append(JMX._string_prop("LoopController.loops", iterations))
+        trg.append(loop)
 
         trg.append(JMX._string_prop("ThreadGroup.num_threads", cond_int(concurrency)))
         trg.append(JMX._string_prop("ThreadGroup.ramp_time", cond_int(rampup)))
