@@ -955,19 +955,22 @@ class ScenarioExecutor(EngineModule):
         concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, None)
 
         iterations = self.execution.get(ScenarioExecutor.ITRS, None)
-
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
         steps = self.execution.get(ScenarioExecutor.STEPS, None)
         hold = self.execution.get(ScenarioExecutor.HOLD_FOR, None)
+
         return ScenarioExecutor.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput,
                                          hold=hold, iterations=iterations, duration=None, steps=steps)
 
     @staticmethod
     def _set_load_defaults(load):
+        """
+        Set default values for load params, fill missed params if possible
+        """
         throughput = load.throughput or 0
         concurrency = load.concurrency or 0
         hold = load.hold or 0
-        hold = dehumanize_time(load.hold)
+        hold = dehumanize_time(hold)
 
         ramp_up = load.ramp_up
         if ramp_up is None:
@@ -986,8 +989,10 @@ class ScenarioExecutor(EngineModule):
                                          hold=hold, iterations=iterations, duration=duration, steps=steps)
 
     @staticmethod
-    def _check_number_types(load):
-
+    def _check_load(load):
+        """
+        Check if load params values are allowed for executor
+        """
         msg = ''
         if not isinstance(load.concurrency, numeric_types + (type(None),)):
             msg += "Invalid concurrency value[%s]: %s " % (type(load.concurrency).__name__, load.concurrency)
@@ -1007,7 +1012,7 @@ class ScenarioExecutor(EngineModule):
         """
         raw_params = self._read_load()
         params = self._set_load_defaults(raw_params)
-        self._check_number_types(params)
+        self._check_load(params)
 
         return params
 
