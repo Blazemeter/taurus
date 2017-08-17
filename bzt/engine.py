@@ -288,7 +288,7 @@ class Engine(object):
         :raise TaurusInternalException: if no artifacts dir set
         """
         if not self.artifacts_dir:
-            raise TaurusInternalException("Cannot create artifact: no artifacts_dir set up")
+            raise TaurusConfigError("Cannot create artifact: no artifacts_dir set up")
 
         filename = get_uniq_name(self.artifacts_dir, prefix, suffix, self.__artifacts)
         self.__artifacts.append(filename)
@@ -380,9 +380,8 @@ class Engine(object):
         BetterDict.traverse(acopy, Configuration.masq_sensitive)
         self.log.debug("Module config: %s %s", alias, acopy)
 
-        clsname = settings.get('class', None)
-        if clsname is None:
-            raise TaurusConfigError("Class name for alias '%s' is not found in module settings: %s" % (alias, settings))
+        msg = "Class name for alias '%s' is not found in module settings: %s" % (alias, settings)
+        clsname = settings.get('class', TaurusConfigError(msg))
 
         self.modules[alias] = load_class(clsname)
         if not issubclass(self.modules[alias], EngineModule):
@@ -479,12 +478,11 @@ class Engine(object):
 
     def __prepare_provisioning(self):
         """
-        Instantiate provisioning class
+        Instantiate and prepare provisioning
         """
-        cls = self.config.get(Provisioning.PROV, None)
-        if not cls:
-            msg = "Please check global config availability or configure provisioning settings"
-            raise TaurusConfigError(msg)
+        msg = "Please check global config availability or configure provisioning settings"
+        cls = self.config.get(Provisioning.PROV, TaurusConfigError(msg))
+
         self.provisioning = self.instantiate_module(cls)
         self.prepared.append(self.provisioning)
         self.provisioning.prepare()
@@ -820,11 +818,8 @@ class Provisioning(EngineModule):
         esettings = self.engine.config.get(SETTINGS)
         default_executor = esettings.get("default-executor", None)
 
-        exc = TaurusConfigError("No 'execution' is configured. Did you forget to pass config files?")
-        if ScenarioExecutor.EXEC not in self.engine.config:
-            raise exc
-
-        executions = self.engine.config.get(ScenarioExecutor.EXEC, exc)
+        msg = "No 'execution' is configured. Did you forget to pass config files?"
+        executions = self.engine.config.get(ScenarioExecutor.EXEC, TaurusConfigError(msg))
         if not isinstance(executions, list):
             executions = [executions]
 
