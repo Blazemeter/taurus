@@ -246,7 +246,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             else:
                 script_type = 'junit'
         elif '.py' in file_types:
-            script_type = 'pytest'
+            script_type = 'nose'
         elif '.rb' in file_types:
             script_type = 'rspec'
         elif '.js' in file_types:
