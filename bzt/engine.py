@@ -980,7 +980,7 @@ class ScenarioExecutor(EngineModule):
 
     @staticmethod
     def _check_number_types(params):
-        throughput, concurrency, iterations, ramp_up, steps, hold = params
+        throughput, concurrency, iterations, ramp_up, steps, hold, duration = params
         msg = ''
         if not isinstance(concurrency, numeric_types + (type(None),)):
             msg += "Invalid concurrency value[%s]: %s " % (type(concurrency).__name__, concurrency)
