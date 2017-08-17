@@ -368,7 +368,8 @@ class DataLogReader(ResultsReader):
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
                   latency, r_code, error_msg, source_id, bytes_count
         end = time.time()
-        self.log.debug("Log reading speed: %s lines/s", len(lines) / (end - start))
+        if cnt > 0:
+            self.log.debug("Log reading speed: %s lines/s", len(lines) / (end - start))
 
     def __split(self, line):
         if not line.endswith("\n"):
