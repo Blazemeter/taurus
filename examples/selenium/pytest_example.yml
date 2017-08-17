@@ -1,0 +1,5 @@
+execution:
+- executor: pytest
+  iterations: 2
+  scenario:
+    script: pytest_example.py

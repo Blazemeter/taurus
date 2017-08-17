@@ -34,6 +34,8 @@ modules:
     class: bzt.modules.javascript.MochaTester
   nunit:
     class: bzt.modules.csharp.NUnitExecutor
+  pytest:
+    class: bzt.modules.python.PyTestExecutor
 
   # service & infra modules
   local:
