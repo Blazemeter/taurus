@@ -367,8 +367,8 @@ class DataLogReader(ResultsReader):
             source_id = ''  # maybe use worker_id somehow?
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
                   latency, r_code, error_msg, source_id, bytes_count
-        duration = time.time() - start
         if cnt > 0:
+            duration = time.time() - start
             duration = duration if duration > 0.01 else 1
             self.log.debug("Log reading speed: %s lines/s", len(lines) / duration)
 
