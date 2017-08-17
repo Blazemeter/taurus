@@ -3,6 +3,7 @@ Selenium is virtual executor provided you ability to run functional tests locall
 - [JUnit](JUnit.md) (Java)
 - [TestNG](TestNG.md) (Java)
 - [Nose](Nose.md) (Python)
+- [PyTest](PyTest.md) (Python)
 - [RSpec](RSpec.md) (Ruby)
 - [Mocha](Mocha.md) (JavaScript)
 - [NUnit](NUnit.md) (C#)
@@ -43,9 +44,13 @@ Supported values:
 - `junit`: [JUnit](JUnit.md)-based Java tests
 - `testng`: [TestNG](TestNG.md)-based Java tests
 - `nose`: [Nose](Nose.md)-based Python tests
+- `pytest`: [pytest](PyTest.md)-based Python tests
 - `rspec`: [RSpec](RSpec.md)-based Ruby tests
 - `mocha`: [Mocha](Mocha.md)-based JavaScript tests
 - `nunit`: [NUnit](NUnit.md)-based C# tests
+
+Note that automatic detection can't differentiate between `nose` and `pytest`-based test suites,
+so if you want to run `pytest` - you have to specify it as a `runner` explicitly.
 
 Usage:
 ```yaml
