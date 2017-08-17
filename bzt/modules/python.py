@@ -1258,4 +1258,4 @@ class TaurusPytestRunner(RequiredTool):
         super(TaurusPytestRunner, self).__init__("TaurusPytestRunner", tool_path, download_link)
 
     def install(self):
-        raise ToolError("Automatic installation of Taurus py.test plugin isn't implemented")
+        raise ToolError("Automatic installation of Taurus pytest runner isn't implemented")
