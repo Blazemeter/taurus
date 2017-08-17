@@ -943,23 +943,30 @@ class ScenarioExecutor(EngineModule):
 
         return scenario_obj
 
-    def get_load(self):
-        """
-        Helper method to read load specification
-        """
+    def _read_load(self):
         prov_type = self.engine.config.get(Provisioning.PROV)
 
         ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type)
-        throughput = self.execution[ScenarioExecutor.THRPT].get(prov_type, 0)
+        throughput = self.execution[ScenarioExecutor.THRPT].get(prov_type, None)
 
         ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type)
-        concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0)
+        concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, None)
 
         iterations = self.execution.get(ScenarioExecutor.ITRS, None)
 
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
         steps = self.execution.get(ScenarioExecutor.STEPS, None)
-        hold = dehumanize_time(self.execution.get(ScenarioExecutor.HOLD_FOR, 0))
+        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, None)
+        return throughput, concurrency, iterations, ramp_up, steps, hold
+
+    @staticmethod
+    def _set_load_defaults(params):
+        throughput, concurrency, iterations, ramp_up, steps, hold = params
+        throughput = throughput or 0
+        concurrency = concurrency or 0
+        hold = hold or 0
+        hold = dehumanize_time(hold)
+
         if ramp_up is None:
             duration = hold
         else:
@@ -969,6 +976,11 @@ class ScenarioExecutor(EngineModule):
         if duration and not iterations:
             iterations = 0  # which means infinite
 
+        return throughput, concurrency, iterations, ramp_up, steps, hold, duration
+
+    @staticmethod
+    def _check_number_types(params):
+        throughput, concurrency, iterations, ramp_up, steps, hold = params
         msg = ''
         if not isinstance(concurrency, numeric_types + (type(None),)):
             msg += "Invalid concurrency value[%s]: %s " % (type(concurrency).__name__, concurrency)
@@ -982,8 +994,17 @@ class ScenarioExecutor(EngineModule):
         if msg:
             raise TaurusConfigError(msg)
 
-        res = namedtuple("LoadSpec",
-                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
+    def get_load(self):
+        """
+        Helper method to read load specification
+        """
+        params = self._read_load()
+        params = self._set_load_defaults(params)
+        self._check_number_types(params)
+        throughput, concurrency, iterations, ramp_up, steps, hold, duration = params
+
+        res = namedtuple("LoadSpec", (
+            "concurrency", "throughput", "ramp_up", "hold", "iterations", "duration", "steps"))
 
         return res(concurrency=concurrency, ramp_up=ramp_up,
                    throughput=throughput, hold=hold, iterations=iterations,
