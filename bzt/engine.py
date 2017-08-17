@@ -863,6 +863,8 @@ class ScenarioExecutor(EngineModule):
     EXEC = "execution"
     STEPS = "steps"
     ITRS = "iterations"
+    LOAD_FMT = namedtuple("LoadSpec", (
+        "concurrency", "throughput", "ramp_up", "hold", "iterations", "duration", "steps"))
 
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
@@ -957,39 +959,44 @@ class ScenarioExecutor(EngineModule):
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
         steps = self.execution.get(ScenarioExecutor.STEPS, None)
         hold = self.execution.get(ScenarioExecutor.HOLD_FOR, None)
-        return throughput, concurrency, iterations, ramp_up, steps, hold
+        return ScenarioExecutor.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput,
+                                         hold=hold, iterations=iterations, duration=None, steps=steps)
 
     @staticmethod
-    def _set_load_defaults(params):
-        throughput, concurrency, iterations, ramp_up, steps, hold = params
-        throughput = throughput or 0
-        concurrency = concurrency or 0
-        hold = hold or 0
-        hold = dehumanize_time(hold)
+    def _set_load_defaults(load):
+        throughput = load.throughput or 0
+        concurrency = load.concurrency or 0
+        hold = load.hold or 0
+        hold = dehumanize_time(load.hold)
 
+        ramp_up = load.ramp_up
         if ramp_up is None:
             duration = hold
         else:
             ramp_up = dehumanize_time(ramp_up)
             duration = hold + ramp_up
 
+        iterations = load.iterations
         if duration and not iterations:
             iterations = 0  # which means infinite
 
-        return throughput, concurrency, iterations, ramp_up, steps, hold, duration
+        steps = load.steps
+
+        return ScenarioExecutor.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput,
+                                         hold=hold, iterations=iterations, duration=duration, steps=steps)
 
     @staticmethod
-    def _check_number_types(params):
-        throughput, concurrency, iterations, ramp_up, steps, hold, duration = params
+    def _check_number_types(load):
+
         msg = ''
-        if not isinstance(concurrency, numeric_types + (type(None),)):
-            msg += "Invalid concurrency value[%s]: %s " % (type(concurrency).__name__, concurrency)
-        if not isinstance(throughput, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(throughput).__name__, throughput)
-        if not isinstance(steps, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(steps).__name__, steps)
-        if not isinstance(iterations, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(iterations).__name__, iterations)
+        if not isinstance(load.concurrency, numeric_types + (type(None),)):
+            msg += "Invalid concurrency value[%s]: %s " % (type(load.concurrency).__name__, load.concurrency)
+        if not isinstance(load.throughput, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(load.throughput).__name__, load.throughput)
+        if not isinstance(load.steps, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(load.steps).__name__, load.steps)
+        if not isinstance(load.iterations, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(load.iterations).__name__, load.iterations)
 
         if msg:
             raise TaurusConfigError(msg)
@@ -998,17 +1005,11 @@ class ScenarioExecutor(EngineModule):
         """
         Helper method to read load specification
         """
-        params = self._read_load()
-        params = self._set_load_defaults(params)
+        raw_params = self._read_load()
+        params = self._set_load_defaults(raw_params)
         self._check_number_types(params)
-        throughput, concurrency, iterations, ramp_up, steps, hold, duration = params
 
-        res = namedtuple("LoadSpec", (
-            "concurrency", "throughput", "ramp_up", "hold", "iterations", "duration", "steps"))
-
-        return res(concurrency=concurrency, ramp_up=ramp_up,
-                   throughput=throughput, hold=hold, iterations=iterations,
-                   duration=duration, steps=steps)
+        return params
 
     def get_resource_files(self):
         files_list = []
