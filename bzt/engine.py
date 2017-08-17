@@ -969,15 +969,14 @@ class ScenarioExecutor(EngineModule):
         """
         throughput = load.throughput or 0
         concurrency = load.concurrency or 0
+
         hold = load.hold or 0
         hold = dehumanize_time(hold)
 
-        ramp_up = load.ramp_up
-        if ramp_up is None:
-            duration = hold
-        else:
-            ramp_up = dehumanize_time(ramp_up)
-            duration = hold + ramp_up
+        ramp_up = load.ramp_up or 0
+        ramp_up = dehumanize_time(ramp_up)
+
+        duration = hold + ramp_up
 
         iterations = load.iterations
         if duration and not iterations:

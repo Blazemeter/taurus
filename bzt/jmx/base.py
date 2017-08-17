@@ -481,7 +481,6 @@ class JMX(object):
             scheduler = True
 
         concurrency = concurrency or 1
-        rampup = rampup or 0
         hold = hold or 0
         duration = duration or 0
         iterations = iterations or -1
@@ -591,7 +590,6 @@ class JMX(object):
         :return: etree element, ConcurrencyThreadGroup
         """
         concurrency = concurrency or 1
-        rampup = rampup or 0
         hold = hold or 0
         steps = steps or 0
 
