@@ -875,3 +875,43 @@ class TestPyTestExecutor(BZTestCase):
             report = [json.loads(line) for line in fds.readlines() if line]
         self.assertEqual(4, len(report))
         self.assertEqual(["PASSED", "FAILED", "FAILED", "SKIPPED"], [item["status"] for item in report])
+
+    def test_iterations(self):
+        self.obj.execution.merge({
+            "iterations": 10,
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        with open(self.obj.report_file) as fds:
+            report = [json.loads(line) for line in fds.readlines() if line]
+        self.assertEqual(10, len(report))
+        self.assertTrue(all(item["status"] == "PASSED" for item in report))
+
+    def test_hold(self):
+        self.obj.execution.merge({
+            "hold-for": "3s",
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
+            }
+        })
+        self.obj.prepare()
+        try:
+            start_time = time.time()
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+            end_time = time.time()
+        self.obj.post_process()
+        duration = end_time - start_time
+        self.assertGreaterEqual(duration, 3.0)
