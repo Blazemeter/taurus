@@ -862,6 +862,7 @@ class ScenarioExecutor(EngineModule):
     THRPT = "throughput"
     EXEC = "execution"
     STEPS = "steps"
+    ITRS = "iterations"
 
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
@@ -954,7 +955,7 @@ class ScenarioExecutor(EngineModule):
         ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type)
         concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0)
 
-        iterations = self.execution.get("iterations", None)
+        iterations = self.execution.get(ScenarioExecutor.ITRS, None)
 
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
         steps = self.execution.get(ScenarioExecutor.STEPS, None)
