@@ -178,7 +178,7 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual(group.gtype, "ThreadGroup")
             self.assertEqual("${__P(c)}", group.element.find(".//*[@name='ThreadGroup.num_threads']").text)
             self.assertEqual("${__P(i)}", group.element.find(".//*[@name='LoopController.loops']").text)
-            self.assertEqual(str(sys.maxint), group.element.find(".//*[@name='ThreadGroup.duration']").text)
+            self.assertEqual(str(sys.maxsize), group.element.find(".//*[@name='ThreadGroup.duration']").text)
 
     def test_TG_prop_rh(self):
         """ ThreadGroup: properties in ramp-up, hold-for """
@@ -192,7 +192,7 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual(group.gtype, "ThreadGroup")
             self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
             self.assertEqual("${__P(r)}", group.element.find(".//*[@name='ThreadGroup.ramp_time']").text)
-            self.assertEqual(str(sys.maxint), group.element.find(".//*[@name='ThreadGroup.duration']").text)
+            self.assertEqual(str(sys.maxsize), group.element.find(".//*[@name='ThreadGroup.duration']").text)
 
     def test_CTG_h(self):
         """ ConcurrencyThreadGroup: hold-for """

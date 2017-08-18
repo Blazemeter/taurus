@@ -496,7 +496,7 @@ class JMX(object):
         if isinstance(rampup, numeric_types) and isinstance(hold, numeric_types):
             duration = hold + rampup
         else:
-            duration = sys.maxint
+            duration = sys.maxsize
 
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname)
