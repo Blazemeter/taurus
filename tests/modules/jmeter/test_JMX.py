@@ -124,7 +124,6 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.configure(load={'ramp-up': '${__P(r)}', 'steps': '${__P(s)}'},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
-        self.sniff_log(self.obj.log)
 
         self.obj.modify(self.jmx)
 
@@ -139,12 +138,39 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1})
 
+    def test_CTG_prop_trh(self):
+        """ ConcurrencyThreadGroup: properties in throughput, ramp-up, hold-for """
+        self.configure(load={'ramp-up': '${__P(r)}', 'throughput': '${__P(t)}', 'hold-for': '${__P(h)}'},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
+        self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
+
+        self.obj.modify(self.jmx)
+
+        shaper_elements = self.jmx.get("kg\.apc\.jmeter\.timers\.VariableThroughputTimer")
+        self.assertEqual(1, len(shaper_elements))
+
+        shaper_collection = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
+        coll_elements = shaper_collection.findall(".//collectionProp")
+
+        self.assertEqual(2, len(coll_elements))
+
+        strings0 = coll_elements[0].findall(".//stringProp")
+
+        self.assertEqual("1", strings0[0].text)
+        self.assertEqual("${__P(t)}", strings0[1].text)
+        self.assertEqual("${__P(r)}", strings0[2].text)
+
+        strings1 = coll_elements[1].findall(".//stringProp")
+
+        self.assertEqual("${__P(t)}", strings1[0].text)
+        self.assertEqual("${__P(t)}", strings1[1].text)
+        self.assertEqual("${__P(h)}", strings1[2].text)
+
     def test_TG_prop_cih(self):
         """ ThreadGroup: properties in concurrency, hold-for, iterations """
         self.configure(load={'concurrency': '${__P(c)}', 'hold-for': '${__P(h)}', 'iterations': '${__P(i)}'},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)
-        self.sniff_log(self.obj.log)
 
         self.obj.modify(self.jmx)
 
@@ -159,7 +185,6 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.configure(load={'ramp-up': '${__P(r)}', 'hold-for': '${__P(h)}'},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx', has_ctg=False)
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)
-        self.sniff_log(self.obj.log)
 
         self.obj.modify(self.jmx)
 
