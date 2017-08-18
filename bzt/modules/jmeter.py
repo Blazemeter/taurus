@@ -135,7 +135,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def _try_convert(val, func, default=None):
         try:
             res = func(val)
-        except:
+        except (ValueError, TaurusInternalException):
             if default is not None:
                 res = default
             else:
