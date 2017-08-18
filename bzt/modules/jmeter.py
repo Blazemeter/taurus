@@ -87,32 +87,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         Helper method to read load specification
         """
-        prov_type = self.engine.config.get(Provisioning.PROV)
+        load = self.get_specific_load()
 
-        ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type)
-        throughput = self.execution[ScenarioExecutor.THRPT].get(prov_type, 0)
+        throughput = load.throughput
+        concurrency = load.concurrency
+        iterations = load.iterations
+        steps = load.steps
+        hold = load.hold
 
-        ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type)
-        concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0)
-
-        iterations = self.execution.get("iterations", None)
-
-        steps = self.execution.get(ScenarioExecutor.STEPS, None)
-
-        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, 0)
-        try:
-            hold = dehumanize_time(hold)
-        except:
-            hold = 0
+        self._try_convert(hold, dehumanize_time, 0)
 
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
         if ramp_up is None:
             duration = hold
         else:
-            try:
-                ramp_up = dehumanize_time(ramp_up)
-            except:
-                ramp_up = 0
+            ramp_up = self._try_convert(ramp_up, dehumanize_time, 0)
 
             duration = hold + ramp_up
 
@@ -129,25 +118,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if msg:
             self.log.warning(msg)
 
-        try:
-            throughput = float(throughput)
-        except:
-            throughput = 0
+        throughput = self._try_convert(throughput, float, 0)
 
-        try:
-            concurrency = int(concurrency)
-        except:
-            concurrency = 1
+        concurrency = self._try_convert(concurrency, int, 1)
 
-        try:
-            iterations = int(iterations)
-        except:
-            iterations = 0
+        iterations = self._try_convert(iterations, int, 0)
 
-        try:
-            steps = int(steps)
-        except:
-            steps = 0
+        steps = self._try_convert(steps, int, 0)
 
         if duration and not iterations:
             iterations = 0  # which means infinite
@@ -158,6 +135,18 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         return res(concurrency=concurrency, ramp_up=ramp_up,
                    throughput=throughput, hold=hold, iterations=iterations,
                    duration=duration, steps=steps)
+
+    @staticmethod
+    def _try_convert(val, func, default=None):
+        try:
+            res = func(val)
+        except:
+            if default is not None:
+                res = default
+            else:
+                res = val
+
+        return res
 
     def get_specific_load(self):
         """
@@ -176,57 +165,26 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         steps = self.execution.get(ScenarioExecutor.STEPS, None)
 
         hold = self.execution.get(ScenarioExecutor.HOLD_FOR, 0)
-        try:
-            hold = dehumanize_time(hold)
-        except:
-            pass
+        hold = self._try_convert(hold, dehumanize_time)
 
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
         if ramp_up is None:
             duration = hold
         else:
-            try:
-                ramp_up = dehumanize_time(ramp_up)
-            except:
-                pass
+            ramp_up = self._try_convert(ramp_up, dehumanize_time)
 
             if isinstance(ramp_up, numeric_types) and isinstance(hold, numeric_types):
                 duration = hold + ramp_up
             else:
                 duration = 0
 
-        msg = ''
-        if not isinstance(concurrency, numeric_types + (type(None),)):
-            msg += "Invalid concurrency value[%s]: %s " % (type(concurrency).__name__, concurrency)
-        if not isinstance(throughput, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(throughput).__name__, throughput)
-        if not isinstance(steps, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(steps).__name__, steps)
-        if not isinstance(iterations, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(iterations).__name__, iterations)
+        throughput = self._try_convert(throughput, float)
 
-        if msg:
-            self.log.warning(msg)
+        concurrency = self._try_convert(concurrency, int)
 
-        try:
-            throughput = float(throughput)
-        except:
-            pass
+        iterations = self._try_convert(iterations, int)
 
-        try:
-            concurrency = int(concurrency)
-        except:
-            pass
-
-        try:
-            iterations = int(iterations)
-        except:
-            pass
-
-        try:
-            steps = int(steps)
-        except:
-            pass
+        steps = self._try_convert(steps, int)
 
         if duration and not iterations:
             iterations = 0  # which means infinite
