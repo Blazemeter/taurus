@@ -85,7 +85,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.engine.create_artifacts_dir()
         self.obj.prepare()
 
-    def test_prop_rampup(self):
+    def test1_prop_rampup(self):
         self.obj.execution.merge({
             "concurrency": 10,
             "ramp-up": "${__P('my_prop')}",
