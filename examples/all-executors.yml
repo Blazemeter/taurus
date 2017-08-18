@@ -172,3 +172,9 @@ execution:
   scenario:
     script: selenium/nunit/AssemblyDemo/NUnitSuite.dll
 
+- executor: pytest
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: selenium/pytest/test_simple.py
