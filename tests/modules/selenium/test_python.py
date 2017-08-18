@@ -1,10 +1,11 @@
+import json
 import os
 import time
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader
-from bzt.modules.python import NoseTester
+from bzt.modules.python import NoseTester, PyTestExecutor
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
@@ -827,3 +828,126 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.log.info(test_script)
         self.assertIn("'/?rs={}'.format(apiritif.random_string(3))", test_script)
         self.assertIn("'/?rs={}'.format(apiritif.random_string(4, 'abcdef'))", test_script)
+
+
+class TestPyTestExecutor(BZTestCase):
+    def setUp(self):
+        super(TestPyTestExecutor, self).setUp()
+        self.obj = PyTestExecutor()
+        self.obj.engine = EngineEmul()
+
+    def configure(self, config):
+        self.obj.engine.config.merge(config)
+        self.obj.execution = self.obj.engine.config["execution"][0]
+
+    def test_full_single_script(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+
+    def test_statuses(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        with open(self.obj.report_file) as fds:
+            report = [json.loads(line) for line in fds.readlines() if line]
+        self.assertEqual(4, len(report))
+        self.assertEqual(["PASSED", "FAILED", "FAILED", "SKIPPED"], [item["status"] for item in report])
+
+    def test_iterations(self):
+        self.obj.execution.merge({
+            "iterations": 10,
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        with open(self.obj.report_file) as fds:
+            report = [json.loads(line) for line in fds.readlines() if line]
+        self.assertEqual(10, len(report))
+        self.assertTrue(all(item["status"] == "PASSED" for item in report))
+
+    def test_hold(self):
+        self.obj.execution.merge({
+            "hold-for": "3s",
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
+            }
+        })
+        self.obj.prepare()
+        try:
+            start_time = time.time()
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+            end_time = time.time()
+        self.obj.post_process()
+        duration = end_time - start_time
+        self.assertGreaterEqual(duration, 3.0)
+
+    def test_blazedemo(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/test_blazedemo.py"
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        with open(self.obj.report_file) as fds:
+            report = [json.loads(line) for line in fds.readlines() if line]
+        self.assertEqual(2, len(report))
+
+    def test_package(self):
+        self.obj.execution.merge({
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/pytest/"
+            }
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        with open(self.obj.report_file) as fds:
+            report = [json.loads(line) for line in fds.readlines() if line]
+        self.assertEqual(7, len(report))

@@ -6,7 +6,7 @@ install:
   - choco install firefox -version 54.0
   - "%PYTHON%\\python.exe -m pip install nose nose-exclude"
   - "%PYTHON%\\python.exe -m pip install colorlog pyyaml jsonpath-rw psutil!=4.4.0 lxml==3.4.2 cssselect urwid six progressbar33 locustio pyvirtualdisplay astunparse ipaddress"
-  - "%PYTHON%\\python.exe -m pip install selenium"
+  - "%PYTHON%\\python.exe -m pip install selenium pytest"
   - "%PYTHON%\\python.exe -m pip install https://github.com/Blazemeter/apiritif/archive/master.zip"
   - set PATH=C:\Ruby22\bin;%PATH%
 
