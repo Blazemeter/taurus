@@ -467,13 +467,14 @@ class JMX(object):
         """
         Generates ThreadGroup
 
-        :param concurrency:
-        :param rampup:
-        :param hold:
-        :param iterations:
-        :param testname:
-        :param on_error:
-        :return:
+        Expected values (by JMeter):
+            ThreadGroup.num_threads (concurrency): int
+            ThreadGroup.ramp_time (rampup): int
+            ThreadGroup.scheduler (need to hold): boolean
+            ThreadGroup.duration (rampup + hold): int
+            LoopController.loops (iterations): int
+
+        :return: etree element, ThreadGroup
         """
         if not rampup:
             rampup = 0
@@ -494,7 +495,7 @@ class JMX(object):
         if isinstance(rampup, numeric_types) and isinstance(hold, numeric_types):
             duration = hold + rampup
         else:
-            duration = 0
+            duration = 1
 
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname)
@@ -537,11 +538,11 @@ class JMX(object):
     def add_rps_shaper_schedule(self, shaper_etree, start_rps, end_rps, duration):
         """
         Adds schedule to rps shaper
-        :param shaper_etree:
-        :param start_rps:
-        :param end_rps:
-        :param duration:
-        :return:
+
+        Expected values (by JMeter):
+            <first> ('start_rps'): float
+            <second> ('end_rps'): float
+            <third> ('duration'): int
         """
         shaper_collection = shaper_etree.find(".//collectionProp[@name='load_profile']")
         coll_prop = self._collection_prop("1817389797")
@@ -584,6 +585,14 @@ class JMX(object):
     def get_concurrency_thread_group(
             concurrency=None, rampup=0, hold=0, steps=None, on_error="continue", testname="ConcurrencyThreadGroup"):
         """
+        Generates ConcurrencyThreadGroup
+
+        Expected values (by JMeter):
+            Targetlevel (concurrency): int
+            RampUp (rampup): float
+            Steps (steps): boolean
+            Hold (hold): float
+
         :return: etree element, Concurrency Thread Group
         """
         if not rampup:
@@ -1048,6 +1057,15 @@ class JMX(object):
 
     @staticmethod
     def _get_loop_controller(loops):
+        """
+        Generates Loop Controller
+
+        Expected values(by JMeter):
+            LoopController.loops(iterations): int
+            LoopController.continue_forever: boolean
+
+        :return: etree element, LoopController
+        """
         if loops == 'forever':
             iterations = -1
         else:

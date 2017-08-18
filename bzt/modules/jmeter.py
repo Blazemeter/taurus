@@ -94,16 +94,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         iterations = load.iterations
         steps = load.steps
         hold = load.hold
+        ramp_up = load.ramp_up
+        duration = load.duration
 
         self._try_convert(hold, dehumanize_time, 0)
 
-        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
-        if ramp_up is None:
-            duration = hold
-        else:
+        if ramp_up is not None:
             ramp_up = self._try_convert(ramp_up, dehumanize_time, 0)
 
-            duration = hold + ramp_up
+        duration = self._try_convert(duration, int, 1)
 
         msg = ''
         if not isinstance(concurrency, numeric_types + (type(None),)):
@@ -120,7 +119,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         throughput = self._try_convert(throughput, float, 0)
 
-        concurrency = self._try_convert(concurrency, int, 1)
+        concurrency = self._try_convert(concurrency, int, 0)
 
         iterations = self._try_convert(iterations, int, 0)
 
@@ -129,12 +128,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if duration and not iterations:
             iterations = 0  # which means infinite
 
-        res = namedtuple("LoadSpec",
-                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
-
-        return res(concurrency=concurrency, ramp_up=ramp_up,
-                   throughput=throughput, hold=hold, iterations=iterations,
-                   duration=duration, steps=steps)
+        return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
+                             iterations=iterations, duration=duration, steps=steps)
 
     @staticmethod
     def _try_convert(val, func, default=None):
@@ -176,7 +171,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if isinstance(ramp_up, numeric_types) and isinstance(hold, numeric_types):
                 duration = hold + ramp_up
             else:
-                duration = 0
+                duration = 1
 
         throughput = self._try_convert(throughput, float)
 
@@ -189,12 +184,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if duration and not iterations:
             iterations = 0  # which means infinite
 
-        res = namedtuple("LoadSpec",
-                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
-
-        return res(concurrency=concurrency, ramp_up=ramp_up,
-                   throughput=throughput, hold=hold, iterations=iterations,
-                   duration=duration, steps=steps)
+        return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
+                             iterations=iterations, duration=duration, steps=steps)
 
     def get_scenario(self, name=None, cache_scenario=True):
         scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
