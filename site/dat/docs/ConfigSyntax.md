@@ -65,7 +65,7 @@ Important to know that merging happens _before_ any default value or shorthand r
 
 ## Modules Settings
 
-Module settings section is dictionary, having module aliases as keys and setting dictionaries as values. Module settings are specific to every module, the only common option is `class`, containing full python class name as value. Module aliases are used to refer from reporting settings, tool executors and many other places. In fact, everything in Taurus is implemented through modules and engine has no dependencies to specific module implementations, everything is config-driven.
+The Module Settings section is a dictionary, having module aliases as keys and setting dictionaries as values. Module settings are specific to every module, the only common option is `class`, containing full python class name as value. Module aliases are used to refer from reporting settings, tool executors and many other places. In fact, everything in Taurus is implemented through modules and engine has no dependencies to specific module implementations, everything is config-driven.
 
 The shorthand is to specify module class string instead of settings dictionary, Taurus will expand it into dict automatically. For example,
 
