@@ -491,6 +491,11 @@ class JMX(object):
         if hold or (rampup and not iterations):
             scheduler = True
 
+        if isinstance(rampup, numeric_types) and isinstance(hold, numeric_types):
+            duration = hold + rampup
+        else:
+            duration = 0
+
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname)
         if on_error is not None:
@@ -509,7 +514,7 @@ class JMX(object):
         trg.append(JMX._string_prop("ThreadGroup.start_time", ""))
         trg.append(JMX._string_prop("ThreadGroup.end_time", ""))
         trg.append(JMX._bool_prop("ThreadGroup.scheduler", scheduler))
-        trg.append(JMX._string_prop("ThreadGroup.duration", rampup + hold))
+        trg.append(JMX._string_prop("ThreadGroup.duration", duration))
 
         return trg
 

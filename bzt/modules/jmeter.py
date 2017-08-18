@@ -32,16 +32,16 @@ from itertools import dropwhile
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable, Provisioning
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
-from bzt.utils import shell_exec, BetterDict, guess_csv_dialect
+from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
 
@@ -82,6 +82,161 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.stdout_file = None
         self.stderr_file = None
         self.tool = None
+
+    def get_load(self):
+        """
+        Helper method to read load specification
+        """
+        prov_type = self.engine.config.get(Provisioning.PROV)
+
+        ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type)
+        throughput = self.execution[ScenarioExecutor.THRPT].get(prov_type, 0)
+
+        ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type)
+        concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0)
+
+        iterations = self.execution.get("iterations", None)
+
+        steps = self.execution.get(ScenarioExecutor.STEPS, None)
+
+        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, 0)
+        try:
+            hold = dehumanize_time(hold)
+        except:
+            hold = 0
+
+        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
+        if ramp_up is None:
+            duration = hold
+        else:
+            try:
+                ramp_up = dehumanize_time(ramp_up)
+            except:
+                ramp_up = 0
+
+            duration = hold + ramp_up
+
+        msg = ''
+        if not isinstance(concurrency, numeric_types + (type(None),)):
+            msg += "Invalid concurrency value[%s]: %s " % (type(concurrency).__name__, concurrency)
+        if not isinstance(throughput, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(throughput).__name__, throughput)
+        if not isinstance(steps, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(steps).__name__, steps)
+        if not isinstance(iterations, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(iterations).__name__, iterations)
+
+        if msg:
+            self.log.warning(msg)
+
+        try:
+            throughput = float(throughput)
+        except:
+            throughput = 0
+
+        try:
+            concurrency = int(concurrency)
+        except:
+            concurrency = 1
+
+        try:
+            iterations = int(iterations)
+        except:
+            iterations = 0
+
+        try:
+            steps = int(steps)
+        except:
+            steps = 0
+
+        if duration and not iterations:
+            iterations = 0  # which means infinite
+
+        res = namedtuple("LoadSpec",
+                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
+
+        return res(concurrency=concurrency, ramp_up=ramp_up,
+                   throughput=throughput, hold=hold, iterations=iterations,
+                   duration=duration, steps=steps)
+
+    def get_specific_load(self):
+        """
+        Helper method to read load specification
+        """
+        prov_type = self.engine.config.get(Provisioning.PROV)
+
+        ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type)
+        throughput = self.execution[ScenarioExecutor.THRPT].get(prov_type, 0)
+
+        ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type)
+        concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0)
+
+        iterations = self.execution.get("iterations", None)
+
+        steps = self.execution.get(ScenarioExecutor.STEPS, None)
+
+        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, 0)
+        try:
+            hold = dehumanize_time(hold)
+        except:
+            pass
+
+        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
+        if ramp_up is None:
+            duration = hold
+        else:
+            try:
+                ramp_up = dehumanize_time(ramp_up)
+            except:
+                pass
+
+            if isinstance(ramp_up, numeric_types) and isinstance(hold, numeric_types):
+                duration = hold + ramp_up
+            else:
+                duration = 0
+
+        msg = ''
+        if not isinstance(concurrency, numeric_types + (type(None),)):
+            msg += "Invalid concurrency value[%s]: %s " % (type(concurrency).__name__, concurrency)
+        if not isinstance(throughput, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(throughput).__name__, throughput)
+        if not isinstance(steps, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(steps).__name__, steps)
+        if not isinstance(iterations, numeric_types + (type(None),)):
+            msg += "Invalid throughput value[%s]: %s " % (type(iterations).__name__, iterations)
+
+        if msg:
+            self.log.warning(msg)
+
+        try:
+            throughput = float(throughput)
+        except:
+            pass
+
+        try:
+            concurrency = int(concurrency)
+        except:
+            pass
+
+        try:
+            iterations = int(iterations)
+        except:
+            pass
+
+        try:
+            steps = int(steps)
+        except:
+            pass
+
+        if duration and not iterations:
+            iterations = 0  # which means infinite
+
+        res = namedtuple("LoadSpec",
+                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
+
+        return res(concurrency=concurrency, ramp_up=ramp_up,
+                   throughput=throughput, hold=hold, iterations=iterations,
+                   duration=duration, steps=steps)
 
     def get_scenario(self, name=None, cache_scenario=True):
         scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
