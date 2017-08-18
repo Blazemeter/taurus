@@ -18,6 +18,7 @@ limitations under the License.
 import logging
 import os
 import traceback
+import sys
 
 from cssselect import GenericTranslator
 
@@ -495,7 +496,7 @@ class JMX(object):
         if isinstance(rampup, numeric_types) and isinstance(hold, numeric_types):
             duration = hold + rampup
         else:
-            duration = 1
+            duration = sys.maxint
 
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname)

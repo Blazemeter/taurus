@@ -24,7 +24,7 @@ from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
 from bzt.jmx import JMX
 from bzt.requests_model import RequestVisitor
-from bzt.six import etree, iteritems
+from bzt.six import etree, iteritems, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, get_host_ips, get_full_path, guess_csv_dialect
 
 
@@ -245,10 +245,15 @@ class LoadSettingsProcessor(object):
 
         # IMPORTANT: fix groups order as changing of element type changes order of getting of groups
         groups = list(self.tg_handler.groups(jmx))
-        target_list = zip(groups, self._get_concurrencies(groups))
 
-        for group, concurrency in target_list:
-            self.tg_handler.convert(group=group, target=self.tg, load=self.load, concurrency=concurrency)
+        if self.load.concurrency and not isinstance(self.load.concurrency, numeric_types):  # property found
+            for group in groups:
+                self.tg_handler.convert(group=group, target=self.tg, load=self.load, concurrency=self.load.concurrency)
+        else:
+            target_list = zip(groups, self._get_concurrencies(groups))
+
+            for group, concurrency in target_list:
+                self.tg_handler.convert(group=group, target=self.tg, load=self.load, concurrency=concurrency)
 
         if self.load.throughput:
             self._add_shaper(jmx)

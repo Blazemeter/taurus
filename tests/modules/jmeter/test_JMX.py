@@ -1,9 +1,11 @@
 # coding=utf-8
+import sys
 import logging
 
-from bzt.engine import Engine, ScenarioExecutor, Provisioning
+from bzt.engine import Engine, Provisioning
 from bzt.jmx import JMX, LoadSettingsProcessor
 from tests import BZTestCase, RESOURCES_DIR
+from bzt.modules.jmeter import JMeterExecutor
 
 
 class MockReqTool(object):
@@ -14,7 +16,7 @@ class MockReqTool(object):
         return self.has_ctg
 
 
-class MockExecutor(ScenarioExecutor):
+class MockExecutor(JMeterExecutor):
     def __init__(self, load=None, settings=None, has_ctg=None):
         super(MockExecutor, self).__init__()
         if load is None: load = {}
@@ -116,6 +118,56 @@ class TestLoadSettingsProcessor(BZTestCase):
                           'CTG.02': {'conc': 21, 'on_error': 'stopthread'},
                           'STG.03': {'conc': 28, 'on_error': 'stoptest'},
                           'UTG.04': {'conc': 7, 'on_error': 'stoptestnow'}})
+
+    def test_CTG_prop_rs(self):
+        """ ConcurrencyThreadGroup: properties in ramp-up, steps """
+        self.configure(load={'ramp-up': '${__P(r)}', 'steps': '${__P(s)}'},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
+        self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
+        self.sniff_log(self.obj.log)
+
+        self.obj.modify(self.jmx)
+
+        res_values = {}
+        for group in self.get_groupset():
+            self.assertEqual(group.gtype, "ConcurrencyThreadGroup")
+            self.assertEqual("${__P(s)}", group.element.find(".//*[@name='Steps']").text)
+            self.assertEqual("${__P(r)}", group.element.find(".//*[@name='RampUp']").text)
+            self.assertIn(group.element.find(".//*[@name='Hold']").text, ("", "0"))
+
+            res_values[group.get_testname()] = group.get_concurrency()
+
+        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1})
+
+    def test_TG_prop_cih(self):
+        """ ThreadGroup: properties in concurrency, hold-for, iterations """
+        self.configure(load={'concurrency': '${__P(c)}', 'hold-for': '${__P(h)}', 'iterations': '${__P(i)}'},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)
+        self.sniff_log(self.obj.log)
+
+        self.obj.modify(self.jmx)
+
+        for group in self.get_groupset():
+            self.assertEqual(group.gtype, "ThreadGroup")
+            self.assertEqual("${__P(c)}", group.element.find(".//*[@name='ThreadGroup.num_threads']").text)
+            self.assertEqual("${__P(i)}", group.element.find(".//*[@name='LoopController.loops']").text)
+            self.assertEqual(str(sys.maxint), group.element.find(".//*[@name='ThreadGroup.duration']").text)
+
+    def test_TG_prop_rh(self):
+        """ ThreadGroup: properties in ramp-up, hold-for """
+        self.configure(load={'ramp-up': '${__P(r)}', 'hold-for': '${__P(h)}'},
+                       jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx', has_ctg=False)
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)
+        self.sniff_log(self.obj.log)
+
+        self.obj.modify(self.jmx)
+
+        for group in self.get_groupset():
+            self.assertEqual(group.gtype, "ThreadGroup")
+            self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
+            self.assertEqual("${__P(r)}", group.element.find(".//*[@name='ThreadGroup.ramp_time']").text)
+            self.assertEqual(str(sys.maxint), group.element.find(".//*[@name='ThreadGroup.duration']").text)
 
     def test_CTG_h(self):
         """ ConcurrencyThreadGroup: hold-for """
