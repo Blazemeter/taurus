@@ -18,7 +18,6 @@ limitations under the License.
 import logging
 import os
 import traceback
-import sys
 
 from cssselect import GenericTranslator
 
@@ -477,11 +476,8 @@ class JMX(object):
 
         :return: etree element, ThreadGroup
         """
-        if not rampup:
-            rampup = 0
-
-        rampup = cond_int(rampup)
-        hold = cond_int(hold)
+        rampup = cond_int(rampup or 0)
+        hold = cond_int(hold or 0)
 
         if not concurrency:
             concurrency = 1
@@ -493,10 +489,14 @@ class JMX(object):
         if hold or (rampup and not iterations):
             scheduler = True
 
-        if isinstance(rampup, numeric_types) and isinstance(hold, numeric_types):
+        if not hold:
+            duration = rampup
+        elif not rampup:
+            duration = hold
+        elif isinstance(rampup, numeric_types) and isinstance(hold, numeric_types):
             duration = hold + rampup
         else:
-            duration = sys.maxsize
+            duration = "${__jexl3(%s+%s)}" % (rampup, hold)
 
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname)

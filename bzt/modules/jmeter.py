@@ -132,14 +132,25 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                              iterations=iterations, duration=duration, steps=steps)
 
     @staticmethod
+    def _get_prop_default(val):
+        comma_ind = val.index(",")
+        if val.startswith("${") and val.endswith(")}") and comma_ind > -1:
+            return val[comma_ind + 1: -2]
+        else:
+            return None
+
+    @staticmethod
     def _try_convert(val, func, default=None):
-        try:
-            res = func(val)
-        except (ValueError, TypeError, TaurusInternalException):
-            if default is not None:
-                res = default
+        if val is None:
+            res = val
+        elif isinstance(val, string_types) and val.startswith('$'):   # it's property...
+            if default:
+                val = JMeterExecutor._get_prop_default(val) or default
+                res = func(val)
             else:
                 res = val
+        else:
+            res = func(val)
 
         return res
 
