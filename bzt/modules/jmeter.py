@@ -133,7 +133,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     @staticmethod
     def _get_prop_default(val):
-        comma_ind = val.index(",")
+        comma_ind = val.find(",")
         if val.startswith("${") and val.endswith(")}") and comma_ind > -1:
             return val[comma_ind + 1: -2]
         else:
@@ -174,15 +174,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         hold = self._try_convert(hold, dehumanize_time)
 
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
-        if ramp_up is None:
-            duration = hold
-        else:
-            ramp_up = self._try_convert(ramp_up, dehumanize_time)
+        ramp_up = self._try_convert(ramp_up, dehumanize_time)
 
-            if isinstance(ramp_up, numeric_types) and isinstance(hold, numeric_types):
-                duration = hold + ramp_up
-            else:
-                duration = 1
+        if not hold:
+            duration = ramp_up
+        elif not ramp_up:
+            duration = hold
+        elif isinstance(ramp_up, numeric_types) and isinstance(hold, numeric_types):
+            duration = hold + ramp_up
+        else:
+            duration = 1        # dehumanize_time(<sum_of_props>) can be unpredictable so we use default there
 
         throughput = self._try_convert(throughput, float)
 
@@ -278,9 +279,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 flags["sentBytes"] = True
             self.settings.merge({"xml-jtl-flags": flags})
 
-        load = self.get_load()
-
-        modified = self.__get_modified_jmx(self.original_jmx, load, is_jmx_generated)
+        modified = self.__get_modified_jmx(self.original_jmx, is_jmx_generated)
         self.modified_jmx = self.__save_modified_jmx(modified, self.original_jmx, is_jmx_generated)
 
         self.__set_jmeter_properties(scenario)
@@ -564,14 +563,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.log.debug("Enforcing parent sample for transaction controller")
             jmx.set_text('TransactionController > boolProp[name="TransactionController.parent"]', 'true')
 
-    def __get_modified_jmx(self, original, load, is_jmx_generated):
+    def __get_modified_jmx(self, original, is_jmx_generated):
         """
         add two listeners to test plan:
             - to collect basic stats for KPIs
             - to collect detailed errors/trace info
         :return: path to artifact
         """
-        self.log.debug("Load: %s", load)
+        self.log.debug("Load: %s", self.get_specific_load())
         jmx = JMX(original)
 
         if self.get_scenario().get("disable-listeners", not self.settings.get("gui", False)):
