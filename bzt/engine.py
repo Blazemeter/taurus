@@ -288,7 +288,7 @@ class Engine(object):
         :raise TaurusInternalException: if no artifacts dir set
         """
         if not self.artifacts_dir:
-            raise TaurusInternalException("Cannot create artifact: no artifacts_dir set up")
+            raise TaurusConfigError("Cannot create artifact: no artifacts_dir set up")
 
         filename = get_uniq_name(self.artifacts_dir, prefix, suffix, self.__artifacts)
         self.__artifacts.append(filename)
@@ -380,9 +380,8 @@ class Engine(object):
         BetterDict.traverse(acopy, Configuration.masq_sensitive)
         self.log.debug("Module config: %s %s", alias, acopy)
 
-        clsname = settings.get('class', None)
-        if clsname is None:
-            raise TaurusConfigError("Class name for alias '%s' is not found in module settings: %s" % (alias, settings))
+        msg = "Class name for alias '%s' is not found in module settings: %s" % (alias, settings)
+        clsname = settings.get('class', TaurusConfigError(msg))
 
         self.modules[alias] = load_class(clsname)
         if not issubclass(self.modules[alias], EngineModule):
@@ -479,12 +478,11 @@ class Engine(object):
 
     def __prepare_provisioning(self):
         """
-        Instantiate provisioning class
+        Instantiate and prepare provisioning
         """
-        cls = self.config.get(Provisioning.PROV, None)
-        if not cls:
-            msg = "Please check global config availability or configure provisioning settings"
-            raise TaurusConfigError(msg)
+        msg = "Please check global config availability or configure provisioning settings"
+        cls = self.config.get(Provisioning.PROV, TaurusConfigError(msg))
+
         self.provisioning = self.instantiate_module(cls)
         self.prepared.append(self.provisioning)
         self.provisioning.prepare()
@@ -820,11 +818,8 @@ class Provisioning(EngineModule):
         esettings = self.engine.config.get(SETTINGS)
         default_executor = esettings.get("default-executor", None)
 
-        exc = TaurusConfigError("No 'execution' is configured. Did you forget to pass config files?")
-        if ScenarioExecutor.EXEC not in self.engine.config:
-            raise exc
-
-        executions = self.engine.config.get(ScenarioExecutor.EXEC, exc)
+        msg = "No 'execution' is configured. Did you forget to pass config files?"
+        executions = self.engine.config.get(ScenarioExecutor.EXEC, TaurusConfigError(msg))
         if not isinstance(executions, list):
             executions = [executions]
 
@@ -867,6 +862,9 @@ class ScenarioExecutor(EngineModule):
     THRPT = "throughput"
     EXEC = "execution"
     STEPS = "steps"
+    ITRS = "iterations"
+    LOAD_FMT = namedtuple("LoadSpec", (
+        "concurrency", "throughput", "ramp_up", "hold", "iterations", "duration", "steps"))
 
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
@@ -947,51 +945,96 @@ class ScenarioExecutor(EngineModule):
 
         return scenario_obj
 
-    def get_load(self):
-        """
-        Helper method to read load specification
-        """
+    def _read_load(self):
         prov_type = self.engine.config.get(Provisioning.PROV)
 
         ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type)
-        throughput = self.execution[ScenarioExecutor.THRPT].get(prov_type, 0)
+        throughput = self.execution[ScenarioExecutor.THRPT].get(prov_type, None)
 
         ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type)
-        concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0)
+        concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, None)
 
-        iterations = self.execution.get("iterations", None)
-
+        iterations = self.execution.get(ScenarioExecutor.ITRS, None)
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
         steps = self.execution.get(ScenarioExecutor.STEPS, None)
-        hold = dehumanize_time(self.execution.get(ScenarioExecutor.HOLD_FOR, 0))
-        if ramp_up is None:
-            duration = hold
-        else:
-            ramp_up = dehumanize_time(ramp_up)
-            duration = hold + ramp_up
+        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, None)
 
+        return ScenarioExecutor.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput,
+                                         hold=hold, iterations=iterations, duration=None, steps=steps)
+
+    @staticmethod
+    def weak_conversion(val, private, func, default=None):
+        try:
+            res = func(val)
+        except:
+            if private:
+                res = val   # return pure value
+            else:
+                res = default
+
+        return res
+
+    @staticmethod
+    def _set_load_defaults(load, private):
+        """
+        Set default values for load params, fill missed params if possible
+        """
+        throughput = load.throughput or 0
+        concurrency = load.concurrency or 0
+
+        hold = load.hold or 0
+        hold = dehumanize_time(hold)
+
+        ramp_up = load.ramp_up or 0
+        ramp_up = dehumanize_time(ramp_up)
+
+        duration = hold + ramp_up
+
+        iterations = load.iterations
         if duration and not iterations:
             iterations = 0  # which means infinite
 
-        msg = ''
-        if not isinstance(concurrency, numeric_types + (type(None),)):
-            msg += "Invalid concurrency value[%s]: %s " % (type(concurrency).__name__, concurrency)
-        if not isinstance(throughput, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(throughput).__name__, throughput)
-        if not isinstance(steps, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(steps).__name__, steps)
-        if not isinstance(iterations, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(iterations).__name__, iterations)
+        steps = load.steps
 
-        if msg:
-            raise TaurusConfigError(msg)
+        return ScenarioExecutor.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput,
+                                         hold=hold, iterations=iterations, duration=duration, steps=steps)
 
-        res = namedtuple("LoadSpec",
-                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
+    @staticmethod
+    def _check_load(load):
+        """
+        Check if load params values are allowed for executor
+        """
+        msg = ""
+        if not isinstance(load.concurrency, numeric_types):
+            msg += "Non-numeric concurrency value[%s]: %s " % (type(load.concurrency).__name__, load.concurrency)
+        if not isinstance(load.throughput, numeric_types):
+            msg += "Non-numeric throughput value[%s]: %s " % (type(load.throughput).__name__, load.throughput)
+        if not isinstance(load.steps, numeric_types + (type(None),)):
+            msg += "Non-numeric steps value[%s]: %s " % (type(load.steps).__name__, load.steps)
+        if not isinstance(load.iterations, numeric_types + (type(None),)):
+            msg += "Non-numeric iterations value[%s]: %s " % (type(load.iterations).__name__, load.iterations)
+        if not isinstance(load.hold, numeric_types):
+            msg += "Non-numeric hold value[%s]: %s " % (type(load.hold).__name__, load.hold)
+        if not isinstance(load.ramp_up, numeric_types):
+            msg += "Non-numeric ramp_up value[%s]: %s " % (type(load.ramp_up).__name__, load.ramp_up)
 
-        return res(concurrency=concurrency, ramp_up=ramp_up,
-                   throughput=throughput, hold=hold, iterations=iterations,
-                   duration=duration, steps=steps)
+        return msg
+
+    def get_load(self, private=False):
+        """
+        Helper method to read load specification
+        :param private: get specific executor data (properties, etc.)
+        """
+        raw_params = self._read_load()
+        params = self._set_load_defaults(raw_params, private)
+        err_msg = self._check_load(params)
+        if err_msg:
+            if private:
+                self.log.warning(err_msg)
+            else:
+                raise TaurusConfigError(err_msg)
+
+        return params
 
     def get_resource_files(self):
         files_list = []

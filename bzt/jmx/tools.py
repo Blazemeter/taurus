@@ -185,6 +185,7 @@ class ThreadGroupHandler(object):
                 rampup=load.ramp_up,
                 hold=load.hold,
                 iterations=load.iterations,
+                duration=load.duration,
                 testname=group.get_testname(),
                 on_error=on_error)
         elif target == ConcurrencyThreadGroup.__name__:
@@ -208,7 +209,8 @@ class LoadSettingsProcessor(object):
 
     def __init__(self, executor):
         self.log = executor.log.getChild(self.__class__.__name__)
-        self.load = executor.get_load()
+        self.load = executor.get_load(private=True)
+        self.log.debug("Load: %s", self.load)
         self.tg = self._detect_thread_group(executor)
         self.tg_handler = ThreadGroupHandler(self.log)
 

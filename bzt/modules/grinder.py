@@ -258,8 +258,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             else:
                 label = None
             self.widget = ExecutorWidget(self, label)
-            if self.get_load().ramp_up:
-                self.widget.duration += self.get_load().ramp_up  # because we have ramp-down equal to rampup
+            self.widget.duration += self.get_load().ramp_up  # because we have ramp-down equal to rampup
         return self.widget
 
     def resource_files(self):

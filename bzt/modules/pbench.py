@@ -212,16 +212,14 @@ class PBenchTool(object):
 
     @staticmethod
     def _estimate_schedule_size_rps(load, payload_count):
-        ramp_up = load.ramp_up if load.ramp_up else 0.0
-
         iterations = float(load.iterations or "inf")
         iteration_limit_items = iterations * payload_count
 
         if load.iterations:
-            whole_rampup_items = ramp_up * load.throughput / 2.0
+            whole_rampup_items = load.ramp_up * load.throughput / 2.0
             rampup_items = min(iteration_limit_items, whole_rampup_items)
         else:
-            rampup_items = ramp_up * load.throughput / 2.0
+            rampup_items = load.ramp_up * load.throughput / 2.0
 
         rampup_iterations = rampup_items / payload_count
 
@@ -243,12 +241,10 @@ class PBenchTool(object):
 
     @staticmethod
     def _estimate_schedule_size_conc(load, payload_count):
-        ramp_up = load.ramp_up if load.ramp_up else 0.0
-
         if load.iterations:
             return load.iterations * payload_count
         else:
-            if ramp_up:
+            if load.ramp_up:
                 instances = float(load.concurrency) if load.concurrency else 1.0
                 concurrency_iterations = instances / payload_count
                 upper_iteration_limit = int(concurrency_iterations) + 2
@@ -501,7 +497,7 @@ class Scheduler(object):
 
         self.concurrency = load.concurrency if load.concurrency is not None else 1
 
-        self.step_len = load.ramp_up / load.steps if load.steps and load.ramp_up else 0
+        self.step_len = 1.0 * load.ramp_up / load.steps if load.steps else 0
         if load.throughput:
             self.ramp_up_slope = load.throughput / load.ramp_up if load.ramp_up else 0
             self.step_size = float(load.throughput) / load.steps if load.steps else 0
@@ -571,7 +567,7 @@ class Scheduler(object):
             step = math.floor(self.count / self.step_size)
             return step * self.step_len
         else:  # ramp-up case
-            return self.count * self.load.ramp_up / self.concurrency
+            return 1.0 * self.count * self.load.ramp_up / self.concurrency
 
     def __get_time_offset_rps(self):
         if not self.load.ramp_up or self.time_offset > self.load.ramp_up:

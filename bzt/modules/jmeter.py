@@ -39,9 +39,9 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
-from bzt.utils import shell_exec, BetterDict, guess_csv_dialect
+from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, dehumanize_time
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
 
@@ -82,6 +82,35 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.stdout_file = None
         self.stderr_file = None
         self.tool = None
+
+    @staticmethod
+    def _set_load_defaults(load, private):
+        """
+        Set default values for load params, fill missed params if possible
+        """
+        throughput = ScenarioExecutor.weak_conversion(load.throughput or 0, private, float, 0.0)
+        concurrency = ScenarioExecutor.weak_conversion(load.concurrency or 0, private, int, 0)
+
+        hold = ScenarioExecutor.weak_conversion(load.hold or 0, private, dehumanize_time, 1)
+        ramp_up = ScenarioExecutor.weak_conversion(load.ramp_up or 0, private, dehumanize_time, 1)
+
+        if isinstance(ramp_up, numeric_types) and isinstance(hold, numeric_types):
+            duration = hold + ramp_up
+        elif ramp_up or hold:
+            duration = 1       # todo: maxint?
+        else:
+            duration = 0
+
+        # todo: weak conversion
+        iterations = load.iterations
+        if duration and not iterations:
+            iterations = 0  # which means infinite
+
+        # todo: weak conversion
+        steps = load.steps
+
+        return ScenarioExecutor.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput,
+                                         hold=hold, iterations=iterations, duration=duration, steps=steps)
 
     def get_scenario(self, name=None, cache_scenario=True):
         scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
@@ -163,9 +192,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 flags["sentBytes"] = True
             self.settings.merge({"xml-jtl-flags": flags})
 
-        load = self.get_load()
-
-        modified = self.__get_modified_jmx(self.original_jmx, load, is_jmx_generated)
+        modified = self.__get_modified_jmx(self.original_jmx, is_jmx_generated)
         self.modified_jmx = self.__save_modified_jmx(modified, self.original_jmx, is_jmx_generated)
 
         self.__set_jmeter_properties(scenario)
@@ -449,14 +476,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.log.debug("Enforcing parent sample for transaction controller")
             jmx.set_text('TransactionController > boolProp[name="TransactionController.parent"]', 'true')
 
-    def __get_modified_jmx(self, original, load, is_jmx_generated):
+    def __get_modified_jmx(self, original, is_jmx_generated):
         """
         add two listeners to test plan:
             - to collect basic stats for KPIs
             - to collect detailed errors/trace info
         :return: path to artifact
         """
-        self.log.debug("Load: %s", load)
         jmx = JMX(original)
 
         if self.get_scenario().get("disable-listeners", not self.settings.get("gui", False)):
