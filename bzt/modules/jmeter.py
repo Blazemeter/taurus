@@ -95,14 +95,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         steps = load.steps
         hold = load.hold
         ramp_up = load.ramp_up
-        duration = load.duration
 
-        self._try_convert(hold, dehumanize_time, 0)
+        hold = self._try_convert(hold, dehumanize_time, 0)
+        duration = hold
 
         if ramp_up is not None:
             ramp_up = self._try_convert(ramp_up, dehumanize_time, 0)
-
-        duration = self._try_convert(duration, int, 1)
+            duration += ramp_up
 
         msg = ''
         if not isinstance(concurrency, numeric_types + (type(None),)):
@@ -144,7 +143,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if val is None:
             res = val
         elif isinstance(val, string_types) and val.startswith('$'):   # it's property...
-            if default:
+            if default is not None:
                 val = JMeterExecutor._get_prop_default(val) or default
                 res = func(val)
             else:

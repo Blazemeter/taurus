@@ -496,7 +496,7 @@ class JMX(object):
         elif isinstance(rampup, numeric_types) and isinstance(hold, numeric_types):
             duration = hold + rampup
         else:
-            duration = "${__jexl3(%s+%s)}" % (rampup, hold)
+            duration = "${__jexl2(%s+%s)}" % (rampup, hold)
 
         trg = etree.Element("ThreadGroup", guiclass="ThreadGroupGui",
                             testclass="ThreadGroup", testname=testname)
