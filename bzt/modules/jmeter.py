@@ -185,11 +185,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             duration = 1        # dehumanize_time(<sum_of_props>) can be unpredictable so we use default there
 
         throughput = self._try_convert(throughput, float)
-
         concurrency = self._try_convert(concurrency, int)
-
         iterations = self._try_convert(iterations, int)
-
         steps = self._try_convert(steps, int)
 
         if duration and not iterations:
