@@ -191,7 +191,7 @@ class TestLoadSettingsProcessor(BZTestCase):
             self.assertEqual(group.gtype, "ThreadGroup")
             self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)
             self.assertEqual("${__P(r)}", group.element.find(".//*[@name='ThreadGroup.ramp_time']").text)
-            self.assertEqual("${__jexl2(${__P(r)}+${__P(h)})}",
+            self.assertEqual("${__intSum(${__P(r)},${__P(h)})}",
                              group.element.find(".//*[@name='ThreadGroup.duration']").text)
 
     def test_CTG_h(self):
