@@ -32,16 +32,16 @@ from itertools import dropwhile
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable, Provisioning
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode
+from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
-from bzt.utils import shell_exec, BetterDict, guess_csv_dialect
+from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
 
@@ -82,6 +82,115 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.stdout_file = None
         self.stderr_file = None
         self.tool = None
+
+    def get_load(self):
+        """
+        Helper method to read load specification
+        """
+        load = self.get_specific_load()
+
+        throughput = load.throughput
+        concurrency = load.concurrency
+        iterations = load.iterations
+        steps = load.steps
+        hold = load.hold
+        ramp_up = load.ramp_up
+
+        hold = self._try_convert(hold, dehumanize_time, 0)
+        duration = hold
+
+        if ramp_up is not None:
+            ramp_up = self._try_convert(ramp_up, dehumanize_time, 0)
+            duration += ramp_up
+
+        msg = ''
+        if not isinstance(concurrency, numeric_types + (type(None),)):
+            msg += "\nNon-integer concurrency value [%s]: %s " % (type(concurrency).__name__, concurrency)
+        if not isinstance(throughput, numeric_types + (type(None),)):
+            msg += "\nNon-integer throughput value [%s]: %s " % (type(throughput).__name__, throughput)
+        if not isinstance(steps, numeric_types + (type(None),)):
+            msg += "\nNon-integer steps value [%s]: %s " % (type(steps).__name__, steps)
+        if not isinstance(iterations, numeric_types + (type(None),)):
+            msg += "\nNon-integer iterations value [%s]: %s " % (type(iterations).__name__, iterations)
+
+        if msg:
+            self.log.warning(msg)
+
+        throughput = self._try_convert(throughput, float, 0)
+        concurrency = self._try_convert(concurrency, int, 0)
+        iterations = self._try_convert(iterations, int, 0)
+        steps = self._try_convert(steps, int, 0)
+
+        if duration and not iterations:
+            iterations = 0  # which means infinite
+
+        return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
+                             iterations=iterations, duration=duration, steps=steps)
+
+    @staticmethod
+    def _get_prop_default(val):
+        comma_ind = val.find(",")
+        if val.startswith("${") and val.endswith(")}") and comma_ind > -1:
+            return val[comma_ind + 1: -2]
+        else:
+            return None
+
+    @staticmethod
+    def _try_convert(val, func, default=None):
+        if val is None:
+            res = val
+        elif isinstance(val, string_types) and val.startswith('$'):   # it's property...
+            if default is not None:
+                val = JMeterExecutor._get_prop_default(val) or default
+                res = func(val)
+            else:
+                res = val
+        else:
+            res = func(val)
+
+        return res
+
+    def get_specific_load(self):
+        """
+        Helper method to read load specification
+        """
+        prov_type = self.engine.config.get(Provisioning.PROV)
+
+        ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type)
+        throughput = self.execution[ScenarioExecutor.THRPT].get(prov_type, 0)
+
+        ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type)
+        concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0)
+
+        iterations = self.execution.get("iterations", None)
+
+        steps = self.execution.get(ScenarioExecutor.STEPS, None)
+
+        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, 0)
+        hold = self._try_convert(hold, dehumanize_time)
+
+        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
+        ramp_up = self._try_convert(ramp_up, dehumanize_time)
+
+        if not hold:
+            duration = ramp_up
+        elif not ramp_up:
+            duration = hold
+        elif isinstance(ramp_up, numeric_types) and isinstance(hold, numeric_types):
+            duration = hold + ramp_up
+        else:
+            duration = 1        # dehumanize_time(<sum_of_props>) can be unpredictable so we use default there
+
+        throughput = self._try_convert(throughput, float)
+        concurrency = self._try_convert(concurrency, int)
+        iterations = self._try_convert(iterations, int)
+        steps = self._try_convert(steps, int)
+
+        if duration and not iterations:
+            iterations = 0  # which means infinite
+
+        return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
+                             iterations=iterations, duration=duration, steps=steps)
 
     def get_scenario(self, name=None, cache_scenario=True):
         scenario_obj = super(JMeterExecutor, self).get_scenario(name=name, cache_scenario=False)
@@ -163,9 +272,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 flags["sentBytes"] = True
             self.settings.merge({"xml-jtl-flags": flags})
 
-        load = self.get_load()
-
-        modified = self.__get_modified_jmx(self.original_jmx, load, is_jmx_generated)
+        modified = self.__get_modified_jmx(self.original_jmx, is_jmx_generated)
         self.modified_jmx = self.__save_modified_jmx(modified, self.original_jmx, is_jmx_generated)
 
         self.__set_jmeter_properties(scenario)
@@ -449,14 +556,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.log.debug("Enforcing parent sample for transaction controller")
             jmx.set_text('TransactionController > boolProp[name="TransactionController.parent"]', 'true')
 
-    def __get_modified_jmx(self, original, load, is_jmx_generated):
+    def __get_modified_jmx(self, original, is_jmx_generated):
         """
         add two listeners to test plan:
             - to collect basic stats for KPIs
             - to collect detailed errors/trace info
         :return: path to artifact
         """
-        self.log.debug("Load: %s", load)
+        self.log.debug("Load: %s", self.get_specific_load())
         jmx = JMX(original)
 
         if self.get_scenario().get("disable-listeners", not self.settings.get("gui", False)):
