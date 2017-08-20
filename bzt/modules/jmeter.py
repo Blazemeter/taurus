@@ -117,11 +117,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.log.warning(msg)
 
         throughput = self._try_convert(throughput, float, 0)
-
         concurrency = self._try_convert(concurrency, int, 0)
-
         iterations = self._try_convert(iterations, int, 0)
-
         steps = self._try_convert(steps, int, 0)
 
         if duration and not iterations:
