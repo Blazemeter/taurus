@@ -54,7 +54,7 @@ class JMX(object):
 
             test_plan = etree.Element("TestPlan", guiclass="TestPlanGui",
                                       testname=test_plan_name,
-                                      testclass="TestPlan")
+                                      testclass="TestPlan", enabled="true")
 
             htree = etree.Element("hashTree")
             htree.append(test_plan)
