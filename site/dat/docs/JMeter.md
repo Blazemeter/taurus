@@ -11,7 +11,7 @@ modules:
   jmeter:
     path: ~/.bzt/jmeter-taurus/bin/jmeter
     download-link: https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip
-    version: 3.0
+    version: 3.0  # minimal supported version of JMeter is 2.9
     force-ctg: true   # true by default
     plugins:
     - jpgc-json=2.2
