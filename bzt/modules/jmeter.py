@@ -105,13 +105,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         msg = ''
         if not isinstance(concurrency, numeric_types + (type(None),)):
-            msg += "Invalid concurrency value[%s]: %s " % (type(concurrency).__name__, concurrency)
+            msg += "\nNon-integer concurrency value [%s]: %s " % (type(concurrency).__name__, concurrency)
         if not isinstance(throughput, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(throughput).__name__, throughput)
+            msg += "\nNon-integer throughput value [%s]: %s " % (type(throughput).__name__, throughput)
         if not isinstance(steps, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(steps).__name__, steps)
+            msg += "\nNon-integer steps value [%s]: %s " % (type(steps).__name__, steps)
         if not isinstance(iterations, numeric_types + (type(None),)):
-            msg += "Invalid throughput value[%s]: %s " % (type(iterations).__name__, iterations)
+            msg += "\nNon-integer iterations value [%s]: %s " % (type(iterations).__name__, iterations)
 
         if msg:
             self.log.warning(msg)
