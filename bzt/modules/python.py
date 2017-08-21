@@ -17,6 +17,7 @@ import ast
 import copy
 import os
 import re
+import shlex
 import sys
 from abc import abstractmethod
 from collections import OrderedDict
@@ -1190,12 +1191,19 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         super(PyTestExecutor, self).__init__()
         self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "pytest_runner.py")
         self._tailer = NoneTailer()
+        self._additional_args = []
 
     def prepare(self):
         self.install_required_tools()
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("'script' should be present for pytest executor")
+
+        scenario = self.get_scenario()
+        if "additional-args" in scenario:
+            argv = scenario.get("additional-args")
+            self._additional_args = shlex.split(argv)
+
         self.reporting_setup(suffix=".ldjson")
 
     def __is_verbose(self):
@@ -1221,6 +1229,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
+        cmdline += self._additional_args
 
         load = self.get_load()
         if load.iterations:
