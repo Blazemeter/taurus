@@ -66,7 +66,7 @@ scenarios:
         my-hostname: www.prod.com
         log_level.jmeter: DEBUG
 ```
-You can use properties in different parts of JMeter parameters to tune your script behaviour. Variables are more static things and can be used on scenario level only.
+You can use properties in different parts of JMeter parameters to tune your script behaviour:
 ```yaml
 execution:
 - concurrency: ${__P(my_conc,3)}    # use `my_conc` prop or default=3 if property isn't found
@@ -83,12 +83,26 @@ modules:
 scenarios:
   with_prop:
     requests:
-    - http://blazedemo.com/${sub_dir}
-    - https://blazemeter.com/${sub_dir}
+    - http://blazedemo.com/${__P(sub_dir)}
+    - https://blazemeter.com/${__P(sub_dir)}
     properties:
       my_hold: 15   # scenario-level property has priority
+      sub_dir: contacts
+```
+One of the most advantage of properties is ability to change it run-time. Variables are more static things and can be used on scenario level only:
+```yaml
+scenarios:
+  sc_with_vars:
     variables:
-      sub_dir: contacts     # variable, can be used in scenario only
+      subdir: contacts
+      ref: http://gettaurus.org
+    requests:
+    - url: http://blazedemo.com/${subdir}
+      headers:
+        Referer: ${ref}
+    - url: https://blazemeter.com/${subdir}
+      headers:
+        Referer: ${ref}
 ```
 
 ## Open JMeter GUI
