@@ -89,7 +89,7 @@ scenarios:
       my_hold: 15   # scenario-level property has priority
       sub_dir: contacts
 ```
-One of the most advantage of properties is ability to change it run-time. Variables are more static things and can be used on scenario level only:
+Usage of variables are similar but they can be used on scenario level only:
 ```yaml
 scenarios:
   sc_with_vars:
