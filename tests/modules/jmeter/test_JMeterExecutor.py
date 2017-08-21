@@ -22,13 +22,25 @@ from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 
 
+class MockJMeter(JMeterExecutor):
+    def __init__(self):
+        super(MockJMeter, self).__init__()
+        self.mock_install = False
+        self.version = None
+
+    def install_required_tools(self):
+        if self.mock_install:
+            self.version = self.settings.get('version')
+        else:
+            super(MockJMeter, self).install_required_tools()
+
+
 def get_jmeter():
     path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
-    obj = JMeterExecutor()
+    obj = MockJMeter()
     obj.engine = EngineEmul()
     obj.settings.merge({'path': path, 'force-ctg': False})
     return obj
-
 
 def get_jmeter_executor_vars():
     return (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
@@ -2101,6 +2113,42 @@ class TestJMeterExecutor(BZTestCase):
                             logging.getLogger(''))
         samples = list(obj.read(last_pass=True))
         self.assertNotEqual(len(samples), 0)
+
+    def test_detect_ver_empty(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "requests": [
+                    "http://example.com/"]}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.mock_install = True
+        self.obj.prepare()
+        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+
+    def test_detect_ver_wrong(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.mock_install = True
+        self.obj.prepare()
+        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+
+    def test_detect_ver_2_13(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.mock_install = True
+        self.obj.prepare()
+        self.assertEqual("2.13", self.obj.version)
+
+    def test_no_detect_2_13(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
+        self.obj.mock_install = True
+        self.obj.prepare()
+        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
 
     def test_jsr223_block(self):
         script = RESOURCES_DIR + "/jmeter/jsr223_script.js"

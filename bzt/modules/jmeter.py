@@ -268,7 +268,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         is_jmx_generated = False
 
         self.original_jmx = self.get_script_path()
-        if self.settings.get("version", "auto") == "auto":
+        if self.settings.get("version", self.JMETER_VER) == "auto":
             self.settings["version"] = self._get_tool_version(self.original_jmx)
         self.install_required_tools()
 
@@ -836,7 +836,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if not tool.check_if_installed():
                 tool.install()
 
-        jmeter_version = self.settings.get("version")
+        jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
         jmeter_path = get_full_path(jmeter_path)
         download_link = self.settings.get("download-link", None)
