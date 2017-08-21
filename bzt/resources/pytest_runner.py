@@ -17,7 +17,7 @@ import json
 import sys
 import time
 import traceback
-from optparse import OptionParser
+from optparse import OptionParser, BadOptionError, AmbiguousOptionError
 
 import pytest
 
@@ -108,14 +108,14 @@ class RecordingPlugin(object):
             self._report_sample(test_name)
 
 
-def run_pytest(targets, report_path, iteration_limit, duration_limit):
+def run_pytest(argv, report_path, iteration_limit, duration_limit):
     plugin = RecordingPlugin(report_path)
     plugin.prepare()
     start_time = int(time.time())
     iteration = 0
     try:
         while True:
-            pytest.main(['-s'] + targets, plugins=[plugin])
+            pytest.main(['-s'] + argv, plugins=[plugin])
             iteration += 1
             if 0 < duration_limit < int(time.time()) - start_time:
                 break
@@ -127,8 +127,20 @@ def run_pytest(targets, report_path, iteration_limit, duration_limit):
             raise ValueError("Nothing to test. No tests were found.")
 
 
+class SkippingUnknownOptionParser(OptionParser):
+    """
+    An unknown option pass-through implementation of OptionParser.
+    """
+    def _process_args(self, largs, rargs, values):
+        while rargs:
+            try:
+                OptionParser._process_args(self,largs,rargs,values)
+            except (BadOptionError, AmbiguousOptionError) as e:
+                largs.append(e.opt_str)
+
+
 if __name__ == '__main__':
-    parser = OptionParser()
+    parser = SkippingUnknownOptionParser()
     parser.add_option('-r', '--report-file', action='store', default='report.ldjson')
     parser.add_option('-i', '--iterations', action='store', default=0)
     parser.add_option('-d', '--duration', action='store', default=0)
