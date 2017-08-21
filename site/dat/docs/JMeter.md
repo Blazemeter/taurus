@@ -18,13 +18,17 @@ modules:
     - jmeter-ftp
     - jpgc-casutg
 ```
-`plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only 
+`force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group
+provide `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default)
+
+With `version` parameter you can ask for specific tool version or use autodetect with `auto` value. In that case
+ taurus will analyze content of jmx file and try to guess appropriate the JMeter version.
+
+`plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only
 following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json, 
 jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. 
 If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.
 
-`force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group 
-provide `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default) 
 
 ## Run Existing JMX File
 ```yaml

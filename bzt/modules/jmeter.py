@@ -237,6 +237,19 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         return scenario_name, merged_scenario
 
+    @staticmethod
+    def _get_tool_version(jmx_file):
+        jmx = JMX(jmx_file)
+        selector = 'jmeterTestPlan'
+        test_plan = jmx.get(selector)[0]
+        ver = test_plan.get('jmeter')
+        if isinstance(ver, string_types):
+            index = ver.find(" ")
+            if index != -1:
+                return ver[:index]
+
+        return JMeterExecutor.JMETER_VER
+
     def prepare(self):
         """
         Preparation for JMeter involves either getting existing JMX
@@ -250,12 +263,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
-        self.install_required_tools()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
 
         is_jmx_generated = False
 
         self.original_jmx = self.get_script_path()
+        if self.settings.get("version", self.JMETER_VER) == "auto":
+            self.settings["version"] = self._get_tool_version(self.original_jmx)
+        self.install_required_tools()
+
         if not self.original_jmx:
             if scenario.get("requests"):
                 self.original_jmx = self.__jmx_from_requests()
