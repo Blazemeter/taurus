@@ -21,8 +21,8 @@ modules:
 `force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group
 provide `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default)
 
-With `version` parameter you can ask for specific tool version. Default value is `auto`, it means taurus will choose
-appropriate JMeter version by itself.
+With `version` parameter you can ask for specific tool version or use autodetect with `auto` value. In that case
+ taurus will analyze content of jmx file and try to guess appropriate the JMeter version.
 
 `plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only
 following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json, 
