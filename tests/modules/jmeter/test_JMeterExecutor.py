@@ -187,18 +187,18 @@ class TestJMeterExecutor(BZTestCase):
                                             "delimiter": ","}]}})
         self.obj.prepare()
 
-    def test_datasources_jmeter_var(self):
+    def test1_datasources_jmeter_var(self):
         self.obj.execution.merge({"scenario":
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
-                                           {"path": "${some_jmeter_variable}"}]}})
+                                           {"path": "/before/${some_jmeter_variable}/after"}]}})
         self.obj.prepare()
 
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         elements = xml_tree.findall(".//CSVDataSet[@testclass='CSVDataSet']")
         self.assertEqual(1, len(elements))
         element = elements[0]
-        self.assertEqual("${some_jmeter_variable}", element.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("/before/${some_jmeter_variable}/after", element.find(".//stringProp[@name='filename']").text)
         self.assertEqual(",", element.find(".//stringProp[@name='delimiter']").text)
 
     def test_datasources_wrong_path(self):

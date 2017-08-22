@@ -708,10 +708,10 @@ class JMeterScenarioBuilder(JMX):
             source = ensure_is_dict(sources, idx, "path")
             source_path = source["path"]
 
-            jmeter_var_pattern = re.compile("^\$\{.*\}$")
+            jmeter_var_pattern = re.compile("\${.*\}")
             delimiter = source.get('delimiter', None)
 
-            if jmeter_var_pattern.match(source_path):
+            if jmeter_var_pattern.search(source_path):
                 self.log.warning('JMeter variable "%s" found, check of file existence is impossible', source_path)
                 if not delimiter:
                     self.log.warning('CSV dialect detection impossible, default delimiter selected (",")')
