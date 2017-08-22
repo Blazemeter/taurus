@@ -380,7 +380,7 @@ class TestJMeterExecutor(BZTestCase):
         new_implementation = "org.apache.jmeter.protocol.http.control.HC4CookieHandler"
         self.assertEqual(resource_elements[0].text, new_implementation)
 
-    def test1_cookiemanager_3_2_bug_jmx(self):
+    def test_cookiemanager_3_2_bug_jmx(self):
         """ specify implementation of CookieManager for existing jmx """
         self.configure({
             'execution': {
