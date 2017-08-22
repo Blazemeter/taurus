@@ -187,7 +187,7 @@ class TestJMeterExecutor(BZTestCase):
                                             "delimiter": ","}]}})
         self.obj.prepare()
 
-    def test1_datasources_jmeter_var(self):
+    def test_datasources_jmeter_var(self):
         self.obj.execution.merge({"scenario":
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
@@ -368,7 +368,7 @@ class TestJMeterExecutor(BZTestCase):
         new_implementation = "org.apache.jmeter.protocol.http.control.HC4CookieHandler"
         self.assertEqual(resource_elements[0].text, new_implementation)
 
-    def test_cookiemanager_3_2_bug_jmx(self):
+    def test1_cookiemanager_3_2_bug_jmx(self):
         """ specify implementation of CookieManager for existing jmx """
         self.configure({
             'execution': {
