@@ -708,7 +708,7 @@ class JMeterScenarioBuilder(JMX):
             source = ensure_is_dict(sources, idx, "path")
             source_path = source["path"]
 
-            jmeter_var_pattern = re.compile("\${.*\}")
+            jmeter_var_pattern = re.compile("\${.+\}")
             delimiter = source.get('delimiter', None)
 
             if jmeter_var_pattern.search(source_path):

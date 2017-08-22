@@ -199,7 +199,7 @@ class TestJMeterExecutor(BZTestCase):
                                             "delimiter": ","}]}})
         self.obj.prepare()
 
-    def test_datasources_jmeter_var(self):
+    def test1_datasources_jmeter_var(self):
         self.obj.execution.merge({"scenario":
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
