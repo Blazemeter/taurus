@@ -15,7 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import codecs
 import copy
 import csv
 import fnmatch
@@ -1282,7 +1281,7 @@ class IncrementalCSVReader(object):
             return False
 
         self.log.debug("Opening file: %s", self.filename)
-        self.fds = codecs.open(self.filename, encoding="utf-8")
+        self.fds = open(self.filename)
         self.fds.seek(self.offset)
         return True
 
