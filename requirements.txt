@@ -1,6 +1,6 @@
 apiritif>=0.3
 astunparse
-colorama
+colorama; sys_platform == 'windows'
 colorlog
 cssselect
 ipaddress; python_version < '3.0'
