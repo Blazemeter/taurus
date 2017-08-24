@@ -23,7 +23,7 @@ test_script:
 
 after_test:
   - "%PYTHON%\\python.exe -m coverage report -m"
-  - "%PYTHON%\\codecov
+  - "%PYTHON%\\python.exe -m codecov"
   - "%PYTHON%\\python.exe setup.py clean sdist"
 
 artifacts:
