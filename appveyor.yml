@@ -1,6 +1,11 @@
 environment:
   matrix:
     - PYTHON: "C:\\Python27"
+      PYTHON_VERSION: "2.7.x"
+      PYTHON_ARCH: "64"
+    - PYTHON: "C:\\Python35"
+      PYTHON_VERSION: "3.4.x"
+      PYTHON_ARCH: "64"
 
 install:
   - choco install firefox -version 54.0
