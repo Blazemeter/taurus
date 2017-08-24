@@ -6,7 +6,6 @@ cssselect
 ipaddress; python_version < '3.0'
 lxml>=3.8.0
 nose
-pip
 progressbar33
 psutil>3,!=5.1.1
 pytest>3

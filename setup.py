@@ -16,7 +16,9 @@ limitations under the License.
 import os
 import sys
 
+# noinspection PyPackageRequirements
 from pip.req import parse_requirements
+
 from setuptools.command.install import install
 from setuptools import setup
 
@@ -43,7 +45,6 @@ class InstallWithHook(install, object):
             if os.path.exists(src):
                 sys.stdout.write("Removing outdated %s\n" % src)
                 os.remove(src)
-
 
 requires = parse_requirements('requirements.txt', session='hack')
 
