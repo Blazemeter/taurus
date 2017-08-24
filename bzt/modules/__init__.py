@@ -101,7 +101,8 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable):
         if ret_code is not None:
             if ret_code != 0:
                 msg = "Test runner %s (%s) has failed with retcode %s"
-                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code), self.get_error_diagnostics())
+                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code) + '\n' +
+                                str(self.get_error_diagnostics()))
             return True
         return False
 
