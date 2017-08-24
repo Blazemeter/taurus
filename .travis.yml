@@ -36,7 +36,7 @@ install:
 - gem install rspec
 - pip install -r requirements.txt
 - pip install codecov nose-exclude locustio
-script: coverage run  --source=. `which nosetests` tests --exclude-dir=tests/resources
+script: coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources
 after_success:
 - coverage report -m
 - codecov
