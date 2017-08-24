@@ -9,22 +9,18 @@ install:
   - "%PYTHON%\\python.exe -m pip install selenium pytest"
   - "%PYTHON%\\python.exe -m pip install https://github.com/Blazemeter/apiritif/archive/master.zip"
   - set PATH=C:\Ruby22\bin;%PATH%
+  - gem install rspec
 
 build: off
 
 before_test:
   - ruby -v
   - gem -v
-  - gem install rspec
   - rspec --version
 
 test_script:
-  - "%PYTHON%\\python.exe -m coverage run --source=. %PYTHON%\\python.exe -m nose tests/ --verbosity 3 --exclude-dir=tests/resources"
+  - "coverage run --source=. nosetests tests/ --verbosity 3 --exclude-dir=tests/resources"
 
 after_test:
-  - "%PYTHON%\\python.exe -m coverage report -m"
-  - "%PYTHON%\\python.exe -m codecov"
-  - "%PYTHON%\\python.exe setup.py clean sdist"
-
-artifacts:
-  - path: dist\*
+  - "coverage report -m"
+  - "codecov"
