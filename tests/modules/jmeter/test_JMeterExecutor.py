@@ -2505,3 +2505,15 @@ class TestJMeterExecutor(BZTestCase):
         self.assertNotIn("LOG DEBUG: 1", diag_str)
         self.assertIn("LOG ERROR: 2", diag_str)
         self.assertIn("LOG DEBUG: 3", diag_str)
+
+    def test_jmeter_version_comp(self):
+        self.configure({
+            "execution": {
+                "iterations": 1,
+                "scenario": {
+                    "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"
+                }
+            }
+        })
+        self.obj.settings.merge({"version": 3.3})
+        self.obj.prepare()
