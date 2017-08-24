@@ -28,7 +28,7 @@ try:
 except ImportError:
     from pyvirtualdisplay import Display
 
-from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException, ManualShutdown
+from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
