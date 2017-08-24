@@ -1,0 +1,16 @@
+apiritif>=0.3
+astunparse
+colorama
+colorlog
+cssselect
+ipaddress; python_version < '3.0'
+lxml>=3.8.0
+nose
+progressbar33
+psutil>3,!=5.1.1
+pytest
+pyvirtualdisplay; sys_platform != 'windows'
+pyyaml
+requests>=2.11.1
+selenium
+urwid

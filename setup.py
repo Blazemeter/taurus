@@ -13,11 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import platform
-import sys
-from setuptools.command.install import install
-
 import os
+import sys
+
+from pip.req import parse_requirements
+from setuptools.command.install import install
 from setuptools import setup
 
 import bzt
@@ -45,13 +45,7 @@ class InstallWithHook(install, object):
                 os.remove(src)
 
 
-requires = ['pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama',
-            'cssselect', 'urwid', 'six', 'nose',
-            'selenium', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', "apiritif>=0.3",
-            'astunparse', 'lxml >= 3.8.0', 'pytest']
-
-if sys.version_info.major < 3:
-    requires += ['ipaddress']  # backport of 'ipaddress' module to Python 2
+requires = parse_requirements('requirements.txt', session='hack')
 
 setup(
     name="bzt",
