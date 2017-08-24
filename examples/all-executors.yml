@@ -1,6 +1,10 @@
 ---
 services:
 - virtual-display
+- module: shellexec
+  prepare: 
+  - command: sleep 300 && exit 1  # this will make it interrupt in case it hangs
+    background: true
 
 reporting:
 - module: passfail
