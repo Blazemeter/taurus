@@ -12,10 +12,9 @@ environment:
 
 install:
   - choco install firefox -version 54.0
-  - "%PYTHON%\\python.exe -m pip install nose nose-exclude codecov coverage"
-  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml jsonpath-rw psutil lxml==3.8.0 cssselect urwid six progressbar33 locustio pyvirtualdisplay astunparse ipaddress"
-  - "%PYTHON%\\python.exe -m pip install selenium pytest"
-  - "%PYTHON%\\python.exe -m pip install https://github.com/Blazemeter/apiritif/archive/master.zip"
+  - "%PYTHON%\\python.exe -m pip install pip --upgrade"
+  - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+  - "%PYTHON%\\python.exe -m pip install locustio nose-exclude"
   - set PATH=C:\Ruby22\bin;%PATH%
   - gem install rspec
 
