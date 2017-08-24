@@ -11,7 +11,6 @@ install:
   - set PATH=C:\Ruby22\bin;%PATH%
 
 build: off
-skip_branch_with_pr: true
 
 before_test:
   - ruby -v
@@ -20,7 +19,7 @@ before_test:
   - rspec --version
 
 test_script:
-  - %PYTHON%\\python.exe -m coverage run --source=. "%PYTHON%\\python.exe -m nose tests/ --verbosity 3 --exclude-dir=tests/resources"
+  - "%PYTHON%\\python.exe -m coverage run --source=. \"%PYTHON%\\python.exe -m nose tests/ --verbosity 3 --exclude-dir=tests/resources\""
 
 after_test:
   - "%PYTHON%\\python.exe -m coverage report -m"
