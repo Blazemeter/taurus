@@ -22,13 +22,25 @@ from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 
 
+class MockJMeter(JMeterExecutor):
+    def __init__(self):
+        super(MockJMeter, self).__init__()
+        self.mock_install = False
+        self.version = None
+
+    def install_required_tools(self):
+        if self.mock_install:
+            self.version = self.settings.get('version')
+        else:
+            super(MockJMeter, self).install_required_tools()
+
+
 def get_jmeter():
     path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
-    obj = JMeterExecutor()
+    obj = MockJMeter()
     obj.engine = EngineEmul()
     obj.settings.merge({'path': path, 'force-ctg': False})
     return obj
-
 
 def get_jmeter_executor_vars():
     return (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
@@ -187,18 +199,18 @@ class TestJMeterExecutor(BZTestCase):
                                             "delimiter": ","}]}})
         self.obj.prepare()
 
-    def test_datasources_jmeter_var(self):
+    def test1_datasources_jmeter_var(self):
         self.obj.execution.merge({"scenario":
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
-                                           {"path": "${some_jmeter_variable}"}]}})
+                                           {"path": "/before/${some_jmeter_variable}/after"}]}})
         self.obj.prepare()
 
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         elements = xml_tree.findall(".//CSVDataSet[@testclass='CSVDataSet']")
         self.assertEqual(1, len(elements))
         element = elements[0]
-        self.assertEqual("${some_jmeter_variable}", element.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("/before/${some_jmeter_variable}/after", element.find(".//stringProp[@name='filename']").text)
         self.assertEqual(",", element.find(".//stringProp[@name='delimiter']").text)
 
     def test_datasources_wrong_path(self):
@@ -2102,6 +2114,42 @@ class TestJMeterExecutor(BZTestCase):
         samples = list(obj.read(last_pass=True))
         self.assertNotEqual(len(samples), 0)
 
+    def test_detect_ver_empty(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "requests": [
+                    "http://example.com/"]}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.mock_install = True
+        self.obj.prepare()
+        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+
+    def test_detect_ver_wrong(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.mock_install = True
+        self.obj.prepare()
+        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+
+    def test_detect_ver_2_13(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
+        self.obj.settings.merge({"version": "auto"})
+        self.obj.mock_install = True
+        self.obj.prepare()
+        self.assertEqual("2.13", self.obj.version)
+
+    def test_no_detect_2_13(self):
+        self.obj.execution.merge({
+            'scenario': {
+                "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
+        self.obj.mock_install = True
+        self.obj.prepare()
+        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+
     def test_jsr223_block(self):
         script = RESOURCES_DIR + "/jmeter/jsr223_script.js"
         self.configure({
@@ -2457,3 +2505,15 @@ class TestJMeterExecutor(BZTestCase):
         self.assertNotIn("LOG DEBUG: 1", diag_str)
         self.assertIn("LOG ERROR: 2", diag_str)
         self.assertIn("LOG DEBUG: 3", diag_str)
+
+    def test_jmeter_version_comp(self):
+        self.configure({
+            "execution": {
+                "iterations": 1,
+                "scenario": {
+                    "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"
+                }
+            }
+        })
+        self.obj.settings.merge({"version": 3.3})
+        self.obj.prepare()

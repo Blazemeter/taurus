@@ -18,13 +18,17 @@ modules:
     - jmeter-ftp
     - jpgc-casutg
 ```
-`plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only 
+`force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group
+provide `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default)
+
+With `version` parameter you can ask for specific tool version or use autodetect with `auto` value. In that case
+ taurus will analyze content of jmx file and try to guess appropriate the JMeter version.
+
+`plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only
 following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json, 
 jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. 
 If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.
 
-`force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group 
-provide `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default) 
 
 ## Run Existing JMX File
 ```yaml
@@ -40,7 +44,7 @@ or simply `bzt tests/jmx/dummy.jmx`
 
 TODO: explain how multi-thread group will accept concurrency with maintained proportion
 
-## JMeter Properties
+## JMeter Properties and Variables
 There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
 You may also specify system properties for JMeter in system-properties section. They comes as system.properties file in artifacts.
 
@@ -65,6 +69,44 @@ scenarios:
     properties:
         my-hostname: www.prod.com
         log_level.jmeter: DEBUG
+```
+You can use properties in different parts of JMeter parameters to tune your script behaviour:
+```yaml
+execution:
+- concurrency: ${__P(my_conc,3)}    # use `my_conc` prop or default=3 if property isn't found
+  ramp-up: 30
+  hold-for: ${__P(my_hold,10)}
+  scenario: with_prop
+
+modules:
+  jmeter:
+    properties:
+      my_conc: 10
+      my_hold: 20
+
+scenarios:
+  with_prop:
+    requests:
+    - http://blazedemo.com/${__P(sub_dir)}
+    - https://blazemeter.com/${__P(sub_dir)}
+    properties:
+      my_hold: 15   # scenario-level property has priority
+      sub_dir: contacts
+```
+Usage of variables are similar but they can be used on scenario level only:
+```yaml
+scenarios:
+  sc_with_vars:
+    variables:
+      subdir: contacts
+      ref: http://gettaurus.org
+    requests:
+    - url: http://blazedemo.com/${subdir}
+      headers:
+        Referer: ${ref}
+    - url: https://blazemeter.com/${subdir}
+      headers:
+        Referer: ${ref}
 ```
 
 ## Open JMeter GUI
@@ -106,10 +148,6 @@ JMeter executor allows you to apply some modifications to the JMX file before ru
 scenarios:
   modification_example:
     script: tests/jmx/dummy.jmx
-    variables: # add User Defined Variables component to test plan, 
-               # overriding other global variables
-      user_def_var: http://demo.blazemeter.com/api/user
-      user_def_var2: user_def_val_2
     modifications:
       disable:  # Names of the tree elements to disable
       - Thread Group 1

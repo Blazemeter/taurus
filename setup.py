@@ -13,11 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import platform
-import sys
-from setuptools.command.install import install
-
 import os
+import sys
+
+# noinspection PyPackageRequirements
+import pip
+
+from setuptools.command.install import install
 from setuptools import setup
 
 import bzt
@@ -44,14 +46,14 @@ class InstallWithHook(install, object):
                 sys.stdout.write("Removing outdated %s\n" % src)
                 os.remove(src)
 
+# thanks to pip there are two incompatible ways to parse requirements.txt
+if pip.__version__ < '7':
+    requirements = pip.req.parse_requirements('requirements.txt')
+else:
+    # new versions of pip requires a session
+    requirements = pip.req.parse_requirements('requirements.txt', session=pip.download.PipSession())
 
-requires = ['pyyaml', 'psutil > 3, != 5.1.1', 'colorlog', 'colorama',
-            'cssselect', 'urwid', 'six', 'nose',
-            'selenium', 'progressbar33', 'pyvirtualdisplay', 'requests>=2.11.1', "apiritif>=0.3",
-            'astunparse', 'lxml >= 3.8.0', 'pytest']
-
-if sys.version_info.major < 3:
-    requires += ['ipaddress']  # backport of 'ipaddress' module to Python 2
+requires = [str(item.req) for item in requirements]
 
 setup(
     name="bzt",
@@ -64,7 +66,6 @@ setup(
     license='Apache 2.0',
     platform='any',
     docs_url='http://gettaurus.org/docs/',
-
     install_requires=requires,
     packages=['bzt', 'bzt.six', 'bzt.jmx', 'bzt.modules', 'bzt.resources'],
     entry_points={
