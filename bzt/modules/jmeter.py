@@ -281,8 +281,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
-            version = str(self.settings.get("version", self.JMETER_VER))
-            if version.startswith("2"):
+            version = LooseVersion(str(self.settings.get("version", self.JMETER_VER)))
+            major = version.version[0]
+            if major == 2:
                 flags["bytes"] = True
             else:
                 flags["sentBytes"] = True
@@ -600,8 +601,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
-            version = str(self.settings.get('version', self.JMETER_VER)).split(".")
-            if tuple(version) >= ('3', '2'):
+            version = LooseVersion(str(self.settings.get('version', self.JMETER_VER)))
+            if version >= LooseVersion("3.2"):
                 self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
 
