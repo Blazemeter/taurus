@@ -19,7 +19,7 @@ before_test:
   - rspec --version
 
 test_script:
-  - "coverage run --source=. nosetests tests/ --verbosity 3 --exclude-dir=tests/resources"
+  - "%PYTHON%\\python.exe -m nose tests\ --verbosity 3 --exclude-dir=tests\resources --with-coverage --cover-inclusive"
 
 after_test:
   - "coverage report -m"
