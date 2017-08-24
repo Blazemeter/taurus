@@ -17,7 +17,7 @@ import os
 import sys
 
 # noinspection PyPackageRequirements
-from pip.req import parse_requirements
+import pip
 
 from setuptools.command.install import install
 from setuptools import setup
@@ -46,7 +46,14 @@ class InstallWithHook(install, object):
                 sys.stdout.write("Removing outdated %s\n" % src)
                 os.remove(src)
 
-requirements = [str(r) for r in parse_requirements('requirements.txt', session='hack')]
+# thanks to pip there are two incompatible ways to parse requirements.txt
+if pip.__version__ < '7':
+    requirements = pip.req.parse_requirements('requirements.txt')
+else:
+    # new versions of pip requires a session
+    requirements = pip.req.parse_requirements('requirements.txt', session=pip.download.PipSession())
+
+requires = [str(item.req) for item in requirements]
 
 setup(
     name="bzt",
@@ -59,8 +66,7 @@ setup(
     license='Apache 2.0',
     platform='any',
     docs_url='http://gettaurus.org/docs/',
-
-    install_requires=requirements,
+    install_requires=requires,
     packages=['bzt', 'bzt.six', 'bzt.jmx', 'bzt.modules', 'bzt.resources'],
     entry_points={
         'console_scripts': [
