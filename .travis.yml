@@ -7,10 +7,10 @@ matrix:
     python: 2.7
   - os: linux
     python: 3.3
-  - os: linux
-    python: 3.4
-  - os: linux
-    python: 3.5
+#  - os: linux
+#    python: 3.4
+#  - os: linux
+#    python: 3.5
 #  - os: osx
 #    language: generic
 
@@ -36,7 +36,7 @@ install:
 - gem install rspec
 - pip install -r requirements.txt
 - pip install codecov nose-exclude locustio
-script: coverage run  --source=. `which nosetests` tests/modules/selenium -v --exclude-dir=tests/resources
+script: coverage run  --source=. `which nosetests` tests.modules.selenium.test_python -v --exclude-dir=tests/resources
 after_success:
 - coverage report -m
 - codecov
