@@ -1,6 +1,6 @@
 FROM ubuntu:16.04
 
-ENV DBUS_SESSION_BUS_ADDRESS=file:///dev/null
+ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 ADD https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
