@@ -7,8 +7,8 @@ ipaddress; python_version < '3.0'
 lxml>=3.8.0
 nose
 progressbar33
-psutil>3,!=5.1.1
-pytest>3
+psutil>=5
+pytest>=3
 pyvirtualdisplay; sys_platform != 'windows'
 pyyaml
 requests>=2.11.1
