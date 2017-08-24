@@ -46,7 +46,7 @@ class InstallWithHook(install, object):
                 sys.stdout.write("Removing outdated %s\n" % src)
                 os.remove(src)
 
-requires = parse_requirements('requirements.txt', session='hack')
+requirements = [str(r) for r in parse_requirements('requirements.txt', session='hack')]
 
 setup(
     name="bzt",
@@ -60,7 +60,7 @@ setup(
     platform='any',
     docs_url='http://gettaurus.org/docs/',
 
-    install_requires=requires,
+    install_requires=requirements,
     packages=['bzt', 'bzt.six', 'bzt.jmx', 'bzt.modules', 'bzt.resources'],
     entry_points={
         'console_scripts': [
