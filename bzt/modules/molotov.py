@@ -141,7 +141,8 @@ class Molotov(RequiredTool):
     def check_if_installed(self):
         self.log.debug('Checking Molotov: %s' % self.tool_path)
         try:
-            shell_exec([self.tool_path, '-h'])
+            shell_exec([self.tool_path, '--version'])
+            # TODO: check for version being >= 1.4
         except (CalledProcessError, OSError):
             return False
         return True
