@@ -58,7 +58,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=' \
-                      'kg/apc/jmeter-plugins-manager/0.15/jmeter-plugins-manager-0.15.jar'
+                      'kg/apc/jmeter-plugins-manager/0.16/jmeter-plugins-manager-0.16.jar'
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
     JMETER_VER = "3.2"
     UDP_PORT_NUMBER = None
@@ -272,7 +272,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.settings["version"] = self._get_tool_version(self.original_jmx)
         self.install_required_tools()
 
-        if not self.original_jmx:
+        if self.original_jmx:
+            self.tool.install_for_jmx(self.original_jmx)
+        else:
             if scenario.get("requests"):
                 self.original_jmx = self.__jmx_from_requests()
                 is_jmx_generated = True
@@ -1518,6 +1520,31 @@ class JMeter(RequiredTool):
             self.log.debug("JMeter check failed.")
             return False
 
+    def _pmgr_handles_jmx(self):
+        try:
+            cmd = [self._pmgr_path(), "help"]
+            proc = shell_exec(cmd)
+            out, err = proc.communicate()
+            if "install-for-jmx" in out:
+                self.log.debug("pmgr can discover jmx for plugins")
+                return True
+            else:
+                self.log.debug("pmgr can't discover jmx for plugins")
+                return False
+
+        except BaseException as exc:
+            raise ToolError("Failed to check if pmgr can detect plugins with jmx: %s" % exc)
+
+    def install_for_jmx(self, jmx_file):
+        if self._pmgr_handles_jmx():
+            try:
+                cmd = [self._pmgr_path(), "install-for-jmx", jmx_file]
+                proc = shell_exec(cmd)
+                out, err = proc.communicate()
+                self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
+            except BaseException as exc:
+                raise ToolError("Failed to detect plugins for %s: %s" % (jmx_file, exc))
+
     def __install_jmeter(self, dest):
         if self.download_link:
             jmeter_dist = self._download(use_link=True)
@@ -1598,6 +1625,10 @@ class JMeter(RequiredTool):
         except BaseException as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
 
+    def _pmgr_path(self):
+        dest = get_full_path(self.tool_path, step_up=2)
+        return os.path.join(dest, 'bin', 'PluginsManagerCMD' + EXE_SUFFIX)
+
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
         self.log.info("Will install %s into %s", self.tool_name, dest)
@@ -1608,7 +1639,7 @@ class JMeter(RequiredTool):
         direct_install_tools = [  # source link and destination
             [JMeterExecutor.PLUGINS_MANAGER, plugins_manager_path],
             [JMeterExecutor.CMDRUNNER, cmdrunner_path]]
-        plugins_manager_cmd = os.path.join(dest, 'bin', 'PluginsManagerCMD' + EXE_SUFFIX)
+        plugins_manager_cmd = self._pmgr_path()
 
         self.__install_jmeter(dest)
         self.__download_additions(direct_install_tools)
