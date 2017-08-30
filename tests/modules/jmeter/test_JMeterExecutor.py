@@ -20,24 +20,26 @@ from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
+from tests.modules.jmeter import MockJMeter
 
 
-class MockJMeter(JMeterExecutor):
+class MockJMeterExecutor(JMeterExecutor):
     def __init__(self):
-        super(MockJMeter, self).__init__()
+        super(MockJMeterExecutor, self).__init__()
         self.mock_install = False
         self.version = None
 
     def install_required_tools(self):
         if self.mock_install:
             self.version = self.settings.get('version')
+            self.tool = MockJMeter()
         else:
-            super(MockJMeter, self).install_required_tools()
+            super(MockJMeterExecutor, self).install_required_tools()
 
 
 def get_jmeter():
     path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
-    obj = MockJMeter()
+    obj = MockJMeterExecutor()
     obj.engine = EngineEmul()
     obj.settings.merge({'path': path, 'force-ctg': False})
     return obj
@@ -200,7 +202,7 @@ class TestJMeterExecutor(BZTestCase):
                                             "delimiter": ","}]}})
         self.obj.prepare()
 
-    def test1_datasources_jmeter_var(self):
+    def test_datasources_jmeter_var(self):
         self.obj.execution.merge({"scenario":
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
@@ -2134,7 +2136,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
         self.assertEqual(self.obj.JMETER_VER, self.obj.version)
 
-    def test_detect_ver_2_13(self):
+    def test1_detect_ver_2_13(self):
         self.obj.execution.merge({
             'scenario': {
                 "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})

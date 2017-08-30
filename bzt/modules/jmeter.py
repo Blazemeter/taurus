@@ -273,13 +273,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.install_required_tools()
 
         if self.original_jmx:
-            self.tool.install_for_jmx(self.original_jmx)
-        else:
-            if scenario.get("requests"):
+            if not os.path.isfile(self.original_jmx):
+                raise TaurusConfigError('Script %s not found' % self.original_jmx)
+        elif scenario.get("requests"):
                 self.original_jmx = self.__jmx_from_requests()
                 is_jmx_generated = True
-            else:
-                raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
+        else:
+            raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
+
+        # check for necessary plugins and install them if needed
+        self.tool.install_for_jmx(self.original_jmx)
 
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
@@ -1529,7 +1532,8 @@ class JMeter(RequiredTool):
         try:
             out, err = self._pmgr_call(["help"])
         except BaseException as exc:
-            raise ToolError("Failed to check if pmgr can detect plugins with jmx: %s" % exc)
+            self.log.warning("Failed to check if pmgr can detect plugins with jmx: %s", exc)
+            return
 
         if "install-for-jmx" in out:    # new manager
             self.log.debug("pmgr can discover jmx for plugins")
@@ -1537,7 +1541,7 @@ class JMeter(RequiredTool):
                 out, err = self._pmgr_call(["install-for-jmx", jmx_file])
                 self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
             except BaseException as exc:
-                raise ToolError("Failed to detect plugins for %s: %s" % (jmx_file, exc))
+                self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
         else:   # old manager
             self.log.debug("pmgr can't discover jmx for plugins")
 
