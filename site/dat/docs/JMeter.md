@@ -29,7 +29,7 @@ following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fif
 jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. 
 If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.
 
-JMeter Plugin Manager allows you to install necessary plugins for your jmx file automatically. If you use your own installation of JMeter (with `path` option) make sure it includes `jmeter-plugins-manager` 0.16 or newer.
+JMeter Plugin Manager allows you to install necessary plugins for your jmx file automatically and this feature doesn't require clean installation. If you use your own installation of JMeter (with `path` option) make sure it includes `jmeter-plugins-manager` 0.16 or newer.
 
 ## Run Existing JMX File
 ```yaml
