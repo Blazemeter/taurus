@@ -388,7 +388,8 @@ class ServerAgentClient(MonitoringClient):
             resp = self.socket.recv(4)
             assert resp == "Yep\n"
             self.log.debug("Connected to serverAgent at %s:%s successfully", self.address, self.port)
-        except:
+        except BaseException as exc:
+            self.log.warning("Error during connecting to agent at %s:%s: %s", self.address, self.port, exc)
             msg = "Failed to connect to serverAgent at %s:%s" % (self.address, self.port)
             raise TaurusNetworkError(msg)
 
