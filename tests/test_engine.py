@@ -80,7 +80,7 @@ class TestEngine(BZTestCase):
             },
             "modules": {
                 "local": "bzt.modules.provisioning.Local",
-                "jmeter": "bzt.modules.jmeter.JMeterExecutor",
+                "jmeter": "tests.modules.jmeter.MockJMeterExecutor",
             }})
         self.obj.prepare()
 

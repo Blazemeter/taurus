@@ -21,3 +21,17 @@ class MockJMeter(JMeter):
             raise reaction['raise']
 
         return reaction['output']
+
+
+class MockJMeterExecutor(JMeterExecutor):
+    def __init__(self):
+        super(MockJMeterExecutor, self).__init__()
+        self.mock_install = True
+        self.version = None
+
+    def install_required_tools(self):
+        if self.mock_install:
+            self.version = self.settings.get('version')
+            self.tool = MockJMeter()
+        else:
+            super(MockJMeterExecutor, self).install_required_tools()
