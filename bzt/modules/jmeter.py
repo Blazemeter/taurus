@@ -1520,30 +1520,26 @@ class JMeter(RequiredTool):
             self.log.debug("JMeter check failed.")
             return False
 
-    def _pmgr_handles_jmx(self):
-        try:
-            cmd = [self._pmgr_path(), "help"]
-            proc = shell_exec(cmd)
-            out, err = proc.communicate()
-            if "install-for-jmx" in out:
-                self.log.debug("pmgr can discover jmx for plugins")
-                return True
-            else:
-                self.log.debug("pmgr can't discover jmx for plugins")
-                return False
+    def _pmgr_call(self, params):
+        cmd = [self._pmgr_path()] + params
+        proc = shell_exec(cmd)
+        return proc.communicate()
 
+    def install_for_jmx(self, jmx_file):
+        try:
+            out, err = self._pmgr_call(["help"])
         except BaseException as exc:
             raise ToolError("Failed to check if pmgr can detect plugins with jmx: %s" % exc)
 
-    def install_for_jmx(self, jmx_file):
-        if self._pmgr_handles_jmx():
+        if "install-for-jmx" in out:    # new manager
+            self.log.debug("pmgr can discover jmx for plugins")
             try:
-                cmd = [self._pmgr_path(), "install-for-jmx", jmx_file]
-                proc = shell_exec(cmd)
-                out, err = proc.communicate()
+                out, err = self._pmgr_call(["install-for-jmx", jmx_file])
                 self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
             except BaseException as exc:
                 raise ToolError("Failed to detect plugins for %s: %s" % (jmx_file, exc))
+        else:   # old manager
+            self.log.debug("pmgr can't discover jmx for plugins")
 
     def __install_jmeter(self, dest):
         if self.download_link:

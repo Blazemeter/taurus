@@ -18,7 +18,7 @@ from bzt.jmx.tools import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
-from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR
+from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 
 
@@ -41,6 +41,7 @@ def get_jmeter():
     obj.engine = EngineEmul()
     obj.settings.merge({'path': path, 'force-ctg': False})
     return obj
+
 
 def get_jmeter_executor_vars():
     return (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
