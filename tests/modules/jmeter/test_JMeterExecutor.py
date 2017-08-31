@@ -877,9 +877,12 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution.merge({
             "scenario": {
                 "script": RESOURCES_DIR + "/jmeter/jmx/variable_csv.jmx"}})
+        artifacts = os.listdir(self.obj.engine.artifacts_dir)
+        info = "\n artifacts_dir1: " + self.obj.engine.artifacts_dir + "\n artifacts1: " + artifacts
         self.obj.prepare()
         artifacts = os.listdir(self.obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 5, "find extra ones: %s" % artifacts)  # 2*effective, .properties, .out, .err
+        info += "\n artifacts_dir2: " + self.obj.engine.artifacts_dir + "\n artifacts2: " + artifacts
+        self.assertEqual(len(artifacts), 5, "find extra ones: %s" % info)  # 2*effective, .properties, .out, .err
         with open(self.obj.modified_jmx) as fds:
             jmx = fds.read()
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
