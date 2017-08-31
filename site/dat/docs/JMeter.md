@@ -13,6 +13,7 @@ modules:
     download-link: https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip
     version: 3.0  # minimal supported version of JMeter is 2.9
     force-ctg: true   # true by default
+    detect-plugins: true
     plugins:
     - jpgc-json=2.2
     - jmeter-ftp
@@ -29,7 +30,7 @@ following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fif
 jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. 
 If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.
 
-[JMeter Plugins Manager](#https://jmeter-plugins.org/wiki/PluginsManager/) allows you to install necessary plugins for your jmx file automatically and this feature doesn't require clean installation. If you use your own installation of JMeter (with `path` option) make sure it includes `jmeter-plugins-manager` 0.16 or newer.
+[JMeter Plugins Manager](#https://jmeter-plugins.org/wiki/PluginsManager/) allows you to install necessary plugins for your jmx file automatically and this feature doesn't require clean installation. You can turn it off with `detect-plugins` option. If you use your own installation of JMeter (with `path` option) make sure it includes `jmeter-plugins-manager` 0.16 or newer.
 
 ## Run Existing JMX File
 ```yaml

@@ -282,7 +282,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
         # check for necessary plugins and install them if needed
-        self.tool.install_for_jmx(self.original_jmx)
+        if self.settings.get("detect-plugins", True):
+            self.tool.install_for_jmx(self.original_jmx)
 
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
@@ -1530,19 +1531,13 @@ class JMeter(RequiredTool):
 
     def install_for_jmx(self, jmx_file):
         try:
-            out, err = self._pmgr_call(["help"])
+            out, err = self._pmgr_call(["install-for-jmx", jmx_file])
+            self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
         except BaseException as exc:
-            self.log.warning("Failed to check if pmgr can detect plugins with jmx: %s", exc)
+            self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
             return
 
-        if "install-for-jmx" in out:    # new manager
-            self.log.debug("pmgr can discover jmx for plugins")
-            try:
-                out, err = self._pmgr_call(["install-for-jmx", jmx_file])
-                self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
-            except BaseException as exc:
-                self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
-        else:   # old manager
+        if "Wrong command: install-for-jmx" in err:     # old manager
             self.log.debug("pmgr can't discover jmx for plugins")
 
     def __install_jmeter(self, dest):

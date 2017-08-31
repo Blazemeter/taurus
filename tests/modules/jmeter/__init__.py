@@ -1,18 +1,23 @@
 import logging
 
+from bzt.engine import Engine
 from bzt.modules.jmeter import JMeter, JMeterExecutor
 from bzt.utils import get_full_path
 
 
 class MockJMeter(JMeter):
-    def __init__(self, reaction=None):
+    def __init__(self, has_ctg=None, reaction=None):
         jmeter_version = JMeterExecutor.JMETER_VER
         jmeter_path = "~/.bzt/jmeter-taurus/{version}/"
         jmeter_path = get_full_path(jmeter_path)
 
         super(MockJMeter, self).__init__(tool_path=jmeter_path, parent_logger=logging.getLogger(''),
                                          jmeter_version=jmeter_version, jmeter_download_link=None, plugins=[], proxy={})
+        self.has_ctg = has_ctg
         self.reaction = reaction if reaction else []
+
+    def ctg_plugin_installed(self):
+        return self.has_ctg
 
     def _pmgr_call(self, params):
         # replaces real pmgr call
@@ -24,10 +29,19 @@ class MockJMeter(JMeter):
 
 
 class MockJMeterExecutor(JMeterExecutor):
-    def __init__(self):
+    def __init__(self, load=None, settings=None, has_ctg=None):
         super(MockJMeterExecutor, self).__init__()
         self.mock_install = True
         self.version = None
+
+        if load is None: load = {}
+        if settings is None: settings = {}
+        if has_ctg is None: has_ctg = True
+
+        self.engine = Engine(logging.getLogger(''))
+        self.execution = load
+        self.settings = settings
+        self.tool = MockJMeter(has_ctg)
 
     def install_required_tools(self):
         if self.mock_install:

@@ -1,36 +1,13 @@
 # coding=utf-8
-import logging
-
-from bzt.engine import Engine, Provisioning
+from . import MockJMeterExecutor
+from bzt.engine import Provisioning
 from bzt.jmx import JMX, LoadSettingsProcessor
 from tests import BZTestCase, RESOURCES_DIR
-from bzt.modules.jmeter import JMeterExecutor
-
-
-class MockReqTool(object):
-    def __init__(self, has_ctg):
-        self.has_ctg = has_ctg
-
-    def ctg_plugin_installed(self):
-        return self.has_ctg
-
-
-class MockExecutor(JMeterExecutor):
-    def __init__(self, load=None, settings=None, has_ctg=None):
-        super(MockExecutor, self).__init__()
-        if load is None: load = {}
-        if settings is None: settings = {}
-        if has_ctg is None: has_ctg = True
-
-        self.engine = Engine(logging.getLogger(''))
-        self.execution = load
-        self.settings = settings
-        self.tool = MockReqTool(has_ctg)
 
 
 class TestLoadSettingsProcessor(BZTestCase):
     def configure(self, jmx_file=None, load=None, settings=None, has_ctg=None):
-        executor = MockExecutor(load, settings, has_ctg)
+        executor = MockJMeterExecutor(load, settings, has_ctg)
         executor.engine.config.merge({Provisioning.PROV: 'local'})
         self.obj = LoadSettingsProcessor(executor)
         if jmx_file:
