@@ -475,11 +475,13 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def install_required_tools(self):
         required_tools = [TclLibrary(self.log), JavaVM(self.log)]
-        gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
+        gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
+        def_path = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}".format(version=gatling_version,
+                                                                                suffix=EXE_SUFFIX)
+        gatling_path = self.settings.get("path", def_path)
         gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
         self.settings["path"] = gatling_path
         download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
-        gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
         required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
 
         for tool in required_tools:
