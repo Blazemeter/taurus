@@ -879,7 +879,7 @@ class TestJMeterExecutor(BZTestCase):
                 "script": RESOURCES_DIR + "/jmeter/jmx/variable_csv.jmx"}})
         self.obj.prepare()
         artifacts = os.listdir(self.obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 5)  # 2*effective, .properties, .out, .err
+        self.assertEqual(len(artifacts), 5, " *** %s" % artifacts)  # 2*effective, .properties, .out, .err
         with open(self.obj.modified_jmx) as fds:
             jmx = fds.read()
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
