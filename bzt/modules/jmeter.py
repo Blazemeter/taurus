@@ -39,7 +39,8 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode, numeric_types
+from bzt.six import communicate
+from bzt.six import iteritems, string_types, StringIO, etree, parse, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -1505,13 +1506,10 @@ class JMeter(RequiredTool):
         try:
             with tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False) as jmlog:
                 jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
-                jmout, jmerr = jm_proc.communicate()
+                jmout, jmerr = communicate(jm_proc)
                 self.log.debug("JMeter check: %s / %s", jmout, jmerr)
 
             os.remove(jmlog.name)
-
-            if isinstance(jmout, binary_type):
-                jmout = jmout.decode()
 
             if "is too low to run JMeter" in jmout:
                 raise ToolError("Java version is too low to run JMeter")
@@ -1525,7 +1523,7 @@ class JMeter(RequiredTool):
     def _pmgr_call(self, params):
         cmd = [self._pmgr_path()] + params
         proc = shell_exec(cmd)
-        return proc.communicate()
+        return communicate(proc)
 
     def install_for_jmx(self, jmx_file):
         if not os.path.isfile(jmx_file):
@@ -1579,7 +1577,7 @@ class JMeter(RequiredTool):
         self.log.debug("Trying: %s", cmd)
         try:
             proc = shell_exec(cmd)
-            out, err = proc.communicate()
+            out, err = communicate(proc)
             self.log.debug("Install PluginsManager: %s / %s", out, err)
         except BaseException as exc:
             raise ToolError("Failed to install PluginsManager: %s" % exc)
@@ -1617,7 +1615,7 @@ class JMeter(RequiredTool):
                 env['JVM_ARGS'] = jvm_args
 
             proc = shell_exec(cmd)
-            out, err = proc.communicate()
+            out, err = communicate(proc)
             self.log.debug("Install plugins: %s / %s", out, err)
         except BaseException as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
