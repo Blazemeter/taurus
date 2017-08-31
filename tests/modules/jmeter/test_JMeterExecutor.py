@@ -878,7 +878,7 @@ class TestJMeterExecutor(BZTestCase):
             "scenario": {
                 "script": RESOURCES_DIR + "/jmeter/jmx/variable_csv.jmx"}})
         artifacts = os.listdir(self.obj.engine.artifacts_dir)
-        info = "\n artifacts_dir1: %s" % self.obj.engine.artifacts_dir + "\n artifacts1: %s" % artifacts
+        info = "\n artifacts_dir1: %s" % self.obj.engine.artifacts_dir + "\nartifacts1: %s" % artifacts
         self.obj.prepare()
         artifacts = os.listdir(self.obj.engine.artifacts_dir)
         info += "\n artifacts_dir2: %s" % self.obj.engine.artifacts_dir + "\n artifacts2: %s" % artifacts
