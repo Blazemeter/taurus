@@ -217,7 +217,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "2.1.7"
+    VERSION = "2.3.0"
 
     def __init__(self):
         super(GatlingExecutor, self).__init__()
@@ -392,11 +392,17 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         if timeout is not None:
             params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
         if scenario.get('keepalive', True):
+            # gatling <= 2.2.0
             params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'true'
             params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
+            # gatling > 2.2.0
+            params_for_scala['gatling.http.ahc.keepAlive'] = 'true'
         else:
+            # gatling <= 2.2.0
             params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'false'
             params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
+            # gatling > 2.2.0
+            params_for_scala['gatling.http.ahc.keepAlive'] = 'false'
         if load.concurrency is not None:
             params_for_scala['concurrency'] = load.concurrency
         if load.ramp_up is not None:
@@ -627,8 +633,8 @@ class DataLogReader(ResultsReader):
 
     def _guess_gatling_version(self, fields):
         if fields[0].strip() in ["USER", "REQUEST", "RUN"]:
-            self.log.debug("Parsing Gatling 2.2 stats")
-            return "2.2"
+            self.log.debug("Parsing Gatling 2.2+ stats")
+            return "2.2+"
         elif fields[2].strip() in ["USER", "REQUEST", "RUN"]:
             self.log.debug("Parsing Gatling 2.1 stats")
             return "2.1"
@@ -641,7 +647,7 @@ class DataLogReader(ResultsReader):
 
         if self.guessed_gatling_version == "2.1":
             return self._extract_log_gatling_21(fields)
-        elif self.guessed_gatling_version == "2.2":
+        elif self.guessed_gatling_version == "2.2+":
             return self._extract_log_gatling_22(fields)
         else:
             return None
