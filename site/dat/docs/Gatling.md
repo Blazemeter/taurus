@@ -146,7 +146,7 @@ scenarios:
  - `path`: "/somepath/folder/bin/gatling_executable"
     Path to Gatling executable.
     If no Gatling executable found, it will be automatically downloaded and installed in "path".
-    By default "~/.bzt/gatling-taurus/bin/gatling.sh".
+    By default "~/.bzt/gatling-taurus/{version}/bin/gatling.sh".
 
  - `java-opts`: string with some java options for Gatling
 
@@ -154,8 +154,8 @@ scenarios:
     Link to download Gatling.
     By default: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
 
- -  `version`: "2.1.7"
-    Gatling version, 2.1.7 by default
+ -  `version`: "2.3.0"
+    Gatling version, 2.3.0 by default
 
  - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling
  documentation) and sending your own variables into Scala program:
@@ -194,9 +194,3 @@ scenarios:
   example:
     script: my_file.scala
 ```
-
-## Gatling 2.2.0 Support
-
-Taurus works with Gatling 2.2.0. However, with Gatling 2.2.0 it's not possible to extract such network stats
-as latency and connection time, as Gatling removed them from report data. Because of that, Taurus installs Gatling 2.1.7
-by default.
