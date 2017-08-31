@@ -961,10 +961,13 @@ class TestJMeterExecutor(BZTestCase):
         self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))
         self.obj.prepare()
         target_jmx = os.path.join(self.obj.engine.artifacts_dir, "requests.jmx")
+        info = target_jmx
+        content = open(target_jmx, 'rb').read()
+        info += '\n content: %s \n' % content
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
         path = ".//com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion"
         assertions = modified_xml_tree.findall(path)
-        self.assertEqual(4, len(assertions))
+        self.assertEqual(4, len(assertions), info)
 
         vals = [
             {'path': '$.', 'exp_val': None, 'valid': 'false',
