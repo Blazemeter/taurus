@@ -39,8 +39,8 @@ class MockJMeterExecutor(JMeterExecutor):
         if has_ctg is None: has_ctg = True
 
         self.engine = Engine(logging.getLogger(''))
-        self.execution = load
-        self.settings = settings
+        self.execution.merge(load)
+        self.settings.merge(settings)
         self.tool = MockJMeter(has_ctg)
 
     def install_required_tools(self):

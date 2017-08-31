@@ -20,7 +20,7 @@ from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
-from tests.modules.jmeter import MockJMeter, MockJMeterExecutor
+from tests.modules.jmeter import MockJMeterExecutor
 
 
 def get_jmeter():
