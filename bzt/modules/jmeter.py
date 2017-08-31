@@ -1537,8 +1537,8 @@ class JMeter(RequiredTool):
             self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
             return
 
-        if "Wrong command: install-for-jmx" in err:     # old manager
-            self.log.debug("pmgr can't discover jmx for plugins")
+        if err and "Wrong command: install-for-jmx" in err:     # old manager
+            self.log.debug("pmgr can't discover jmx for plugins")1
 
     def __install_jmeter(self, dest):
         if self.download_link:

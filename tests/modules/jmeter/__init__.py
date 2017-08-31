@@ -40,6 +40,7 @@ class MockJMeterExecutor(JMeterExecutor):
 
         self.engine = Engine(logging.getLogger(''))
         self.execution.merge(load)
+        self.settings.merge({"detect-plugins": False})
         self.settings.merge(settings)
         self.tool = MockJMeter(has_ctg)
 
