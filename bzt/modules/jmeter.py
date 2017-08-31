@@ -272,14 +272,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.settings["version"] = self._get_tool_version(self.original_jmx)
         self.install_required_tools()
 
-        if self.original_jmx:
-            if not os.path.isfile(self.original_jmx):
-                raise TaurusConfigError('Script %s not found' % self.original_jmx)
-        elif scenario.get("requests"):
+        if not self.original_jmx:
+            if scenario.get("requests"):
                 self.original_jmx = self.__jmx_from_requests()
                 is_jmx_generated = True
-        else:
-            raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
+            else:
+                raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
         # check for necessary plugins and install them if needed
         if self.settings.get("detect-plugins", True):
@@ -1530,6 +1528,10 @@ class JMeter(RequiredTool):
         return proc.communicate()
 
     def install_for_jmx(self, jmx_file):
+        if not os.path.isfile(jmx_file):
+            self.log.warning("Script %s not found" % jmx_file)
+            return
+
         try:
             out, err = self._pmgr_call(["install-for-jmx", jmx_file])
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
