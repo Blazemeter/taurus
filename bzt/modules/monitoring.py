@@ -15,7 +15,7 @@ from urwid import Pile, Text
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, urlopen, urlencode, b, text_type
+from bzt.six import iteritems, urlopen, urlencode, b
 from bzt.utils import dehumanize_time
 
 
