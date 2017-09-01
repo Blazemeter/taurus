@@ -422,7 +422,7 @@ class ServerAgentClient(MonitoringClient):
 
         res = []
         for _sock in readable:
-            self._partial_buffer += text_type(_sock.recv(1024))
+            self._partial_buffer += _sock.recv(1024).decode()
             while "\n" in self._partial_buffer:
                 line = self._partial_buffer[:self._partial_buffer.index("\n")]
                 self._partial_buffer = self._partial_buffer[self._partial_buffer.index("\n") + 1:]
