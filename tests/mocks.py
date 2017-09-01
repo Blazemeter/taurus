@@ -13,6 +13,7 @@ from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader
+from bzt.six import b
 from bzt.utils import load_class, to_json
 from . import random_sample
 
@@ -224,8 +225,8 @@ class ResultChecker(AggregatorListener):
 class SocketEmul(object):
     # noinspection PyUnusedLocal
     def __init__(self, family=AF_INET, atype=SOCK_STREAM, proto=0, _sock=None):
-        self.recv_data = ""
-        self.sent_data = ""
+        self.recv_data = b("")
+        self.sent_data = b("")
 
     def connect(self, address):
         logging.debug("Emulated connect to %s", address)
