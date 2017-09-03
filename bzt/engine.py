@@ -58,6 +58,7 @@ class Engine(object):
     :type aggregator: bzt.modules.aggregator.ConsolidatingAggregator
     :type stopping_reason: BaseException
     """
+    ARTIFACTS_DIR = "%Y-%m-%d_%H-%M-%S.%f"
 
     def __init__(self, parent_logger):
         """
@@ -333,8 +334,7 @@ class Engine(object):
         Create directory for artifacts, directory name based on datetime.now()
         """
         if not self.artifacts_dir:
-            default = "%Y-%m-%d_%H-%M-%S.%f"
-            artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", default)
+            artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", self.ARTIFACTS_DIR)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
 
         self.artifacts_dir = get_full_path(self.artifacts_dir)

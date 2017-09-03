@@ -293,7 +293,7 @@ class BetterDict(defaultdict):
                         del self[key]
 
 
-def get_uniq_name(directory, prefix, suffix, forbidden_names=()):
+def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     base = os.path.join(directory, prefix)
     diff = ""
     num = 0
