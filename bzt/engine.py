@@ -58,7 +58,7 @@ class Engine(object):
     :type aggregator: bzt.modules.aggregator.ConsolidatingAggregator
     :type stopping_reason: BaseException
     """
-    DEFAULT_ARTIFACTS_DIR = "%Y-%m-%d_%H-%M-%S.%f"
+    ARTIFACTS_DIR = "%Y-%m-%d_%H-%M-%S.%f"
 
     def __init__(self, parent_logger):
         """
