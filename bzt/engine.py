@@ -334,7 +334,7 @@ class Engine(object):
         Create directory for artifacts, directory name based on datetime.now()
         """
         if not self.artifacts_dir:
-            artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", self.DEFAULT_ARTIFACTS_DIR)
+            artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", self.ARTIFACTS_DIR)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
 
         self.artifacts_dir = get_full_path(self.artifacts_dir)

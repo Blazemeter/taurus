@@ -28,7 +28,7 @@ class EngineEmul(Engine):
         super(EngineEmul, self).__init__(logging.getLogger(''))
 
         directory = get_full_path(TEST_DIR)
-        prefix = datetime.datetime.now().strftime(self.DEFAULT_ARTIFACTS_DIR)
+        prefix = datetime.datetime.now().strftime(self.ARTIFACTS_DIR)
         self.config.get('settings')['artifacts-dir'] = get_uniq_name(directory=directory, prefix=prefix)
 
         self.config.get('settings')['check-updates'] = False
