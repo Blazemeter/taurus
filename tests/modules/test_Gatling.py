@@ -5,7 +5,7 @@ import time
 
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.six import u
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
 from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 from bzt.modules.provisioning import Local
@@ -82,8 +82,8 @@ class TestGatlingExecutor(BZTestCase):
         path = os.path.abspath(BUILD_DIR + "gatling-taurus/bin/gatling" + EXE_SUFFIX)
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
 
-        download_link = "file:///" + RESOURCES_DIR + "gatling/gatling-dist-{version}_{version}.zip"
-        gatling_version = '2.1.4'
+        download_link = "file:///" + RESOURCES_DIR + "gatling/gatling-dist-{version}.zip"
+        gatling_version = '2.3.0'
 
         self.assertFalse(os.path.exists(path))
         obj = self.getGatling()
@@ -443,6 +443,21 @@ class TestGatlingExecutor(BZTestCase):
         obj.post_process()
         self.assertIsNotNone(obj.get_error_diagnostics())
 
+    def test_properties_migration(self):
+        obj = self.getGatling()
+        obj.execution.merge({
+            "scenario": {
+                "keepalive": True,
+                "requests": ["http://blazedemo.com/"],
+            }
+        })
+        saved_env = BetterDict()
+        obj.execute = lambda self, *args, **kwargs: saved_env.merge(kwargs['env'])
+        obj.prepare()
+        obj.startup()
+        self.assertIn("gatling.http.ahc.allowPoolingConnections=true", saved_env["JAVA_OPTS"])
+        self.assertIn("gatling.http.ahc.keepAlive=true", saved_env["JAVA_OPTS"])
+
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
@@ -457,4 +472,4 @@ class TestDataLogReader(BZTestCase):
         obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-220')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 4)
-        self.assertEqual(obj.guessed_gatling_version, "2.2")
+        self.assertEqual(obj.guessed_gatling_version, "2.2+")

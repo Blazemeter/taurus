@@ -15,7 +15,7 @@ from urwid import Pile, Text
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, urlopen, urlencode
+from bzt.six import iteritems, urlopen, urlencode, b
 from bzt.utils import dehumanize_time
 
 
@@ -384,28 +384,29 @@ class ServerAgentClient(MonitoringClient):
     def connect(self):
         try:
             self.socket.connect((self.address, self.port))
-            self.socket.send("test\n")
+            self.socket.send(b("test\n"))
             resp = self.socket.recv(4)
-            assert resp == "Yep\n"
+            assert resp == b("Yep\n")
             self.log.debug("Connected to serverAgent at %s:%s successfully", self.address, self.port)
-        except:
+        except BaseException as exc:
+            self.log.warning("Error during connecting to agent at %s:%s: %s", self.address, self.port, exc)
             msg = "Failed to connect to serverAgent at %s:%s" % (self.address, self.port)
             raise TaurusNetworkError(msg)
 
     def disconnect(self):
         self.log.debug("Closing connection with agent at %s:%s...", self.address, self.port)
         try:
-            self.socket.send("exit\n")
+            self.socket.send(b("exit\n"))
         except BaseException as exc:
             self.log.warning("Error during disconnecting from agent at %s:%s: %s", self.address, self.port, exc)
         finally:
             self.socket.close()
 
     def start(self):
-        self.socket.send("interval:%s\n" % self.interval if self.interval > 0 else 1)
+        self.socket.send(b("interval:%s\n" % self.interval if self.interval > 0 else 1))
         command = "metrics:%s\n" % self._metrics_command
         self.log.debug("Sending metrics command: %s", command)
-        self.socket.send(command)
+        self.socket.send(b(command))
         self.socket.setblocking(False)
 
     def get_data(self):
@@ -421,7 +422,7 @@ class ServerAgentClient(MonitoringClient):
 
         res = []
         for _sock in readable:
-            self._partial_buffer += _sock.recv(1024)
+            self._partial_buffer += _sock.recv(1024).decode()
             while "\n" in self._partial_buffer:
                 line = self._partial_buffer[:self._partial_buffer.index("\n")]
                 self._partial_buffer = self._partial_buffer[self._partial_buffer.index("\n") + 1:]

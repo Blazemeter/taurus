@@ -22,6 +22,7 @@ import subprocess
 import time
 import zipfile
 import json
+from bzt.six import communicate
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -145,7 +146,7 @@ class AndroidEmulatorLoader(Service):
         self.log.debug("Trying: %s", cmd)
         try:
             proc = shell_exec(cmd)
-            out, _ = proc.communicate()
+            out, _ = communicate(proc)
             return out.strip() == '1'
         except BaseException as exc:
             raise ToolError('Checking if android emulator starts is impossible: %s', exc)

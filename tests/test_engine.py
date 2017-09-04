@@ -3,7 +3,7 @@ from bzt import TaurusConfigError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BASE_CONFIG
 
 from bzt.engine import ScenarioExecutor
-from bzt.six import string_types
+from bzt.six import string_types, communicate
 from bzt.utils import BetterDict, is_windows
 from tests.mocks import EngineEmul
 
@@ -80,7 +80,7 @@ class TestEngine(BZTestCase):
             },
             "modules": {
                 "local": "bzt.modules.provisioning.Local",
-                "jmeter": "bzt.modules.jmeter.JMeterExecutor",
+                "jmeter": "tests.modules.jmeter.MockJMeterExecutor",
             }})
         self.obj.prepare()
 
@@ -209,8 +209,8 @@ class TestScenarioExecutor(BZTestCase):
     def test_passes_artifacts_dir(self):
         cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
         process = self.executor.execute(cmdline, shell=True)
-        stdout, _ = process.communicate()
-        self.assertEquals(self.engine.artifacts_dir, stdout.decode().strip())
+        stdout, _ = communicate(process)
+        self.assertEquals(self.engine.artifacts_dir, stdout.strip())
 
     def test_case_of_variables(self):
         env = {'aaa': 333, 'AAA': 666}
@@ -219,8 +219,8 @@ class TestScenarioExecutor(BZTestCase):
         results = set()
         for cmdline in cmdlines:
             process = self.executor.execute(cmdline, shell=True, env=env)
-            stdout, _ = process.communicate()
-            results.add(stdout.decode().strip())
+            stdout, _ = communicate(process)
+            results.add(stdout.strip())
         if is_windows():
             self.assertEqual(1, len(results))
         else:
