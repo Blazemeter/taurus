@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import time
+from distutils.version import LooseVersion
 
 from math import ceil
 from subprocess import CalledProcessError
@@ -24,6 +25,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.six import communicate
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
@@ -141,11 +143,14 @@ class Molotov(RequiredTool):
     def check_if_installed(self):
         self.log.debug('Checking Molotov: %s' % self.tool_path)
         try:
-            shell_exec([self.tool_path, '--version'])
-            # TODO: check for version being >= 1.4
+            stdout, _ = communicate(shell_exec([self.tool_path, '--version']))
+            version_s = stdout.strip()
+            version = LooseVersion(version_s)
+            if version < LooseVersion("1.4"):
+                self.log.warning("Molotov version %s detected" % version)
         except (CalledProcessError, OSError):
             return False
         return True
 
     def install(self):
-        raise ToolError("You must install molotov tool to use it")
+        raise ToolError("You must install molotov tool (version 1.4 or greater) to use it")
