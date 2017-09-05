@@ -5,7 +5,7 @@ colorlog
 cssselect
 ipaddress; python_version < '3.0'
 lxml>=3.8.0
--e git+git://github.com/loads/molotov.git; python_version >= '3.5'
+-e git+git://github.com/loads/molotov.git#egg=molotov; python_version >= '3.5'
 nose
 progressbar33
 psutil>=5,!=5.3.0
