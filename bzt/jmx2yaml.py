@@ -1471,7 +1471,7 @@ class JMX2YAML(object):
         else:
             self.dst_file = self.src_file + "." + output_format.lower()
 
-        with open(self.dst_file, 'w') as fds:
+        with codecs.open(self.dst_file, 'w', encoding='utf-8') as fds:
             exporter.write(fds, output_format)
 
         additional_files_dir = get_full_path(self.dst_file, step_up=1)
