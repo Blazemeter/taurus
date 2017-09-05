@@ -47,7 +47,6 @@ RUN apt-get -y update \
     nodejs \
     mono-complete nuget \
   && pip install --upgrade setuptools pip \
-  && pip install git+git://github.com/loads/molotov.git \
   && pip install locustio bzt && pip uninstall -y bzt \
   && pip install --upgrade selenium \
   && npm install -g mocha \
