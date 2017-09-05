@@ -36,7 +36,7 @@ install:
 - gem install rspec
 - pip install pip --upgrade
 - pip install -r requirements.txt
-- pip install codecov nose-exclude locustio
+- pip install codecov nose-exclude locustio git+git://github.com/loads/molotov.git
 script: coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources
 after_success:
 - coverage report -m

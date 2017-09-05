@@ -6,7 +6,7 @@ install:
   - choco install firefox -version 54.0
   - "%PYTHON%\\python.exe -m pip install pip --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
-  - "%PYTHON%\\python.exe -m pip install locustio nose-exclude"
+  - "%PYTHON%\\python.exe -m pip install locustio nose-exclude git+git://github.com/loads/molotov.git"
   - set PATH=C:\Ruby22\bin;%PATH%
 
 build: off
