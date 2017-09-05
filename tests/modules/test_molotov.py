@@ -1,8 +1,7 @@
 import logging
-import sys
 import time
+import unittest
 from os import path
-from unittest import skipUnless
 
 from bzt import ToolError
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -83,7 +82,7 @@ class TestMolotov(BZTestCase):
         resources = obj.get_resource_files()
         self.assertEqual(resources, [get_res_path("loadtest.py")])
 
-    @skipUnless(sys.version_info >= (3.5), "py3.5+ only")
+    @unittest.skip("Disabled until molotov is released")
     def test_full(self):
         obj = MolotovExecutor()
         obj.engine = EngineEmul()
