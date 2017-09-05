@@ -17,12 +17,14 @@ def get_res_path(resource):
 
 
 class TestMolotov(BZTestCase):
-    def test_full(self):
+    def test_mocked(self):
         obj = MolotovExecutor()
         obj.engine = EngineEmul()
         obj.settings.merge({
             "path": get_res_path(TOOL_NAME),})
         obj.execution.merge({
+            "ramp-up": "10s",
+            "hold-for": "20s",
             "scenario": {
                 "script": get_res_path("loadtest.py")
             }
@@ -45,7 +47,7 @@ class TestMolotov(BZTestCase):
             "path": '*',})
         obj.execution.merge({
             "scenario": {
-                "requests": ["http://blazedemo.com"]
+                "script": get_res_path("loadtest.py"),
             }})
         self.assertRaises(ToolError, obj.prepare)
 
@@ -67,6 +69,37 @@ class TestMolotov(BZTestCase):
         obj.shutdown()
         obj.post_process()
         self.assertIsNotNone(obj.get_error_diagnostics())
+
+    def test_resource_files(self):
+        obj = MolotovExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "scenario": {
+                "script": get_res_path("loadtest.py")
+            }
+        })
+        resources = obj.get_resource_files()
+        self.assertEqual(resources, [get_res_path("loadtest.py")])
+
+    def test_full(self):
+        obj = MolotovExecutor()
+        obj.engine = EngineEmul()
+        obj.execution.merge({
+            "iterations": 1,
+            "scenario": {
+                "script": get_res_path("loadtest.py")
+            }
+        })
+        obj.prepare()
+        obj.get_widget()
+        try:
+            obj.startup()
+            while not obj.check():
+                time.sleep(obj.engine.check_interval)
+        finally:
+            obj.shutdown()
+        obj.post_process()
+        self.assertNotEquals(obj.process, None)
 
 
 class TestReportReader(BZTestCase):
