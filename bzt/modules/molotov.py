@@ -25,7 +25,8 @@ from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.six import communicate
+from bzt.modules.jmeter import IncrementalCSVReader
+from bzt.six import communicate, unicode_decode
 from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
 
 
@@ -51,10 +52,9 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.stderr_file = open(self.engine.create_artifact("molotov", ".err"), 'w')
 
         self.report_file_name = self.engine.create_artifact("molotov-report", ".csv")
-        # self.reader = None
-        # if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-        #     self.engine.aggregator.add_underling(self.reader)
-
+        self.reader = MolotovReportReader(self.report_file_name, self.log)
+        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+            self.engine.aggregator.add_underling(self.reader)
 
     def get_widget(self):
         if not self.widget:
@@ -109,7 +109,6 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
             self.stderr_file.close()
 
     def install_required_tools(self):
-        # TODO: check for python3 too?
         tool_path = self.settings.get('path', 'molotov')
         tool = Molotov(tool_path, self.log)
         if not tool.check_if_installed():
@@ -143,14 +142,43 @@ class Molotov(RequiredTool):
     def check_if_installed(self):
         self.log.debug('Checking Molotov: %s' % self.tool_path)
         try:
-            stdout, _ = communicate(shell_exec([self.tool_path, '--version']))
+            stdout, stderr = communicate(shell_exec([self.tool_path, '--version']))
+            self.log.debug("Molotov stdout/stderr: %s, %s", stdout, stderr)
             version_s = stdout.strip()
             version = LooseVersion(version_s)
             if version < LooseVersion("1.4"):
                 self.log.warning("Molotov version %s detected" % version)
-        except (CalledProcessError, OSError):
+        except (CalledProcessError, OSError, AttributeError):
             return False
         return True
 
     def install(self):
         raise ToolError("You must install molotov tool (version 1.4 or greater) to use it")
+
+
+class MolotovReportReader(ResultsReader):
+    def __init__(self, filename, parent_logger):
+        super(MolotovReportReader, self).__init__()
+        self.is_distributed = False
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.csvreader = IncrementalCSVReader(self.log, filename)
+        self.read_records = 0
+
+    def _read(self, last_pass=False):
+        for row in self.csvreader.read(last_pass):
+            label = unicode_decode(row["label"])
+
+            rtm = float(row["elapsed"])
+            rcd = row["responseCode"]
+            error = None
+            if int(rcd) >= 400:
+                error = row["responseMessage"]
+
+            tstmp = int(float(row["timestamp"]))
+            self.read_records += 1
+            concur = 0
+            cnn = 0
+            ltc = 0
+            trname = ''
+            byte_count = 0
+            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count

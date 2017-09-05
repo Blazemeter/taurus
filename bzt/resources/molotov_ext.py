@@ -63,7 +63,7 @@ async def print_response(event, **info):
         if id(request) in samples:
             sample = samples.pop(id(request))
             sample.elapsed = round(time.time() - sample.timestamp, 3)
-            sample.timestamp = int(sample.timestamp * 100)
+            sample.timestamp = sample.timestamp
             sample.response_code = response.status
             sample.response_message = response.reason
             report_writer.writerow(sample.to_dict())
