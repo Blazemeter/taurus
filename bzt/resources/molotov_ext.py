@@ -1,5 +1,5 @@
 """
-Molotov plugin for recording test results for Taurus.
+Molotov plugin for recording test results for Taurus. Python 3.5+.
 
 Copyright 2017 BlazeMeter Inc.
 

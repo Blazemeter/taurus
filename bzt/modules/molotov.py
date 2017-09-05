@@ -1,5 +1,5 @@
 """
-Molotov-based executor for Taurus. Python 3.5+ only.
+Molotov-based executor for Taurus.
 
 Copyright 2017 BlazeMeter Inc.
 
