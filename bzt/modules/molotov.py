@@ -164,8 +164,8 @@ class MolotovReportReader(ResultsReader):
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
 
-    def _read(self, last_pass=False):
-        for row in self.csvreader.read(last_pass):
+    def _read(self, final_pass=False):
+        for row in self.csvreader.read(final_pass):
             label = unicode_decode(row["label"])
 
             rtm = float(row["elapsed"])
