@@ -24,6 +24,7 @@ before_test:
   - ruby -v
   - gem -v
   - rspec --version
+  - chcp 65001
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests/ --verbosity 3 --exclude-dir=tests/resources --with-coverage --cover-inclusive"
