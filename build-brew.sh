@@ -2,8 +2,9 @@
 
 PYPKG_URL=https://files.pythonhosted.org/packages/4f/85/3730bf6788e9d22a430324fef9dc81b7b65718ab1d6e2485d1eb12fc8d4f/bzt-1.9.5.tar.gz
 BUILD_DIR=`readlink -f "$(dirname $0)/build/brew"`
-FORMULA_FILE="$BUILD_DIR/bzt.rb"
-SHA256=`curl -L -s "$PYPKG_URL" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
+FORMULA_FILE="${BUILD_DIR}/bzt.rb"
+BREW_FORMULA="$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
+SHA256=`curl -L -s "${PYPKG_URL}" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
 
 mkdir -p "$BUILD_DIR"
 
@@ -15,13 +16,13 @@ test -d ~/.linuxbrew && PATH="$HOME/.linuxbrew/bin:$PATH"
 test -d /home/linuxbrew/.linuxbrew && PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
 
 # write header to formula
-cat << EOF > "$FORMULA_FILE"
+cat << EOF > "${FORMULA_FILE}"
 class Bzt < Formula
   include Language::Python::Virtualenv
   desc "BlazeMeter Taurus"
   homepage "https://gettaurus.org"
-  url "\$PYPKG_URL"
-  sha256 "\$SHA256"
+  url "${PYPKG_URL}"
+  sha256 "${SHA256}"
   head "https://github.com/greyfenrir/taurus.git"
   depends_on :python3
 
@@ -44,7 +45,7 @@ poet bzt >> "${FORMULA_FILE}"
 deactivate
 
 # add footer of formula
-cat << EOF >> "{$FORMULA_FILE}"
+cat << EOF >> "${FORMULA_FILE}"
 
   def install
     virtualenv_install_with_resources
@@ -54,15 +55,20 @@ cat << EOF >> "{$FORMULA_FILE}"
   end
 
   test do
-    system "bzt", "--help"
+    system "#{bin}/bzt", "--help"
   end
 end
 EOF
 
-ln -s "${FORMULA_FILE}" "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
+ln -sf "${FORMULA_FILE}" "${BREW_FORMULA}"
+chmod 644 "${FORMULA_FILE}"
 
+mktmpenv
+brew update
+brew reinstall bzt
 brew test bzt
 brew audit --strict --online bzt
+deactivate
 
 # todo:
 #  1. fork the Homebrew/homebrew-core
