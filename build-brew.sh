@@ -1,14 +1,16 @@
 #!/bin/bash
 
 PYPKG_URL=https://files.pythonhosted.org/packages/4f/85/3730bf6788e9d22a430324fef9dc81b7b65718ab1d6e2485d1eb12fc8d4f/bzt-1.9.5.tar.gz
-BUILD_DIR="$(dirname $0)/build/brew"
+BUILD_DIR=`readlink -f "$(dirname $0)/build/brew"`
 FORMULA_FILE="$BUILD_DIR/bzt.rb"
 SHA256=`curl -L -s "$PYPKG_URL" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
 
 mkdir -p "$BUILD_DIR"
 
-# Install virtualenvwrapper
-echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
+# Install brew
+if ! type "brew"; then
+  echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
+fi
 test -d ~/.linuxbrew && PATH="$HOME/.linuxbrew/bin:$PATH"
 test -d /home/linuxbrew/.linuxbrew && PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
 
@@ -22,6 +24,7 @@ class Bzt < Formula
   sha256 "\$SHA256"
   head "https://github.com/greyfenrir/taurus.git"
   depends_on :python3
+
 EOF
 
 brew install python3
@@ -35,13 +38,14 @@ mktmpenv
 pip install bzt homebrew-pypi-poet
 
 # Get stanzas
-poet bzt >> "$FORMULA_FILE"
+poet bzt >> "${FORMULA_FILE}"
 
 # Destroy the temporary virtualenv you just created
 deactivate
 
 # add footer of formula
-cat << EOF >> "$FORMULA_FILE"
+cat << EOF >> "{$FORMULA_FILE}"
+
   def install
     virtualenv_install_with_resources
     bin.install_symlink "#{libexec}/bin/bzt" => "bzt"
@@ -55,7 +59,7 @@ cat << EOF >> "$FORMULA_FILE"
 end
 EOF
 
-ln -s "$FORMULA_FILE" "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
+ln -s "${FORMULA_FILE}" "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
 
 brew test bzt
 brew audit --strict --online bzt
