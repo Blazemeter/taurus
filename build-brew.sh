@@ -8,7 +8,7 @@ SHA256=`curl -L -s "$PYPKG_URL" | shasum -a 256 | awk '{split($0, a); print a[1]
 mkdir -p "$BUILD_DIR"
 
 # Install virtualenvwrapper
-ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
+echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
 test -d ~/.linuxbrew && PATH="$HOME/.linuxbrew/bin:$PATH"
 test -d /home/linuxbrew/.linuxbrew && PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
 
@@ -57,7 +57,7 @@ EOF
 
 ln -s "$FORMULA_FILE" "$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
 
-brew test
+brew test bzt
 brew audit --strict --online bzt
 
 # todo:
