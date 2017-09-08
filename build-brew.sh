@@ -1,19 +1,24 @@
 #!/bin/bash
 
 PYPKG_URL=https://files.pythonhosted.org/packages/4f/85/3730bf6788e9d22a430324fef9dc81b7b65718ab1d6e2485d1eb12fc8d4f/bzt-1.9.5.tar.gz
-BUILD_DIR=`readlink -f "$(dirname $0)/build/brew"`
-FORMULA_FILE="${BUILD_DIR}/bzt.rb"
-BREW_FORMULA="$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
 SHA256=`curl -L -s "${PYPKG_URL}" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
 
+BUILD_DIR=`readlink -f "$(dirname $0)/build/brew"`
 mkdir -p "$BUILD_DIR"
+
+FORMULA_FILE="${BUILD_DIR}/bzt.rb"
+LOCAL_BREW="$HOME/.linuxbrew"
+GLOBAL_BREW="/home/linuxbrew/.linuxbrew"
+
+test -d "$LOCAL_BREW" && PATH="${LOCAL_BREW}/bin:${PATH}"
+test -d "$GLOBAL_BREW" && PATH="${GLOBAL_BREW}/bin:${PATH}"
 
 # Install brew
 if ! type "brew"; then
   echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
 fi
-test -d ~/.linuxbrew && PATH="$HOME/.linuxbrew/bin:$PATH"
-test -d /home/linuxbrew/.linuxbrew && PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
+
+BREW_FORMULA="$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
 
 # write header to formula
 cat << EOF > "${FORMULA_FILE}"
