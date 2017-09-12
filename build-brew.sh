@@ -10,11 +10,12 @@ FORMULA_FILE="${BUILD_DIR}/bzt.rb"
 LOCAL_BREW="$HOME/.linuxbrew"
 GLOBAL_BREW="/home/linuxbrew/.linuxbrew"
 
-test -d "$LOCAL_BREW" && PATH="${LOCAL_BREW}/bin:${PATH}"
-test -d "$GLOBAL_BREW" && PATH="${GLOBAL_BREW}/bin:${PATH}"
+# todo: return path/install order back
+PATH="${LOCAL_BREW}"/bin:"${GLOBAL_BREW}"/bin:"${PATH}"
 
-# Install brew
-if ! type "brew"; then
+# If brew isn't found install it
+if ! command -v brew >/dev/null 2>&1; then
+  # suppress interactive mode (ENTER for confirmation)
   echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
 fi
 
@@ -29,17 +30,20 @@ class Bzt < Formula
   url "${PYPKG_URL}"
   sha256 "${SHA256}"
   head "https://github.com/greyfenrir/taurus.git"
-  depends_on :python3
+  depends_on :python
 
 EOF
 
-brew install python3
-python3 -m pip install virtualenvwrapper
-source virtualenvwrapper.sh
+brew install python libxml2
 
 # Set up a temporary virtual environment
-mktmpenv
-
+virtualenv --clear $BUILD_DIR/venv27 -p python
+source $BUILD_DIR/venv27/bin/activate
+echo " *** DEBUG `which python`"
+echo " *** DEBUG `python -V`"
+echo " *** DEBUG `which pip`"
+echo " *** DEBUG `which gcc`"
+echo " *** DEBUG `brew list`"
 # Install the package of interest as well as homebrew-pypi-poet
 pip install bzt homebrew-pypi-poet
 
@@ -68,9 +72,15 @@ EOF
 ln -sf "${FORMULA_FILE}" "${BREW_FORMULA}"
 chmod 644 "${FORMULA_FILE}"
 
-mktmpenv
+virtualenv --clear $BUILD_DIR/venv27 -p python
+source $BUILD_DIR/venv27/bin/activate
+echo " *** DEBUG `which python`"
+echo " *** DEBUG `python -V`"
+echo " *** DEBUG `which pip`"
+echo " *** DEBUG `which gcc`"
+echo " *** DEBUG `brew list`"
 brew update
-brew reinstall bzt
+brew reinstall bzt -vvv
 brew test bzt
 brew audit --strict --online bzt
 deactivate
