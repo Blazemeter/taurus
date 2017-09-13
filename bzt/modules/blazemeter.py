@@ -1128,8 +1128,6 @@ class CloudTaurusTest(BaseCloudTest):
             }
 
             self._test = self._project.create_test(self._test_name, test_config)
-            if self.is_functional:
-                self._test.update_props({'configuration': {'plugins': {'functionalExecution': {'enabled': True}}}})
 
         if delete_old_files:
             self._test.delete_files()
@@ -1137,6 +1135,9 @@ class CloudTaurusTest(BaseCloudTest):
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
         self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
+        self._test.update_props({
+            'configuration': {'plugins': {'functionalExecution': {'enabled': self.is_functional}}}
+        })
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)

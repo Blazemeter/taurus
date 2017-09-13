@@ -148,9 +148,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["detach"] = True
 
         self.obj.prepare()
-        self.assertEqual(11, len(self.mock.requests))
-        self.obj.startup()
         self.assertEqual(12, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(13, len(self.mock.requests))
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
@@ -979,7 +979,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.results_reader.min_ts = 0  # to make it request same URL
         self.obj.engine.aggregator.check()
 
-        self.assertEqual(24, len(self.mock.requests))
+        self.assertEqual(25, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()
@@ -1048,7 +1048,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(self.obj.browser_open, "both")
         self.assertEqual(self.obj.user.token, "bmtoken")
         self.assertEqual(self.obj.check_interval, 20.0)
-        self.assertEqual(11, len(self.mock.requests))
+        self.assertEqual(12, len(self.mock.requests))
 
     def test_public_report(self):
         self.configure(
@@ -1102,9 +1102,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.obj.startup()
         reqs = self.mock.requests
-        self.assertEqual(reqs[8]['method'], 'PATCH')
-        self.assertEqual(reqs[8]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
-        data = json.loads(reqs[8]['data'])
+        self.assertEqual(reqs[10]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
+        self.assertEqual(reqs[10]['method'], 'PATCH')
+        data = json.loads(reqs[10]['data'])
         self.assertEqual(data['configuration']['plugins'], {"functionalExecution": {"enabled": True}})
         start_req = reqs[-1]
         self.assertTrue(start_req['url'].endswith('?functionalExecution=true'))
