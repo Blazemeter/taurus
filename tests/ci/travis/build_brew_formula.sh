@@ -19,9 +19,8 @@ FORMULA_FILE="${BUILD_DIR}/bzt.rb"
 #   echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
 # fi
 
-echo "`find $(brew --prefix) -type d -name "Formula" -exec ls -d -1 {}`"
 BREW_FORMULA="$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
-echo "$BREW_FORMULA"
+
 
 # write header to formula
 cat << EOF > "${FORMULA_FILE}"
@@ -69,17 +68,19 @@ EOF
 ln -sf "${FORMULA_FILE}" "${BREW_FORMULA}"
 chmod 644 "${FORMULA_FILE}"
 
-brew update
 brew reinstall bzt -vvv
 brew test bzt
 brew audit --strict --online bzt
 
-echo "formulas path:`find $(brew --prefix) -type d -name "Formula" -exec ls -d -1 {}`"
-echo "$BREW_FORMULA=${BREW_FORMULA}"
-echo "*** ff:${FORMULA_FILE}:"
-echo ">>>>> start of formula"
+echo "formulas found: `find $(brew --prefix) -type d -name "Formula" -exec ls -d -1 {}`"
+echo ">>>>> start of formula ${BREW_FORMULA}"
+cat ${BREW_FORMULA}
+echo ">>>>> end of formula"
+echo ">>>>> start of formula ${FORMULA_FILE}"
 cat ${FORMULA_FILE}
 echo ">>>>> end of formula"
+echo "ls $(brew --prefix): `ls $(brew --prefix)`"
+
 # todo:
 #  1. fork the Homebrew/homebrew-core
 #  2. add remote rep to fork
