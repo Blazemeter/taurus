@@ -72,6 +72,9 @@ brew reinstall bzt -vvv
 brew test bzt
 brew audit --strict --online bzt
 
+echo ">>>>> start of formula"
+cat ${FORMULA_FILE}
+echo ">>>>> end of formula"
 # todo:
 #  1. fork the Homebrew/homebrew-core
 #  2. add remote rep to fork
