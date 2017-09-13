@@ -405,8 +405,10 @@ class Test(BZAObject):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
         return response['removed']
 
-    def start(self):
+    def start(self, as_functional=False):
         url = self.address + "/api/v4/tests/%s/start" % self['id']
+        if as_functional:
+            url += "?functionalExecution=true"
         resp = self._request(url, method='POST')
         master = Master(self, resp['result'])
         return master

@@ -870,6 +870,7 @@ class ProjectFinder(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.user = user
         self.workspaces = workspaces
+        self.is_functional = False
 
     def _find_project(self, proj_name):
         """
@@ -949,6 +950,7 @@ class ProjectFinder(object):
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
+        router.is_functional = self.is_functional
         return router
 
     def _default_or_create_project(self, proj_name):
@@ -986,6 +988,7 @@ class BaseCloudTest(object):
         self._workspaces = None
         self.cloud_mode = None
         self.dedicated_ips = False
+        self.is_functional = False
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -1125,6 +1128,8 @@ class CloudTaurusTest(BaseCloudTest):
             }
 
             self._test = self._project.create_test(self._test_name, test_config)
+            if self.is_functional:
+                self._test.update_props({'configuration': {'plugins': {'functionalExecution': {'enabled': True}}}})
 
         if delete_old_files:
             self._test.delete_files()
@@ -1135,7 +1140,7 @@ class CloudTaurusTest(BaseCloudTest):
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
-        self.master = self._test.start()
+        self.master = self._test.start(as_functional=self.is_functional)
         return self.master.address + '/app/#/masters/%s' % self.master['id']
 
     def start_if_ready(self):
@@ -1434,6 +1439,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
+        finder.is_functional = self.engine.is_functional_mode()
         self.router = finder.resolve_test_type()
         self.router.prepare_locations(self.executors, self.engine.config)
 

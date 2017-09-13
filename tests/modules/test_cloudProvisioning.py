@@ -9,6 +9,7 @@ import yaml
 from bzt import TaurusConfigError, TaurusException, NormalShutdown
 from bzt.bza import Master, Test, MultiTest
 from bzt.engine import ScenarioExecutor, Service
+from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
@@ -1080,6 +1081,33 @@ class TestCloudProvisioning(BZTestCase):
         log_buff = self.log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/1/summary"
         self.assertIn(log_line, log_buff)
+
+    def test_functional_test_creation(self):
+        self.obj.engine.aggregator = FunctionalAggregator()
+
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
+                {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
+            ]},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
+                {'result': []},
+                {'result': [{'id': 1}]}
+            ],
+            'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+        }, post={
+            'https://a.blazemeter.com/api/v4/tests/1/start?functionalExecution=true': {'result': {'id': 'mid'}}
+        })
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
+        self.obj.prepare()
+        self.obj.startup()
+        reqs = self.mock.requests
+        self.assertEqual(reqs[8]['method'], 'PATCH')
+        self.assertEqual(reqs[8]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
+        data = json.loads(reqs[8]['data'])
+        self.assertEqual(data['configuration']['plugins'], {"functionalExecution": {"enabled": True}})
+        start_req = reqs[-1]
+        self.assertTrue(start_req['url'].endswith('?functionalExecution=true'))
 
 
 class TestCloudTaurusTest(BZTestCase):
