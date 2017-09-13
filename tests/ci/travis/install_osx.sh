@@ -2,4 +2,4 @@
 
 echo " ** msg1 ** "
 echo " ** msg2 ** "
-brew
+brew --version
