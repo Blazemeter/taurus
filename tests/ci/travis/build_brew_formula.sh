@@ -19,7 +19,9 @@ FORMULA_FILE="${BUILD_DIR}/bzt.rb"
 #   echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
 # fi
 
+echo `find $(brew --prefix) -type d -name "Formula" -exec ls -d -1 {}`
 BREW_FORMULA="$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
+echo $BREW_FORMULA
 
 # write header to formula
 cat << EOF > "${FORMULA_FILE}"
@@ -72,6 +74,7 @@ brew reinstall bzt -vvv
 brew test bzt
 brew audit --strict --online bzt
 
+echo "*** ${FORMULA_FILE}:"
 echo ">>>>> start of formula"
 cat ${FORMULA_FILE}
 echo ">>>>> end of formula"
