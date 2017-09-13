@@ -3,7 +3,7 @@
 PYPKG_URL=https://files.pythonhosted.org/packages/4f/85/3730bf6788e9d22a430324fef9dc81b7b65718ab1d6e2485d1eb12fc8d4f/bzt-1.9.5.tar.gz
 SHA256=`curl -L -s "${PYPKG_URL}" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
 
-BUILD_DIR=`readlink -f "$(dirname $0)/build/brew"`
+BUILD_DIR="$(dirname $0)/build/brew"
 mkdir -p "$BUILD_DIR"
 
 FORMULA_FILE="${BUILD_DIR}/bzt.rb"
