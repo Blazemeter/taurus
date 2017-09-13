@@ -36,4 +36,8 @@ script: true
 after_success:
 #- coverage report -m
 #- codecov
-- echo "*** Done! ***"
+- |
+  if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    tests/ci/travis/build_brew_formula.sh
+  fi
+

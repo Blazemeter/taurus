@@ -7,17 +7,17 @@ BUILD_DIR=`readlink -f "$(dirname $0)/build/brew"`
 mkdir -p "$BUILD_DIR"
 
 FORMULA_FILE="${BUILD_DIR}/bzt.rb"
-LOCAL_BREW="$HOME/.linuxbrew"
-GLOBAL_BREW="/home/linuxbrew/.linuxbrew"
+# LOCAL_BREW="$HOME/.linuxbrew"
+# GLOBAL_BREW="/home/linuxbrew/.linuxbrew"
 
 # todo: return path/install order back
-PATH="${LOCAL_BREW}"/bin:"${GLOBAL_BREW}"/bin:"${PATH}"
+# PATH="${LOCAL_BREW}"/bin:"${GLOBAL_BREW}"/bin:"${PATH}"
 
 # If brew isn't found install it
-if ! command -v brew >/dev/null 2>&1; then
-  # suppress interactive mode (ENTER for confirmation)
-  echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
-fi
+# if ! command -v brew >/dev/null 2>&1; then
+#   # suppress interactive mode (ENTER for confirmation)
+#   echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
+# fi
 
 BREW_FORMULA="$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
 
@@ -37,13 +37,8 @@ EOF
 brew install python libxml2
 
 # Set up a temporary virtual environment
-virtualenv --clear $BUILD_DIR/venv27 -p python
-source $BUILD_DIR/venv27/bin/activate
-echo " *** DEBUG `which python`"
-echo " *** DEBUG `python -V`"
-echo " *** DEBUG `which pip`"
-echo " *** DEBUG `which gcc`"
-echo " *** DEBUG `brew list`"
+virtualenv --clear $BUILD_DIR/venv -p python
+source $BUILD_DIR/venv/bin/activate
 # Install the package of interest as well as homebrew-pypi-poet
 pip install bzt homebrew-pypi-poet
 
@@ -72,18 +67,10 @@ EOF
 ln -sf "${FORMULA_FILE}" "${BREW_FORMULA}"
 chmod 644 "${FORMULA_FILE}"
 
-virtualenv --clear $BUILD_DIR/venv27 -p python
-source $BUILD_DIR/venv27/bin/activate
-echo " *** DEBUG `which python`"
-echo " *** DEBUG `python -V`"
-echo " *** DEBUG `which pip`"
-echo " *** DEBUG `which gcc`"
-echo " *** DEBUG `brew list`"
 brew update
 brew reinstall bzt -vvv
 brew test bzt
 brew audit --strict --online bzt
-deactivate
 
 # todo:
 #  1. fork the Homebrew/homebrew-core
