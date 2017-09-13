@@ -5,9 +5,9 @@ services:
   prepare: 
   - command: sleep 300 && exit 1  # this will make it interrupt in case it hangs
     background: true
-  check:
-  - command: ps auxff > processlist.txt
-    cwd: artifacts-dir
+#  check:
+#  - command: ps auxff > processlist.txt
+#    cwd: artifacts-dir
 
 reporting:
 - module: passfail
