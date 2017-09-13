@@ -57,6 +57,14 @@ RUN apt-get -y update \
   && apt-get clean \
   && firefox --version && google-chrome-stable --version && mono --version && nuget | head -1
 
+# temporary measure while FF55 does not work with virtual display
+ADD https://download-installer.cdn.mozilla.net/pub/firefox/releases/54.0.1/linux-x86_64/en-US/firefox-54.0.1.tar.bz2 /tmp
+WORKDIR /tmp
+RUN tar -xjf firefox-54.0.1.tar.bz2 \
+  && mv firefox /usr/local/lib \
+  && ln -s /usr/local/lib/firefox/firefox /usr/local/bin/ \
+  && firefox --version
+
 COPY bzt/resources/chrome_launcher.sh /tmp
 RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
   && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
