@@ -275,6 +275,7 @@ class LocalMonitor(object):
         )
 
     def __get_disk_counters(self):
+        counters = None
         try:
             counters = psutil.disk_io_counters()
         except RuntimeError as exc:
