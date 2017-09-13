@@ -12,7 +12,7 @@ matrix:
   #- os: linux
   #  python: 3.5
   - os: osx
-    language: generic
+    python: 2.7
 
 #addons:
 #
@@ -23,22 +23,17 @@ matrix:
 #      - mono-complete
 
 before_install:
-- if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-    #sh -e Xvfb :99 -ac -screen 0 1024x768x8
-    true 
-  else
-    export DISPLAY=:99.0
-    sh -e /etc/init.d/xvfb start
-  fi
+<<<<<<< HEAD
+- if [ "$TRAVIS_OS_NAME" == "osx" ]; then true; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then export DISPLAY=:99.0; sh -e /etc/init.d/xvfb start; fi
 
-install: true
-#- mono --version
-#- nvm install 4.2
-#- nvm use 4.2
-#- gem install rspec
-#- pip install pip --upgrade
-#- pip install -r requirements.txt
-#- pip install codecov nose-exclude locustio
+install:
+- |
+  if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    tests/ci/travis/install_osx.sh
+  else:
+    tests/ci/travis/install_linux.sh
+  fi
 script: true # coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources
 after_success:
 #- coverage report -m
