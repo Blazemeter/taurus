@@ -22,13 +22,14 @@ matrix:
 #      - oracle-java8-set-default
 #      - mono-complete
 
-#before_install:
-#- if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-#    sh -e Xvfb :99 -ac -screen 0 1024x768x8
-#  else
-#    export DISPLAY=:99.0
-#    sh -e /etc/init.d/xvfb start
-#  fi
+before_install:
+- if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    #sh -e Xvfb :99 -ac -screen 0 1024x768x8
+    true
+  else
+    export DISPLAY=:99.0
+    sh -e /etc/init.d/xvfb start
+  fi
 
 install: true
 #- mono --version
