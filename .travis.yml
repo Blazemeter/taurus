@@ -12,7 +12,7 @@ matrix:
   #- os: linux
   #  python: 3.5
   - os: osx
-    python: 2.7
+    language: generic
 
 #addons:
 #
@@ -26,14 +26,18 @@ before_install:
 - if [ "$TRAVIS_OS_NAME" == "osx" ]; then true; fi
 - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export DISPLAY=:99.0; sh -e /etc/init.d/xvfb start; fi
 
-install:
-- |
+install: |
   if [ "$TRAVIS_OS_NAME" == "osx" ]; then
     tests/ci/travis/install_osx.sh
   else:
     tests/ci/travis/install_linux.sh
   fi
-script: true # coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources
+script: |
+  if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    tests/ci/travis/install_osx.sh
+  else:
+   coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources
+  fi
 after_success:
 #- coverage report -m
 #- codecov
