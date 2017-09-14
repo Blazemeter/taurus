@@ -33,6 +33,7 @@ from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
+from bzt import AutomatedShutdown
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -870,6 +871,7 @@ class ProjectFinder(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.user = user
         self.workspaces = workspaces
+        self.is_functional = False
 
     def _find_project(self, proj_name):
         """
@@ -949,6 +951,7 @@ class ProjectFinder(object):
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
+        router.is_functional = self.is_functional
         return router
 
     def _default_or_create_project(self, proj_name):
@@ -986,6 +989,7 @@ class BaseCloudTest(object):
         self._workspaces = None
         self.cloud_mode = None
         self.dedicated_ips = False
+        self.is_functional = False
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -1132,10 +1136,13 @@ class CloudTaurusTest(BaseCloudTest):
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
         self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
+        self._test.update_props({
+            'configuration': {'plugins': {'functionalExecution': {'enabled': self.is_functional}}}
+        })
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
-        self.master = self._test.start()
+        self.master = self._test.start(as_functional=self.is_functional)
         return self.master.address + '/app/#/masters/%s' % self.master['id']
 
     def start_if_ready(self):
@@ -1434,6 +1441,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
+        finder.is_functional = self.engine.is_functional_mode()
         self.router = finder.resolve_test_type()
         self.router.prepare_locations(self.executors, self.engine.config)
 
@@ -1581,6 +1589,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 if isinstance(module, ServiceStubCaptureHAR):
                     self._download_logs()
                     break
+
+            if "functionalSummary" in full:
+                summary = full["functionalSummary"]
+                is_failed = summary.get("isFailed", False)
+                if is_failed:
+                    raise AutomatedShutdown("Cloud tests failed")
 
     def _download_logs(self):
         for session in self.router.master.sessions():
