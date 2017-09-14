@@ -79,7 +79,7 @@ echo ">>>>> end of formula"
 echo ">>>>> start of formula ${FORMULA_FILE}"
 cat ${FORMULA_FILE}
 echo ">>>>> end of formula"
-echo "ls $(brew --prefix): `ls $(brew --prefix)`"
+echo "ls $(brew --prefix)/Homebrew: `ls -al $(brew --prefix)/Homebrew`"
 
 # todo:
 #  1. fork the Homebrew/homebrew-core
