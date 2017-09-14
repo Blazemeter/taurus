@@ -1,28 +1,24 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-PYPKG_URL=https://files.pythonhosted.org/packages/4f/85/3730bf6788e9d22a430324fef9dc81b7b65718ab1d6e2485d1eb12fc8d4f/bzt-1.9.5.tar.gz
+PYPKG_URL=https://files.pythonhosted.org/packages/source/b/bzt/bzt-1.9.5.tar.gz
 SHA256=`curl -L -s "${PYPKG_URL}" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
 
-BUILD_DIR="$(dirname $0)/build/brew"
+BUILD_DIR=`readlink -f "$(dirname $0)/build/brew"`
+rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
 FORMULA="${BUILD_DIR}/bzt.rb"
-chmod 644 "${FORMULA}"
+LOCAL_BREW="$HOME/.linuxbrew"
+GLOBAL_BREW="/home/linuxbrew/.linuxbrew"
 
-# LOCAL_BREW="$HOME/.linuxbrew"
-# GLOBAL_BREW="/home/linuxbrew/.linuxbrew"
+PATH="${LOCAL_BREW}"/bin:"${GLOBAL_BREW}"/bin:"${PATH}"
 
-# todo: return path/install order back
-# PATH="${LOCAL_BREW}"/bin:"${GLOBAL_BREW}"/bin:"${PATH}"
+# If brew isn't found install it. This link for linux only!
+command -v brew >/dev/null 2>&1 || (
+  echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)")
+  # suppress interactive mode (ENTER for confirmation)
 
-# If brew isn't found install it
-# if ! command -v brew >/dev/null 2>&1; then
-#   # suppress interactive mode (ENTER for confirmation)
-#   echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)"
-# fi
-
-
-
+brew install python
 
 # write header to formula
 cat << EOF > "${FORMULA}"
@@ -34,14 +30,14 @@ class Bzt < Formula
   sha256 "${SHA256}"
   head "https://github.com/greyfenrir/taurus.git"
   depends_on :python
+  depends_on "libxml2" => :build
 
 EOF
 
-brew install python libxml2
-
 # Set up a temporary virtual environment
-virtualenv --clear $BUILD_DIR/venv -p python
-source $BUILD_DIR/venv/bin/activate
+virtualenv --clear ${BUILD_DIR}/venv -p python
+source ${BUILD_DIR}/venv/bin/activate
+
 # Install the package of interest as well as homebrew-pypi-poet
 pip install bzt homebrew-pypi-poet
 
@@ -67,13 +63,17 @@ cat << EOF >> "${FORMULA}"
 end
 EOF
 
+
+chmod 644 "${FORMULA}"
+
+virtualenv --clear ${BUILD_DIR}/venv -p python
+source ${BUILD_DIR}/venv/bin/activate
+brew update
 brew reinstall --build-from-source "${FORMULA}" -vvv
+
 brew test bzt
 brew audit --strict --online bzt
-
-echo ">>>>> start of formula ${FORMULA}"
-cat ${FORMULA}
-echo ">>>>> end of formula"
+brew deactivate
 
 # todo:
 #  1. fork the Homebrew/homebrew-core
