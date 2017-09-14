@@ -33,6 +33,7 @@ from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
+from bzt import AutomatedShutdown
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -1588,6 +1589,12 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 if isinstance(module, ServiceStubCaptureHAR):
                     self._download_logs()
                     break
+
+            if "functionalSummary" in full:
+                summary = full["functionalSummary"]
+                is_failed = summary.get("isFailed", False)
+                if is_failed:
+                    raise AutomatedShutdown("Cloud tests failed")
 
     def _download_logs(self):
         for session in self.router.master.sessions():
