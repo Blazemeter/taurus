@@ -6,7 +6,7 @@ import time
 
 import yaml
 
-from bzt import TaurusConfigError, TaurusException, NormalShutdown
+from bzt import TaurusConfigError, TaurusException, NormalShutdown, AutomatedShutdown
 from bzt.bza import Master, Test, MultiTest
 from bzt.engine import ScenarioExecutor, Service
 from bzt.modules import FunctionalAggregator
@@ -1108,6 +1108,33 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(data['configuration']['plugins'], {"functionalExecution": {"enabled": True}})
         start_req = reqs[-1]
         self.assertTrue(start_req['url'].endswith('?functionalExecution=true'))
+
+    def test_functional_cloud_failed_shutdown(self):
+        self.obj.engine.aggregator = FunctionalAggregator()
+        func_summary = {"isFailed": True}
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
+                {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
+            ]},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
+                {'result': []},
+                {'result': [{'id': 1}]}
+            ],
+            'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+            'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
+            'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"functionalSummary": func_summary}},
+        }, post={
+            'https://a.blazemeter.com/api/v4/tests/1/start?functionalExecution=true': {'result': {'id': 1}}
+        })
+        self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        with self.assertRaises(AutomatedShutdown):
+            self.obj.post_process()
 
 
 class TestCloudTaurusTest(BZTestCase):
