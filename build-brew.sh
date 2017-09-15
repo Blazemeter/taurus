@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# requirements: ruby
+#
+# first time run can require sudo (to create /home/linuxbrew/.linuxbrew)
+# requirements: (apt)
+#       ruby for linuxbrew
+#       gcc-multilib for build psuitl, etc.; see
+#           https://stackoverflow.com/questions/6329887/compiling-problems-cannot-find-crt1-o)
+
 
 BREW_LINK="https://raw.githubusercontent.com/Linuxbrew/install/master"
 PYPKG_URL="https://files.pythonhosted.org/packages/source/b/bzt/bzt-1.9.5.tar.gz"
@@ -14,8 +20,6 @@ echo "done"
 FORMULA="${BUILD_DIR}/bzt.rb"
 GLOBAL_BREW="/home/linuxbrew/.linuxbrew"    # todo: hardcoded path isn't so good..
 
-# git clone -b master --depth=1 https://github.com/Linuxbrew/brew.git "${BUILD_DIR}/linuxbrew"
-# PATH="${BUILD_DIR}/linuxbrew/bin":"${PATH}"
 PATH="${GLOBAL_BREW}/bin":"${PATH}"
 
 # If brew isn't found install it. This link for linux only!
@@ -23,13 +27,8 @@ command -v brew >/dev/null 2>&1 ||
     echo | ruby -e "$(curl -fsSL ${BREW_LINK}/install)"
     # suppress interactive mode (ENTER for confirmation)
 
-# brew remove --force --ignore-dependencies $(brew list)
-# brew install gawk
 brew remove --force --ignore-dependencies $(brew list)
 brew install --force-bottle python2
-
-#ln -s "${GLOBAL_BREW}/bin/python2" "${GLOBAL_BREW}/bin/python"
-#ln -s "${GLOBAL_BREW}/bin/pip2" "${GLOBAL_BREW}/bin/pip"
 
 pip2 install virtualenv
 
@@ -42,7 +41,7 @@ class Bzt < Formula
   url "${PYPKG_URL}"
   sha256 "${SHA256}"
   head "https://github.com/greyfenrir/taurus.git"
-  depends_on :python
+  depends_on :python2
   depends_on "libxslt" => :build
   depends_on "libxml2" => :build
 
