@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# requirements: ruby
 
 BREW_LINK="https://raw.githubusercontent.com/Linuxbrew/install/master"
 PYPKG_URL="https://files.pythonhosted.org/packages/source/b/bzt/bzt-1.9.5.tar.gz"
@@ -25,7 +26,10 @@ command -v brew >/dev/null 2>&1 ||
 # brew remove --force --ignore-dependencies $(brew list)
 # brew install gawk
 brew remove --force --ignore-dependencies $(brew list)
-brew install --force-bottle python
+brew install --force-bottle python2
+
+ln -s "${GLOBAL_BREW}/bin/python2" "${GLOBAL_BREW}/bin/python"
+ln -s "${GLOBAL_BREW}/bin/pip2" "${GLOBAL_BREW}/bin/pip"
 
 # write header to formula
 cat << EOF > "${FORMULA}"
