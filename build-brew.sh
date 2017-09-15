@@ -28,8 +28,10 @@ command -v brew >/dev/null 2>&1 ||
 brew remove --force --ignore-dependencies $(brew list)
 brew install --force-bottle python2
 
-ln -s "${GLOBAL_BREW}/bin/python2" "${GLOBAL_BREW}/bin/python"
-ln -s "${GLOBAL_BREW}/bin/pip2" "${GLOBAL_BREW}/bin/pip"
+#ln -s "${GLOBAL_BREW}/bin/python2" "${GLOBAL_BREW}/bin/python"
+#ln -s "${GLOBAL_BREW}/bin/pip2" "${GLOBAL_BREW}/bin/pip"
+
+pip2 install virtualenv
 
 # write header to formula
 cat << EOF > "${FORMULA}"
@@ -47,7 +49,7 @@ class Bzt < Formula
 EOF
 
 # Set up a temporary virtual environment
-virtualenv ${BUILD_DIR}/venv -p python
+virtualenv ${BUILD_DIR}/venv -p python2
 source ${BUILD_DIR}/venv/bin/activate
 
 # Install the package of interest as well as homebrew-pypi-poet
