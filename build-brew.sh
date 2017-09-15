@@ -6,7 +6,7 @@ PYPKG_URL="https://files.pythonhosted.org/packages/source/b/bzt/bzt-1.9.5.tar.gz
 SHA256=`curl -L -s "${PYPKG_URL}" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
 
 echo -n "Clean build directory... "
-BUILD_DIR=`readlink -f "$(dirname $0)/build/brew"`
+BUILD_DIR="$(dirname $0)/build/brew"
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 echo "done"
