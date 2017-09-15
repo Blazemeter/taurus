@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import csv
+import json
 import os
 import time
 
@@ -23,51 +23,68 @@ import molotov
 
 
 report_file = open(os.environ["MOLOTOV_TAURUS_REPORT"], 'w')
-csv_fields = ['timestamp', 'elapsed', 'label', 'responseCode', 'responseMessage']
-report_writer = csv.DictWriter(report_file, fieldnames=csv_fields)
-report_writer.writeheader()
-
 samples = dict()
 
 
-class Sample:
-    def __init__(self, timestamp=None, elapsed=None, label=None, response_code=None, response_message=None):
-        self.timestamp = timestamp
-        self.elapsed = elapsed
-        self.label = label
-        self.response_code = response_code
-        self.response_message = response_message
-
-    def to_dict(self):
-        return {
-            'timestamp': self.timestamp,
-            'elapsed': self.elapsed,
-            'label': self.label,
-            'responseCode': self.response_code,
-            'responseMessage': self.response_message,
-        }
+def write_report_item(item):
+    report_file.write(json.dumps(item) + "\n")
+    report_file.flush()
 
 
 @molotov.events()
-async def print_request(event, **info):
+async def handle_request(event, **info):
     if event == 'sending_request':
         request = info['request']
-        samples[id(request)] = Sample(timestamp=time.time(), label=str(request.url))
-
-
-@molotov.events()
-async def print_response(event, **info):
-    if event == 'response_received':
+        samples[id(request)] = {
+            "ts": time.time(),
+            "type": "request",
+            "label": str(request.url),
+            "elapsed": None,
+            "responseCode": None,
+            "responseMessage": None,
+        }
+    elif event == 'response_received':
         response = info['response']
         request = info['request']
         if id(request) in samples:
             sample = samples.pop(id(request))
-            sample.elapsed = round(time.time() - sample.timestamp, 3)
-            sample.timestamp = sample.timestamp
-            sample.response_code = response.status
-            sample.response_message = response.reason
-            report_writer.writerow(sample.to_dict())
-            report_file.flush()
+            sample["elapsed"] = round(time.time() - sample["ts"], 3)
+            sample["responseCode"] = str(response.status)
+            sample["responseMessage"] = response.reason
+            write_report_item(sample)
         else:
             print("WARNING: unmatched response and request: %s %s" % (response, request))
 
+
+@molotov.events()
+async def print_concurrency(event, **info):
+    if event == 'current_workers':
+        workers = info['workers']
+        write_report_item({"ts": time.time(), "type": "workers", "value": workers})
+
+
+@molotov.events()
+async def print_test_case(event, **info):
+    if event == 'scenario_success':
+        scenario = info['scenario']
+        write_report_item({
+            "ts": time.time(),
+            "type": "scenario_success",
+            "name": scenario['name'],
+        })
+    elif event == 'scenario_failure':
+        scenario = info['scenario']
+        exception = info['exception']
+        write_report_item({
+            "ts": time.time(),
+            "type": "scenario_failure",
+            "name": scenario['name'],
+            "exception": exception.__class__.__name__,
+            "errorMessage": str(exception),
+        })
+
+
+@molotov.global_teardown()
+def close_file():
+    if not report_file.closed:
+        report_file.close()
