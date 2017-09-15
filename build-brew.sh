@@ -1,24 +1,31 @@
 #!/usr/bin/env bash
 
-PYPKG_URL=https://files.pythonhosted.org/packages/source/b/bzt/bzt-1.9.5.tar.gz
+BREW_LINK="https://raw.githubusercontent.com/Linuxbrew/install/master"
+PYPKG_URL="https://files.pythonhosted.org/packages/source/b/bzt/bzt-1.9.5.tar.gz"
 SHA256=`curl -L -s "${PYPKG_URL}" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
 
+echo -n "Clean build directory... "
 BUILD_DIR=`readlink -f "$(dirname $0)/build/brew"`
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
+echo "done"
 
 FORMULA="${BUILD_DIR}/bzt.rb"
-LOCAL_BREW="$HOME/.linuxbrew"
-GLOBAL_BREW="/home/linuxbrew/.linuxbrew"
+GLOBAL_BREW="/home/linuxbrew/.linuxbrew"    # todo: hardcoded path isn't so good..
 
-PATH="${LOCAL_BREW}"/bin:"${GLOBAL_BREW}"/bin:"${PATH}"
+# git clone -b master --depth=1 https://github.com/Linuxbrew/brew.git "${BUILD_DIR}/linuxbrew"
+# PATH="${BUILD_DIR}/linuxbrew/bin":"${PATH}"
+PATH="${GLOBAL_BREW}/bin":"${PATH}"
 
 # If brew isn't found install it. This link for linux only!
-command -v brew >/dev/null 2>&1 || (
-  echo | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/install/master/install)")
-  # suppress interactive mode (ENTER for confirmation)
+command -v brew >/dev/null 2>&1 ||
+    echo | ruby -e "$(curl -fsSL ${BREW_LINK}/install)"
+    # suppress interactive mode (ENTER for confirmation)
 
-brew install python
+# brew remove --force --ignore-dependencies $(brew list)
+# brew install gawk
+brew remove --force --ignore-dependencies $(brew list)
+brew install --force-bottle python
 
 # write header to formula
 cat << EOF > "${FORMULA}"
@@ -30,12 +37,13 @@ class Bzt < Formula
   sha256 "${SHA256}"
   head "https://github.com/greyfenrir/taurus.git"
   depends_on :python
+  depends_on "libxslt" => :build
   depends_on "libxml2" => :build
 
 EOF
 
 # Set up a temporary virtual environment
-virtualenv --clear ${BUILD_DIR}/venv -p python
+virtualenv ${BUILD_DIR}/venv -p python
 source ${BUILD_DIR}/venv/bin/activate
 
 # Install the package of interest as well as homebrew-pypi-poet
@@ -63,19 +71,12 @@ cat << EOF >> "${FORMULA}"
 end
 EOF
 
+brew install --build-from-source "${FORMULA}" -vvv &&
+    chmod 644 "$(brew --prefix)/opt/bzt/.brew/bzt.rb" &&    # brew audit requires such access rights
+    brew test bzt &&
+    brew audit --strict --online bzt
 
-chmod 644 "${FORMULA}"
-
-virtualenv --clear ${BUILD_DIR}/venv -p python
-source ${BUILD_DIR}/venv/bin/activate
-brew update
-brew reinstall --build-from-source "${FORMULA}" -vvv
-
-brew test bzt
-brew audit --strict --online bzt
-brew deactivate
-
-# todo:
+# next steps:
 #  1. fork the Homebrew/homebrew-core
 #  2. add remote rep to fork
 #  3. add formula, create branch and commit
