@@ -18,7 +18,7 @@ PLATFORM=`uname`
 if [ "$PLATFORM" = "Linux" ]; then
     BREW_LINK="https://raw.githubusercontent.com/Linuxbrew/install/master"
     GLOBAL_BREW="/home/linuxbrew/.linuxbrew"
-elif [ "$PLATFORM" = "FreeBSD" ]; then
+elif [ "$PLATFORM" = "Darwin" ]; then
     BREW_LINK="https://raw.githubusercontent.com/Homebrew/install/master"
     GLOBAL_BREW="/usr/local"
 else
