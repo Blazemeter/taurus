@@ -3,41 +3,42 @@ language: python
 
 matrix:
   include:
-  - os: linux
-    python: 2.7
-  - os: linux
-    python: 3.3
-  - os: linux
-    python: 3.4
-  - os: linux
-    python: 3.5
-#  - os: osx
-#    language: generic
+  #- os: linux
+  #  python: 2.7
+  #- os: linux
+  #  python: 3.3
+  #- os: linux
+  #  python: 3.4
+  #- os: linux
+  #  python: 3.5
+  - os: osx
+    language: generic
 
-addons:
-  firefox: "54.0"
-  apt:
-    packages:
-      - oracle-java8-set-default
-      - mono-complete
+#addons:
+#
+#  firefox: "54.0"
+#  apt:
+#    packages:
+#      - oracle-java8-set-default
+#      - mono-complete
 
-before_install: |
-  if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-    sh -e Xvfb :99 -ac -screen 0 1024x768x8
+before_install:
+- if [ "$TRAVIS_OS_NAME" == "osx" ]; then true; fi
+- if [ "$TRAVIS_OS_NAME" == "linux" ]; then export DISPLAY=:99.0; sh -e /etc/init.d/xvfb start; fi
+
+install: |
+  if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    true
+    # tests/ci/travis/install_osx.sh
   else
-    export DISPLAY=:99.0
-    sh -e /etc/init.d/xvfb start
+    tests/ci/travis/install_linux.sh
+  fi
+script: true
+after_success:
+#- coverage report -m
+#- codecov
+- |
+  if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    ./build-brew.sh
   fi
 
-install:
-- mono --version
-- nvm install 4.2
-- nvm use 4.2
-- gem install rspec
-- pip install pip --upgrade
-- pip install -r requirements.txt
-- pip install codecov nose-exclude locustio
-script: coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources
-after_success:
-- coverage report -m
-- codecov

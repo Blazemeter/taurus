@@ -5,12 +5,7 @@
 #       ruby for linuxbrew
 #       gcc-multilib for build psuitl, etc.; see
 #           https://stackoverflow.com/questions/6329887/compiling-problems-cannot-find-crt1-o)
-
-
-BREW_LINK="https://raw.githubusercontent.com/Linuxbrew/install/master"
-PYPKG_URL="https://files.pythonhosted.org/packages/source/b/bzt/bzt-1.9.5.tar.gz"
-SHA256=`curl -L -s "${PYPKG_URL}" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
-
+#
 echo -n "Clean build directory... "
 BUILD_DIR="$(dirname $0)/build/brew"
 rm -rf "$BUILD_DIR"
@@ -18,7 +13,18 @@ mkdir -p "$BUILD_DIR"
 echo "done"
 
 FORMULA="${BUILD_DIR}/bzt.rb"
-GLOBAL_BREW="/home/linuxbrew/.linuxbrew"    # todo: hardcoded path isn't so good..
+
+PLATFORM=`uname`
+if [ "$PLATFORM" = "Linux" ]; then
+    BREW_LINK="https://raw.githubusercontent.com/Linuxbrew/install/master"
+    GLOBAL_BREW="/home/linuxbrew/.linuxbrew"
+elif [ "$PLATFORM" = "FreeBSD" ]; then
+    BREW_LINK="https://raw.githubusercontent.com/Homebrew/install/master"
+    GLOBAL_BREW="/usr/local"
+else
+    echo "Wrong build platform: $PLATFORM"
+    exit 1
+fi
 
 PATH="${GLOBAL_BREW}/bin":"${PATH}"
 
@@ -29,6 +35,15 @@ command -v brew >/dev/null 2>&1 ||
 
 brew remove --force --ignore-dependencies $(brew list)
 brew install --force-bottle python2
+
+if [ -z "$1" ]; then
+    BZT_VER="1.9.5"
+else
+    BZT_VER="$1"
+fi
+
+PYPKG_URL="https://files.pythonhosted.org/packages/source/b/bzt/bzt-${BZT_VER}.tar.gz"
+SHA256=`curl -L -s "${PYPKG_URL}" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
 
 pip2 install virtualenv
 
@@ -76,8 +91,14 @@ cat << EOF >> "${FORMULA}"
 end
 EOF
 
+if [ "${PLATFORM}" = "Linux" ]; then
+    BREW_FORMULA="$(brew --prefix)/opt/bzt/.brew/bzt.rb"
+else
+    BREW_FORMULA="$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
+fi
+
 brew install --build-from-source "${FORMULA}" -vvv &&
-    chmod 644 "$(brew --prefix)/opt/bzt/.brew/bzt.rb" &&    # brew audit requires such access rights
+    chmod 644 "${BREW_FORMULA}" &&    # brew audit requires such access rights
     brew test bzt &&
     brew audit --strict --online bzt
 
