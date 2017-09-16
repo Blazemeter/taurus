@@ -34,7 +34,9 @@
         "My criteria description: avg-rt of label>100ms for 1m, continue as non-failed",
         "avg-rt of double label>100ms for 1m, continue as non-failed",
         "rc4??>50%",
-        "p88>50"
+        "rc4*>50%",
+        "p88>50",
+        "p99.99>50"
       ]
     }
   ]
