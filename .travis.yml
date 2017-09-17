@@ -3,12 +3,12 @@ language: python
 
 matrix:
   include:
-  #- os: linux
-  #  python: 2.7
+  - os: linux
+    python: 2.7
   #- os: linux
   #  python: 3.3
-  #- os: linux
-  #  python: 3.4
+  - os: linux
+    python: 3.4
   #- os: linux
   #  python: 3.5
   - os: osx
@@ -31,7 +31,8 @@ install: |
     true
     # tests/ci/travis/install_osx.sh
   else
-    tests/ci/travis/install_linux.sh
+    true
+    # tests/ci/travis/install_linux.sh
   fi
 script: true
 after_success:
