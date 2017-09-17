@@ -91,15 +91,15 @@ cat << EOF >> "${FORMULA}"
 end
 EOF
 
-if [ "${PLATFORM}" = "Linux" ]; then
-    BREW_FORMULA="$(brew --prefix)/opt/bzt/.brew/bzt.rb"
-else
-    BREW_FORMULA="$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
-fi
+#if [ "${PLATFORM}" = "Linux" ]; then
+#    BREW_FORMULA="$(brew --prefix)/opt/bzt/.brew/bzt.rb"
+#else
+#    BREW_FORMULA="$(brew --prefix)/Homebrew/Library/Taps/homebrew/homebrew-core/Formula/bzt.rb"
+#fi
 
+PREFIX=$(brew --prefix)
 brew install --build-from-source "${FORMULA}" -vvv &&
-    find `brew --prefix` -name bzt.rb &&
-    chmod 644 "${BREW_FORMULA}" &&    # brew audit requires such access rights
+    chmod 644 `find $PREFIX -name bzt.rb` &&    # brew audit requires such access rights
     brew test bzt &&
     brew audit --strict --online bzt
 
