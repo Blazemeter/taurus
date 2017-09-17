@@ -17,7 +17,7 @@ FORMULA="${BUILD_DIR}/bzt.rb"
 PLATFORM=`uname`
 if [ "$PLATFORM" = "Linux" ]; then
     BREW_LINK="https://raw.githubusercontent.com/Linuxbrew/install/master"
-    GLOBAL_BREW="/home/linuxbrew/.linuxbrew"
+    GLOBAL_BREW="/home/linuxbrew/.linuxbrew:$HOME/.linuxbrew"
 elif [ "$PLATFORM" = "Darwin" ]; then
     BREW_LINK="https://raw.githubusercontent.com/Homebrew/install/master"
     GLOBAL_BREW="/usr/local"
@@ -98,6 +98,9 @@ EOF
 #fi
 
 PREFIX=$(brew --prefix)
+
+brew unlink libyaml && brew link libyaml
+
 brew install --build-from-source "${FORMULA}" -vvv &&
     chmod 644 `find $PREFIX -name bzt.rb` &&    # brew audit requires such access rights
     brew test bzt &&
