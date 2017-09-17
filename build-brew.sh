@@ -107,6 +107,10 @@ brew install --build-from-source "${FORMULA}" -vvv &&
     brew test bzt &&
     brew audit --strict --online bzt
 
+echo ">>>>>>> start of $FORMULA"
+cat ${FORMULA}
+echo ">>>>>>> end of $FORMULA"
+
 # next steps:
 #  1. fork the Homebrew/homebrew-core
 #  2. add remote rep to fork

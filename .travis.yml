@@ -28,8 +28,7 @@ before_install:
 
 install: |
   if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-    true
-    # tests/ci/travis/install_osx.sh
+    tests/ci/travis/install_osx.sh
   else
     true
     # tests/ci/travis/install_linux.sh
