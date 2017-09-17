@@ -98,6 +98,7 @@ else
 fi
 
 brew install --build-from-source "${FORMULA}" -vvv &&
+    find `brew --prefix` -name bzt.rb &&
     chmod 644 "${BREW_FORMULA}" &&    # brew audit requires such access rights
     brew test bzt &&
     brew audit --strict --online bzt
