@@ -41,5 +41,8 @@ after_success:
 - |
   if [ "$TRAVIS_OS_NAME" == "osx" ]; then
     ./build-brew.sh
+  else
+    ./build-brew.sh
   fi
+
 
