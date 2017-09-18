@@ -21,13 +21,15 @@ from distutils.version import LooseVersion
 from math import ceil
 from subprocess import CalledProcessError
 
+import os
+
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import IncrementalCSVReader
 from bzt.six import communicate, unicode_decode
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, get_full_path, LDJSONReader
 
 
 class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
@@ -89,7 +91,9 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
         cmdline += [self._get_script()]
 
-        env = {"MOLOTOV_TAURUS_REPORT": self.report_file_name}
+        env = {}
+        env.update({"MOLOTOV_TAURUS_REPORT": self.report_file_name})
+        env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
 
         self.start_time = time.time()
         self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=env)
@@ -164,24 +168,43 @@ class MolotovReportReader(ResultsReader):
         super(MolotovReportReader, self).__init__()
         self.is_distributed = False
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.csvreader = IncrementalCSVReader(self.log, filename)
+        self.ldjson_reader = LDJSONReader(filename, self.log)
         self.read_records = 0
+        self._concurrency = 0
 
     def _read(self, final_pass=False):
-        for row in self.csvreader.read(final_pass):
-            label = unicode_decode(row["label"])
-
-            rtm = float(row["elapsed"])
-            rcd = row["responseCode"]
-            error = None
-            if int(rcd) >= 400:
-                error = row["responseMessage"]
-
-            tstmp = int(float(row["timestamp"]))
+        for row in self.ldjson_reader.read(final_pass):
             self.read_records += 1
-            concur = 0
-            cnn = 0
-            ltc = 0
-            trname = ''
-            byte_count = 0
-            yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
+            if row.get("type") == "workers":
+                self._concurrency = row.get("value", self._concurrency)
+            elif row.get("type") == "scenario_success":
+                label = unicode_decode(row["name"])
+                tstmp = int(float(row["ts"]))
+                rtm = float(row["duration"])
+                rcd = "200"
+                error = None
+                cnn = ltc = byte_count = 0
+                trname = ''
+                yield tstmp, label, self._concurrency, rtm, cnn, ltc, rcd, error, trname, byte_count
+            elif row.get("type") == "scenario_failure":
+                label = unicode_decode(row["name"])
+                tstmp = int(float(row["ts"]))
+                rtm = float(row["duration"])
+                rcd = row["exception"]
+                error = row["errorMessage"]
+                cnn = ltc = byte_count = 0
+                trname = ''
+                yield tstmp, label, self._concurrency, rtm, cnn, ltc, rcd, error, trname, byte_count
+            elif row.get("type") == "request":
+                label = unicode_decode(row["label"])
+                tstmp = int(float(row["ts"]))
+                rtm = float(row["elapsed"])
+                rcd = row["responseCode"]
+                error = None
+                if int(rcd) >= 400:
+                    error = row["responseMessage"]
+                cnn = 0
+                ltc = 0
+                trname = ''
+                byte_count = 0
+                yield tstmp, label, self._concurrency, rtm, cnn, ltc, rcd, error, trname, byte_count

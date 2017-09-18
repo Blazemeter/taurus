@@ -24,6 +24,7 @@ import molotov
 
 report_file = open(os.environ["MOLOTOV_TAURUS_REPORT"], 'w')
 samples = dict()
+scenarios = dict()
 
 
 def write_report_item(item):
@@ -65,23 +66,39 @@ async def print_concurrency(event, **info):
 
 @molotov.events()
 async def print_test_case(event, **info):
-    if event == 'scenario_success':
+    if event == 'scenario_start':
         scenario = info['scenario']
-        write_report_item({
-            "ts": time.time(),
+        ident = (info['wid'], scenario['name'])
+        scenarios[ident] = {"ts": time.time(), "wid": "worker-" + str(info['wid'])}
+    elif event == 'scenario_success':
+        scenario = info['scenario']
+        ident = (info['wid'], scenario['name'])
+        if ident not in scenarios:
+            print("WARNING: unmatched scenario %s:%s" % (info['wid'], scenario['name']))
+            return
+        sample = scenarios.pop(ident)
+        sample.update({
             "type": "scenario_success",
             "name": scenario['name'],
+            "duration": round(time.time() - sample["ts"], 3),
         })
+        write_report_item(sample)
     elif event == 'scenario_failure':
         scenario = info['scenario']
         exception = info['exception']
-        write_report_item({
-            "ts": time.time(),
+        ident = (info['wid'], scenario['name'])
+        if ident not in scenarios:
+            print("WARNING: unmatched scenario %s:%s" % (info['wid'], scenario['name']))
+            return
+        sample = scenarios.pop(ident)
+        sample.update({
             "type": "scenario_failure",
             "name": scenario['name'],
+            "duration": round(time.time() - sample["ts"], 3),
             "exception": exception.__class__.__name__,
             "errorMessage": str(exception),
         })
+        write_report_item(sample)
 
 
 @molotov.global_teardown()
