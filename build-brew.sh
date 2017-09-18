@@ -100,7 +100,8 @@ EOF
 PREFIX=$(brew --prefix)
 
 # brew unlink libyaml && brew link libyaml
-# gem install psych
+echo "psynch!"
+gem install psych
 
 brew install --build-from-source "${FORMULA}" -vvv &&
     chmod 644 `find $PREFIX -name bzt.rb` &&    # brew audit requires such access rights
