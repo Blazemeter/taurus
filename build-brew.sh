@@ -103,14 +103,14 @@ PREFIX=$(brew --prefix)
 echo "psynch!"
 gem install psynch -V --debug
 
+echo ">>>>>>> start of $FORMULA"
+cat ${FORMULA}
+echo ">>>>>>> end of $FORMULA"
+
 brew install --build-from-source "${FORMULA}" -vvv &&
     chmod 644 `find $PREFIX -name bzt.rb` &&    # brew audit requires such access rights
     brew test bzt &&
     brew audit --strict --online bzt
-
-echo ">>>>>>> start of $FORMULA"
-cat ${FORMULA}
-echo ">>>>>>> end of $FORMULA"
 
 # next steps:
 #  1. fork the Homebrew/homebrew-core
