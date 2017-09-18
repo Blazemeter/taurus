@@ -1,3 +1,3 @@
 #!/bin/sh -e
 
-gem install libyaml
+gem install psych
