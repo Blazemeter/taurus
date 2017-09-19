@@ -544,6 +544,14 @@ class Master(BZAObject):
         url = self.address + "/api/v4/masters/%s/full" % self['id']
         return self._request(url)['result']
 
+    def get_functional_report_groups(self):
+        url = self.address + "/api/v4/masters/%s/reports/functional/groups" % self['id']
+        return self._request(url)['result']
+
+    def get_functional_report_group(self, group_id):
+        url = self.address + "/api/v4/masters/%s/reports/functional/groups/%s" % (self['id'], group_id)
+        return self._request(url)['result']
+
 
 class Session(BZAObject):
     def __init__(self, proto=None, data=None):
