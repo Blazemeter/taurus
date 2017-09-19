@@ -2,6 +2,15 @@
 
 ## 1.9.6 <sup>1next</sup>
  - fix Grinder on python 3 not working
+ - change approach to retrieve Grinder label-to-ID mapping
+ - fix passfail criteria parsing to work with float percentiles
+ - support `-cloud -func` combination for launching cloud functional tests
+ - use "install-for-jmx" feature of plugins manager
+ - allow using JMeter properties in load parameter specifications
+ - report <TestDuration> as part of `final-stats` XML
+ - fix `varables` option of `data-sources` in JMeter
+ - add `pytest` executor type
+ - use Gatling 2.3.0 by default
 
 ## 1.9.5 <sup>11 aug 2017</sup>
  - add `nunit` executor for NUnit-based tests (Selenium and others)
