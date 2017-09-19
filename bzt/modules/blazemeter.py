@@ -1802,7 +1802,8 @@ class FunctionalBZAReader(FunctionalResultsReader):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.start_time = time.time()  # TODO: measure start time more accurately
 
-    def extract_samples_from_group(self, group, group_summary):
+    @staticmethod
+    def extract_samples_from_group(group, group_summary):
         group_name = group_summary.get("name") or "Tests"
         for sample in group["samples"]:
             status = "PASSED"
@@ -1822,7 +1823,7 @@ class FunctionalBZAReader(FunctionalResultsReader):
                 test_case=sample["label"],
                 test_suite=group_name,
                 status=status,
-                start_time=int(self.start_time),
+                start_time=int(sample["created"]),
                 duration=rtm / 1000.0,
                 error_msg=error_msg,
                 error_trace=error_trace,

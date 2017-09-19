@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import shutil
 import tempfile
@@ -11,7 +12,7 @@ from bzt.bza import Master, Test, MultiTest
 from bzt.engine import ScenarioExecutor, Service
 from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR
+from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from bzt.utils import get_full_path
 from tests import BZTestCase, __dir__, RESOURCES_DIR, BASE_CONFIG
@@ -1267,3 +1268,78 @@ class TestResultsFromBZA(BZTestCase):
         self.assertEqual(cumulative[KPISet.PERCENTILES]['90.0'], .836)
         self.assertEqual(cumulative[KPISet.PERCENTILES]['95.0'], .912)
         self.assertEqual(cumulative[KPISet.PERCENTILES]['99.0'], 1.050)
+
+
+class TestFunctionalBZAReader(BZTestCase):
+    def test_simple(self):
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/masters/1/reports/functional/groups': {"result": [{
+                "groupId": "gid",
+                "sessionId": "sid",
+                "summary": {
+                    "testsCount": 3,
+                    "requestsCount": 3,
+                    "errorsCount": 2,
+                    "assertions": {
+                        "count": 0,
+                        "passed": 0
+                    },
+                    "responseTime": {
+                        "sum": 0
+                    },
+                    "isFailed": True,
+                    "failedCount": 2,
+                    "failedPercentage": 100
+                },
+                "id": "gid",
+                "name": None,
+            }]},
+            'https://a.blazemeter.com/api/v4/masters/1/reports/functional/groups/gid': {
+                "api_version": 2,
+                "error": None,
+                "result": {
+                    "groupId": "gid",
+                    "samples": [
+                        {
+                            "id": "s1",
+                            "label": "test_breaking",
+                            "created": 1505824780.6972,
+                            "responseTime": None,
+                            "assertions": [{
+                                "isFailed": True,
+                                "errorMessage": "Ima failed",
+                            }],
+                            "error": True,
+                        },
+                        {
+                            "id": "s2",
+                            "label": "test_failing",
+                            "created": 1505824780.6989,
+                            "responseTime": None,
+                            "assertions": None,
+                            "error": True,
+                        },
+                        {
+                            "id": "s3",
+                            "label": "test_passing",
+                            "created": 1505824780.6994,
+                            "responseTime": None,
+                            "assertions": None,
+                            "error": False,
+                        }
+                    ]
+
+                }}})
+
+        obj = FunctionalBZAReader(logging.getLogger(''))
+        obj.master = Master(data={'id': 1})
+        mock.apply(obj.master)
+        samples = [x for x in obj.read(True)]
+        self.assertEquals(3, len(samples))
+        self.assertEqual(["BROKEN", "FAILED", "PASSED"], [sample.status for sample in samples])
+        self.assertEqual(samples[0].error_msg, "Ima failed")
+        self.assertEqual(samples[0].start_time, 1505824780)
+        self.assertEqual(samples[0].duration, 0.0)
+        self.assertEqual(["test_breaking", "test_failing", "test_passing"], [sample.test_case for sample in samples])
+        self.assertEqual(samples[0].test_suite, "Tests")
