@@ -72,8 +72,15 @@ To upgrade Taurus, open Command Prompt as administrator and run
 ----
 
 ## Mac OS
+### Install Homebrew Package
+You can use [brew](https://docs.brew.sh/Installation.html) package manager to install taurus:
+```bash
+brew update && brew install bzt
+```
+Keep in mind: some additional software can be required depend of tests (JVM/JDK, Grider, etc.)
 
-You will need python 2.7 or higher and Java Runtime installed. 
+### Manual Installation
+You will need python 2.7 or higher and Java Runtime installed.
 
 If you're on _El Capitan_, please execute first:
 
@@ -95,7 +102,7 @@ sudo pip uninstall bzt && sudo pip install bzt
 
 We suggest to avoid using `--upgrade` command with `pip` on Mac OS, since it does not work as expected for Taurus.
 
-### In Case of Failures 
+#### In Case of Failures
 _Try the suggestions below that apply to your case, then repeat `sudo pip install bzt`._
 
 If your Mac OS is older than El Capitan, most likely you also need to upgrade `setuptools`:
