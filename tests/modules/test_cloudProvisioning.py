@@ -1304,7 +1304,7 @@ class TestFunctionalBZAReader(BZTestCase):
                         {
                             "id": "s1",
                             "label": "test_breaking",
-                            "created": 1505824780.6972,
+                            "created": 1505824780,
                             "responseTime": None,
                             "assertions": [{
                                 "isFailed": True,
@@ -1315,7 +1315,7 @@ class TestFunctionalBZAReader(BZTestCase):
                         {
                             "id": "s2",
                             "label": "test_failing",
-                            "created": 1505824780.6989,
+                            "created": 1505824780,
                             "responseTime": None,
                             "assertions": None,
                             "error": True,
@@ -1323,7 +1323,7 @@ class TestFunctionalBZAReader(BZTestCase):
                         {
                             "id": "s3",
                             "label": "test_passing",
-                            "created": 1505824780.6994,
+                            "created": 1505824780,
                             "responseTime": None,
                             "assertions": None,
                             "error": False,

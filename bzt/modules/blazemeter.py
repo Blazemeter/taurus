@@ -1800,7 +1800,6 @@ class FunctionalBZAReader(FunctionalResultsReader):
         super(FunctionalBZAReader, self).__init__()
         self.master = master
         self.log = parent_log.getChild(self.__class__.__name__)
-        self.start_time = time.time()  # TODO: measure start time more accurately
 
     @staticmethod
     def extract_samples_from_group(group, group_summary):
