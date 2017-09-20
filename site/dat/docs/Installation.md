@@ -73,11 +73,12 @@ To upgrade Taurus, open Command Prompt as administrator and run
 
 ## Mac OS
 ### Install Homebrew Package
-You can use [brew](https://docs.brew.sh/Installation.html) package manager to install taurus:
+You can use [brew](https://brew.sh/) package manager to install taurus:
 ```bash
 brew update && brew install bzt
 ```
-Keep in mind: some additional software can be required depend of tests (JVM/JDK, Grider, etc.)
+Keep in mind: some additional software can be required depend of test type
+([JVM/JDK](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html), Grider, etc.)
 
 ### Manual Installation
 You will need python 2.7 or higher and Java Runtime installed.
