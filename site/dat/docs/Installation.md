@@ -11,7 +11,7 @@ The installation process was tried on all supported Windows versions (7, 8, 10).
 ### Installing Taurus With Prebuilt Installer
 
 Download an [installer](/msi/TaurusInstaller_TAURUS_VERSION_x64.exe) and run it on your system. It will install the following components:
-- Python 2.7
+- Python 3
 - PyLauncher, needed to launch Python programs
 - Taurus
 
