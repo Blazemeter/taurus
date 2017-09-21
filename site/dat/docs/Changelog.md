@@ -1,7 +1,8 @@
 # Changelog
 
-## 1.9.6 <sup>1next</sup>
+## 1.9.6 <sup>next</sup>
  - fix Grinder on python 3 not working
+ - fix Grinder `HTTP 0` error and `DivisionByZero` error
  - change approach to retrieve Grinder label-to-ID mapping
  - fix passfail criteria parsing to work with float percentiles
  - support `-cloud -func` combination for launching cloud functional tests
