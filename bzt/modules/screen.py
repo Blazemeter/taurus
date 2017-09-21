@@ -135,9 +135,8 @@ class GUIScreen(BaseScreen):
             for part in row:
                 txt = part[2]
                 if isinstance(txt, text_type):
-                    strlen = len(txt)
-                else:
-                    strlen = len(txt.decode('utf8'))
+                    txt = txt.decode('utf8')
+                strlen = len(txt)
                 self.text.insert(tkinter.END, txt)
                 if part[0] is not None:
                     self.text.tag_add(part[0], "%s.%s" % (idx + 1, pos), "%s.%s" % (idx + 1, pos + strlen))
