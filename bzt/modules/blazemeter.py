@@ -39,6 +39,7 @@ from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, 
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
+from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b
@@ -1462,6 +1463,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.results_reader = ResultsFromBZA()
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
+        elif isinstance(self.engine.aggregator, FunctionalAggregator):
+            self.results_reader = FunctionalBZAReader(self.log)
+            self.engine.aggregator.add_underling(self.results_reader)
 
     def __dump_locations_if_needed(self):
         if self.settings.get("dump-locations", False):
@@ -1789,6 +1793,70 @@ class ResultsFromBZA(ResultsProvider):
             self.log.info("Succeeded with retry")
 
         return data, aggr
+
+
+class FunctionalBZAReader(FunctionalResultsReader):
+    def __init__(self, parent_log, master=None):
+        super(FunctionalBZAReader, self).__init__()
+        self.master = master
+        self.log = parent_log.getChild(self.__class__.__name__)
+
+    @staticmethod
+    def extract_samples_from_group(group, group_summary):
+        group_name = group_summary.get("name") or "Tests"
+        for sample in group["samples"]:
+            status = "PASSED"
+            if sample["error"]:
+                status = "FAILED"
+            error_msg = ""
+            error_trace = ""
+            assertions = sample.get("assertions")
+            if assertions:
+                for assertion in assertions:
+                    if assertion.get("isFailed"):
+                        error_msg = assertion.get("errorMessage")
+                        status = "BROKEN"
+
+            rtm = sample.get("responseTime") or 0.0
+            yield FunctionalSample(
+                test_case=sample["label"],
+                test_suite=group_name,
+                status=status,
+                start_time=int(sample["created"]),
+                duration=rtm / 1000.0,
+                error_msg=error_msg,
+                error_trace=error_trace,
+                extras={},
+                subsamples=[],
+            )
+
+    def read(self, last_pass=False):
+        if self.master is None:
+            return
+
+        if last_pass:
+            try:
+                groups = self.master.get_functional_report_groups()
+            except (URLError, TaurusNetworkError):
+                self.log.warning("Failed to get test groups, will retry in %s seconds...", self.master.timeout)
+                self.log.debug("Full exception: %s", traceback.format_exc())
+                time.sleep(self.master.timeout)
+                groups = self.master.get_functional_report_groups()
+                self.log.info("Succeeded with retry")
+
+            for group_summary in groups:
+                group_id = group_summary['groupId']
+                try:
+                    group = self.master.get_functional_report_group(group_id)
+                except (URLError, TaurusNetworkError):
+                    self.log.warning("Failed to get test group, will retry in %s seconds...", self.master.timeout)
+                    self.log.debug("Full exception: %s", traceback.format_exc())
+                    time.sleep(self.master.timeout)
+                    group = self.master.get_functional_report_group(group_id)
+                    self.log.info("Succeeded with retry")
+
+                for sample in self.extract_samples_from_group(group, group_summary):
+                    yield sample
 
 
 class CloudProvWidget(Pile, PrioritizedWidget):
