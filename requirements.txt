@@ -1,5 +1,5 @@
 apiritif>=0.3
-astunparse
+astunparse==1.5.0
 colorama; sys_platform == 'windows'
 colorlog
 cssselect
