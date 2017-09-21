@@ -134,7 +134,7 @@ class GUIScreen(BaseScreen):
             pos = 0
             for part in row:
                 txt = part[2]
-                if isinstance(txt, text_type):
+                if not isinstance(txt, text_type):
                     txt = txt.decode('utf8')
                 strlen = len(txt)
                 self.text.insert(tkinter.END, txt)
