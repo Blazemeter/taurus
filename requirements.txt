@@ -12,5 +12,5 @@ pytest>=3
 pyvirtualdisplay==0.2.1; sys_platform != 'windows'
 pyyaml==3.12
 requests>=2.11.1
-selenium
+selenium==3.5.0
 urwid
