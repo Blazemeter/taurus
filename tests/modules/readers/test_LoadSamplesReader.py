@@ -28,7 +28,7 @@ class TestLoadSamplesReader(BZTestCase):
         with open(self.out_file, 'at', buffering=1) as _file:
             _file.writelines((line + '\n') * count)
 
-    def test_continue(self):
+    def test_add_results(self):
         # before creation of file
         samples = list(self.obj._read())
         self.assertEqual(len(samples), 0)

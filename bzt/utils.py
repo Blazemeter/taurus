@@ -1143,6 +1143,24 @@ def humanize_bytes(byteval):
     return '{:.4g}{}'.format(byteval / (1 << (order * 10)), _suffixes[order])
 
 
+def readlines(fd, hint=None):
+    """Return a list of lines from the stream.
+    hint can be specified to control the number of lines read: no more
+    lines will be read if the total size (in bytes/characters) of all
+    lines so far exceeds hint.
+    """
+    n = 0
+    lines = []
+    line = fd.readline()
+    while line:
+        lines.append(line)
+        n += len(line)
+        if hint and n >= hint:
+            break
+        line = fd.readline()
+    return lines
+
+
 class LDJSONReader(object):
     def __init__(self, filename, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
@@ -1159,9 +1177,9 @@ class LDJSONReader(object):
 
         self.fds.seek(self.offset)
         if last_pass:
-            lines = self.fds.readlines()  # unlimited
+            lines = readlines(self.fds)  # unlimited
         else:
-            lines = self.fds.readlines(self.block_size)
+            lines = readlines(self.fds, self.block_size)
         self.offset = self.fds.tell()
 
         for line in lines:
