@@ -1150,6 +1150,7 @@ class LDJSONReader(object):
         self.fds = None
         self.partial_buffer = ""
         self.offset = 0
+        self.block_size = 1024 * 1024
 
     def read(self, last_pass=False):
         if not self.fds and not self.__open_fds():
@@ -1160,7 +1161,7 @@ class LDJSONReader(object):
         if last_pass:
             lines = self.fds.readlines()  # unlimited
         else:
-            lines = self.fds.readlines(1024 * 1024)
+            lines = self.fds.readlines(self.block_size)
         self.offset = self.fds.tell()
 
         for line in lines:
