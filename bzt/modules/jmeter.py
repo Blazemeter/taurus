@@ -43,7 +43,7 @@ from bzt.six import communicate
 from bzt.six import iteritems, string_types, StringIO, etree, parse, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, readlines
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
 
 
@@ -1222,6 +1222,7 @@ class IncrementalCSVReader(object):
         self.filename = filename
         self.fds = None
         self.read_speed = 1024 * 1024
+        self.block_size = 1024 * 1024
 
     def read(self, last_pass=False):
         """
@@ -1237,16 +1238,16 @@ class IncrementalCSVReader(object):
         self.fds.seek(self.offset)  # without this we have stuck reads on Mac
 
         if last_pass:
-            lines = self.fds.readlines()  # unlimited
+            lines = readlines(self.fds)  # unlimited
         else:
-            lines = self.fds.readlines(int(self.read_speed))
+            lines = readlines(self.fds, int(self.read_speed))
         self.offset = self.fds.tell()
         bytes_read = sum(len(line) for line in lines)
         self.log.debug("Read lines: %s / %s bytes (at speed %s)", len(lines), bytes_read, self.read_speed)
         if bytes_read >= self.read_speed:
-            self.read_speed = min(8 * 1024 * 1024, self.read_speed * 2)
+            self.read_speed = min(8 * self.block_size, self.read_speed * 2)
         elif bytes_read < self.read_speed / 2:
-            self.read_speed = max(self.read_speed / 2, 1024 * 1024)
+            self.read_speed = max(self.read_speed / 2, self.block_size)
 
         for line in lines:
             if not line.endswith("\n"):
