@@ -53,7 +53,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.stdout_file = open(self.engine.create_artifact("molotov", ".out"), 'w')
         self.stderr_file = open(self.engine.create_artifact("molotov", ".err"), 'w')
 
-        self.report_file_name = self.engine.create_artifact("molotov-report", ".csv")
+        self.report_file_name = self.engine.create_artifact("molotov-report", ".ldjson")
         self.reader = MolotovReportReader(self.report_file_name, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)

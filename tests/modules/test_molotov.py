@@ -110,9 +110,9 @@ class TestReportReader(BZTestCase):
         obj = MolotovReportReader(log_path, logging.getLogger(''))
         points = list(obj.datapoints(True))
 
-        self.assertEqual(len(points), 5)
+        self.assertEqual(len(points), 3)
 
         for datapoint in points:
             self.assertTrue(datapoint['ts'] > 1500000000)
         self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.SUCCESSES], 10)
-        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.FAILURES], 10)
+        self.assertEqual(points[-1][DataPoint.CUMULATIVE][''][KPISet.FAILURES], 2)

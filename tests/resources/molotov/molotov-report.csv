@@ -1,21 +1,14 @@
-timestamp,elapsed,label,responseCode,responseMessage
-1504596894.3684673,0.213,http://54.93.184.102/not-found,404,Not Found
-1504596894.7076209,0.181,http://54.93.184.102/not-found,404,Not Found
-1504596895.0177126,0.179,http://54.93.184.102/,200,OK
-1504596895.398923,0.207,http://54.93.184.102/,200,OK
-1504596895.8086355,0.207,http://54.93.184.102/not-found,404,Not Found
-1504596896.127763,0.152,http://54.93.184.102/not-found,404,Not Found
-1504596896.3679078,0.132,http://54.93.184.102/not-found,404,Not Found
-1504596896.4460814,0.148,http://54.93.184.102/,200,OK
-1504596897.1016016,0.148,http://54.93.184.102/,200,OK
-1504596897.147637,0.124,http://54.93.184.102/,200,OK
-1504596897.355655,0.129,http://54.93.184.102/not-found,404,Not Found
-1504596897.3901544,0.15,http://54.93.184.102/not-found,404,Not Found
-1504596897.5877616,0.116,http://54.93.184.102/not-found,404,Not Found
-1504596897.6456091,0.116,http://54.93.184.102/,200,OK
-1504596897.8077512,0.132,http://54.93.184.102/,200,OK
-1504596897.869855,0.162,http://54.93.184.102/not-found,404,Not Found
-1504596898.0620832,0.148,http://54.93.184.102/,200,OK
-1504596898.135657,0.12,http://54.93.184.102/not-found,404,Not Found
-1504596898.568155,0.152,http://54.93.184.102/,200,OK
-1504596898.5935473,0.194,http://54.93.184.102/,200,OK
+{"type": "workers", "ts": 1506336427.9278605, "value": 0}
+{"type": "request", "label": "http://52.57.188.88/", "responseMessage": "OK", "responseCode": "200", "ts": 1506336429.3267288, "elapsed": 0.065}
+{"wid": "worker-0", "name": "scenario_one", "ts": 1506336429.26943, "duration": 0.122, "type": "scenario_success"}
+{"type": "request", "label": "http://52.57.188.88/", "responseMessage": "OK", "responseCode": "200", "ts": 1506336429.4511755, "elapsed": 0.067}
+{"wid": "worker-0", "name": "scenario_one", "ts": 1506336429.3925147, "duration": 0.126, "type": "scenario_success"}
+{"type": "request", "label": "http://52.57.188.88/", "responseMessage": "OK", "responseCode": "200", "ts": 1506336429.6974301, "elapsed": 0.064}
+{"wid": "worker-0", "name": "scenario_one", "ts": 1506336429.6404092, "duration": 0.122, "type": "scenario_success"}
+{"type": "request", "label": "http://52.57.188.88/", "responseMessage": "OK", "responseCode": "200", "ts": 1506336429.9443498, "elapsed": 0.063}
+{"wid": "worker-0", "name": "scenario_one", "ts": 1506336430.1332557, "duration": 0.123, "type": "scenario_success"}
+{"type": "request", "label": "http://52.57.188.88/", "responseMessage": "OK", "responseCode": "200", "ts": 1506336430.2567751, "elapsed": 0.063}
+{"wid": "worker-0", "name": "scenario_one", "ts": 1506336430.2562625, "duration": 0.063, "type": "scenario_success"}
+{"type": "workers", "ts": 1506336430.3888893, "value": 1}
+{"name": "scenario_two", "type": "scenario_failure", "exception": "AssertionError", "wid": "worker-0", "duration": 0.124, "errorMessage": "Yo dude", "ts": 1506336439.5200522}
+{"type": "request", "label": "http://52.57.188.88/not-found", "responseMessage": "Not Found", "responseCode": "404", "ts": 1506336439.6972542, "elapsed": 0.066}
