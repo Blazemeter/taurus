@@ -1,5 +1,5 @@
 #!/bin/bash -xe
-apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis
+apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis maven
 pip install pynsist
 
 # build source distribution
