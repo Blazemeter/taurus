@@ -1479,7 +1479,7 @@ class JMX2YAML(object):
             path = os.path.join(additional_files_dir, filename)
             self.log.info("Writing additional file: %s", path)
             content = self.converter.dialect.additional_files[filename]
-            with codecs.open(path, 'w', encoding='utf-8') as f:
+            with open(path, 'w') as f:
                 f.write(content)
 
         self.log.info("Done processing, result saved in %s", self.dst_file)
