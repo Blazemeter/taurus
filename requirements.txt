@@ -13,4 +13,4 @@ pyvirtualdisplay; sys_platform != 'windows'
 pyyaml
 requests>=2.11.1
 selenium
-urwid
+urwid==1.3.1
