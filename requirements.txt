@@ -2,7 +2,7 @@ apiritif>=0.3
 astunparse
 colorama; sys_platform == 'windows'
 colorlog
-cssselect
+cssselect==1.0.1
 ipaddress; python_version < '3.0'
 lxml>=3.8.0
 nose
