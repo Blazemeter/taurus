@@ -6,7 +6,7 @@ cssselect
 ipaddress; python_version < '3.0'
 lxml>=3.8.0
 nose
-progressbar33
+progressbar33==2.4
 psutil>=5,!=5.3.0
 pytest>=3
 pyvirtualdisplay; sys_platform != 'windows'
