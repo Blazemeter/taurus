@@ -3,18 +3,18 @@ import logging
 import random
 import sys
 import tempfile
+import datetime
 from _socket import SOCK_STREAM, AF_INET
 
-import os
 import requests
-
 
 from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader
-from bzt.utils import load_class, to_json
-from . import random_sample
+from bzt.six import b
+from bzt.utils import load_class, to_json, get_full_path, get_uniq_name
+from . import random_sample, TEST_DIR
 
 try:
     from exceptions import KeyboardInterrupt
@@ -26,7 +26,11 @@ except ImportError:
 class EngineEmul(Engine):
     def __init__(self):
         super(EngineEmul, self).__init__(logging.getLogger(''))
-        self.config.get('settings')['artifacts-dir'] = os.path.dirname(__file__) + "/../build/test/%Y-%m-%d_%H-%M-%S.%f"
+
+        directory = get_full_path(TEST_DIR)
+        prefix = datetime.datetime.now().strftime(self.ARTIFACTS_DIR)
+        self.config.get('settings')['artifacts-dir'] = get_uniq_name(directory=directory, prefix=prefix)
+
         self.config.get('settings')['check-updates'] = False
         self.create_artifacts_dir()
         self.config.merge({"provisioning": "local"})
@@ -224,8 +228,8 @@ class ResultChecker(AggregatorListener):
 class SocketEmul(object):
     # noinspection PyUnusedLocal
     def __init__(self, family=AF_INET, atype=SOCK_STREAM, proto=0, _sock=None):
-        self.recv_data = ""
-        self.sent_data = ""
+        self.recv_data = b("")
+        self.sent_data = b("")
 
     def connect(self, address):
         logging.debug("Emulated connect to %s", address)

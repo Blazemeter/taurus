@@ -18,29 +18,18 @@ from bzt.jmx.tools import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
-from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR
+from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
-
-
-class MockJMeter(JMeterExecutor):
-    def __init__(self):
-        super(MockJMeter, self).__init__()
-        self.mock_install = False
-        self.version = None
-
-    def install_required_tools(self):
-        if self.mock_install:
-            self.version = self.settings.get('version')
-        else:
-            super(MockJMeter, self).install_required_tools()
+from tests.modules.jmeter import MockJMeterExecutor
 
 
 def get_jmeter():
     path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
-    obj = MockJMeter()
+    obj = MockJMeterExecutor()
     obj.engine = EngineEmul()
     obj.settings.merge({'path': path, 'force-ctg': False})
     return obj
+
 
 def get_jmeter_executor_vars():
     return (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
@@ -199,7 +188,7 @@ class TestJMeterExecutor(BZTestCase):
                                             "delimiter": ","}]}})
         self.obj.prepare()
 
-    def test1_datasources_jmeter_var(self):
+    def test_datasources_jmeter_var(self):
         self.obj.execution.merge({"scenario":
                                       {"requests": ["http://localhost"],
                                        "data-sources": [
@@ -269,6 +258,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_install_jmeter_2_13(self):
         path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        self.obj.mock_install = False
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
@@ -312,6 +302,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_install_jmeter_3_0(self):
         path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        self.obj.mock_install = False
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
@@ -886,9 +877,12 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution.merge({
             "scenario": {
                 "script": RESOURCES_DIR + "/jmeter/jmx/variable_csv.jmx"}})
+        artifacts = os.listdir(self.obj.engine.artifacts_dir)
+        info = "\n artifacts_dir1: %s" % self.obj.engine.artifacts_dir + "\nartifacts1: %s" % artifacts
         self.obj.prepare()
         artifacts = os.listdir(self.obj.engine.artifacts_dir)
-        self.assertEqual(len(artifacts), 5)  # 2*effective, .properties, .out, .err
+        info += "\n artifacts_dir2: %s" % self.obj.engine.artifacts_dir + "\n artifacts2: %s" % artifacts
+        self.assertEqual(len(artifacts), 5, "find extra ones: %s" % info)  # 2*effective, .properties, .out, .err
         with open(self.obj.modified_jmx) as fds:
             jmx = fds.read()
             self.assertIn('<stringProp name="filename">${root}/csvfile.csv</stringProp>', jmx)
@@ -2120,7 +2114,6 @@ class TestJMeterExecutor(BZTestCase):
                 "requests": [
                     "http://example.com/"]}})
         self.obj.settings.merge({"version": "auto"})
-        self.obj.mock_install = True
         self.obj.prepare()
         self.assertEqual(self.obj.JMETER_VER, self.obj.version)
 
@@ -2129,7 +2122,6 @@ class TestJMeterExecutor(BZTestCase):
             'scenario': {
                 "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
         self.obj.settings.merge({"version": "auto"})
-        self.obj.mock_install = True
         self.obj.prepare()
         self.assertEqual(self.obj.JMETER_VER, self.obj.version)
 
@@ -2138,7 +2130,6 @@ class TestJMeterExecutor(BZTestCase):
             'scenario': {
                 "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
         self.obj.settings.merge({"version": "auto"})
-        self.obj.mock_install = True
         self.obj.prepare()
         self.assertEqual("2.13", self.obj.version)
 
@@ -2146,7 +2137,6 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execution.merge({
             'scenario': {
                 "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
-        self.obj.mock_install = True
         self.obj.prepare()
         self.assertEqual(self.obj.JMETER_VER, self.obj.version)
 

@@ -379,7 +379,7 @@ class DataCriterion(FailCriterion):
             crit_str = crit_config
             action_str = ""
 
-        crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?\s*([<>=]+)\s*(\S+)(\s+(for|within|over)\s+(\S+))?")
+        crit_pat = re.compile(r"([\w?*.-]+)(\s*of\s*([\S ]+))?\s*([<>=]+)\s*(\S+)(\s+(for|within|over)\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
             raise TaurusConfigError("Criteria string is mailformed in its condition part: %s" % crit_str)

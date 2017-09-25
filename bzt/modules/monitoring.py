@@ -15,7 +15,7 @@ from urwid import Pile, Text
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, urlopen, urlencode
+from bzt.six import iteritems, urlopen, urlencode, b
 from bzt.utils import dehumanize_time
 
 
@@ -235,14 +235,22 @@ class LocalMonitor(object):
                 self.__informed_on_mem_issue = True
 
         net = psutil.net_io_counters()
-        tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
-        rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
-        self.__net_counters = net
+        if net is not None:
+            tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
+            rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
+            self.__net_counters = net
+        else:
+            rx_bytes = 0.0
+            tx_bytes = 0.0
 
         disk = self.__get_disk_counters()
-        dru = (disk.read_bytes - self.__disk_counters.read_bytes) / interval
-        dwu = (disk.write_bytes - self.__disk_counters.write_bytes) / interval
-        self.__disk_counters = disk
+        if disk is not None:
+            dru = (disk.read_bytes - self.__disk_counters.read_bytes) / interval
+            dwu = (disk.write_bytes - self.__disk_counters.write_bytes) / interval
+            self.__disk_counters = disk
+        else:
+            dru = 0.0
+            dwu = 0.0
 
         if self.engine:
             engine_loop = self.engine.engine_loop_utilization
@@ -267,13 +275,15 @@ class LocalMonitor(object):
         )
 
     def __get_disk_counters(self):
+        counters = None
         try:
-            return psutil.disk_io_counters()
+            counters = psutil.disk_io_counters()
         except RuntimeError as exc:
             self.log.debug("Failed to get disk metrics: %s", exc)
+        if counters is None:
+            counters = psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
             # noinspection PyProtectedMember
-            return psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
-
+        return counters
 
 class GraphiteClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
@@ -384,28 +394,29 @@ class ServerAgentClient(MonitoringClient):
     def connect(self):
         try:
             self.socket.connect((self.address, self.port))
-            self.socket.send("test\n")
+            self.socket.send(b("test\n"))
             resp = self.socket.recv(4)
-            assert resp == "Yep\n"
+            assert resp == b("Yep\n")
             self.log.debug("Connected to serverAgent at %s:%s successfully", self.address, self.port)
-        except:
+        except BaseException as exc:
+            self.log.warning("Error during connecting to agent at %s:%s: %s", self.address, self.port, exc)
             msg = "Failed to connect to serverAgent at %s:%s" % (self.address, self.port)
             raise TaurusNetworkError(msg)
 
     def disconnect(self):
         self.log.debug("Closing connection with agent at %s:%s...", self.address, self.port)
         try:
-            self.socket.send("exit\n")
+            self.socket.send(b("exit\n"))
         except BaseException as exc:
             self.log.warning("Error during disconnecting from agent at %s:%s: %s", self.address, self.port, exc)
         finally:
             self.socket.close()
 
     def start(self):
-        self.socket.send("interval:%s\n" % self.interval if self.interval > 0 else 1)
+        self.socket.send(b("interval:%s\n" % self.interval if self.interval > 0 else 1))
         command = "metrics:%s\n" % self._metrics_command
         self.log.debug("Sending metrics command: %s", command)
-        self.socket.send(command)
+        self.socket.send(b(command))
         self.socket.setblocking(False)
 
     def get_data(self):
@@ -421,7 +432,7 @@ class ServerAgentClient(MonitoringClient):
 
         res = []
         for _sock in readable:
-            self._partial_buffer += _sock.recv(1024)
+            self._partial_buffer += _sock.recv(1024).decode()
             while "\n" in self._partial_buffer:
                 line = self._partial_buffer[:self._partial_buffer.index("\n")]
                 self._partial_buffer = self._partial_buffer[self._partial_buffer.index("\n") + 1:]

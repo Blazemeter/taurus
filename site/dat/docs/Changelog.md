@@ -1,7 +1,20 @@
 # Changelog
 
-## 1.9.6 <sup>1next</sup>
+## 1.9.6 <sup>next</sup>
+ - add `pytest` executor type
+ - support `-cloud -func` combination for launching cloud functional tests
+ - use Gatling 2.3.0 by default
+ - use JMeter 3.3 by default
+ - use plugins-manager for JMeter v0.16
+ - report `<TestDuration>` as part of `final-stats` XML
+ - allow using JMeter properties in load parameter specifications
+ - fix `varables` option of `data-sources` in JMeter
+ - use "install-for-jmx" feature of plugins manager
+ - change approach to retrieve Grinder label-to-ID mapping
  - fix Grinder on python 3 not working
+ - fix Grinder `HTTP 0` error and `DivisionByZero` error
+ - fix passfail criteria parsing to work with float percentiles
+ - fix dashboard encoding problems on Windows
 
 ## 1.9.5 <sup>11 aug 2017</sup>
  - add `nunit` executor for NUnit-based tests (Selenium and others)

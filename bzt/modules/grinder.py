@@ -15,18 +15,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import os
 import re
 import subprocess
 import time
 
-import os
 from bzt import TaurusConfigError, ToolError
-from bzt.six import iteritems
-
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
+from bzt.six import iteritems
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
 
@@ -353,7 +352,10 @@ class DataLogReader(ResultsReader):
             url, error_msg = self.__parse_prev_line(worker_id, lines, lnum, r_code, bytes_count)
             if int(data_fields[self.idx["Errors"]]) > 0 or int(data_fields[self.idx['HTTP response errors']]) > 0:
                 if not error_msg:
-                    error_msg = "HTTP %s" % r_code
+                    if r_code != '0':
+                        error_msg = "HTTP %s" % r_code
+                    else:
+                        error_msg = "Java exception calling TestRunner"
             else:
                 error_msg = None  # suppress errors
 

@@ -39,7 +39,8 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector
-from bzt.six import iteritems, string_types, StringIO, etree, binary_type, parse, unicode_decode, numeric_types
+from bzt.six import communicate
+from bzt.six import iteritems, string_types, StringIO, etree, parse, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -57,10 +58,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     """
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
-    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=' \
-                      'kg/apc/jmeter-plugins-manager/0.15/jmeter-plugins-manager-0.15.jar'
+    PLUGINS_MANAGER_VERSION = "0.16"
+    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/'\
+            '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
-    JMETER_VER = "3.2"
+    JMETER_VER = "3.3"
     UDP_PORT_NUMBER = None
 
     def __init__(self):
@@ -279,6 +281,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             else:
                 raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
+        # check for necessary plugins and install them if needed
+        if self.settings.get("detect-plugins", True):
+            self.tool.install_for_jmx(self.original_jmx)
+
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
             version = LooseVersion(str(self.settings.get("version", self.JMETER_VER)))
@@ -384,6 +390,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.start_time = time.time()
         try:
             self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=self._env)
+        except KeyboardInterrupt:
+            raise
         except BaseException as exc:
             ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
 
@@ -1501,13 +1509,10 @@ class JMeter(RequiredTool):
         try:
             with tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False) as jmlog:
                 jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
-                jmout, jmerr = jm_proc.communicate()
+                jmout, jmerr = communicate(jm_proc)
                 self.log.debug("JMeter check: %s / %s", jmout, jmerr)
 
             os.remove(jmlog.name)
-
-            if isinstance(jmout, binary_type):
-                jmout = jmout.decode()
 
             if "is too low to run JMeter" in jmout:
                 raise ToolError("Java version is too low to run JMeter")
@@ -1517,6 +1522,28 @@ class JMeter(RequiredTool):
         except OSError:
             self.log.debug("JMeter check failed.")
             return False
+
+    def _pmgr_call(self, params):
+        cmd = [self._pmgr_path()] + params
+        proc = shell_exec(cmd)
+        return communicate(proc)
+
+    def install_for_jmx(self, jmx_file):
+        if not os.path.isfile(jmx_file):
+            self.log.warning("Script %s not found" % jmx_file)
+            return
+
+        try:
+            out, err = self._pmgr_call(["install-for-jmx", jmx_file])
+            self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
+        except KeyboardInterrupt:
+            raise
+        except BaseException as exc:
+            self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
+            return
+
+        if err and "Wrong command: install-for-jmx" in err:     # old manager
+            self.log.debug("pmgr can't discover jmx for plugins")
 
     def __install_jmeter(self, dest):
         if self.download_link:
@@ -1546,6 +1573,8 @@ class JMeter(RequiredTool):
                 self.log.info("Downloading %s from %s", _file, url)
                 try:
                     downloader.get(url, tool[1], reporthook=pbar.download_callback)
+                except KeyboardInterrupt:
+                    raise
                 except BaseException as exc:
                     raise TaurusNetworkError("Error while downloading %s: %s" % (_file, exc))
 
@@ -1555,8 +1584,10 @@ class JMeter(RequiredTool):
         self.log.debug("Trying: %s", cmd)
         try:
             proc = shell_exec(cmd)
-            out, err = proc.communicate()
+            out, err = communicate(proc)
             self.log.debug("Install PluginsManager: %s / %s", out, err)
+        except KeyboardInterrupt:
+            raise
         except BaseException as exc:
             raise ToolError("Failed to install PluginsManager: %s" % exc)
 
@@ -1593,10 +1624,16 @@ class JMeter(RequiredTool):
                 env['JVM_ARGS'] = jvm_args
 
             proc = shell_exec(cmd)
-            out, err = proc.communicate()
+            out, err = communicate(proc)
             self.log.debug("Install plugins: %s / %s", out, err)
+        except KeyboardInterrupt:
+            raise
         except BaseException as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
+
+    def _pmgr_path(self):
+        dest = get_full_path(self.tool_path, step_up=2)
+        return os.path.join(dest, 'bin', 'PluginsManagerCMD' + EXE_SUFFIX)
 
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
@@ -1608,7 +1645,7 @@ class JMeter(RequiredTool):
         direct_install_tools = [  # source link and destination
             [JMeterExecutor.PLUGINS_MANAGER, plugins_manager_path],
             [JMeterExecutor.CMDRUNNER, cmdrunner_path]]
-        plugins_manager_cmd = os.path.join(dest, 'bin', 'PluginsManagerCMD' + EXE_SUFFIX)
+        plugins_manager_cmd = self._pmgr_path()
 
         self.__install_jmeter(dest)
         self.__download_additions(direct_install_tools)

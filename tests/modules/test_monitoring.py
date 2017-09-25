@@ -1,9 +1,11 @@
 import logging
 import random
 import time
+import unittest
 
 from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCriteria
 from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient, LocalMonitor
+from bzt.six import PY3, b
 from bzt.utils import BetterDict
 from tests import BZTestCase
 from tests.mocks import EngineEmul, SocketEmul
@@ -46,7 +48,7 @@ class TestMonitoring(BZTestCase):
         obj.startup()
 
         for _ in range(1, 10):
-            obj.clients[0].socket.recv_data += "%s\t%s\n" % (random.random(), random.random())
+            obj.clients[0].socket.recv_data += b("%s\t%s\n" % (random.random(), random.random()))
             obj.check()
             logging.debug("Criteria state: %s", criteria)
             time.sleep(1)
@@ -54,7 +56,7 @@ class TestMonitoring(BZTestCase):
         obj.shutdown()
         obj.post_process()
 
-        self.assertEquals("test\ninterval:1\nmetrics:cpu\tdisks\nexit\n", obj.clients[0].socket.sent_data)
+        self.assertEquals(b("test\ninterval:1\nmetrics:cpu\tdisks\nexit\n"), obj.clients[0].socket.sent_data)
 
     def test_graphite(self):
         obj = Monitoring()
@@ -126,6 +128,43 @@ class TestMonitoring(BZTestCase):
             self.assertNotEqual(item2['cpu'], 0)
             self.assertEqual(item1['cpu'], item2['cpu'])
 
+    @unittest.skipUnless(PY3, "py3 only")
+    def test_server_agent_encoding(self):
+        obj = Monitoring()
+        obj.engine = EngineEmul()
+        obj.parameters.merge({
+            "server-agent": [{
+                "address": "127.0.0.1:4444",
+                "metrics": [
+                    "cpu",
+                    "disks"
+                ]
+            }]
+        })
+
+        obj.client_classes = {'server-agent': ServerAgentClientEmul}
+        obj.prepare()
+
+        self.assertEquals(b("test\n"), obj.clients[0].socket.sent_data)
+
+    def test_psutil_potential_bugs(self):
+        client = LocalClient(logging.getLogger(''), 'label', {'metrics': ['cpu', 'mem', 'disks', 'conn-all']})
+        client.engine = EngineEmul()
+        client.connect()
+
+        try:
+            import psutil
+            net_io_counters = psutil.net_io_counters
+            disk_io_counters = psutil.disk_io_counters
+            psutil.net_io_counters = lambda: None
+            psutil.disk_io_counters = lambda: None
+
+            client.engine_resource_stats()  # should throw no exception
+        finally:
+            psutil.net_io_counters = net_io_counters
+            psutil.disk_io_counters = disk_io_counters
+
+
 
 class LoggingMonListener(MonitoringListener):
     def monitoring_data(self, data):
@@ -136,7 +175,7 @@ class ServerAgentClientEmul(ServerAgentClient):
     def __init__(self, parent_logger, label, config):
         super(ServerAgentClientEmul, self).__init__(parent_logger, label, config)
         self.socket = SocketEmul()
-        self.socket.recv_data = "Yep\n"
+        self.socket.recv_data = b("Yep\n")
         self.select = self.select_emul
 
     def select_emul(self, reads, writes, excepts, timeout):

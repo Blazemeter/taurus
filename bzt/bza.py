@@ -405,8 +405,10 @@ class Test(BZAObject):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
         return response['removed']
 
-    def start(self):
+    def start(self, as_functional=False):
         url = self.address + "/api/v4/tests/%s/start" % self['id']
+        if as_functional:
+            url += "?functionalExecution=true"
         resp = self._request(url, method='POST')
         master = Master(self, resp['result'])
         return master
@@ -540,6 +542,14 @@ class Master(BZAObject):
 
     def get_full(self):
         url = self.address + "/api/v4/masters/%s/full" % self['id']
+        return self._request(url)['result']
+
+    def get_functional_report_groups(self):
+        url = self.address + "/api/v4/masters/%s/reports/functional/groups" % self['id']
+        return self._request(url)['result']
+
+    def get_functional_report_group(self, group_id):
+        url = self.address + "/api/v4/masters/%s/reports/functional/groups/%s" % (self['id'], group_id)
         return self._request(url)['result']
 
 

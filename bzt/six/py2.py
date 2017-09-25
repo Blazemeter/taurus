@@ -91,3 +91,7 @@ def unicode_decode(string):
         return string.decode('utf-8')
     else:
         return string
+
+
+def communicate(proc):
+    return proc.communicate()

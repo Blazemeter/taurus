@@ -248,6 +248,8 @@ data.requests_sample-0 4, 4, 1, 1492243739476, 59, 0, 200, 10192, 0, 0, 0, 58, 0
 worker.requests_sample-0 sleeping for 141 ms
 worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
 data.requests_sample-0 4, 4, 1, 1492243739676, 58, 0, 404, 14844, 1, 0, 0, 57, 0
+data.requests_sample-0 16, 2, 2, 1502776145006, 13, 1, 0, 0, 0, 0, 0, 0, 0
+worker.requests_sample-0 aborted run - Java exception calling TestRunner
 worker.requests_sample-0 sleeping for 50 ms
 worker.requests_sample-0 finished 5 runs
 worker.requests_sample-0 elapsed time is 51421 ms
