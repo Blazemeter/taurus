@@ -3,7 +3,7 @@ astunparse
 colorama; sys_platform == 'windows'
 colorlog
 cssselect
-ipaddress; python_version < '3.0'
+ipaddress==1.0.18; python_version < '3.0'
 lxml>=3.8.0
 nose
 progressbar33
