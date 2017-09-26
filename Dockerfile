@@ -46,9 +46,12 @@ RUN apt-get -y update \
     ruby ruby-dev \
     nodejs \
     mono-complete nuget \
+    python3-dev python3-pip \
   && apt-get -y remove firefox \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
+  && pip3 install --upgrade setuptools \
+  && pip3 install molotov \
   && npm install -g mocha \
   && gem install rspec \
   && gem install selenium-webdriver \
