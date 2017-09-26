@@ -1,5 +1,7 @@
 import logging
+import sys
 import time
+import unittest
 from os import path
 
 from bzt import ToolError
@@ -81,6 +83,7 @@ class TestMolotov(BZTestCase):
         resources = obj.get_resource_files()
         self.assertEqual(resources, [get_res_path("loadtest.py")])
 
+    @unittest.skipUnless(sys.version_info >= (3, 5))
     def test_full(self):
         obj = MolotovExecutor()
         obj.engine = EngineEmul()
