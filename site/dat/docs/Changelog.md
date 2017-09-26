@@ -2,6 +2,7 @@
 
 ## 1.9.6 <sup>next</sup>
  - add `pytest` executor type
+ - add [Molotov](https://github.com/loads/molotov)-based executor type: `molotov`
  - support `-cloud -func` combination for launching cloud functional tests
  - use Gatling 2.3.0 by default
  - use JMeter 3.3 by default
