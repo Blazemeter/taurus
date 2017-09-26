@@ -147,6 +147,24 @@ class TestMonitoring(BZTestCase):
 
         self.assertEquals(b("test\n"), obj.clients[0].socket.sent_data)
 
+    def test_psutil_potential_bugs(self):
+        client = LocalClient(logging.getLogger(''), 'label', {'metrics': ['cpu', 'mem', 'disks', 'conn-all']})
+        client.engine = EngineEmul()
+        client.connect()
+
+        try:
+            import psutil
+            net_io_counters = psutil.net_io_counters
+            disk_io_counters = psutil.disk_io_counters
+            psutil.net_io_counters = lambda: None
+            psutil.disk_io_counters = lambda: None
+
+            client.engine_resource_stats()  # should throw no exception
+        finally:
+            psutil.net_io_counters = net_io_counters
+            psutil.disk_io_counters = disk_io_counters
+
+
 
 class LoggingMonListener(MonitoringListener):
     def monitoring_data(self, data):

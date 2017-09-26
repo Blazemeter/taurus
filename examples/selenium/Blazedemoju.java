@@ -42,7 +42,9 @@ public class Blazedemoju {
 
     @After
     public void tearDown() {
-        wd.quit();
+	if (wd!=null) {
+            wd.quit();
+	}
     }
 
     public static boolean isAlertPresent(FirefoxDriver wd) {

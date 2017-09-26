@@ -62,7 +62,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/'\
             '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
-    JMETER_VER = "3.2"
+    JMETER_VER = "3.3"
     UDP_PORT_NUMBER = None
 
     def __init__(self):
@@ -390,6 +390,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.start_time = time.time()
         try:
             self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=self._env)
+        except KeyboardInterrupt:
+            raise
         except BaseException as exc:
             ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
 
@@ -1534,6 +1536,8 @@ class JMeter(RequiredTool):
         try:
             out, err = self._pmgr_call(["install-for-jmx", jmx_file])
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
+        except KeyboardInterrupt:
+            raise
         except BaseException as exc:
             self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
             return
@@ -1569,6 +1573,8 @@ class JMeter(RequiredTool):
                 self.log.info("Downloading %s from %s", _file, url)
                 try:
                     downloader.get(url, tool[1], reporthook=pbar.download_callback)
+                except KeyboardInterrupt:
+                    raise
                 except BaseException as exc:
                     raise TaurusNetworkError("Error while downloading %s: %s" % (_file, exc))
 
@@ -1580,6 +1586,8 @@ class JMeter(RequiredTool):
             proc = shell_exec(cmd)
             out, err = communicate(proc)
             self.log.debug("Install PluginsManager: %s / %s", out, err)
+        except KeyboardInterrupt:
+            raise
         except BaseException as exc:
             raise ToolError("Failed to install PluginsManager: %s" % exc)
 
@@ -1618,6 +1626,8 @@ class JMeter(RequiredTool):
             proc = shell_exec(cmd)
             out, err = communicate(proc)
             self.log.debug("Install plugins: %s / %s", out, err)
+        except KeyboardInterrupt:
+            raise
         except BaseException as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
 

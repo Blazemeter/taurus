@@ -235,14 +235,22 @@ class LocalMonitor(object):
                 self.__informed_on_mem_issue = True
 
         net = psutil.net_io_counters()
-        tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
-        rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
-        self.__net_counters = net
+        if net is not None:
+            tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
+            rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
+            self.__net_counters = net
+        else:
+            rx_bytes = 0.0
+            tx_bytes = 0.0
 
         disk = self.__get_disk_counters()
-        dru = (disk.read_bytes - self.__disk_counters.read_bytes) / interval
-        dwu = (disk.write_bytes - self.__disk_counters.write_bytes) / interval
-        self.__disk_counters = disk
+        if disk is not None:
+            dru = (disk.read_bytes - self.__disk_counters.read_bytes) / interval
+            dwu = (disk.write_bytes - self.__disk_counters.write_bytes) / interval
+            self.__disk_counters = disk
+        else:
+            dru = 0.0
+            dwu = 0.0
 
         if self.engine:
             engine_loop = self.engine.engine_loop_utilization
@@ -267,13 +275,15 @@ class LocalMonitor(object):
         )
 
     def __get_disk_counters(self):
+        counters = None
         try:
-            return psutil.disk_io_counters()
+            counters = psutil.disk_io_counters()
         except RuntimeError as exc:
             self.log.debug("Failed to get disk metrics: %s", exc)
+        if counters is None:
+            counters = psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
             # noinspection PyProtectedMember
-            return psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
-
+        return counters
 
 class GraphiteClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
