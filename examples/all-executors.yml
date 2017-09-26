@@ -185,3 +185,10 @@ execution:
   iterations: 10
   scenario:
     script: selenium/pytest/test_simple.py
+
+- executor: molotov
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: molotov/blazedemo.py
