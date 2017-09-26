@@ -50,7 +50,7 @@ RUN apt-get -y update \
   && apt-get -y remove firefox \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
-  && pip3 install --upgrade setuptools \
+  && pip3 install --upgrade setuptools wheel \
   && pip3 install molotov \
   && npm install -g mocha \
   && gem install rspec \
