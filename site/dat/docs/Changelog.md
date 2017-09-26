@@ -16,6 +16,7 @@
  - fix Grinder `HTTP 0` error and `DivisionByZero` error
  - fix passfail criteria parsing to work with float percentiles
  - fix dashboard encoding problems on Windows
+ - call BZA session shutdown only if we were sending data into it
 
 ## 1.9.5 <sup>11 aug 2017</sup>
  - add `nunit` executor for NUnit-based tests (Selenium and others)

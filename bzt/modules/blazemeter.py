@@ -385,7 +385,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
     def _postproc_phase3(self):
         try:
-            self.end_online()
+            if self.send_data:
+                self.end_online()
+
             if self._user.token and self.engine.stopping_reason:
                 exc_class = self.engine.stopping_reason.__class__.__name__
                 note = "%s: %s" % (exc_class, str(self.engine.stopping_reason))
