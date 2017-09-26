@@ -153,7 +153,7 @@ class Molotov(RequiredTool):
             version_s = stdout.strip()
             version = LooseVersion(version_s)
             if version < LooseVersion("1.4"):
-                self.log.warning("Molotov version %s detected" % version)
+                raise ToolError("You must install molotov>=1.4 to use this executor (version %s detected)" % version)
         except (CalledProcessError, OSError, AttributeError):
             return False
         return True

@@ -1,6 +1,5 @@
 import logging
 import time
-import unittest
 from os import path
 
 from bzt import ToolError
@@ -82,12 +81,11 @@ class TestMolotov(BZTestCase):
         resources = obj.get_resource_files()
         self.assertEqual(resources, [get_res_path("loadtest.py")])
 
-    @unittest.skip("Disabled until molotov is released")
     def test_full(self):
         obj = MolotovExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
-            "iterations": 1,
+            "hold-for": "5s",
             "scenario": {
                 "script": get_res_path("loadtest.py")
             }
@@ -102,6 +100,7 @@ class TestMolotov(BZTestCase):
             obj.shutdown()
         obj.post_process()
         self.assertNotEquals(obj.process, None)
+        self.assertTrue(path.exists(obj.report_file_name))
 
 
 class TestReportReader(BZTestCase):
