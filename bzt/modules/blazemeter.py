@@ -385,6 +385,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
     def _postproc_phase3(self):
         try:
+            if self.settings.get("ignore-online-shutdown", None):
+                return
+
             self.end_online()
             if self._user.token and self.engine.stopping_reason:
                 exc_class = self.engine.stopping_reason.__class__.__name__
