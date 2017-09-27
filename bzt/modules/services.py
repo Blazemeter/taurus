@@ -17,11 +17,12 @@ limitations under the License.
 """
 
 import copy
+import json
 import os
 import subprocess
 import time
 import zipfile
-import json
+
 from bzt.six import communicate
 
 try:
@@ -62,7 +63,7 @@ class Unpacker(Service):
 class InstallChecker(Service, Singletone):
     def prepare(self):
         modules = self.engine.config.get("modules")
-        failure = None
+        problems = []
         for mod_name in modules.keys():
             try:
                 self._check_module(mod_name)
@@ -71,10 +72,10 @@ class InstallChecker(Service, Singletone):
             except BaseException as exc:
                 self.log.error("Failed to instantiate module %s", mod_name)
                 self.log.debug("%s", get_stacktrace(exc))
-                failure = exc if not failure else failure
+                problems.append(mod_name)
 
-        if failure:
-            raise ToolError("There were errors while checking for installed tools, see messages above")
+        if problems:
+            raise ToolError("There were errors while checking for installed tools for %s, see details above" % problems)
 
         raise NormalShutdown("Done checking for tools installed, will exit now")
 

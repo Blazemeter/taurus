@@ -3,6 +3,8 @@ services:
 - virtual-display
 - module: shellexec
   prepare: 
+  - command: python -m SimpleHTTPServer 8000
+    background: true
   - command: sleep 600 && exit 1  # this will make it interrupt in case it hangs
     background: true
 #  check:
@@ -22,7 +24,7 @@ execution:
   iterations: 10
   scenario:
     requests:
-      - url: http://blazedemo.com/
+      - url: http://localhost:8000/
         label: jmeter
 
 - executor: gatling
@@ -31,7 +33,7 @@ execution:
   iterations: 10
   scenario:
     requests:
-      - url: http://blazedemo.com/
+      - url: http://localhost:8000/
         label: gatling
 
 - executor: pbench
@@ -40,7 +42,7 @@ execution:
   iterations: 10
   scenario:
     requests:
-      - url: http://blazedemo.com/
+      - url: http://localhost:8000/
         label: pbench
 
 - executor: grinder
@@ -49,7 +51,7 @@ execution:
   iterations: 10
   scenario:
     requests:
-      - url: http://blazedemo.com/
+      - url: http://localhost:8000/
         label: grinder
 
 - executor: siege
@@ -58,7 +60,7 @@ execution:
   iterations: 10
   scenario:
     requests:
-      - url: http://blazedemo.com/?tool=siege
+      - url: http://localhost:8000/?tool=siege
         label: siege
 
 - executor: locust
@@ -67,7 +69,7 @@ execution:
   iterations: 10
   scenario:
     requests:
-      - url: http://blazedemo.com/
+      - url: http://localhost:8000/
         label: locust
 
 - executor: tsung
@@ -75,7 +77,7 @@ execution:
   hold-for: 10s
   scenario:
     requests:
-      - url: http://blazedemo.com/
+      - url: http://localhost:8000/
         label: tsung
 
 - executor: ab
@@ -84,7 +86,7 @@ execution:
   iterations: 10
   scenario:
     requests:
-      - url: http://blazedemo.com/
+      - url: http://localhost:8000/
         label: ab
 
 - executor: selenium
@@ -94,7 +96,7 @@ execution:
   scenario:
     browser: Chrome
     requests:
-      - url: http://blazedemo.com/
+      - url: http://localhost:8000/
         label: selenium-chrome
 
 - executor: selenium
@@ -104,7 +106,7 @@ execution:
   scenario:
     browser: Firefox
     requests:
-      - url: http://blazedemo.com/
+      - url: http://localhost:8000/
         label: selenium-firefox
 
 - executor: selenium
