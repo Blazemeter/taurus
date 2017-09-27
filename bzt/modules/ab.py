@@ -20,7 +20,6 @@ import logging
 import time
 from math import ceil
 from os import path
-
 from subprocess import CalledProcessError
 
 from bzt import TaurusConfigError, ToolError
@@ -92,6 +91,8 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
 
         args += ['-c', str(load_concurrency)]
         args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
+        args += ['-r']  # do not crash on socket level errors
+        args += ['-l']  # accept variable-len responses
         args += ['-g', str(self.__tsv_file_name)]  # dump stats to TSV file
 
         # add global scenario headers

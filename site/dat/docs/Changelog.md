@@ -1,6 +1,9 @@
 # Changelog
 
-## 1.9.6 <sup>next</sup>
+## 1.9.7 <sup>next</sup>
+ - use `-r -l` options for `ab` executor
+
+## 1.9.6 <sup>27 sep 2017</sup>
  - add `pytest` executor type
  - add [Molotov](https://github.com/loads/molotov)-based executor type: `molotov`
  - support `-cloud -func` combination for launching cloud functional tests
