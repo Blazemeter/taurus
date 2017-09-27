@@ -15,12 +15,11 @@ limitations under the License.
 """
 import os
 import sys
+from setuptools import setup
+from setuptools.command.install import install
 
 # noinspection PyPackageRequirements
 import pip
-
-from setuptools.command.install import install
-from setuptools import setup
 
 import bzt
 
@@ -45,6 +44,7 @@ class InstallWithHook(install, object):
             if os.path.exists(src):
                 sys.stdout.write("Removing outdated %s\n" % src)
                 os.remove(src)
+
 
 # thanks to pip there are two incompatible ways to parse requirements.txt
 if pip.__version__ < '7':
