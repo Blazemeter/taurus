@@ -244,7 +244,7 @@ class TestDataLogReader(BZTestCase):
         log_path = RESOURCES_DIR + 'grinder/grinder-bzt-1-kpi.log'
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
-        self.assertEqual(len(list_of_values), 20)
+        self.assertEqual(len(list_of_values), 21)
         self.assertIn('requests_sample', list_of_values[-1][DataPoint.CUMULATIVE])
 
     def test_read_by_url(self):
@@ -260,7 +260,9 @@ class TestDataLogReader(BZTestCase):
         log_path = RESOURCES_DIR + 'grinder/grinder-bzt-1-kpi.log'
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
-        self.assertEqual(len(list_of_values), 20)
+        self.assertEqual(len(list_of_values), 21)
+
         last = list_of_values[-1]
-        self.assertEquals(1, len(last[DataPoint.CUMULATIVE][''][KPISet.ERRORS]))
+        self.assertEquals(2, len(last[DataPoint.CUMULATIVE][''][KPISet.ERRORS]))
         self.assertIn('Not Found', last[DataPoint.CUMULATIVE][''][KPISet.ERRORS][0]['msg'])
+        self.assertIn('Java exception', last[DataPoint.CUMULATIVE][''][KPISet.ERRORS][1]['msg'])

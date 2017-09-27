@@ -92,12 +92,14 @@ class BZAObject(dict):
         if not isinstance(resp, str):
             resp = resp.decode()
 
-        self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
+        self.log.debug("Response [%s]: %s", response.status_code, resp[:self.logger_limit] if resp else None)
         if response.status_code >= 400:
             try:
                 result = json.loads(resp) if len(resp) else {}
                 if 'error' in result and result['error']:
                     raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
+                else:
+                    raise TaurusNetworkError("API call error %s on %s: %s" % (response.status_code, url, result))
             except ValueError:
                 raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
 
@@ -405,8 +407,10 @@ class Test(BZAObject):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
         return response['removed']
 
-    def start(self):
+    def start(self, as_functional=False):
         url = self.address + "/api/v4/tests/%s/start" % self['id']
+        if as_functional:
+            url += "?functionalExecution=true"
         resp = self._request(url, method='POST')
         master = Master(self, resp['result'])
         return master
@@ -540,6 +544,14 @@ class Master(BZAObject):
 
     def get_full(self):
         url = self.address + "/api/v4/masters/%s/full" % self['id']
+        return self._request(url)['result']
+
+    def get_functional_report_groups(self):
+        url = self.address + "/api/v4/masters/%s/reports/functional/groups" % self['id']
+        return self._request(url)['result']
+
+    def get_functional_report_group(self, group_id):
+        url = self.address + "/api/v4/masters/%s/reports/functional/groups/%s" % (self['id'], group_id)
         return self._request(url)['result']
 
 

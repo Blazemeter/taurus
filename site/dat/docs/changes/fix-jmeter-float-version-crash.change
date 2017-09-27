@@ -1,1 +1,0 @@
-Fix JMeter crash when modifying JMX given `float()` value of `version`
