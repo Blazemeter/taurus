@@ -68,7 +68,7 @@ public class TestNGRunnerTest extends TestCase {
         Properties props = new Properties();
         props.setProperty(TestNGRunner.REPORT_FILE, report.getAbsolutePath());
         props.setProperty(TestNGRunner.TARGET_PREFIX + "jar", res.getPath());
-        props.setProperty(TestNGRunner.HOLD, String.valueOf(60));
+        props.setProperty(TestNGRunner.HOLD, String.valueOf(5));
 
         File propsFile = File.createTempFile("runner", ".properties");
         propsFile.deleteOnExit();
@@ -90,7 +90,7 @@ public class TestNGRunnerTest extends TestCase {
         Properties props = new Properties();
         props.setProperty(TestNGRunner.REPORT_FILE, report.getAbsolutePath());
         props.setProperty(TestNGRunner.TARGET_PREFIX + "jar", res.getPath());
-        props.setProperty(TestNGRunner.HOLD, String.valueOf(60));
+        props.setProperty(TestNGRunner.HOLD, String.valueOf(5));
         props.setProperty(TestNGRunner.ITERATIONS, String.valueOf(1));
 
         File propsFile = File.createTempFile("runner", ".properties");
