@@ -72,7 +72,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
             cmdline += ['--workers', str(load.concurrency)]
 
         if 'processes' in self.execution:
-            cmdline += ['--processes', self.execution['processes']]
+            cmdline += ['--processes', str(self.execution['processes'])]
 
         # TODO: autosizing as `concurrency: auto`?
 
