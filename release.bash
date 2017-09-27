@@ -1,4 +1,4 @@
-#! /bin/sh -xe
+#! /bin/bash -xe
 
 echo "Building Grinder plugin"
 pushd $(dirname $0)/java/grinder_logger
