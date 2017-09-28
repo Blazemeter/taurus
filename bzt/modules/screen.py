@@ -103,7 +103,6 @@ class GUIScreen(BaseScreen):
         :return:
         """
         (cwdth, chght) = (self.font.measure(' '), self.font.metrics("linespace"))
-        logging.debug("Font: %s", (cwdth, chght))
 
         width = int(math.floor((self.text.winfo_width() - float(cwdth) / 2) / float(cwdth)))
         height = int(math.floor(self.text.winfo_height() / float(chght)))
