@@ -22,14 +22,14 @@ addons:
       - mono-complete
 
 before_install:
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then export DISPLAY=:99.0; sh -e /etc/init.d/xvfb start; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then export DISPLAY=:99.0; sh -e /etc/init.d/xvfb start; fi
 
 install:
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then tests/ci/travis/linux/install.sh; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then tests/ci/travis/linux/install.sh; fi
 
 after_success:
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then coverage report -m; fi
-- if [ "$TRAVIS_OS_NAME" == "linux" ]; then codecov; fi
-- if [ "$TRAVIS_OS_NAME" == "osx" ]; then tests/ci/build-brew.sh; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then codecov; fi
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then tests/ci/build-brew.sh; fi
 
 
