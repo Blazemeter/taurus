@@ -58,4 +58,24 @@ setup(
         "bzt": [],
     },
 
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+
+        'Topic :: Software Development :: Quality Assurance',
+        'Topic :: Software Development :: Testing',
+        'Topic :: Software Development :: Testing :: Traffic Generation',
+
+        'License :: OSI Approved :: Apache Software License',
+
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: MacOS',
+        'Operating System :: POSIX :: Linux',
+
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+    ],
 )
