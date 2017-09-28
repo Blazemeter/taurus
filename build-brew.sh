@@ -37,7 +37,7 @@ brew remove --force --ignore-dependencies $(brew list)
 brew install --force-bottle python2
 
 if [ -z "$1" ]; then
-    BZT_VER="1.9.5"
+    BZT_VER="1.9.6"
 else
     BZT_VER="$1"
 fi
@@ -56,9 +56,7 @@ class Bzt < Formula
   url "${PYPKG_URL}"
   sha256 "${SHA256}"
   head "https://github.com/greyfenrir/taurus.git"
-  depends_on :python2
-  depends_on "libxslt" => :build
-  depends_on "libxml2" => :build
+  depends_on :python if MacOS.version <= :snow_leopard
 
 EOF
 
