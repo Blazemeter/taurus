@@ -22,7 +22,7 @@
 
 # Videos
 
-The most recent video is: [Meetup on June 28, 2016: How to Simplify Load Testing JMeter and Beyond](https://www.youtube.com/watch?v=EFIWFfvKolw)
+The most recent video is: [Webinar on September 27, 2017: Automating Performance Tests with Taurus](https://www.youtube.com/watch?v=DN0VNnG-lzs)
 
 <iframe width="700" height="394" src="https://www.youtube.com/embed/EFIWFfvKolw" frameborder="0" allowfullscreen></iframe>
  
