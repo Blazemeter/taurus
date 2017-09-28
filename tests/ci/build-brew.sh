@@ -101,8 +101,8 @@ echo ">>>>>>> start of $FORMULA"
 cat ${FORMULA}
 echo ">>>>>>> end of $FORMULA"
 
-brew install --build-from-source "${FORMULA}" -vvv &&
-    chmod 644 `find $PREFIX -name bzt.rb` &&    # brew audit requires such access rights
+brew install --build-from-source "${FORMULA}" &&
+    chmod 644 `find $PREFIX -name bzt.rb` &&   # brew audit requires such access rights
     brew test bzt &&
     brew audit --strict --online bzt
 
