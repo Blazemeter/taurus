@@ -91,7 +91,7 @@ class Local(Provisioning):
         prev_executor = None
         for executor in self.executors:
             if executor in self.engine.prepared and executor not in self.engine.started:  # needs to start
-                self.engine.pre_shutdown_hook()
+                self.engine.logging_level_up()
                 if isinstance(executor.delay, numeric_types):
                     timed_start = time.time() >= self.start_time + executor.delay
                 else:
@@ -104,7 +104,7 @@ class Local(Provisioning):
                         self.log.info("Starting next sequential execution: %s", executor)
                     executor.startup()
                     self.engine.started.append(executor)
-                self.engine.post_startup_hook()
+                self.engine.logging_level_down()
 
             prev_executor = executor
 
