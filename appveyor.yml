@@ -18,7 +18,7 @@ before_test:
   - rspec --version
 
 test_script:
-  - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources"
+  - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources --exclude-dir=tests/ci"
 
 after_test:
   - "%PYTHON%\\python.exe setup.py clean sdist"

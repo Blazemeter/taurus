@@ -97,12 +97,6 @@ EOF
 
 PREFIX=$(brew --prefix)
 
-# brew unlink libyaml && brew link libyaml
-ruby -v
-echo "psynch!"
-
-gem install psynch -V --debug
-
 echo ">>>>>>> start of $FORMULA"
 cat ${FORMULA}
 echo ">>>>>>> end of $FORMULA"
