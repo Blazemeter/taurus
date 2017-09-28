@@ -83,8 +83,8 @@ class Engine(object):
         self.prepared = []
         self.started = []
         self.default_cwd = None
-        self.post_startup_hook = lambda: None
-        self.pre_shutdown_hook = lambda: None
+        self.logging_level_down = lambda: None
+        self.logging_level_up = lambda: None
 
     def configure(self, user_configs, read_config_files=True):
         """
@@ -180,7 +180,7 @@ class Engine(object):
         exc_info = None
         try:
             self._startup()
-            self.post_startup_hook()
+            self.logging_level_down()
             self._wait()
         except BaseException as exc:
             self.log.debug("%s:\n%s", exc, traceback.format_exc())
@@ -189,7 +189,7 @@ class Engine(object):
         finally:
             self.log.warning("Please wait for graceful shutdown...")
             try:
-                self.pre_shutdown_hook()
+                self.logging_level_up()
                 self._shutdown()
             except BaseException as exc:
                 self.log.debug("%s:\n%s", exc, traceback.format_exc())
