@@ -12,7 +12,7 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 echo "done"
 
-FORMULA="${BUILD_DIR}/bzt.rb"
+export FORMULA="${BUILD_DIR}/bzt.rb"
 
 PLATFORM=`uname`
 if [ "$PLATFORM" = "Linux" ]; then

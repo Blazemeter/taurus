@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
 echo "\n>>>>>>>>>>>> start of formula <<<<<<<<<<<<"
-cat build/brew/bzt.rb
+cat ${FORMULA}
 echo ">>>>>>>>>>>> end of formula <<<<<<<<<<<<\n"
