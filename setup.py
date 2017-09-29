@@ -24,28 +24,6 @@ import pip
 import bzt
 
 
-class InstallWithHook(install, object):
-    """
-    Command adding post-install hook to setup
-    """
-
-    def run(self):
-        """
-        Do the command's job!
-        """
-        install.run(self)
-        self.__hook()
-
-    def __hook(self):
-        dirname = bzt.get_configs_dir()
-        if os.path.exists(dirname):
-            sys.stdout.write("[%s] Found %s\n" % (bzt.VERSION, dirname))
-            src = os.path.join(dirname, "10-base.json")
-            if os.path.exists(src):
-                sys.stdout.write("Removing outdated %s\n" % src)
-                os.remove(src)
-
-
 # thanks to pip there are two incompatible ways to parse requirements.txt
 if pip.__version__ < '7':
     requirements = pip.req.parse_requirements('requirements.txt')
@@ -79,5 +57,25 @@ setup(
     package_data={
         "bzt": [],
     },
-    cmdclass={"install": InstallWithHook}  # TODO: remove it completely once we have most of users upgraded to>=1.8.5
+
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+
+        'Topic :: Software Development :: Quality Assurance',
+        'Topic :: Software Development :: Testing',
+        'Topic :: Software Development :: Testing :: Traffic Generation',
+
+        'License :: OSI Approved :: Apache Software License',
+
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: MacOS',
+        'Operating System :: POSIX :: Linux',
+
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+    ],
 )
