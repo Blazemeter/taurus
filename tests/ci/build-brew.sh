@@ -12,7 +12,7 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 echo "done"
 
-export FORMULA="${BUILD_DIR}/bzt.rb"
+FORMULA="${BUILD_DIR}/bzt.rb"
 
 PLATFORM=`uname`
 if [ "$PLATFORM" = "Linux" ]; then
@@ -100,7 +100,10 @@ PREFIX=$(brew --prefix)
 brew install --build-from-source "${FORMULA}" &&
     chmod 644 `find $PREFIX -name bzt.rb` &&   # brew audit requires such access rights
     brew test bzt &&
-    brew audit --strict --online bzt
+    brew audit --strict --online bzt &&
+        echo ">>>>>>>> start of formula <<<<<<<<" &&
+        cat ${FORMULA} &&
+        echo ">>>>>>>> end of formula <<<<<<<<"
 
 # next steps:
 #  1. fork the Homebrew/homebrew-core

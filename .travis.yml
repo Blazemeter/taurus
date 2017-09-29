@@ -47,6 +47,6 @@ script:
 after_success:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m; fi
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then codecov; fi
-- if [ "$TRAVIS_OS_NAME" = "osx" ]; then tests/ci/show-formula.sh; fi
+
 
 
