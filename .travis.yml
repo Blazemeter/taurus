@@ -36,6 +36,13 @@ install:
     pip install codecov nose-exclude locustio
   fi
 
+script:
+- |
+  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+    coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources  --exclude-dir=tests/ci
+  else
+    true
+  fi
 
 after_success:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m; fi
