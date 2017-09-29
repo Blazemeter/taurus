@@ -41,12 +41,17 @@ script:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources  --exclude-dir=tests/ci
   else
-    true
+    tests/ci/build-brew.sh
   fi
 
 after_success:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m; fi
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then codecov; fi
-- if [ "$TRAVIS_OS_NAME" = "osx" ]; then tests/ci/build-brew.sh; fi
+- |
+  if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    echo "\n>>>>>>>>>>>> start of formula <<<<<<<<<<<<"
+    cat build/brew/bzt.rb
+    echo ">>>>>>>>>>>> end of formula <<<<<<<<<<<<\n"
+  fi
 
 

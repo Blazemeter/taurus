@@ -97,10 +97,6 @@ EOF
 
 PREFIX=$(brew --prefix)
 
-echo ">>>>>>> start of $FORMULA"
-cat ${FORMULA}
-echo ">>>>>>> end of $FORMULA"
-
 brew install --build-from-source "${FORMULA}" &&
     chmod 644 `find $PREFIX -name bzt.rb` &&   # brew audit requires such access rights
     brew test bzt &&
