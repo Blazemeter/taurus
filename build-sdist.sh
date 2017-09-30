@@ -8,5 +8,5 @@ pushd $(dirname $0)/dotnet/NUnitRunner
 ./rebuild.sh
 popd
 
-echo "Creating source distribution"
-python $(dirname $0)/setup.py sdist
+echo "Creating distribution packages"
+python $(dirname $0)/setup.py sdist bdist_wheel
