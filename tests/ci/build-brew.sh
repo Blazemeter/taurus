@@ -56,6 +56,7 @@ class Bzt < Formula
   url "${PYPKG_URL}"
   sha256 "${SHA256}"
   head "https://github.com/greyfenrir/taurus.git"
+
   depends_on :python if MacOS.version <= :snow_leopard
 
 EOF
@@ -84,7 +85,7 @@ cat << EOF >> "${FORMULA}"
   end
 
   test do
-    system "#{bin}/bzt", "--help"
+    system "#{bin}/bzt -o execution.0.executor=nose -o execution.0.scenario.requests.0=http://blazedemo.com"
   end
 end
 EOF
