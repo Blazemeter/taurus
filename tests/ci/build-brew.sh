@@ -85,7 +85,7 @@ cat << EOF >> "${FORMULA}"
   end
 
   test do
-    system "#{bin}/bzt -o execution.0.executor=nose -o execution.0.scenario.requests.0=http://blazedemo.com"
+    system "#{bin}/bzt", "-o", "execution.0.executor=nose", "-o", "execution.0.scenario.requests.0=http://blazedemo.com"
   end
 end
 EOF
