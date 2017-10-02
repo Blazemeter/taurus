@@ -85,7 +85,7 @@ cat << EOF >> "${FORMULA}"
   end
 
   test do
-    test_cmd = "#{bin}/bzt -o execution.0.executor=nose -o execution.0.scenario.requests.0=http://blazedemo.com"
+    test_cmd = "#{bin}/bzt -o execution.0.executor=nose -o execution.0.scenario.requests.0=http://gettaurus.org"
     output_text = pipe_output(test_cmd)
     assert_match "INFO: Samples count: 1, 0.00% failures", output_text
   end
