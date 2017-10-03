@@ -16,8 +16,8 @@ reporting:
   criteria:
   - fail>0 for 1s
 
+# all of functional-style executors
 ---
-
 execution:
 - executor: selenium
   concurrency: 1
@@ -118,6 +118,7 @@ execution:
   scenario:
     script: selenium/pytest/test_simple.py
 
+# all of load-style executors
 ---
 execution:
 - executor: jmeter

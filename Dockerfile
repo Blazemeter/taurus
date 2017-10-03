@@ -47,7 +47,6 @@ RUN apt-get -y update \
     nodejs \
     mono-complete nuget \
     python3-dev python3-pip \
-  && apt-get -y remove firefox \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
   && pip3 install --upgrade setuptools wheel \
@@ -58,12 +57,12 @@ RUN apt-get -y update \
   && wget https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
   && dpkg -i /tmp/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
   && nuget update -self \
-  && apt-get clean \
-  && google-chrome-stable --version && mono --version && nuget | head -1
+  && apt-get clean
 
 # temporary measure while FF55 does not work with virtual display
-RUN wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/54.0.1/linux-x86_64/en-US/firefox-54.0.1.tar.bz2 \
-  && tar -xjf firefox-54.0.1.tar.bz2 \
+RUN apt-get -y remove firefox \
+  && wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/54.0.1/linux-x86_64/en-US/firefox-54.0.1.tar.bz2 \
+  && tar -xjf firefox-*.tar.bz2 \
   && mv firefox /usr/local/lib \
   && ln -s /usr/local/lib/firefox/firefox /usr/local/bin/ \
   && firefox --version
@@ -75,7 +74,8 @@ RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
 
 COPY . /tmp/bzt-src
 WORKDIR /tmp/bzt-src
-RUN ./build-sdist.sh \
+RUN google-chrome-stable --version && firefox --version && mono --version && nuget | head -1 \
+  && ./build-sdist.sh \
   && pip install dist/bzt-*.tar.gz \
   && pip install selenium==3.4.2 \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
