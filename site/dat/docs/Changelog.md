@@ -1,7 +1,7 @@
 # Changelog
 
-## 1.9.7 <sup>next</sup>
- - use `-r -l` options for `ab` executor
+## 1.10.0 <sup>next</sup>
+ - use `-r -l` options for `ab` executor, make its exit code to not fail test
 
 ## 1.9.6 <sup>27 sep 2017</sup>
  - add `pytest` executor type

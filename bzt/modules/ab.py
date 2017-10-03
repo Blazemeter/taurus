@@ -131,7 +131,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("ab tool exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
+            self.log.warning("ab tool exited with non-zero code: %s", ret_code)
         return True
 
     def shutdown(self):

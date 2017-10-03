@@ -33,6 +33,7 @@ from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable, Provisioning
+from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
@@ -44,7 +45,6 @@ from bzt.six import iteritems, string_types, StringIO, etree, parse, unicode_dec
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
-from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -59,8 +59,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
     PLUGINS_MANAGER_VERSION = "0.16"
-    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/'\
-            '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
+    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
+                      '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
     JMETER_VER = "3.3"
     UDP_PORT_NUMBER = None
@@ -141,7 +141,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def _try_convert(val, func, default=None):
         if val is None:
             res = val
-        elif isinstance(val, string_types) and val.startswith('$'):   # it's property...
+        elif isinstance(val, string_types) and val.startswith('$'):  # it's property...
             if default is not None:
                 val = JMeterExecutor._get_prop_default(val) or default
                 res = func(val)
@@ -181,7 +181,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         elif isinstance(ramp_up, numeric_types) and isinstance(hold, numeric_types):
             duration = hold + ramp_up
         else:
-            duration = 1        # dehumanize_time(<sum_of_props>) can be unpredictable so we use default there
+            duration = 1  # dehumanize_time(<sum_of_props>) can be unpredictable so we use default there
 
         throughput = self._try_convert(throughput, float)
         concurrency = self._try_convert(concurrency, int)
@@ -1542,7 +1542,7 @@ class JMeter(RequiredTool):
             self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
             return
 
-        if err and "Wrong command: install-for-jmx" in err:     # old manager
+        if err and "Wrong command: install-for-jmx" in err:  # old manager
             self.log.debug("pmgr can't discover jmx for plugins")
 
     def __install_jmeter(self, dest):
