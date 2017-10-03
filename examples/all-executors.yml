@@ -7,87 +7,27 @@ services:
     background: true
   - command: sleep 600 && exit 1  # this will make it interrupt in case it hangs
     background: true
-#  check:
-#  - command: ps auxff > processlist.txt
-#    cwd: artifacts-dir
+  check:
+  - command: ps auxff > processlist.txt
+    cwd: artifacts-dir
 
 reporting:
 - module: passfail
   criteria:
   - fail>0 for 1s
 
+---
+
 execution:
-
-- executor: jmeter
+- executor: selenium
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
+    browser: Firefox
     requests:
       - url: http://localhost:8000/
-        label: jmeter
-
-- executor: gatling
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://localhost:8000/
-        label: gatling
-
-- executor: pbench
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://localhost:8000/
-        label: pbench
-
-- executor: grinder
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://localhost:8000/
-        label: grinder
-
-- executor: siege
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://localhost:8000/?tool=siege
-        label: siege
-
-- executor: locust
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://localhost:8000/
-        label: locust
-
-- executor: tsung
-  concurrency: 1
-  hold-for: 10s
-  scenario:
-    requests:
-      - url: http://localhost:8000/
-        label: tsung
-
-- executor: ab
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://localhost:8000/
-        label: ab
+        label: selenium-firefox
 
 - executor: selenium
   concurrency: 1
@@ -98,16 +38,6 @@ execution:
     requests:
       - url: http://localhost:8000/
         label: selenium-chrome
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    browser: Firefox
-    requests:
-      - url: http://localhost:8000/
-        label: selenium-firefox
 
 - executor: selenium
   concurrency: 1
@@ -187,6 +117,80 @@ execution:
   iterations: 10
   scenario:
     script: selenium/pytest/test_simple.py
+
+---
+execution:
+- executor: jmeter
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: jmeter
+
+- executor: gatling
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: gatling
+
+- executor: pbench
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: pbench
+
+- executor: grinder
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: grinder
+
+- executor: siege
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/?tool=siege
+        label: siege
+
+- executor: locust
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: locust
+
+- executor: tsung
+  concurrency: 1
+  hold-for: 10s
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: tsung
+
+# AB is sooo bad with exit codes...
+#- executor: ab
+#  concurrency: 1
+#  hold-for: 10s
+#  iterations: 10
+#  scenario:
+#    requests:
+#      - url: http://localhost:8000/
+#        label: ab
 
 - executor: molotov
   concurrency: 1
