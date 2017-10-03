@@ -4,7 +4,9 @@ import time
 
 from os.path import join, exists, dirname
 from bzt.modules import javascript
-from bzt.utils import get_full_path
+from bzt.modules.java import SeleniumServerJar, SELENIUM_VERSION, SELENIUM_DOWNLOAD_LINK
+from bzt.modules.javascript import WebdriverIOExecutor
+from bzt.utils import get_full_path, shell_exec
 from tests import BUILD_DIR, RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
 
@@ -89,7 +91,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.assertEqual(len(lines), 9)
 
     def test_install_mocha(self):
-        dummy_installation_path = get_full_path(BUILD_DIR + "selenium-taurus/mocha")
+        dummy_installation_path = get_full_path(BUILD_DIR + "selenium-taurus/nodejs")
         mocha_link = get_full_path(RESOURCES_DIR + "selenium/mocha-3.1.0.tgz")
         wd_link = get_full_path(RESOURCES_DIR + "selenium/selenium-webdriver-1.0.0.tgz")
 
@@ -124,3 +126,77 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = orig_wd_package
             if old_node_path:
                 os.environ["NODE_PATH"] = old_node_path
+
+
+class TestWebdriverIOExecutor(SeleniumTestCase):
+    def test_prepare(self):
+        self.obj.execution.merge({
+            "runner": "wdio",
+            "scenario": {
+                "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
+            }
+        })
+        self.obj.prepare()
+        self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
+
+    def get_server_jar(self):
+        server_jar_path = get_full_path("~/.bzt/selenium-taurus/selenium-server.jar")
+        server_jar_link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
+        selenium_server_jar = SeleniumServerJar(server_jar_path, server_jar_link, self.obj.log)
+        if not selenium_server_jar.check_if_installed():
+            selenium_server_jar.install()
+        return selenium_server_jar
+
+    def full_run(self, config):
+        self.configure(config)
+        jar = self.get_server_jar()
+
+        process = None
+        try:
+            self.obj.prepare()
+            process = shell_exec(args=["java", "-jar", jar.tool_path])
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(1)
+            self.obj.shutdown()
+        finally:
+            if process is not None:
+                process.kill()
+
+    def test_full(self):
+        self.full_run({
+            'execution': {
+                "runner": "wdio",
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js",
+                }
+            },
+        })
+        self.assertTrue(exists(self.obj.runner.report_file))
+        lines = open(self.obj.runner.report_file).readlines()
+        self.assertEqual(len(lines), 1)
+
+    def test_hold(self):
+        self.full_run({
+            'execution': {
+                'hold-for': '5s',
+                'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
+                'runner': 'wdio',
+            },
+        })
+        self.assertTrue(exists(self.obj.runner.report_file))
+        duration = time.time() - self.obj.start_time
+        self.assertGreater(duration, 5)
+
+    def test_iterations(self):
+        self.full_run({
+            'execution': {
+                'iterations': 3,
+                'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
+                'runner': 'wdio'
+            },
+        })
+
+        self.assertTrue(exists(self.obj.runner.report_file))
+        lines = open(self.obj.runner.report_file).readlines()
+        self.assertEqual(len(lines), 3)

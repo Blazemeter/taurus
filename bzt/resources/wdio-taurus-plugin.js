@@ -7,7 +7,7 @@ function epoch() {
     return (new Date()).getTime() / 1000.0;
 }
 
-function reportItem(test, err) {
+function reportItem(test, status, err) {
     var stateStatus = {
         "passed": "PASSED",
         "failed": "FAILED",
@@ -18,7 +18,7 @@ function reportItem(test, err) {
     return {
         test_case: test.title,
         test_suite: test.parent,
-        status: stateStatus[test.state],
+        status: stateStatus[status],
         start_time: test.startTime,
         duration: epoch() - test.startTime,
         error_msg: err.message || null,
@@ -39,8 +39,6 @@ var TaurusReporter = function(config) {
         passedTests: 0
     };
 
-    console.log('initialised custom reporter with the following reporter options:', config);
-
     var reportStatusLine = function(lastTest) {
         var total = config.reporterOptions.totalTests;
         var passed = config.reporterOptions.passedTests;
@@ -50,54 +48,35 @@ var TaurusReporter = function(config) {
     };
 
     var testStartTime = 0;
-
-    this.on('start', function() {
-        console.log('start');
-    });
-
-    this.on('end', function() {
-        console.log('end');
-    });
-
-    this.on('suite:start', function(suite) {
-        console.log('suite:start');
-    });
-
-    this.on('suite:end', function(suite) {
-        console.log('suite:end');
-    });
+    var testStatus = null;
 
     this.on('test:start', function(test) {
-        console.log('test:start');
         testStartTime = epoch();
+        testStatus = null;
     });
 
     this.on('test:pass', function(test) {
-        console.log('test:pass', test);
-        test.state = "passed";
+        testStatus = "passed";
     });
 
     this.on('test:fail', function(test) {
-        console.log('test:fail', test);
-        test.state = "failed";
+        testStatus = "failed";
     });
 
     this.on('test:pending', function(test) {
-        console.log('test:pending', test);
-        test.state = "pending";
+        testStatus = "pending";
     });
 
     this.on('test:end', function(test) {
-        console.log('test:end', test);
         config.reporterOptions.totalTests++;
-        if (test.state === "failed") {
+        if (testStatus === "failed") {
             config.reporterOptions.failedTests++;
-        } else if (test.state === "passed") {
+        } else if (testStatus === "passed") {
             config.reporterOptions.passedTests++;
         }
 
         test.startTime = testStartTime;
-        var item = reportItem(test, test.err || {});
+        var item = reportItem(test, testStatus, test.err || {});
         try {
             reportStream.write(JSON.stringify(item) + "\n");
         } catch(err) {
@@ -106,13 +85,6 @@ var TaurusReporter = function(config) {
         reportStatusLine(test);
     });
 
-    this.on('hook:start', function() {
-        console.log('hook:start');
-    });
-
-    this.on('hook:end', function() {
-        console.log('hook:end');
-    });
 };
 
 TaurusReporter.reporterName = 'TaurusReporter';
@@ -123,13 +95,13 @@ function usage() {
     process.stdout.write("\n");
     process.stdout.write("Usage:\n");
     process.stdout.write("--report-file FILE - report file name\n");
-    process.stdout.write("--test-suite FILE - path to test suite\n");
+    process.stdout.write("--wdio-config FILE - path to WebdriverIO config\n");
     process.stdout.write("--iterations N - Number of iterations over test suite\n");
     process.stdout.write("--hold-for N - Duration limit for a test suite\n");
 }
 
 function parseCmdline(argv) {
-    var options = {iterations: 0, holdFor: 0};
+    var options = {iterations: 0, holdFor: 0, wdioConfig: "wdio.conf.js", reportFile: "report.ldjson"};
     var args = argv.slice(2);
     while (args) {
         var arg = args.shift();
@@ -146,8 +118,8 @@ function parseCmdline(argv) {
         case "--hold-for":
             options.holdFor = parseFloat(args.shift());
             break;
-        case "--test-suite":
-            options.testSuite = args.shift();
+        case "--wdio-config":
+            options.wdioConfig = args.shift();
             break;
         case "--help":
             usage();
@@ -168,28 +140,47 @@ function parseCmdline(argv) {
         }
     }
 
+
+
     return options;
 }
 
 function runWDIO() {
     var config = parseCmdline(process.argv);
-    reportStream = fs.createWriteStream(config.reportFile || "report.ldjson");
+    reportStream = fs.createWriteStream(config.reportFile);
 
-    var configFile = "wdio.conf.js";
+    var configFile = config.wdioConfig;
     var opts = {
         reporters: [TaurusReporter],
     }
 
     var wdio = new Launcher(configFile, opts);
-    wdio.run().then(function (code) {
+
+    function done(code) {
         if (reportStream) {
             reportStream.end();
         }
         process.exit(code);
-    }, function (error) {
+    };
+
+    function handleError(error) {
         console.error('Launcher failed to start the test', error.stacktrace);
-        process.exit(1);
-    });
+        done(1);
+    };
+
+    var startTime = epoch();
+
+    function loopWDIO(code) {
+        config.iterations -= 1;
+        if (config.iterations == 0)
+            done(code);
+        var offset = epoch() - startTime;
+        if (config.holdFor > 0 && offset > config.holdFor)
+            done(code);
+        wdio.run().then(loopWDIO, handleError);
+    }
+
+    wdio.run().then(loopWDIO, handleError);
 }
 
 if (require.main === module) {
