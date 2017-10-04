@@ -51,6 +51,8 @@ class ToolError(TaurusException):
         :type message: str
         :type diagnostics: list[str]
         """
+        if diagnostics:
+            message += "\n" + "\n".join(line for line in diagnostics)
         super(ToolError, self).__init__(message)
         self.diagnostics = diagnostics
 
