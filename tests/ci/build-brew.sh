@@ -15,6 +15,7 @@ echo "done"
 FORMULA="${BUILD_DIR}/bzt.rb"
 
 PLATFORM=`uname`
+echo "Build platform detected: ${PLATFORM}"
 if [ "$PLATFORM" = "Linux" ]; then
     BREW_LINK="https://raw.githubusercontent.com/Linuxbrew/install/master"
     GLOBAL_BREW="/home/linuxbrew/.linuxbrew:$HOME/.linuxbrew"
@@ -27,6 +28,8 @@ else
 fi
 
 PATH="${GLOBAL_BREW}/bin":"${PATH}"
+echo "GLOBAL_BREW: ${GLOBAL_BREW}"
+echo "PATH: $PATH"
 
 # If brew isn't found install it. This link for linux only!
 command -v brew >/dev/null 2>&1 ||
