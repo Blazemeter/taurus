@@ -152,7 +152,7 @@ function runWDIO() {
     var configFile = config.wdioConfig;
     var opts = {
         reporters: [TaurusReporter],
-    }
+    };
 
     var wdio = new Launcher(configFile, opts);
 
