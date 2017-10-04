@@ -1,7 +1,7 @@
-var util = require('util'),
-    events = require('events'),
+var util = require("util"),
+    events = require("events"),
     fs = require("fs");
-var Launcher = require('webdriverio').Launcher;
+var Launcher = require("webdriverio").Launcher;
 
 function epoch() {
     return (new Date()).getTime() / 1000.0;
@@ -50,24 +50,24 @@ var TaurusReporter = function(config) {
     var testStartTime = 0;
     var testStatus = null;
 
-    this.on('test:start', function(test) {
+    this.on("test:start", function(test) {
         testStartTime = epoch();
         testStatus = null;
     });
 
-    this.on('test:pass', function(test) {
+    this.on("test:pass", function(test) {
         testStatus = "passed";
     });
 
-    this.on('test:fail', function(test) {
+    this.on("test:fail", function(test) {
         testStatus = "failed";
     });
 
-    this.on('test:pending', function(test) {
+    this.on("test:pending", function(test) {
         testStatus = "pending";
     });
 
-    this.on('test:end', function(test) {
+    this.on("test:end", function(test) {
         config.reporterOptions.totalTests++;
         if (testStatus === "failed") {
             config.reporterOptions.failedTests++;
@@ -87,7 +87,7 @@ var TaurusReporter = function(config) {
 
 };
 
-TaurusReporter.reporterName = 'TaurusReporter';
+TaurusReporter.reporterName = "TaurusReporter";
 util.inherits(TaurusReporter, events.EventEmitter);
 
 function usage() {
@@ -161,22 +161,24 @@ function runWDIO() {
             reportStream.end();
         }
         process.exit(code);
-    };
+    }
 
     function handleError(error) {
-        console.error('Launcher failed to start the test', error.stacktrace);
+        console.error("Launcher failed to start the test", error.stacktrace);
         done(1);
-    };
+    }
 
     var startTime = epoch();
 
     function loopWDIO(code) {
         config.iterations -= 1;
-        if (config.iterations == 0)
+        if (config.iterations === 0) {
             done(code);
+        }
         var offset = epoch() - startTime;
-        if (config.holdFor > 0 && offset > config.holdFor)
+        if (config.holdFor > 0 && offset > config.holdFor) {
             done(code);
+        }
         wdio.run().then(loopWDIO, handleError);
     }
 
