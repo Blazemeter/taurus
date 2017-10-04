@@ -151,9 +151,15 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.configure(config)
         jar = self.get_server_jar()
 
-        installer = shell_exec(args=["npm", "install"], cwd=script_dir)
+        inst_out = open(self.obj.engine.create_artifact("installer", ".out"), "wt")
+        inst_err = open(self.obj.engine.create_artifact("installer", ".err"), "wt")
+        installer = shell_exec(args=["npm", "install"], stdout=inst_out, stderr=inst_err, cwd=script_dir)
         while installer.poll() is None:
             time.sleep(0.5)
+        inst_out.close()
+        inst_err.close()
+        self.obj.log.debug("Installer out: %s", open(inst_out.name, 'r').read())
+        self.obj.log.debug("Installer err: %s", open(inst_err.name, 'r').read())
 
         process = None
         try:
