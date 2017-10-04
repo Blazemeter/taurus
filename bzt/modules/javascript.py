@@ -135,15 +135,16 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         self._check_tools(tools)
 
     def startup(self):
+        script_dir = get_full_path(self.script, step_up=1)
+        script_file = os.path.basename(self.script)
         cmdline = [
             self.node_tool.executable,
             self.plugin_path,
             "--report-file",
             self.report_file,
             "--wdio-config",
-            self.script
+            script_file
         ]
-        script_dir = get_full_path(self.script, step_up=1)
 
         load = self.get_load()
         if load.iterations:
