@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# first time run can require sudo (to create /home/linuxbrew/.linuxbrew)
+# first time run requires sudo (to create brew dirs)
 # requirements: (apt)
 #       ruby for linuxbrew
 #       gcc-multilib for build psuitl, etc.; see
@@ -18,18 +18,16 @@ PLATFORM=`uname`
 echo "Build platform detected: ${PLATFORM}"
 if [ "$PLATFORM" = "Linux" ]; then
     BREW_LINK="https://raw.githubusercontent.com/Linuxbrew/install/master"
-    GLOBAL_BREW="/home/linuxbrew/.linuxbrew:$HOME/.linuxbrew"
+    BREW_BIN="/home/linuxbrew/.linuxbrew/bin:$HOME/.linuxbrew/bin"
 elif [ "$PLATFORM" = "Darwin" ]; then
     BREW_LINK="https://raw.githubusercontent.com/Homebrew/install/master"
-    GLOBAL_BREW="/usr/local"
+    BREW_BIN="/usr/local/bin"
 else
     echo "Wrong build platform: $PLATFORM"
     exit 1
 fi
 
-PATH="${GLOBAL_BREW}/bin":"${PATH}"
-echo "GLOBAL_BREW: ${GLOBAL_BREW}"
-echo "PATH: $PATH"
+PATH="${BREW_BIN}:${PATH}"
 
 # If brew isn't found install it. This link for linux only!
 command -v brew >/dev/null 2>&1 ||
@@ -37,7 +35,7 @@ command -v brew >/dev/null 2>&1 ||
     # suppress interactive mode (ENTER for confirmation)
 
 brew remove --force --ignore-dependencies $(brew list)
-brew install --force-bottle python2
+brew install python2
 
 if [ -z "$1" ]; then
     BZT_VER="1.9.6"
@@ -48,6 +46,7 @@ fi
 PYPKG_URL="https://files.pythonhosted.org/packages/source/b/bzt/bzt-${BZT_VER}.tar.gz"
 SHA256=`curl -L -s "${PYPKG_URL}" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
 
+pip2 uninstall virtualenv -y
 pip2 install virtualenv
 
 # write header to formula
@@ -67,7 +66,6 @@ EOF
 # Set up a temporary virtual environment
 virtualenv ${BUILD_DIR}/venv -p python2
 source ${BUILD_DIR}/venv/bin/activate
-
 # Install the package of interest as well as homebrew-pypi-poet
 pip install bzt homebrew-pypi-poet
 
@@ -82,13 +80,10 @@ cat << EOF >> "${FORMULA}"
 
   def install
     virtualenv_install_with_resources
-    bin.install_symlink "#{libexec}/bin/bzt" => "bzt"
-    bin.install_symlink "#{libexec}/bin/jmx2yaml" => "jmx2yaml"
-    bin.install_symlink "#{libexec}/bin/soapui2yaml" => "soapui2yaml"
   end
 
   test do
-    test_cmd = "#{bin}/bzt -o execution.0.executor=nose -o execution.0.scenario.requests.0=http://blazedemo.com"
+    test_cmd = "#{bin}/bzt -o execution.0.executor=nose -o execution.0.scenario.requests.0=http://gettaurus.org"
     output_text = pipe_output(test_cmd)
     assert_match "INFO: Samples count: 1, 0.00% failures", output_text
   end
