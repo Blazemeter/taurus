@@ -147,9 +147,13 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             selenium_server_jar.install()
         return selenium_server_jar
 
-    def full_run(self, config):
+    def full_run(self, config, script_dir):
         self.configure(config)
         jar = self.get_server_jar()
+
+        installer = shell_exec(args=["npm", "install"], cwd=script_dir)
+        while installer.poll() is None:
+            time.sleep(0.5)
 
         process = None
         try:
@@ -171,7 +175,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
                     "script": RESOURCES_DIR + "selenium/js-wdio/wdio.conf.js",
                 }
             },
-        })
+        }, script_dir=RESOURCES_DIR + "selenium/js-wdio")
         self.assertTrue(exists(self.obj.runner.report_file))
         lines = open(self.obj.runner.report_file).readlines()
         self.assertEqual(len(lines), 1)
@@ -183,7 +187,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
                 'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
                 'runner': 'wdio',
             },
-        })
+        }, script_dir=RESOURCES_DIR + "selenium/js-wdio")
         self.assertTrue(exists(self.obj.runner.report_file))
         duration = time.time() - self.obj.start_time
         self.assertGreater(duration, 5)
@@ -195,7 +199,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
                 'scenario': {'script': RESOURCES_DIR + 'selenium/js-wdio/wdio.conf.js'},
                 'runner': 'wdio'
             },
-        })
+        }, script_dir=RESOURCES_DIR + "selenium/js-wdio")
 
         self.assertTrue(exists(self.obj.runner.report_file))
         lines = open(self.obj.runner.report_file).readlines()
