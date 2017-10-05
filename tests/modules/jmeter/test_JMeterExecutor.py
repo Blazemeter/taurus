@@ -49,6 +49,17 @@ class TestJMeterExecutor(BZTestCase):
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
             os.remove(self.obj.modified_jmx)
+        if self.obj.stdout_file:
+            self.obj.stdout_file.close()
+        if self.obj.stderr_file:
+            self.obj.stderr_file.close()
+        if self.obj.reader and (
+                    (isinstance(self.obj.reader, FuncJTLReader) and self.obj.reader.fds) or
+                    (isinstance(self.obj.reader, JTLReader) and
+                         (self.obj.reader.csvreader.fds or
+                              (self.obj.reader.errors_reader and self.obj.reader.errors_reader.fds)))):
+            self.fail("Reader file descriptor not closed")
+
         super(TestJMeterExecutor, self).tearDown()
 
     def configure(self, config):
@@ -292,7 +303,10 @@ class TestJMeterExecutor(BZTestCase):
 
             self.assertTrue(os.path.exists(path))
 
-            self.obj = get_jmeter()
+            # start again..
+            self.tearDown()
+            self.setUp()
+
             self.obj.settings.merge({"path": path})
             self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
@@ -332,7 +346,10 @@ class TestJMeterExecutor(BZTestCase):
 
             self.assertTrue(os.path.exists(path))
 
-            self.obj = get_jmeter()
+            # start again..
+            self.tearDown()
+            self.setUp()
+
             self.obj.settings.merge({"path": path})
             self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
@@ -836,12 +853,14 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(tg_loops.text, "10")
         self.assertEqual(tg_forever.text, "false")
 
-        self.obj1 = get_jmeter()
+        self.tearDown()
+        self.setUp()
+
         script_path = RESOURCES_DIR + "/jmeter/jmx/http.jmx"
-        self.obj1.execution.merge({"scenario": {"script": script_path}})
+        self.obj.execution.merge({"scenario": {"script": script_path}})
         try:
-            self.obj1.prepare()
-            modified_xml_tree = etree.fromstring(open(self.obj1.modified_jmx, "rb").read())
+            self.obj.prepare()
+            modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
             tg = modified_xml_tree.find(".//ThreadGroup")
             loop_ctrl = tg.find(".//elementProp[@name='ThreadGroup.main_controller']")
             tg_loops = loop_ctrl.find("*[@name='LoopController.loops']")
@@ -849,7 +868,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual(tg_loops.text, "1")  # default value, not disabled
             self.assertEqual(tg_forever.text, "false")
         finally:
-            self.obj1.post_process()
+            self.obj.post_process()
 
     def test_distributed_gui(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/distributed_gui.yml").read()))
