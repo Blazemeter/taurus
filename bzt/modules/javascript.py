@@ -143,7 +143,7 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
             "--report-file",
             self.report_file,
             "--wdio-config",
-            script_file
+            script_file,
         ]
 
         load = self.get_load()
@@ -152,8 +152,6 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
 
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
-
-        self.env["NODE_PATH"] = self.wdio_tool.get_node_path_envvar() + os.path.sep + script_dir
 
         self._start_subprocess(cmdline, cwd=script_dir)
 
