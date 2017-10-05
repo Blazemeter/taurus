@@ -129,7 +129,6 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         tools.append(self.node_tool)
         tools.append(self.npm_tool)
         tools.append(self.wdio_tool)
-        tools.append(JSSeleniumWebdriverPackage(self.tools_dir, self.node_tool, self.npm_tool, self.log))
         tools.append(TaurusWDIOPlugin(self.plugin_path, ""))
 
         self._check_tools(tools)
@@ -152,6 +151,8 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
 
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
+
+        self.env["NODE_PATH"] = os.environ.get("NODE_PATH") + os.pathsep + "."
 
         self._start_subprocess(cmdline, cwd=script_dir)
 

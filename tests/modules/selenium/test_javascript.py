@@ -173,7 +173,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             if process is not None:
                 process.kill()
 
-    def test_full(self):
+    def test_simple(self):
         self.full_run({
             'execution': {
                 "runner": "wdio",
