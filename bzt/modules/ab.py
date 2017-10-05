@@ -40,9 +40,9 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         super(ApacheBenchmarkExecutor, self).__init__()
         self.log = logging.getLogger('')
         self.process = None
-        self.__tsv_file_name = None
-        self.__out = None
-        self.__err = None
+        self._tsv_file = None
+        self.stdout_file = None
+        self.stderr_file = None
         self.tool_path = None
         self.scenario = None
 
@@ -50,15 +50,16 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         self.scenario = self.get_scenario()
         self.tool_path = self.install_required_tools()
 
-        self.__tsv_file_name = self.engine.create_artifact("ab", ".tsv")
+        self._tsv_file = self.engine.create_artifact("ab", ".tsv")
 
-        out_file_name = self.engine.create_artifact("ab", ".out")
-        self.reader = TSVDataReader(self.__tsv_file_name, self.log)
+        out = self.engine.create_artifact("ab", ".out")
+        err = self.engine.create_artifact("ab", ".err")
+        self.stdout_file = open(out, 'w')
+        self.stderr_file = open(err, 'w')
+
+        self.reader = TSVDataReader(self._tsv_file, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
-
-        self.__out = open(out_file_name, 'w')
-        self.__err = open(self.engine.create_artifact("ab", ".err"), 'w')
 
     def get_widget(self):
         """
@@ -93,7 +94,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
         args += ['-r']  # do not crash on socket level errors
         args += ['-l']  # accept variable-len responses
-        args += ['-g', str(self.__tsv_file_name)]  # dump stats to TSV file
+        args += ['-g', str(self._tsv_file)]  # dump stats to TSV file
 
         # add global scenario headers
         for key, val in iteritems(self.scenario.get_headers()):
@@ -124,7 +125,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         self.reader.setup(load_concurrency, request.label)
 
         self.start_time = time.time()
-        self.process = self.execute(args, stdout=self.__out, stderr=self.__err)
+        self.process = self.execute(args, stdout=self.stdout_file, stderr=self.stderr_file)
 
     def check(self):
         ret_code = self.process.poll()
@@ -138,10 +139,10 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         shutdown_process(self.process, self.log)
 
     def post_process(self):
-        if self.__out and not self.__out.closed:
-            self.__out.close()
-        if self.__err and not self.__err.closed:
-            self.__err.close()
+        if self.stdout_file and not self.stdout_file.closed:
+            self.stdout_file.close()
+        if self.stderr_file and not self.stderr_file.closed:
+            self.stderr_file.close()
 
     def install_required_tools(self):
         tool_path = self.settings.get('path', 'ab')
@@ -152,13 +153,13 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.__out is not None:
-            with open(self.__out.name) as fds:
+        if self.stdout_file is not None:
+            with open(self.stdout_file.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("ab STDOUT:\n" + contents)
-        if self.__err is not None:
-            with open(self.__err.name) as fds:
+        if self.stderr_file is not None:
+            with open(self.stderr_file.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("ab STDERR:\n" + contents)
