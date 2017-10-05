@@ -42,7 +42,7 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "mocha-taurus-plugin.js")
-        self.tools_dir = "~/.bzt/selenium-taurus/nodejs"
+        self.tools_dir = "~/.bzt/selenium-taurus/mocha"
         self.node_tool = None
         self.npm_tool = None
         self.mocha_tool = None
@@ -105,7 +105,7 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "wdio-taurus-plugin.js")
-        self.tools_dir = "~/.bzt/selenium-taurus/nodejs"
+        self.tools_dir = "~/.bzt/selenium-taurus/wdio"
         self.node_tool = None
         self.npm_tool = None
         self.wdio_tool = None
@@ -152,7 +152,7 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
 
-        self.env["NODE_PATH"] = os.environ.get("NODE_PATH") + os.pathsep + "."
+        self.env["NODE_PATH"] = self.wdio_tool.get_node_path_envvar() + os.pathsep + "node_modules"
 
         self._start_subprocess(cmdline, cwd=script_dir)
 
