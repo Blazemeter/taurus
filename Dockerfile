@@ -70,7 +70,8 @@ RUN google-chrome-stable --version && firefox --version && mono --version && nug
   && ./build-sdist.sh \
   && pip install dist/bzt-*.tar.gz \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
-  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
+  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
+  && bzt -install-tools -v
 
 RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (\
   ls -lh /tmp/all-executors-artifacts; \
