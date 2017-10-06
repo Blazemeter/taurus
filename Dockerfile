@@ -59,14 +59,6 @@ RUN apt-get -y update \
   && nuget update -self \
   && apt-get clean
 
-# temporary measure while FF55 does not work with virtual display
-RUN apt-get -y remove firefox \
-  && wget https://download-installer.cdn.mozilla.net/pub/firefox/releases/54.0.1/linux-x86_64/en-US/firefox-54.0.1.tar.bz2 \
-  && tar -xjf firefox-*.tar.bz2 \
-  && mv firefox /usr/local/lib \
-  && ln -s /usr/local/lib/firefox/firefox /usr/local/bin/ \
-  && firefox --version
-
 COPY bzt/resources/chrome_launcher.sh /tmp
 RUN mv /opt/google/chrome/google-chrome /opt/google/chrome/_google-chrome \
   && mv /tmp/chrome_launcher.sh /opt/google/chrome/google-chrome \
@@ -77,15 +69,13 @@ WORKDIR /tmp/bzt-src
 RUN google-chrome-stable --version && firefox --version && mono --version && nuget | head -1 \
   && ./build-sdist.sh \
   && pip install dist/bzt-*.tar.gz \
-  && pip install selenium==3.4.2 \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
-  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && bzt -install-tools -v
+  && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json
 
 RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (\
   ls -lh /tmp/all-executors-artifacts; \
+  cat /tmp/all-executors-artifacts/nose-0.err; \
   cat /tmp/all-executors-artifacts/geckodriver.log; \
-  cat /tmp/all-executors-artifacts/nose-1.err; \
   cat /tmp/all-executors-artifacts/processlist.txt; \
   exit 1)
 

@@ -7,9 +7,9 @@ services:
     background: true
   - command: sleep 600 && exit 1  # this will make it interrupt in case it hangs
     background: true
-  check:
-  - command: ps auxff > processlist.txt
-    cwd: artifacts-dir
+  #check:
+  #- command: ps auxff > processlist.txt
+  #  cwd: artifacts-dir
 
 reporting:
 - module: passfail
@@ -55,6 +55,8 @@ execution:
   scenario:
     script: selenium/TestNGExample.java
 
+---
+execution:
 - executor: selenium
   concurrency: 1
   hold-for: 10s
