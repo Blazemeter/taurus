@@ -118,7 +118,7 @@ execution:
   hold-for: 10s
   iterations: 10
   scenario:
-    script: selenium/pytest/test_simple.py
+    script: selenium/pytest_example.py
 
 # all of load-style executors
 ---

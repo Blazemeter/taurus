@@ -1,0 +1,10 @@
+execution:
+- executor: selenium
+  runner: pytest
+  iterations: 3
+  scenario: pytest-selenium
+
+
+scenarios:
+  pytest-selenium:
+    script: pytest_selenium.py
