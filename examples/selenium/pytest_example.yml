@@ -1,5 +1,6 @@
 execution:
-- executor: pytest
+- executor: selenium
+  runner: pytest
   iterations: 2
   scenario:
     script: pytest_example.py
