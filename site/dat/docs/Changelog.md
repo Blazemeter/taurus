@@ -6,6 +6,7 @@
  - use selenium 3.6 for Java and inside Docker
  - don't use `window_maximize` in generated python script due to problems with virtual display
  - use `-r -l` options for `ab` executor, make its exit code to not fail test
+ - add JMX path to `jmeter.classpath` property
 
 ## 1.9.6 <sup>27 sep 2017</sup>
  - add `pytest` executor type

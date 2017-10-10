@@ -347,6 +347,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         props.merge(props_local)
 
         user_cp = [self.engine.artifacts_dir]
+        user_cp.append(get_full_path(self.original_jmx, step_up=1))
 
         for _file in self.execution.get('files', []):
             full_path = get_full_path(_file)
