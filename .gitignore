@@ -1,6 +1,7 @@
 **/target/
 *.iml
 **/.idea/
+/.cache/
 /site/img/docs
 /site/dat/eg_globals.xml
 /build/
@@ -25,3 +26,4 @@ node_modules
 /examples/BOOTH1/converted/
 
 bzt/resources/NUnitRunner/*
+

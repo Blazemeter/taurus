@@ -10,11 +10,11 @@ import yaml
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.jmx import JMX
+from bzt.jmx.tools import JMeterScenarioBuilder
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
-from bzt.jmx.tools import JMeterScenarioBuilder
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
@@ -673,8 +673,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(len(cp_lines), 1)
         user_cp = cp_lines[0][len('user.classpath='): -1]
         user_cp_elements = user_cp.split(os.pathsep)
-        self.assertEqual(len(user_cp_elements), 4)
-        targets = [self.obj.engine.artifacts_dir,
+        self.assertEqual(5, len(user_cp_elements))
+        targets = [self.obj.engine.artifacts_dir, get_full_path(self.obj.modified_jmx, step_up=1),
                    self.obj.execution['files'][0],
                    get_full_path(self.obj.execution['files'][1], step_up=1)]
         targets = [get_full_path(target).replace(os.path.sep, '/') for target in targets]
