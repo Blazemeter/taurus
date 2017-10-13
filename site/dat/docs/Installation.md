@@ -208,9 +208,9 @@ Make note that `/tmp/my-test` was passed in `-v` Docker option, it's crucial. He
 You can also specify multile config files in the `docker run` command with wildcards or as separate arguments like so:
 
 ```bash
-sudo docker run -i --rm -v /tmp/my-test:/bzt-configs undera/taurus *.yml
+sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus *.yml
 
-sudo docker run -i --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.json my-config-2.json
+sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.json my-config-2.json
 ```
 
 ### Additional Taurus Command-Line Options
@@ -218,7 +218,7 @@ sudo docker run -i --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.j
 You can still pass [command-line options](https://github.com/Blazemeter/taurus/blob/master/site/dat/docs/CommandLine.md) to Taurus through the Docker image. To do so, add the command line option at the end of the `docker run` command like so:
 
 ```bash
-sudo docker run -i --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.yml -o scenarios.sample.data-sources.0=data.csv
+sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.yml -o scenarios.sample.data-sources.0=data.csv
 ```
 
 
@@ -226,5 +226,5 @@ sudo docker run -i --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.y
 If you want to receive Taurus artifacts from container, just mount some directory as `/tmp/artifacts` and files will get there. Following example gives you artifacts in `/tmp/my-run-artifacts` directory.
 
 ```bash
-sudo docker run -i --rm -v /tmp:/bzt-configs -v /tmp/my-run-artifacts:/tmp/artifacts undera/taurus
+sudo docker run -i --rm -v /tmp:/bzt-configs -v /tmp/my-run-artifacts:/tmp/artifacts blazemeter/taurus
 ```

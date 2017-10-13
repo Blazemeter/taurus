@@ -24,12 +24,13 @@ import pip
 import bzt
 
 
-# thanks to pip there are two incompatible ways to parse requirements.txt
-if pip.__version__ < '7':
-    requirements = pip.req.parse_requirements('requirements.txt')
-else:
-    # new versions of pip requires a session
+# thanks to pip there are two :incompatible ways to parse requirements.txt
+if hasattr(pip, '__version__') and pip.__version__ >= '7':
+    # new versions of pip require a session
     requirements = pip.req.parse_requirements('requirements.txt', session=pip.download.PipSession())
+else:
+    # old versions do not
+    requirements = pip.req.parse_requirements('requirements.txt')
 
 requires = [str(item.req) for item in requirements]
 

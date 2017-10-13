@@ -271,7 +271,7 @@ class SoapUIScriptConverter(object):
 
         target_step_type = target_step.get("type")
         if target_step_type != "properties":
-            self.log.warning("Unsupported source step type for Property Transfer (%s). Skipping", target_step_type)
+            self.log.warning("Unsupported target step type for Property Transfer (%s). Skipping", target_step_type)
             return False
 
         return True
