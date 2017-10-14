@@ -37,7 +37,7 @@ install:
     pip install -r requirements.txt
     pip install codecov nose-exclude locustio
   else
-    mono --version
+    brew install mono
     nvm install 4.2
     nvm use 4.2
     gem install rspec
