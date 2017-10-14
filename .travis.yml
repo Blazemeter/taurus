@@ -44,7 +44,7 @@ install:
     pip install pip --upgrade
     pip install -r requirements.txt
     pip install codecov nose-exclude locustio
-    brew install siege nodejs tsung
+    # brew install siege nodejs tsung
   fi
 
 script:
