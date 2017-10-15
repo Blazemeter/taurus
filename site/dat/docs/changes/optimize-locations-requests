@@ -1,1 +1,2 @@
-Optimize by querying only test's workspace locations
+Optimize API interaction by querying only test's workspace locations
+Handle "many executions in one location" case properly

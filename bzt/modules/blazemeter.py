@@ -1087,7 +1087,7 @@ class CloudTaurusTest(BaseCloudTest):
         for loc in workspace.locations(include_private=is_taurus4):
             available_locations[loc['id']] = loc
 
-        if CloudProvisioning.LOC in engine_config:
+        if CloudProvisioning.LOC in engine_config and not is_taurus4:
             self.log.warning("Deprecated test API doesn't support global locations")
 
         for executor in executors:
@@ -1095,6 +1095,8 @@ class CloudTaurusTest(BaseCloudTest):
                     and isinstance(executor.execution[CloudProvisioning.LOC], dict):
                 exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
+            elif CloudProvisioning.LOC in engine_config:
+                self._check_locations(engine_config[CloudProvisioning.LOC], available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
                 executor.execution[CloudProvisioning.LOC] = BetterDict()
