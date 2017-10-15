@@ -2,6 +2,9 @@ environment:
   matrix:
     - PYTHON: "C:\\Python27"
 
+platform:
+  - x64
+
 install:
   - choco install firefox -version 54.0
   - "%PYTHON%\\python.exe -m pip install pip --upgrade"
