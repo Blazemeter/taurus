@@ -1,3 +1,6 @@
+# Do not build feature branch with open Pull Requests
+skip_branch_with_pr: true
+
 environment:
   matrix:
     - PYTHON: "C:\\Python27"
@@ -11,22 +14,20 @@ install:
   - choco install firefox -version 54.0
   - "%PYTHON%\\python.exe -m pip install pip --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
-  - "%PYTHON%\\python.exe -m pip install locustio nose-exclude"
+  - "%PYTHON%\\python.exe -m pip install locustio nose-exclude coverage codecov"
   - set PATH=C:\Ruby22\bin;%PATH%
+  - gem install rspec
 
 build: off
 
 before_test:
   - ruby -v
   - gem -v
-  - gem install rspec
   - rspec --version
 
 test_script:
-  - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources"
+  - "%PYTHON%\\python.exe -m nose tests/ --verbosity 3 --exclude-dir=tests/resources --with-coverage --cover-inclusive"
 
 after_test:
-  - "%PYTHON%\\python.exe setup.py clean sdist"
-
-artifacts:
-  - path: dist\*
+  - "coverage report -m"
+  - "codecov"
