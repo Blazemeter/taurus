@@ -34,7 +34,7 @@ from urwid import Pile, Text
 
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
-from bzt.bza import User, Session, Test
+from bzt.bza import User, Session, Test, Workspace
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler
@@ -1082,11 +1082,12 @@ class CloudTaurusTest(BaseCloudTest):
 
     def prepare_locations(self, executors, engine_config):
         available_locations = {}
-        is_taurus3 = self.cloud_mode == 'taurusCloud'
-        for loc in self._workspaces.locations(include_private=is_taurus3):
+        is_taurus4 = self.cloud_mode == 'taurusCloud'
+        workspace = Workspace(self._project, {'id': self._project['workspaceId']})
+        for loc in workspace.locations(include_private=is_taurus4):
             available_locations[loc['id']] = loc
 
-        if CloudProvisioning.LOC in engine_config:
+        if CloudProvisioning.LOC in engine_config and not is_taurus4:
             self.log.warning("Deprecated test API doesn't support global locations")
 
         for executor in executors:
@@ -1094,6 +1095,8 @@ class CloudTaurusTest(BaseCloudTest):
                     and isinstance(executor.execution[CloudProvisioning.LOC], dict):
                 exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
+            elif CloudProvisioning.LOC in engine_config and is_taurus4:
+                self._check_locations(engine_config[CloudProvisioning.LOC], available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
                 executor.execution[CloudProvisioning.LOC] = BetterDict()

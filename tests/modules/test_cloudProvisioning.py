@@ -15,7 +15,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from bzt.utils import get_full_path
-from tests import BZTestCase, __dir__, RESOURCES_DIR, BASE_CONFIG
+from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG
 from tests.mocks import EngineEmul, ModuleMock
 from tests.modules.test_blazemeter import BZMock
 
@@ -36,7 +36,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.browser_open = False
         self.mock = BZMock(self.obj.user)
         self.mock.mock_post.update({
-            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1}},
             'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
@@ -596,6 +596,39 @@ class TestCloudProvisioning(BZTestCase):
         log_buff = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Each execution has locations specified, global locations won't have any effect", log_buff)
 
+    def test_locations_global(self):
+        self.obj.user.token = object()
+        self.configure(
+            add_settings=False,
+            engine_cfg={
+                ScenarioExecutor.EXEC: [{
+                    "executor": "mock",
+                    "concurrency": 5500,
+                }],
+                "locations": {"aws": 1}},
+            post={
+                'https://a.blazemeter.com/api/v4/web/elfinder/taurus_%s' % id(self.obj.user.token): {},
+                'https://a.blazemeter.com/api/v4/multi-tests/taurus-import': {"result": {
+                    "name": "Taurus Collection", "items": []
+                }},
+                'https://a.blazemeter.com/api/v4/multi-tests/1': {},
+                'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}}
+            }
+        )
+
+        self.sniff_log(self.obj.log)
+
+        self.obj.settings["use-deprecated-api"] = True
+        self.obj.settings["cloud-mode"] = "taurusCloud"
+        self.obj.prepare()
+
+        self.assertIsInstance(self.obj.router, CloudTaurusTest)
+
+        cloud_config = yaml.load(open(os.path.join(self.obj.engine.artifacts_dir, "cloud.yml")))
+        self.assertIn("locations", cloud_config)
+        for execution in cloud_config["execution"]:
+            self.assertNotIn("locations", execution)
+
     def test_collection_simultaneous_start(self):
         self.obj.user.token = object()
         self.configure(
@@ -838,10 +871,10 @@ class TestCloudProvisioning(BZTestCase):
                 'file-in-home-15.xml',  # 21 (testng-xml)
                 'file-in-home-16.java',  # 21 (script)
                 'bd_scenarios.js',  # 22 (script)
-                'file-in-home-17.js',   # 23 (sript)
+                'file-in-home-17.js',  # 23 (sript)
                 'example_spec.rb',  # 24 (script)
                 'file-in-home-18.rb',  # 25 (sript)
-                'file-in-home-19.jar'   # global testng settings (additional-classpath)
+                'file-in-home-19.jar'  # global testng settings (additional-classpath)
             })
         finally:
             os.environ['HOME'] = back_home
