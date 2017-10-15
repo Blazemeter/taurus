@@ -1095,7 +1095,7 @@ class CloudTaurusTest(BaseCloudTest):
                     and isinstance(executor.execution[CloudProvisioning.LOC], dict):
                 exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
-            elif CloudProvisioning.LOC in engine_config:
+            elif CloudProvisioning.LOC in engine_config and is_taurus4:
                 self._check_locations(engine_config[CloudProvisioning.LOC], available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
