@@ -30,9 +30,6 @@ from bzt.utils import is_windows, is_mac, platform_bitness
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
-    # FIXME: deprecated, as it's replaced with virtual-display service
-    SHARED_VIRTUAL_DISPLAY = {}
-
     @abstractmethod
     def get_virtual_display(self):
         """
@@ -60,11 +57,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest"]
 
     CHROMEDRIVER_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-    CHROMEDRIVER_VERSION = "2.29"
+    CHROMEDRIVER_VERSION = "2.33"
 
     GECKODRIVER_DOWNLOAD_LINK = "https://github.com/mozilla/geckodriver/releases/download/v{version}/" \
                                 "geckodriver-v{version}-{arch}.{ext}"
-    GECKODRIVER_VERSION = "0.17.0"
+    GECKODRIVER_VERSION = "0.19.0"
 
     SELENIUM_TOOLS_DIR = get_full_path("~/.bzt/selenium-taurus/tools")
 

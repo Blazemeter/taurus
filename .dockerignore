@@ -1,4 +1,7 @@
-Dockerfile
+.git
+.idea
 .dockerignore
+Dockerfile
 tests
 site
+**/*.pyc

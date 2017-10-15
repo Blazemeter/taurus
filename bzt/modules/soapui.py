@@ -271,7 +271,7 @@ class SoapUIScriptConverter(object):
 
         target_step_type = target_step.get("type")
         if target_step_type != "properties":
-            self.log.warning("Unsupported source step type for Property Transfer (%s). Skipping", target_step_type)
+            self.log.warning("Unsupported target step type for Property Transfer (%s). Skipping", target_step_type)
             return False
 
         return True
@@ -349,6 +349,8 @@ class SoapUIScriptConverter(object):
                 extracted_extractors = self._extract_property_transfers(step)  # label -> extractor
                 if extracted_extractors:
                     extractors.merge(extracted_extractors)
+            elif step.get("type") == "groovy":
+                request = self._extract_script(step)
 
             if request is not None:
                 requests.append(request)
@@ -366,6 +368,22 @@ class SoapUIScriptConverter(object):
             scenario["variables"] = variables
 
         return scenario
+
+    def _extract_script(self, test_step):
+        label = test_step.get("name", "Script")
+        script = test_step.find('./con:config/script', namespaces=self.NAMESPACES).text
+        if script is not None:
+            script = script.strip()
+            return {
+                "label": label,
+                "action": "pause",
+                "target": "current-thread",
+                "pause-duration": "0ms",
+                "jsr223": [{
+                    "language": "groovy",
+                    "script-text": script,
+                }]
+            }
 
     def _extract_test_case(self, test_case, test_suite, suite_level_props):
         case_name = test_case.get("name")

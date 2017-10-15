@@ -30,8 +30,8 @@ from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules import SubprocessedExecutor
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
-from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time
 from bzt.utils import BetterDict, ensure_is_dict
+from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
@@ -262,12 +262,16 @@ import apiritif
         if scenario_timeout is None:
             scenario_timeout = '30s'
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
-        if self.window_size:
-            args = (self.window_size[0], self.window_size[1])  # to force tuple
+        if self.window_size:  # FIXME: unused in fact
+            statement = self.gen_statement("self.driver.set_window_position(0, 0)")
+            setup_method_def.append(statement)
+
+            args = (self.window_size[0], self.window_size[1])
             statement = self.gen_statement("self.driver.set_window_size(%s, %s)" % args)
             setup_method_def.append(statement)
         else:
-            setup_method_def.append(self.gen_statement("self.driver.maximize_window()"))
+            pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.fullscreen()"))
+
         setup_method_def.append(self.gen_new_line(indent=0))
         return setup_method_def
 

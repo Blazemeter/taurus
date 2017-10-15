@@ -236,13 +236,16 @@ class BetterDict(defaultdict):
 
     def __merge_list_elements(self, left, right, key):
         for index, righty in enumerate(right):
-            lefty = left[index]
-            if isinstance(lefty, BetterDict):
-                if isinstance(righty, BetterDict):
-                    lefty.merge(righty)
-                    continue
-            self.log.warning("Overwriting the value of %r when merging configs", key)
-            left[index] = righty
+            if index < len(left):
+                lefty = left[index]
+                if isinstance(lefty, BetterDict):
+                    if isinstance(righty, BetterDict):
+                        lefty.merge(righty)
+                        continue
+                logging.warning("Overwriting the value of %r when merging configs", key)
+                left[index] = righty
+            else:
+                left.insert(index, righty)
 
     def __ensure_list_type(self, values):
         """

@@ -187,3 +187,17 @@ class TestConfiguration(BZTestCase):
         })
         self.assertEqual(obj["execution"][0]["iterations"], 20)
         self.assertEqual(obj["execution"][1]["iterations"], 30)
+
+    def test_elementwise_merge_right_is_bigger(self):
+        obj = Configuration()
+        obj.merge({
+            "execution": [{
+                "executor": "jmeter",
+                "iterations": 10,
+            }],
+        })
+        obj.merge({
+            "$execution": [{"iterations": 20}, {"iterations": 30}],
+        })
+        self.assertEqual(obj["execution"][0]["iterations"], 20)
+        self.assertEqual(obj["execution"][1]["iterations"], 30)
