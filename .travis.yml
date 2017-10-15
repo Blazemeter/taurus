@@ -52,7 +52,9 @@ script:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources  --exclude-dir=tests/ci
   else
-    coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources  --exclude-dir=tests/ci
+    coverage run  --source=. `which nosetests` tests -v \
+      --exclude-dir=tests/resources  \
+      --exclude-dir=tests/ci --exclude-test=tests.modules.selenium.test_csharp
     #  tests/ci/build-brew.sh
   fi
 
