@@ -4,7 +4,7 @@ from subprocess import CalledProcessError
 
 from bzt.engine import Service
 from bzt.modules.shellexec import ShellExecutor
-from bzt.utils import BetterDict
+from bzt.utils import BetterDict, is_windows
 from tests import BZTestCase
 from tests.mocks import EngineEmul
 
@@ -23,7 +23,10 @@ class TaskTestCase(BZTestCase):
 class TestBlockingTasks(TaskTestCase):
     def test_task_prepare(self):
         self.obj.settings['env'] = {"VAR": 1}
-        task = "dir .. && cd .."
+        if is_windows():
+            task = "dir .. && cd .."
+        else:
+            task = "ls .. && cd .."
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
         self.obj.startup()
