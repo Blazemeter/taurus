@@ -120,7 +120,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         link = settings.get('download-link', SeleniumExecutor.CHROMEDRIVER_DOWNLOAD_LINK)
         version = settings.get('version', SeleniumExecutor.CHROMEDRIVER_VERSION)
         if is_windows():
-            arch = 'win32' if platform_bitness() == 32 else 'win64'
+            arch = 'win64'
         elif is_mac():
             arch = 'mac64'
         else:
