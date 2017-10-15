@@ -42,7 +42,7 @@ class TestZipFolder(BZTestCase):
             'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": []},
         })
         mock.mock_post.update({
-            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1}},
             'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/tests/1/files': {}
         })
