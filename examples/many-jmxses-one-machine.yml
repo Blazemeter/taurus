@@ -23,4 +23,5 @@ provisioning: cloud
 modules:
   cloud:
     use-deprecated-api: false
-    test: Many-JMX-Cloud
+    test: Many-JMX-Cloud-v4-1
+    cloud-mode: taurusCloud 

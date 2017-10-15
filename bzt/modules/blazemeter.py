@@ -32,8 +32,8 @@ import yaml
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
-from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt import AutomatedShutdown
+from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
@@ -918,6 +918,7 @@ class ProjectFinder(object):
     def resolve_test_type(self):
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
+        cloud_mode = self.settings.get("cloud-mode", None)
         proj_name = self.parameters.get("project", self.settings.get("project", None))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
 
@@ -942,7 +943,7 @@ class ProjectFinder(object):
                 test = None  # we have to create another test under this project
 
         if not test:
-            if use_deprecated:
+            if use_deprecated or cloud_mode == 'taurusCloud':
                 self.log.debug("Will create old-style test")
                 test_class = CloudTaurusTest
             else:
@@ -952,7 +953,7 @@ class ProjectFinder(object):
         assert test_class is not None
         router = test_class(self.user, test, project, test_name, default_location, self.log)
         router._workspaces = self.workspaces
-        router.cloud_mode = self.settings.get("cloud-mode", None)
+        router.cloud_mode = cloud_mode
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
         router.is_functional = self.is_functional
         return router
