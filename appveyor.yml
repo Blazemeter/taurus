@@ -7,6 +7,9 @@ environment:
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
 
+platform:
+  - x64
+
 install:
   - choco install firefox -version 54.0
   - "%PYTHON%\\python.exe -m pip install pip --upgrade"
