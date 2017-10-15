@@ -1,0 +1,57 @@
+---
+execution:
+- concurrency: 1
+  hold-for: 15
+  scenario: eGalaxyTesting-TicketQuery
+scenarios:
+  eGalaxyTesting-TicketQuery:
+    requests:
+    - action: pause
+      jsr223:
+      - language: groovy
+        script-text: "def dataFile = \"C:/temp/QA_Used_Tix.txt\"\n//def dataFile =\
+          \ \"C:/temp/longrunningvids.txt\"\n    try \n    {\n        File file =\
+          \ new File(dataFile)\n        context.data = file.readLines()\n        context.dataCount\
+          \ = context.data.size\n        log.info(context.data.size)\n  \n       \
+          \ testRunner.testCase.setPropertyValue(\"maxAccountCount\",context.data.size.toString())\n\
+          \ \n    } \n    catch (Exception e) \n    {\n        testRunner.fail(\"\
+          Failed to load \" + dataFile + \" from project directory.\")\n        return\n\
+          \    }\n\ndef visualList = []\n\nfor (int i=0; i<context.data.size; i++)\n\
+          \n{\n\n\tvisualList.add( context.data.get(i) )\n}\n\ncontext.visualIDList\
+          \ = visualList\ntestRunner.testCase.setPropertyValue(\"accountIterator\"\
+          ,\"0\")"
+      label: Read File
+      pause-duration: 0ms
+      target: current-thread
+    - action: pause
+      jsr223:
+      - language: groovy
+        script-text: |-
+          def timeStamp = new java.text.SimpleDateFormat("yyyy-MM-dd' 'HH:mm:ss").format(new Date())
+          log.info timeStamp
+          testRunner.getTestCase().setPropertyValue('tStamp',timeStamp);
+      label: GetTimeStamp
+      pause-duration: 0ms
+      target: current-thread
+    variables:
+      '#Project#EnvironmentName': Load
+      '#Project#LoadTestID': ''
+      '#Project#MainEndpoint': https://inq-egalaxy-load.wdpr.disney.com/
+      '#TestCase#BaseConversationID': TicketQuery__
+      '#TestCase#LoadTestID': '46938'
+      '#TestCase#VIDs': ''
+      '#TestCase#VisualID': '407940005700035707'
+      '#TestCase#accountCount': '50000'
+      '#TestCase#accountInterator': '0'
+      '#TestCase#accountIterator': '4'
+      '#TestCase#conversationID': TicketQuery__0
+      '#TestCase#maxAccountCount': '50000'
+      '#TestCase#messages': ''
+      '#TestCase#size': '588'
+      '#TestCase#status': OK
+      '#TestCase#tStamp': '2017-08-18 13:00:21'
+      '#TestCase#testCaseName': TicketQuery
+      '#TestCase#testStepName': TicketQuery
+      '#TestCase#testSuiteName': eGalaxyTesting
+      '#TestCase#timeTaken': '213'
+

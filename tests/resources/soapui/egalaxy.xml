@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<con:soapui-project xmlns:con="http://eviware.com/soapui/config" id="53e43bd8-dcf5-43c4-9128-aa96ba36eb86" activeEnvironment="Default" name="eGalaxy" resourceRoot="" soapui-version="5.3.0" abortOnError="false" runType="SEQUENTIAL">
+  <con:settings/>
+  <con:interface xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="a51ea8fc-9545-43bd-8815-a78f896ee56d" name="http://fldcvsswa5442.wdw.disney.com:9595/soapuiservice/" type="rest" wadlVersion="http://wadl.dev.java.net/2009/02" xsi:type="con:RestService">
+    <con:settings/>
+    <con:definitionCache type="TEXT" rootPart=""/>
+    <con:endpoints>
+      <con:endpoint>http://fldcvsswa5442.wdw.disney.com:9595/soapuiservice</con:endpoint>
+    </con:endpoints>
+    <con:resource id="6fd33f04-123c-481d-8b9b-a33b244c38fc" name="Teststepdata" path="/teststepdata">
+      <con:settings/>
+      <con:parameters/>
+      <con:method id="ee76e718-ad40-49f2-bfb1-996326645ee8" method="POST" name="Teststepdata Post">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="REQUEST">
+          <con:mediaType>application/json</con:mediaType>
+          <con:params/>
+        </con:representation>
+        <con:representation type="FAULT">
+          <con:mediaType>application/json;charset=UTF-8</con:mediaType>
+          <con:status>400 404</con:status>
+          <con:params/>
+          <con:element xmlns:tes="http://fldcvsswa5442.wdw.disney.com:9595/soapuiservice/teststepdata">tes:Fault</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true"/>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true"/>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true"/>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true"/>
+          <con:status>0</con:status>
+          <con:params/>
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="FAULT">
+          <con:mediaType xsi:nil="true"/>
+          <con:status>404</con:status>
+          <con:params/>
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="FAULT">
+          <con:mediaType xsi:nil="true"/>
+          <con:status>404</con:status>
+          <con:params/>
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true"/>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true"/>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true"/>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>data</con:element>
+        </con:representation>
+        <con:representation type="RESPONSE">
+          <con:mediaType xsi:nil="true"/>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>data</con:element>
+        </con:representation>
+        <con:request id="f62a17f3-2074-4432-b53e-b7459229c238" mediaType="application/json" name="Request 1" postQueryString="false">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>http://fldcvsswa5442.wdw.disney.com:9595/soapuiservice</con:endpoint>
+          <con:request>{
+                    "loadTestId" : "${#TestCase#LoadTestID}",
+                    "testSuiteName" : "${#TestCase#testSuiteName}",
+                    "testCaseName" : "${#TestCase#TestCaseName}",
+                    "testStepName" : "${#TestCase#testStepName}",
+                    "environmentName" : "${#Project#EnvironmentName}",
+                    "timeTaken" : "${#TestCase#timeTaken}",
+                    "size" : "${#TestCase#size}",
+                    "executionTimestamp" : "${#TestCase#executionTimestamp}",
+                    "status" : "${#TestCase#status}",
+                    "messages" : "${#TestCase#messages}",
+                    "conversationId" : "${#TestCase#conversationID}"
+                }</con:request>
+          <con:originalUri>http://fldcvsswa5442.wdw.disney.com:9595/soapuiservice/teststepdata</con:originalUri>
+          <con:credentials>
+            <con:authType>No Authorization</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters/>
+        </con:request>
+      </con:method>
+    </con:resource>
+  </con:interface>
+  <con:interface xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="con:RestService" id="baed3e2b-ef67-4b19-a490-b74e82562ebe" wadlVersion="http://wadl.dev.java.net/2009/02" name="https://fldcvpswa6204.wdw.disney.com" type="rest">
+    <con:settings/>
+    <con:definitionCache type="TEXT" rootPart=""/>
+    <con:endpoints>
+      <con:endpoint>https://fldcvpswa6204.wdw.disney.com</con:endpoint>
+    </con:endpoints>
+    <con:resource name="PCard" path="/PCardRepository/pe0802/rest/OneTestREST/Process/rnd_SelectCardByType/VISA/1" id="ec0c38f9-3ddd-4f7c-b7cd-b1c11f91df69">
+      <con:settings/>
+      <con:parameters/>
+      <con:method name="1" id="97cb170c-1e65-497f-9161-3b25ef8aff9f" method="GET">
+        <con:settings/>
+        <con:parameters/>
+        <con:representation type="RESPONSE">
+          <con:mediaType>application/xml</con:mediaType>
+          <con:status>200</con:status>
+          <con:params/>
+          <con:element>set</con:element>
+        </con:representation>
+        <con:request name="Request 1" id="40a320c9-27d8-4394-9f11-4cb8e931813a" mediaType="application/json">
+          <con:settings>
+            <con:setting id="com.eviware.soapui.impl.wsdl.WsdlRequest@request-headers">&lt;xml-fragment/&gt;</con:setting>
+          </con:settings>
+          <con:endpoint>https://fldcvpswa6204.wdw.disney.com</con:endpoint>
+          <con:request/>
+          <con:originalUri>https://fldcvpswa6204.wdw.disney.com/PCardRepository/pe0802/rest/OneTestREST/Process/rnd_SelectCardByType/VISA/1</con:originalUri>
+          <con:credentials>
+            <con:authType>No Authorization</con:authType>
+          </con:credentials>
+          <con:jmsConfig JMSDeliveryMode="PERSISTENT"/>
+          <con:jmsPropertyConfig/>
+          <con:parameters/>
+        </con:request>
+      </con:method>
+    </con:resource>
+  </con:interface>
+  <con:testSuite id="b30f0edd-1bf0-4a30-93c1-397f8e83c0d3" name="eGalaxyTesting">
+    <con:settings/>
+    <con:runType>SEQUENTIAL</con:runType>
+    <con:testCase id="f6bee560-b7d6-41f6-8cd0-c09aa4ad5bac" failOnError="true" failTestCaseOnErrors="true" keepSession="false" maxResults="0" name="TicketQuery" searchProperties="true">
+      <con:settings/>
+      <con:testStep type="groovy" name="Read File" id="a09ad4cf-f467-4f16-bc77-e1fa12950e29">
+        <con:settings/>
+        <con:config>
+          <script>
+def dataFile = "C:/temp/QA_Used_Tix.txt"
+//def dataFile = "C:/temp/longrunningvids.txt"
+    try 
+    {
+        File file = new File(dataFile)
+        context.data = file.readLines()
+        context.dataCount = context.data.size
+        log.info(context.data.size)
+  
+        testRunner.testCase.setPropertyValue("maxAccountCount",context.data.size.toString())
+ 
+    } 
+    catch (Exception e) 
+    {
+        testRunner.fail("Failed to load " + dataFile + " from project directory.")
+        return
+    }
+
+def visualList = []
+
+for (int i=0; i&lt;context.data.size; i++)
+
+{
+
+	visualList.add( context.data.get(i) )
+}
+
+context.visualIDList = visualList
+testRunner.testCase.setPropertyValue("accountIterator","0")
+</script>
+        </con:config>
+      </con:testStep>
+      <con:testStep type="groovy" name="GetTimeStamp" id="8d022970-84d5-4734-83bb-a86be9ddaf7f">
+        <con:settings/>
+        <con:config>
+          <script>
+def timeStamp = new java.text.SimpleDateFormat("yyyy-MM-dd' 'HH:mm:ss").format(new Date())
+log.info timeStamp
+testRunner.getTestCase().setPropertyValue('tStamp',timeStamp);
+
+
+
+
+</script>
+        </con:config>
+      </con:testStep>
+      <con:loadTest id="154b2f32-326f-4d28-9a1c-d0d2652e0f07" name="TicketQuery">
+        <con:settings>
+          <con:setting id="HttpSettings@close-connections">false</con:setting>
+        </con:settings>
+        <con:threadCount>1</con:threadCount>
+        <con:startDelay>0</con:startDelay>
+        <con:sampleInterval>250</con:sampleInterval>
+        <con:calculateTPSOnTimePassed>true</con:calculateTPSOnTimePassed>
+        <con:resetStatisticsOnThreadCountChange>true</con:resetStatisticsOnThreadCountChange>
+        <con:historyLimit>-1</con:historyLimit>
+        <con:testLimit>15</con:testLimit>
+        <con:limitType>TIME</con:limitType>
+        <con:loadStrategy>
+          <con:type>Simple</con:type>
+          <con:config>
+            <testDelay>0</testDelay>
+            <randomFactor>0.5</randomFactor>
+          </con:config>
+        </con:loadStrategy>
+        <con:assertion type="Step Status" name="Step Status"/>
+        <con:maxAssertionErrors>100</con:maxAssertionErrors>
+        <con:cancelExcessiveThreads>true</con:cancelExcessiveThreads>
+        <con:strategyInterval>500</con:strategyInterval>
+        <con:setupScript>import java.net.URLConnection
+
+        baseConvID = loadTestRunner.getLoadTest().getName()+"_"+context.expand( '${#Project#TestID}' )+"_"
+        loadTestRunner.getLoadTest().getTestCase().setPropertyValue('BaseConversationID', baseConvID)
+
+        def connection = new URL("http://fldcvsswa5442.wdw.disney.com:9595/soapuiservice/loadtestdata").openConnection()
+        connection.setDoOutput(true)
+        connection.setRequestProperty("content-type", "application/json; charset=UTF-8")
+        connection.setRequestMethod("POST")
+
+        def jsonBuilder = new groovy.json.JsonBuilder()
+        jsonBuilder {
+            testId context.expand( '${#Project#TestID}' )
+            loadTestName loadTestRunner.getLoadTest().getName()
+            environmentName context.expand( '${#Project#EnvironmentName}' )
+            loadServerName InetAddress.getLocalHost().getHostName()
+            nbrVusers loadTestRunner.getLoadTest().getThreadCount()
+            runDuration loadTestRunner.getLoadTest().getTestLimit()
+            thinkTime 0
+            endPointURL context.expand( '${#Project#MainEndpoint}' )
+            startTimeStamp new java.sql.Timestamp( new java.util.Date().getTime() )
+            baseConversationID context.expand( '${#TestCase#BaseConversationID}' )
+            releaseID context.expand( '${#Project#ReleaseID}')
+        }
+
+        def writer = new OutputStreamWriter(connection.getOutputStream())
+        writer.write(jsonBuilder.toPrettyString())
+        writer.flush()
+        writer.close()
+
+        def reader
+        def message
+        if (connection.getResponseCode() &lt; 400) {
+            reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))
+            message = reader.readLine()
+            // set the insert row ID in a context property for the tear down script
+            context.setProperty("insertID", message)
+
+            // set the insert row ID in a property for the test case
+            loadTestRunner.getLoadTest().getTestCase().setPropertyValue('LoadTestID', message.toString())
+        } else {
+            reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()))
+            message = reader.readLine()
+            log.error(message)
+        }
+
+        reader.close()
+        connection.disconnect()</con:setupScript>
+        <con:tearDownScript>def loadTestID = loadTestRunner.getLoadTest().getTestCase().getPropertyValue('LoadTestID')
+
+        connection = (HttpURLConnection)(new URL("http://fldcvsswa5442.wdw.disney.com:9595/soapuiservice/loadtestdata/" + loadTestID).openConnection())
+
+        connection.setDoOutput(true)
+        connection.setRequestProperty("content-type", "application/json; charset=UTF-8")
+        connection.setRequestMethod("PUT")
+
+        if(connection.getResponseCode() &gt;= 400){
+            def reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()))
+            message = reader.readLine()
+            log.error(message)
+            reader.close()
+        }
+
+	  def loadtest = loadTestRunner.getLoadTest();
+	  def loadteststatistics = loadtest.getStatisticsModel();
+	  def row = -1;
+
+	  def testCaseName = loadtest.getTestCase().getName();
+	  def spaceIndex = testCaseName.indexOf(" ");
+	  testCaseName = testCaseName.substring(0, spaceIndex);</con:tearDownScript>
+        <con:reportParameters/>
+      </con:loadTest>
+      <con:setupScript/>
+      <con:tearDownScript/>
+      <con:properties>
+        <con:property>
+          <con:name>tStamp</con:name>
+          <con:value>2017-08-18 13:00:21</con:value>
+        </con:property>
+        <con:property>
+          <con:name>VIDs</con:name>
+          <con:value/>
+        </con:property>
+        <con:property>
+          <con:name>LoadTestID</con:name>
+          <con:value>46938</con:value>
+        </con:property>
+        <con:property>
+          <con:name>testSuiteName</con:name>
+          <con:value>eGalaxyTesting</con:value>
+        </con:property>
+        <con:property>
+          <con:name>testCaseName</con:name>
+          <con:value>TicketQuery</con:value>
+        </con:property>
+        <con:property>
+          <con:name>testStepName</con:name>
+          <con:value>TicketQuery</con:value>
+        </con:property>
+        <con:property>
+          <con:name>timeTaken</con:name>
+          <con:value>213</con:value>
+        </con:property>
+        <con:property>
+          <con:name>size</con:name>
+          <con:value>588</con:value>
+        </con:property>
+        <con:property>
+          <con:name>status</con:name>
+          <con:value>OK</con:value>
+        </con:property>
+        <con:property>
+          <con:name>messages</con:name>
+          <con:value/>
+        </con:property>
+        <con:property>
+          <con:name>conversationID</con:name>
+          <con:value>TicketQuery__0</con:value>
+        </con:property>
+        <con:property>
+          <con:name>BaseConversationID</con:name>
+          <con:value>TicketQuery__</con:value>
+        </con:property>
+        <con:property>
+          <con:name>accountCount</con:name>
+          <con:value>50000</con:value>
+        </con:property>
+        <con:property>
+          <con:name>maxAccountCount</con:name>
+          <con:value>50000</con:value>
+        </con:property>
+        <con:property>
+          <con:name>accountInterator</con:name>
+          <con:value>0</con:value>
+        </con:property>
+        <con:property>
+          <con:name>accountIterator</con:name>
+          <con:value>4</con:value>
+        </con:property>
+        <con:property>
+          <con:name>VisualID</con:name>
+          <con:value>407940005700035707</con:value>
+        </con:property>
+      </con:properties>
+      <con:reportParameters/>
+    </con:testCase>
+    <con:properties/>
+    <con:reportParameters/>
+  </con:testSuite>
+  <con:requirements/>
+  <con:properties>
+    <con:property>
+      <con:name>EnvironmentName</con:name>
+      <con:value>Load</con:value>
+    </con:property>
+    <con:property>
+      <con:name>LoadTestID</con:name>
+      <con:value/>
+    </con:property>
+    <con:property>
+      <con:name>MainEndpoint</con:name>
+      <con:value>https://inq-egalaxy-load.wdpr.disney.com/</con:value>
+    </con:property>
+  </con:properties>
+  <con:wssContainer/>
+  <con:databaseConnectionContainer/>
+  <con:oAuth2ProfileContainer/>
+  <con:oAuth1ProfileContainer/>
+  <con:reporting>
+    <con:reportTemplates/>
+    <con:xmlTemplates/>
+    <con:parameters/>
+  </con:reporting>
+  <con:sensitiveInformation/>
+</con:soapui-project>
