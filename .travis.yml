@@ -15,8 +15,8 @@ matrix:
     python: 3.4
   - os: linux
     python: 3.5
-#  - os: osx
-#    language: generic
+  - os: osx
+    language: generic
 
 addons:
   firefox: "54.0"
@@ -25,24 +25,46 @@ addons:
       - oracle-java8-set-default
       - mono-complete
 
-before_install: |
-  if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-    sh -e Xvfb :99 -ac -screen 0 1024x768x8
-  else
-    export DISPLAY=:99.0
-    sh -e /etc/init.d/xvfb start
-  fi
+before_install:
+- export DISPLAY=:99.0
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
+- (if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo xvfb :99; fi)&
 
 install:
-- mono --version
-- nvm install 4.2
-- nvm use 4.2
-- gem install rspec
-- pip install pip --upgrade
-- pip install -r requirements.txt
-- pip install codecov nose-exclude locustio
+- |
+  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+    mono --version
+    nvm install 4.2
+    nvm use 4.2
+    gem install rspec
+    pip install pip --upgrade
+    pip install -r requirements.txt
+    pip install codecov nose-exclude locustio
+  else
+    rvm get stable
+    nvm install 4.2
+    nvm use 4.2
+    gem install rspec
+    pip install pip --upgrade
+    pip install -r requirements.txt
+    pip install codecov nose-exclude locustio
+  fi
 - if [[ $TRAVIS_PYTHON_VERSION == 3.5 ]]; then pip install molotov; fi
-script: coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources
+
+script:
+- |
+  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+    coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources  --exclude-dir=tests/ci
+  else
+    coverage run  --source=. `which nosetests` tests -v \
+      --exclude-dir=tests/resources  \
+      --exclude-dir=tests/ci --exclude-test=tests.modules.selenium.test_csharp
+    #  tests/ci/build-brew.sh
+  fi
+
 after_success:
-- coverage report -m
-- codecov
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then codecov; fi
+
+
+
