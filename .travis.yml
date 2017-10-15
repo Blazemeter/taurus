@@ -5,12 +5,12 @@ matrix:
   include:
   - os: linux
     python: 2.7
-  #- os: linux
-  #  python: 3.3
+  - os: linux
+    python: 3.3
   - os: linux
     python: 3.4
-  #- os: linux
-  #  python: 3.5
+  - os: linux
+    python: 3.5
   - os: osx
     language: generic
 
@@ -37,14 +37,13 @@ install:
     pip install -r requirements.txt
     pip install codecov nose-exclude locustio
   else
-    brew install mono
+    rvm get stable
     nvm install 4.2
     nvm use 4.2
     gem install rspec
     pip install pip --upgrade
     pip install -r requirements.txt
     pip install codecov nose-exclude locustio
-    # brew install siege nodejs tsung
   fi
 
 script:
