@@ -12,6 +12,8 @@ modules:
     class: bzt.modules.jmeter.JMeterExecutor
   locust:
     class: bzt.modules.locustio.LocustIOExecutor
+  molotov:
+    class: bzt.modules.molotov.MolotovExecutor
   pbench:
     class: bzt.modules.pbench.PBenchExecutor
   siege:

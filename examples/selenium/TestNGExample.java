@@ -18,7 +18,7 @@ public class TestNGExample {
     @BeforeMethod
     public void setUp() {
         this.driver = new FirefoxDriver();
-        this.driver.manage().window().maximize();
+        //this.driver.manage().window().maximize();
     }
 
     @AfterMethod

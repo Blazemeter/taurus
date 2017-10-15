@@ -1,4 +1,4 @@
-#! /bin/sh -xe
+#! /bin/bash -xe
 
 echo "Building Grinder plugin"
 pushd $(dirname $0)/java/grinder_logger
@@ -20,4 +20,4 @@ popd
 
 ./build-sdist.sh
 
-python $(dirname $0)/setup.py sdist upload
+python $(dirname $0)/setup.py sdist bdist_wheel upload

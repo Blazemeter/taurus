@@ -44,3 +44,12 @@ class TestConverter(BZTestCase):
         actual = yaml.load(open(result).read())
         expected = yaml.load(open(RESOURCES_DIR + "soapui/flickr-sample.xml.yml").read())
         self.assertEqual(actual, expected)
+
+    def test_egalaxy(self):
+        source = RESOURCES_DIR + "soapui/egalaxy.xml"
+        result = self._get_tmp()
+        options = FakeOptions(file_name=result)
+        process(options, [source])
+        actual = yaml.load(open(result).read())
+        expected = yaml.load(open(RESOURCES_DIR + "soapui/egalaxy.xml.yml").read())
+        self.assertEqual(actual, expected)

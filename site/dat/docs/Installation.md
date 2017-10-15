@@ -72,13 +72,6 @@ To upgrade Taurus, open Command Prompt as administrator and run
 ----
 
 ## Mac OS
-### Install Homebrew Package
-You can use [brew](https://brew.sh/) package manager to install taurus:
-```bash
-brew update && brew install bzt
-```
-Keep in mind: some additional software can be required depend of test type
-([JVM/JDK](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html), Grider, etc.)
 
 ### Manual Installation
 You will need python 2.7 or higher and Java Runtime installed.
@@ -161,8 +154,8 @@ Use `uname -a` to verify the system if it's 32 bit or 64 bit machine. [http://ww
 Get corresponding EPEL (Extra Package for Enterprise Linux) for CentOS (Community Enterprise OS) 7, and enable it.
 
 ```bash
-wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-9.noarch.rpm
-sudo rpm -ivh epel-release-7-9.noarch.rpm
+wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-10.noarch.rpm
+sudo rpm -ivh epel-release-7-10.noarch.rpm
 ```
 
 [http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/](http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/)
@@ -215,9 +208,9 @@ Make note that `/tmp/my-test` was passed in `-v` Docker option, it's crucial. He
 You can also specify multile config files in the `docker run` command with wildcards or as separate arguments like so:
 
 ```bash
-sudo docker run -i --rm -v /tmp/my-test:/bzt-configs undera/taurus *.yml
+sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus *.yml
 
-sudo docker run -i --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.json my-config-2.json
+sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.json my-config-2.json
 ```
 
 ### Additional Taurus Command-Line Options
@@ -225,7 +218,7 @@ sudo docker run -i --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.j
 You can still pass [command-line options](https://github.com/Blazemeter/taurus/blob/master/site/dat/docs/CommandLine.md) to Taurus through the Docker image. To do so, add the command line option at the end of the `docker run` command like so:
 
 ```bash
-sudo docker run -i --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.yml -o scenarios.sample.data-sources.0=data.csv
+sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.yml -o scenarios.sample.data-sources.0=data.csv
 ```
 
 
@@ -233,5 +226,5 @@ sudo docker run -i --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.y
 If you want to receive Taurus artifacts from container, just mount some directory as `/tmp/artifacts` and files will get there. Following example gives you artifacts in `/tmp/my-run-artifacts` directory.
 
 ```bash
-sudo docker run -i --rm -v /tmp:/bzt-configs -v /tmp/my-run-artifacts:/tmp/artifacts undera/taurus
+sudo docker run -i --rm -v /tmp:/bzt-configs -v /tmp/my-run-artifacts:/tmp/artifacts blazemeter/taurus
 ```

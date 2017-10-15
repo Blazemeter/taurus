@@ -3,89 +3,31 @@ services:
 - virtual-display
 - module: shellexec
   prepare: 
+  - command: python -m SimpleHTTPServer 8000
+    background: true
   - command: sleep 600 && exit 1  # this will make it interrupt in case it hangs
     background: true
-#  check:
-#  - command: ps auxff > processlist.txt
-#    cwd: artifacts-dir
+  #check:
+  #- command: ps auxff > processlist.txt
+  #  cwd: artifacts-dir
 
 reporting:
 - module: passfail
   criteria:
   - fail>0 for 1s
 
+# all of functional-style executors
+---
 execution:
-
-- executor: jmeter
+- executor: selenium
   concurrency: 1
   hold-for: 10s
   iterations: 10
   scenario:
+    browser: Firefox
     requests:
-      - url: http://blazedemo.com/
-        label: jmeter
-
-- executor: gatling
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: gatling
-
-- executor: pbench
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: pbench
-
-- executor: grinder
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: grinder
-
-- executor: siege
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://blazedemo.com/?tool=siege
-        label: siege
-
-- executor: locust
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: locust
-
-- executor: tsung
-  concurrency: 1
-  hold-for: 10s
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: tsung
-
-- executor: ab
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    requests:
-      - url: http://blazedemo.com/
-        label: ab
+      - url: http://localhost:8000/
+        label: selenium-firefox
 
 - executor: selenium
   concurrency: 1
@@ -94,18 +36,8 @@ execution:
   scenario:
     browser: Chrome
     requests:
-      - url: http://blazedemo.com/
+      - url: http://localhost:8000/
         label: selenium-chrome
-
-- executor: selenium
-  concurrency: 1
-  hold-for: 10s
-  iterations: 10
-  scenario:
-    browser: Firefox
-    requests:
-      - url: http://blazedemo.com/
-        label: selenium-firefox
 
 - executor: selenium
   concurrency: 1
@@ -123,6 +55,8 @@ execution:
   scenario:
     script: selenium/TestNGExample.java
 
+---
+execution:
 - executor: selenium
   concurrency: 1
   hold-for: 10s
@@ -184,4 +118,86 @@ execution:
   hold-for: 10s
   iterations: 10
   scenario:
-    script: selenium/pytest/test_simple.py
+    script: selenium/pytest_example.py
+
+# all of load-style executors
+---
+execution:
+- executor: jmeter
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: jmeter
+
+- executor: gatling
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: gatling
+
+- executor: pbench
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: pbench
+
+- executor: grinder
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: grinder
+
+- executor: siege
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/?tool=siege
+        label: siege
+
+- executor: locust
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: locust
+
+- executor: tsung
+  concurrency: 1
+  hold-for: 10s
+  scenario:
+    requests:
+      - url: http://localhost:8000/
+        label: tsung
+
+# AB is sooo bad with exit codes...
+#- executor: ab
+#  concurrency: 1
+#  hold-for: 10s
+#  iterations: 10
+#  scenario:
+#    requests:
+#      - url: http://localhost:8000/
+#        label: ab
+
+- executor: molotov
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: molotov/blazedemo.py

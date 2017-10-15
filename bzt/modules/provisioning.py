@@ -36,6 +36,7 @@ class Local(Provisioning):
     def __init__(self):
         super(Local, self).__init__()
         self.finished_modules = []
+        self.start_time = None
 
     def _get_start_shift(self, shift):
         if not shift:
@@ -90,6 +91,7 @@ class Local(Provisioning):
         prev_executor = None
         for executor in self.executors:
             if executor in self.engine.prepared and executor not in self.engine.started:  # needs to start
+                self.engine.logging_level_up()
                 if isinstance(executor.delay, numeric_types):
                     timed_start = time.time() >= self.start_time + executor.delay
                 else:
@@ -102,6 +104,7 @@ class Local(Provisioning):
                         self.log.info("Starting next sequential execution: %s", executor)
                     executor.startup()
                     self.engine.started.append(executor)
+                self.engine.logging_level_down()
 
             prev_executor = executor
 

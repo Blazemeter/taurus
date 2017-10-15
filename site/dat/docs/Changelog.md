@@ -1,7 +1,17 @@
 # Changelog
 
-## 1.9.6 <sup>next</sup>
+## 1.10.0 <sup>next</sup>
+ - use chromedriver 2.33 by default
+ - use geckodriver 0.19 by default
+ - use selenium 3.6 for Java and inside Docker
+ - don't use `window_maximize` in generated python script due to problems with virtual display
+ - use `-r -l` options for `ab` executor, make its exit code to not fail test
+ - add JMX path to `jmeter.classpath` property
+ - add gatling reports prefix to `dir_prefix` setting
+
+## 1.9.6 <sup>27 sep 2017</sup>
  - add `pytest` executor type
+ - add [Molotov](https://github.com/loads/molotov)-based executor type: `molotov`
  - support `-cloud -func` combination for launching cloud functional tests
  - use Gatling 2.3.0 by default
  - use JMeter 3.3 by default
@@ -15,6 +25,7 @@
  - fix Grinder `HTTP 0` error and `DivisionByZero` error
  - fix passfail criteria parsing to work with float percentiles
  - fix dashboard encoding problems on Windows
+ - call BZA session shutdown only if we were sending data into it
 
 ## 1.9.5 <sup>11 aug 2017</sup>
  - add `nunit` executor for NUnit-based tests (Selenium and others)
@@ -37,7 +48,7 @@
  - add `junit-xml` support for functional mode
  - fix doublequoting error in JTL reader
  - recover from invalid characters in JTL files
- - fix CSV quotation crash in Locust module 
+ - fix CSV quotation crash in Locust module
  - fix NPE with junit runner and null script
  - fix RSpec functional mode tests
  - fix Selenium concurrency and VU count for cloud provisioning
@@ -55,7 +66,7 @@
  - fix crash `-v` used on Windows with nose executor
  - minor fixes around PBench executor
  - fix functional mode breaks on JMeter 2.13
- 
+
 ## 1.9.3 <sup>2 jun 2017</sup>
  - fix failure with JMeter cookie manager and "null"
  - install JMeter into per-version directories
@@ -101,7 +112,7 @@
 ## 1.9.0 <sup>16 apr 2017</sup>
  - per-technology executors are extracted from selenium executor
  - experimental release of `apiritif` framework scripts
- - use BZA workspace's `enabled` flag to filter 
+ - use BZA workspace's `enabled` flag to filter
  - don't install `10-base.json` into `/etc/bzt.d` as step towards wheel dist
  - proxy2jmx now uses new-style API client
  - fix handling samples with empty RC in console dashboard

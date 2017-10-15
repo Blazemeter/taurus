@@ -211,8 +211,8 @@ class CLI(object):
             configs.extend(jmx_shorthands)
 
             if not self.options.verbose:
-                self.engine.post_startup_hook = self._level_down_logging
-                self.engine.pre_shutdown_hook = self._level_up_logging
+                self.engine.logging_level_down = self._level_down_logging
+                self.engine.logging_level_up = self._level_up_logging
 
             self.__configure(configs)
             self.__move_log_to_artifacts()
