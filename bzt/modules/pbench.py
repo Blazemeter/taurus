@@ -21,7 +21,6 @@ import socket
 import string
 import struct
 import subprocess
-import sys
 import time
 from abc import abstractmethod
 from os import strerror
@@ -35,7 +34,7 @@ from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallable
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b, viewvalues
+from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
 from bzt.utils import RequiredTool, IncrementableProgressBar
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
 
