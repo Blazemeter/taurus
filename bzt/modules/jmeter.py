@@ -133,9 +133,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def _get_prop_default(val):
         comma_ind = val.find(",")
         if val.startswith("${") and val.endswith(")}") and comma_ind > -1:
-            return val[comma_ind + 1: -2]
-        else:
-            return None
+            if val.startswith("${__property") or val.startswith("${__P"):
+                return val[comma_ind + 1: -2]
+        return None
 
     @staticmethod
     def _try_convert(val, func, default=None):
