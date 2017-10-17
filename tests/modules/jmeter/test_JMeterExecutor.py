@@ -2526,3 +2526,15 @@ class TestJMeterExecutor(BZTestCase):
         })
         self.obj.settings.merge({"version": 3.3})
         self.obj.prepare()
+
+    def test_smartparse_property_expressions(self):
+        self.configure({
+            "execution": {
+                "throughput": "${__foo(bar,baz,barbaz)}",
+                "scenario": {
+                    "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"
+                }
+            }
+        })
+        load = self.obj.get_load()
+        self.assertEqual(load.throughput, 0.0)

@@ -1,0 +1,1 @@
+Fix property parsing for cases where JMeter expression (but not property access) is used inside YAML
