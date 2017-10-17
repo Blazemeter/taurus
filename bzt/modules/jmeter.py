@@ -134,7 +134,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         comma_ind = val.find(",")
         comma_found = comma_ind > -1
         is_expression = val.startswith("${") and val.endswith("}")
-        is_property = val.startswith("${__property") or val.startswith("${__P")
+        is_property = val.startswith("${__property(") or val.startswith("${__P(")
         if is_expression and is_property and comma_found:
             return val[comma_ind + 1: -2]
         else:
