@@ -50,7 +50,7 @@ import psutil
 import shutil
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
@@ -1206,3 +1206,42 @@ def get_host_ips(filter_loopbacks=True):
                 continue
             ips.append(iface.address)
     return ips
+
+
+def is_url(url):
+    return parse.urlparse(url).scheme != ""
+
+
+def demo_script(url):
+    return {"execution": [{
+        "concurrency": "${__tstFeedback(Throughput_Limiter,1,500,2)}",
+        "hold-for": "2m",
+        "throughput": "${__property(tpt,700)}",
+        "scenario": {
+            "properties": {"tpt": 1},
+            "retrieve-resources": False,
+            "timeout": "5s",
+            "keepalive": False,
+            "requests": [{
+                "url": url,
+                "label": url,
+                "jsr223": [{
+                    "language": "javascript",
+                    "execute": "before",
+                    "script-text": """
+var startTime = parseInt(props.get("startTime"));
+if (!startTime) {
+    startTime = Math.floor((new Date()).getTime() / 1000);
+    props.put("startTime", startTime);
+} else {
+    var now = Math.floor((new Date()).getTime() / 1000);
+    var offset = now - startTime;
+    if (offset < 60) {
+        var targetOffset = Math.max(offset * 10, 10);
+        props.put("tpt", targetOffset.toString());
+    }
+}"""
+                }]
+            }]
+        }
+    }]}

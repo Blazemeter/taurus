@@ -167,6 +167,9 @@ class TestCLI(BZTestCase):
         parser = get_option_parser()
         parser.print_usage()
 
+    def test_perform(self):
+        self.obj.perform(["http://blazedemo.com/"])
+
 
 class TestConfigOverrider(BZTestCase):
     def setUp(self):
