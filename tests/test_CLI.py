@@ -168,7 +168,7 @@ class TestCLI(BZTestCase):
         parser = get_option_parser()
         parser.print_usage()
 
-    def test_perform(self):
+    def test_http_target(self):
         self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
         self.option.append("provisioning=mock")
         self.option.append("settings.default-executor=mock")
