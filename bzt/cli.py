@@ -36,7 +36,7 @@ from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.six import HTTPError, string_types, get_stacktrace
-from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url, demo_script
+from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url
 
 
 class CLI(object):
@@ -345,7 +345,50 @@ class CLI(object):
             config_fds.close()
 
             config = Configuration()
-            config.merge(demo_script(urls[0]))
+            config.merge({
+                "execution": [{
+                    "concurrency": "${__tstFeedback(Throughput_Limiter,1,${__P(concurrencyCap,1)},2)}",
+                    "hold-for": "2m",
+                    "throughput": "${__P(throughput,600)}",
+                    "scenario": "linear-growth",
+                }],
+                "scenarios": {
+                    "linear-growth": {
+                        "retrieve-resources": False,
+                        "timeout": "5s",
+                        "keepalive": False,
+                        "requests": [{
+                            "url": urls[0],
+                            "label": urls[0],
+                            "jsr223": [{
+                                "language": "javascript",
+                                "execute": "before",
+                                "script-text": """
+var startTime = parseInt(props.get("startTime"));
+if (!startTime) {
+    startTime = Math.floor((new Date()).getTime() / 1000);
+    props.put("startTime", startTime);
+} else {
+    var now = Math.floor((new Date()).getTime() / 1000);
+    var offset = now - startTime;
+    if (offset < 60) {
+        var targetOffset = Math.max(offset * 10, 10);
+        props.put("throughput", targetOffset.toString());
+    }
+}"""
+                            }]
+                        }]
+                    }
+                },
+                "modules": {
+                    "jmeter": {
+                        "properties": {
+                            "throughput": 1,
+                            "concurrencyCap": 500,
+                        },
+                    }
+                }
+            })
             config.dump(fname, Configuration.JSON)
             return [fname]
         else:
