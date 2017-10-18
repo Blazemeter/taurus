@@ -119,9 +119,13 @@ class TestCLI(BZTestCase):
 
         ret = self.obj.perform([json_config, jmx1, jmx2])
 
+        self.obj.log(self.obj.engine.config)
         executions = self.obj.engine.config.get('execution', [])
+        self.obj.log(executions)
         scenarios = [execution.get('scenario', {}) for execution in executions]
+        self.obj.log(scenarios)
         scripts = set([scenario.get('script', None) for scenario in scenarios])
+        self.obj.log(scripts)
 
         self.assertEquals(0, ret)
         self.assertIn(jmx1, scripts)
