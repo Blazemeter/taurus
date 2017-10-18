@@ -1209,4 +1209,4 @@ def get_host_ips(filter_loopbacks=True):
 
 
 def is_url(url):
-    return parse.urlparse(url).scheme != ""
+    return parse.urlparse(url).scheme in ["https", "http"]

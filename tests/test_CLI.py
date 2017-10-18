@@ -119,13 +119,9 @@ class TestCLI(BZTestCase):
 
         ret = self.obj.perform([json_config, jmx1, jmx2])
 
-        logging.info(self.obj.engine.config)
         executions = self.obj.engine.config.get('execution', [])
-        logging.info(executions)
         scenarios = [execution.get('scenario', {}) for execution in executions]
-        logging.info(scenarios)
         scripts = set([scenario.get('script', None) for scenario in scenarios])
-        logging.info(scripts)
 
         self.assertEquals(0, ret)
         self.assertIn(jmx1, scripts)
@@ -172,7 +168,7 @@ class TestCLI(BZTestCase):
         parser = get_option_parser()
         parser.print_usage()
 
-    def test_http_target(self):
+    def test_http_shorthand(self):
         self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
         self.option.append("provisioning=mock")
         self.option.append("settings.default-executor=mock")
