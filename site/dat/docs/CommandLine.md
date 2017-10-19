@@ -91,16 +91,16 @@ cli-aliases:
         script: jmx2.jmx
 ```
 
-## URL Shorthand
+## URL Shorthands
 
-There is a way to run a quick test on 1 URL with a default load generator simply by using the target URL as a
-command-line argument.
+There is a way to run a quick test on an URL (or a number of URLs) with a default load generator simply by using the
+target URL as a command-line argument.
 
 ```bash
 bzt http://blazedemo.com/
 ```
 
-This command will launch a quick test pointed at [http://blazedemo.com/](http://blazedemo.com/). You can combine
+This command will launch a quick test targetting [http://blazedemo.com/](http://blazedemo.com/). You can combine
 it with other CLI options and aliases, such as `-report`, `-cloud` and others.
 
 ## Artifacts

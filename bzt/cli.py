@@ -358,8 +358,8 @@ class CLI(object):
                         "timeout": "5s",
                         "keepalive": False,
                         "requests": [{
-                            "url": urls[0],
-                            "label": urls[0],
+                            "action": "pause",
+                            "pause-duration": 0,
                             "jsr223": [{
                                 "language": "javascript",
                                 "execute": "before",
@@ -377,7 +377,7 @@ if (!startTime) {
     }
 }"""
                             }]
-                        }]
+                        }] + urls,
                     }
                 },
                 "modules": {
