@@ -50,7 +50,7 @@ import psutil
 import shutil
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
@@ -1206,3 +1206,7 @@ def get_host_ips(filter_loopbacks=True):
                 continue
             ips.append(iface.address)
     return ips
+
+
+def is_url(url):
+    return parse.urlparse(url).scheme in ["https", "http"]

@@ -1,7 +1,8 @@
 import logging
+import os
+import re
 import shutil
 
-import os
 from bzt import TaurusException
 from tests import BZTestCase, RESOURCES_DIR
 
@@ -166,6 +167,16 @@ class TestCLI(BZTestCase):
     def test_cover_option_parser(self):
         parser = get_option_parser()
         parser.print_usage()
+
+    def test_http_shorthand(self):
+        self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
+        self.option.append("provisioning=mock")
+        self.option.append("settings.default-executor=mock")
+        code = self.obj.perform(["http://blazedemo.com/"])
+        self.assertEqual(code, 0)
+        log_content = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).read()
+        configs = re.findall(r'[^\s\']*http_.*\.yml', log_content)
+        self.assertGreater(len(configs), 0)
 
 
 class TestConfigOverrider(BZTestCase):
