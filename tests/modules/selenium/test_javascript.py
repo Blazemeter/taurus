@@ -4,7 +4,6 @@ import time
 
 from os.path import join, exists, dirname
 from bzt.modules import javascript
-from bzt.modules.java import SeleniumServerJar, SELENIUM_VERSION, SELENIUM_DOWNLOAD_LINK
 from bzt.modules.javascript import WebdriverIOExecutor
 from bzt.utils import get_full_path, shell_exec
 from tests import BUILD_DIR, RESOURCES_DIR
@@ -139,32 +138,29 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, WebdriverIOExecutor)
 
-    def get_server_jar(self):
-        server_jar_path = get_full_path("~/.bzt/selenium-taurus/selenium-server.jar")
-        server_jar_link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
-        selenium_server_jar = SeleniumServerJar(server_jar_path, server_jar_link, self.obj.log)
-        if not selenium_server_jar.check_if_installed():
-            selenium_server_jar.install()
-        return selenium_server_jar
+    def run_command(self, cmdline, stream_name, cwd):
+        out = open(self.obj.engine.create_artifact(stream_name, ".out"), "wt")
+        err = open(self.obj.engine.create_artifact(stream_name, ".err"), "wt")
+        process = shell_exec(args=cmdline, stdout=out, stderr=err, cwd=cwd)
+        while process.poll() is None:
+            time.sleep(0.5)
+        out.close()
+        err.close()
+        self.obj.log.debug("%s out: %s", cmdline, open(out.name, 'r').read())
+        self.obj.log.debug("%s err: %s", cmdline, open(err.name, 'r').read())
 
     def full_run(self, config, script_dir):
         self.configure(config)
-        jar = self.get_server_jar()
 
-        inst_out = open(self.obj.engine.create_artifact("installer", ".out"), "wt")
-        inst_err = open(self.obj.engine.create_artifact("installer", ".err"), "wt")
-        installer = shell_exec(args=["npm", "install"], stdout=inst_out, stderr=inst_err, cwd=script_dir)
-        while installer.poll() is None:
-            time.sleep(0.5)
-        inst_out.close()
-        inst_err.close()
-        self.obj.log.debug("Installer out: %s", open(inst_out.name, 'r').read())
-        self.obj.log.debug("Installer err: %s", open(inst_err.name, 'r').read())
+        self.run_command(["npm", "install"], "npm-install", script_dir)
+        self.run_command(["npm", "install", "webdriver-manager"], "manager-install", script_dir)  # ugh
+        wd_manager = os.path.join(script_dir, "node_modules", "webdriver-manager", "bin", "webdriver-manager")
+        self.run_command([wd_manager, "update"], "manager-update", script_dir)
 
         process = None
         try:
             self.obj.prepare()
-            process = shell_exec(args=["java", "-jar", jar.tool_path])
+            process = shell_exec([wd_manager, "start"])
             self.obj.startup()
             while not self.obj.check():
                 time.sleep(1)
