@@ -5,7 +5,7 @@ import time
 from os.path import join, exists, dirname
 from bzt.modules import javascript
 from bzt.modules.javascript import WebdriverIOExecutor
-from bzt.utils import get_full_path, shell_exec
+from bzt.utils import get_full_path, shell_exec, is_windows
 from tests import BUILD_DIR, RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
 
@@ -152,9 +152,11 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
     def full_run(self, config, script_dir):
         self.configure(config)
 
-        self.run_command(["npm", "install"], "npm-install", script_dir)
-        self.run_command(["npm", "install", "webdriver-manager"], "manager-install", script_dir)  # ugh
+        npm = "npm.cmd" if is_windows() else "npm"
         wd_manager = os.path.join(script_dir, "node_modules", "webdriver-manager", "bin", "webdriver-manager")
+
+        self.run_command([npm, "install"], "npm-install", script_dir)
+        self.run_command([npm, "install", "webdriver-manager"], "manager-install", script_dir)  # ugh
         self.run_command([wd_manager, "update"], "manager-update", script_dir)
 
         process = None
