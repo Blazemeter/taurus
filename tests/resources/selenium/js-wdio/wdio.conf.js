@@ -17,7 +17,7 @@ var config = {
         // 'path/to/excluded/files'
     ],
     capabilities: [{
-        browserName: 'chrome'
+        browserName: 'firefox'
     }],
     //
     // ===================
