@@ -1,13 +1,24 @@
 # Changelog
 
 ## 1.10.0 <sup>next</sup>
+ - provide Homebrew recipe for OSX users to install Taurus easily
+ - add URL shorthands testing to `bzt` CLI, allowing config-less quick-test
+ - handle "many executions in one location" cloud test properly
  - use chromedriver 2.33 by default
  - use geckodriver 0.19 by default
  - use selenium 3.6 for Java and inside Docker
  - don't use `window_maximize` in generated python script due to problems with virtual display
+ - download 64-bit Geckodriver for 64-bit Windows
  - use `-r -l` options for `ab` executor, make its exit code to not fail test
  - add JMX path to `jmeter.classpath` property
+ - fix property parsing for cases where JMeter expression (but not property access) is used inside YAML
  - add gatling reports prefix to `dir_prefix` setting
+ - ensure executor startup logging is written into log file
+ - fix elementwise merging in dicts for some edge cases
+ - fix some file descriptor leaks
+ - fix installation with old `pip` versions
+ - optimize API interaction by querying only test's workspace locations
+ - convert Groovy scripts in SoapUI to JMeter's JSR223 blocks
 
 ## 1.9.6 <sup>27 sep 2017</sup>
  - add `pytest` executor type
