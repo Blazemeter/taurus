@@ -82,7 +82,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         load = self.get_load()
         concurrency = load.concurrency or 1
         if load.ramp_up:
-            hatch = concurrency / load.ramp_up
+            hatch = concurrency / float(load.ramp_up)
         else:
             hatch = concurrency
 
