@@ -153,16 +153,18 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.configure(config)
 
         npm = "npm.cmd" if is_windows() else "npm"
-        wd_manager = os.path.join(script_dir, "node_modules", "webdriver-manager", "bin", "webdriver-manager")
+        wd_manager = [os.path.join(script_dir, "node_modules", "webdriver-manager", "bin", "webdriver-manager")]
+        if is_windows():
+            wd_manager = ["node"] + wd_manager
 
         self.run_command([npm, "install"], "npm-install", script_dir)
         self.run_command([npm, "install", "webdriver-manager"], "manager-install", script_dir)  # ugh
-        self.run_command([wd_manager, "update"], "manager-update", script_dir)
+        self.run_command(wd_manager + ["update"], "manager-update", script_dir)
 
         process = None
         try:
             self.obj.prepare()
-            process = shell_exec([wd_manager, "start", "--standalone"])
+            process = shell_exec(wd_manager + ["start", "--standalone"])
             self.obj.startup()
             while not self.obj.check():
                 time.sleep(1)
