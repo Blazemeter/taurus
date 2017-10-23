@@ -1,9 +1,11 @@
 # Changelog
 
 ## 1.10.0 <sup>next</sup>
+ - fully migrate to python wheel distribution
  - provide Homebrew recipe for OSX users to install Taurus easily
  - add URL shorthands testing to `bzt` CLI, allowing config-less quick-test
  - handle "many executions in one location" cloud test properly
+ - allow a fractional hatch-rate when using `locustio` as executor.
  - use chromedriver 2.33 by default
  - use geckodriver 0.19 by default
  - use selenium 3.6 for Java and inside Docker
@@ -16,8 +18,8 @@
  - ensure executor startup logging is written into log file
  - fix elementwise merging in dicts for some edge cases
  - fix some file descriptor leaks
- - fix installation with old `pip` versions
- - optimize API interaction by querying only test's workspace locations
+ - fix installation with old `pip` versions 
+ - optimize BlazeMeter API interaction by querying only test's workspace locations
  - convert Groovy scripts in SoapUI to JMeter's JSR223 blocks
 
 ## 1.9.6 <sup>27 sep 2017</sup>
