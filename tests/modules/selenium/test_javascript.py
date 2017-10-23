@@ -160,7 +160,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         process = None
         try:
             self.obj.prepare()
-            process = shell_exec([wd_manager, "start"])
+            process = shell_exec([wd_manager, "start", "--standalone"])
             self.obj.startup()
             while not self.obj.check():
                 time.sleep(1)
