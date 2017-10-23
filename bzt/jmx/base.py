@@ -529,7 +529,7 @@ class JMX(object):
         throughput_timer_element = etree.Element(self.THR_TIMER,
                                                  guiclass=self.THR_TIMER + "Gui",
                                                  testclass=self.THR_TIMER,
-                                                 testname="jp@gc - Throughput Shaping Timer",
+                                                 testname="Throughput_Limiter",
                                                  enabled="true")
         shaper_load_prof = self._collection_prop("load_profile")
         throughput_timer_element.append(shaper_load_prof)

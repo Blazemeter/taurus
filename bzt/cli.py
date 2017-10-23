@@ -36,7 +36,7 @@ from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.six import HTTPError, string_types, get_stacktrace
-from bzt.utils import run_once, is_int, BetterDict, get_full_path
+from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url
 
 
 class CLI(object):
@@ -205,8 +205,12 @@ class CLI(object):
         :type configs: list
         :return: integer exit code
         """
+        url_shorthands = []
         jmx_shorthands = []
         try:
+            url_shorthands = self.__get_url_shorthands(configs)
+            configs.extend(url_shorthands)
+
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
 
@@ -223,7 +227,7 @@ class CLI(object):
             self.handle_exception(exc)
         finally:
             try:
-                for fname in jmx_shorthands:
+                for fname in url_shorthands + jmx_shorthands:
                     os.remove(fname)
                 self.engine.post_process()
             except BaseException as exc:
@@ -319,6 +323,73 @@ class CLI(object):
 
             config.dump(fname, Configuration.JSON)
 
+            return [fname]
+        else:
+            return []
+
+    def __get_url_shorthands(self, configs):
+        """
+        :type configs: list
+        :return: list
+        """
+        urls = []
+        for candidate in configs[:]:
+            if is_url(candidate):
+                urls.append(candidate)
+                configs.remove(candidate)
+
+        if urls:
+            self.log.debug("Adding HTTP shorthand config for: %s", urls)
+            config_fds = NamedTemporaryFile(prefix="http_", suffix=".yml")
+            fname = config_fds.name
+            config_fds.close()
+
+            config = Configuration()
+            config.merge({
+                "execution": [{
+                    "concurrency": "${__tstFeedback(Throughput_Limiter,1,${__P(concurrencyCap,1)},2)}",
+                    "hold-for": "2m",
+                    "throughput": "${__P(throughput,600)}",
+                    "scenario": "linear-growth",
+                }],
+                "scenarios": {
+                    "linear-growth": {
+                        "retrieve-resources": False,
+                        "timeout": "5s",
+                        "keepalive": False,
+                        "requests": [{
+                            "action": "pause",
+                            "pause-duration": 0,
+                            "jsr223": [{
+                                "language": "javascript",
+                                "execute": "before",
+                                "script-text": """
+var startTime = parseInt(props.get("startTime"));
+if (!startTime) {
+    startTime = Math.floor((new Date()).getTime() / 1000);
+    props.put("startTime", startTime);
+} else {
+    var now = Math.floor((new Date()).getTime() / 1000);
+    var offset = now - startTime;
+    if (offset < 60) {
+        var targetOffset = Math.max(offset * 10, 10);
+        props.put("throughput", targetOffset.toString());
+    }
+}"""
+                            }]
+                        }] + urls,
+                    }
+                },
+                "modules": {
+                    "jmeter": {
+                        "properties": {
+                            "throughput": 1,
+                            "concurrencyCap": 500,
+                        },
+                    }
+                }
+            })
+            config.dump(fname, Configuration.JSON)
             return [fname]
         else:
             return []

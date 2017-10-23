@@ -16,7 +16,6 @@ class TestRequests(unittest.TestCase):
         profile.set_preference('webdriver.log.file', '<somewhere>/webdriver.log')
         self.driver = webdriver.Firefox(profile)
         self.driver.implicitly_wait(3.5)
-        self.driver.maximize_window()
 
     def tearDown(self):
         self.driver.quit()

@@ -157,6 +157,10 @@ class TestProxy2JMX(BZTestCase):
             self.assertIn(key, additional_env)
             self.assertEqual(required_env[key], additional_env[key])
 
+    def _check_mac(self):
+        self.obj.startup()
+        self.assertIn("Your system doesn't support settings of proxy", self.log_recorder.warn_buff.getvalue())
+
     def test_chrome_proxy(self):
         self.obj.responses = [
             ResponseEmul(200, '{"result" : {}}'),
@@ -182,8 +186,8 @@ class TestProxy2JMX(BZTestCase):
             self._check_linux()
         elif is_windows():
             self._check_windows()
-        else:   # MacOS, for future and manual testing
-            self.assertIn("Your system doesn't support settings of proxy", self.log_recorder.warn_buff.getvalue())
+        else:   # MacOS
+            self._check_mac()
 
         self.obj.shutdown()
         self.obj.post_process()

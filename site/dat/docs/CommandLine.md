@@ -91,6 +91,18 @@ cli-aliases:
         script: jmx2.jmx
 ```
 
+## URL Shorthands
+
+There is a way to run a quick test on an URL (or a number of URLs) with a default load generator simply by using the
+target URL as a command-line argument.
+
+```bash
+bzt http://blazedemo.com/
+```
+
+This command will launch a quick test targetting [http://blazedemo.com/](http://blazedemo.com/). You can combine
+it with other CLI options and aliases, such as `-report`, `-cloud` and others.
+
 ## Artifacts
 
 Each tool start creates _artifacts directory_ under base dir (see `settings.artifacts-dir` command-line option). This directory is used to collect all files that were used with execution: configs (except personal), logs, generated scripts and everything else. Some of important artifacts are:

@@ -157,6 +157,10 @@ scenarios:
  -  `version`: "2.3.0"
     Gatling version, 2.3.0 by default
 
+ -  `dir_prefix`: "gatling-%s"
+    Gatling report prefix. Used by taurus to find gatling reports.
+    If you use gatling property "gatling.core.outputDirectoryBaseName", you may use also this setting.
+
  - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling
  documentation) and sending your own variables into Scala program:
 

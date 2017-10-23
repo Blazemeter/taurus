@@ -30,9 +30,6 @@ from bzt.utils import is_windows, is_mac, platform_bitness
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
-    # FIXME: deprecated, as it's replaced with virtual-display service
-    SHARED_VIRTUAL_DISPLAY = {}
-
     @abstractmethod
     def get_virtual_display(self):
         """
@@ -60,11 +57,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio"]
 
     CHROMEDRIVER_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-    CHROMEDRIVER_VERSION = "2.29"
+    CHROMEDRIVER_VERSION = "2.33"
 
     GECKODRIVER_DOWNLOAD_LINK = "https://github.com/mozilla/geckodriver/releases/download/v{version}/" \
                                 "geckodriver-v{version}-{arch}.{ext}"
-    GECKODRIVER_VERSION = "0.17.0"
+    GECKODRIVER_VERSION = "0.19.0"
 
     SELENIUM_TOOLS_DIR = get_full_path("~/.bzt/selenium-taurus/tools")
 
@@ -123,7 +120,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         link = settings.get('download-link', SeleniumExecutor.CHROMEDRIVER_DOWNLOAD_LINK)
         version = settings.get('version', SeleniumExecutor.CHROMEDRIVER_VERSION)
         if is_windows():
-            arch = 'win32'
+            arch = 'win32'  # no 64-bit windows builds, :(
         elif is_mac():
             arch = 'mac64'
         else:
@@ -142,7 +139,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         link = settings.get('download-link', SeleniumExecutor.GECKODRIVER_DOWNLOAD_LINK)
         version = settings.get('version', SeleniumExecutor.GECKODRIVER_VERSION)
         if is_windows():
-            arch = 'win32' if platform_bitness() == 32 else 'win64'
+            arch = 'win64'  # no 32-bit windows builds, :(
             ext = 'zip'
         elif is_mac():
             arch = 'macos'

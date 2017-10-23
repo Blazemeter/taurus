@@ -4,7 +4,7 @@ import logging
 
 from psutil import Popen
 
-from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError
+from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows
 from tests import BZTestCase
 
 
@@ -37,7 +37,11 @@ class TestLogStreams(BZTestCase):
         missed_file = get_uniq_name('.', 'test6', '')
 
         with log_std_streams(logger=self.captured_logger, stderr_level=logging.WARNING):
-            process = Popen(['dir', missed_file])
+            if is_windows():
+                cmd = 'dir'
+            else:
+                cmd = 'ls'
+            process = Popen([cmd, missed_file])
             process.wait()
 
         debug_buf = self.log_recorder.debug_buff.getvalue()

@@ -382,7 +382,7 @@ class DataCriterion(FailCriterion):
         crit_pat = re.compile(r"([\w?*.-]+)(\s*of\s*([\S ]+))?\s*([<>=]+)\s*(\S+)(\s+(for|within|over)\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
-            raise TaurusConfigError("Criteria string is mailformed in its condition part: %s" % crit_str)
+            raise TaurusConfigError("Criteria string is malformed in its condition part: %s" % crit_str)
         crit_groups = crit_match.groups()
         res["subject"] = crit_groups[0]
         res["condition"] = crit_groups[3]
@@ -398,7 +398,7 @@ class DataCriterion(FailCriterion):
             action_pat = re.compile(r"(stop|continue)(\s+as\s+(failed|non-failed))?")
             act_match = action_pat.match(action_str.strip())
             if not act_match:
-                raise TaurusConfigError("Criteria string is mailformed in its action part: %s" % action_str)
+                raise TaurusConfigError("Criteria string is malformed in its action part: %s" % action_str)
             action_groups = act_match.groups()
             res["stop"] = action_groups[0] != "continue"
             res["fail"] = action_groups[2] is None or action_groups[2] == "failed"
