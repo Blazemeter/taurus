@@ -38,6 +38,8 @@ modules:
     class: bzt.modules.csharp.NUnitExecutor
   pytest:
     class: bzt.modules.python.PyTestExecutor
+  robot:
+    class: bzt.modules.python.RobotExecutor
 
   # service & infra modules
   local:

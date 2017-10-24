@@ -1272,3 +1272,45 @@ class TaurusPytestRunner(RequiredTool):
 
     def install(self):
         raise ToolError("Automatic installation of Taurus pytest runner isn't implemented")
+
+
+class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
+    def __init__(self):
+        super(RobotExecutor, self).__init__()
+        self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "robot_runner.py")
+
+    def prepare(self):
+        self.install_required_tools()
+        self.script = self.get_script_path()
+        if not self.script:
+            raise TaurusConfigError("'script' should be present for robot executor")
+
+        self.reporting_setup(suffix=".ldjson")
+
+    def install_required_tools(self):
+        self._check_tools([TaurusRobotRunner(self.runner_path, "")])
+
+    def startup(self):
+        executable = self.settings.get("interpreter", sys.executable)
+
+        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+
+        cmdline = [executable, self.runner_path, '--report-file', self.report_file]
+
+        load = self.get_load()
+        if load.iterations:
+            cmdline += ['--iterations', str(load.iterations)]
+
+        if load.hold:
+            cmdline += ['--duration', str(load.hold)]
+
+        cmdline += [self.script]
+        self._start_subprocess(cmdline)
+
+
+class TaurusRobotRunner(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(TaurusRobotRunner, self).__init__("TaurusRobotRunner", tool_path, download_link)
+
+    def install(self):
+        raise ToolError("Robot Taurus runner should've been included in Taurus distribution")
