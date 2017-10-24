@@ -2,11 +2,11 @@
 skip_branch_with_pr: true
 
 environment:
-  nodejs_version: "6"
   matrix:
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
+      nodejs_version: "6"
 
 platform:
   - x64
