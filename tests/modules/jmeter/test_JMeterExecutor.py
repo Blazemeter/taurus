@@ -1560,7 +1560,7 @@ class TestJMeterExecutor(BZTestCase):
         loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
         self.assertEqual(loops.text, "10")
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
-        self.assertEqual(forever.text, "false")
+        self.assertEqual(forever.text, "true")
 
     def test_request_logic_loop_forever(self):
         self.configure({
@@ -1574,8 +1574,17 @@ class TestJMeterExecutor(BZTestCase):
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         controller = xml_tree.find(".//LoopController")
         self.assertIsNotNone(controller)
-        forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
-        self.assertEqual(forever.text, "false")
+
+        fprops = xml_tree.findall(".//boolProp[@name='LoopController.continue_forever']")
+        for fprop in fprops:
+            pptag = fprop.getparent().getparent().tag
+            if pptag == "ThreadGroup":
+                self.assertEqual("false", fprop.text)
+            elif pptag == "hashTree":
+                self.assertEqual("true", fprop.text)
+            else:
+                self.fail()
+
         loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
         self.assertEqual(loops.text, "-1")
 
