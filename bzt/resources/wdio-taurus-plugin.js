@@ -49,10 +49,12 @@ var TaurusReporter = function(config) {
 
     var testStartTime = 0;
     var testStatus = null;
+    var testErr = null;
 
     this.on("test:start", function(test) {
         testStartTime = epoch();
         testStatus = null;
+        testErr = null;
     });
 
     this.on("test:pass", function(test) {
@@ -61,6 +63,7 @@ var TaurusReporter = function(config) {
 
     this.on("test:fail", function(test) {
         testStatus = "failed";
+        testErr = test.err;
     });
 
     this.on("test:pending", function(test) {
@@ -76,7 +79,7 @@ var TaurusReporter = function(config) {
         }
 
         test.startTime = testStartTime;
-        var item = reportItem(test, testStatus, test.err || {});
+        var item = reportItem(test, testStatus, testErr || {});
         try {
             reportStream.write(JSON.stringify(item) + "\n");
         } catch(err) {
@@ -173,11 +176,11 @@ function runWDIO() {
     function loopWDIO(code) {
         config.iterations -= 1;
         if (config.iterations === 0) {
-            done(code);
+            done(0);
         }
         var offset = epoch() - startTime;
         if (config.holdFor > 0 && offset > config.holdFor) {
-            done(code);
+            done(0);
         }
         wdio.run().then(loopWDIO, handleError);
     }
