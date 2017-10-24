@@ -2,6 +2,7 @@
 skip_branch_with_pr: true
 
 environment:
+  nodejs_version: "6"
   matrix:
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.x"
@@ -24,6 +25,7 @@ before_test:
   - ruby -v
   - gem -v
   - rspec --version
+  - node --version
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
