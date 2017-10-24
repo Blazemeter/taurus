@@ -16,9 +16,9 @@ var config = {
     exclude: [
         // 'path/to/excluded/files'
     ],
-    capabilities: [{
-        browserName: 'firefox'
-    }],
+    //capabilities: [{
+    //    browserName: 'firefox'
+    //}],
     //
     // ===================
     // Test Configurations
@@ -36,10 +36,10 @@ var config = {
     //
     // Set a base URL in order to shorten url command calls. If your url parameter starts
     // with "/", the base url gets prepended.
-    baseUrl: 'https://twitter.com',
+    //baseUrl: 'https://twitter.com',
     //
     // Default timeout for all waitForXXX commands.
-    waitforTimeout: 10000,
+    //waitforTimeout: 10000,
     framework: 'mocha',
     reporter: 'spec',
     mochaOpts: {
