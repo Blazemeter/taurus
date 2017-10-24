@@ -6,13 +6,14 @@ environment:
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
-      nodejs_version: "6"
+      NODEJS_VERSION: "6"
 
 platform:
   - x64
 
 install:
   - choco install firefox -version 54.0
+  - ps: Install-Product node $env:NODEJS_VERSION
   - "%PYTHON%\\python.exe -m pip install pip --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
   - "%PYTHON%\\python.exe -m pip install locustio nose-exclude coverage codecov"
