@@ -47,7 +47,7 @@ install:
     gem install rspec
     pip install pip --upgrade
     pip install -r requirements.txt
-    pip install codecov nose-exclude locustio
+    pip install codecov nose-exclude locustio robotframework
   fi
 - if [[ $TRAVIS_PYTHON_VERSION == 3.5 ]]; then pip install molotov; fi
 
