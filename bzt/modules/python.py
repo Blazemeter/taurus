@@ -21,6 +21,7 @@ import shlex
 import sys
 from abc import abstractmethod
 from collections import OrderedDict
+from subprocess import CalledProcessError
 
 import apiritif
 import astunparse
@@ -30,7 +31,7 @@ from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules import SubprocessedExecutor
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
-from bzt.utils import BetterDict, ensure_is_dict
+from bzt.utils import BetterDict, ensure_is_dict, shell_exec
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -1288,7 +1289,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix=".ldjson")
 
     def install_required_tools(self):
-        self._check_tools([TaurusRobotRunner(self.runner_path, "")])
+        self._check_tools([Robot("robot", self.log), TaurusRobotRunner(self.runner_path, "")])
 
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
@@ -1314,3 +1315,21 @@ class TaurusRobotRunner(RequiredTool):
 
     def install(self):
         raise ToolError("Robot Taurus runner should've been included in Taurus distribution")
+
+
+class Robot(RequiredTool):
+    def __init__(self, tool_path, parent_logger):
+        super(Robot, self).__init__("RobotFramework", tool_path)
+        self.tool_path = tool_path
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        self.log.debug('Checking RobotFramework: %s' % self.tool_path)
+        try:
+            shell_exec([self.tool_path, '-h'])
+        except (CalledProcessError, OSError):
+            return False
+        return True
+
+    def install(self):
+        raise ToolError("You must install robot framework")
