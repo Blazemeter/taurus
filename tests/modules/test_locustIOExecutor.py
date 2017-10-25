@@ -5,9 +5,15 @@ import time
 import os
 import unittest
 
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
+
 from bzt import six, ToolError
 from bzt.modules.jmeter import JTLReader
 from bzt.six import PY2
+from bzt.utils import dehumanize_time
 from tests import BZTestCase, __dir__, RESOURCES_DIR
 
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -66,6 +72,34 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertEqual(self.obj.widget.duration, 30)
         self.assertTrue(self.obj.widget.widgets[0].text.endswith("simple.py"))
         self.obj.shutdown()
+
+    def test_locust_fractional_hatch_rate(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
+        test_concurrency, test_ramp_up = 4, "60s"
+        expected_hatch_rate = test_concurrency / dehumanize_time(test_ramp_up)
+
+        self.obj.execution.merge({
+            "concurrency": test_concurrency,
+            "ramp-up": test_ramp_up,
+            "iterations": 10,
+            "hold-for": 30,
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "script": RESOURCES_DIR + "locust/simple.py"
+            }
+        })
+
+        self.obj.prepare()
+        with mock.patch('bzt.modules.locustio.LocustIOExecutor.execute') as m:
+            self.obj.startup()
+            # Extract the hatch-rate cmdline arg that bzt passed to locust.
+            hatch = [
+                x.split('=')[1] for x in m.call_args[0][0]
+                if x.startswith("--hatch-rate")
+            ]
+            self.assertEqual(hatch[0], "%f" % expected_hatch_rate)
 
     def test_locust_master(self):
         if six.PY3:

@@ -82,7 +82,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         load = self.get_load()
         concurrency = load.concurrency or 1
         if load.ramp_up:
-            hatch = math.ceil(concurrency / load.ramp_up)
+            hatch = concurrency / float(load.ramp_up)
         else:
             hatch = concurrency
 
@@ -97,7 +97,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         args = [sys.executable, wrapper, '-f', self.script]
         args += ['--logfile=%s' % self.log_file]
         args += ["--no-web", "--only-summary", ]
-        args += ["--clients=%d" % concurrency, "--hatch-rate=%d" % hatch]
+        args += ["--clients=%d" % concurrency, "--hatch-rate=%f" % hatch]
         if load.iterations:
             args.append("--num-request=%d" % load.iterations)
 
