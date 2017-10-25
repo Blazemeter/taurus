@@ -39,7 +39,7 @@ install:
     gem install rspec
     pip install pip --upgrade
     pip install -r requirements.txt
-    pip install codecov nose-exclude locustio
+    pip install codecov nose-exclude locustio robotframework==3.0.2
   else
     rvm get stable
     nvm install 4.2
@@ -47,7 +47,7 @@ install:
     gem install rspec
     pip install pip --upgrade
     pip install -r requirements.txt
-    pip install codecov nose-exclude locustio robotframework
+    pip install codecov nose-exclude locustio robotframework==3.0.2
   fi
 - if [[ `python -c "import sys; print(sys.version_info < (3, 3))"`='True' ]]; then pip install mock; fi;
 - if [[ $TRAVIS_PYTHON_VERSION == 3.5 ]]; then pip install molotov; fi
