@@ -50,7 +50,7 @@ import psutil
 import shutil
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
@@ -236,13 +236,16 @@ class BetterDict(defaultdict):
 
     def __merge_list_elements(self, left, right, key):
         for index, righty in enumerate(right):
-            lefty = left[index]
-            if isinstance(lefty, BetterDict):
-                if isinstance(righty, BetterDict):
-                    lefty.merge(righty)
-                    continue
-            self.log.warning("Overwriting the value of %r when merging configs", key)
-            left[index] = righty
+            if index < len(left):
+                lefty = left[index]
+                if isinstance(lefty, BetterDict):
+                    if isinstance(righty, BetterDict):
+                        lefty.merge(righty)
+                        continue
+                logging.warning("Overwriting the value of %r when merging configs", key)
+                left[index] = righty
+            else:
+                left.insert(index, righty)
 
     def __ensure_list_type(self, values):
         """
@@ -1203,3 +1206,7 @@ def get_host_ips(filter_loopbacks=True):
                 continue
             ips.append(iface.address)
     return ips
+
+
+def is_url(url):
+    return parse.urlparse(url).scheme in ["https", "http"]

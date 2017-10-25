@@ -88,7 +88,10 @@ class TestMolotov(BZTestCase):
         obj = MolotovExecutor()
         obj.engine = EngineEmul()
         obj.execution.merge({
+            "concurrency": 3,
+            "processes": 2,
             "hold-for": "5s",
+            "iterations": 10,
             "scenario": {
                 "script": get_res_path("loadtest.py")
             }

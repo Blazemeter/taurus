@@ -712,7 +712,8 @@ class JMeterScenarioBuilder(JMX):
             delimiter = source.get('delimiter', None)
 
             if jmeter_var_pattern.search(source_path):
-                self.log.warning("Path to CSV contains JMeter variable/function, can't check for file existence: %s", source_path)
+                msg = "Path to CSV contains JMeter variable/function, can't check for file existence: %s"
+                self.log.warning(msg, source_path)
                 if not delimiter:
                     delimiter = ','
                     self.log.warning("Can't detect CSV dialect, default delimiter will be '%s'", delimiter)

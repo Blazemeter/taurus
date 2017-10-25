@@ -13,45 +13,21 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import os
-import sys
+from setuptools import setup
 
 # noinspection PyPackageRequirements
 import pip
 
-from setuptools.command.install import install
-from setuptools import setup
-
 import bzt
 
 
-class InstallWithHook(install, object):
-    """
-    Command adding post-install hook to setup
-    """
-
-    def run(self):
-        """
-        Do the command's job!
-        """
-        install.run(self)
-        self.__hook()
-
-    def __hook(self):
-        dirname = bzt.get_configs_dir()
-        if os.path.exists(dirname):
-            sys.stdout.write("[%s] Found %s\n" % (bzt.VERSION, dirname))
-            src = os.path.join(dirname, "10-base.json")
-            if os.path.exists(src):
-                sys.stdout.write("Removing outdated %s\n" % src)
-                os.remove(src)
-
-# thanks to pip there are two incompatible ways to parse requirements.txt
-if pip.__version__ < '7':
-    requirements = pip.req.parse_requirements('requirements.txt')
-else:
-    # new versions of pip requires a session
+# thanks to pip there are two :incompatible ways to parse requirements.txt
+if hasattr(pip, '__version__') and pip.__version__ >= '7':
+    # new versions of pip require a session
     requirements = pip.req.parse_requirements('requirements.txt', session=pip.download.PipSession())
+else:
+    # old versions do not
+    requirements = pip.req.parse_requirements('requirements.txt')
 
 requires = [str(item.req) for item in requirements]
 
@@ -79,5 +55,25 @@ setup(
     package_data={
         "bzt": [],
     },
-    cmdclass={"install": InstallWithHook}  # TODO: remove it completely once we have most of users upgraded to>=1.8.5
+
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+
+        'Topic :: Software Development :: Quality Assurance',
+        'Topic :: Software Development :: Testing',
+        'Topic :: Software Development :: Testing :: Traffic Generation',
+
+        'License :: OSI Approved :: Apache Software License',
+
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: MacOS',
+        'Operating System :: POSIX :: Linux',
+
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+    ],
 )

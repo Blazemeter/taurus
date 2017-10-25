@@ -507,7 +507,9 @@ class JMX(object):
                              elementType="LoopController",
                              guiclass="LoopControlPanel",
                              testclass="LoopController")
-        loop.append(JMX._bool_prop("LoopController.continue_forever", False))  # always false except of root LC
+
+        # 'true' causes endless execution of TG in non-gui mode
+        loop.append(JMX._bool_prop("LoopController.continue_forever", False))
         loop.append(JMX._string_prop("LoopController.loops", iterations))
         trg.append(loop)
 
@@ -529,7 +531,7 @@ class JMX(object):
         throughput_timer_element = etree.Element(self.THR_TIMER,
                                                  guiclass=self.THR_TIMER + "Gui",
                                                  testclass=self.THR_TIMER,
-                                                 testname="jp@gc - Throughput Shaping Timer",
+                                                 testname="Throughput_Limiter",
                                                  enabled="true")
         shaper_load_prof = self._collection_prop("load_profile")
         throughput_timer_element.append(shaper_load_prof)
@@ -1073,7 +1075,9 @@ class JMX(object):
             iterations = loops
         controller = etree.Element("LoopController", guiclass="LoopControlPanel", testclass="LoopController",
                                    testname="Loop Controller")
-        controller.append(JMX._bool_prop("LoopController.continue_forever", False))  # always false except of root LC
+
+        # 'false' means controller can be called only one time (by parent)
+        controller.append(JMX._bool_prop("LoopController.continue_forever", True))
         controller.append(JMX._string_prop("LoopController.loops", str(iterations)))
         return controller
 
