@@ -40,6 +40,8 @@ modules:
     class: bzt.modules.python.PyTestExecutor
   wdio:
     class: bzt.modules.javascript.WebdriverIOExecutor
+  robot:
+    class: bzt.modules.python.RobotExecutor
 
   # service & infra modules
   local:

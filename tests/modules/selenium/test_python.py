@@ -5,7 +5,7 @@ import time
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader
-from bzt.modules.python import NoseTester, PyTestExecutor
+from bzt.modules.python import NoseTester, PyTestExecutor, RobotExecutor
 from bzt.utils import is_windows
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
@@ -972,3 +972,80 @@ class TestPyTestExecutor(BZTestCase):
         with open(self.obj.stdout_file) as fds:
             stdout = fds.read()
             self.assertIn(ADDITIONAL_ARGS, stdout)
+
+
+class TestRobotExecutor(BZTestCase):
+    def setUp(self):
+        super(TestRobotExecutor, self).setUp()
+        self.obj = RobotExecutor()
+        self.obj.engine = EngineEmul()
+
+    def configure(self, config):
+        self.obj.engine.config.merge(config)
+        self.obj.execution = self.obj.engine.config["execution"][0]
+
+    def test_full_single_script(self):
+        self.configure({
+            "execution": [{
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot"
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+        lines = open(self.obj.report_file).readlines()
+        self.assertEqual(5, len(lines))
+
+    def test_hold(self):
+        self.configure({
+            "execution": [{
+                "hold-for": "5s",
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot"
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            start_time = time.time()
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertTrue(os.path.exists(self.obj.report_file))
+        duration = time.time() - start_time
+        self.assertGreater(duration, 5)
+
+    def test_iterations(self):
+        self.configure({
+            "execution": [{
+                "iterations": 3,
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot"
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+        lines = open(self.obj.report_file).readlines()
+        self.assertEqual(3 * 5, len(lines))
+

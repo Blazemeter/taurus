@@ -21,6 +21,7 @@ import shlex
 import sys
 from abc import abstractmethod
 from collections import OrderedDict
+from subprocess import CalledProcessError
 
 import apiritif
 import astunparse
@@ -30,7 +31,7 @@ from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules import SubprocessedExecutor
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
-from bzt.utils import BetterDict, ensure_is_dict
+from bzt.utils import BetterDict, ensure_is_dict, shell_exec
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, dehumanize_time
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -1272,3 +1273,68 @@ class TaurusPytestRunner(RequiredTool):
 
     def install(self):
         raise ToolError("Automatic installation of Taurus pytest runner isn't implemented")
+
+
+class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
+    def __init__(self):
+        super(RobotExecutor, self).__init__()
+        self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "robot_runner.py")
+
+    def prepare(self):
+        self.install_required_tools()
+        self.script = self.get_script_path()
+        if not self.script:
+            raise TaurusConfigError("'script' should be present for robot executor")
+
+        self.reporting_setup(suffix=".ldjson")
+
+    def install_required_tools(self):
+        self._check_tools([Robot(self.settings.get("interpreter", sys.executable), self.log),
+                           TaurusRobotRunner(self.runner_path, "")])
+
+    def startup(self):
+        executable = self.settings.get("interpreter", sys.executable)
+
+        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+
+        cmdline = [executable, self.runner_path, '--report-file', self.report_file]
+
+        load = self.get_load()
+        if load.iterations:
+            cmdline += ['--iterations', str(load.iterations)]
+
+        if load.hold:
+            cmdline += ['--duration', str(load.hold)]
+
+        cmdline += [self.script]
+        self._start_subprocess(cmdline)
+
+
+class TaurusRobotRunner(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(TaurusRobotRunner, self).__init__("TaurusRobotRunner", tool_path, download_link)
+
+    def install(self):
+        raise ToolError("Robot Taurus runner should've been included in Taurus distribution")
+
+
+class Robot(RequiredTool):
+    def __init__(self, python_executable, parent_logger):
+        super(Robot, self).__init__("RobotFramework", "")
+        self.python_executable = python_executable
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def check_if_installed(self):
+        self.log.debug('Checking Robot Framework: %s' % self.tool_path)
+        try:
+            checker = shell_exec([self.python_executable, '-c', 'import robot; print(robot.__version__)'])
+            output = checker.communicate()
+            self.log.debug("Robot output: %s", output)
+            if checker.returncode != 0:
+                return False
+        except (CalledProcessError, OSError):
+            return False
+        return True
+
+    def install(self):
+        raise ToolError("You must install robot framework")
