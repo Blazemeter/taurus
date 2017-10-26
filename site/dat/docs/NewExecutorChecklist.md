@@ -2,6 +2,8 @@
 
 This is a checklist for adding new test executor to Taurus.
 
+There's [another guide](AddingExecutor.md) that focuses on the implementation of test executor.
+
 ## Code
 
 * [ ] Executor class
