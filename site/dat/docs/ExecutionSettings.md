@@ -39,6 +39,7 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [RSpec](RSpec.md), executor type `rspec`
   - [Mocha](Mocha.md), executor type `mocha`
   - [NUnit](NUnit.md), executor type `nunit`
+  - [WebdriverIO](WebdriverIO.md), executor type `wdio`
 
 Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
 ```yaml

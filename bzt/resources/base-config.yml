@@ -38,6 +38,8 @@ modules:
     class: bzt.modules.csharp.NUnitExecutor
   pytest:
     class: bzt.modules.python.PyTestExecutor
+  wdio:
+    class: bzt.modules.javascript.WebdriverIOExecutor
 
   # service & infra modules
   local:

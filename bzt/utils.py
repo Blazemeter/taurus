@@ -328,7 +328,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 
     if isinstance(args, string_types) and not shell:
         args = shlex.split(args, posix=not is_windows())
-    logging.getLogger(__name__).debug("Executing shell: %s", args)
+    logging.getLogger(__name__).debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
     if env:
         env = {k: str(v) for k, v in iteritems(env)}

@@ -120,6 +120,13 @@ execution:
   scenario:
     script: selenium/pytest_example.py
 
+- executor: wdio
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: functional/wdio.conf.js
+
 # all of load-style executors
 ---
 execution:

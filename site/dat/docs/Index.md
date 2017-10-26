@@ -16,6 +16,7 @@
     1. [PyTest Executor](PyTest.md)
     1. [RSpec Executor](RSpec.md)
     1. [Mocha Executor](Mocha.md)
+    1. [WebdriverIO Executor](WebdriverIO.md)
     1. [NUnit Executor](NUnit.md)
     1. [Gatling Executor](Gatling.md)
     1. [Grinder Executor](Grinder.md)
