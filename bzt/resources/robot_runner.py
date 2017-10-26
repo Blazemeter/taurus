@@ -83,8 +83,8 @@ class TaurusListener:
 def run_robot(targets, report_file, iteration_limit, duration_limit):
     listener = TaurusListener(report_file)
     listener.prepare()
-    stdout = io.StringIO()
-    stderr = io.StringIO()
+    stdout = StringIO()
+    stderr = StringIO()
     start_time = int(time.time())
     iteration = 0
     try:
