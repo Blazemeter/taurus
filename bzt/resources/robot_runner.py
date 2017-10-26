@@ -95,12 +95,10 @@ def run_robot(targets, report_file, iteration_limit, duration_limit):
     iteration = 0
     try:
         while True:
-            run(
-                *targets,
+            run(*targets,
                 listener=listener,  # pass Taurus listener
                 output=None, log=None, report=None,  # mute default reporting
-                stdout=stdout, stderr=stderr,  # capture stdout/stderr
-            )
+                stdout=stdout, stderr=stderr)  # capture stdout/stderr
             iteration += 1
             if 0 < duration_limit < int(time.time()) - start_time:
                 break
