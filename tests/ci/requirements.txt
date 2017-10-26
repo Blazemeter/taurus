@@ -4,3 +4,5 @@ locustio
 coverage
 mock; python_version < '3.3'
 molotov; python_version >= '3.5'
+robotframework
+
