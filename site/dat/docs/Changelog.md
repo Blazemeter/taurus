@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.10.0 <sup>next</sup>
+## 1.10.0 <sup>26 oct 2017</sup>
  - fully migrate to python wheel distribution
  - provide Homebrew recipe for OSX users to install Taurus easily
  - add URL shorthands testing to `bzt` CLI, allowing config-less quick-test
@@ -21,6 +21,7 @@
  - fix installation with old `pip` versions 
  - optimize BlazeMeter API interaction by querying only test's workspace locations
  - convert Groovy scripts in SoapUI to JMeter's JSR223 blocks
+ - fix issue with JMeter not handling loop controllers properly
 
 ## 1.9.6 <sup>27 sep 2017</sup>
  - add `pytest` executor type
