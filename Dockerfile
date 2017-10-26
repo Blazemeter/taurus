@@ -49,7 +49,7 @@ RUN apt-get -y update \
     python3-dev python3-pip \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
-  && pip3 install --upgrade setuptools wheel \
+  && pip3 install --upgrade setuptools wheel pip \
   && pip3 install molotov robotframework robotframework-seleniumlibrary \
   && npm install -g mocha \
   && gem install rspec \
