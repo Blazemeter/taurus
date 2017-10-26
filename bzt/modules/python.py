@@ -1289,7 +1289,8 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix=".ldjson")
 
     def install_required_tools(self):
-        self._check_tools([Robot("robot", self.log), TaurusRobotRunner(self.runner_path, "")])
+        self._check_tools([Robot(self.settings.get("interpreter", sys.executable), self.log),
+                           TaurusRobotRunner(self.runner_path, "")])
 
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
@@ -1318,17 +1319,19 @@ class TaurusRobotRunner(RequiredTool):
 
 
 class Robot(RequiredTool):
-    def __init__(self, tool_path, parent_logger):
-        super(Robot, self).__init__("RobotFramework", tool_path)
-        self.tool_path = tool_path
+    def __init__(self, python_executable, parent_logger):
+        super(Robot, self).__init__("RobotFramework", "")
+        self.python_executable = python_executable
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
-        self.log.debug('Checking RobotFramework: %s' % self.tool_path)
+        self.log.debug('Checking Robot Framework: %s' % self.tool_path)
         try:
-            robot = shell_exec([self.tool_path, '--version'])
-            output = robot.communicate()
-            self.log.debug("%s output: %s", self.tool_name, output)
+            checker = shell_exec([self.python_executable, '-c', 'import robot; print(robot.__version__)'])
+            output = checker.communicate()
+            self.log.debug("Robot output: %s", output)
+            if checker.returncode != 0:
+                return False
         except (CalledProcessError, OSError):
             return False
         return True
