@@ -1,0 +1,12 @@
+{
+  "name": "webdriverio-sample",
+  "main": "index.js",
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "chai-as-promised": "^5.1.0",
+    "mocha": "^3.5.3",
+    "run-sequence": "^1.1.4",
+    "wdio-mocha-framework": "^0.5.11",
+    "webdriverio": "^4.8.0"
+  }
+}

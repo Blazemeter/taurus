@@ -223,7 +223,6 @@ function runMocha() {
         setInterval(function() {
             var totalTests = mochaConfig.reporterOptions.totalTests,
                 itemsWritten = mochaConfig.reporterOptions.itemsWritten;
-            // console.log('checking itemsWritten=', itemsWritten, ' vs totalTests=', totalTests);
             if (itemsWritten >= totalTests) {
                 process.exit(0);
             }
