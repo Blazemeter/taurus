@@ -89,7 +89,6 @@ def run_robot(targets, report_file, iteration_limit, duration_limit):
     try:
         while True:
             run(*targets, listener=listener, stdout=stdout, stderr=stderr)
-            # TODO: capture stdout/stderr by passing streams here
             iteration += 1
             if 0 < duration_limit < int(time.time()) - start_time:
                 break
@@ -97,8 +96,12 @@ def run_robot(targets, report_file, iteration_limit, duration_limit):
                 break
     finally:
         listener.post_process()
-        if listener.get_test_count() == 0:
-            raise ValueError("Nothing to test. No tests were found.")
+
+    sys.stdout.write("Robot stdout:\n" + stdout.getvalue() + "\n")
+    sys.stderr.write("Robot stderr:\n" + stderr.getvalue() + "\n")
+
+    if listener.get_test_count() == 0:
+        raise ValueError("Nothing to test. No tests were found.")
 
 
 if __name__ == '__main__':
