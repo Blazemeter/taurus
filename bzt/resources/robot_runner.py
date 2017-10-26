@@ -1,9 +1,13 @@
-import io
 import json
 import sys
 import time
 from datetime import datetime
 from optparse import OptionParser
+
+if sys.version_info < (3, 0):
+    from StringIO import StringIO
+else:
+    from io import StringIO
 
 from bzt.modules.python import Sample
 from robot import run
@@ -57,9 +61,6 @@ class TaurusListener:
 
     def start_test(self, name, attrs):
         pass
-        # tags = ' '.join(attrs['tags'])
-        # self._report_file.write("- %s '%s' [ %s ] :: " % (name, attrs['doc'], tags))
-        # self._report_file.flush()
 
     def end_test(self, name, attrs):
         # TODO: include keywords as subsamples
