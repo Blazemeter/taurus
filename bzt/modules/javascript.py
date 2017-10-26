@@ -27,6 +27,7 @@ from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node
 MOCHA_NPM_PACKAGE_NAME = "mocha"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
 WDIO_NPM_PACKAGE_NAME = "webdriverio"
+WDIO_MOCHA_PLUGIN_NPM_PACKAGE_NAME = "wdio-mocha-framework"
 
 
 class MochaTester(SubprocessedExecutor, HavingInstallableTools):
@@ -130,6 +131,7 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         tools.append(self.npm_tool)
         tools.append(self.wdio_tool)
         tools.append(TaurusWDIOPlugin(self.plugin_path, ""))
+        tools.append(WDIOMochaPlugin(self.tools_dir, self.node_tool, self.npm_tool, self.log))
 
         self._check_tools(tools)
 
@@ -246,6 +248,12 @@ class WDIO(NPMPackage):
     def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
         super(WDIO, self).__init__("WebdriverIO", WDIO_NPM_PACKAGE_NAME,
                                    tools_dir, node_tool, npm_tool, parent_logger)
+
+
+class WDIOMochaPlugin(NPMPackage):
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+        super(WDIOMochaPlugin, self).__init__("WebdriverIOMochaPlugin", WDIO_MOCHA_PLUGIN_NPM_PACKAGE_NAME,
+                                              tools_dir, node_tool, npm_tool, parent_logger)
 
 
 class TaurusMochaPlugin(RequiredTool):
