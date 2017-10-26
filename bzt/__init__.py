@@ -17,7 +17,7 @@ import os
 import sys, platform
 from abc import abstractmethod
 
-VERSION = "1.9.6"
+VERSION = "1.10.0"
 
 
 class RCProvider(object):
@@ -51,6 +51,8 @@ class ToolError(TaurusException):
         :type message: str
         :type diagnostics: list[str]
         """
+        if diagnostics:
+            message += "\n" + "\n".join(line for line in diagnostics)
         super(ToolError, self).__init__(message)
         self.diagnostics = diagnostics
 

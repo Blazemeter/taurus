@@ -54,3 +54,7 @@ Then, at the `prepare` stage, executor should instantiate reader class and add i
 
 For a working example you can take a look at `bzt/modules/ab.py`, which implements Taurus executor for `ab` tool
 from Apache's HTTP tool set.
+
+
+Additionally, there's a [checklist](NewExecutorChecklist.md) we use when adding new
+executors to ensure that everything is considered.
