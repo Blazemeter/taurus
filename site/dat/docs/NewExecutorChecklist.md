@@ -20,7 +20,7 @@ There's [another guide](AddingExecutor.md) that focuses on the implementation of
 
 ## Docs
 
-* [ ] Add new executor doc page in site/dat/docs/
+* [ ] Add new executor doc page in `site/dat/docs/`
     * [ ] Short description
     * [ ] List of features
     * [ ] Configuration examples
