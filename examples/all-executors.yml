@@ -16,6 +16,10 @@ reporting:
   criteria:
   - fail>0 for 1s
 
+modules:
+  robot:
+    interpreter: python3
+
 # all of functional-style executors
 ---
 execution:
@@ -126,6 +130,13 @@ execution:
   iterations: 10
   scenario:
     script: functional/wdio.conf.js
+
+- executor: robot
+  concurrency: 1
+  hold-for: 10s
+  iterations: 10
+  scenario:
+    script: functional/robot-simple/test.robot
 
 # all of load-style executors
 ---
