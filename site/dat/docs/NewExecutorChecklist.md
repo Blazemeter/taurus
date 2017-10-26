@@ -26,7 +26,7 @@ There's [another guide](AddingExecutor.md) that focuses on the implementation of
     * [ ] Configuration examples
     * [ ] Notes and specifics
 * [ ] Mention new executor to `site/dat/docs/Index.md` and `site/dat/docs/ExecutionSettings.md` 
-* [ ] Add `.change` file to site/dat/docs/changes/
+* [ ] Add `.change` file to `site/dat/docs/changes/`
 
 
 ## Miscellaneous
