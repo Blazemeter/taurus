@@ -73,7 +73,13 @@ class TaurusListener:
             sample.status = 'PASSED'
         else:
             sample.status = 'FAILED'
-            sample.error_msg = attrs['message']
+            message = attrs['message']
+            if '\n' in message:
+                lines = message.split('\n')
+                sample.error_msg = lines[0]
+                sample.error_trace = message
+            else:
+                sample.error_msg = message
         self._report_sample(sample)
 
     def end_suite(self, name, attrs):
