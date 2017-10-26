@@ -6,12 +6,14 @@ environment:
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
+      NODEJS_VERSION: "6"
 
 platform:
   - x64
 
 install:
   - choco install firefox -version 54.0
+  - ps: Install-Product node $env:NODEJS_VERSION
   - "%PYTHON%\\python.exe -m pip install pip --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
   - "%PYTHON%\\python.exe -m pip install locustio nose-exclude coverage codecov mock"
@@ -24,6 +26,7 @@ before_test:
   - ruby -v
   - gem -v
   - rspec --version
+  - node --version
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \

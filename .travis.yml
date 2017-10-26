@@ -34,16 +34,16 @@ install:
 - |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     mono --version
-    nvm install 4.2
-    nvm use 4.2
+    nvm install 6.11
+    nvm use 6.11
     gem install rspec
     pip install pip --upgrade
     pip install -r requirements.txt
     pip install codecov nose-exclude locustio
   else
     rvm get stable
-    nvm install 4.2
-    nvm use 4.2
+    nvm install 6.11
+    nvm use 6.11
     gem install rspec
     pip install pip --upgrade
     pip install -r requirements.txt
