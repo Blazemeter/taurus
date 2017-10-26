@@ -13,7 +13,7 @@ This is a checklist for adding new test executor to Taurus.
 ## Tests
 
 * [ ] Unit tests
-* [ ] Hand testing
+* [ ] Manual testing
 
 
 ## Docs
