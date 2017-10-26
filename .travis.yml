@@ -34,23 +34,15 @@ install:
 - |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     mono --version
-    nvm install 6.11
-    nvm use 6.11
-    gem install rspec
-    pip install pip --upgrade
-    pip install -r requirements.txt
-    pip install codecov nose-exclude locustio
   else
     rvm get stable
-    nvm install 6.11
-    nvm use 6.11
-    gem install rspec
-    pip install pip --upgrade
-    pip install -r requirements.txt
-    pip install codecov nose-exclude locustio
   fi
-- if [[ `python -c "import sys; print(sys.version_info < (3, 3))"`='True' ]]; then pip install mock; fi;
-- if [[ $TRAVIS_PYTHON_VERSION == 3.5 ]]; then pip install molotov; fi
+  nvm install 6.11
+  nvm use 6.11
+  gem install rspec
+  pip install pip --upgrade
+  pip install -r requirements.txt
+  pip install -r tests/ci/requirements.txt
 
 script:
 - |
