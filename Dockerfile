@@ -48,9 +48,9 @@ RUN apt-get -y update \
     mono-complete nuget \
     python3-dev python3-pip \
   && pip install --upgrade setuptools pip \
-  && pip install locustio robotframework bzt && pip uninstall -y bzt \
+  && pip install locustio bzt && pip uninstall -y bzt \
   && pip3 install --upgrade setuptools wheel \
-  && pip3 install molotov \
+  && pip3 install molotov robotframework robotframework-seleniumlibrary \
   && npm install -g mocha \
   && gem install rspec \
   && gem install selenium-webdriver \
