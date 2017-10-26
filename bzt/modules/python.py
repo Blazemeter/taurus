@@ -1326,7 +1326,9 @@ class Robot(RequiredTool):
     def check_if_installed(self):
         self.log.debug('Checking RobotFramework: %s' % self.tool_path)
         try:
-            shell_exec([self.tool_path, '--version'])
+            robot = shell_exec([self.tool_path, '--version'])
+            output = robot.communicate()
+            self.log.debug("%s output: %s", self.tool_name, output)
         except (CalledProcessError, OSError):
             return False
         return True
