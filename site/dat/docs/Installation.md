@@ -75,8 +75,13 @@ To upgrade Taurus, open Command Prompt as administrator and run
 ### Install Homebrew Package
 You can use [brew](https://brew.sh/) package manager to install taurus:
 ```bash
-brew update && brew install bzt
+brew install bzt
 ```
+and to update it:
+```bash
+brew upgrade bzt
+```
+If your brew auto update is switched off don't forget to manage it manually.
 Keep in mind: some additional software can be required depend of test type
 ([JVM/JDK](http://www.oracle.com/technJava Runtime inetwork/java/javase/downloads/jdk8-downloads-2133151.html), Grider, etc.)
 
