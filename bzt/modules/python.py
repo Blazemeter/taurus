@@ -28,7 +28,8 @@ import astunparse
 import apiritif
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
-from bzt.modules import SubprocessedExecutor
+from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator
+from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
 from bzt.utils import BetterDict, ensure_is_dict, shell_exec
@@ -1341,8 +1342,14 @@ class Robot(RequiredTool):
 
 
 class ApiritifExecutor(SubprocessedExecutor):
+    """
+    :type _readers: list[JTLReader]
+    """
+
     def __init__(self):
         super(ApiritifExecutor, self).__init__()
+        self._tailer = NoneTailer()
+        self._readers = []
 
     def prepare(self):
         self.script = self.get_script_path()
@@ -1389,3 +1396,15 @@ class ApiritifExecutor(SubprocessedExecutor):
 
         cmdline += [self.script]
         self._start_subprocess(cmdline)
+        self._tailer = FileTailer(self.stdout_file)
+
+    def check(self):
+        for line in self._tailer.get_lines():
+            if "Adding worker" in line:
+                marker = "results="
+                pos = line.index(marker)
+                fname = line[pos + len(marker):].strip()
+                self.log.debug("Adding result reader for %s", fname)
+                reader = JTLReader(fname, self.log)
+                if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+                    self.engine.aggregator.add_underling(reader)
