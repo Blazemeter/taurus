@@ -23,9 +23,9 @@ from abc import abstractmethod
 from collections import OrderedDict
 from subprocess import CalledProcessError
 
-import apiritif
 import astunparse
 
+import apiritif
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules import SubprocessedExecutor
@@ -1338,3 +1338,54 @@ class Robot(RequiredTool):
 
     def install(self):
         raise ToolError("You must install robot framework")
+
+
+class ApiritifExecutor(SubprocessedExecutor):
+    def __init__(self):
+        super(ApiritifExecutor, self).__init__()
+
+    def prepare(self):
+        self.script = self.get_script_path()
+
+        if not self.script:
+            if "requests" in self.get_scenario():
+                self.script = self.__tests_from_requests()
+            else:
+                raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
+
+    def __tests_from_requests(self):
+        filename = self.engine.create_artifact("test_requests", ".py")
+        builder = ApiritifScriptGenerator(self.get_scenario(), self.log)
+        builder.build_source_code()
+        builder.save(filename)
+        return filename
+
+    def startup(self):
+        """
+        run python tests
+        """
+        executable = self.settings.get("interpreter", sys.executable)
+
+        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+
+        report_tpl = self.engine.create_artifact("apiritif-", "") + "%s.csv"
+        cmdline = [executable, "-m", "apiritif.loadgen", '--result-file-template', report_tpl]
+
+        load = self.get_load()
+        if load.concurrency:
+            cmdline += ['--concurrency', str(load.concurrency)]
+
+        if load.iterations:
+            cmdline += ['--iterations', str(load.iterations)]
+
+        if load.hold:
+            cmdline += ['--hold-for', str(load.hold)]
+
+        if load.ramp_up:
+            cmdline += ['--ramp-up', str(load.ramp_up)]
+
+        if load.steps:
+            cmdline += ['--steps', str(load.ramp_up)]
+
+        cmdline += [self.script]
+        self._start_subprocess(cmdline)

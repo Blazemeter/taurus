@@ -42,6 +42,8 @@ modules:
     class: bzt.modules.javascript.WebdriverIOExecutor
   robot:
     class: bzt.modules.python.RobotExecutor
+  apiritif:
+    class: bzt.modules.python.ApiritifExecutor
 
   # service & infra modules
   local:
