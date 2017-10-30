@@ -18,6 +18,7 @@ import codecs
 import itertools
 import json
 import logging
+import os
 import re
 import sys
 import traceback
@@ -25,10 +26,9 @@ from collections import namedtuple
 from copy import deepcopy
 from optparse import OptionParser
 
-import os
-from bzt import TaurusInternalException
 from cssselect import GenericTranslator
 
+from bzt import TaurusInternalException
 from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
@@ -224,7 +224,7 @@ class JMXasDict(JMX):
             body = self._get_string_prop(http_args_element, 'Argument.value')
             if body:
                 self.log.debug('Got %s for body in %s (%s)', body, element.tag, element.get("name"))
-                return{'body': body}
+                return {'body': body}
             else:
                 return {}
         else:
@@ -276,9 +276,6 @@ class JMXasDict(JMX):
         """
         check if parameter can be processed by standard way (see jmx.py _add_body_from_script)
          or it must be joined with url string
-
-        :param element:
-        :return:
         """
         if not self._get_bool_prop(param, "HTTPArgument.always_encode"):
             return 'always_encode is off'
@@ -680,17 +677,17 @@ class JMXasDict(JMX):
                         continue
                 elif extractor_element.tag == native_extractor_pattern:
                     self.log.warning("Found native JSONPath extractor")
-                    vars = self._get_string_prop(extractor_element, 'JSONPostProcessor.referenceNames')
-                    if not vars:
+                    variables = self._get_string_prop(extractor_element, 'JSONPostProcessor.referenceNames')
+                    if not variables:
                         self.log.warning("No vars declared for JSONPath extractor")
                         continue
                     queries = self._get_string_prop(extractor_element, 'JSONPostProcessor.jsonPathExprs')
-                    if not vars:
+                    if not variables:
                         self.log.warning("No queries declared for JSONPath extractor")
                         continue
                     def_values = self._get_string_prop(extractor_element, 'JSONPostProcessor.defaultValues')
                     def_values_iter = iter(def_values.split(';') if def_values is not None else None)
-                    for var, query in zip(vars.split(';'), queries.split(';')):
+                    for var, query in zip(variables.split(';'), queries.split(';')):
                         extractor = {"jsonpath": query}
                         try:
                             extractor["default"] = next(def_values_iter)
@@ -1122,7 +1119,7 @@ class JMXasDict(JMX):
                     try:
                         request['body'] = json.loads(body)
                     except (ValueError, TypeError):
-                        raise TaurusInternalException("Following body cannot be converted into JSON:\n%s", body)
+                        self.log.warning("Following body cannot be converted into JSON:\n%s", body)
 
             self.log.debug("Total requests in tg groups: %d", len(requests))
             if not requests:
@@ -1273,7 +1270,7 @@ class JMXasDict(JMX):
         self.global_objects = []
         try:
             ht_object = self.tree.find(".//hashTree").find(".//TestPlan").getnext()
-        except:
+        except BaseException:
             raise TaurusInternalException("Bad jmx format")
         for obj in ht_object.iterchildren():
             if obj.tag != 'hashTree' and obj.tag != 'ThreadGroup':
