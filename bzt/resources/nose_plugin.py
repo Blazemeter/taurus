@@ -19,7 +19,7 @@ import time
 import traceback
 from optparse import OptionParser
 
-from bzt.modules.python import ApiritifSampleExtractor, Sample
+from apiritif.samples import ApiritifSampleExtractor, Sample
 import nose
 from nose.plugins import Plugin
 

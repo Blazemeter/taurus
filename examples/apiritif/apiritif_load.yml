@@ -1,6 +1,6 @@
 execution:
 - executor: apiritif
-  concurrency: 1
+  concurrency: 100
   ramp-up: 2m
   hold-for: 1m
   scenario: local
