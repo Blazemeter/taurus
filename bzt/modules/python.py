@@ -1178,6 +1178,8 @@ class ApiritifExecutor(SubprocessedExecutor):
         self._readers = []
 
     def prepare(self):
+        # TODO: we need sidebar widget here
+
         self.script = self.get_script_path()
 
         if not self.script:
@@ -1218,7 +1220,7 @@ class ApiritifExecutor(SubprocessedExecutor):
             cmdline += ['--ramp-up', str(load.ramp_up)]
 
         if load.steps:
-            cmdline += ['--steps', str(load.ramp_up)]
+            cmdline += ['--steps', str(load.steps)]
 
         cmdline += [self.script]
         self._start_subprocess(cmdline)
