@@ -1,11 +1,15 @@
 execution:
 - executor: apiritif
-  concurrency: 100
-  ramp-up: 2m
-  hold-for: 1m
+  concurrency: 15
+  ramp-up: 3m
+  #hold-for: 1m
+  #steps: 5
   scenario: local
 
 scenarios:
   local:
+    retrieve-resources: false
+    timeout: 1s
+    #think-time: 250ms
     requests:
-    - http://localhost/
+    - http://localhost:8080

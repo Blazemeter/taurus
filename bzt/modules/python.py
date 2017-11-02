@@ -23,10 +23,12 @@ from collections import OrderedDict
 from subprocess import CalledProcessError
 
 import astunparse
+import time
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
@@ -1167,7 +1169,7 @@ class Robot(RequiredTool):
         raise ToolError("You must install robot framework")
 
 
-class ApiritifExecutor(SubprocessedExecutor):
+class ApiritifExecutor(SubprocessedExecutor, WidgetProvider):
     """
     :type _readers: list[JTLReader]
     """
@@ -1176,6 +1178,7 @@ class ApiritifExecutor(SubprocessedExecutor):
         super(ApiritifExecutor, self).__init__()
         self._tailer = NoneTailer()
         self._readers = []
+        self.widget = None
 
     def prepare(self):
         # TODO: we need sidebar widget here
@@ -1223,6 +1226,7 @@ class ApiritifExecutor(SubprocessedExecutor):
             cmdline += ['--steps', str(load.steps)]
 
         cmdline += [self.script]
+        self.start_time = time.time()
         self._start_subprocess(cmdline)
         self._tailer = FileTailer(self.stdout_file)
 
@@ -1236,3 +1240,14 @@ class ApiritifExecutor(SubprocessedExecutor):
                 reader = JTLReader(fname, self.log)
                 if isinstance(self.engine.aggregator, ConsolidatingAggregator):
                     self.engine.aggregator.add_underling(reader)
+
+    def get_widget(self):
+        """
+        Add progress widget to console screen sidebar
+
+        :rtype: ExecutorWidget
+        """
+        if not self.widget:
+            label = "%s" % self
+            self.widget = ExecutorWidget(self, "Apiritif: " + label.split('/')[1])
+        return self.widget
