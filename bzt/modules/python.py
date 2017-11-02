@@ -1226,6 +1226,11 @@ class ApiritifExecutor(SubprocessedExecutor):
         self._start_subprocess(cmdline)
         self._tailer = FileTailer(self.stdout_file)
 
+    def has_results(self):
+        if not self._readers:
+            return False
+        return any(reader.read_records > 0 for reader in self._readers)
+
     def check(self):
         for line in self._tailer.get_lines():
             if "Adding worker" in line:
@@ -1234,5 +1239,8 @@ class ApiritifExecutor(SubprocessedExecutor):
                 fname = line[pos + len(marker):].strip()
                 self.log.debug("Adding result reader for %s", fname)
                 reader = JTLReader(fname, self.log)
+                self._readers.append(reader)
                 if isinstance(self.engine.aggregator, ConsolidatingAggregator):
                     self.engine.aggregator.add_underling(reader)
+
+        return super(ApiritifExecutor, self).check()
