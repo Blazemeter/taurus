@@ -79,3 +79,5 @@ Note how easy is to set report settings from command line, i.e. from inside Jenk
 ```bash
 bzt mytest.yml -o modules.blazemeter.report-name="Jenkins Build ${BUILD_NUMBER}"
 ```
+
+Also, there is CLI alias `-public` to automatically set `public-report=true`.

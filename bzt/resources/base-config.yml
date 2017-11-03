@@ -133,6 +133,10 @@ cli-aliases:
   report:
     reporting:
     - blazemeter
+  public:
+    modules:
+      blazemeter:
+        public-report: true
   sequential:
     modules:
       local:
