@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.10.1 <sup>next</sup>
+ - add `-public` CLI alias to make BlazeMeter report public
+
 ## 1.10.0 <sup>26 oct 2017</sup>
  - fully migrate to python wheel distribution
  - provide Homebrew recipe for OSX users to install Taurus easily
