@@ -1,7 +1,8 @@
 execution:
 - executor: apiritif
-  concurrency: 15
+  concurrency: 30
   ramp-up: 3m
+  #iterations: 10000
   #hold-for: 1m
   #steps: 5
   scenario: local
@@ -13,3 +14,7 @@ scenarios:
     #think-time: 250ms
     requests:
     - http://localhost:8080
+
+modules:
+  blazemeter:
+    report-name: ask
