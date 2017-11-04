@@ -2,6 +2,7 @@
 
 ## 1.10.1 <sup>next</sup>
  - add `-public` CLI alias to make BlazeMeter report public
+ - fix crash on reading Gatling logs with assertions 
 
 ## 1.10.0 <sup>26 oct 2017</sup>
  - fully migrate to python wheel distribution
