@@ -42,6 +42,8 @@ modules:
     class: bzt.modules.javascript.WebdriverIOExecutor
   robot:
     class: bzt.modules.python.RobotExecutor
+  newman:
+    class: bzt.modules.javascript.NewmanExecutor
 
   # service & infra modules
   local:
