@@ -171,7 +171,7 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
         super(NewmanExecutor, self).__init__()
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
-                                        "newman-taurus-reporter.js")
+                                        "newman-reporter-taurus.js")
         self.tools_dir = "~/.bzt/newman"
         self.node_tool = None
         self.npm_tool = None
@@ -206,21 +206,28 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
         cmdline = [
             self.node_tool.executable,
             self.newman_tool.entrypoint,
-            #"--reporter-TaurusReporter-filename",
-            #self.report_file,
+            # "--reporter-TaurusReporter-filename",
+            # self.report_file,
             "run",
             script_file,
-            "--reporters", "newman-taurus-reporter",
+            "--reporters", "taurus",
+            "--reporter-taurus-filename", self.report_file,
         ]
 
-        load = self.get_load()
-        #if load.iterations:
-        #    cmdline += ['--iterations', str(load.iterations)]
+        # TODO: support timeouts, think-times, data sets and variables of different levels
 
+        load = self.get_load()
+        if load.iterations:
+            cmdline += ['--iteration-count', str(load.iterations)]
+
+        # TODO
         # if load.hold:
         #    cmdline += ['--hold-for', str(load.hold)]
 
-        self.env["NODE_PATH"] = self.newman_tool.get_node_path_envvar() + os.pathsep + os.path.join(os.path.dirname(__file__), "..", "resources")
+        # TODO: allow running several collections like directory
+
+        self.env["NODE_PATH"] = self.newman_tool.get_node_path_envvar() + os.pathsep + os.path.join(
+            os.path.dirname(__file__), "..", "resources")
 
         self._start_subprocess(cmdline, cwd=script_dir)
 
