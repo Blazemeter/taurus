@@ -21,8 +21,8 @@ from subprocess import CalledProcessError
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
-from bzt.six import string_types
-from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node, dehumanize_time
+from bzt.six import string_types, iteritems
+from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node, dehumanize_time, to_json
 
 MOCHA_NPM_PACKAGE_NAME = "mocha"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
@@ -212,8 +212,8 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
             "--reporters", "taurus",
             "--reporter-taurus-filename", self.report_file,
             "--suppress-exit-code", "--insecure",
-            # "--export-environment", "/tmp/env.json",
-            # "--export-globals", "/tmp/glob.json",
+            "--export-environment", "/tmp/env.json",
+            "--export-globals", "/tmp/glob.json",
         ]
 
         scenario = self.get_scenario()
@@ -225,17 +225,8 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
         if think is not None:
             cmdline += ["--delay-request", str(int(dehumanize_time(think) * 1000))]
 
-        globs = scenario.get('globals')
-        if isinstance(globs, string_types):
-            cmdline += ["--globals", globs]
-        else:
-            pass  # TODO
-
-        environment = scenario.get('environment')
-        if isinstance(environment, string_types):
-            cmdline += ["--environment", environment]
-        else:
-            pass  # TODO
+        cmdline += self._dump_vars("globals")
+        cmdline += self._dump_vars("environment")
 
         load = self.get_load()
         if load.iterations:
@@ -250,6 +241,31 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
             os.path.dirname(__file__), "..", "resources")
 
         self._start_subprocess(cmdline, cwd=script_dir)
+
+    def _dump_vars(self, key):
+        cmdline = []
+        vals = self.get_scenario().get(key)
+        if isinstance(vals, string_types):
+            cmdline += ["--%s" % key, vals]
+        else:
+            data = {"values": []}
+
+            if isinstance(vals, list):
+                data['values'] = vals
+            else:
+                for varname, val in iteritems(vals):
+                    data["values"] = {
+                        "key": varname,
+                        "value": val,
+                        "type": "any",
+                        "enabled": True
+                    }
+
+            fname = self.engine.create_artifact(key, ".json")
+            with open(fname, "wt") as fds:
+                fds.write(to_json(data))
+            cmdline += ["--%s" % key, fname]
+        return cmdline
 
 
 class NPM(RequiredTool):
