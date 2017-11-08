@@ -4,6 +4,7 @@ import time
 from os.path import join, exists, dirname
 
 from bzt.modules import javascript
+from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.javascript import WebdriverIOExecutor, NewmanExecutor
 from bzt.utils import get_full_path, shell_exec, is_windows
 from tests import BUILD_DIR, RESOURCES_DIR, BZTestCase
@@ -204,14 +205,21 @@ class TestNewmanExecutor(BZTestCase):
     def test_flow(self):
         obj = NewmanExecutor()
         obj.engine = EngineEmul()
+        obj.engine.aggregator = ConsolidatingAggregator()
         obj.engine.config.merge({"scenarios": {"newman": {
             "script": RESOURCES_DIR + 'functional/postman.json',
             "globals": {"a": 123},
         }}})
         obj.execution.merge({"scenario": "newman"})
+        obj.engine.aggregator.prepare()
         obj.prepare()
         obj.startup()
+        obj.engine.aggregator.startup()
         while not obj.check():
+            obj.engine.aggregator.check()
             time.sleep(1)
         obj.shutdown()
+        obj.engine.aggregator.shutdown()
         obj.post_process()
+        obj.engine.aggregator.post_process()
+        self.assertTrue(obj.has_results())

@@ -25,7 +25,7 @@
         }
       ],
       "request": {
-        "url": "https://postman-echo.com/get?source=newman-sample-github-collection",
+        "url": "https://localhost/get?source=newman-sample-github-collection",
         "method": "GET"
       }
     }
