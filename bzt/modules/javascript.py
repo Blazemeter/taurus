@@ -206,8 +206,6 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
         cmdline = [
             self.node_tool.executable,
             self.newman_tool.entrypoint,
-            # "--reporter-TaurusReporter-filename",
-            # self.report_file,
             "run",
             script_file,
             "--reporters", "taurus",
