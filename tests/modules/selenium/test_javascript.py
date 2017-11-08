@@ -1,12 +1,13 @@
 import os
 import shutil
 import time
-
 from os.path import join, exists, dirname
+
 from bzt.modules import javascript
-from bzt.modules.javascript import WebdriverIOExecutor
+from bzt.modules.javascript import WebdriverIOExecutor, NewmanExecutor
 from bzt.utils import get_full_path, shell_exec, is_windows
-from tests import BUILD_DIR, RESOURCES_DIR
+from tests import BUILD_DIR, RESOURCES_DIR, BZTestCase
+from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
 
@@ -197,3 +198,20 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.assertTrue(exists(self.obj.runner.report_file))
         lines = open(self.obj.runner.report_file).readlines()
         self.assertEqual(len(lines), 3)
+
+
+class TestNewmanExecutor(BZTestCase):
+    def test_flow(self):
+        obj = NewmanExecutor()
+        obj.engine = EngineEmul()
+        obj.engine.config.merge({"scenarios": {"newman": {
+            "script": RESOURCES_DIR + 'functional/postman.json',
+            "globals": {"a": 123},
+        }}})
+        obj.execution.merge({"scenario": "newman"})
+        obj.prepare()
+        obj.startup()
+        while not obj.check():
+            time.sleep(1)
+        obj.shutdown()
+        obj.post_process()
