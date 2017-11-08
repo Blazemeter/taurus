@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+import time
 
 from bzt import ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, SelfDiagnosable
@@ -88,6 +89,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
         std_err = open(self.stderr_file, "wt")
         self.opened_descriptors.append(std_err)
         self.log.debug("Running process with env %s", self.env)
+        self.start_time = time.time()
         self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env, **kwargs)
 
     def resource_files(self):
