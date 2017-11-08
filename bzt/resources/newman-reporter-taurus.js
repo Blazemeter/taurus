@@ -91,46 +91,6 @@ class TaurusReporter {
             const details = (`Response code: ${responseCode}, reason: ${reason}`);
             console.log(`[testFailed name='${this.currItem.name}' message='${msg}' details='${msg} - ${details}']`);
         }
-
-        const a = {
-            name: 'A simple POST request with JSON body',
-            passed: true,
-            failedAssertions: [],
-            response:
-                {
-                    id: 'dabec10b-6046-41ef-8740-9c53e7bb4592',
-                    _details:
-                        {
-                            name: 'OK',
-                            detail: 'Standard response for successful HTTP requests. The actual response will depend on the request method used. In a GET request, the response will contain an entity corresponding to the requested resource. In a POST request the response will contain an entity describing or containing the result of the action.',
-                            code: 200,
-                            standardName: 'OK'
-                        },
-                    status: 'OK',
-                    code: 200,
-                    headers:
-                        {
-                            members: [Object],
-                            reference: [Object],
-                            Type: [Object],
-                            _postman_listIndexKey: 'key',
-                            _postman_listIndexCaseInsensitive: true,
-                            _postman_listAllowsMultipleValues: true
-                        },
-                    stream: "",
-                    cookies:
-                        {
-                            members: [],
-                            reference: {},
-                            Type: [Object],
-                            _postman_listIndexKey: 'name',
-                            _postman_listIndexCaseInsensitive: true,
-                            _postman_listAllowsMultipleValues: true
-                        },
-                    responseTime: 171,
-                    responseSize: 586
-                }
-        }
     }
 }
 

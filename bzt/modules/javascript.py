@@ -21,6 +21,7 @@ from subprocess import CalledProcessError
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
+from bzt.six import string_types
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node, dehumanize_time
 
 MOCHA_NPM_PACKAGE_NAME = "mocha"
@@ -210,9 +211,10 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
             script_file,
             "--reporters", "taurus",
             "--reporter-taurus-filename", self.report_file,
-            "--suppress-exit-code", "--insecure"
+            "--suppress-exit-code", "--insecure",
+            # "--export-environment", "/tmp/env.json",
+            # "--export-globals", "/tmp/glob.json",
         ]
-        # TODO: allow running several collections like directory
 
         scenario = self.get_scenario()
         timeout = scenario.get('timeout', None)
@@ -223,12 +225,23 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
         if think is not None:
             cmdline += ["--delay-request", str(int(dehumanize_time(think) * 1000))]
 
-        # TODO: support variables of different levels
+        globs = scenario.get('globals')
+        if isinstance(globs, string_types):
+            cmdline += ["--globals", globs]
+        else:
+            pass  # TODO
+
+        environment = scenario.get('environment')
+        if isinstance(environment, string_types):
+            cmdline += ["--environment", environment]
+        else:
+            pass  # TODO
 
         load = self.get_load()
         if load.iterations:
             cmdline += ['--iteration-count', str(load.iterations)]
 
+        # TODO: allow running several collections like directory, see https://github.com/postmanlabs/newman/issues/871
         # TODO: support hold-for, probably by having own runner
         # if load.hold:
         #    cmdline += ['--hold-for', str(load.hold)]
