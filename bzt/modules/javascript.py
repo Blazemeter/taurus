@@ -212,6 +212,7 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
             script_file,
             "--reporters", "taurus",
             "--reporter-taurus-filename", self.report_file,
+            "--suppress-exit-code",
         ]
 
         # TODO: support timeouts, think-times, data sets and variables of different levels

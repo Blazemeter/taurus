@@ -24,7 +24,7 @@ class TaurusReporter {
     beforeItem(err, args) {
         this.currItem = {name: this.itemName(args.item), passed: true, failedAssertions: []};
         console.log(`[testStarted name='${this.currItem.name}' captureStandardOutput='true']`);
-        console.log(args);
+        //console.log(args);
     }
 
     request(err, args) {
@@ -42,7 +42,7 @@ class TaurusReporter {
 
     item(err, args) {
         console.log(`[testFinished name='${this.currItem.name}']`);
-        // console.log(this.currItem);
+        console.log(this.currItem);
 
         try {
             const item = this.reportItem(this.currItem);
@@ -75,7 +75,7 @@ class TaurusReporter {
             status: this.currItem.passed ? "PASSED" : "FAILED",
             start_time: epoch() - this.currItem.response.responseTime,
             duration: (this.currItem.response && this.currItem.response.responseTime) || 0,
-            // error_msg: err.message || null,
+            error_msg: this.currItem.failedAssertions.join(", ") || null,
             // error_trace: err.stack || null,
             extras: {
                 // file: test.file || null
@@ -85,7 +85,6 @@ class TaurusReporter {
         /*eslint-enable camelcase */
 
         if (!this.currItem.passed) {
-            const msg = (this.currItem.failedAssertions.join(", "));
             const responseCode = (this.currItem.response && this.currItem.response.responseTime) || "-";
             const reason = (this.currItem.response && this.currItem.response.reason()) || "-";
             const details = (`Response code: ${responseCode}, reason: ${reason}`);
