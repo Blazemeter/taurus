@@ -10,9 +10,11 @@ class TaurusReporter {
     constructor(emitter, reporterOptions, options) {
         this.reporterOptions = reporterOptions;
         this.options = options;
-        const events = 'start beforeIteration iteration beforeItem item beforePrerequest prerequest beforeScript script beforeRequest request beforeTest test beforeAssertion assertion console exception beforeDone done'.split(' ');
+        const events = "start beforeIteration iteration beforeItem item beforePrerequest prerequest beforeScript script beforeRequest request beforeTest test beforeAssertion assertion console exception beforeDone done".split(" ");
         events.forEach((e) => {
-            if (typeof this[e] === 'function') emitter.on(e, (err, args) => this[e](err, args))
+            if (typeof this[e] === "function") {
+                emitter.on(e, (err, args) => this[e](err, args));
+            }
         });
     }
 

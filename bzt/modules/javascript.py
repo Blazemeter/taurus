@@ -212,8 +212,6 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
             "--reporters", "taurus",
             "--reporter-taurus-filename", self.report_file,
             "--suppress-exit-code", "--insecure",
-            "--export-environment", "/tmp/env.json",
-            "--export-globals", "/tmp/glob.json",
         ]
 
         scenario = self.get_scenario()
