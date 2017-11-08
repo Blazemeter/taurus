@@ -70,16 +70,17 @@ class TaurusReporter {
     reportItem(test) {
         /*eslint-disable camelcase */
         return {
+            test_suite: this.options.collection.name,
             test_case: test.name,
-            // test_suite: test.parent, TODO take it from top-level collection?
             status: this.currItem.passed ? "PASSED" : "FAILED",
             start_time: epoch() - this.currItem.response.responseTime,
-            duration: (this.currItem.response && this.currItem.response.responseTime) || 0,
+            duration: (this.currItem.response && this.currItem.response.responseTime) / 1000.0 || 0,
             error_msg: this.currItem.failedAssertions.join(", ") || null,
             // error_trace: err.stack || null,
             extras: {
                 // file: test.file || null
                 // TODO: put response bytes here
+                // TODO: request info, headers/cookies etc
             }
         };
         /*eslint-enable camelcase */

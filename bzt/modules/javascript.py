@@ -21,7 +21,7 @@ from subprocess import CalledProcessError
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
-from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node
+from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node, dehumanize_time
 
 MOCHA_NPM_PACKAGE_NAME = "mocha"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
@@ -210,20 +210,28 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
             script_file,
             "--reporters", "taurus",
             "--reporter-taurus-filename", self.report_file,
-            "--suppress-exit-code",
+            "--suppress-exit-code", "--insecure"
         ]
+        # TODO: allow running several collections like directory
 
-        # TODO: support timeouts, think-times, data sets and variables of different levels
+        scenario = self.get_scenario()
+        timeout = scenario.get('timeout', None)
+        if timeout is not None:
+            cmdline += ["--timeout-request", str(int(dehumanize_time(timeout) * 1000))]
+
+        think = scenario.get('think-time', None)
+        if think is not None:
+            cmdline += ["--delay-request", str(int(dehumanize_time(think) * 1000))]
+
+        # TODO: support variables of different levels
 
         load = self.get_load()
         if load.iterations:
             cmdline += ['--iteration-count', str(load.iterations)]
 
-        # TODO
+        # TODO: support hold-for, probably by having own runner
         # if load.hold:
         #    cmdline += ['--hold-for', str(load.hold)]
-
-        # TODO: allow running several collections like directory
 
         self.env["NODE_PATH"] = self.newman_tool.get_node_path_envvar() + os.pathsep + os.path.join(
             os.path.dirname(__file__), "..", "resources")
