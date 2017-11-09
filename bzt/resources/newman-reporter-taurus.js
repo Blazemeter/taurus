@@ -31,7 +31,7 @@ class TaurusReporter {
         this.currItem = {
             name: this.itemName(args.item),
             passed: true,
-            failedAssertions: [],
+            assertions: [],
             startTime: epoch()
         };
         if (err) {
@@ -39,7 +39,6 @@ class TaurusReporter {
             this.err = err;
         }
         console.log(`[testStarted name='${this.currItem.name}' captureStandardOutput='true']`);
-        //console.log(args);
     }
 
     request(err, args) {
@@ -53,9 +52,13 @@ class TaurusReporter {
     }
 
     assertion(err, args) {
+        this.currItem.assertions.push({
+            message: args.assertion,
+            isFailed: (err) ? true : false,
+            error: args.error
+        });
         if (err) {
             this.currItem.passed = false;
-            this.currItem.failedAssertions.push(args.assertion);
         }
     }
 
@@ -85,7 +88,6 @@ class TaurusReporter {
     }
 
     reportItem(item) {
-        console.log(JSON.stringify(item.response, null, 2));
         /*eslint-disable camelcase */
         var item = {
             test_case: item.name,
@@ -93,14 +95,25 @@ class TaurusReporter {
             status: item.passed ? "PASSED" : "FAILED",
             start_time: item.startTime,
             duration: (item.response && item.response.responseTime) / 1000.0 || 0,
-            error_msg: item.failedAssertions.join(", ") || null,
-            error_trace: (item.response && item.response.reason()) || null,
-            extras: {
-                // file: test.file || null
-                // TODO: put response bytes here
-                // TODO: request info, headers/cookies etc
-            }
+            error_msg: null,
+            error_trace: null,
+            extras: {}
         };
+        var assertions = [];
+        for (var i = 0; i < this.currItem.assertions.length; i++) {
+            var assertion = this.currItem.assertions[i];
+            if (assertion.isFailed) {
+                if (!item.error_msg) {
+                    item.error_msg = assertion.message;
+                    item.error_trace = assertion.error.stack;
+                }
+            }
+            assertions.push({
+                name: assertion.message,
+                isFailed: assertion.isFailed,
+                errorMessage: (assertion.error) ? assertion.error.name + ": " + assertion.message : null
+            })
+        }
         /*eslint-enable camelcase */
 
         if (this.currItem.response) {
@@ -119,8 +132,8 @@ class TaurusReporter {
                 requestURI: this.currItem.request.url.toString(),
                 requestHeaders: requestHeaders,
                 responseHeaders: responseHeaders,
-                requestCookies: requestCookies
-                assertions: self._extract_sample_assertions(sample_elem),
+                requestCookies: requestCookies,
+                assertions: assertions,
 
                 // TODO
                 requestBody: "",
@@ -132,8 +145,9 @@ class TaurusReporter {
                 requestCookiesSize: 0
             }
         }
+
         if (!this.currItem.passed) {
-            const msg = this.currItem.failedAssertions.join(", ");
+            const msg = this.currItem.assertions.filter((a) => a.isFailed).map(a => a.name).join(", ");
             const responseCode = (this.currItem.response && this.currItem.response.responseCode) || "-";
             const reason = (this.currItem.response && this.currItem.response.reason()) || "-";
             const details = (`Response code: ${responseCode}, reason: ${reason}`);
