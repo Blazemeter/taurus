@@ -10,29 +10,46 @@ class TaurusReporter {
     constructor(emitter, reporterOptions, options) {
         this.reporterOptions = reporterOptions;
         this.options = options;
-        const events = "start beforeIteration iteration beforeItem item beforePrerequest prerequest beforeScript script beforeRequest request beforeTest test beforeAssertion assertion console exception beforeDone done".split(" ");
+        this.err = null;
+        const events = 'start beforeIteration iteration beforeItem item beforePrerequest prerequest beforeScript script beforeRequest request beforeTest test beforeAssertion assertion console exception beforeDone done'.split(' ');
         events.forEach((e) => {
-            if (typeof this[e] === "function") {
-                emitter.on(e, (err, args) => this[e](err, args));
-            }
+            if (typeof this[e] === 'function') emitter.on(e, (err, args) => this[e](err, args))
         });
     }
 
     start(err, args) {
+        if (err) {
+            this.currItem.passed = false;
+            this.err = err;
+        }
         console.log(`[testSuiteStarted name='${this.options.collection.name}']`);
         this.reportStream = fs.createWriteStream(this.reporterOptions.filename);
     }
 
     beforeItem(err, args) {
-        this.currItem = {name: this.itemName(args.item), passed: true, failedAssertions: []};
+        this.err = null;
+        this.currItem = {
+            name: this.itemName(args.item),
+            passed: true,
+            failedAssertions: [],
+            startTime: epoch()
+        };
+        if (err) {
+            this.currItem.passed = false;
+            this.err = err;
+        }
         console.log(`[testStarted name='${this.currItem.name}' captureStandardOutput='true']`);
         //console.log(args);
     }
 
     request(err, args) {
-        if (!err) {
-            this.currItem.response = args.response;
+        if (err) {
+            this.currItem.passed = false;
+            this.err = err;
         }
+        this.currItem.request = args.request;
+        this.currItem.response = args.response;
+        this.currItem.cookies = args.cookies;
     }
 
     assertion(err, args) {
@@ -44,12 +61,11 @@ class TaurusReporter {
 
     item(err, args) {
         console.log(`[testFinished name='${this.currItem.name}']`);
-        console.log(this.currItem);
 
         try {
             const item = this.reportItem(this.currItem);
             this.reportStream.write(JSON.stringify(item) + "\n", function () {
-                //config.reporterOptions.itemsWritten += 1;
+            //config.reporterOptions.itemsWritten += 1;
             });
         } catch (err) {
             console.error("error while writing: " + err.toString() + "\n");
@@ -68,17 +84,17 @@ class TaurusReporter {
         return (folderOrEmpty + item.name);
     }
 
-
-    reportItem(test) {
+    reportItem(item) {
+        console.log(JSON.stringify(item.response, null, 2));
         /*eslint-disable camelcase */
-        return {
+        var item = {
+            test_case: item.name,
             test_suite: this.options.collection.name,
-            test_case: test.name,
-            status: this.currItem.passed ? "PASSED" : "FAILED",
-            start_time: epoch() - this.currItem.response.responseTime,
-            duration: (this.currItem.response && this.currItem.response.responseTime) / 1000.0 || 0,
-            error_msg: this.currItem.failedAssertions.join(", ") || null,
-            // error_trace: err.stack || null,
+            status: item.passed ? "PASSED" : "FAILED",
+            start_time: item.startTime,
+            duration: (item.response && item.response.responseTime) / 1000.0 || 0,
+            error_msg: item.failedAssertions.join(", ") || null,
+            error_trace: (item.response && item.response.reason()) || null,
             extras: {
                 // file: test.file || null
                 // TODO: put response bytes here
@@ -87,12 +103,44 @@ class TaurusReporter {
         };
         /*eslint-enable camelcase */
 
+        if (this.currItem.response) {
+            var requestHeaders = this.currItem.request.headers.toObject(false, true);
+            var responseHeaders = this.currItem.response.headers.toObject(false, true);
+            var requestCookies = {};
+            this.currItem.cookies.forEach(function (elem) { requestCookies[elem.name] = elem.value; })
+            item.extras = {
+                responseCode: this.currItem.response.code,
+                responseMessage: this.currItem.response.status,
+                responseTime: this.currItem.response.responseTime,
+                connectTime: 0,
+                latency: 0,
+                responseSize: this.currItem.response.responseSize,
+                requestMethod: this.currItem.request.method,
+                requestURI: this.currItem.request.url.toString(),
+                requestHeaders: requestHeaders,
+                responseHeaders: responseHeaders,
+                requestCookies: requestCookies
+                assertions: self._extract_sample_assertions(sample_elem),
+
+                // TODO
+                requestBody: "",
+                responseBody: "",
+                requestCookiesRaw: "",
+                requestSize: 0,
+                requestBodySize: 0,
+                responseBodySize: 0,
+                requestCookiesSize: 0
+            }
+        }
         if (!this.currItem.passed) {
-            const responseCode = (this.currItem.response && this.currItem.response.responseTime) || "-";
+            const msg = this.currItem.failedAssertions.join(", ");
+            const responseCode = (this.currItem.response && this.currItem.response.responseCode) || "-";
             const reason = (this.currItem.response && this.currItem.response.reason()) || "-";
             const details = (`Response code: ${responseCode}, reason: ${reason}`);
             console.log(`[testFailed name='${this.currItem.name}' message='${msg}' details='${msg} - ${details}']`);
         }
+
+        return item;
     }
 }
 
