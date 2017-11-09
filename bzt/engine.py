@@ -879,6 +879,7 @@ class ScenarioExecutor(EngineModule):
         self.reader = None
         self.delay = None
         self.start_time = None
+        self.preprocess_args = lambda x: None
 
     def has_results(self):
         if self.reader and self.reader.buffer:
@@ -1000,11 +1001,8 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
 
-    def modify_args(self, args):
-        pass
-
     def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
-        self.modify_args(args)
+        self.preprocess_args(args)
 
         if cwd is None:
             cwd = self.engine.default_cwd
