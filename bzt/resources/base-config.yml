@@ -198,6 +198,5 @@ modules: # TODO: cleanup as much as possible from defaults
       jmeter.save.saveservice.autoflush: 'true'
       jmeter.save.saveservice.connect_time: 'true'
       jmeterengine.force.system.exit: 'true'
-      mode: Stripped
       summariser.name: ''
 

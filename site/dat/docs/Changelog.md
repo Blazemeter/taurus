@@ -2,7 +2,10 @@
 
 ## 1.10.1 <sup>next</sup>
  - add `-public` CLI alias to make BlazeMeter report public
- - fix crash on reading Gatling logs with assertions 
+ - fix crash on reading Gatling logs with assertions
+ - do not force "mode=Stripped" property for JMeter distributed tests
+ - send `java-opts` from Gatling settings into BlazeMeter cloud test
+ - trying to fix exception write into log for Grinder 
 
 ## 1.10.0 <sup>26 oct 2017</sup>
  - fully migrate to python wheel distribution

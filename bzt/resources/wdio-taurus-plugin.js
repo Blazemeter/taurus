@@ -167,7 +167,7 @@ function runWDIO() {
     }
 
     function handleError(error) {
-        console.error("Launcher failed to start the test", error.stacktrace);
+        console.error("Launcher failed to start the test", error);
         done(1);
     }
 

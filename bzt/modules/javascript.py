@@ -26,7 +26,7 @@ from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node,
 
 MOCHA_NPM_PACKAGE_NAME = "mocha"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
-WDIO_NPM_PACKAGE_NAME = "webdriverio"
+WDIO_NPM_PACKAGE_NAME = "webdriverio@4.8.0"
 WDIO_MOCHA_PLUGIN_NPM_PACKAGE_NAME = "wdio-mocha-framework"
 NEWMAN_NPM_PACKAGE_NAME = "newman"
 
