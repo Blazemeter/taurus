@@ -11,9 +11,9 @@ class TaurusReporter {
         this.reporterOptions = reporterOptions;
         this.options = options;
         this.err = null;
-        const events = 'start beforeIteration iteration beforeItem item beforePrerequest prerequest beforeScript script beforeRequest request beforeTest test beforeAssertion assertion console exception beforeDone done'.split(' ');
+        const events = "start beforeIteration iteration beforeItem item beforePrerequest prerequest beforeScript script beforeRequest request beforeTest test beforeAssertion assertion console exception beforeDone done".split(" ");
         events.forEach((e) => {
-            if (typeof this[e] === 'function') emitter.on(e, (err, args) => this[e](err, args))
+            if (typeof this[e] === 'function') { emitter.on(e, (err, args) => this[e](err, args)); }
         });
     }
 
@@ -22,6 +22,7 @@ class TaurusReporter {
             this.currItem.passed = false;
             this.err = err;
         }
+        // eslint-disable-next-line no-console
         console.log(`[testSuiteStarted name='${this.options.collection.name}']`);
         this.reportStream = fs.createWriteStream(this.reporterOptions.filename);
     }
@@ -38,6 +39,7 @@ class TaurusReporter {
             this.currItem.passed = false;
             this.err = err;
         }
+        // eslint-disable-next-line no-console
         console.log(`[testStarted name='${this.currItem.name}' captureStandardOutput='true']`);
     }
 
@@ -63,6 +65,7 @@ class TaurusReporter {
     }
 
     item(err, args) {
+        // eslint-disable-next-line no-console
         console.log(`[testFinished name='${this.currItem.name}']`);
 
         try {
@@ -71,11 +74,13 @@ class TaurusReporter {
             //config.reporterOptions.itemsWritten += 1;
             });
         } catch (err) {
+            // eslint-disable-next-line no-console
             console.error("error while writing: " + err.toString() + "\n");
         }
     }
 
     done(err, args) {
+        // eslint-disable-next-line no-console
         console.log(`[testSuiteFinished name='${this.options.collection.name}']`);
         this.reportStream.end();
     }
@@ -87,21 +92,10 @@ class TaurusReporter {
         return (folderOrEmpty + item.name);
     }
 
-    reportItem(item) {
-        /*eslint-disable camelcase */
-        var item = {
-            test_case: item.name,
-            test_suite: this.options.collection.name,
-            status: item.passed ? "PASSED" : "FAILED",
-            start_time: item.startTime,
-            duration: (item.response && item.response.responseTime) / 1000.0 || 0,
-            error_msg: null,
-            error_trace: null,
-            extras: {}
-        };
+    extractAssertions(recordedAssertions) {
         var assertions = [];
-        for (var i = 0; i < this.currItem.assertions.length; i++) {
-            var assertion = this.currItem.assertions[i];
+        for (var i = 0; i < recordedAssertions.length; i++) {
+            var assertion = recordedAssertions[i];
             if (assertion.isFailed) {
                 if (!item.error_msg) {
                     item.error_msg = assertion.message;
@@ -112,28 +106,43 @@ class TaurusReporter {
                 name: assertion.message,
                 isFailed: assertion.isFailed,
                 errorMessage: (assertion.error) ? assertion.error.name + ": " + assertion.message : null
-            })
+            });
         }
-        /*eslint-enable camelcase */
+        return assertions;
+    }
 
-        if (this.currItem.response) {
-            var requestHeaders = this.currItem.request.headers.toObject(false, true);
-            var responseHeaders = this.currItem.response.headers.toObject(false, true);
+    reportItem(item) {
+        /*eslint-disable camelcase */
+        var sample = {
+            test_case: item.name,
+            test_suite: this.options.collection.name,
+            status: item.passed ? "PASSED" : "FAILED",
+            start_time: item.startTime,
+            duration: (item.response && item.response.responseTime) / 1000.0 || 0,
+            error_msg: null,
+            error_trace: null,
+            extras: {}
+        };
+        /*eslint-enable camelcase */
+        var assertions = this.extractAssertions(item.assertions);
+        if (item.response) {
+            var requestHeaders = item.request.headers.toObject(false, true);
+            var responseHeaders = item.response.headers.toObject(false, true);
             var requestCookies = {};
-            this.currItem.cookies.forEach(function (elem) { requestCookies[elem.name] = elem.value; })
-            item.extras = {
-                responseCode: this.currItem.response.code,
-                responseMessage: this.currItem.response.status,
-                responseTime: this.currItem.response.responseTime,
+            item.cookies.forEach(function (elem) { requestCookies[elem.name] = elem.value; });
+            sample.extras = {
+                responseCode: item.response.code,
+                responseMessage: item.response.status,
+                responseTime: item.response.responseTime,
                 connectTime: 0,
                 latency: 0,
-                responseSize: this.currItem.response.responseSize,
-                requestMethod: this.currItem.request.method,
-                requestURI: this.currItem.request.url.toString(),
-                requestHeaders: requestHeaders,
-                responseHeaders: responseHeaders,
-                requestCookies: requestCookies,
-                assertions: assertions,
+                responseSize: item.response.responseSize,
+                requestMethod: item.request.method,
+                requestURI: item.request.url.toString(),
+                requestHeaders,
+                responseHeaders,
+                requestCookies,
+                assertions,
 
                 // TODO
                 requestBody: "",
@@ -143,18 +152,19 @@ class TaurusReporter {
                 requestBodySize: 0,
                 responseBodySize: 0,
                 requestCookiesSize: 0
-            }
+            };
         }
 
-        if (!this.currItem.passed) {
-            const msg = this.currItem.assertions.filter((a) => a.isFailed).map(a => a.name).join(", ");
-            const responseCode = (this.currItem.response && this.currItem.response.responseCode) || "-";
-            const reason = (this.currItem.response && this.currItem.response.reason()) || "-";
+        if (!item.passed) {
+            const msg = item.assertions.filter((a) => a.isFailed).map((a) => a.name).join(", ");
+            const responseCode = (item.response && item.response.responseCode) || "-";
+            const reason = (item.response && item.response.reason()) || "-";
             const details = (`Response code: ${responseCode}, reason: ${reason}`);
+            // eslint-disable-next-line no-console
             console.log(`[testFailed name='${this.currItem.name}' message='${msg}' details='${msg} - ${details}']`);
         }
 
-        return item;
+        return sample;
     }
 }
 
