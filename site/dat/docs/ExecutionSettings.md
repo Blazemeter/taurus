@@ -41,6 +41,7 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [NUnit](NUnit.md), executor type `nunit`
   - [WebdriverIO](WebdriverIO.md), executor type `wdio`
   - [Robot](Robot.md), executor type `robot`
+  - [Postman/Newman](Postman.md), executor type `newman`
 
 Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
 ```yaml
