@@ -49,8 +49,9 @@ RUN apt-get -y update \
     python3-dev python3-pip \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
-  && pip3 install --upgrade setuptools wheel pip \
-  && pip3 install molotov robotframework robotframework-seleniumlibrary \
+  && pip3 install --upgrade setuptools wheel \
+  && pip3 install molotov robotframework \
+  && pip3 install --pre robotframework-seleniumlibrary \
   && npm install -g mocha \
   && gem install rspec \
   && gem install selenium-webdriver \
@@ -71,7 +72,7 @@ RUN google-chrome-stable --version && firefox --version && mono --version && nug
   && pip install dist/bzt-*.tar.gz \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
-  && bzt -install-tools -v
+  && bzt -install-tools -v -o modules.robot.interpreter=python3
 
 RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (\
   ls -lh /tmp/all-executors-artifacts; \
