@@ -13,21 +13,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import os
 import subprocess
 import traceback
 from subprocess import CalledProcessError
 
-import os
 from bzt import ToolError, TaurusConfigError
-
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
-from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node
+from bzt.six import string_types, iteritems
+from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node, dehumanize_time, to_json
 
 MOCHA_NPM_PACKAGE_NAME = "mocha"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
-WDIO_NPM_PACKAGE_NAME = "webdriverio"
+WDIO_NPM_PACKAGE_NAME = "webdriverio@4.8.0"
 WDIO_MOCHA_PLUGIN_NPM_PACKAGE_NAME = "wdio-mocha-framework"
+NEWMAN_NPM_PACKAGE_NAME = "newman"
 
 
 class MochaTester(SubprocessedExecutor, HavingInstallableTools):
@@ -159,6 +160,112 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         self._start_subprocess(cmdline, cwd=script_dir)
 
 
+class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
+    """
+    Newman-based test runner
+
+    :type node_tool: Node
+    :type newman_tool: Newman
+    """
+
+    def __init__(self):
+        super(NewmanExecutor, self).__init__()
+        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
+                                        "resources",
+                                        "newman-reporter-taurus.js")
+        self.tools_dir = "~/.bzt/newman"
+        self.node_tool = None
+        self.npm_tool = None
+        self.newman_tool = None
+
+    def prepare(self):
+        super(NewmanExecutor, self).prepare()
+        self.script = self.get_script_path()
+        if not self.script:
+            raise TaurusConfigError("Script not passed to executor %s" % self)
+
+        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
+        self.install_required_tools()
+        self.reporting_setup(suffix='.ldjson')
+
+    def install_required_tools(self):
+        tools = []
+        tools.append(TclLibrary(self.log))
+        self.node_tool = Node(self.log)
+        self.npm_tool = NPM(self.log)
+        self.newman_tool = Newman(self.tools_dir, self.node_tool, self.npm_tool, self.log)
+        tools.append(self.node_tool)
+        tools.append(self.npm_tool)
+        tools.append(self.newman_tool)
+        tools.append(TaurusNewmanPlugin(self.plugin_path, ""))
+
+        self._check_tools(tools)
+
+    def startup(self):
+        script_dir = get_full_path(self.script, step_up=1)
+        script_file = os.path.basename(self.script)
+        cmdline = [
+            self.node_tool.executable,
+            self.newman_tool.entrypoint,
+            "run",
+            script_file,
+            "--reporters", "taurus",
+            "--reporter-taurus-filename", self.report_file,
+            "--suppress-exit-code", "--insecure",
+        ]
+
+        scenario = self.get_scenario()
+        timeout = scenario.get('timeout', None)
+        if timeout is not None:
+            cmdline += ["--timeout-request", str(int(dehumanize_time(timeout) * 1000))]
+
+        think = scenario.get('think-time', None)
+        if think is not None:
+            cmdline += ["--delay-request", str(int(dehumanize_time(think) * 1000))]
+
+        cmdline += self._dump_vars("globals")
+        cmdline += self._dump_vars("environment")
+
+        load = self.get_load()
+        if load.iterations:
+            cmdline += ['--iteration-count', str(load.iterations)]
+
+        # TODO: allow running several collections like directory, see https://github.com/postmanlabs/newman/issues/871
+        # TODO: support hold-for, probably by having own runner
+        # if load.hold:
+        #    cmdline += ['--hold-for', str(load.hold)]
+
+        self.env["NODE_PATH"] = self.newman_tool.get_node_path_envvar() + os.pathsep + os.path.join(
+            os.path.dirname(__file__), "..", "resources")
+
+        self._start_subprocess(cmdline, cwd=script_dir)
+
+    def _dump_vars(self, key):
+        cmdline = []
+        vals = self.get_scenario().get(key)
+        if isinstance(vals, string_types):
+            cmdline += ["--%s" % key, vals]
+        else:
+            data = {"values": []}
+
+            if isinstance(vals, list):
+                data['values'] = vals
+            else:
+                for varname, val in iteritems(vals):
+                    data["values"] = {
+                        "key": varname,
+                        "value": val,
+                        "type": "any",
+                        "enabled": True
+                    }
+
+            fname = self.engine.create_artifact(key, ".json")
+            with open(fname, "wt") as fds:
+                fds.write(to_json(data))
+            cmdline += ["--%s" % key, fname]
+        return cmdline
+
+
 class NPM(RequiredTool):
     def __init__(self, parent_logger):
         super(NPM, self).__init__("NPM", "")
@@ -270,3 +377,18 @@ class TaurusWDIOPlugin(RequiredTool):
 
     def install(self):
         raise ToolError("Automatic installation of Taurus WebdriverIO plugin isn't implemented")
+
+
+class Newman(NPMPackage):
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+        super(Newman, self).__init__("Newman", NEWMAN_NPM_PACKAGE_NAME,
+                                     tools_dir, node_tool, npm_tool, parent_logger)
+        self.entrypoint = "%s/node_modules/%s/bin/newman.js" % (self.tools_dir, NEWMAN_NPM_PACKAGE_NAME)
+
+
+class TaurusNewmanPlugin(RequiredTool):
+    def __init__(self, tool_path, download_link):
+        super(TaurusNewmanPlugin, self).__init__("Taurus Newman Reporter", tool_path, download_link)
+
+    def install(self):
+        raise ToolError("Automatic installation of Taurus Newman Reporter isn't implemented")

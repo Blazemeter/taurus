@@ -637,7 +637,7 @@ class DataLogReader(ResultsReader):
         if fields[0].strip() in ["USER", "REQUEST", "RUN"]:
             self.log.debug("Parsing Gatling 2.2+ stats")
             return "2.2+"
-        elif fields[2].strip() in ["USER", "REQUEST", "RUN"]:
+        elif len(fields) >= 3 and fields[2].strip() in ["USER", "REQUEST", "RUN"]:
             self.log.debug("Parsing Gatling 2.1 stats")
             return "2.1"
         else:

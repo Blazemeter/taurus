@@ -456,6 +456,13 @@ class TestDataLogReader(BZTestCase):
         self.assertEqual(len(list_of_values), 23)
         self.assertEqual(obj.guessed_gatling_version, "2.1")
 
+    def test_read_asserts(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-1')
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 3)
+        self.assertEqual(obj.guessed_gatling_version, "2.2+")
+
     def test_read_220_format(self):
         log_path = RESOURCES_DIR + "gatling/"
         obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-220')

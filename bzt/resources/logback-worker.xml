@@ -5,7 +5,7 @@
     <appender name="data-file" class="org.blazemeter.taurus.TaurusAppender">
         <file>${PREFIX}-kpi.log</file>
         <encoder>
-            <pattern>%c %m%n</pattern>
+            <pattern>%c %m%n%ex</pattern>
             <immediateFlush>true</immediateFlush>
         </encoder>
     </appender>

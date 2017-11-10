@@ -42,6 +42,8 @@ modules:
     class: bzt.modules.javascript.WebdriverIOExecutor
   robot:
     class: bzt.modules.python.RobotExecutor
+  newman:
+    class: bzt.modules.javascript.NewmanExecutor
   apiritif:
     class: bzt.modules.python.ApiritifExecutor
 
@@ -198,6 +200,5 @@ modules: # TODO: cleanup as much as possible from defaults
       jmeter.save.saveservice.autoflush: 'true'
       jmeter.save.saveservice.connect_time: 'true'
       jmeterengine.force.system.exit: 'true'
-      mode: Stripped
       summariser.name: ''
 

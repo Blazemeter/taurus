@@ -1,0 +1,96 @@
+{
+	"variables": [],
+	"info": {
+		"name": "Sample Postman Collection",
+		"_postman_id": "35567af6-6b92-26c2-561a-21fe8aeeb1ea",
+		"description": "A sample collection to demonstrate collections as a set of related requests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "A simple GET request",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('expect response be 200', function () {",
+							"    pm.response.to.be.ok",
+							"})",
+							"pm.test('expect response json contain args', function () {",
+							"    pm.expect(pm.response.json().args).to.have.property('source')",
+							"      .and.equal('newman-sample-github-collection')",
+							"})"
+						]
+					}
+				}
+			],
+			"request": {
+				"url": {
+					"raw": "https://postman-echo.com/get?source=newman-sample-github-collection",
+					"protocol": "https",
+					"host": [
+						"postman-echo",
+						"com"
+					],
+					"path": [
+						"get"
+					],
+					"query": [
+						{
+							"key": "source",
+							"value": "newman-sample-github-collection",
+							"equals": true,
+							"description": ""
+						}
+					],
+					"variable": []
+				},
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "A simple POST request",
+			"request": {
+				"url": "https://postman-echo.com/post",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "text/plain"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "Duis posuere augue vel cursus pharetra. In luctus a ex nec pretium..."
+				},
+				"description": ""
+			},
+			"response": []
+		},
+		{
+			"name": "A simple POST request with JSON body",
+			"request": {
+				"url": "https://postman-echo.com/post",
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"text\":\"Duis posuere augue vel cursus pharetra. In luctus a ex nec pretium...\"}"
+				},
+				"description": ""
+			},
+			"response": []
+		}
+	]
+}

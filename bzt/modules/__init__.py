@@ -16,12 +16,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
+import time
 
 from bzt import ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, SelfDiagnosable
-from bzt.utils import shutdown_process
 from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
+from bzt.utils import shutdown_process
 
 
 class ReportableExecutor(ScenarioExecutor):
@@ -61,7 +63,7 @@ class ReportableExecutor(ScenarioExecutor):
                 self.engine.aggregator.add_underling(self.reader)
 
 
-class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable):
+class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, WidgetProvider):
     """
     Class for subprocessed executors
 
@@ -76,6 +78,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable):
         self.opened_descriptors = []
         self.stdout_file = None
         self.stderr_file = None
+        self.widget = None
 
     def _start_subprocess(self, cmdline, **kwargs):
         prefix = self.execution.get("executor", None) or "executor"
@@ -86,6 +89,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable):
         std_err = open(self.stderr_file, "wt")
         self.opened_descriptors.append(std_err)
         self.log.debug("Running process with env %s", self.env)
+        self.start_time = time.time()
         self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env, **kwargs)
 
     def resource_files(self):
@@ -134,3 +138,14 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable):
                 if contents:
                     diagnostics.append(class_name + " STDERR:\n" + contents)
         return diagnostics
+
+    def get_widget(self):
+        """
+        Add progress widget to console screen sidebar
+
+        :rtype: ExecutorWidget
+        """
+        if not self.widget:
+            label = "%s" % self
+            self.widget = ExecutorWidget(self, label)
+        return self.widget
