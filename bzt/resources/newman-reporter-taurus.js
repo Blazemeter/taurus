@@ -92,15 +92,17 @@ class TaurusReporter {
         return (folderOrEmpty + item.name);
     }
 
-    extractAssertions(recordedAssertions) {
+    extractAssertions(item) {
         var assertions = [];
-        for (var i = 0; i < recordedAssertions.length; i++) {
-            var assertion = recordedAssertions[i];
+        for (var i = 0; i < item.assertions.length; i++) {
+            var assertion = item.assertions[i];
             if (assertion.isFailed) {
+                /*eslint-disable camelcase */
                 if (!item.error_msg) {
                     item.error_msg = assertion.message;
                     item.error_trace = assertion.error.stack;
                 }
+                /*eslint-enable camelcase */
             }
             assertions.push({
                 name: assertion.message,
@@ -124,7 +126,7 @@ class TaurusReporter {
             extras: {}
         };
         /*eslint-enable camelcase */
-        var assertions = this.extractAssertions(item.assertions);
+        var assertions = this.extractAssertions(item);
         if (item.response) {
             var requestHeaders = item.request.headers.toObject(false, true);
             var responseHeaders = item.response.headers.toObject(false, true);
