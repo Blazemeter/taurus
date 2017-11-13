@@ -147,11 +147,16 @@ class TestNoseRunner(BZTestCase):
     def test_full_single_script(self):
         self.obj.execution.merge({
             "iterations": 1,
+            "ramp-up": "10s",
+            "hold-for": "10s",
+            "steps": 5,
+
             "scenario": {
                 "script": RESOURCES_DIR + "apiritif/test_codegen.py"
             }
         })
         self.obj.prepare()
+        self.obj.get_widget()
         try:
             self.obj.startup()
             while not self.obj.check():
