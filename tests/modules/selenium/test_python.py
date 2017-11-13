@@ -2,11 +2,10 @@ import json
 import os
 import time
 
-from bzt import ToolError, TaurusConfigError
+from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor
-from bzt.utils import is_windows
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
