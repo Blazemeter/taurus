@@ -27,7 +27,7 @@ import time
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
-from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator
+from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader, FunctionalAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
@@ -38,18 +38,18 @@ from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 
-class NoseTester(SubprocessedExecutor, HavingInstallableTools):
+class ApiritifNoseExecutor(SubprocessedExecutor, WidgetProvider):
     """
-    Python selenium tests runner
+    :type _readers: list[JTLReader]
     """
 
     def __init__(self):
-        super(NoseTester, self).__init__()
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "nose_plugin.py")
+        super(ApiritifNoseExecutor, self).__init__()
         self._tailer = NoneTailer()
+        self._readers = []
+        self.widget = None
 
     def prepare(self):
-        self.install_required_tools()
         self.script = self.get_script_path()
         if not self.script:
             if "requests" in self.get_scenario():
@@ -72,50 +72,65 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
         builder.save(filename)
         return filename
 
-    def __is_verbose(self):
-        engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
-        executor_verbose = self.settings.get("verbose", engine_verbose)
-        return executor_verbose
-
-    def install_required_tools(self):
-        """
-        we need installed nose plugin
-        """
-        if sys.version >= '3':
-            self.log.warning("You are using Python 3, make sure that your scripts are able to run in Python 3")
-
-        self._check_tools([TclLibrary(self.log), TaurusNosePlugin(self.plugin_path, "")])
-
     def startup(self):
-        """
-        run python tests
-        """
         executable = self.settings.get("interpreter", sys.executable)
 
         self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
 
-        nose_command_line = [executable, self.plugin_path, '--report-file', self.report_file]
+        report_type = ".ldjson" if self.engine.is_functional_mode() else ".csv"
+        report_tpl = self.engine.create_artifact("apiritif-", "") + "%s" + report_type
+        cmdline = [executable, "-m", "apiritif.loadgen", '--result-file-template', report_tpl]
 
         load = self.get_load()
+        if load.concurrency:
+            cmdline += ['--concurrency', str(load.concurrency)]
+
         if load.iterations:
-            nose_command_line += ['-i', str(load.iterations)]
+            cmdline += ['--iterations', str(load.iterations)]
 
         if load.hold:
-            nose_command_line += ['-d', str(load.hold)]
+            cmdline += ['--hold-for', str(load.hold)]
 
-        nose_command_line += [self.script]
-        self._start_subprocess(nose_command_line)
+        if load.ramp_up:
+            cmdline += ['--ramp-up', str(load.ramp_up)]
 
-        if self.__is_verbose():
-            self._tailer = FileTailer(self.stdout_file)
+        if load.steps:
+            cmdline += ['--steps', str(load.steps)]
+
+        cmdline += [self.script]
+        self.start_time = time.time()
+        self._start_subprocess(cmdline)
+        self._tailer = FileTailer(self.stdout_file)
+
+    def has_results(self):
+        if not self._readers:
+            return False
+        return any(reader.read_records > 0 for reader in self._readers)
 
     def check(self):
-        self.__log_lines()
-        return super(NoseTester, self).check()
+        for line in self._tailer.get_lines():
+            if "Adding worker" in line:
+                marker = "results="
+                pos = line.index(marker)
+                fname = line[pos + len(marker):].strip()
+                self.log.debug("Adding result reader for %s", fname)
+                if not self.engine.is_functional_mode():
+                    reader = JTLReader(fname, self.log)
+                    if isinstance(self.engine.aggregator, ConsolidatingAggregator):
+                        self.engine.aggregator.add_underling(reader)
+                else:
+                    reader = FuncSamplesReader(self.report_file, self.engine, self.log)
+                    if isinstance(self.engine.aggregator, FunctionalAggregator):
+                        self.engine.aggregator.add_underling(reader)
+                self._readers.append(reader)
 
-    def post_process(self):
-        super(NoseTester, self).post_process()
-        self.__log_lines()
+        return super(ApiritifNoseExecutor, self).check()
+
+    def get_widget(self):
+        if not self.widget:
+            label = "%s" % self
+            self.widget = ExecutorWidget(self, "Apiritif: " + label.split('/')[1])
+        return self.widget
 
     def __log_lines(self):
         lines = []
@@ -125,6 +140,15 @@ class NoseTester(SubprocessedExecutor, HavingInstallableTools):
 
         if lines:
             self.log.info("\n".join(lines))
+
+    def post_process(self):
+        super(ApiritifNoseExecutor, self).post_process()
+        self.__log_lines()
+
+    def __is_verbose(self):
+        engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
+        executor_verbose = self.settings.get("verbose", engine_verbose)
+        return executor_verbose
 
 
 class TaurusNosePlugin(RequiredTool):
@@ -1167,95 +1191,3 @@ class Robot(RequiredTool):
 
     def install(self):
         raise ToolError("You must install robot framework")
-
-
-class ApiritifExecutor(SubprocessedExecutor, WidgetProvider):
-    """
-    :type _readers: list[JTLReader]
-    """
-
-    def __init__(self):
-        super(ApiritifExecutor, self).__init__()
-        self._tailer = NoneTailer()
-        self._readers = []
-        self.widget = None
-
-    def prepare(self):
-        # TODO: we need sidebar widget here
-
-        self.script = self.get_script_path()
-
-        if not self.script:
-            if "requests" in self.get_scenario():
-                self.script = self.__tests_from_requests()
-            else:
-                raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
-
-    def __tests_from_requests(self):
-        filename = self.engine.create_artifact("test_requests", ".py")
-        builder = ApiritifScriptGenerator(self.get_scenario(), self.log)
-        builder.build_source_code()
-        builder.save(filename)
-        return filename
-
-    def startup(self):
-        """
-        run python tests
-        """
-        executable = self.settings.get("interpreter", sys.executable)
-
-        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
-
-        report_tpl = self.engine.create_artifact("apiritif-", "") + "%s.csv"
-        cmdline = [executable, "-m", "apiritif.loadgen", '--result-file-template', report_tpl]
-
-        load = self.get_load()
-        if load.concurrency:
-            cmdline += ['--concurrency', str(load.concurrency)]
-
-        if load.iterations:
-            cmdline += ['--iterations', str(load.iterations)]
-
-        if load.hold:
-            cmdline += ['--hold-for', str(load.hold)]
-
-        if load.ramp_up:
-            cmdline += ['--ramp-up', str(load.ramp_up)]
-
-        if load.steps:
-            cmdline += ['--steps', str(load.steps)]
-
-        cmdline += [self.script]
-        self.start_time = time.time()
-        self._start_subprocess(cmdline)
-        self._tailer = FileTailer(self.stdout_file)
-
-    def has_results(self):
-        if not self._readers:
-            return False
-        return any(reader.read_records > 0 for reader in self._readers)
-
-    def check(self):
-        for line in self._tailer.get_lines():
-            if "Adding worker" in line:
-                marker = "results="
-                pos = line.index(marker)
-                fname = line[pos + len(marker):].strip()
-                self.log.debug("Adding result reader for %s", fname)
-                reader = JTLReader(fname, self.log)
-                self._readers.append(reader)
-                if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-                    self.engine.aggregator.add_underling(reader)
-
-        return super(ApiritifExecutor, self).check()
-
-    def get_widget(self):
-        """
-        Add progress widget to console screen sidebar
-
-        :rtype: ExecutorWidget
-        """
-        if not self.widget:
-            label = "%s" % self
-            self.widget = ExecutorWidget(self, "Apiritif: " + label.split('/')[1])
-        return self.widget

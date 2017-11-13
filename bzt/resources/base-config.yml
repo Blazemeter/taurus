@@ -25,7 +25,7 @@ modules:
   selenium:
     class: bzt.modules.selenium.SeleniumExecutor
   nose:
-    class: bzt.modules.python.NoseTester
+    class: bzt.modules.python.ApiritifNoseExecutor
   junit:
     class: bzt.modules.java.JUnitTester
   testng:
@@ -45,7 +45,7 @@ modules:
   newman:
     class: bzt.modules.javascript.NewmanExecutor
   apiritif:
-    class: bzt.modules.python.ApiritifExecutor
+    class: bzt.modules.python.ApiritifNoseExecutor
 
   # service & infra modules
   local:
