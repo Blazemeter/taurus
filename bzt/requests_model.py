@@ -75,13 +75,19 @@ class HierarchicHTTPRequest(HTTPRequest):
     def __init__(self, config, scenario, engine):
         super(HierarchicHTTPRequest, self).__init__(config, scenario, engine)
         self.upload_files = self.config.get("upload-files", [])
-        #if len(self.upload_files) > 1 and self.config.get('method') == 'PUT':
-        #    self.log.warning(...)
-        #    self.upload_files = self.config['uplodad-files'] = self.upload_files[:1]
-        #    self.upload_files[0]['param'] = ''
+
+        method = self.config.get("method")
+        if method == "PUT" and len(self.upload_files) > 1:
+                self.upload_files = self.upload_files[:1]
 
         for file_dict in self.upload_files:
-            file_dict.get("param", TaurusConfigError("Items from upload-files must specify parameter name"))
+            param = file_dict.get("param", None)
+
+            if method == "GET":
+                file_dict["param"] = ""
+            if method == "POST" and not param:
+                raise TaurusConfigError("Items from upload-files must specify parameter name")
+
             path_exc = TaurusConfigError("Items from upload-files must specify path to file")
             file_dict["path"] = get_full_path(self.engine.find_file(file_dict.get("path", path_exc)))
             mime = mimetypes.guess_type(file_dict["path"])[0] or "application/octet-stream"
