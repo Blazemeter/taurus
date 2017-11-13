@@ -83,7 +83,7 @@ class HierarchicHTTPRequest(HTTPRequest):
         for file_dict in self.upload_files:
             param = file_dict.get("param", None)
 
-            if method == "GET":
+            if method == "PUT":
                 file_dict["param"] = ""
             if method == "POST" and not param:
                 raise TaurusConfigError("Items from upload-files must specify parameter name")
