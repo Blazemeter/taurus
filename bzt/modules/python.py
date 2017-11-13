@@ -47,7 +47,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = NoneTailer()
         self._readers = []
-        self.widget = None
 
     def prepare(self):
         self.script = self.get_script_path()
@@ -125,12 +124,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 self._readers.append(reader)
 
         return super(ApiritifNoseExecutor, self).check()
-
-    def get_widget(self):
-        if not self.widget:
-            label = "%s" % self
-            self.widget = ExecutorWidget(self, "Apiritif: " + label.split('/')[1])
-        return self.widget
 
     def __log_lines(self):
         lines = []
