@@ -21,7 +21,8 @@ from optparse import OptionParser, BadOptionError, AmbiguousOptionError
 
 import pytest
 
-from bzt.modules.python import Sample
+import apiritif
+from apiritif.samples import Sample, ApiritifSampleExtractor
 
 
 class RecordingPlugin(object):
@@ -32,6 +33,9 @@ class RecordingPlugin(object):
         self.failed_tests = 0
         self.passed_tests = 0
         self._sample = None
+        self.start_time = None
+        self.end_time = None
+        self.apiritif_extractor = ApiritifSampleExtractor()
 
     def prepare(self):
         if self._report_fds is None:
@@ -72,15 +76,39 @@ class RecordingPlugin(object):
             self._sample.error_trace = "\n".join(traceback.format_tb(call.excinfo.tb)).strip()
 
     def _report_sample(self, label):
-        self.test_count += 1
         if self._sample.status == "PASSED":
             self.passed_tests += 1
         elif self._sample.status in ["BROKEN", "FAILED"]:
             self.failed_tests += 1
 
-        self._write_sample(self._sample)
-        self._write_stdout_report(label)
+        samples_processed = self._process_apiritif_samples(self._sample, label)
+        if not samples_processed:
+            self._process_sample(self._sample, label)
+
         self._sample = None
+
+    def _process_sample(self, sample, label):
+        self._write_sample(sample)
+        self._write_stdout_report(label)
+
+    def _process_apiritif_samples(self, sample, label):
+        samples_processed = 0
+
+        recording = apiritif.recorder.pop_events(from_ts=self.start_time, to_ts=self.end_time)
+        if not recording:
+            return samples_processed
+
+        try:
+            samples = self.apiritif_extractor.parse_recording(recording, sample)
+        except BaseException as exc:
+            print("Warning: Couldn't parse recording: %s" % exc)
+            samples = []
+
+        for sample in samples:
+            samples_processed += 1
+            self._process_sample(sample, label)
+
+        return samples_processed
 
     @pytest.mark.hookwrapper
     def pytest_runtest_makereport(self, item, call):
@@ -95,6 +123,8 @@ class RecordingPlugin(object):
             elif report.skipped:
                 self._fill_sample(report, call, item, "SKIPPED")
         elif report.when == 'setup':
+            self.test_count += 1
+            self.start_time = time.time()
             if report.failed:
                 self._fill_sample(report, call, item, "BROKEN")
             elif report.skipped:
@@ -105,6 +135,7 @@ class RecordingPlugin(object):
                     self._fill_sample(report, call, item, "BROKEN")
                 else:
                     self._sample.status = "BROKEN"
+            self.end_time = time.time()
             self._report_sample(test_name)
 
 
