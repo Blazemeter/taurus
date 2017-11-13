@@ -16,10 +16,6 @@ reporting:
   criteria:
   - fail>0 for 1s
 
-modules:
-  robot:
-    interpreter: python3
-
 # all of functional-style executors
 ---
 execution:
