@@ -923,7 +923,7 @@ class JTLReader(ResultsReader):
     :type errors_reader: JTLErrorsReader
     """
 
-    def __init__(self, filename, parent_logger, errors_filename):
+    def __init__(self, filename, parent_logger, errors_filename=None):
         super(JTLReader, self).__init__()
         self.is_distributed = False
         self.log = parent_logger.getChild(self.__class__.__name__)

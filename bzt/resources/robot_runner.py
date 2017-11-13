@@ -9,7 +9,7 @@ if sys.version_info < (3, 0):
 else:
     from io import StringIO
 
-from bzt.modules.python import Sample
+from apiritif.samples import Sample
 from robot import run
 
 
