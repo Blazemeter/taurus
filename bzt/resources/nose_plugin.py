@@ -48,6 +48,8 @@ class BZTPlugin(Plugin):
         self.current_sample = None
         self.out_stream = None
         self.apiritif_extractor = ApiritifSampleExtractor()
+        self.start_time = None
+        self.end_time = None
 
     def __enter__(self):
         self.out_stream = open(self.output_file, "wt", buffering=1)
@@ -84,9 +86,10 @@ class BZTPlugin(Plugin):
         test_fqn = test.id()  # [package].module.class.method
         class_name, method_name = test_fqn.split('.')[-2:]
 
+        self.start_time = time.time()
         self.current_sample = Sample(test_case=method_name,
                                      test_suite=class_name,
-                                     start_time=time.time(),
+                                     start_time=self.start_time,
                                      status="SKIPPED")
         self.current_sample.extras.update({
             "file": test_file,
@@ -147,9 +150,8 @@ class BZTPlugin(Plugin):
     def process_apiritif_samples(self, sample):
         samples_processed = 0
         apiritif = get_apiritif()
-        test_case = sample.test_case
 
-        recording = apiritif.recorder.get_recording(test_case)
+        recording = apiritif.recorder.pop_events(from_ts=self.start_time, to_ts=self.end_time)
         if not recording:
             return samples_processed
 
@@ -183,7 +185,8 @@ class BZTPlugin(Plugin):
         :param test:
         :return:
         """
-        self.current_sample.duration = time.time() - self.current_sample.start_time
+        self.end_time = time.time()
+        self.current_sample.duration = self.end_time - self.current_sample.start_time
 
         if get_apiritif() is not None:
             samples_processed = self.process_apiritif_samples(self.current_sample)
