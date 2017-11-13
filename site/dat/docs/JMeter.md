@@ -276,6 +276,10 @@ scenarios:
       assert: []  # explained below
       jsr223: []  # explained below
 ```
+Notes for `upload-files`:
+
+- `POST` request method requires non-empty `param` values
+- `PUT` method allows only one file in upload-files block
 
 ##### Extractors
 
