@@ -10,7 +10,7 @@ from bzt import ToolError, TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
-from bzt.modules.python import NoseTester
+from bzt.modules.python import ApiritifNoseExecutor
 from bzt.six import StringIO
 from bzt.utils import LDJSONReader
 from tests import BZTestCase, RESOURCES_DIR
@@ -113,11 +113,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        with open(os.path.join(self.obj.engine.artifacts_dir, self.obj.runner.execution['executor'] + ".err")) as fds:
-            contents = fds.read()
-            msg = "file: '%s', size: %s, content: '%s'" % (fds, fds.__sizeof__(), contents)
-            self.assertEqual(1, contents.count("ok"), msg)
-            self.assertEqual(1, contents.count("OK"))
+        with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")) as fds:
+            lines = fds.readlines()
+            self.assertEquals(4, len(lines))
 
     def test_fail_on_zero_results(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
@@ -233,7 +231,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             'runner': 'nose',
         })
         self.obj.prepare()
-        self.assertIsInstance(self.obj.runner, NoseTester)
+        self.assertIsInstance(self.obj.runner, ApiritifNoseExecutor)
 
     def test_additional_classpath_resource_files(self):
         self.obj.execution.merge({

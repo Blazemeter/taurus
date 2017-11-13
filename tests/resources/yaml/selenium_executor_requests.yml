@@ -1,6 +1,7 @@
 ---
 execution:
-  executor: "selenium"
+  executor: selenium
+  iterations: 1
   scenario:
     browser: Firefox
     timeout: 10
