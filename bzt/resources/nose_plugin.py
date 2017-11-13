@@ -147,9 +147,8 @@ class BZTPlugin(Plugin):
     def process_apiritif_samples(self, sample):
         samples_processed = 0
         apiritif = get_apiritif()
-        test_case = sample.test_case
 
-        recording = apiritif.recorder.get_recording(test_case)
+        recording = apiritif.recorder.get_recording()
         if not recording:
             return samples_processed
 
