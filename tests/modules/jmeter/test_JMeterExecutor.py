@@ -1867,6 +1867,8 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
 
     def test_multipart_file_upload(self):
+        path0 = "test1.csv"
+        path1 = "jmeter/unicode_file"
         self.configure({
             'execution': {
                 'scenario': {
@@ -1875,13 +1877,17 @@ class TestJMeterExecutor(BZTestCase):
                         "method": "POST",
                         "multipart-form": True,
                         "upload-files": [{
-                            "path": "stats.csv",
+                            "path": path0,
                             "param": "stats",
                             "mime-type": "text/csv"
                         }, {
-                            "path": "report.pdf",
+                            "path": path1,
                             "param": "report",
                             "mime-type": "application/pdf"}]}]}}})
+        self.obj.engine.file_search_paths = [RESOURCES_DIR]
+        self.assertTrue(os.path.isfile(self.obj.engine.find_file(path0)))
+        self.assertTrue(os.path.isfile(self.obj.engine.find_file(path1)))
+
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
         request = xml_tree.find('.//HTTPSamplerProxy')
@@ -1891,12 +1897,19 @@ class TestJMeterExecutor(BZTestCase):
         file_query = 'elementProp[@name="HTTPsampler.Files"]/collectionProp[@name="HTTPFileArgs.files"]/elementProp'
         files = request.findall(file_query)
         self.assertEqual(len(files), 2)
-        self.assertEqual(files[0].get('name'), "stats.csv")
-        self.assertEqual(files[0].find('stringProp[@name="File.path"]').text, "stats.csv")
+
+        self.assertTrue(files[0].get('name').endswith(path0))
+        full_path0 = files[0].find('stringProp[@name="File.path"]').text
+        self.assertTrue(full_path0.endswith(path0))
+        self.assertTrue(os.path.isfile(full_path0))
         self.assertEqual(files[0].find('stringProp[@name="File.paramname"]').text, "stats")
         self.assertEqual(files[0].find('stringProp[@name="File.mimetype"]').text, "text/csv")
-        self.assertEqual(files[1].get('name'), "report.pdf")
-        self.assertEqual(files[1].find('stringProp[@name="File.path"]').text, "report.pdf")
+
+        self.assertTrue(files[1].get('name').endswith(path1))
+        full_path1 = files[1].find('stringProp[@name="File.path"]').text
+        self.assertTrue(full_path1.endswith(path1))
+        self.assertTrue(os.path.isfile(full_path1))
+
         self.assertEqual(files[1].find('stringProp[@name="File.paramname"]').text, "report")
         self.assertEqual(files[1].find('stringProp[@name="File.mimetype"]').text, "application/pdf")
 
