@@ -38,7 +38,7 @@ from bzt.utils import get_full_path, TclLibrary, RequiredTool, PythonGenerator, 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 
-class ApiritifNoseExecutor(SubprocessedExecutor, WidgetProvider):
+class ApiritifNoseExecutor(SubprocessedExecutor):
     """
     :type _readers: list[JTLReader]
     """
