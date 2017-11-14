@@ -2,11 +2,10 @@ import json
 import os
 import time
 
-from bzt import ToolError, TaurusConfigError
+from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
-from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader
-from bzt.modules.python import NoseTester, PyTestExecutor, RobotExecutor
-from bzt.utils import is_windows
+from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
+from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
@@ -38,6 +37,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         """
         self.configure({
             'execution': {
+                "iterations": 1,
                 'scenario': {'script': RESOURCES_DIR + 'selenium/python/'},
                 'executor': 'selenium'
             },
@@ -51,7 +51,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.report_file))
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")))
 
     def test_selenium_startup_shutdown_python_folder(self):
         """
@@ -60,6 +60,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         """
         self.configure({
             'execution': {
+                'iterations': 1,
                 'scenario': {'script': RESOURCES_DIR + 'selenium/python/'},
                 'executor': 'selenium'
             },
@@ -70,7 +71,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        self.assertTrue(os.path.exists(self.obj.runner.report_file))
+        self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")))
 
     def test_runner_fail_no_test_found(self):
         """
@@ -79,20 +80,19 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         """
         self.configure({
             ScenarioExecutor.EXEC: {
+                "iterations": 1,
                 "executor": "selenium",
                 "scenario": {"script": RESOURCES_DIR + "selenium/invalid/dummy.py"}
             }
         })
         self.obj.prepare()
         self.obj.startup()
-        try:
-            while not self.obj.check():
-                time.sleep(1)
-            self.fail()
-        except ToolError as exc:
-            diagnostics = "\n".join(exc.diagnostics)
-            self.assertIn("Nothing to test.", diagnostics)
+        while not self.obj.check():
+            time.sleep(0.2)
         self.obj.shutdown()
+
+        diagnostics = "\n".join(self.obj.get_error_diagnostics())
+        self.assertIn("Nothing to test.", diagnostics)
 
     def test_resource_files_collection_remote_nose(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "selenium/python/"}})
@@ -106,18 +106,13 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/python/test_setup_exception.py"
         }})
+        self.obj.engine.aggregator = FunctionalAggregator()
         self.obj.prepare()
         self.obj.startup()
-        while True:
-            try:
-                finished = self.obj.check()
-                if finished:
-                    self.fail("Should've failed with 'nothing to test'")
-            except ToolError as exc:
-                diagnostics = "\n".join(exc.diagnostics)
-                self.assertIn("Catch that", diagnostics)
-                self.assertIn("Nothing to test", diagnostics)
-                break
+        while not self.obj.check():
+            time.sleep(0.2)
+        diagnostics = "\n".join(self.obj.get_error_diagnostics())
+        self.assertIn("Nothing to test", diagnostics)
 
     def test_long_iterations_value(self):
         self.obj.execution.merge({
@@ -141,7 +136,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
 class TestNoseRunner(BZTestCase):
     def setUp(self):
         super(TestNoseRunner, self).setUp()
-        self.obj = NoseTester()
+        self.obj = ApiritifNoseExecutor()
         self.obj.engine = EngineEmul()
 
     def configure(self, config):
@@ -150,11 +145,17 @@ class TestNoseRunner(BZTestCase):
 
     def test_full_single_script(self):
         self.obj.execution.merge({
+            "iterations": 1,
+            "ramp-up": "10s",
+            "hold-for": "10s",
+            "steps": 5,
+
             "scenario": {
-                "script": RESOURCES_DIR + "apiritif/test_api_example.py"
+                "script": RESOURCES_DIR + "apiritif/test_codegen.py"
             }
         })
         self.obj.prepare()
+        self.obj.get_widget()
         try:
             self.obj.startup()
             while not self.obj.check():
@@ -169,6 +170,7 @@ class TestNoseRunner(BZTestCase):
         self.configure({
             "execution": [{
                 "test-mode": "apiritif",
+                "iterations": 1,
                 "scenario": {
                     "default-address": "http://blazedemo.com",
                     "requests": [
@@ -193,6 +195,7 @@ class TestNoseRunner(BZTestCase):
         self.configure({
             "execution": [{
                 "test-mode": "apiritif",
+                "iterations": 1,
                 "scenario": {
                     "script": RESOURCES_DIR + "apiritif/test_transactions.py"
                 }
@@ -223,6 +226,7 @@ class TestNoseRunner(BZTestCase):
         self.configure({
             "execution": [{
                 "test-mode": "apiritif",
+                "iterations": 1,
                 "scenario": {
                     "default-address": "http://httpbin.org",
                     "requests": [{
@@ -232,6 +236,7 @@ class TestNoseRunner(BZTestCase):
                 }
             }]
         })
+        self.obj.engine.aggregator = FunctionalAggregator()
         self.obj.prepare()
         try:
             self.obj.startup()
@@ -241,9 +246,7 @@ class TestNoseRunner(BZTestCase):
             self.obj.shutdown()
         self.obj.post_process()
         self.assertNotEquals(self.obj.process, None)
-        with open(self.obj.report_file) as fds:
-            self.obj.log.debug("Report: %s", fds.read())
-        reader = LoadSamplesReader(self.obj.report_file, self.obj.log)
+        reader = LoadSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.ldjson"), self.obj.log)
         samples = list(reader._read(last_pass=True))
         self.assertEqual(len(samples), 1)
         tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count = samples[0]
@@ -258,6 +261,7 @@ class TestNoseRunner(BZTestCase):
                 }
             }]
         })
+        self.obj.engine.aggregator = FunctionalAggregator()
         self.obj.prepare()
         try:
             self.obj.startup()
@@ -266,7 +270,8 @@ class TestNoseRunner(BZTestCase):
         finally:
             self.obj.shutdown()
         self.obj.post_process()
-        reader = FuncSamplesReader(self.obj.report_file, self.obj.engine, self.obj.log)
+        reader = FuncSamplesReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.ldjson"),
+                                   self.obj.engine, self.obj.log)
         samples = list(reader.read(last_pass=True))
         self.assertEqual(len(samples), 4)
         self.assertIsNotNone(samples[-1].status)
@@ -325,7 +330,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
 class TestApiritifScriptGenerator(BZTestCase):
     def setUp(self):
         super(TestApiritifScriptGenerator, self).setUp()
-        self.obj = NoseTester()
+        self.obj = ApiritifNoseExecutor()
         self.obj.engine = EngineEmul()
 
     def configure(self, config):
@@ -843,6 +848,7 @@ class TestPyTestExecutor(BZTestCase):
 
     def test_full_single_script(self):
         self.obj.execution.merge({
+            "iterations": 1,
             "scenario": {
                 "script": RESOURCES_DIR + "selenium/pytest/test_statuses.py"
             }
