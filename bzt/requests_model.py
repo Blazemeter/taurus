@@ -17,7 +17,7 @@ import mimetypes
 import re
 
 from bzt import TaurusConfigError, TaurusInternalException
-from bzt.utils import ensure_is_dict, dehumanize_time
+from bzt.utils import ensure_is_dict, dehumanize_time, get_full_path
 
 
 class Request(object):
@@ -75,10 +75,22 @@ class HierarchicHTTPRequest(HTTPRequest):
     def __init__(self, config, scenario, engine):
         super(HierarchicHTTPRequest, self).__init__(config, scenario, engine)
         self.upload_files = self.config.get("upload-files", [])
+
+        method = self.config.get("method")
+        if method == "PUT" and len(self.upload_files) > 1:
+            self.upload_files = self.upload_files[:1]
+
         for file_dict in self.upload_files:
-            file_dict.get("param", TaurusConfigError("Items from upload-files must specify parameter name"))
-            path = file_dict.get('path', TaurusConfigError("Items from upload-files must specify path to file"))
-            mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
+            param = file_dict.get("param", None)
+
+            if method == "PUT":
+                file_dict["param"] = ""
+            if method == "POST" and not param:
+                raise TaurusConfigError("Items from upload-files must specify parameter name")
+
+            path_exc = TaurusConfigError("Items from upload-files must specify path to file")
+            file_dict["path"] = get_full_path(self.engine.find_file(file_dict.get("path", path_exc)))
+            mime = mimetypes.guess_type(file_dict["path"])[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
         self.content_encoding = self.config.get('content-encoding', None)
 
