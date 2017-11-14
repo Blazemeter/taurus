@@ -1,12 +1,19 @@
 # Changelog
 
 ## 1.10.1 <sup>next</sup>
+ - add [Postman/Newman](Postman.md) executor 
+ - add support for [Robot Framework](Robot.md) as `robot` executor
+ - add support for [WebdriverIO](WebdriverIO.md) as `wdio` executor
+ - add support for API load testing with `nose` executor
  - add `-public` CLI alias to make BlazeMeter report public
  - fix crash on reading Gatling logs with assertions
- - do not force "mode=Stripped" property for JMeter distributed tests
- - send `java-opts` from Gatling settings into BlazeMeter cloud test
- - trying to fix exception write into log for Grinder 
  - fix Gatling reading same results twice for multiple executions 
+ - send `java-opts` from Gatling settings into BlazeMeter cloud test
+ - do not force "mode=Stripped" property for JMeter distributed tests
+ - fix file uploads for JMeter and GET/PUT methods
+ - don't crash `jmx2yaml` on unparsable JSON bodies
+ - trying to fix exception write into log for Grinder
+ - support `apiritif` transactions in `pytest` executor
 
 ## 1.10.0 <sup>26 oct 2017</sup>
  - fully migrate to python wheel distribution
