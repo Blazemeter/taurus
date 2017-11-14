@@ -78,7 +78,7 @@ class HierarchicHTTPRequest(HTTPRequest):
 
         method = self.config.get("method")
         if method == "PUT" and len(self.upload_files) > 1:
-                self.upload_files = self.upload_files[:1]
+            self.upload_files = self.upload_files[:1]
 
         for file_dict in self.upload_files:
             param = file_dict.get("param", None)
