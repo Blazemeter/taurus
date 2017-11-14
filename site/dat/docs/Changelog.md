@@ -6,6 +6,7 @@
  - do not force "mode=Stripped" property for JMeter distributed tests
  - send `java-opts` from Gatling settings into BlazeMeter cloud test
  - trying to fix exception write into log for Grinder 
+ - fix Gatling reading same results twice for multiple executions 
 
 ## 1.10.0 <sup>26 oct 2017</sup>
  - fully migrate to python wheel distribution
