@@ -675,7 +675,8 @@ class Configuration(BetterDict):
         :raise TaurusInternalException:
         """
         if fmt == self.JSON:
-            fds.write(to_json(self))
+            json_s = to_json(self)
+            fds.write(json_s.encode('utf-8'))
         elif fmt == self.YAML:
             yml = yaml.dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True,
                             encoding='utf-8')
