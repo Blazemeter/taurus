@@ -37,7 +37,7 @@ class TestCloudProvisioning(BZTestCase):
         self.mock = BZMock(self.obj.user)
         self.mock.mock_post.update({
             'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1}},
-            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1, "configuration": {"type": "taurus"}}},
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": True},
@@ -58,7 +58,7 @@ class TestCloudProvisioning(BZTestCase):
                 "modules": {"mock": ModuleMock.__module__ + "." + ModuleMock.__name__},
                 "provisioning": "mock"})
 
-            self.obj.parameters = self.obj.engine.config.get('execution')
+            # self.obj.parameters = self.obj.engine.config.get('execution')
 
         if isinstance(self.obj.parameters, list):
             self.obj.parameters = self.obj.parameters[0]
@@ -185,7 +185,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_widget_cloud_test(self):
         test = Test(self.obj.user, {"id": 1, 'name': 'testname'})
-        self.obj.router = CloudTaurusTest(self.obj.user, test, None, None, None, self.obj.log)
+        self.obj.router = CloudTaurusTest(self.obj.user, test, None, None, None, False, self.obj.log)
         self.configure(get={
             'https://a.blazemeter.com/api/v4/masters/1/sessions': [
                 {"result": {"sessions": []}},
@@ -206,7 +206,7 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_widget_cloud_collection(self):
         test = MultiTest(self.obj.user, {"id": 1, 'name': 'testname'})
-        self.obj.router = CloudCollectionTest(self.obj.user, test, None, None, None, self.obj.log)
+        self.obj.router = CloudCollectionTest(self.obj.user, test, None, None, None, False, self.obj.log)
         self.configure(post={
             'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {
                 "id": 1,
@@ -279,7 +279,7 @@ class TestCloudProvisioning(BZTestCase):
                         "us-west": 2}}},
         )
 
-        self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, self.obj.log)
+        self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
         cloud_config = self.obj.router.prepare_cloud_config(self.obj.engine.config)
         execution = cloud_config["execution"][0]
         self.assertNotIn("throughput", execution)
@@ -1169,6 +1169,27 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.shutdown()
         with self.assertRaises(AutomatedShutdown):
             self.obj.post_process()
+
+    def test_launch_existing_test(self):
+        self.configure(
+            engine_cfg={
+                "execution": [],
+            },
+            get={
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=1': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=1': {"result": [
+                    {"id": 1, "name": 1, "configuration": {"type": "taurus"}}
+                ]},
+            }
+        )
+
+        self.obj.settings["test"] = 1
+        self.obj.settings["use-existing-test"] = True
+
+        self.obj.prepare()
+        self.assertEqual(7, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(8, len(self.mock.requests))
 
 
 class TestCloudTaurusTest(BZTestCase):

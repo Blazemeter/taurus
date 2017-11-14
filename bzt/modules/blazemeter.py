@@ -922,6 +922,7 @@ class ProjectFinder(object):
         cloud_mode = self.settings.get("cloud-mode", None)
         proj_name = self.parameters.get("project", self.settings.get("project", None))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        launch_existing_test = self.settings.get("use-existing-test", False)
 
         project = self._find_project(proj_name)
 
@@ -932,11 +933,14 @@ class ProjectFinder(object):
             self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
         else:
-            test = self._ws_proj_switch(project).tests(name=test_name, test_type=TAURUS_TEST_TYPE).first()
+            test = self._ws_proj_switch(project).tests(name=test_name).first()
             self.log.debug("Looked for test: %s", test)
             if test:
                 self.log.debug("Detected test type: old")
                 test_class = CloudTaurusTest
+            else:
+                if launch_existing_test:
+                    raise TaurusConfigError("Test not found: %r", test_name)
 
         if not project:
             project = self._default_or_create_project(proj_name)
@@ -952,7 +956,7 @@ class ProjectFinder(object):
                 test_class = CloudCollectionTest
 
         assert test_class is not None
-        router = test_class(self.user, test, project, test_name, default_location, self.log)
+        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test, self.log)
         router._workspaces = self.workspaces
         router.cloud_mode = cloud_mode
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
@@ -979,7 +983,7 @@ class BaseCloudTest(object):
     :type cloud_mode: str
     """
 
-    def __init__(self, user, test, project, test_name, default_location, parent_log):
+    def __init__(self, user, test, project, test_name, default_location, launch_existing_test, parent_log):
         self.default_test_name = "Taurus Test"
         self.log = parent_log.getChild(self.__class__.__name__)
         self.default_location = default_location
@@ -990,6 +994,7 @@ class BaseCloudTest(object):
         self._user = user
         self._project = project
         self._test = test
+        self.launch_existing_test = launch_existing_test
         self.master = None
         self._workspaces = None
         self.cloud_mode = None
@@ -1078,9 +1083,6 @@ class BaseCloudTest(object):
 
 
 class CloudTaurusTest(BaseCloudTest):
-    def __init__(self, user, test, project, test_name, default_location, parent_log):
-        super(CloudTaurusTest, self).__init__(user, test, project, test_name, default_location, parent_log)
-
     def prepare_locations(self, executors, engine_config):
         available_locations = {}
         is_taurus4 = self.cloud_mode == 'taurusCloud'
@@ -1126,6 +1128,9 @@ class CloudTaurusTest(BaseCloudTest):
                 raise TaurusConfigError("Invalid location requested: %s" % location)
 
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
+        if self.launch_existing_test:
+            return
+
         if self._test is None:
             test_config = {
                 "type": TAURUS_TEST_TYPE,
@@ -1141,6 +1146,9 @@ class CloudTaurusTest(BaseCloudTest):
         if delete_old_files:
             self._test.delete_files()
 
+        test_type = self._test.get('configuration', {}).get('type')
+        if test_type != TAURUS_TEST_TYPE:
+            raise TaurusConfigError("Can't reuse test type %r as Taurus test" % test_type)
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
         self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
@@ -1234,6 +1242,9 @@ class CloudCollectionTest(BaseCloudTest):
                 raise TaurusConfigError("Invalid location requested: %s" % location)
 
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
+        if self.launch_existing_test:
+            return
+
         # TODO: handle delete_old_files ?
         if not self._project:
             raise TaurusInternalException()  # TODO: build unit test to catch this situation
@@ -1421,6 +1432,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.public_report = False
         self.report_name = None
         self._workspaces = []
+        self.launch_existing_test = None
 
     def _merge_with_blazemeter_config(self):
         if 'blazemeter' not in self.engine.config.get('modules'):
@@ -1445,20 +1457,26 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.detach = self.settings.get("detach", self.detach)
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
         self.public_report = self.settings.get("public-report", self.public_report)
-        self._filter_reporting()
+        is_execution_empty = "execution" not in self.engine.config or not bool(self.engine.config.get("execution", []))
+        self.launch_existing_test = self.settings.get("use-existing-test", is_execution_empty)
+
+        if not self.launch_existing_test:
+            self._filter_reporting()
 
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
         finder.is_functional = self.engine.is_functional_mode()
         self.router = finder.resolve_test_type()
-        self.router.prepare_locations(self.executors, self.engine.config)
 
-        res_files = self.get_rfiles()
-        files_for_cloud = self._fix_filenames(res_files)
-        config_for_cloud = self.router.prepare_cloud_config(self.engine.config)
-        config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
-        del_files = self.settings.get("delete-test-files", True)
-        self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
+        if not self.launch_existing_test:
+            self.router.prepare_locations(self.executors, self.engine.config)
+
+            res_files = self.get_rfiles()
+            files_for_cloud = self._fix_filenames(res_files)
+            config_for_cloud = self.router.prepare_cloud_config(self.engine.config)
+            config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
+            del_files = self.settings.get("delete-test-files", True)
+            self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
 
         self.report_name = self.settings.get("report-name", self.report_name)
         if self.report_name == 'ask' and sys.stdin.isatty():
