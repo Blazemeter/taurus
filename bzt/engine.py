@@ -677,11 +677,12 @@ class Configuration(BetterDict):
         if fmt == self.JSON:
             fds.write(to_json(self))
         elif fmt == self.YAML:
-            yml = yaml.dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True)
+            yml = yaml.dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True,
+                            encoding='utf-8')
             fds.write(yml)
         else:
             raise TaurusInternalException("Unknown dump format: %s" % fmt)
-        fds.write("\n")
+        fds.write("\n".encode('utf-8'))
 
     def dump(self, filename=None, fmt=None):
         """
@@ -702,7 +703,7 @@ class Configuration(BetterDict):
 
             acopy = copy.deepcopy(self)
             BetterDict.traverse(acopy, self.masq_sensitive)
-            with open(filename, "w") as fhd:
+            with open(filename, "wb") as fhd:
                 self.log.debug("Dumping %s config into %s", fmt, filename)
                 acopy.write(fhd, fmt)
 
