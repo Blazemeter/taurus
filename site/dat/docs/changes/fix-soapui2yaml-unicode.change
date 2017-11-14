@@ -1,0 +1,1 @@
+Fix unicode handling in `soapui2yaml` converter
