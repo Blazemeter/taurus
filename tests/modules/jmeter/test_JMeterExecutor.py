@@ -1868,7 +1868,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_multipart_file_upload(self):
         path0 = "test1.csv"
-        path1 = "jmeter/unicode_file"
+        path1 = os.path.join("jmeter", "unicode_file")
         self.configure({
             'execution': {
                 'scenario': {
