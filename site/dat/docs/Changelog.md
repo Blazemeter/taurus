@@ -5,8 +5,8 @@
  - add support for [Robot Framework](Robot.md) as `robot` executor
  - add support for [WebdriverIO](WebdriverIO.md) as `wdio` executor
  - add support for API load testing with `nose` executor
+ - allow running existing BlazeMeter tests of any type, with `launch-existing-test` flag
  - add `-public` CLI alias to make BlazeMeter report public
- - allow running existing BlazeMeter tests of any type with `launch-existing-test` flag
  - fix crash on reading Gatling logs with assertions
  - fix Gatling reading same results twice for multiple executions 
  - send `java-opts` from Gatling settings into BlazeMeter cloud test
@@ -16,7 +16,6 @@
  - trying to fix exception write into log for Grinder
  - support `apiritif` transactions in `pytest` executor
  - fix unicode handling in `soapui2yaml` converter
-
 
 ## 1.10.0 <sup>26 oct 2017</sup>
  - fully migrate to python wheel distribution

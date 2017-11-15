@@ -682,6 +682,7 @@ Keep in mind: the following scenario-level parameters of including scenario have
 - `timeout`
 - `think-time`
 - `follow-redirects`
+- `properties`
 
 ##### Action Blocks
 
