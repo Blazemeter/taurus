@@ -31,7 +31,7 @@ It is recommended to place the token setting in your personal
 being logged and collected in artifacts.
 </div>
 
-## Load Settings or Cloud
+## Load Settings for Cloud
 
 By default, cloud-provisioned execution will read `concurrency` and `throughput` options normally. There's a notation that allows configuring values for `local` and `cloud` at once, to remove the need to edit load settings when switching `provisioning` during test debugging from `local` to `cloud` and back:
 
