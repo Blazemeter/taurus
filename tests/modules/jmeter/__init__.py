@@ -1,6 +1,6 @@
 import logging
 
-from bzt.engine import Engine
+from tests.mocks import EngineEmul
 from bzt.modules.jmeter import JMeter, JMeterExecutor
 from bzt.utils import get_full_path
 
@@ -38,7 +38,7 @@ class MockJMeterExecutor(JMeterExecutor):
         if settings is None: settings = {}
         if has_ctg is None: has_ctg = True
 
-        self.engine = Engine(logging.getLogger(''))
+        self.engine = EngineEmul()
         self.execution.merge(load)
         self.settings.merge({"detect-plugins": False})
         self.settings.merge(settings)
