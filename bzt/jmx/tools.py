@@ -20,6 +20,8 @@ import os
 import re
 import traceback
 
+from distutils.version import LooseVersion
+
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
 from bzt.jmx import JMX
@@ -383,7 +385,11 @@ class JMeterScenarioBuilder(JMX):
         jextractors = req.config.get("extract-jsonpath", BetterDict())
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
-            children.append(JMX._get_json_extractor(varname, cfg['jsonpath'], cfg.get('default', 'NOT_FOUND')))
+            if LooseVersion(self.executor.settings["version"]) < LooseVersion("3.0"):
+                extractor = JMX._get_json_extractor(varname, cfg['jsonpath'], cfg.get('default', 'NOT_FOUND'))
+            else:
+                extractor = JMX._get_internal_json_extractor(varname, cfg['jsonpath'], cfg.get('default', 'NOT_FOUND'))
+            children.append(extractor)
             children.append(etree.Element("hashTree"))
 
         css_jquery_extors = req.config.get("extract-css-jquery", BetterDict())

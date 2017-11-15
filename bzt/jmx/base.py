@@ -857,6 +857,26 @@ class JMX(object):
         return element
 
     @staticmethod
+    def _get_internal_json_extractor(varname, jsonpath, default='NOT_FOUND', from_variable=None):
+        """
+
+        :type varname: str
+        :type default: str
+        :rtype: lxml.etree.Element
+        """
+        package = "JSONPostProcessor"
+        element = etree.Element(package,
+                                guiclass="%s.gui.JSONPathExtractorGui" % package,
+                                testclass="%s" % package,
+                                testname="Get %s" % varname)
+        element.append(JMX._string_prop("JSONPostProcessor.referenceNames", varname))
+        element.append(JMX._string_prop("JSONPostProcessor.jsonPathExprs", jsonpath))
+        element.append(JMX._string_prop("JSONPostProcessor.match_numbers", ""))
+        element.append(JMX._string_prop("JSONPostProcessor.defaultValues", default))
+
+        return element
+
+    @staticmethod
     def _get_json_path_assertion(jsonpath, expected_value, json_validation, expect_null, invert, regexp=True):
         """
         :type jsonpath: str
