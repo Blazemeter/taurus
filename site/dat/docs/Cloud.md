@@ -31,7 +31,7 @@ It is recommended to place the token setting in your personal
 being logged and collected in artifacts.
 </div>
 
-## Load Settings for Cloud
+## Load Settings or Cloud
 
 By default, cloud-provisioned execution will read `concurrency` and `throughput` options normally. There's a notation that allows configuring values for `local` and `cloud` at once, to remove the need to edit load settings when switching `provisioning` during test debugging from `local` to `cloud` and back:
 
@@ -49,7 +49,32 @@ execution:
 Then you can just switch `provisioning` and load settings will be taken accordingly. For example, running `bzt config.yml -o provisioning=cloud` is an easy way to toggle on `cloud` provisioning. Short form `bzt config.yml -cloud` is available and contrariwise you can turn off cloud provisioning by the similar way: `bzt config.yml -local`   
 The `concurrency` and `througput` are always *total* value for execution, no matter how many locations will be involved.
 
+## Launching Existing Cloud Tests
+
+Taurus provides a way to launch pre-configured cloud tests by their name or id. This is the default behaviour
+of cloud provisioning when the `execution` section is empty.
+
+This configuration will launch the cloud test named "Taurus Test" and await for its execution:
+```yaml
+provisioning: cloud
+
+modules:
+  cloud:
+    test: Taurus Test
+    launch-existing-test: true  # you can omit this field if your `execution` section is empty
+```
+
+In the case of multiple tests with the same name your can provide a test idd instead of a name:
+```yaml
+provisioning: cloud
+
+modules:
+  cloud:
+    test: 581781
+```
+
 ## Detach Mode
+
 You can start Cloud test and stop Taurus without waiting for test results with attribute `detach`:
 ```yaml
 modules:
@@ -183,6 +208,8 @@ modules:
   blazemeter:
     dedicated-ips: true
 ```
+
+## 
 
 ## Worker Number Info
 
