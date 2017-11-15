@@ -38,7 +38,7 @@ class TestCloudProvisioningOld(BZTestCase):
 
         mock.mock_post = {
             'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, "workspaceId": 1}},
-            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1, "configuration": {"type": "taurus"}}},
             'https://a.blazemeter.com/api/v4/tests/1/files': {"result": None},
             'https://a.blazemeter.com/api/v4/tests/1/start': {"result": {"id": 1}},
             'https://a.blazemeter.com/api/v4/masters/1/stop': {"result": None},
