@@ -54,14 +54,23 @@ The `concurrency` and `througput` are always *total* value for execution, no mat
 Taurus provides a way to launch pre-configured cloud tests by their name or id. This is the default behaviour
 of cloud provisioning when the `execution` section is empty.
 
-Example:
+This configuration will launch the cloud test named "Taurus Test" and await for its execution:
 ```yaml
 provisioning: cloud
 
 modules:
   cloud:
-    test: Taurus Test  # Existing test name or id
-    launch-existing-test: true  # will be set to true automatically if `execution` section is empty
+    test: Taurus Test
+    launch-existing-test: true  # you can omit this field if your `execution` section is empty
+```
+
+In the case of multiple tests with the same name your can provide a test idd instead of a name:
+```yaml
+provisioning: cloud
+
+modules:
+  cloud:
+    test: 581781
 ```
 
 ## Detach Mode
