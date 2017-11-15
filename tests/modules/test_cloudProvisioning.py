@@ -1172,9 +1172,6 @@ class TestCloudProvisioning(BZTestCase):
 
     def test_launch_existing_test(self):
         self.configure(
-            engine_cfg={
-                "execution": [],
-            },
             get={
                 'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=1': {"result": []},
                 'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=1': {"result": [
@@ -1184,7 +1181,57 @@ class TestCloudProvisioning(BZTestCase):
         )
 
         self.obj.settings["test"] = 1
-        self.obj.settings["use-existing-test"] = True
+        self.obj.settings["launch-existing-test"] = True
+
+        self.obj.prepare()
+        self.assertEqual(7, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(8, len(self.mock.requests))
+
+    def test_launch_existing_test_not_found(self):
+        self.configure(
+            get={
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=1': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=1': {"result": []},
+            }
+        )
+
+        self.obj.settings["test"] = 1
+        self.obj.settings["launch-existing-test"] = True
+
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
+
+    def test_launch_existing_multi_test(self):
+        self.configure(
+            get={
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=1': {"result": [
+                    {"id": 1, "name": 1}
+                ]}
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/multi-tests/1/start?delayedStart=true': {"result": {"id": 1}}
+            }
+        )
+
+        self.obj.settings["test"] = 1
+        self.obj.settings["launch-existing-test"] = True
+
+        self.obj.prepare()
+        self.assertEqual(6, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(7, len(self.mock.requests))
+
+    def test_launch_existing_test_non_taurus(self):
+        self.configure(
+            get={
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=1': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=1': {"result": [
+                    {"id": 1, "name": 1, "configuration": {"type": "jmeter"}}
+                ]},
+            }
+        )
+
+        self.obj.settings["test"] = 1
 
         self.obj.prepare()
         self.assertEqual(7, len(self.mock.requests))

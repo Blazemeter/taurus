@@ -810,6 +810,7 @@ class Provisioning(EngineModule):
     def __init__(self):
         super(Provisioning, self).__init__()
         self.executors = []
+        self.disallow_empty_execution = True
 
     def prepare(self):
         """
@@ -821,11 +822,15 @@ class Provisioning(EngineModule):
         default_executor = esettings.get("default-executor", None)
 
         exc = TaurusConfigError("No 'execution' is configured. Did you forget to pass config files?")
-        if ScenarioExecutor.EXEC not in self.engine.config:
+
+        if ScenarioExecutor.EXEC not in self.engine.config and self.disallow_empty_execution:
             raise exc
 
-        executions = self.engine.config.get(ScenarioExecutor.EXEC, exc)
-        if not isinstance(executions, list):
+        executions = self.engine.config.get(ScenarioExecutor.EXEC, [])
+        if not executions and self.disallow_empty_execution:
+            raise exc
+
+        if isinstance(executions, dict):
             executions = [executions]
 
         for execution in executions:

@@ -922,7 +922,7 @@ class ProjectFinder(object):
         cloud_mode = self.settings.get("cloud-mode", None)
         proj_name = self.parameters.get("project", self.settings.get("project", None))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-        launch_existing_test = self.settings.get("use-existing-test", False)
+        launch_existing_test = self.settings.get("launch-existing-test", False)
 
         project = self._find_project(proj_name)
 
@@ -940,7 +940,7 @@ class ProjectFinder(object):
                 test_class = CloudTaurusTest
             else:
                 if launch_existing_test:
-                    raise TaurusConfigError("Test not found: %r", test_name)
+                    raise TaurusConfigError("Test not found: %r" % test_name)
 
         if not project:
             project = self._default_or_create_project(proj_name)
@@ -1433,6 +1433,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.report_name = None
         self._workspaces = []
         self.launch_existing_test = None
+        self.disallow_empty_execution = False
 
     def _merge_with_blazemeter_config(self):
         if 'blazemeter' not in self.engine.config.get('modules'):
@@ -1458,7 +1459,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
         self.public_report = self.settings.get("public-report", self.public_report)
         is_execution_empty = "execution" not in self.engine.config or not bool(self.engine.config.get("execution", []))
-        self.launch_existing_test = self.settings.get("use-existing-test", is_execution_empty)
+        self.launch_existing_test = self.settings.get("launch-existing-test", is_execution_empty)
 
         if not self.launch_existing_test:
             self._filter_reporting()
