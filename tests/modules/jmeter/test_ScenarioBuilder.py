@@ -51,7 +51,7 @@ class TestScenarioBuilder(BZTestCase):
         cfg = {}
         blocks = xml_tree.findall(".//JSONPostProcessor")
         for block in blocks:
-            varname = block.find(".//stringProp[@name='VAR']")
+            varname = block.find(".//stringProp[@name='JSONPostProcessor.referenceNames']")
             jsonpath = block.find(".//stringProp[@name='JSONPostProcessor.jsonPathExprs']")
             default = block.find(".//stringProp[@name='JSONPostProcessor.defaultValues']")
             match_num = block.find(".//stringProp[@name='JSONPostProcessor.match_numbers']")
@@ -62,10 +62,14 @@ class TestScenarioBuilder(BZTestCase):
             jsonpath = jsonpath.text
             if default is not None:
                 default = default.text
+            if match_num is not None:
+                match_num = match_num.text
+
             if (scope is not None) and scope.text == "variable" and (from_variable is not None):
                 scope = scope.text
                 from_variable = from_variable.text
             else:
+                scope = None
                 from_variable = None
 
             cfg[varname] = {"jsonpath": jsonpath, "default": default, "scope": scope,
@@ -73,10 +77,27 @@ class TestScenarioBuilder(BZTestCase):
 
         return cfg
 
-    def test_plugin_config_reader(self):
+    def test_plugin_extractor_config_reader(self):
         xml_tree = etree.fromstring(open(RESOURCES_DIR + "jmeter/jmx/json_extractors.jmx", "rb").read())
-        target = {}
+        target = {'pv1': {'default': 'pd1', 'from_variable': 'pJV', 'jsonpath': 'pe1'},
+                  'pv2': {'default': None, 'from_variable': None, 'jsonpath': 'pe2'}}
         self.assertEqual(target, self.get_plugin_json_extractor_config(xml_tree))
+
+    def test_internal_extractor_config_reader(self):
+        xml_tree = etree.fromstring(open(RESOURCES_DIR + "jmeter/jmx/json_extractors.jmx", "rb").read())
+        target = {'v1': {'from_variable': None, 'default': 'd1',
+                         'match_num': 'm1', 'jsonpath': 'e1', 'scope': None, 'concat': None},
+                  'v2': {'from_variable': None, 'default': 'd2',
+                         'match_num': 'm2', 'jsonpath': 'e2', 'scope': None, 'concat': None},
+                  'v3': {'from_variable': None, 'default': 'd3',
+                         'match_num': 'm3', 'jsonpath': 'e3', 'scope': None, 'concat': None},
+                  'v4': {'from_variable': 'var4', 'default': 'd4',
+                         'match_num': '4', 'jsonpath': 'e4', 'scope': 'variable', 'concat': None},
+                  'v-empty': {'from_variable': None, 'default': None,
+                              'match_num': None, 'jsonpath': 'p1', 'scope': None, 'concat': None}}
+
+        xml = self.get_internal_json_extractor_config(xml_tree)
+        self.assertEqual(target, xml)
 
     def test_old_jmeter(self):
         """ versions before 3.0 must use JSON plugin for extracting purposes """
@@ -102,12 +123,24 @@ class TestScenarioBuilder(BZTestCase):
         """ versions after 3.0 use integrated JSON extractor """
         self.configure(scenario={"requests": [{
             "url": "http://blazedemo.com",
-            "extract-jsonpath": {"IP": "$.net[0].ip"}}]},
+            "extract-jsonpath": {
+                "IP": "$.net[0].ip",
+                "URL": {"jsonpath": "$.url[1]", "default": "d1", "scope": "all", "concat": True, "from_variable": "V"},
+                "ID": {"jsonpath": "$.net[3].id", "default": "d2", "scope": "children", "concat": True},
+                "NuM": {"jsonpath": "$.num", "scope": "variable", "from-variable": "JMVaR", "match_num": 3},
+            }}]},
             version="3.3")
         self.obj.save(self.jmx)
         xml_tree = etree.fromstring(open(self.jmx, "rb").read())
         cfg = self.get_internal_json_extractor_config(xml_tree)
-        self.assertEqual(1, len(cfg))
-        target = {"IP": {"jsonpath": "$.net[0].ip", "default": "NOT_FOUND"}}
-        self.assertEqual(target, cfg)
+        self.assertEqual(4, len(cfg))
+        target = {'IP': {'from_variable': None, 'default': 'NOT_FOUND', 'match_num': None,
+                         'jsonpath': '$.net[0].ip', 'scope': None, 'concat': None},
+                  'URL': {'from_variable': None, 'default': 'd1', 'match_num': None,
+                          'jsonpath': '$.url[1]', 'scope': None, 'concat': None},
+                  'ID': {'from_variable': None, 'default': 'd2', 'match_num': None,
+                         'jsonpath': '$.net[3].id', 'scope': None, 'concat': None},
+                  'NuM': {'from_variable': 'JMVaR', 'default': 'NOT_FOUND', 'match_num': None,
+                          'jsonpath': '$.num', 'scope': 'variable', 'concat': None}}
 
+        self.assertEqual(target, cfg)
