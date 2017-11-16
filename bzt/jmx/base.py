@@ -838,7 +838,6 @@ class JMX(object):
     @staticmethod
     def _get_json_extractor(varname, jsonpath, default='NOT_FOUND', from_variable=None):
         """
-
         :type varname: str
         :type default: str
         :rtype: lxml.etree.Element
@@ -857,9 +856,8 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_internal_json_extractor(varname, jsonpath, default='NOT_FOUND', from_variable=None):
+    def _get_internal_json_extractor(varname, jsonpath, default, scope, from_variable, match_num, concat):
         """
-
         :type varname: str
         :type default: str
         :rtype: lxml.etree.Element
@@ -871,8 +869,18 @@ class JMX(object):
                                 testname="Get %s" % varname)
         element.append(JMX._string_prop("JSONPostProcessor.referenceNames", varname))
         element.append(JMX._string_prop("JSONPostProcessor.jsonPathExprs", jsonpath))
-        element.append(JMX._string_prop("JSONPostProcessor.match_numbers", ""))
-        element.append(JMX._string_prop("JSONPostProcessor.defaultValues", default))
+        element.append(JMX._string_prop("JSONPostProcessor.match_numbers", match_num))
+
+        if default:
+            element.append(JMX._string_prop("JSONPostProcessor.defaultValues", default))
+
+        if scope:
+            element.append(JMX._string_prop("Sample.scope", scope))
+            if scope == "variable":
+                element.append(JMX._string_prop("Scope.variable", from_variable))
+
+        if concat:
+            element.append(JMX._bool_prop("JSONPostProcessor.compute_concat", True))
 
         return element
 
