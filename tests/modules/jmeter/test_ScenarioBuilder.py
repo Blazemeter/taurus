@@ -15,11 +15,6 @@ class TestScenarioBuilder(BZTestCase):
         self.obj = JMeterScenarioBuilder(executor)
 
         _, self.jmx = mkstemp()
-        pass
-
-    def tearDown(self):
-        remove(self.jmx)
-        super(TestScenarioBuilder, self).tearDown()
 
     def configure(self, scenario, version="3.3"):
         self.obj.scenario.data.merge(scenario)
