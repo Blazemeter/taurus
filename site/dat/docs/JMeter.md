@@ -329,6 +329,10 @@ scenarios:
         varname:
           jsonpath: $.jsonpath[0]  # jsonpath expression
           default: NOT_FOUND  # default value to use when jsonpath not found
+          from-variable: JM_VAR # JMeter variable for search
+          concat: false # \
+          scope: all    # - see below
+          match: 4      # /
     - url: http://blazedemo.com/${varname}/${page_title}
       extract-css-jquery:
         extractor2:
@@ -345,6 +349,15 @@ scenarios:
           ignore-whitespace: true
           use-tolerant-parser: false
 ```
+
+Parameters of jsonpath exractor `concat`, `scope` and `match-num` work only on JMeter >= 3.0
+If several results are found they will be concatenated with ',' if `concat`.
+You can choose `scope` for applying expressions. Possible targets are:
+  - `all` - main sample and sub-samples
+  - `children` - sub-samples
+  - `variable` for search in JMeter variables
+Default value of `scope` is empty, it means search in main sample only
+`match-num` allows to choose the specific result from several ones. Default value is 0 (random).
 
 Possible subjects for regexp are:
   - `body`
