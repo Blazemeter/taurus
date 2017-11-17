@@ -1,7 +1,8 @@
+from os import remove
 from . import MockJMeterExecutor
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from tests import BZTestCase, RESOURCES_DIR
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 from bzt.six import etree
 
 
@@ -13,11 +14,11 @@ class TestScenarioBuilder(BZTestCase):
 
         self.obj = JMeterScenarioBuilder(executor)
 
-        self.jmx_fd = NamedTemporaryFile()
-        self.jmx = self.jmx_fd.name
+        _, self.jmx = mkstemp()
+        pass
 
     def tearDown(self):
-        self.jmx_fd.close()
+        remove(self.jmx)
         super(TestScenarioBuilder, self).tearDown()
 
     def configure(self, scenario, version="3.3"):
