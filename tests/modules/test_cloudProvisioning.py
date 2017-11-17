@@ -58,10 +58,6 @@ class TestCloudProvisioning(BZTestCase):
                 "modules": {"mock": ModuleMock.__module__ + "." + ModuleMock.__name__},
                 "provisioning": "mock"})
 
-            # self.obj.parameters = self.obj.engine.config.get('execution')
-
-        if isinstance(self.obj.parameters, list):
-            self.obj.parameters = self.obj.parameters[0]
 
         self.mock.mock_get.update(get if get else {})
         self.mock.mock_post.update(post if post else {})

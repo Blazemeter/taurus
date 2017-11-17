@@ -240,10 +240,7 @@ class RequestsParser(object):
     def __parse_requests(self, raw_requests, require_url=True):
         requests = []
         for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
-            if not isinstance(raw_requests[key], dict):
-                req = ensure_is_dict(raw_requests, key, "url")
-            else:
-                req = raw_requests[key]
+            req = ensure_is_dict(raw_requests, key, "url")
             if not require_url and "url" not in req:
                 req["url"] = None
             requests.append(self.__parse_request(req))

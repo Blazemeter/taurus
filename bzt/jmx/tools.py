@@ -20,6 +20,8 @@ import os
 import re
 import traceback
 
+from distutils.version import LooseVersion
+
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
 from bzt.jmx import JMX
@@ -372,6 +374,12 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __add_extractors(self, children, req):
+        self.__add_regexp_ext(children, req)
+        self.__add_json_ext(children, req)
+        self.__add_jquery_ext(children, req)
+        self.__add_xpath_ext(children, req)
+
+    def __add_regexp_ext(self, children, req):
         extractors = req.config.get("extract-regexp", BetterDict())
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
@@ -380,12 +388,28 @@ class JMeterScenarioBuilder(JMX):
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
+    def __add_json_ext(self, children, req):
         jextractors = req.config.get("extract-jsonpath", BetterDict())
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
-            children.append(JMX._get_json_extractor(varname, cfg['jsonpath'], cfg.get('default', 'NOT_FOUND')))
+            if LooseVersion(self.executor.settings["version"]) < LooseVersion("3.0"):
+                extractor = JMX._get_json_extractor(varname,
+                                                    cfg["jsonpath"],
+                                                    cfg.get("default", "NOT_FOUND"),
+                                                    cfg.get("from-variable", None))
+            else:
+                extractor = JMX._get_internal_json_extractor(varname,
+                                                             cfg["jsonpath"],
+                                                             cfg.get("default", "NOT_FOUND"),
+                                                             cfg.get("scope", None),
+                                                             cfg.get("from-variable", None),
+                                                             cfg.get("match-num", ""),
+                                                             cfg.get("concat", False))
+
+            children.append(extractor)
             children.append(etree.Element("hashTree"))
 
+    def __add_jquery_ext(self, children, req):
         css_jquery_extors = req.config.get("extract-css-jquery", BetterDict())
         for varname in css_jquery_extors:
             cfg = ensure_is_dict(css_jquery_extors, varname, "expression")
@@ -394,6 +418,7 @@ class JMeterScenarioBuilder(JMX):
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
+    def __add_xpath_ext(self, children, req):
         xpath_extractors = req.config.get("extract-xpath", BetterDict())
         for varname in xpath_extractors:
             cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
