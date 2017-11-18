@@ -316,7 +316,7 @@ class TestScheduler(TestPBench):
 
 
 class TestSchedulerSize(TestPBench):
-    def check_schedule_size_estimate(self, execution):        
+    def check_schedule_size_estimate(self, execution):
         self.obj.engine.config.merge({
             ScenarioExecutor.EXEC: execution,
             "provisioning": "local",
