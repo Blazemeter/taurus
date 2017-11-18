@@ -28,7 +28,7 @@ class TestMolotov(BZTestCase):
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
         if self.obj.reader and self.obj.reader.ldjson_reader and self.obj.reader.ldjson_reader.fds:
-            self.fail("Reader file descriptor not closed")
+            self.obj.reader.ldjson_reader.fds.close()
         super(TestMolotov, self).tearDown()
 
     def test_mocked(self):

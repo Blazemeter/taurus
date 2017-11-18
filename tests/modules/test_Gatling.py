@@ -31,7 +31,7 @@ class TestGatlingExecutor(BZTestCase):
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
         if self.obj.reader and self.obj.reader.fds:
-            self.fail("Reader file descriptor not closed")
+            self.obj.reader.fds.close()
         super(TestGatlingExecutor, self).tearDown()
 
     def test_external_jar_wrong_launcher(self):

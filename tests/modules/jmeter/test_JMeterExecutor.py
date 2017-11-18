@@ -51,12 +51,14 @@ class TestJMeterExecutor(BZTestCase):
             self.obj.stdout_file.close()
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
-        if self.obj.reader and (
-                    (isinstance(self.obj.reader, FuncJTLReader) and self.obj.reader.fds) or
-                    (isinstance(self.obj.reader, JTLReader) and
-                         (self.obj.reader.csvreader.fds or
-                              (self.obj.reader.errors_reader and self.obj.reader.errors_reader.fds)))):
-            self.fail("Reader file descriptor not closed")
+        if self.obj.reader:
+            if isinstance(self.obj.reader, FuncJTLReader) and self.obj.reader.fds:
+                self.obj.reader.fds.close()
+            if isinstance(self.obj.reader, JTLReader):
+                if self.obj.reader.csvreader and self.obj.reader.csvreader.fds:
+                    self.obj.reader.csvreader.fds.close()
+                if self.obj.reader.errors_reader and self.obj.reader.errors_reader.fds:
+                    self.obj.reader.errors_reader.fds.close()
 
         super(TestJMeterExecutor, self).tearDown()
 

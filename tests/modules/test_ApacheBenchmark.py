@@ -28,7 +28,7 @@ class TestApacheBenchExecutor(BZTestCase):
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
         if self.obj.reader and self.obj.reader.fds:
-            self.fail("Reader file descriptor not closed")
+            self.obj.reader.fds.close()
         super(TestApacheBenchExecutor, self).tearDown()
 
     def test_iter(self):
