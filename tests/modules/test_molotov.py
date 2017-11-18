@@ -2,116 +2,109 @@ import logging
 import sys
 import time
 import unittest
-from os import path
+from os.path import exists, join
 
 from bzt import ToolError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.molotov import MolotovExecutor, MolotovReportReader
 from bzt.utils import EXE_SUFFIX
-from tests import BZTestCase
+from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 TOOL_NAME = 'molotov-mock' + EXE_SUFFIX
-
-
-def get_res_path(resource):
-    return path.join(path.dirname(__file__), '..', 'resources', 'molotov', resource)
+TOOL_PATH = join(RESOURCES_DIR, "molotov", TOOL_NAME)
+LOADTEST_PY = join(RESOURCES_DIR, "molotov", "loadtest.py")
 
 
 class TestMolotov(BZTestCase):
+    def setUp(self):
+        super(TestMolotov, self).setUp()
+        self.obj = MolotovExecutor()
+        self.obj.engine = EngineEmul()
+
+    def tearDown(self):
+        if self.obj.stdout_file:
+            self.obj.stdout_file.close()
+        if self.obj.stderr_file:
+            self.obj.stderr_file.close()
+        if self.obj.reader and self.obj.reader.ldjson_reader and self.obj.reader.ldjson_reader.fds:
+            self.fail("Reader file descriptor not closed")
+        super(TestMolotov, self).tearDown()
+
     def test_mocked(self):
-        obj = MolotovExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
+        self.obj.settings.merge({
+            "path": TOOL_PATH})
+        self.obj.execution.merge({
             "ramp-up": "10s",
             "hold-for": "20s",
             "scenario": {
-                "script": get_res_path("loadtest.py")
-            }
-        })
-        obj.prepare()
-        obj.get_widget()
+                "script": LOADTEST_PY}})
+        self.obj.prepare()
+        self.obj.get_widget()
         try:
-            obj.startup()
-            while not obj.check():
-                time.sleep(obj.engine.check_interval)
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
         finally:
-            obj.shutdown()
-        obj.post_process()
-        self.assertNotEquals(obj.process, None)
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
 
     def test_no_tool(self):
-        obj = MolotovExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": '*',})
-        obj.execution.merge({
+        self.obj.settings.merge({
+            "path": '*'})
+        self.obj.execution.merge({
             "scenario": {
-                "script": get_res_path("loadtest.py"),
-            }})
-        self.assertRaises(ToolError, obj.prepare)
+                "script": LOADTEST_PY}})
+        self.assertRaises(ToolError, self.obj.prepare)
 
     def test_diagnostics(self):
-        obj = MolotovExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
+        self.obj.settings.merge({
+            "path": TOOL_PATH})
+        self.obj.execution.merge({
             "iterations": 1,
             "scenario": {
-                "script": get_res_path("loadtest.py")
-            }
-        })
-        obj.prepare()
-        obj.startup()
-        while not obj.check():
-            time.sleep(obj.engine.check_interval)
-        obj.shutdown()
-        obj.post_process()
-        self.assertIsNotNone(obj.get_error_diagnostics())
+                "script": LOADTEST_PY}})
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.assertIsNotNone(self.obj.get_error_diagnostics())
 
     def test_resource_files(self):
-        obj = MolotovExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "scenario": {
-                "script": get_res_path("loadtest.py")
-            }
-        })
-        resources = obj.get_resource_files()
-        self.assertEqual(resources, [get_res_path("loadtest.py")])
+                "script": LOADTEST_PY}})
+        resources = self.obj.get_resource_files()
+        self.assertEqual(resources, [LOADTEST_PY])
 
     @unittest.skipUnless(sys.version_info >= (3, 5), "enabled only on 3.5+")
     def test_full(self):
-        obj = MolotovExecutor()
-        obj.engine = EngineEmul()
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 3,
             "processes": 2,
             "hold-for": "5s",
             "iterations": 10,
             "scenario": {
-                "script": get_res_path("loadtest.py")
-            }
-        })
-        obj.prepare()
-        obj.get_widget()
+                "script": LOADTEST_PY}})
+        self.obj.prepare()
+        self.obj.get_widget()
         try:
-            obj.startup()
-            while not obj.check():
-                time.sleep(obj.engine.check_interval)
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
         finally:
-            obj.shutdown()
-        obj.post_process()
-        self.assertNotEquals(obj.process, None)
-        self.assertTrue(path.exists(obj.report_file_name))
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
+        self.assertTrue(exists(self.obj.report_file_name))
 
 
 class TestReportReader(BZTestCase):
     def test_read(self):
-        log_path = path.join(get_res_path('molotov-report.csv'))
+        log_path = join(RESOURCES_DIR, "molotov", "molotov-report.csv")
         obj = MolotovReportReader(log_path, logging.getLogger(''))
         points = list(obj.datapoints(True))
 
