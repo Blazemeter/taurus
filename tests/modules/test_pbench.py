@@ -1,7 +1,6 @@
 import io
 import logging
 import math
-import os
 import pprint
 import time
 import unittest
@@ -9,6 +8,8 @@ import unittest
 import urwid
 import yaml
 
+
+from os.path import join
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
@@ -22,6 +23,7 @@ from tests.mocks import EngineEmul
 def get_pbench():
     obj = PBenchExecutor()
     obj.engine = EngineEmul()
+    obj.settings.merge({"path": join(RESOURCES_DIR, "pbench", "phantom.sh")})
     return obj
 
 
@@ -36,8 +38,8 @@ class DataPointLogger(AggregatorListener):
 @unittest.skipIf(is_windows(), "Disabled on Windows")
 class TestPBench(BZTestCase):
     def setUp(self):
-        self.obj = get_pbench()
         super(TestPBench, self).setUp()
+        self.obj = get_pbench()
 
     def tearDown(self):
         if self.obj.pbench:
@@ -59,14 +61,6 @@ class TestPBenchExecutor(TestPBench):
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.engine.aggregator.add_listener(DataPointLogger())
         self.obj.engine.config.merge({"provisioning": "test"})
-
-        if os.path.exists("/home/undera/Sources/phantom"):  # FIXME: not good, get rid of it
-            self.obj.settings.merge({
-                "path": "/home/undera/Sources/phantom/bin/phantom",
-                "modules-path": "/home/undera/Sources/phantom/lib/phantom"})
-        else:
-            self.obj.settings.merge({
-                "path": RESOURCES_DIR + "pbench/phantom.sh"})
 
         self.obj.execution.merge({
             "log-responses": "proto_error",
@@ -120,9 +114,6 @@ class TestPBenchExecutor(TestPBench):
                         "default-address": "http://blazedemo.com/",
                         "requests": ["/"]}}]})
         self.obj.execution = self.obj.engine.config['execution'][0]
-        self.obj.settings.merge({
-            "path": RESOURCES_DIR + "pbench/phantom.sh",
-        })
         self.obj.prepare()
         self.obj.startup()
         self.obj.get_widget()
@@ -136,9 +127,6 @@ class TestPBenchExecutor(TestPBench):
         self.obj.engine.config.merge(yaml.load(
             open(RESOURCES_DIR + "yaml/phantom_improved_request.yml").read()))
         self.obj.execution = self.obj.engine.config['execution'][0]
-        self.obj.settings.merge({
-            "path": RESOURCES_DIR + "pbench/phantom.sh",
-        })
         self.obj.prepare()
         with open(self.obj.pbench.schedule_file) as fds:
             config = fds.readlines()
@@ -154,9 +142,6 @@ class TestPBenchExecutor(TestPBench):
         self.obj.engine.config.merge(
             yaml.load(open(RESOURCES_DIR + "yaml/phantom_request_same_address.yml").read()))
         self.obj.execution = self.obj.engine.config['execution'][0]
-        self.obj.settings.merge({
-            "path": RESOURCES_DIR + "pbench/phantom.sh",
-        })
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_install_pbench(self):
@@ -172,9 +157,6 @@ class TestPBenchExecutor(TestPBench):
         self.obj.engine.config.merge(
             {'execution': {"executor": "pbench", "scenario": {"script": "script.src"}}})
         self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge({
-            "path": RESOURCES_DIR + "pbench/phantom.sh",
-        })
         resource_files = self.obj.resource_files()
         self.assertEqual(1, len(resource_files))
         self.assertEqual(resource_files[0], 'script.src')
@@ -183,34 +165,28 @@ class TestPBenchExecutor(TestPBench):
         self.obj.engine.config.merge({
             ScenarioExecutor.EXEC: {
                 "executor": "pbench",
-                "scenario": {"script": RESOURCES_DIR + "pbench/pbench.src"}
+                "scenario": {"script": join(RESOURCES_DIR, "pbench", "pbench.src")}
             },
             "provisioning": "test"
         })
         self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge({
-            "path": RESOURCES_DIR + "pbench/phantom.sh"
-        })
         self.obj.prepare()
 
     def test_pbench_payload_relpath(self):
-        "Verify that enhanced pbench preserves relative script path"
-        script_path = "tests/resources/pbench/pbench.src"
+        """Verify that enhanced pbench preserves relative script path"""
+        script_path = join(RESOURCES_DIR, "pbench", "pbench.src")
         self.obj.engine.config.merge({
             ScenarioExecutor.EXEC: {
                 "executor": "pbench",
-                "scenario": {"script": "tests/resources/pbench/pbench.src"}
+                "scenario": {"script": script_path}
             },
             "provisioning": "test",
         })
         self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge({
-            "path": RESOURCES_DIR + "pbench/phantom.sh",
-            "enhanced": True,
-        })
+        self.obj.settings.merge({"enhanced": True})
         self.obj.prepare()
 
-        pbench_conf = os.path.join(self.obj.engine.artifacts_dir, "pbench.conf")
+        pbench_conf = join(self.obj.engine.artifacts_dir, "pbench.conf")
         with open(pbench_conf) as conf_fds:
             config = conf_fds.read()
             self.assertIn(script_path, config)
@@ -224,9 +200,6 @@ class TestPBenchExecutor(TestPBench):
             "provisioning": "test",
         })
         self.obj.execution = self.obj.engine.config['execution']
-        self.obj.settings.merge({
-            "path": RESOURCES_DIR + "pbench/phantom.sh",
-        })
         self.obj.prepare()
 
     def test_diagnostics(self):
@@ -240,9 +213,6 @@ class TestPBenchExecutor(TestPBench):
                         "default-address": "http://blazedemo.com/",
                         "requests": ["/"]}}]})
         self.obj.execution = self.obj.engine.config['execution'][0]
-        self.obj.settings.merge({
-            "path": RESOURCES_DIR + "pbench/phantom.sh",
-        })
         self.obj.prepare()
         self.obj.startup()
         for _ in range(3):
