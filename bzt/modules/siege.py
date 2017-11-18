@@ -35,8 +35,8 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         super(SiegeExecutor, self).__init__()
         self.log = logging.getLogger('')
         self.process = None
-        self.__out = None
-        self.__err = None
+        self.stdout_file = None
+        self.stderr_file = None
         self.__rc_name = None
         self.__url_name = None
         self.tool_path = None
@@ -57,7 +57,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         self.__rc_name = self.engine.create_artifact("siegerc", "")
         with open(self.__rc_name, 'w') as rc_file:
             rc_file.writelines('\n'.join(config_params))
-            rc_file.close()
 
         if Scenario.SCRIPT in self.scenario and self.scenario[Scenario.SCRIPT]:
             self.__url_name = self.engine.find_file(self.scenario[Scenario.SCRIPT])
@@ -67,13 +66,12 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         else:
             raise TaurusConfigError("Siege: you must specify either script(url-file) or some requests")
 
-        out_file_name = self.engine.create_artifact("siege", ".out")
-        self.reader = DataLogReader(out_file_name, self.log)
+        self.stdout_file = open(self.engine.create_artifact("siege", ".out"), 'w')
+        self.stderr_file = open(self.engine.create_artifact("siege", ".err"), 'w')
+
+        self.reader = DataLogReader(self.stdout_file, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
-
-        self.__out = open(out_file_name, 'w')
-        self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
 
     def resource_files(self):
         scenario = self.get_scenario()
@@ -98,7 +96,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
 
         with open(url_file_name, 'w') as url_file:
             url_file.writelines('\n'.join(user_vars + url_list))
-            url_file.close()
+
         return url_file_name
 
     def startup(self):
@@ -131,7 +129,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         env = {"SIEGERC": self.__rc_name}
         self.start_time = time.time()
 
-        self.process = self.execute(args, stdout=self.__out, stderr=self.__err, env=env)
+        self.process = self.execute(args, stdout=self.stdout_file, stderr=self.stderr_file, env=env)
 
     def check(self):
         ret_code = self.process.poll()
@@ -155,10 +153,12 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         If tool is still running - let's stop it.
         """
         shutdown_process(self.process, self.log)
-        if self.__out and not self.__out.closed:  # FIXME: this should happen in post_process
-            self.__out.close()
-        if self.__err and not self.__err.closed:
-            self.__err.close()
+
+    def post_process(self):
+        if self.stdout_file:
+            self.stdout_file.close()
+        if self.stderr_file:
+            self.stderr_file.close()
 
     def install_required_tools(self):
         tool_path = self.settings.get('path', 'siege')
@@ -169,15 +169,15 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.__out is not None:
-            with open(self.__out.name) as fds:
+        if self.stdout_file is not None:
+            with open(self.stdout_file.name) as fds:
                 contents = fds.read().strip()
-                if contents.strip():
+                if contents:
                     diagnostics.append("Siege STDOUT:\n" + contents)
-        if self.__err is not None:
-            with open(self.__err.name) as fds:
+        if self.stderr_file is not None:
+            with open(self.stderr_file.name) as fds:
                 contents = fds.read().strip()
-                if contents.strip():
+                if contents:
                     diagnostics.append("Siege STDERR:\n" + contents)
         return diagnostics
 
@@ -231,7 +231,7 @@ class DataLogReader(ResultsReader):
             # _http = log_vals[1]           # 1. http protocol
             _rstatus = log_vals[2]  # 2. response status code
             _etime = float(log_vals[3])  # 3. elapsed time (total time - connection time)
-            _rsize = int(log_vals[4])     # 4. size of response
+            _rsize = int(log_vals[4])  # 4. size of response
             _url = log_vals[5]  # 6. long or short URL value
             # _url_id = int(log_vals[7])    # 7. url number
             _tstamp = time.strptime(log_vals[7], "%Y-%m-%d %H:%M:%S")
