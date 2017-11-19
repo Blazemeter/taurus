@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.10.1 <sup>next</sup>
+## 1.10.2 <sup>19 nov 2017</sup>
  - add [Postman/Newman](Postman.md) executor 
  - add support for [Robot Framework](Robot.md) as `robot` executor
  - add support for [WebdriverIO](WebdriverIO.md) as `wdio` executor

@@ -36,9 +36,6 @@ public class TaurusAppender extends FileAppender {
             wrapped.setMessage(proto.getMessage());
             wrapped.setLevel(proto.getLevel());
             wrapped.setArgumentArray(proto.getArgumentArray());
-            wrapped.setCallerData(proto.getCallerData());
-            wrapped.setThreadName(proto.getThreadName());
-            wrapped.setLoggerName(proto.getLoggerName());
             super.writeOut(wrapped);
 
         } else {
