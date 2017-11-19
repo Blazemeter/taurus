@@ -7,6 +7,7 @@ from bzt.modules.siege import SiegeExecutor, DataLogReader
 from bzt.utils import EXE_SUFFIX
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
+from bzt.modules.aggregator import ConsolidatingAggregator
 
 TOOL_NAME = 'siege' + EXE_SUFFIX
 TOOL_PATH = join(RESOURCES_DIR, "siege", TOOL_NAME)
@@ -17,6 +18,7 @@ class TestSiegeExecutor(BZTestCase):
         super(TestSiegeExecutor, self).setUp()
         self.obj = SiegeExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.settings.merge({"path": TOOL_PATH})
 
     def tearDown(self):
@@ -95,6 +97,7 @@ class TestSiegeExecutor(BZTestCase):
         self.obj.prepare()
         try:
             self.obj.startup()
+            self.obj.engine.aggregator.check()
             while not self.obj.check():
                 time.sleep(self.obj.engine.check_interval)
         finally:

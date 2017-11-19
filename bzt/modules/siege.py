@@ -66,10 +66,12 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         else:
             raise TaurusConfigError("Siege: you must specify either script(url-file) or some requests")
 
-        self.stdout_file = open(self.engine.create_artifact("siege", ".out"), 'w')
+        out = self.engine.create_artifact("siege", ".out") \
+
+        self.stdout_file = open(out, 'w')
         self.stderr_file = open(self.engine.create_artifact("siege", ".err"), 'w')
 
-        self.reader = DataLogReader(self.stdout_file, self.log)
+        self.reader = DataLogReader(out, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
