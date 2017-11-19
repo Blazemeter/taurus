@@ -32,7 +32,7 @@ class TestGrinderExecutor(BZTestCase):
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
         if self.obj.reader and self.obj.reader.fds:
-            self.fail("Reader file descriptor not closed")
+            self.obj.reader.fds.close()
         super(TestGrinderExecutor, self).tearDown()
 
     def test_install_Grinder(self):

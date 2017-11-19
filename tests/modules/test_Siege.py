@@ -1,45 +1,48 @@
 import logging
 import time
-from os import path
+from os.path import join
 
 from bzt import ToolError, TaurusConfigError
 from bzt.modules.siege import SiegeExecutor, DataLogReader
-from tests import BZTestCase
-from tests.mocks import EngineEmul
 from bzt.utils import EXE_SUFFIX
-
+from tests import BZTestCase, RESOURCES_DIR
+from tests.mocks import EngineEmul
 
 TOOL_NAME = 'siege' + EXE_SUFFIX
-
-
-def get_res_path(resource):
-    return path.join(path.dirname(__file__), '..', 'resources', 'siege', resource)
+TOOL_PATH = join(RESOURCES_DIR, "siege", TOOL_NAME)
 
 
 class TestSiegeExecutor(BZTestCase):
+    def setUp(self):
+        super(TestSiegeExecutor, self).setUp()
+        self.obj = SiegeExecutor()
+        self.obj.engine = EngineEmul()
+        self.obj.settings.merge({"path": TOOL_PATH})
+
+    def tearDown(self):
+        if self.obj.stdout_file:
+            self.obj.stdout_file.close()
+        if self.obj.stderr_file:
+            self.obj.stderr_file.close()
+        if self.obj.reader and self.obj.reader.fds:
+            self.obj.reader.fds.close()
+        super(TestSiegeExecutor, self).tearDown()
+
     def test_iter(self):
-        obj = SiegeExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 2,
             "iterations": 3,
             "scenario": {
                 "think-time": "1s",
-                "requests": ["http://blazedemo.com",
-                             "http://ya.ru"]}
-        })
-        obj.prepare()
-        obj.get_widget()
-        obj.startup()
+                "requests": [
+                    "http://blazedemo.com",
+                    "http://ya.ru"]}})
+        self.obj.prepare()
+        self.obj.get_widget()
+        self.obj.startup()
 
     def test_hold(self):
-        obj = SiegeExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {
@@ -49,91 +52,77 @@ class TestSiegeExecutor(BZTestCase):
                 "variables": {
                     'v1': 1,
                     'v2': 'TWO'},
-                "script": get_res_path('url-file')}})
-        obj.prepare()
-        obj.prepare()
-        self.assertNotEqual(len(obj.resource_files()), 0)
-        obj.get_widget()
-        obj.startup()
+                "script": join(RESOURCES_DIR, "siege", "url-file")}})
+        self.obj.prepare()
+        self.assertNotEqual(len(self.obj.resource_files()), 0)
+        self.obj.get_widget()
+        self.obj.startup()
 
     def test_url_exceptions(self):
-        obj = SiegeExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {}})
-        self.assertRaises(TaurusConfigError, obj.prepare)
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_check_install_exceptions(self):
-        obj = SiegeExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": '*',})
-        obj.execution.merge({
+        self.obj.settings.merge({"path": '*'})
+        self.obj.execution.merge({
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {}})
-        self.assertRaises(ToolError, obj.prepare)
+        self.assertRaises(ToolError, self.obj.prepare)
 
     def test_repetition_exceptions(self):
-        obj = SiegeExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 2,
             "scenario": {
-                "requests": ["http://blazedemo.com",
-                             "http://ya.ru"]}})
-        obj.prepare()
-        self.assertEqual(len(obj.resource_files()), 0)
-        self.assertRaises(TaurusConfigError, obj.startup)
+                "requests": [
+                    "http://blazedemo.com",
+                    "http://ya.ru"]}})
+        self.obj.prepare()
+        self.assertEqual(len(self.obj.resource_files()), 0)
+        self.assertRaises(TaurusConfigError, self.obj.startup)
 
     def test_full_execution(self):
-        obj = SiegeExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 2,
             "iterations": 3,
             "scenario": {
-                "requests": ["http://blazedemo.com",
-                             "http://ya.ru"]}
-        })
-        obj.prepare()
+                "requests": [
+                    "http://blazedemo.com",
+                    "http://ya.ru"]}})
+        self.obj.prepare()
         try:
-            obj.startup()
-            while not obj.check():
-                time.sleep(obj.engine.check_interval)
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
         finally:
-            obj.shutdown()
+            self.obj.shutdown()
 
-        obj.post_process()
-        self.assertNotEquals(obj.process, None)
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
 
     def test_diagnostics(self):
-        obj = SiegeExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({"path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({"iterations": 1, "scenario": {"requests": ["http://blazedemo.com"]}})
-        obj.prepare()
+        self.obj.execution.merge({
+            "iterations": 1,
+            "scenario": {
+                "requests": [
+                    "http://blazedemo.com"]}})
+        self.obj.prepare()
         try:
-            obj.startup()
-            while not obj.check():
-                time.sleep(obj.engine.check_interval)
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
         finally:
-            obj.shutdown()
-        obj.post_process()
-        self.assertIsNotNone(obj.get_error_diagnostics())
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertIsNotNone(self.obj.get_error_diagnostics())
 
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
-        log_path = path.join(get_res_path('siege.out'))
+        log_path = join(RESOURCES_DIR, "siege", "siege.out")
         obj = DataLogReader(log_path, logging.getLogger(''))
         list_of_values = list(obj.datapoints(True))
 
