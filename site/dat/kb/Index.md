@@ -1,5 +1,6 @@
 # Getting Started
 
+ 1. Take [Beginner's Course](/learn/)
  1. [Getting Started with Taurus and JMeter](Basic1)
  
 # Articles

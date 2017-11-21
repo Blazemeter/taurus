@@ -14,7 +14,7 @@
          class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="docs" img_path_prepend="/dat/docs/img/"
     />
 
-    <url link="kb" accept="1" menu="1" title="Knowledge Base"
+    <url link="kb" accept="1" menu="1" title="Learning Taurus"
          class="PWE\Modules\SimpleWiki\SimpleWiki" wiki_dir="kb" img_path_prepend="/dat/kb/img/"
     />
 
