@@ -413,6 +413,7 @@ class FileTailer(NoneTailer):
         super(FileTailer, self).__init__()
         self.file_name = filename
         self._fds = None
+        self.offset = 0
 
     def get_lines(self):
         if not self._fds:
@@ -421,8 +422,10 @@ class FileTailer(NoneTailer):
             else:
                 return
 
+        self._fds.seek(self.offset)
         for line in self._fds.readlines():
             yield line.rstrip()
+        self.offset = self._fds.tell()
 
     def __del__(self):
         if self._fds:
