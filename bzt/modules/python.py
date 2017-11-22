@@ -73,7 +73,14 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+        py_path = os.getenv("PYTHONPATH")
+        taurus_dir = get_full_path(__file__, step_up=3)
+        if py_path:
+            py_path = os.pathsep.join((py_path, taurus_dir))
+        else:
+            py_path = taurus_dir
+
+        self.env["PYTHONPATH"] = py_path
 
         report_type = ".ldjson" if self.engine.is_functional_mode() else ".csv"
         report_tpl = self.engine.create_artifact("apiritif-", "") + "%s" + report_type
