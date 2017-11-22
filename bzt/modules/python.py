@@ -405,17 +405,22 @@ import apiritif
 
 class NoneTailer(object):
     def get_lines(self):
-        if False:
-            yield ''
-        return
+        return ()
 
 
 class FileTailer(NoneTailer):
     def __init__(self, filename):
         super(FileTailer, self).__init__()
-        self._fds = open(filename)
+        self.file_name = filename
+        self._fds = None
 
     def get_lines(self):
+        if not self._fds:
+            if os.path.isfile(self.file_name):
+                self._fds = open(self.file_name)
+            else:
+                return
+
         for line in self._fds.readlines():
             yield line.rstrip()
 
