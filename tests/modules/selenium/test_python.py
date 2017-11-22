@@ -144,6 +144,7 @@ class TestNoseRunner(BZTestCase):
         self.obj.execution = self.obj.engine.config["execution"][0]
 
     def test_full_single_script(self):
+        self.obj.engine.check_interval = 0.1
         self.obj.execution.merge({
             "iterations": 1,
             "ramp-up": "10s",
@@ -924,6 +925,7 @@ class TestPyTestExecutor(BZTestCase):
         self.assertGreaterEqual(duration, 3.0)
 
     def test_blazedemo(self):
+        self.obj.engine.check_interval = 0.1
         self.obj.execution.merge({
             "scenario": {
                 "script": RESOURCES_DIR + "selenium/pytest/test_blazedemo.py"
@@ -942,6 +944,7 @@ class TestPyTestExecutor(BZTestCase):
         self.assertEqual(2, len(report))
 
     def test_package(self):
+        self.obj.engine.check_interval = 0.1
         self.obj.execution.merge({
             "scenario": {
                 "script": RESOURCES_DIR + "selenium/pytest/"

@@ -73,7 +73,14 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+        py_path = os.getenv("PYTHONPATH")
+        taurus_dir = get_full_path(__file__, step_up=3)
+        if py_path:
+            py_path = os.pathsep.join((py_path, taurus_dir))
+        else:
+            py_path = taurus_dir
+
+        self.env["PYTHONPATH"] = py_path
 
         report_type = ".ldjson" if self.engine.is_functional_mode() else ".csv"
         report_tpl = self.engine.create_artifact("apiritif-", "") + "%s" + report_type
@@ -405,19 +412,27 @@ import apiritif
 
 class NoneTailer(object):
     def get_lines(self):
-        if False:
-            yield ''
-        return
+        return ()
 
 
 class FileTailer(NoneTailer):
     def __init__(self, filename):
         super(FileTailer, self).__init__()
-        self._fds = open(filename)
+        self.file_name = filename
+        self._fds = None
+        self.offset = 0
 
     def get_lines(self):
+        if not self._fds:
+            if os.path.isfile(self.file_name):
+                self._fds = open(self.file_name)
+            else:
+                return
+
+        self._fds.seek(self.offset)
         for line in self._fds.readlines():
             yield line.rstrip()
+        self.offset = self._fds.tell()
 
     def __del__(self):
         if self._fds:
