@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.3 <sup>22 nov 2017</sup>
+ - use builtin JSON extractor in JMeter, if possible
+ - fix functioning of apiritif on Mac 
+
 ## 1.10.2 <sup>19 nov 2017</sup>
  - add [Postman/Newman](Postman.md) executor 
  - add support for [Robot Framework](Robot.md) as `robot` executor
