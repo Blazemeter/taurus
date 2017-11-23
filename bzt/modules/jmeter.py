@@ -1287,36 +1287,23 @@ class JTLErrorsReader(object):
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
-        # context = etree.iterparse(self.fds, events=('end',))
-        self.offset = 0
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
         self.buffer = BetterDict()
         self.failed_processing = False
 
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
+    def __open_fds(self, filename):
+        self.log.debug("Opening %s", filename)
+        return open(filename, 'rb')
 
     def read_file(self, final_pass=False):
         """
         Read the next part of the file
         """
-
-        if self.failed_processing:
+        if self.failed_processing and not self.file.is_ready():
             return
 
-        if not self.fds:
-            if os.path.exists(self.filename) and os.path.getsize(self.filename):  # getsize check to not stuck on mac
-                self.log.debug("Opening %s", self.filename)
-                self.fds = open(self.filename, 'rb')
-            else:
-                self.log.debug("File not exists: %s", self.filename)
-                return
-
-        self.fds.seek(self.offset)
-        read = self.fds.read(1024 * 1024)
-        if read.strip():
+        read = self.file.get_bytes(1024 * 1024)
+        if read and read.strip():
             try:
                 self.parser.feed(read)  # "Huge input lookup" error without capping :)
             except etree.XMLSyntaxError as exc:
@@ -1324,7 +1311,6 @@ class JTLErrorsReader(object):
                 self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
                 self.log.warning("Failed to parse errors XML: %s", exc)
 
-        self.offset = self.fds.tell()
         for _action, elem in self.parser.read_events():
             del _action
             if elem.getparent() is not None and elem.getparent().tag == 'testResults':
