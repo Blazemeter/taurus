@@ -56,11 +56,16 @@ CLOUD_CONFIG_FILTER_RULES = {
     "locations": True,
     "locations-weighted": True,
 
+    "settings": {
+        "verbose": True
+    },
+
     "modules": {
         "jmeter": {
             "version": True,
             "properties": True,
             "system-properties": True,
+            "xml-jtl-flags": True,
         },
         "gatling": {
             "version": True,
@@ -109,7 +114,9 @@ CLOUD_CONFIG_FILTER_RULES = {
             "check-interval": True,
             "detach": True,
         },
-        # TODO: aggregator has plenty of relevant settings
+        "consolidator": {
+            "rtimes-len": True
+        },
     }
 }
 
