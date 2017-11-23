@@ -371,7 +371,6 @@ class LineReader(object):
             return True
 
     def get_lines(self, size=None, last_pass=False):
-
         if self.is_ready():
             self.fds.seek(self.offset)
             for line in readlines(self.fds, hint=None if last_pass else size):

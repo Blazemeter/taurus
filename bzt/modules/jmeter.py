@@ -1239,16 +1239,15 @@ class IncrementalCSVReader(object):
 
         self.log.debug("Reading JTL: %s", self.file.filename)
 
-        lines = list(self.file.get_lines(size=self.read_speed, last_pass=last_pass))
+        lines = self.file.get_lines(size=self.read_speed, last_pass=last_pass)
 
-        bytes_read = sum(len(line) for line in lines)
-        self.log.debug("Read lines: %s / %s bytes (at speed %s)", len(lines), bytes_read, self.read_speed)
-        if bytes_read >= self.read_speed:
-            self.read_speed = min(8 * 1024 * 1024, self.read_speed * 2)
-        elif bytes_read < self.read_speed / 2:
-            self.read_speed = max(self.read_speed / 2, 1024 * 1024)
+        lines_read = 0
+        bytes_read = 0
 
         for line in lines:
+            lines_read += 1
+            bytes_read += len(line)
+
             if not line.endswith("\n"):
                 self.partial_buffer += line
                 continue
@@ -1264,6 +1263,12 @@ class IncrementalCSVReader(object):
                 continue
 
             self.buffer.write(line)
+
+        self.log.debug("Read lines: %s / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
+        if bytes_read >= self.read_speed:
+            self.read_speed = min(8 * 1024 * 1024, self.read_speed * 2)
+        elif bytes_read < self.read_speed / 2:
+            self.read_speed = max(self.read_speed / 2, 1024 * 1024)
 
         self.buffer.seek(0)
         for row in self.csv_reader:
