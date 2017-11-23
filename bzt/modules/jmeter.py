@@ -44,7 +44,7 @@ from bzt.requests_model import ResourceFilesCollector
 from bzt.six import communicate
 from bzt.six import iteritems, string_types, StringIO, etree, parse, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
-from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time
+from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, LineReader
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
 
@@ -1224,9 +1224,7 @@ class IncrementalCSVReader(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
-        self.offset = 0
-        self.filename = filename
-        self.fds = None
+        self.file = LineReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
         self.read_speed = 1024 * 1024
 
     def read(self, last_pass=False):
@@ -1235,18 +1233,14 @@ class IncrementalCSVReader(object):
         yield csv row
         :type last_pass: bool
         """
-        if not self.fds and not self.__open_fds():
+        if not self.file.is_ready():
             self.log.debug("No data to start reading yet")
             return
 
-        self.log.debug("Reading JTL: %s", self.filename)
-        self.fds.seek(self.offset)  # without this we have stuck reads on Mac
+        self.log.debug("Reading JTL: %s", self.file.filename)
 
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-        else:
-            lines = self.fds.readlines(int(self.read_speed))
-        self.offset = self.fds.tell()
+        lines = list(self.file.get_lines(size=self.read_speed, last_pass=last_pass))
+
         bytes_read = sum(len(line) for line in lines)
         self.log.debug("Read lines: %s / %s bytes (at speed %s)", len(lines), bytes_read, self.read_speed)
         if bytes_read >= self.read_speed:
@@ -1277,31 +1271,12 @@ class IncrementalCSVReader(object):
         self.buffer.seek(0)
         self.buffer.truncate(0)
 
-    def __open_fds(self):
+    def __open_fds(self, filename):
         """
         Opens JTL file for reading
         """
-        if not os.path.isfile(self.filename):
-            self.log.debug("File not appeared yet: %s", self.filename)
-            return False
-
-        fsize = os.path.getsize(self.filename)
-        if not fsize:
-            self.log.debug("File is empty: %s", self.filename)
-            return False
-
-        if fsize <= self.offset:
-            self.log.debug("Waiting file to grow larget than %s, current: %s", self.offset, fsize)
-            return False
-
-        self.log.debug("Opening file: %s", self.filename)
-        self.fds = open(self.filename)
-        self.fds.seek(self.offset)
-        return True
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
+        self.log.debug("Opening file: %s", filename)
+        return open(filename)
 
 
 class JTLErrorsReader(object):

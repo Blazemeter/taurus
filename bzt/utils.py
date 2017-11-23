@@ -340,6 +340,49 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
                      preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
 
 
+def readlines(_file, hint=None):
+    length = 0
+    for line in _file:
+        yield line
+        if hint:
+            length += len(line)
+            if length > hint:
+                return
+
+
+class LineReader(object):
+    def __init__(self, filename='', file_opener=None, parent_logger=logging.getLogger('')):
+        self.fds = None
+        self.filename = filename
+        self.file_opener = file_opener
+        self.offset = 0
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def is_ready(self):
+        if not self.fds:
+            if not os.path.isfile(self.filename):
+                self.log.debug("File not appeared yet: %s", self.filename)
+                return False
+            if not os.path.getsize(self.filename):
+                self.log.debug("File is empty: %s", self.filename)
+                return False
+            self.fds = self.file_opener(self.filename)
+        if self.fds:
+            return True
+
+    def get_lines(self, size=None, last_pass=False):
+
+        if self.is_ready():
+            self.fds.seek(self.offset)
+            for line in readlines(self.fds, hint=None if last_pass else size):
+                yield line
+            self.offset = self.fds.tell()
+
+    def __del__(self):
+        if self.fds:
+            self.fds.close()
+
+
 def ensure_is_dict(container, key, default_key=None):
     """
     Ensure that dict item is dict, convert if needed
