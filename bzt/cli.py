@@ -214,7 +214,7 @@ class CLI(object):
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
 
-            if not self.options.verbose:
+            if not self.engine.config.get(SETTINGS).get('verbose'):
                 self.engine.logging_level_down = self._level_down_logging
                 self.engine.logging_level_up = self._level_up_logging
 

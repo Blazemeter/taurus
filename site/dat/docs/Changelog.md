@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.10.4 <sup>next</sup>
+ - don't level down logging if `settings.verbose` is set
+ - set `write-xml-jtl=full` in JMeter if `settings.verbose` is set
+
 ## 1.10.3 <sup>22 nov 2017</sup>
  - use builtin JSON extractor in JMeter, if possible
  - fix functioning of apiritif on Mac 

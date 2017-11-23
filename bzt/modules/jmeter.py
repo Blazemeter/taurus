@@ -32,7 +32,8 @@ from itertools import dropwhile
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable, Provisioning
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable, Provisioning, \
+    SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -566,7 +567,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         kpi_lst = jmx.new_kpi_listener(self.kpi_jtl)
         self.__add_listener(kpi_lst, jmx)
 
-        jtl_log_level = self.execution.get('write-xml-jtl', 'error')
+        verbose = self.engine.config.get(SETTINGS).get("verbose", False)
+        jtl_log_level = self.execution.get('write-xml-jtl', "full" if verbose else 'error')
 
         flags = self.settings.get('xml-jtl-flags')
 
