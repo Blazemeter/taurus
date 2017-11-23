@@ -350,7 +350,7 @@ def readlines(_file, hint=None):
                 return
 
 
-class LineReader(object):
+class FileReader(object):
     def __init__(self, filename='', file_opener=None, parent_logger=logging.getLogger('')):
         self.fds = None
         self.filename = filename
@@ -376,6 +376,13 @@ class LineReader(object):
             for line in readlines(self.fds, hint=None if last_pass else size):
                 yield line
             self.offset = self.fds.tell()
+
+    def get_bytes(self, size=None):
+        if self.is_ready():
+            self.fds.seek(self.offset)
+            bytes = self.fds.read(size)
+            self.offset = self.tell()
+            return bytes
 
     def __del__(self):
         if self.fds:

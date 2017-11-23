@@ -44,7 +44,7 @@ from bzt.requests_model import ResourceFilesCollector
 from bzt.six import communicate
 from bzt.six import iteritems, string_types, StringIO, etree, parse, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
-from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, LineReader
+from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
 
@@ -1005,32 +1005,21 @@ class FuncJTLReader(FunctionalResultsReader):
         self.executor_label = "JMeter"
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',), recover=True)
-        self.offset = 0
-        self.filename = filename
         self.engine = engine
-        self.fds = None
+        self.file = FileReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
         self.failed_processing = False
         self.read_records = 0
 
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
+    def __open_fds(self, filename):
+        self.log.debug("Opening %s", filename)
+        return open(filename, 'rb')
 
     def read(self, last_pass=True):
         """
         Read the next part of the file
         """
-
-        if self.failed_processing:
+        if self.failed_processing or not self.file.is_ready():
             return
-
-        if not self.fds:
-            if os.path.exists(self.filename) and os.path.getsize(self.filename):
-                self.log.debug("Opening %s", self.filename)
-                self.fds = open(self.filename, 'rb')
-            else:
-                self.log.debug("File not exists: %s", self.filename)
-                return
 
         self.__read_next_chunk(last_pass)
 
@@ -1046,10 +1035,9 @@ class FuncJTLReader(FunctionalResultsReader):
                 yield sample
 
     def __read_next_chunk(self, last_pass):
-        self.fds.seek(self.offset)
         while True:
-            read = self.fds.read(1024 * 1024)
-            if read.strip():
+            read = self.file.get_bytes(1024 * 1024)
+            if read and read.strip():
                 try:
                     self.parser.feed(read)
                 except etree.XMLSyntaxError as exc:
@@ -1059,8 +1047,7 @@ class FuncJTLReader(FunctionalResultsReader):
             else:
                 break
             if not last_pass:
-                continue
-        self.offset = self.fds.tell()
+                break
 
     def _write_sample_data(self, filename, contents):
         artifact = self.engine.create_artifact(filename, ".bin")
@@ -1224,7 +1211,7 @@ class IncrementalCSVReader(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
-        self.file = LineReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
+        self.file = FileReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
         self.read_speed = 1024 * 1024
 
     def read(self, last_pass=False):
@@ -1265,6 +1252,7 @@ class IncrementalCSVReader(object):
             self.buffer.write(line)
 
         self.log.debug("Read lines: %s / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
+
         if bytes_read >= self.read_speed:
             self.read_speed = min(8 * 1024 * 1024, self.read_speed * 2)
         elif bytes_read < self.read_speed / 2:

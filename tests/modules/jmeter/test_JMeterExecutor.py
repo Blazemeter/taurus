@@ -52,8 +52,8 @@ class TestJMeterExecutor(BZTestCase):
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
         if self.obj.reader:
-            if isinstance(self.obj.reader, FuncJTLReader) and self.obj.reader.fds:
-                self.obj.reader.fds.close()
+            if isinstance(self.obj.reader, FuncJTLReader) and self.obj.reader.file and self.obj.reader.file.fds:
+                self.obj.reader.file.fds.close()
             if isinstance(self.obj.reader, JTLReader):
                 if self.obj.reader.csvreader and self.obj.reader.csvreader.file and self.obj.reader.csvreader.file.fds:
                     self.obj.reader.csvreader.file.fds.close()
