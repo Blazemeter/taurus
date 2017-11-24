@@ -1018,7 +1018,7 @@ class FuncJTLReader(FunctionalResultsReader):
         """
         Read the next part of the file
         """
-        if self.failed_processing or not self.file.is_ready():
+        if self.failed_processing:
             return
 
         self.__read_next_chunk(last_pass)
@@ -1296,7 +1296,7 @@ class JTLErrorsReader(object):
         """
         Read the next part of the file
         """
-        if self.failed_processing and not self.file.is_ready():
+        if self.failed_processing:
             return
 
         read = self.file.get_bytes(1024 * 1024)
