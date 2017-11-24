@@ -1006,13 +1006,9 @@ class FuncJTLReader(FunctionalResultsReader):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',), recover=True)
         self.engine = engine
-        self.file = FileReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
+        self.file = FileReader(filename=filename, file_opener=lambda f: open(f, 'rb'), parent_logger=self.log)
         self.failed_processing = False
         self.read_records = 0
-
-    def __open_fds(self, filename):
-        self.log.debug("Opening %s", filename)
-        return open(filename, 'rb')
 
     def read(self, last_pass=True):
         """
@@ -1211,7 +1207,7 @@ class IncrementalCSVReader(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
-        self.file = FileReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
+        self.file = FileReader(filename=filename, file_opener=lambda f: open(f), parent_logger=self.log)
         self.read_speed = 1024 * 1024
 
     def read(self, last_pass=False):
@@ -1261,13 +1257,6 @@ class IncrementalCSVReader(object):
         elif bytes_read < self.read_speed / 2:
             self.read_speed = max(self.read_speed / 2, 1024 * 1024)
 
-    def __open_fds(self, filename):
-        """
-        Opens JTL file for reading
-        """
-        self.log.debug("Opening file: %s", filename)
-        return open(filename)
-
 
 class JTLErrorsReader(object):
     """
@@ -1284,13 +1273,9 @@ class JTLErrorsReader(object):
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
-        self.file = FileReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
+        self.file = FileReader(filename=filename, file_opener=lambda f: open(f, 'rb'), parent_logger=self.log)
         self.buffer = BetterDict()
         self.failed_processing = False
-
-    def __open_fds(self, filename):
-        self.log.debug("Opening %s", filename)
-        return open(filename, 'rb')
 
     def read_file(self, final_pass=False):
         """

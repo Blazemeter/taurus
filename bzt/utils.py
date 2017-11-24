@@ -369,6 +369,7 @@ class FileReader(object):
             if not os.path.getsize(self.filename):
                 self.log.debug("File is empty: %s", self.filename)
                 return False
+            self.log.debug("Opening file: %s", self.filename)
             self.fds = self.file_opener(self.filename)
         if self.fds:
             return True
