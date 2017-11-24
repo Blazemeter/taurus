@@ -42,7 +42,6 @@ class KPISet(BetterDict):
     SUCCESSES = "succ"
     FAILURES = "fail"
     BYTE_COUNT = "bytes"
-    RESP_TIMES = "rt"
     RESP_TIMES_HDR = "rt_hdr"
     AVG_RESP_TIME = "avg_rt"
     STDEV_RESP_TIME = "stdev_rt"
@@ -72,7 +71,6 @@ class KPISet(BetterDict):
         self.get(self.BYTE_COUNT, 0)
         # vectors
         self.get(self.ERRORS, [])
-        self.get(self.RESP_TIMES, Counter())
         self.get(self.RESP_CODES, Counter())
         self.get(self.RESP_TIMES_HDR, HdrHistogram(1, 1 * 60 * 60 * 1000, 5))
         self.get(self.PERCENTILES)
@@ -136,8 +134,7 @@ class KPISet(BetterDict):
         else:
             self[self.SUCCESSES] += 1
 
-        self[self.RESP_TIMES][r_time] += 1
-        self[self.RESP_TIMES_HDR].record_value(int(round(r_time, 3) * 1000))
+        self[self.RESP_TIMES_HDR].record_value(int(round(r_time * 1000, 3)))
 
         if byte_count is not None:
             self[self.BYTE_COUNT] += byte_count
@@ -189,42 +186,6 @@ class KPISet(BetterDict):
 
         return self
 
-    def compact_times(self):
-        if not self.rtimes_len:
-            return
-
-        times = self[KPISet.RESP_TIMES]
-        redundant_cnt = len(times) - self.rtimes_len
-        if redundant_cnt > 0:
-            logging.debug("Compacting %s response timing into %s", len(times), self.rtimes_len)
-
-        while redundant_cnt > 0:
-            keys = sorted(times.keys())
-            distances = [(lidx, keys[lidx + 1] - keys[lidx]) for lidx in range(len(keys) - 1)]
-            distances.sort(key=operator.itemgetter(1))  # sort by distance
-
-            # cast candidates for consolidation
-            lkeys_indexes = [lidx for lidx, _ in distances[:redundant_cnt]]
-
-            while lkeys_indexes:
-                lidx = lkeys_indexes.pop(0)
-                lkey = keys[lidx]
-                rkey = keys[lidx + 1]
-                if lkey in times and rkey in times:  # neighbours aren't changed
-                    lval = times.pop(lkey)
-                    rval = times.pop(rkey)
-
-                    # shift key proportionally to values
-                    idx_new = lkey + (rkey - lkey) * float(rval) / (lval + rval)
-
-                    # keep precision the same
-                    lprec = len(str(math.modf(lkey)[0])) - 2
-                    rprec = len(str(math.modf(rkey)[0])) - 2
-                    idx_new = round(idx_new, max(lprec, rprec))
-
-                    times[idx_new] = lval + rval
-                    redundant_cnt -= 1
-
     def merge_kpis(self, src, sid=None):
         """
         Merge other instance into self
@@ -247,17 +208,13 @@ class KPISet(BetterDict):
         if src[self.CONCURRENCY]:
             self._concurrencies[sid] = src[self.CONCURRENCY]
 
-        if src[self.RESP_TIMES]:
-            # using raw times to calculate percentiles
-            self[self.RESP_TIMES].update(src[self.RESP_TIMES])
-            self.compact_times()
-        elif not self[self.PERCENTILES]:
+        if src[self.RESP_TIMES_HDR]:
+            self[self.RESP_TIMES_HDR].add(src[self.RESP_TIMES_HDR])
+
+        if not self[self.PERCENTILES]:
             # using existing percentiles
             # FIXME: it's not valid to overwrite, better take average
             self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
-
-        if src[self.RESP_TIMES_HDR]:
-            self[self.RESP_TIMES_HDR].add(src[self.RESP_TIMES_HDR])
 
         self[self.RESP_CODES].update(src[self.RESP_CODES])
 
@@ -277,7 +234,6 @@ class KPISet(BetterDict):
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
         inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
-        inst[inst.RESP_TIMES] = {float(level): inst[inst.RESP_TIMES][level] for level in inst[inst.RESP_TIMES].keys()}
         # TODO: RESP_TIMES_HDR
         for error in inst[KPISet.ERRORS]:
             error['urls'] = Counter(error['urls'])
