@@ -375,6 +375,7 @@ class FileReader(object):
 
     def get_lines(self, size=None, last_pass=False):
         if self.is_ready():
+            self.log.debug("Reading: %s", self.filename)
             self.fds.seek(self.offset)
             for line in readlines(self.fds, hint=None if last_pass else size):
                 yield line
@@ -382,6 +383,7 @@ class FileReader(object):
 
     def get_bytes(self, size=None):
         if self.is_ready():
+            self.log.debug("Reading: %s", self.filename)
             self.fds.seek(self.offset)
             _bytes = self.fds.read(size)
             self.offset = self.fds.tell()

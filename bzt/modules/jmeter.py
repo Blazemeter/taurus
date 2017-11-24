@@ -1220,27 +1220,21 @@ class IncrementalCSVReader(object):
         yield csv row
         :type last_pass: bool
         """
-        if not self.file.is_ready():
-            self.log.debug("No data to start reading yet")
-            return
-
-        self.log.debug("Reading JTL: %s", self.file.filename)
-
         lines = self.file.get_lines(size=self.read_speed, last_pass=last_pass)
 
         lines_read = 0
         bytes_read = 0
 
         for line in lines:
-            lines_read += 1
-            bytes_read += len(line)
-
             if not line.endswith("\n"):
                 self.partial_buffer += line
                 continue
 
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
+
+            lines_read += 1
+            bytes_read += len(line)
 
             if self.csv_reader is None:
                 dialect = guess_csv_dialect(line, force_doublequote=True)  # TODO: configurable doublequoting?
@@ -1251,18 +1245,21 @@ class IncrementalCSVReader(object):
 
             self.buffer.write(line)
 
-        self.log.debug("Read lines: %s / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
+        if lines_read:
+            self.log.debug("Read lines: %s / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
+            self._tune_speed(bytes_read)
 
+            self.buffer.seek(0)
+            for row in self.csv_reader:
+                yield row
+            self.buffer.seek(0)
+            self.buffer.truncate(0)
+
+    def _tune_speed(self, bytes_read):
         if bytes_read >= self.read_speed:
             self.read_speed = min(8 * 1024 * 1024, self.read_speed * 2)
         elif bytes_read < self.read_speed / 2:
             self.read_speed = max(self.read_speed / 2, 1024 * 1024)
-
-        self.buffer.seek(0)
-        for row in self.csv_reader:
-            yield row
-        self.buffer.seek(0)
-        self.buffer.truncate(0)
 
     def __open_fds(self, filename):
         """
