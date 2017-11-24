@@ -354,7 +354,7 @@ def readlines(_file, hint=None):
 
 
 class FileReader(object):
-    def __init__(self, filename='', file_opener=None, parent_logger=logging.getLogger('')):
+    def __init__(self, filename='', file_opener=lambda f: open(f), parent_logger=logging.getLogger('')):
         self.fds = None
         self.filename = filename
         self.file_opener = file_opener

@@ -1207,7 +1207,7 @@ class IncrementalCSVReader(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
-        self.file = FileReader(filename=filename, file_opener=lambda f: open(f), parent_logger=self.log)
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.read_speed = 1024 * 1024
 
     def read(self, last_pass=False):
