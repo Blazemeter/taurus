@@ -341,16 +341,14 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 
 
 def readlines(_file, hint=None):
-    # regular readlines() causes follow problem on py3:
-    # it doesn't call StopIterations when hint size is reached and
-    # it doesn't reset TextIOWrapper._telling flag, so tell() isn't allowed after that.
+    # get generator instead of list (in regular readlines())
     length = 0
     for line in _file:
         yield line
         if hint:
             length += len(line)
             if length > hint:
-                return  # call StopIteration
+                return
 
 
 class FileReader(object):
@@ -379,15 +377,15 @@ class FileReader(object):
             self.log.debug("Reading: %s", self.filename)
             self.fds.seek(self.offset)
             for line in readlines(self.fds, hint=None if last_pass else size):
+                self.offset += len(line)
                 yield line
-            self.offset = self.fds.tell()
 
     def get_bytes(self, size=None):
         if self.is_ready():
             self.log.debug("Reading: %s", self.filename)
             self.fds.seek(self.offset)
             _bytes = self.fds.read(size)
-            self.offset = self.fds.tell()
+            self.offset += len(_bytes)
             return _bytes
 
     def __del__(self):
