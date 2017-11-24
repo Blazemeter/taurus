@@ -343,14 +343,14 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 def readlines(_file, hint=None):
     # regular readlines() causes follow problem on py3:
     # it doesn't call StopIterations when hint size is reached and
-    # it doesn't reset TextIOWrapper._telling flag, so tell isn't allowed after that.
+    # it doesn't reset TextIOWrapper._telling flag, so tell() isn't allowed after that.
     length = 0
     for line in _file:
         yield line
         if hint:
             length += len(line)
             if length > hint:
-                return  # calls StopIteration
+                return  # call StopIteration
 
 
 class FileReader(object):

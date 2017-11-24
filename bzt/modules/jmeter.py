@@ -1242,7 +1242,7 @@ class IncrementalCSVReader(object):
             self.buffer.write(line)
 
         if lines_read:
-            self.log.debug("Read lines: %s / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
+            self.log.debug("Read: %s lines / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
             self._tune_speed(bytes_read)
 
             self.buffer.seek(0)
