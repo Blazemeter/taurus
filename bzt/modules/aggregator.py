@@ -23,6 +23,8 @@ import re
 from abc import abstractmethod
 from collections import Counter
 
+from hdrh.histogram import HdrHistogram
+
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems
@@ -41,6 +43,7 @@ class KPISet(BetterDict):
     FAILURES = "fail"
     BYTE_COUNT = "bytes"
     RESP_TIMES = "rt"
+    RESP_TIMES_HDR = "rt_hdr"
     AVG_RESP_TIME = "avg_rt"
     STDEV_RESP_TIME = "stdev_rt"
     AVG_LATENCY = "avg_lt"
@@ -71,6 +74,7 @@ class KPISet(BetterDict):
         self.get(self.ERRORS, [])
         self.get(self.RESP_TIMES, Counter())
         self.get(self.RESP_CODES, Counter())
+        self.get(self.RESP_TIMES_HDR, HdrHistogram(1, 1 * 60 * 60 * 1000, 5))
         self.get(self.PERCENTILES)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
 
@@ -133,6 +137,7 @@ class KPISet(BetterDict):
             self[self.SUCCESSES] += 1
 
         self[self.RESP_TIMES][r_time] += 1
+        self[self.RESP_TIMES_HDR].record_value(int(round(r_time, 3) * 1000))
 
         if byte_count is not None:
             self[self.BYTE_COUNT] += byte_count
@@ -176,11 +181,11 @@ class KPISet(BetterDict):
         if len(self._concurrencies):
             self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
-        perc, stdev = self.__perc_and_stdev(self[self.RESP_TIMES], self.perc_levels, self[self.AVG_RESP_TIME])
-        for level, val in perc:
-            self[self.PERCENTILES][str(float(level))] = val
-
-        self[self.STDEV_RESP_TIME] = stdev
+        hdr = self[self.RESP_TIMES_HDR]
+        self[self.PERCENTILES] = {
+            str(perc): hdr.get_value_at_percentile(perc) / 1000.0
+            for perc in self.perc_levels
+        }
 
         return self
 
@@ -251,6 +256,9 @@ class KPISet(BetterDict):
             # FIXME: it's not valid to overwrite, better take average
             self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
 
+        if src[self.RESP_TIMES_HDR]:
+            self[self.RESP_TIMES_HDR].add(src[self.RESP_TIMES_HDR])
+
         self[self.RESP_CODES].update(src[self.RESP_CODES])
 
         for src_item in src[self.ERRORS]:
@@ -270,54 +278,10 @@ class KPISet(BetterDict):
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
         inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
         inst[inst.RESP_TIMES] = {float(level): inst[inst.RESP_TIMES][level] for level in inst[inst.RESP_TIMES].keys()}
+        # TODO: RESP_TIMES_HDR
         for error in inst[KPISet.ERRORS]:
             error['urls'] = Counter(error['urls'])
         return inst
-
-    @staticmethod
-    def __perc_and_stdev(cnts_dict, percentiles_to_calc=(), avg=0):
-        """
-        from http://stackoverflow.com/questions/25070086/percentiles-from-counts-of-values
-        Returns [(percentile, value)] with nearest rank percentiles.
-        Percentile 0: <min_value>, 100: <max_value>.
-        cnts_dict: { <value>: <count> }
-        percentiles_to_calc: iterable for percentiles to calculate; 0 <= ~ <= 100
-
-        upd: added stdev calc to have it in single-pass for mans of efficiency
-
-        :type percentiles_to_calc: list(float)
-        :type cnts_dict: collections.Counter
-        """
-        assert all(0 <= percentile <= 100 for percentile in percentiles_to_calc)
-        percentiles = []
-        if not cnts_dict:
-            return percentiles, 0
-
-        num = sum(cnts_dict.values())
-        cnts = sorted(cnts_dict.items())
-        curr_cnts_pos = 0  # current position in cnts
-        curr_pos = cnts[0][1]  # sum of freqs up to current_cnts_pos
-
-        sqr_diffs = 0
-        for percentile in sorted(percentiles_to_calc):
-            if percentile < 100:
-                percentile_pos = percentile / 100.0 * num
-                while curr_pos <= percentile_pos and curr_cnts_pos < len(cnts):
-                    sqr_diffs += cnts[curr_cnts_pos][1] * math.pow(cnts[curr_cnts_pos][0] - avg, 2)
-
-                    curr_cnts_pos += 1
-                    curr_pos += cnts[curr_cnts_pos][1]
-
-                percentiles.append((percentile, cnts[curr_cnts_pos][0]))
-            else:
-                percentiles.append((percentile, cnts[-1][0]))  # we could add a small value
-
-        while curr_cnts_pos < len(cnts):
-            sqr_diffs += cnts[curr_cnts_pos][1] * math.pow(cnts[curr_cnts_pos][0] - avg, 2)
-            curr_cnts_pos += 1
-
-        stdev = math.sqrt(sqr_diffs / len(cnts))
-        return percentiles, stdev
 
 
 class DataPoint(BetterDict):
