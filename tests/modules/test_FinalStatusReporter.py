@@ -2,6 +2,9 @@ import os
 from collections import Counter
 import time
 
+from hdrh.histogram import HdrHistogram
+
+from bzt.six import iteritems
 from tests import BZTestCase, random_datapoint
 from tests.mocks import EngineEmul
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
@@ -129,16 +132,22 @@ class TestFinalStatusReporter(BZTestCase):
         self.assertNotIn("stacktrace2", info_log)
         self.assertNotIn("stacktrace3", info_log)
 
+    def __get_histogram(self, counter):
+        hdr = HdrHistogram(1, 1 * 60 * 60 * 1000, 5)
+        for rt, count in iteritems(counter):
+            hdr.record_value(rt, count)
+        return hdr
+
     def __get_datapoint(self, ts=0):
         datapoint = DataPoint(ts, None)
         cumul_data = datapoint[DataPoint.CUMULATIVE]
         cumul_data[""] = KPISet.from_dict(
             {KPISet.AVG_CONN_TIME: 7.890211417203362e-06,
-             KPISet.RESP_TIMES: Counter(
+             KPISet.RESP_TIMES_HDR: self.__get_histogram(Counter(
                  {0.0: 32160, 0.001: 24919, 0.002: 1049, 0.003: 630, 0.004: 224, 0.005: 125,
                   0.006: 73, 0.007: 46, 0.008: 32, 0.009: 20, 0.011: 8, 0.01: 8, 0.017: 3,
                   0.016: 3, 0.014: 3, 0.013: 3, 0.04: 2, 0.012: 2, 0.079: 1, 0.081: 1,
-                  0.019: 1, 0.015: 1}),
+                  0.019: 1, 0.015: 1})),
              KPISet.ERRORS: [{'msg': 'Forbidden', 'cnt': 7373, 'type': 0,
                               'urls': Counter({'http://192.168.1.1/anotherquery': 7373}), KPISet.RESP_CODES: '403'}],
              KPISet.STDEV_RESP_TIME: 0.04947974228872108,
@@ -153,14 +162,14 @@ class TestFinalStatusReporter(BZTestCase):
              KPISet.FAILURES: 29656})
         cumul_data["http://192.168.1.1/somequery"] = KPISet.from_dict(
             {KPISet.AVG_CONN_TIME: 9.609548856969457e-06,
-             KPISet.RESP_TIMES: Counter(
+             KPISet.RESP_TIMES_HDR: self.__get_histogram(Counter(
                  {0.0: 17219, 0.001: 11246, 0.002: 543, 0.003: 341,
                   0.004: 121,
                   0.005: 66, 0.006: 36, 0.007: 33, 0.008: 18,
                   0.009: 12, 0.011: 6,
                   0.01: 5, 0.013: 2, 0.017: 2, 0.012: 2, 0.079: 1,
                   0.016: 1,
-                  0.014: 1, 0.019: 1, 0.04: 1, 0.081: 1}),
+                  0.014: 1, 0.019: 1, 0.04: 1, 0.081: 1})),
              KPISet.ERRORS: [],
              KPISet.STDEV_RESP_TIME: 0.04073402130687656,
              KPISet.AVG_LATENCY: 1.7196034796682178e-06,
@@ -177,13 +186,13 @@ class TestFinalStatusReporter(BZTestCase):
              KPISet.AVG_RESP_TIME: 0.0005164542450603551, KPISet.FAILURES: 0})
         cumul_data["http://192.168.1.1/anotherquery"] = KPISet.from_dict(
             {KPISet.AVG_CONN_TIME: 6.1707580253574335e-06,
-             KPISet.RESP_TIMES: Counter({0.0: 14941, 0.001: 13673, 0.002: 506,
+             KPISet.RESP_TIMES_HDR: self.__get_histogram(Counter({0.0: 14941, 0.001: 13673, 0.002: 506,
                                          0.003: 289, 0.004: 103,
                                          0.005: 59, 0.006: 37, 0.008: 14,
                                          0.007: 13, 0.009: 8, 0.01: 3,
                                          0.011: 2, 0.016: 2, 0.014: 2,
                                          0.017: 1, 0.013: 1, 0.015: 1,
-                                         0.04: 1}),
+                                         0.04: 1})),
              KPISet.ERRORS: [
                  {'msg': 'Forbidden', 'cnt': 7373, 'type': 0,
                   'urls': Counter(
@@ -203,14 +212,14 @@ class TestFinalStatusReporter(BZTestCase):
              KPISet.FAILURES: 29656})
         cumul_data["http://192.168.100.100/somequery"] = KPISet.from_dict(
             {KPISet.AVG_CONN_TIME: 9.609548856969457e-06,
-             KPISet.RESP_TIMES: Counter(
+             KPISet.RESP_TIMES_HDR: self.__get_histogram(Counter(
                  {0.0: 17219, 0.001: 11246, 0.002: 543,
                   0.003: 341, 0.004: 121,
                   0.005: 66, 0.006: 36, 0.007: 33, 0.008: 18,
                   0.009: 12, 0.011: 6,
                   0.01: 5, 0.013: 2, 0.017: 2, 0.012: 2,
                   0.079: 1, 0.016: 1,
-                  0.014: 1, 0.019: 1, 0.04: 1, 0.081: 1}),
+                  0.014: 1, 0.019: 1, 0.04: 1, 0.081: 1})),
              KPISet.ERRORS: [],
              KPISet.STDEV_RESP_TIME: 0.04073402130687656,
              KPISet.AVG_LATENCY: 1.7196034796682178e-06,

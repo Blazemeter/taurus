@@ -17,8 +17,6 @@ limitations under the License.
 """
 import copy
 import logging
-import math
-import operator
 import re
 from abc import abstractmethod
 from collections import Counter
@@ -348,7 +346,6 @@ class ResultsProvider(object):
         for label, data in iteritems(current):
             cumul = self.cumulative.get(label, KPISet(self.track_percentiles, self.rtimes_len))
             cumul.merge_kpis(data)
-            cumul.compact_times()
             cumul.recalculate()
 
     def datapoints(self, final_pass=False):
