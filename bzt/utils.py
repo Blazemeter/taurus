@@ -383,9 +383,9 @@ class FileReader(object):
     def get_bytes(self, size=None):
         if self.is_ready():
             self.fds.seek(self.offset)
-            bytes = self.fds.read(size)
+            _bytes = self.fds.read(size)
             self.offset = self.fds.tell()
-            return bytes
+            return _bytes
 
     def __del__(self):
         if self.fds:
