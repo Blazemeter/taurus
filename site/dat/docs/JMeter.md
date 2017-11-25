@@ -332,7 +332,7 @@ scenarios:
           from-variable: JM_VAR # JMeter variable for search
           concat: false # \
           scope: all    # - see below
-          match: 4      # /
+          match-no: 4   # /
     - url: http://blazedemo.com/${varname}/${page_title}
       extract-css-jquery:
         extractor2:

@@ -1,4 +1,3 @@
-from os import remove
 from . import MockJMeterExecutor
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from tests import BZTestCase, RESOURCES_DIR
@@ -50,7 +49,7 @@ class TestScenarioBuilder(BZTestCase):
             varname = block.find(".//stringProp[@name='JSONPostProcessor.referenceNames']")
             jsonpath = block.find(".//stringProp[@name='JSONPostProcessor.jsonPathExprs']")
             default = block.find(".//stringProp[@name='JSONPostProcessor.defaultValues']")
-            match_num = block.find(".//stringProp[@name='JSONPostProcessor.match_numbers']")
+            match_no = block.find(".//stringProp[@name='JSONPostProcessor.match_numbers']")
             scope = block.find(".//stringProp[@name='Sample.scope']")
             from_variable = block.find(".//stringProp[@name='Scope.variable']")
             concat = block.find(".//booleanProp[@name='JSONPostProcessor.compute_concat']")
@@ -58,8 +57,8 @@ class TestScenarioBuilder(BZTestCase):
             jsonpath = jsonpath.text
             if default is not None:
                 default = default.text
-            if match_num is not None:
-                match_num = match_num.text
+            if match_no is not None:
+                match_no = match_no.text
 
             if (scope is not None) and scope.text == "variable" and (from_variable is not None):
                 scope = scope.text
@@ -69,7 +68,7 @@ class TestScenarioBuilder(BZTestCase):
                 from_variable = None
 
             cfg[varname] = {"jsonpath": jsonpath, "default": default, "scope": scope,
-                            "from_variable": from_variable, "match_num": match_num, "concat": concat}
+                            "from_variable": from_variable, "match_no": match_no, "concat": concat}
 
         return cfg
 
@@ -82,15 +81,15 @@ class TestScenarioBuilder(BZTestCase):
     def test_internal_extractor_config_reader(self):
         xml_tree = etree.fromstring(open(RESOURCES_DIR + "jmeter/jmx/json_extractors.jmx", "rb").read())
         target = {'v1': {'from_variable': None, 'default': 'd1',
-                         'match_num': 'm1', 'jsonpath': 'e1', 'scope': None, 'concat': None},
+                         'match_no': 'm1', 'jsonpath': 'e1', 'scope': None, 'concat': None},
                   'v2': {'from_variable': None, 'default': 'd2',
-                         'match_num': 'm2', 'jsonpath': 'e2', 'scope': None, 'concat': None},
+                         'match_no': 'm2', 'jsonpath': 'e2', 'scope': None, 'concat': None},
                   'v3': {'from_variable': None, 'default': 'd3',
-                         'match_num': 'm3', 'jsonpath': 'e3', 'scope': None, 'concat': None},
+                         'match_no': 'm3', 'jsonpath': 'e3', 'scope': None, 'concat': None},
                   'v4': {'from_variable': 'var4', 'default': 'd4',
-                         'match_num': '4', 'jsonpath': 'e4', 'scope': 'variable', 'concat': None},
+                         'match_no': '4', 'jsonpath': 'e4', 'scope': 'variable', 'concat': None},
                   'v-empty': {'from_variable': None, 'default': None,
-                              'match_num': None, 'jsonpath': 'p1', 'scope': None, 'concat': None}}
+                              'match_no': None, 'jsonpath': 'p1', 'scope': None, 'concat': None}}
 
         xml = self.get_internal_json_extractor_config(xml_tree)
         self.assertEqual(target, xml)
@@ -123,20 +122,20 @@ class TestScenarioBuilder(BZTestCase):
                 "IP": "$.net[0].ip",
                 "URL": {"jsonpath": "$.url[1]", "default": "d1", "scope": "all", "concat": True, "from_variable": "V"},
                 "ID": {"jsonpath": "$.net[3].id", "default": "d2", "scope": "children", "concat": True},
-                "NuM": {"jsonpath": "$.num", "scope": "variable", "from-variable": "JMVaR", "match_num": 3},
+                "NuM": {"jsonpath": "$.num", "scope": "variable", "from-variable": "JMVaR", "match_no": 3},
             }}]},
             version=3.3)
         self.obj.save(self.jmx)
         xml_tree = etree.fromstring(open(self.jmx, "rb").read())
         cfg = self.get_internal_json_extractor_config(xml_tree)
         self.assertEqual(4, len(cfg))
-        target = {'IP': {'from_variable': None, 'default': 'NOT_FOUND', 'match_num': None,
+        target = {'IP': {'from_variable': None, 'default': 'NOT_FOUND', 'match_no': None,
                          'jsonpath': '$.net[0].ip', 'scope': None, 'concat': None},
-                  'URL': {'from_variable': None, 'default': 'd1', 'match_num': None,
+                  'URL': {'from_variable': None, 'default': 'd1', 'match_no': None,
                           'jsonpath': '$.url[1]', 'scope': None, 'concat': None},
-                  'ID': {'from_variable': None, 'default': 'd2', 'match_num': None,
+                  'ID': {'from_variable': None, 'default': 'd2', 'match_no': None,
                          'jsonpath': '$.net[3].id', 'scope': None, 'concat': None},
-                  'NuM': {'from_variable': 'JMVaR', 'default': 'NOT_FOUND', 'match_num': None,
+                  'NuM': {'from_variable': 'JMVaR', 'default': 'NOT_FOUND', 'match_no': None,
                           'jsonpath': '$.num', 'scope': 'variable', 'concat': None}}
 
         self.assertEqual(target, cfg)
