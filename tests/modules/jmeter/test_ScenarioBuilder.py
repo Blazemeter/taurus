@@ -125,7 +125,7 @@ class TestScenarioBuilder(BZTestCase):
                 "ID": {"jsonpath": "$.net[3].id", "default": "d2", "scope": "children", "concat": True},
                 "NuM": {"jsonpath": "$.num", "scope": "variable", "from-variable": "JMVaR", "match_num": 3},
             }}]},
-            version="3.3")
+            version=3.3)
         self.obj.save(self.jmx)
         xml_tree = etree.fromstring(open(self.jmx, "rb").read())
         cfg = self.get_internal_json_extractor_config(xml_tree)
