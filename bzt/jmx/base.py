@@ -864,7 +864,7 @@ class JMX(object):
         """
         package = "JSONPostProcessor"
         element = etree.Element(package,
-                                guiclass="%s.gui.JSONPathExtractorGui" % package,
+                                guiclass="%sGui" % package,
                                 testclass="%s" % package,
                                 testname="Get %s" % varname)
         element.append(JMX._string_prop("JSONPostProcessor.referenceNames", varname))
