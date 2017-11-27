@@ -178,7 +178,7 @@ class KPISet(BetterDict):
 
         hdr = self[self.RESP_TIMES_HDR]
         self[self.PERCENTILES] = {
-            str(perc): hdr.get_value_at_percentile(perc) / 1000.0
+            str(float(perc)): hdr.get_value_at_percentile(perc) / 1000.0
             for perc in self.perc_levels
         }
 
@@ -232,7 +232,6 @@ class KPISet(BetterDict):
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
         inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
-        # TODO: RESP_TIMES_HDR
         for error in inst[KPISet.ERRORS]:
             error['urls'] = Counter(error['urls'])
         return inst
@@ -240,7 +239,7 @@ class KPISet(BetterDict):
 
 class DataPoint(BetterDict):
     """
-    Represents an aggregate data poing
+    Represents an aggregate data point
 
     :param ts: timestamp of this point
     """

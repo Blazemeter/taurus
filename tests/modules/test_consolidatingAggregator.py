@@ -124,17 +124,6 @@ class TestConsolidatingAggregator(BZTestCase):
             for kpiset in dp['current'].values():
                 self.assertNotEqual(42, kpiset.rtimes_len)
 
-    def test_kpiset_merge_many_rtimes(self):
-        vals = {round(random() * 20 + 0.1, int(random() * 3) + 2): int(random() * 3 + 1) for _ in range(1000)}
-        src = KPISet()
-        src[KPISet.RESP_TIMES].update(vals)
-        dst = KPISet()
-        dst.rtimes_len = 100
-        for _ in range(100):
-            dst.merge_kpis(src)
-            dst.compact_times()
-            self.assertEqual(100, len(dst[KPISet.RESP_TIMES]))
-
 
 class MockListener(AggregatorListener):
     def __init__(self):
