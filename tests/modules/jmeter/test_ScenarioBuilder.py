@@ -129,13 +129,13 @@ class TestScenarioBuilder(BZTestCase):
         xml_tree = etree.fromstring(open(self.jmx, "rb").read())
         cfg = self.get_internal_json_extractor_config(xml_tree)
         self.assertEqual(4, len(cfg))
-        target = {'IP': {'from_variable': None, 'default': 'NOT_FOUND', 'match_no': None,
+        target = {'IP': {'from_variable': None, 'default': 'NOT_FOUND', 'match_no': '-1',
                          'jsonpath': '$.net[0].ip', 'scope': None, 'concat': None},
-                  'URL': {'from_variable': None, 'default': 'd1', 'match_no': None,
+                  'URL': {'from_variable': None, 'default': 'd1', 'match_no': '-1',
                           'jsonpath': '$.url[1]', 'scope': None, 'concat': None},
-                  'ID': {'from_variable': None, 'default': 'd2', 'match_no': None,
+                  'ID': {'from_variable': None, 'default': 'd2', 'match_no': '-1',
                          'jsonpath': '$.net[3].id', 'scope': None, 'concat': None},
-                  'NuM': {'from_variable': 'JMVaR', 'default': 'NOT_FOUND', 'match_no': None,
+                  'NuM': {'from_variable': 'JMVaR', 'default': 'NOT_FOUND', 'match_no': '-1',
                           'jsonpath': '$.num', 'scope': 'variable', 'concat': None}}
 
         self.assertEqual(target, cfg)

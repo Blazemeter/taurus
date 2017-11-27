@@ -357,7 +357,7 @@ You can choose `scope` for applying expressions. Possible targets are:
   - `children` - sub-samples
   - `variable` for search in JMeter variables
 Default value of `scope` is empty, it means search in main sample only
-`match-num` allows to choose the specific result from several ones. Default value is 0 (random).
+`match-num` allows to choose the specific result from several ones. Default value is `-1` - generation of variables varname_1, varname_2, etc.
 
 Possible subjects for regexp are:
   - `body`
