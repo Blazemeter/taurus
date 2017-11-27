@@ -177,10 +177,11 @@ class KPISet(BetterDict):
             self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
         hdr = self[self.RESP_TIMES_HDR]
-        self[self.PERCENTILES] = {
-            str(float(perc)): hdr.get_value_at_percentile(perc) / 1000.0
-            for perc in self.perc_levels
-        }
+        if hdr and hdr.get_total_count():
+            self[self.PERCENTILES] = {
+                str(float(perc)): hdr.get_value_at_percentile(perc) / 1000.0
+                for perc in self.perc_levels
+            }
 
         return self
 
