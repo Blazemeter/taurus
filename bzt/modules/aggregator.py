@@ -227,11 +227,16 @@ class KPISet(BetterDict):
         """
         inst = KPISet()
         for key, val in iteritems(obj):
+            if key in (inst.RESP_TIMES_HDR):
+                continue
             inst[key] = val
         inst.sum_cn = obj[inst.AVG_CONN_TIME] * obj[inst.SAMPLE_COUNT]
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
         inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
+        if isinstance(obj[inst.RESP_TIMES_HDR], dict):
+            for value, count in iteritems(obj[inst.RESP_TIMES_HDR]):
+                inst[inst.RESP_TIMES_HDR].record_value(value, count)
         for error in inst[KPISet.ERRORS]:
             error['urls'] = Counter(error['urls'])
         return inst
