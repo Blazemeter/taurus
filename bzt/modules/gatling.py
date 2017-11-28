@@ -25,7 +25,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
+from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -472,8 +472,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         Save data log as artifact
         """
-        if self.reader and self.reader.filename:
-            self.engine.existing_artifact(self.reader.filename)
+        if self.reader and self.reader.file and self.reader.file.filename:
+            self.engine.existing_artifact(self.reader.file.filename)
 
     def install_required_tools(self):
         required_tools = [TclLibrary(self.log), JavaVM(self.log)]
@@ -525,8 +525,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Gatling STDERR:\n" + contents)
-        if self.reader and self.reader.filename:
-            with open(self.reader.filename) as fds:
+        if self.reader and self.reader.file and self.reader.file.filename:
+            with open(self.reader.file.filename) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Simulation log:\n" + contents)
@@ -541,11 +541,9 @@ class DataLogReader(ResultsReader):
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.basedir = basedir
-        self.filename = None
-        self.fds = None
+        self.file = FileReader(file_opener=self.open_fds, parent_logger=self.log)
         self.partial_buffer = ""
         self.delimiter = "\t"
-        self.offset = 0
         self.dir_prefix = dir_prefix
         self.guessed_gatling_version = None
 
@@ -662,17 +660,7 @@ class DataLogReader(ResultsReader):
 
         :param last_pass:
         """
-        while not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-
-        self.log.debug("Reading gatling results")
-        self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-        else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
-        self.offset = self.fds.tell()
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if not line.endswith("\n"):
@@ -693,30 +681,32 @@ class DataLogReader(ResultsReader):
             bytes_count = None
             yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, '', bytes_count
 
-    def __open_fds(self):
+    def open_fds(self, filename):
         """
         open gatling simulation.log
         """
         if os.path.isfile(self.basedir):
-            self.filename = self.basedir
-        else:
+            filename = self.basedir
+        elif os.path.isdir(self.basedir):
             prog = re.compile("^%s-[0-9]+$" % self.dir_prefix)
 
             for fname in os.listdir(self.basedir):
                 if prog.match(fname):
-                    self.filename = os.path.join(self.basedir, fname, "simulation.log")
+                    filename = os.path.join(self.basedir, fname, "simulation.log")
                     break
 
-        if not self.filename:
-            self.log.debug("File is empty: %s", self.filename)
-            return False
+            if not filename or not os.path.isfile(filename):
+                self.log.debug('simulation.log not found')
+                return
 
-        self.fds = open(self.filename)
-        return True
+            if not os.path.getsize(filename):
+                self.log.debug('simulation.log is empty')
+                return
+        else:
+            self.log.debug('Path not found: %s', self.basedir)
+            return
 
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
+        return open(filename)
 
 
 class Gatling(RequiredTool):
