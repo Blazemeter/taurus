@@ -1209,22 +1209,13 @@ def humanize_bytes(byteval):
 class LDJSONReader(object):
     def __init__(self, filename, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename,
+                               file_opener=lambda f: open(f, 'rt', buffering=1),
+                               parent_logger=self.log)
         self.partial_buffer = ""
-        self.offset = 0
 
     def read(self, last_pass=False):
-        if not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            return
-
-        self.fds.seek(self.offset)
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-        else:
-            lines = self.fds.readlines(1024 * 1024)
-        self.offset = self.fds.tell()
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if not line.endswith("\n"):
@@ -1233,19 +1224,6 @@ class LDJSONReader(object):
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
             yield json.loads(line)
-
-    def __open_fds(self):
-        if not os.path.isfile(self.filename):
-            return False
-        fsize = os.path.getsize(self.filename)
-        if not fsize:
-            return False
-        self.fds = open(self.filename, 'rt', buffering=1)
-        return True
-
-    def __del__(self):
-        if self.fds is not None:
-            self.fds.close()
 
 
 def get_host_ips(filter_loopbacks=True):
