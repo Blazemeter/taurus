@@ -928,26 +928,32 @@ class ProjectFinder(object):
         default_location = self.settings.get("default-location", None)
         cloud_mode = self.settings.get("cloud-mode", None)
         proj_name = self.parameters.get("project", self.settings.get("project", None))
-        test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        test_lookup_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         launch_existing_test = self.settings.get("launch-existing-test", False)
 
         project = self._find_project(proj_name)
 
         test_class = None
-        test = self._ws_proj_switch(project).multi_tests(name=test_name).first()
+        if isinstance(test_lookup_name, int) or test_lookup_name.isdigit():
+            test_name = None
+            test_ident = int(test_lookup_name)
+        else:
+            test_name = test_lookup_name
+            test_ident = None
+        test = self._ws_proj_switch(project).multi_tests(name=test_name, ident=test_ident).first()
         self.log.debug("Looked for collection: %s", test)
         if test:
             self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
         else:
-            test = self._ws_proj_switch(project).tests(name=test_name).first()
+            test = self._ws_proj_switch(project).tests(name=test_name, ident=test_ident).first()
             self.log.debug("Looked for test: %s", test)
             if test:
                 self.log.debug("Detected test type: old")
                 test_class = CloudTaurusTest
             else:
                 if launch_existing_test:
-                    raise TaurusConfigError("Test not found: %r" % test_name)
+                    raise TaurusConfigError("Test not found: %r" % test_lookup_name)
 
         if not project:
             project = self._default_or_create_project(proj_name)
@@ -963,7 +969,8 @@ class ProjectFinder(object):
                 test_class = CloudCollectionTest
 
         assert test_class is not None
-        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test, self.log)
+        router = test_class(self.user, test, project, test_lookup_name, default_location, launch_existing_test,
+                            self.log)
         router._workspaces = self.workspaces
         router.cloud_mode = cloud_mode
         router.dedicated_ips = self.settings.get("dedicated-ips", False)

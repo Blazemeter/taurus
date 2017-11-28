@@ -258,17 +258,22 @@ class Workspace(BZAObject):
         res = self._request(self.address + '/api/v4/private-locations?' + urlencode(params))
         return BZAObjectsList([BZAObject(self, x) for x in res['result']])
 
-    def tests(self, name=None, test_type=None):
+    def tests(self, name=None, ident=None, test_type=None):
         """
         :rtype: BZAObjectsList[Test]
         """
         params = OrderedDict({"workspaceId": self['id']})
         if name is not None:
             params["name"] = name
+        if ident is not None:
+            params["id"] = ident
 
         res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
         tests = BZAObjectsList()
         for item in res['result']:
+            if ident is not None and item['id'] != ident:
+                continue
+
             if name is not None and item['name'] != name:
                 continue
 
@@ -278,17 +283,22 @@ class Workspace(BZAObject):
             tests.append(Test(self, item))
         return tests
 
-    def multi_tests(self, name=None):
+    def multi_tests(self, name=None, ident=None):
         """
         :rtype: BZAObjectsList[MultiTest]
         """
         params = OrderedDict({"workspaceId": self['id']})
         if name is not None:
             params["name"] = name
+        if ident is not None:
+            params["id"] = ident
 
         res = self._request(self.address + '/api/v4/multi-tests?' + urlencode(params))
         tests = BZAObjectsList()
         for item in res['result']:
+            if ident is not None and item['id'] != ident:
+                continue
+
             if name is not None and item['name'] != name:
                 continue
 
@@ -311,17 +321,22 @@ class Location(BZAObject):
 
 
 class Project(BZAObject):
-    def tests(self, name=None, test_type=None):
+    def tests(self, name=None, ident=None, test_type=None):
         """
         :rtype: BZAObjectsList[Test]
         """
         params = OrderedDict({"projectId": self['id']})
         if name is not None:
             params["name"] = name
+        if ident is not None:
+            params["id"] = ident
 
         res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
         tests = BZAObjectsList()
         for item in res['result']:
+            if ident is not None and item['id'] != ident:
+                continue
+
             if name is not None and item['name'] != name:
                 continue
 
@@ -331,17 +346,22 @@ class Project(BZAObject):
             tests.append(Test(self, item))
         return tests
 
-    def multi_tests(self, name=None):
+    def multi_tests(self, name=None, ident=None):
         """
         :rtype: BZAObjectsList[MultiTest]
         """
         params = OrderedDict({"projectId": self['id']})
         if name is not None:
             params["name"] = name
+        if ident is not None:
+            params["id"] = ident
 
         res = self._request(self.address + '/api/v4/multi-tests?' + urlencode(params))
         tests = BZAObjectsList()
         for item in res['result']:
+            if ident is not None and item['id'] != ident:
+                continue
+
             if name is not None and item['name'] != name:
                 continue
 
