@@ -38,7 +38,7 @@ import time
 import webbrowser
 import zipfile
 from abc import abstractmethod
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, namedtuple
 from contextlib import contextmanager
 from math import log
 from subprocess import CalledProcessError
@@ -1210,3 +1210,22 @@ def get_host_ips(filter_loopbacks=True):
 
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
+
+
+def parse_blazemeter_test_link(link):
+    """
+    https://a.blazemeter.com/app/#/accounts/97961/workspaces/89846/projects/229969/tests/5823512/overview
+
+    :param link:
+    :return:
+    """
+    if not isinstance(link, (string_types, text_type)):
+        return None
+
+    regex = r'https://a.blazemeter.com/app/#/accounts/(\d+)/workspaces/(\d+)/projects/(\d+)/tests/(\d+)(?:/\w+)?'
+    match = re.match(regex, link)
+    if match is None:
+        return None
+
+    TestParams = namedtuple('TestParams', 'account,workspace,project,test')
+    return TestParams(*match.groups())

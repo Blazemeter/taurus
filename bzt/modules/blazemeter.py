@@ -44,7 +44,7 @@ from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes, \
-    ExceptionalDownloader, ProgressBarContext
+    ExceptionalDownloader, ProgressBarContext, parse_blazemeter_test_link
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
 
 TAURUS_TEST_TYPE = "taurus"
@@ -923,30 +923,36 @@ class ProjectFinder(object):
 
         return test
 
+    def get_test_search_params(self, test_lookup_name):
+        test_info = parse_blazemeter_test_link(test_lookup_name)
+        self.log.info("Parsed link: %s", test_info)
+        if test_info:
+            return {"name": None, "ident": int(test_info.test)}
+        elif isinstance(test_lookup_name, int) or test_lookup_name.isdigit():
+            return {"name": None, "ident": int(test_lookup_name)}
+        else:
+            return {"name": test_lookup_name, "ident": None}
+
     def resolve_test_type(self):
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
         cloud_mode = self.settings.get("cloud-mode", None)
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        proj_lookup_name = self.parameters.get("project", self.settings.get("project", None))
         test_lookup_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         launch_existing_test = self.settings.get("launch-existing-test", False)
 
-        project = self._find_project(proj_name)
+        project = self._find_project(proj_lookup_name)
 
         test_class = None
-        if isinstance(test_lookup_name, int) or test_lookup_name.isdigit():
-            test_name = None
-            test_ident = int(test_lookup_name)
-        else:
-            test_name = test_lookup_name
-            test_ident = None
-        test = self._ws_proj_switch(project).multi_tests(name=test_name, ident=test_ident).first()
+
+        test_query = self.get_test_search_params(test_lookup_name)
+        test = self._ws_proj_switch(project).multi_tests(**test_query).first()
         self.log.debug("Looked for collection: %s", test)
         if test:
             self.log.debug("Detected test type: new")
             test_class = CloudCollectionTest
         else:
-            test = self._ws_proj_switch(project).tests(name=test_name, ident=test_ident).first()
+            test = self._ws_proj_switch(project).tests(**test_query).first()
             self.log.debug("Looked for test: %s", test)
             if test:
                 self.log.debug("Detected test type: old")
@@ -956,8 +962,8 @@ class ProjectFinder(object):
                     raise TaurusConfigError("Test not found: %r" % test_lookup_name)
 
         if not project:
-            project = self._default_or_create_project(proj_name)
-            if proj_name:
+            project = self._default_or_create_project(proj_lookup_name)
+            if proj_lookup_name:
                 test = None  # we have to create another test under this project
 
         if not test:
