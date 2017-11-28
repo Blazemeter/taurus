@@ -1006,19 +1006,15 @@ class FuncJTLReader(FunctionalResultsReader):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',), recover=True)
         self.engine = engine
-        self.file = FileReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
+        self.file = FileReader(filename=filename, file_opener=lambda f: open(f, 'rb'), parent_logger=self.log)
         self.failed_processing = False
         self.read_records = 0
-
-    def __open_fds(self, filename):
-        self.log.debug("Opening %s", filename)
-        return open(filename, 'rb')
 
     def read(self, last_pass=True):
         """
         Read the next part of the file
         """
-        if self.failed_processing or not self.file.is_ready():
+        if self.failed_processing:
             return
 
         self.__read_next_chunk(last_pass)
@@ -1211,7 +1207,7 @@ class IncrementalCSVReader(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
-        self.file = FileReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.read_speed = 1024 * 1024
 
     def read(self, last_pass=False):
@@ -1220,27 +1216,21 @@ class IncrementalCSVReader(object):
         yield csv row
         :type last_pass: bool
         """
-        if not self.file.is_ready():
-            self.log.debug("No data to start reading yet")
-            return
-
-        self.log.debug("Reading JTL: %s", self.file.filename)
-
         lines = self.file.get_lines(size=self.read_speed, last_pass=last_pass)
 
         lines_read = 0
         bytes_read = 0
 
         for line in lines:
-            lines_read += 1
-            bytes_read += len(line)
-
             if not line.endswith("\n"):
                 self.partial_buffer += line
                 continue
 
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
+
+            lines_read += 1
+            bytes_read += len(line)
 
             if self.csv_reader is None:
                 dialect = guess_csv_dialect(line, force_doublequote=True)  # TODO: configurable doublequoting?
@@ -1251,25 +1241,21 @@ class IncrementalCSVReader(object):
 
             self.buffer.write(line)
 
-        self.log.debug("Read lines: %s / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
+        if lines_read:
+            self.log.debug("Read: %s lines / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
+            self._tune_speed(bytes_read)
 
+            self.buffer.seek(0)
+            for row in self.csv_reader:
+                yield row
+            self.buffer.seek(0)
+            self.buffer.truncate(0)
+
+    def _tune_speed(self, bytes_read):
         if bytes_read >= self.read_speed:
             self.read_speed = min(8 * 1024 * 1024, self.read_speed * 2)
         elif bytes_read < self.read_speed / 2:
             self.read_speed = max(self.read_speed / 2, 1024 * 1024)
-
-        self.buffer.seek(0)
-        for row in self.csv_reader:
-            yield row
-        self.buffer.seek(0)
-        self.buffer.truncate(0)
-
-    def __open_fds(self, filename):
-        """
-        Opens JTL file for reading
-        """
-        self.log.debug("Opening file: %s", filename)
-        return open(filename)
 
 
 class JTLErrorsReader(object):
@@ -1287,19 +1273,15 @@ class JTLErrorsReader(object):
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
-        self.file = FileReader(filename=filename, file_opener=self.__open_fds, parent_logger=self.log)
+        self.file = FileReader(filename=filename, file_opener=lambda f: open(f, 'rb'), parent_logger=self.log)
         self.buffer = BetterDict()
         self.failed_processing = False
-
-    def __open_fds(self, filename):
-        self.log.debug("Opening %s", filename)
-        return open(filename, 'rb')
 
     def read_file(self, final_pass=False):
         """
         Read the next part of the file
         """
-        if self.failed_processing and not self.file.is_ready():
+        if self.failed_processing:
             return
 
         read = self.file.get_bytes(1024 * 1024)

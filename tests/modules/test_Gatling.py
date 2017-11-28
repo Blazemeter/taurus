@@ -30,8 +30,8 @@ class TestGatlingExecutor(BZTestCase):
             self.obj.stdout_file.close()
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
-        if self.obj.reader and self.obj.reader.fds:
-            self.obj.reader.fds.close()
+        if self.obj.reader and self.obj.reader.file and self.obj.reader.file.fds:
+            self.obj.reader.file.fds.close()
         super(TestGatlingExecutor, self).tearDown()
 
     def test_external_jar_wrong_launcher(self):

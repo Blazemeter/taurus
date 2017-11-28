@@ -27,7 +27,7 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary, FileReader
 
 
 class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -297,11 +297,9 @@ class DataLogReader(ResultsReader):
         super(DataLogReader, self).__init__()
         self.report_by_url = False
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.idx = {}
         self.partial_buffer = ""
-        self.offset = 0
         self.start_time = 0
         self.end_time = 0
         self.concurrency = 0
@@ -314,17 +312,9 @@ class DataLogReader(ResultsReader):
 
         :param last_pass:
         """
-        while not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-
         self.log.debug("Reading grinder results...")
-        self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-        else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
-        self.offset = self.fds.tell()
+
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         start = time.time()
         cnt = 0
@@ -369,7 +359,7 @@ class DataLogReader(ResultsReader):
             source_id = ''  # maybe use worker_id somehow?
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
                   latency, r_code, error_msg, source_id, bytes_count
-        if cnt > 0:
+        if cnt:
             duration = time.time() - start
             duration = duration if duration > 0.01 else 1
             self.log.debug("Log reading speed: %s lines/s", len(lines) / duration)
@@ -428,14 +418,6 @@ class DataLogReader(ResultsReader):
         """
         opens grinder kpi-file
         """
-        if not os.path.isfile(self.filename):
-            self.log.debug("File not appeared yet: %s", self.filename)
-            return False
-
-        if not os.path.getsize(self.filename):
-            self.log.debug("File is empty: %s", self.filename)
-            return False
-
         self.fds = open(self.filename)
         line = ''
         while not line.startswith('data.'):

@@ -341,51 +341,59 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 
 
 def readlines(_file, hint=None):
-    # regular readlines() causes follow problem on py3:
-    # it doesn't call StopIterations when hint size is reached and
-    # it doesn't reset TextIOWrapper._telling flag, so tell isn't allowed after that.
+    # get generator instead of list (in regular readlines())
     length = 0
     for line in _file:
         yield line
-        if hint:
+        if hint and hint > 0:
             length += len(line)
             if length > hint:
-                return  # calls StopIteration
+                return
 
 
 class FileReader(object):
-    def __init__(self, filename='', file_opener=None, parent_logger=logging.getLogger('')):
+    def __init__(self, filename='', file_opener=lambda f: open(f), parent_logger=logging.getLogger('')):
         self.fds = None
+
+        # for non-trivial openers filename must be empty (more complicate than just open())
+        #  it turns all regular file checks off, see is_ready()
         self.filename = filename
-        self.file_opener = file_opener
+
+        self.file_opener = file_opener  # external method for opening of file
         self.offset = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def is_ready(self):
         if not self.fds:
-            if not os.path.isfile(self.filename):
-                self.log.debug("File not appeared yet: %s", self.filename)
-                return False
-            if not os.path.getsize(self.filename):
-                self.log.debug("File is empty: %s", self.filename)
-                return False
+            if self.filename:
+                if not os.path.isfile(self.filename):
+                    self.log.debug("File not appeared yet: %s", self.filename)
+                    return False
+                if not os.path.getsize(self.filename):
+                    self.log.debug("File is empty: %s", self.filename)
+                    return False
+                self.log.debug("Opening file: %s", self.filename)
+
             self.fds = self.file_opener(self.filename)
         if self.fds:
+            self.filename = self.fds.name
             return True
 
-    def get_lines(self, size=None, last_pass=False):
+    def get_lines(self, size=-1, last_pass=False):
         if self.is_ready():
+            self.log.debug("Reading: %s", self.filename)
             self.fds.seek(self.offset)
-            for line in readlines(self.fds, hint=None if last_pass else size):
+            for line in readlines(self.fds, hint=-1 if last_pass else size):
+                self.offset += len(line)
                 yield line
-            self.offset = self.fds.tell()
 
-    def get_bytes(self, size=None):
+    def get_bytes(self, size=-1):
         if self.is_ready():
+            self.log.debug("Reading: %s", self.filename)
             self.fds.seek(self.offset)
-            bytes = self.fds.read(size)
-            self.offset = self.fds.tell()
-            return bytes
+            _bytes = self.fds.read(size)
+            self.offset += len(_bytes)
+            return _bytes
 
     def __del__(self):
         if self.fds:
