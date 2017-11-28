@@ -472,8 +472,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         Save data log as artifact
         """
-        if self.reader and self.reader.file and self.reader.file.filename:
-            self.engine.existing_artifact(self.reader.file.filename)
+        if self.reader and self.reader.file and self.reader.file.name:
+            self.engine.existing_artifact(self.reader.file.name)
 
     def install_required_tools(self):
         required_tools = [TclLibrary(self.log), JavaVM(self.log)]
@@ -525,8 +525,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Gatling STDERR:\n" + contents)
-        if self.reader and self.reader.file and self.reader.file.filename:
-            with open(self.reader.file.filename) as fds:
+        if self.reader and self.reader.file and self.reader.file.name:
+            with open(self.reader.file.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Simulation log:\n" + contents)

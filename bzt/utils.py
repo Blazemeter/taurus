@@ -357,7 +357,7 @@ class FileReader(object):
 
         # for non-trivial openers filename must be empty (more complicate than just open())
         #  it turns all regular file checks off, see is_ready()
-        self.filename = filename
+        self.name = filename
 
         self.file_opener = file_opener  # external method for opening of file
         self.offset = 0
@@ -365,23 +365,23 @@ class FileReader(object):
 
     def is_ready(self):
         if not self.fds:
-            if self.filename:
-                if not os.path.isfile(self.filename):
-                    self.log.debug("File not appeared yet: %s", self.filename)
+            if self.name:
+                if not os.path.isfile(self.name):
+                    self.log.debug("File not appeared yet: %s", self.name)
                     return False
-                if not os.path.getsize(self.filename):
-                    self.log.debug("File is empty: %s", self.filename)
+                if not os.path.getsize(self.name):
+                    self.log.debug("File is empty: %s", self.name)
                     return False
-                self.log.debug("Opening file: %s", self.filename)
+                self.log.debug("Opening file: %s", self.name)
 
-            self.fds = self.file_opener(self.filename)
+            self.fds = self.file_opener(self.name)
         if self.fds:
-            self.filename = self.fds.name
+            self.name = self.fds.name
             return True
 
     def get_lines(self, size=-1, last_pass=False):
         if self.is_ready():
-            self.log.debug("Reading: %s", self.filename)
+            self.log.debug("Reading: %s", self.name)
             self.fds.seek(self.offset)
             for line in readlines(self.fds, hint=-1 if last_pass else size):
                 self.offset += len(line)
@@ -389,7 +389,7 @@ class FileReader(object):
 
     def get_bytes(self, size=-1):
         if self.is_ready():
-            self.log.debug("Reading: %s", self.filename)
+            self.log.debug("Reading: %s", self.name)
             self.fds.seek(self.offset)
             _bytes = self.fds.read(size)
             self.offset += len(_bytes)
