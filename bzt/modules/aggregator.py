@@ -687,12 +687,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         for point in self.datapoints(True):
             self.log.debug("Processed datapoint: %s/%s", point[DataPoint.TIMESTAMP], point[DataPoint.SOURCE_ID])
 
-        import os
-        reader = self.underlings[0]
-        diff = os.path.getsize(reader.csvreader.file.filename) - reader.csvreader.file.offset
-        self.log.warning('getsize: %s', os.path.getsize(reader.csvreader.file.filename))
-        self.log.warning('Diff: %s', diff)
-
     def _process_underlings(self, final_pass):
         for underling in self.underlings:
             for data in underling.datapoints(final_pass):

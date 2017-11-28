@@ -1208,7 +1208,7 @@ class IncrementalCSVReader(object):
         self.indexes = {}
         self.partial_buffer = ""
         self.file = FileReader(filename=filename, parent_logger=self.log)
-        self.read_speed = 60
+        self.read_speed = 1024 * 1024
 
     def read(self, last_pass=False):
         """
@@ -1243,7 +1243,7 @@ class IncrementalCSVReader(object):
 
         if lines_read:
             self.log.debug("Read: %s lines / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
-            #self._tune_speed(bytes_read)
+            self._tune_speed(bytes_read)
 
             self.buffer.seek(0)
             for row in self.csv_reader:
