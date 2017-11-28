@@ -314,11 +314,11 @@ class DataLogReader(ResultsReader):
         """
         self.log.debug("Reading grinder results...")
 
-        lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
+        self.lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
 
         start = time.time()
         lnum = 0
-        for lnum, line in enumerate(lines):
+        for lnum, line in enumerate(self.lines):
             if not self.idx:
                 if not line.startswith('data.'):
                     self.__split(line)  # to capture early test name records
@@ -335,14 +335,16 @@ class DataLogReader(ResultsReader):
                 self.log.debug("Skipping line: %s", line.strip())
                 continue
 
-            yield self.parse_line(data_fields, worker_id, lines, lnum)
+            yield self.parse_line(data_fields, worker_id, lnum)
 
         if lnum:
             duration = time.time() - start
-            duration = duration if duration > 0.01 else 1
-            self.log.debug("Log reading speed: %s lines/s", len(lines) / duration)
+            if duration < 0.001:
+                duration = 0.001
 
-    def parse_line(self, data_fields, worker_id, lines, lnum):
+            self.log.debug("Log reading speed: %s lines/s", lnum / duration)
+
+    def parse_line(self, data_fields, worker_id, lnum):
         worker_id = worker_id.split('.')[1]
         t_stamp = int(int(data_fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0)
         r_time = int(data_fields[self.idx["Test time"]]) / 1000.0
@@ -357,7 +359,7 @@ class DataLogReader(ResultsReader):
             self.known_threads.add(thread_id)
             self.concurrency += 1
 
-        url, error_msg = self.__parse_prev_lines(worker_id, lines, lnum, r_code, bytes_count)
+        url, error_msg = self.__parse_prev_lines(worker_id, lnum, r_code, bytes_count)
         if int(data_fields[self.idx["Errors"]]) or int(data_fields[self.idx['HTTP response errors']]):
             if not error_msg:
                 if r_code != '0':
@@ -413,11 +415,11 @@ class DataLogReader(ResultsReader):
 
         return data_fields, worker_id
 
-    def __parse_prev_lines(self, worker_id, lines, lnum, r_code, bytes_count):
+    def __parse_prev_lines(self, worker_id, lnum, r_code, bytes_count):
         url = ''
         error_msg = None
         for lineNo in reversed(range(max(lnum - 100, 0), lnum)):  # looking max 100 lines back. TODO: parameterize?
-            line = lines[lineNo].strip()
+            line = self.lines[lineNo].strip()
             matched = self.DETAILS_REGEX.match(line)
             if not matched:
                 continue
