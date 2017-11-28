@@ -314,12 +314,23 @@ class DataLogReader(ResultsReader):
         """
         self.log.debug("Reading grinder results...")
 
-        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
+        lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
 
         start = time.time()
-        cnt = 0
+        lnum = 0
         for lnum, line in enumerate(lines):
-            cnt += 1
+            if not self.idx:
+                if not line.startswith('data.'):
+                    continue
+
+                self.__split(line)  # to capture early test name records
+
+                line = line[line.find(' '):]
+
+                header_list = line.strip().split(self.DELIMITER)
+                for _ix, field in enumerate(header_list):
+                    self.idx[field.strip()] = _ix
+
             data_fields, worker_id = self.__split(line)
             if not data_fields:
                 self.log.debug("Skipping line: %s", line.strip())
@@ -359,7 +370,7 @@ class DataLogReader(ResultsReader):
             source_id = ''  # maybe use worker_id somehow?
             yield int(t_stamp), label, self.concurrency, r_time, con_time, \
                   latency, r_code, error_msg, source_id, bytes_count
-        if cnt:
+        if lnum:
             duration = time.time() - start
             duration = duration if duration > 0.01 else 1
             self.log.debug("Log reading speed: %s lines/s", len(lines) / duration)
@@ -413,32 +424,6 @@ class DataLogReader(ResultsReader):
                 return matched.group(2), matched.group(4)
 
         return url, error_msg
-
-    def __open_fds(self):
-        """
-        opens grinder kpi-file
-        """
-        self.fds = open(self.filename)
-        line = ''
-        while not line.startswith('data.'):
-            line = self.fds.readline()
-            self.__split(line)  # to caprute early test name records
-            if line == '':  # end of file
-                self.fds.close()
-                self.fds = None
-                return False
-
-        self.offset = self.fds.tell()
-        line = line[line.find(' '):]
-
-        header_list = line.strip().split(self.DELIMITER)
-        for _ix, field in enumerate(header_list):
-            self.idx[field.strip()] = _ix
-        return True
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
 
 
 class Grinder(RequiredTool):
