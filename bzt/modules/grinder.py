@@ -321,9 +321,8 @@ class DataLogReader(ResultsReader):
         for lnum, line in enumerate(lines):
             if not self.idx:
                 if not line.startswith('data.'):
+                    self.__split(line)  # to capture early test name records
                     continue
-
-                self.__split(line)  # to capture early test name records
 
                 line = line[line.find(' '):]
 
