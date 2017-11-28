@@ -317,7 +317,7 @@ class DataLogReader(ResultsReader):
         self.lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
 
         start = time.time()
-        lnum = 0
+
         for lnum, line in enumerate(self.lines):
             if not self.idx:
                 if not line.startswith('data.'):
@@ -337,12 +337,11 @@ class DataLogReader(ResultsReader):
 
             yield self.parse_line(data_fields, worker_id, lnum)
 
-        if lnum:
-            duration = time.time() - start
-            if duration < 0.001:
-                duration = 0.001
+        duration = time.time() - start
+        if duration < 0.001:
+            duration = 0.001
 
-            self.log.debug("Log reading speed: %s lines/s", lnum / duration)
+        self.log.debug("Log reading speed: %s lines/s", lnum / duration)
 
     def parse_line(self, data_fields, worker_id, lnum):
         worker_id = worker_id.split('.')[1]
