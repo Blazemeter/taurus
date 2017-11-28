@@ -1169,9 +1169,27 @@ class TestCloudProvisioning(BZTestCase):
     def test_launch_existing_test(self):
         self.configure(
             get={
-                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=1': {"result": []},
-                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=1': {"result": [
-                    {"id": 1, "name": 1, "configuration": {"type": "taurus"}}
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=foo': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=foo': {"result": [
+                    {"id": 1, "name": "foo", "configuration": {"type": "taurus"}}
+                ]},
+            }
+        )
+
+        self.obj.settings["test"] = "foo"
+        self.obj.settings["launch-existing-test"] = True
+
+        self.obj.prepare()
+        self.assertEqual(7, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(8, len(self.mock.requests))
+
+    def test_launch_existing_test_by_id(self):
+        self.configure(
+            get={
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&id=1': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&id=1': {"result": [
+                    {"id": 1, "name": "foo", "configuration": {"type": "taurus"}}
                 ]},
             }
         )
@@ -1184,11 +1202,11 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.startup()
         self.assertEqual(8, len(self.mock.requests))
 
-    def test_launch_existing_test_not_found(self):
+    def test_launch_existing_test_not_found_by_id(self):
         self.configure(
             get={
-                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=1': {"result": []},
-                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=1': {"result": []},
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&id=1': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&id=1': {"result": []},
             }
         )
 
@@ -1197,10 +1215,23 @@ class TestCloudProvisioning(BZTestCase):
 
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
+    def test_launch_existing_test_not_found(self):
+        self.configure(
+            get={
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=foo': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=foo': {"result": []},
+            }
+        )
+
+        self.obj.settings["test"] = "foo"
+        self.obj.settings["launch-existing-test"] = True
+
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
+
     def test_launch_existing_multi_test(self):
         self.configure(
             get={
-                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=1': {"result": [
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&id=1': {"result": [
                     {"id": 1, "name": 1}
                 ]}
             },
@@ -1220,14 +1251,14 @@ class TestCloudProvisioning(BZTestCase):
     def test_launch_existing_test_non_taurus(self):
         self.configure(
             get={
-                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=1': {"result": []},
-                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=1': {"result": [
-                    {"id": 1, "name": 1, "configuration": {"type": "jmeter"}}
+                'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=foo': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=foo': {"result": [
+                    {"id": 1, "name": "foo", "configuration": {"type": "jmeter"}}
                 ]},
             }
         )
 
-        self.obj.settings["test"] = 1
+        self.obj.settings["test"] = "foo"
 
         self.obj.prepare()
         self.assertEqual(7, len(self.mock.requests))
