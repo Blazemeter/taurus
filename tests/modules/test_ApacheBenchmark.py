@@ -27,8 +27,8 @@ class TestApacheBenchExecutor(BZTestCase):
             self.obj.stdout_file.close()
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
-        if self.obj.reader and self.obj.reader.fds:
-            self.obj.reader.fds.close()
+        if self.obj.reader and self.obj.reader.file and self.obj.reader.file.fds:
+            self.obj.reader.file.fds.close()
         super(TestApacheBenchExecutor, self).tearDown()
 
     def test_iter(self):
