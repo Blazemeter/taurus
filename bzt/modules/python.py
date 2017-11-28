@@ -102,6 +102,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         if load.steps:
             cmdline += ['--steps', str(load.steps)]
 
+        if self.__is_verbose():
+            cmdline += ['--verbose']
+
         cmdline += [self.script]
         self.start_time = time.time()
         self._start_subprocess(cmdline)
@@ -148,14 +151,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
         executor_verbose = self.settings.get("verbose", engine_verbose)
         return executor_verbose
-
-
-class TaurusNosePlugin(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(TaurusNosePlugin, self).__init__("TaurusNosePlugin", tool_path, download_link)
-
-    def install(self):
-        raise ToolError("Automatic installation of Taurus nose plugin isn't implemented")
 
 
 class SeleniumScriptBuilder(PythonGenerator):
