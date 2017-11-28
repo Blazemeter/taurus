@@ -335,44 +335,47 @@ class DataLogReader(ResultsReader):
                 self.log.debug("Skipping line: %s", line.strip())
                 continue
 
-            worker_id = worker_id.split('.')[1]
-            t_stamp = int(data_fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0
-            r_time = int(data_fields[self.idx["Test time"]]) / 1000.0
-            latency = int(data_fields[self.idx["Time to first byte"]]) / 1000.0
-            r_code = data_fields[self.idx["HTTP response code"]].strip()
-            con_time = int(data_fields[self.idx["Time to resolve host"]]) / 1000.0
-            con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
-            bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
-            test_id = data_fields[self.idx["Test"]].strip()
-            thread_id = worker_id + '/' + data_fields[self.idx["Thread"]].strip()
-            if thread_id not in self.known_threads:
-                self.known_threads.add(thread_id)
-                self.concurrency += 1
+            yield self.parse_line(data_fields, worker_id, lines, lnum)
 
-            url, error_msg = self.__parse_prev_line(worker_id, lines, lnum, r_code, bytes_count)
-            if int(data_fields[self.idx["Errors"]]) > 0 or int(data_fields[self.idx['HTTP response errors']]) > 0:
-                if not error_msg:
-                    if r_code != '0':
-                        error_msg = "HTTP %s" % r_code
-                    else:
-                        error_msg = "Java exception calling TestRunner"
-            else:
-                error_msg = None  # suppress errors
-
-            if self.report_by_url:
-                label = url
-            elif test_id in self.test_names:
-                label = self.test_names[test_id]
-            else:
-                label = "Test #%s" % test_id
-
-            source_id = ''  # maybe use worker_id somehow?
-            yield int(t_stamp), label, self.concurrency, r_time, con_time, \
-                  latency, r_code, error_msg, source_id, bytes_count
         if lnum:
             duration = time.time() - start
             duration = duration if duration > 0.01 else 1
             self.log.debug("Log reading speed: %s lines/s", len(lines) / duration)
+
+    def parse_line(self, data_fields, worker_id, lines, lnum):
+        worker_id = worker_id.split('.')[1]
+        t_stamp = int(int(data_fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0)
+        r_time = int(data_fields[self.idx["Test time"]]) / 1000.0
+        latency = int(data_fields[self.idx["Time to first byte"]]) / 1000.0
+        r_code = data_fields[self.idx["HTTP response code"]].strip()
+        con_time = int(data_fields[self.idx["Time to resolve host"]]) / 1000.0
+        con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
+        bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
+        test_id = data_fields[self.idx["Test"]].strip()
+        thread_id = worker_id + '/' + data_fields[self.idx["Thread"]].strip()
+        if thread_id not in self.known_threads:
+            self.known_threads.add(thread_id)
+            self.concurrency += 1
+
+        url, error_msg = self.__parse_prev_lines(worker_id, lines, lnum, r_code, bytes_count)
+        if int(data_fields[self.idx["Errors"]]) or int(data_fields[self.idx['HTTP response errors']]):
+            if not error_msg:
+                if r_code != '0':
+                    error_msg = "HTTP %s" % r_code
+                else:
+                    error_msg = "Java exception calling TestRunner"
+        else:
+            error_msg = None  # suppress errors
+
+        if self.report_by_url:
+            label = url
+        elif test_id in self.test_names:
+            label = self.test_names[test_id]
+        else:
+            label = "Test #%s" % test_id
+
+        source_id = ''  # maybe use worker_id somehow?
+        return t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error_msg, source_id, bytes_count
 
     def __split(self, line):
         if not line.endswith("\n"):
@@ -410,7 +413,7 @@ class DataLogReader(ResultsReader):
 
         return data_fields, worker_id
 
-    def __parse_prev_line(self, worker_id, lines, lnum, r_code, bytes_count):
+    def __parse_prev_lines(self, worker_id, lines, lnum, r_code, bytes_count):
         url = ''
         error_msg = None
         for lineNo in reversed(range(max(lnum - 100, 0), lnum)):  # looking max 100 lines back. TODO: parameterize?
