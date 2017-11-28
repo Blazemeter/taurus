@@ -354,8 +354,12 @@ def readlines(_file, hint=None):
 class FileReader(object):
     def __init__(self, filename='', file_opener=lambda f: open(f), parent_logger=logging.getLogger('')):
         self.fds = None
+
+        # for non-trivial openers filename must be empty (more complicate than just open())
+        #  it turns all regular file checks off, see is_ready()
         self.filename = filename
-        self.file_opener = file_opener
+
+        self.file_opener = file_opener  # external method for opening of file
         self.offset = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
 
