@@ -35,7 +35,7 @@ from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, Consolidati
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
-from bzt.utils import RequiredTool, IncrementableProgressBar
+from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
 
 
@@ -530,8 +530,6 @@ class Scheduler(object):
                 if self.iteration_limit and self.iterations > self.iteration_limit:
                     self.log.debug("Schedule iterations limit reached: %s", self.iteration_limit)
                     break
-
-                continue
 
             if not line.strip():  # we're fine to skip empty lines between records
                 continue
