@@ -372,9 +372,12 @@ class FileReader(object):
                 if not os.path.getsize(self.name):
                     self.log.debug("File is empty: %s", self.name)
                     return False
+
                 self.log.debug("Opening file: %s", self.name)
 
+            # call opener regardless of the name value as it can use empty name as flag
             self.fds = self.file_opener(self.name)
+
         if self.fds:
             self.name = self.fds.name
             return True

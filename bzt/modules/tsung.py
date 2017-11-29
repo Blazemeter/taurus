@@ -167,26 +167,41 @@ class TsungStatsReader(ResultsReader):
         super(TsungStatsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.tsung_basedir = tsung_basedir
-        self.stats_file = FileReader(parent_logger=self.log)
-        self.log_file = FileReader(parent_logger=self.log)
+        self.stats_file = FileReader(parent_logger=self.log, file_opener=self.open_stats)
+        self.log_file = FileReader(parent_logger=self.log, file_opener=self.open_log)
         self.delimiter = ";"
         self.partial_buffer = ""
         self.skipped_header = False
         self.concurrency = 0
 
-    def _locate_stats_file(self):
+    def open_stats(self, filename):
+        return self.open_file(ext='dump')
+
+    def open_log(self, filename):
+        return self.open_file(ext='log')
+
+    def open_file(self, ext):
         basedir_contents = os.listdir(self.tsung_basedir)
 
         if not basedir_contents:
             self.log.debug("Tsung artifacts not appeared yet")
-            return False
+            return
+
         if len(basedir_contents) != 1:
             self.log.warning("Multiple files in Tsung basedir %s, this shouldn't happen", self.tsung_basedir)
+            return
+
+        filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung." + ext)
+
+        if not os.path.isfile(filename):
+            self.log.debug("File not appeared yet: %s", filename)
+            return False
+        if not os.path.getsize(filename):
+            self.log.debug("File is empty: %s", filename)
             return False
 
-        self.stats_file.name = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.dump")
-        self.log_file.name = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.log")
-        return True
+        self.log.debug('Opening file: %s', filename)
+        return open(filename)
 
     def _read_concurrency(self, last_pass):
         lines = self.log_file.get_lines(size=1024 * 1024, last_pass=last_pass)
