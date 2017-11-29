@@ -225,8 +225,8 @@ class SlavesReader(ResultsProvider):
         self.file = FileReader(filename=filename, file_opener=lambda f: open(f, 'rt'), parent_logger=self.log)
         self.read_buffer = ""
 
-    def _calculate_datapoints(self, last_pass=False):
-        self.read_buffer += self.file.get_bytes(size=1024 * 1024, last_pass=last_pass)
+    def _calculate_datapoints(self, final_pass=False):
+        self.read_buffer += self.file.get_bytes(size=1024 * 1024, last_pass=final_pass)
         while "\n" in self.read_buffer:
             _line = self.read_buffer[:self.read_buffer.index("\n") + 1]
             self.read_buffer = self.read_buffer[len(_line):]
