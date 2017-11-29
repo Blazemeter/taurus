@@ -236,20 +236,19 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
         origin_launcher = get_full_path(self.settings['path'])
         origin_dir = get_full_path(origin_launcher, step_up=2)
-        with open(origin_launcher) as fds:
-            origin_lines = readlines(fds)
 
         modified_lines = []
-
         mod_success = False
-        for line in origin_lines:
-            if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
-                mod_success = True
-                continue
-            if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
-                mod_success = True
-                line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
-            modified_lines.append(line)
+
+        with open(origin_launcher) as fds:
+            for line in readlines(fds):
+                if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
+                    mod_success = True
+                    continue
+                if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
+                    mod_success = True
+                    line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
+                modified_lines.append(line)
 
         if not mod_success:
             raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
