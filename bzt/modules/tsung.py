@@ -28,7 +28,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import etree, parse, iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which, FileReader
 
 
 class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -167,35 +167,12 @@ class TsungStatsReader(ResultsReader):
         super(TsungStatsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.tsung_basedir = tsung_basedir
-        self.stats_filename = None
-        self.stats_fds = None
-        self.stats_offset = 0
-        self.log_filename = None
-        self.log_fds = None
-        self.log_offset = 0
+        self.stats_file = FileReader(parent_logger=self.log)
+        self.log_file = FileReader(parent_logger=self.log)
         self.delimiter = ";"
         self.partial_buffer = ""
         self.skipped_header = False
         self.concurrency = 0
-
-    def _open_fds(self):
-        if not self._locate_stats_file():
-            return False
-
-        if not os.path.isfile(self.stats_filename):
-            self.log.debug("Stats file not appeared yet")
-            return False
-
-        if not os.path.getsize(self.stats_filename):
-            self.log.debug("Stats file is empty: %s", self.stats_filename)
-            return False
-
-        if not self.stats_fds:
-            self.stats_fds = open(self.stats_filename)
-        if not self.log_fds:
-            self.log_fds = open(self.log_filename)
-
-        return True
 
     def _locate_stats_file(self):
         basedir_contents = os.listdir(self.tsung_basedir)
@@ -207,24 +184,14 @@ class TsungStatsReader(ResultsReader):
             self.log.warning("Multiple files in Tsung basedir %s, this shouldn't happen", self.tsung_basedir)
             return False
 
-        self.stats_filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.dump")
-        self.log_filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.log")
+        self.stats_file.name = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.dump")
+        self.log_file.name = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.log")
         return True
 
-    def __del__(self):
-        if self.stats_fds:
-            self.stats_fds.close()
-        if self.log_fds:
-            self.log_fds.close()
-
     def _read_concurrency(self, last_pass):
-        self.log_fds.seek(self.log_offset)
-        if last_pass:
-            lines = self.log_fds.readlines()
-        else:
-            lines = self.log_fds.readlines(1024 * 1024)
-        self.log_offset = self.log_fds.tell()
+        lines = self.log_file.get_lines(size=1024 * 1024, last_pass=last_pass)
         extractor = re.compile(r'^stats: users (\d+) (\d+)$')
+
         for line in lines:
             match = extractor.match(line.strip())
             if not match:
@@ -233,19 +200,10 @@ class TsungStatsReader(ResultsReader):
             self.log.debug("Actual Tsung concurrency: %s", self.concurrency)
 
     def _read(self, last_pass=False):
-        while not self.stats_fds and not self._open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-
         self.log.debug("Reading Tsung results")
-        self.stats_fds.seek(self.stats_offset)
-        if last_pass:
-            lines = self.stats_fds.readlines()
-        else:
-            lines = self.stats_fds.readlines(1024 * 1024)
-        self.stats_offset = self.stats_fds.tell()
 
         self._read_concurrency(last_pass)
+        lines = self.stats_file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if not line.endswith("\n"):
