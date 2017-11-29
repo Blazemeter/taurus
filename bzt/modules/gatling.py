@@ -25,7 +25,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader
+from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, readlines
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -236,8 +236,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
         origin_launcher = get_full_path(self.settings['path'])
         origin_dir = get_full_path(origin_launcher, step_up=2)
-        with open(origin_launcher) as origin:
-            origin_lines = origin.readlines()
+        with open(origin_launcher) as fds:
+            origin_lines = readlines(fds)
 
         modified_lines = []
 
