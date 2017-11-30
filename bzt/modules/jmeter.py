@@ -1031,17 +1031,18 @@ class FuncJTLReader(FunctionalResultsReader):
                 yield sample
 
     def __read_next_chunk(self, last_pass):
-        while True:
-            read = self.file.get_bytes(1024 * 1024)
-            if read and read.strip():
-                try:
-                    self.parser.feed(read)
-                except etree.XMLSyntaxError as exc:
-                    self.failed_processing = True
-                    self.log.debug("Error reading trace.jtl: %s", traceback.format_exc())
-                    self.log.warning("Failed to parse errors XML: %s", exc)
-            else:
+        while not self.failed_processing:
+            read = self.file.get_bytes(size=1024 * 1024)
+            if not read or not read.strip():
                 break
+
+            try:
+                self.parser.feed(read)
+            except etree.XMLSyntaxError as exc:
+                self.failed_processing = True
+                self.log.debug("Error reading trace.jtl: %s", traceback.format_exc())
+                self.log.warning("Failed to parse errors XML: %s", exc)
+
             if not last_pass:
                 break
 
@@ -1051,7 +1052,8 @@ class FuncJTLReader(FunctionalResultsReader):
             fds.write(contents.encode('utf-8'))
         return artifact
 
-    def _extract_sample_assertions(self, sample_elem):
+    @staticmethod
+    def _extract_sample_assertions(sample_elem):
         assertions = []
         for result in sample_elem.findall("assertionResult"):
             name = result.findtext("name")
@@ -1248,6 +1250,7 @@ class IncrementalCSVReader(object):
             self.buffer.seek(0)
             for row in self.csv_reader:
                 yield row
+
             self.buffer.seek(0)
             self.buffer.truncate(0)
 
@@ -1281,11 +1284,11 @@ class JTLErrorsReader(object):
         """
         Read the next part of the file
         """
-        if self.failed_processing:
-            return
+        while not self.failed_processing:
+            read = self.file.get_bytes(size=1024 * 1024)
+            if not read or not read.strip():
+                break
 
-        read = self.file.get_bytes(1024 * 1024)
-        if read and read.strip():
             try:
                 self.parser.feed(read)  # "Huge input lookup" error without capping :)
             except etree.XMLSyntaxError as exc:
@@ -1293,13 +1296,16 @@ class JTLErrorsReader(object):
                 self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
                 self.log.warning("Failed to parse errors XML: %s", exc)
 
-        for _action, elem in self.parser.read_events():
-            del _action
-            if elem.getparent() is not None and elem.getparent().tag == 'testResults':
-                self._parse_element(elem)
-                elem.clear()  # cleanup processed from the memory
-                while elem.getprevious() is not None:
-                    del elem.getparent()[0]
+            for _action, elem in self.parser.read_events():
+                del _action
+                if elem.getparent() is not None and elem.getparent().tag == 'testResults':
+                    self._parse_element(elem)
+                    elem.clear()  # cleanup processed from the memory
+                    while elem.getprevious() is not None:
+                        del elem.getparent()[0]
+
+            if not final_pass:
+                return
 
     def _parse_element(self, elem):
         if elem.get('s'):
