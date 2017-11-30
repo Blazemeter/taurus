@@ -49,8 +49,8 @@ class TestPBench(BZTestCase):
                 self.obj.pbench.stderr_file.close()
 
         if self.obj.reader:
-            if self.obj.reader.fds:
-                self.obj.reader.fds.close()
+            if self.obj.reader.file and self.obj.reader.file.fds:
+                self.obj.reader.file.fds.close()
             if self.obj.reader.stats_reader and self.obj.reader.stats_reader.fds:
                 self.obj.reader.stats_reader.fds.close()
         super(TestPBench, self).tearDown()

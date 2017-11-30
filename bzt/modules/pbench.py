@@ -594,10 +594,8 @@ class PBenchKPIReader(ResultsReader):
     def __init__(self, filename, parent_logger, stats_filename):
         super(PBenchKPIReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.csvreader = None
-        self.offset = 0
-        self.fds = None
+        self.file = FileReader(filename=filename, parent_logger=self.log)
+
         if stats_filename:
             self.stats_reader = PBenchStatsReader(stats_filename, parent_logger)
         else:
@@ -609,20 +607,24 @@ class PBenchKPIReader(ResultsReader):
 
         :type last_pass: bool
         """
-
         def mcs2sec(val):
             return int(val) / 1000000.0
 
         if self.stats_reader:
             self.stats_reader.read_file(last_pass)
 
-        if not self.csvreader and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            return
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
-        self.log.debug("Reading: %s", self.filename)
-        self.fds.seek(self.offset)  # not only Mac has this issue, DictReader on Linux also suffers from it
-        for row in self.csvreader:
+        fields = ("timeStamp", "label", "elapsed",
+                  "Connect", "Send", "Latency", "Receive",
+                  "internal",
+                  "bsent", "brecv",
+                  "opretcode", "responseCode")
+        dialect = csv.excel_tab()
+
+        rows = csv.DictReader(lines, fields, dialect=dialect)
+
+        for row in rows:
             label = row["label"]
 
             try:
@@ -630,7 +632,7 @@ class PBenchKPIReader(ResultsReader):
                 ltc = mcs2sec(row["Latency"])
                 cnn = mcs2sec(row["Connect"])
                 # NOTE: actually we have precise send and receive time here...
-            except:
+            except BaseException:
                 raise ToolError("PBench reader: failed record: %s" % row)
 
             if row["opretcode"] != "0":
@@ -645,8 +647,6 @@ class PBenchKPIReader(ResultsReader):
             concur = 0
             yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, '', byte_count
 
-        self.offset = self.fds.tell()
-
     def _calculate_datapoints(self, final_pass=False):
         for point in super(PBenchKPIReader, self)._calculate_datapoints(final_pass):
             if self.stats_reader:
@@ -658,34 +658,6 @@ class PBenchKPIReader(ResultsReader):
                 label_data[KPISet.CONCURRENCY] = concurrency
 
             yield point
-
-    def __open_fds(self):
-        """
-        Opens JTL file for reading
-        """
-        if not os.path.isfile(self.filename):
-            self.log.debug("File not appeared yet: %s", self.filename)
-            return False
-
-        fsize = os.path.getsize(self.filename)
-        if not fsize:
-            self.log.debug("File is empty: %s", self.filename)
-            return False
-
-        self.log.debug("Opening file: %s", self.filename)
-        self.fds = open(self.filename)
-        fields = ("timeStamp", "label", "elapsed",
-                  "Connect", "Send", "Latency", "Receive",
-                  "internal",
-                  "bsent", "brecv",
-                  "opretcode", "responseCode")
-        dialect = csv.excel_tab()
-        self.csvreader = csv.DictReader(self.fds, fields, dialect=dialect)
-        return True
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
 
 
 class PBenchStatsReader(object):
