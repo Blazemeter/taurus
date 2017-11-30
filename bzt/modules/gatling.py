@@ -196,7 +196,7 @@ class GatlingScriptBuilder(object):
         return feeds
 
     def gen_test_case(self):
-        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script.tpl")
+        template_path = os.path.join(get_full_path(__file__, step_up=2), 'resources', "gatling_script.tpl")
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -370,7 +370,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def __get_cmdline(self, simulation_folder):
         simulation = self.get_scenario().get("simulation")
-        data_dir = os.path.realpath(self.engine.artifacts_dir)
+        data_dir = self.engine.artifacts_dir
 
         cmdline = [self.launcher]
         cmdline += ["-df", data_dir, "-rf", data_dir]
@@ -479,8 +479,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
         def_path = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}".format(version=gatling_version,
                                                                                 suffix=EXE_SUFFIX)
-        gatling_path = self.settings.get("path", def_path)
-        gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
+        gatling_path = get_full_path(self.settings.get("path", def_path))
         self.settings["path"] = gatling_path
         download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
         required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
@@ -684,9 +683,7 @@ class DataLogReader(ResultsReader):
         """
         open gatling simulation.log
         """
-        if os.path.isfile(self.basedir):
-            filename = self.basedir
-        elif os.path.isdir(self.basedir):
+        if os.path.isdir(self.basedir):
             prog = re.compile("^%s-[0-9]+$" % self.dir_prefix)
 
             for fname in os.listdir(self.basedir):
@@ -697,22 +694,22 @@ class DataLogReader(ResultsReader):
             if not filename or not os.path.isfile(filename):
                 self.log.debug('simulation.log not found')
                 return
-
-            if not os.path.getsize(filename):
-                self.log.debug('simulation.log is empty')
-                return
+        elif os.path.isfile(self.basedir):
+                filename = self.basedir
         else:
             self.log.debug('Path not found: %s', self.basedir)
             return
 
-        return open(filename)
+        if not os.path.getsize(filename):
+            self.log.debug('simulation.log is empty')
+        else:
+            return open(filename)
 
 
 class Gatling(RequiredTool):
     """
     Gatling tool
     """
-
     def __init__(self, tool_path, parent_logger, download_link, version):
         super(Gatling, self).__init__("Gatling", tool_path, download_link.format(version=version))
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -736,7 +733,7 @@ class Gatling(RequiredTool):
         self.log.info("Unzipping %s", gatling_dist)
         unzip(gatling_dist, dest, 'gatling-charts-highcharts-bundle-' + self.version)
         os.remove(gatling_dist)
-        os.chmod(os.path.expanduser(self.tool_path), 0o755)
+        os.chmod(get_full_path(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
