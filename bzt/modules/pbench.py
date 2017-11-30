@@ -595,11 +595,7 @@ class PBenchKPIReader(ResultsReader):
         super(PBenchKPIReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.file = FileReader(filename=filename, parent_logger=self.log)
-
-        if stats_filename:
-            self.stats_reader = PBenchStatsReader(stats_filename, parent_logger)
-        else:
-            self.stats_reader = None
+        self.stats_reader = PBenchStatsReader(stats_filename, parent_logger)
 
     def _read(self, last_pass=False):
         """
@@ -610,8 +606,7 @@ class PBenchKPIReader(ResultsReader):
         def mcs2sec(val):
             return int(val) / 1000000.0
 
-        if self.stats_reader:
-            self.stats_reader.read_file(last_pass)
+        self.stats_reader.read_file()
 
         lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
@@ -649,10 +644,7 @@ class PBenchKPIReader(ResultsReader):
 
     def _calculate_datapoints(self, final_pass=False):
         for point in super(PBenchKPIReader, self)._calculate_datapoints(final_pass):
-            if self.stats_reader:
-                concurrency = self.stats_reader.get_data(point[DataPoint.TIMESTAMP])
-            else:
-                concurrency = 0
+            concurrency = self.stats_reader.get_data(point[DataPoint.TIMESTAMP])
 
             for label_data in viewvalues(point[DataPoint.CURRENT]):
                 label_data[KPISet.CONCURRENCY] = concurrency
@@ -666,24 +658,16 @@ class PBenchStatsReader(object):
     def __init__(self, filename, parent_logger):
         super(PBenchStatsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.buffer = ''
-        self.fds = None
         self.data = {}
         self.last_data = 0
 
-    def read_file(self, last_pass=False):
-        del last_pass
+    def read_file(self):
+        _bytes = self.file.get_bytes()
+        if _bytes:
+            self.buffer += _bytes
 
-        if not os.path.isfile(self.filename):
-            self.log.debug("File not appeared yet: %s", self.filename)
-            return False
-
-        if not self.fds:
-            self.log.debug("Opening file: %s", self.filename)
-            self.fds = open(self.filename)
-
-        self.buffer += self.fds.read()
         while self.MARKER in self.buffer:
             idx = self.buffer.find(self.MARKER) + len(self.MARKER)
             chunk_str = self.buffer[:idx - 1]
@@ -715,10 +699,6 @@ class PBenchStatsReader(object):
         else:
             self.log.debug("No active instances info for %s", tstmp)
             return self.last_data
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
 
 
 class PBench(RequiredTool):
