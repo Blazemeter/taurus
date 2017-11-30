@@ -1296,8 +1296,7 @@ class JTLErrorsReader(object):
                 self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
                 self.log.warning("Failed to parse errors XML: %s", exc)
 
-            for _action, elem in self.parser.read_events():
-                del _action
+            for _, elem in self.parser.read_events():
                 if elem.getparent() is not None and elem.getparent().tag == 'testResults':
                     self._parse_element(elem)
                     elem.clear()  # cleanup processed from the memory
