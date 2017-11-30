@@ -195,10 +195,10 @@ class TsungStatsReader(ResultsReader):
 
         if not os.path.isfile(filename):
             self.log.debug("File not appeared yet: %s", filename)
-            return False
+            return
         if not os.path.getsize(filename):
             self.log.debug("File is empty: %s", filename)
-            return False
+            return
 
         self.log.debug('Opening file: %s', filename)
         return open(filename)

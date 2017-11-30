@@ -347,7 +347,7 @@ def readlines(_file, hint=None):
         yield line
         if hint and hint > 0:
             length += len(line)
-            if length > hint:
+            if length >= hint:
                 return
 
 
