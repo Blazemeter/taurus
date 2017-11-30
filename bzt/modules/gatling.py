@@ -695,7 +695,7 @@ class DataLogReader(ResultsReader):
                 self.log.debug('simulation.log not found')
                 return
         elif os.path.isfile(self.basedir):
-                filename = self.basedir
+            filename = self.basedir
         else:
             self.log.debug('Path not found: %s', self.basedir)
             return
