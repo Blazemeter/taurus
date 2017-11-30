@@ -808,7 +808,6 @@ class RequiredTool(object):
     """
     Abstract required tool
     """
-
     def __init__(self, tool_name, tool_path, download_link=""):
         self.tool_name = tool_name
         self.tool_path = tool_path

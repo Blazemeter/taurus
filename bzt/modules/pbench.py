@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import csv
+import datetime
 import json
 import math
 import os
@@ -26,7 +27,6 @@ from abc import abstractmethod
 from os import strerror
 from subprocess import CalledProcessError
 
-import datetime
 import psutil
 
 from bzt import resources, TaurusConfigError, ToolError, TaurusInternalException
@@ -272,9 +272,11 @@ class PBenchTool(object):
         if self.schedule_file is None:
             self.schedule_file = self.engine.create_artifact("pbench", '.sched')
             self.log.info("Generating request schedule file: %s", self.schedule_file)
-            scheduler = Scheduler(load, self.payload_file, self.log)
+
             with open(self.schedule_file, 'wb') as sfd:
+                scheduler = Scheduler(load, self.payload_file, self.log)
                 self._write_schedule_file(load, scheduler, sfd)
+
             self.log.info("Done generating schedule file")
 
     def check_config(self):
@@ -486,12 +488,13 @@ class Scheduler(object):
     REC_TYPE_LOOP_START = 1
     REC_TYPE_STOP = 2
 
-    def __init__(self, load, payload_filename, logger):
+    def __init__(self, load, payload_filename, parent_logger):
         super(Scheduler, self).__init__()
         self.need_start_loop = None
-        self.log = logger
+        self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
-        self.payload_file = FileReader(filename=payload_filename, file_opener=lambda f: open(f, 'rb'), parent_logger=self.log)
+        self.payload_file = FileReader(filename=payload_filename, file_opener=lambda f: open(f, 'rb'),
+                                       parent_logger=self.log)
         if not load.duration and not load.iterations:
             self.iteration_limit = 1
         else:
@@ -602,6 +605,7 @@ class PBenchKPIReader(ResultsReader):
 
         :type last_pass: bool
         """
+
         def mcs2sec(val):
             return int(val) / 1000000.0
 
