@@ -272,10 +272,9 @@ class PBenchTool(object):
         if self.schedule_file is None:
             self.schedule_file = self.engine.create_artifact("pbench", '.sched')
             self.log.info("Generating request schedule file: %s", self.schedule_file)
-            with open(self.payload_file, 'rb') as pfd:
-                scheduler = Scheduler(load, pfd, self.log)
-                with open(self.schedule_file, 'wb') as sfd:
-                    self._write_schedule_file(load, scheduler, sfd)
+            scheduler = Scheduler(load, self.payload_file, self.log)
+            with open(self.schedule_file, 'wb') as sfd:
+                self._write_schedule_file(load, scheduler, sfd)
             self.log.info("Done generating schedule file")
 
     def check_config(self):
@@ -487,12 +486,12 @@ class Scheduler(object):
     REC_TYPE_LOOP_START = 1
     REC_TYPE_STOP = 2
 
-    def __init__(self, load, payload_fhd, logger):
+    def __init__(self, load, payload_filename, logger):
         super(Scheduler, self).__init__()
         self.need_start_loop = None
         self.log = logger
         self.load = load
-        self.payload_fhd = payload_fhd
+        self.payload_file = FileReader(filename=payload_filename, file_opener=lambda f: open(f, 'rb'), parent_logger=self.log)
         if not load.duration and not load.iterations:
             self.iteration_limit = 1
         else:
@@ -516,13 +515,13 @@ class Scheduler(object):
         self.iterations = 1
         rec_type = self.REC_TYPE_SCHEDULE
         while True:
-            payload_offset = self.payload_fhd.tell()
-            line = self.payload_fhd.readline()
+            payload_offset = self.payload_file.offset
+            line = self.payload_file.get_line()
             if not line:  # rewind
-                self.payload_fhd.seek(0)
+                self.payload_file.offset = 0
                 self.iterations += 1
 
-                if self.need_start_loop is not None and self.need_start_loop and not self.iteration_limit:
+                if self.need_start_loop and not self.iteration_limit:
                     self.need_start_loop = False
                     self.iteration_limit = self.iterations
                     rec_type = self.REC_TYPE_LOOP_START
@@ -541,7 +540,7 @@ class Scheduler(object):
             payload_len, marker = parts
             marker = marker.decode()
             payload_len = int(payload_len)
-            payload = self.payload_fhd.read(payload_len).decode()
+            payload = self.payload_file.get_bytes(payload_len).decode()
             yield payload_len, payload_offset, payload, marker.strip(), len(line), rec_type
             rec_type = self.REC_TYPE_SCHEDULE
 
