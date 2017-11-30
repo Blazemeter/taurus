@@ -1305,7 +1305,7 @@ class JTLErrorsReader(object):
                         del elem.getparent()[0]
 
             if not final_pass:
-                return
+                break
 
     def _parse_element(self, elem):
         if elem.get('s'):
