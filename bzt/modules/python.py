@@ -31,7 +31,7 @@ from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSampl
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
-from bzt.utils import BetterDict, ensure_is_dict, shell_exec
+from bzt.utils import BetterDict, ensure_is_dict, shell_exec, FileReader
 from bzt.utils import get_full_path, RequiredTool, PythonGenerator, dehumanize_time
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -44,7 +44,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def __init__(self):
         super(ApiritifNoseExecutor, self).__init__()
-        self._tailer = NoneTailer()
+        self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
         self._readers = []
 
     def prepare(self):
@@ -108,7 +108,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         cmdline += [self.script]
         self.start_time = time.time()
         self._start_subprocess(cmdline)
-        self._tailer = FileTailer(self.stdout_file)
+        self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
 
     def has_results(self):
         if not self._readers:
@@ -403,35 +403,6 @@ import apiritif
             selector = selector[1:-1]
 
         return aby, atype, param, selector
-
-
-class NoneTailer(object):
-    def get_lines(self):
-        return ()
-
-
-class FileTailer(NoneTailer):
-    def __init__(self, filename):
-        super(FileTailer, self).__init__()
-        self.file_name = filename
-        self._fds = None
-        self.offset = 0
-
-    def get_lines(self):
-        if not self._fds:
-            if os.path.isfile(self.file_name):
-                self._fds = open(self.file_name)
-            else:
-                return
-
-        self._fds.seek(self.offset)
-        for line in self._fds.readlines():
-            yield line.rstrip()
-        self.offset = self._fds.tell()
-
-    def __del__(self):
-        if self._fds:
-            self._fds.close()
 
 
 class ApiritifScriptGenerator(PythonGenerator):
@@ -1050,7 +1021,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(PyTestExecutor, self).__init__()
         self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "pytest_runner.py")
-        self._tailer = NoneTailer()
+        self._tailer = FileReader('', file_opener=lambda _: None, parent_logger=self.log)
         self._additional_args = []
 
     def prepare(self):
@@ -1102,7 +1073,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         self._start_subprocess(cmdline)
 
         if self.__is_verbose():
-            self._tailer = FileTailer(self.stdout_file)
+            self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
 
     def check(self):
         self.__log_lines()

@@ -25,7 +25,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
+from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, readlines
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -196,7 +196,7 @@ class GatlingScriptBuilder(object):
         return feeds
 
     def gen_test_case(self):
-        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script.tpl")
+        template_path = os.path.join(get_full_path(__file__, step_up=2), 'resources', "gatling_script.tpl")
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -236,20 +236,19 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
         origin_launcher = get_full_path(self.settings['path'])
         origin_dir = get_full_path(origin_launcher, step_up=2)
-        with open(origin_launcher) as origin:
-            origin_lines = origin.readlines()
 
         modified_lines = []
-
         mod_success = False
-        for line in origin_lines:
-            if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
-                mod_success = True
-                continue
-            if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
-                mod_success = True
-                line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
-            modified_lines.append(line)
+
+        with open(origin_launcher) as fds:
+            for line in readlines(fds):
+                if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
+                    mod_success = True
+                    continue
+                if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
+                    mod_success = True
+                    line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
+                modified_lines.append(line)
 
         if not mod_success:
             raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
@@ -371,7 +370,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def __get_cmdline(self, simulation_folder):
         simulation = self.get_scenario().get("simulation")
-        data_dir = os.path.realpath(self.engine.artifacts_dir)
+        data_dir = self.engine.artifacts_dir
 
         cmdline = [self.launcher]
         cmdline += ["-df", data_dir, "-rf", data_dir]
@@ -472,16 +471,15 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         Save data log as artifact
         """
-        if self.reader and self.reader.filename:
-            self.engine.existing_artifact(self.reader.filename)
+        if self.reader and self.reader.file and self.reader.file.name:
+            self.engine.existing_artifact(self.reader.file.name)
 
     def install_required_tools(self):
         required_tools = [TclLibrary(self.log), JavaVM(self.log)]
         gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
         def_path = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}".format(version=gatling_version,
                                                                                 suffix=EXE_SUFFIX)
-        gatling_path = self.settings.get("path", def_path)
-        gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
+        gatling_path = get_full_path(self.settings.get("path", def_path))
         self.settings["path"] = gatling_path
         download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
         required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
@@ -525,8 +523,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Gatling STDERR:\n" + contents)
-        if self.reader and self.reader.filename:
-            with open(self.reader.filename) as fds:
+        if self.reader and self.reader.file and self.reader.file.name:
+            with open(self.reader.file.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Simulation log:\n" + contents)
@@ -541,11 +539,9 @@ class DataLogReader(ResultsReader):
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.basedir = basedir
-        self.filename = None
-        self.fds = None
+        self.file = FileReader(file_opener=self.open_fds, parent_logger=self.log)
         self.partial_buffer = ""
         self.delimiter = "\t"
-        self.offset = 0
         self.dir_prefix = dir_prefix
         self.guessed_gatling_version = None
 
@@ -662,17 +658,7 @@ class DataLogReader(ResultsReader):
 
         :param last_pass:
         """
-        while not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-
-        self.log.debug("Reading gatling results")
-        self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-        else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
-        self.offset = self.fds.tell()
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if not line.endswith("\n"):
@@ -693,37 +679,37 @@ class DataLogReader(ResultsReader):
             bytes_count = None
             yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, '', bytes_count
 
-    def __open_fds(self):
+    def open_fds(self, filename):
         """
         open gatling simulation.log
         """
-        if os.path.isfile(self.basedir):
-            self.filename = self.basedir
-        else:
+        if os.path.isdir(self.basedir):
             prog = re.compile("^%s-[0-9]+$" % self.dir_prefix)
 
             for fname in os.listdir(self.basedir):
                 if prog.match(fname):
-                    self.filename = os.path.join(self.basedir, fname, "simulation.log")
+                    filename = os.path.join(self.basedir, fname, "simulation.log")
                     break
 
-        if not self.filename:
-            self.log.debug("File is empty: %s", self.filename)
-            return False
+            if not filename or not os.path.isfile(filename):
+                self.log.debug('simulation.log not found')
+                return
+        elif os.path.isfile(self.basedir):
+            filename = self.basedir
+        else:
+            self.log.debug('Path not found: %s', self.basedir)
+            return
 
-        self.fds = open(self.filename)
-        return True
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
+        if not os.path.getsize(filename):
+            self.log.debug('simulation.log is empty')
+        else:
+            return open(filename)
 
 
 class Gatling(RequiredTool):
     """
     Gatling tool
     """
-
     def __init__(self, tool_path, parent_logger, download_link, version):
         super(Gatling, self).__init__("Gatling", tool_path, download_link.format(version=version))
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -747,7 +733,7 @@ class Gatling(RequiredTool):
         self.log.info("Unzipping %s", gatling_dist)
         unzip(gatling_dist, dest, 'gatling-charts-highcharts-bundle-' + self.version)
         os.remove(gatling_dist)
-        os.chmod(os.path.expanduser(self.tool_path), 0o755)
+        os.chmod(get_full_path(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)

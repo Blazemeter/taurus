@@ -340,6 +340,83 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
                      preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
 
 
+def readlines(_file, hint=None):
+    # get generator instead of list (in regular readlines())
+    length = 0
+    for line in _file:
+        yield line
+        if hint and hint > 0:
+            length += len(line)
+            if length >= hint:
+                return
+
+
+class FileReader(object):
+    def __init__(self, filename='', file_opener=open, parent_logger=logging.getLogger('')):
+        self.fds = None
+
+        # for non-trivial openers filename must be empty (more complicate than just open())
+        #  it turns all regular file checks off, see is_ready()
+        self.name = filename
+
+        self.file_opener = file_opener  # external method for opening of file
+        self.offset = 0
+        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def is_ready(self):
+        if not self.fds:
+            if self.name:
+                if not os.path.isfile(self.name):
+                    self.log.debug("File not appeared yet: %s", self.name)
+                    return False
+                if not os.path.getsize(self.name):
+                    self.log.debug("File is empty: %s", self.name)
+                    return False
+
+                self.log.debug("Opening file: %s", self.name)
+
+            # call opener regardless of the name value as it can use empty name as flag
+            self.fds = self.file_opener(self.name)
+
+        if self.fds:
+            self.name = self.fds.name
+            return True
+
+    def get_lines(self, size=-1, last_pass=False):
+        if self.is_ready():
+            if last_pass:
+                size = -1
+            self.log.debug("Reading: %s", self.name)
+            self.fds.seek(self.offset)
+            for line in readlines(self.fds, hint=size):
+                self.offset += len(line)
+                yield line
+
+    def get_line(self):
+        line = ''
+        if self.is_ready():
+            self.log.debug("Reading: %s", self.name)
+            self.fds.seek(self.offset)
+            line = self.fds.readline()
+            self.offset += len(line)
+
+        return line
+
+    def get_bytes(self, size=-1, last_pass=False):
+        if self.is_ready():
+            if last_pass:
+                size = -1
+            self.log.debug("Reading: %s", self.name)
+            self.fds.seek(self.offset)
+            _bytes = self.fds.read(size)
+            self.offset += len(_bytes)
+            return _bytes
+
+    def __del__(self):
+        if self.fds:
+            self.fds.close()
+
+
 def ensure_is_dict(container, key, default_key=None):
     """
     Ensure that dict item is dict, convert if needed
@@ -731,7 +808,6 @@ class RequiredTool(object):
     """
     Abstract required tool
     """
-
     def __init__(self, tool_name, tool_path, download_link=""):
         self.tool_name = tool_name
         self.tool_path = tool_path
@@ -1149,22 +1225,13 @@ def humanize_bytes(byteval):
 class LDJSONReader(object):
     def __init__(self, filename, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename,
+                               file_opener=lambda f: open(f, 'rt', buffering=1),
+                               parent_logger=self.log)
         self.partial_buffer = ""
-        self.offset = 0
 
     def read(self, last_pass=False):
-        if not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            return
-
-        self.fds.seek(self.offset)
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-        else:
-            lines = self.fds.readlines(1024 * 1024)
-        self.offset = self.fds.tell()
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if not line.endswith("\n"):
@@ -1173,19 +1240,6 @@ class LDJSONReader(object):
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
             yield json.loads(line)
-
-    def __open_fds(self):
-        if not os.path.isfile(self.filename):
-            return False
-        fsize = os.path.getsize(self.filename)
-        if not fsize:
-            return False
-        self.fds = open(self.filename, 'rt', buffering=1)
-        return True
-
-    def __del__(self):
-        if self.fds is not None:
-            self.fds.close()
 
 
 def get_host_ips(filter_loopbacks=True):
