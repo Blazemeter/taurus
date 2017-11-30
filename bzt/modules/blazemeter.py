@@ -34,7 +34,7 @@ from urwid import Pile, Text
 
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
-from bzt.bza import User, Session, Test, Workspace
+from bzt.bza import User, Session, Test, Workspace, MultiTest
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.chrome import ChromeProfiler
@@ -42,7 +42,7 @@ from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
-from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b
+from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes, \
     ExceptionalDownloader, ProgressBarContext, parse_blazemeter_test_link
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
@@ -891,7 +891,7 @@ class ProjectFinder(object):
         if isinstance(proj_name, (int, float)):  # TODO: what if it's string "123"?
             proj_id = int(proj_name)
             self.log.debug("Treating project name as ID: %s", proj_id)
-            project = self.workspaces.projects(proj_id=proj_id).first()
+            project = self.workspaces.projects(ident=proj_id).first()
             if not project:
                 raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
             return project
@@ -983,15 +983,152 @@ class ProjectFinder(object):
         router.is_functional = self.is_functional
         return router
 
+    def resolve_account(self, account_name):
+        account = None
+
+        if isinstance(account_name, (int, float)):  # TODO: what if it's string "123"?
+            acc_id = int(account_name)
+            self.log.debug("Treating account name as ID: %s", acc_id)
+            account = self.user.accounts(ident=acc_id).first()
+            if not account:
+                raise TaurusConfigError("BlazeMeter account not found by ID: %s" % acc_id)
+        elif account_name is not None:
+            account = self.user.accounts(name=account_name).first()
+            if not account:
+                raise TaurusConfigError("BlazeMeter account not found by ID: %s" % account_name)
+
+        if account is None:
+            account = self.user.accounts().first()
+            self.log.info("Using first account: %s" % account)
+
+        return account
+
+    def resolve_workspace(self, account, workspace_name):
+        workspace = None
+
+        if isinstance(workspace_name, (int, float)):  # TODO: what if it's string "123"?
+            workspace_id = int(workspace_name)
+            self.log.debug("Treating workspace name as ID: %s", workspace_id)
+            workspace = account.workspaces(ident=workspace_id).first()
+            if not workspace:
+                raise TaurusConfigError("BlazeMeter workspace not found by ID: %s" % workspace_id)
+        elif workspace_name is not None:
+            workspace = account.workspaces(name=workspace_name).first()
+            if not workspace:
+                raise TaurusConfigError("BlazeMeter workspace not found: %s" % workspace_name)
+
+        if workspace is None:
+            workspace = account.workspaces().first()
+            self.log.info("Using first workspace: %s" % workspace)
+
+        return workspace
+
+    def resolve_project(self, workspace, project_name):
+        project = None
+
+        if isinstance(project_name, (int, float)):  # TODO: what if it's string "123"?
+            proj_id = int(project_name)
+            self.log.debug("Treating project name as ID: %s", proj_id)
+            project = workspace.projects(ident=proj_id).first()
+            if not project:
+                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
+        elif project_name is not None:
+            project = workspace.projects(name=project_name).first()
+
+        if project is None:
+            project = self._create_project_or_use_default(workspace, project_name)
+
+        return project
+
+    def resolve_test(self, project, test_name):
+        test = None
+
+        is_int = isinstance(test_name, (int, float))
+        is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
+        if is_int or is_digit:
+            test_id = int(test_name)
+            self.log.debug("Treating project name as ID: %s", test_id)
+            test = project.multi_tests(ident=test_id).first()
+            if not test:
+                test = project.tests(ident=test_id).first()
+            if not test:
+                raise TaurusConfigError("BlazeMeter test not found by ID: %s" % test_id)
+        elif test_name is not None:
+            test = project.multi_tests(name=test_name).first()
+            if not test:
+                test = project.tests(name=test_name).first()
+
+        return test
+
+    def resolve_test_type_link(self):
+        use_deprecated = self.settings.get("use-deprecated-api", True)
+        default_location = self.settings.get("default-location", None)
+        cloud_mode = self.settings.get("cloud-mode", None)
+        account_name = self.parameters.get("account", self.settings.get("account", None))
+        workspace_name = self.parameters.get("workspace", self.settings.get("workspace", None))
+        project_name = self.parameters.get("project", self.settings.get("project", None))
+        test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        launch_existing_test = self.settings.get("launch-existing-test", False)
+
+        test_spec = parse_blazemeter_test_link(test_name)
+        self.log.info("Parsed test link: %s", test_spec)
+        if test_spec is not None:
+            account, workspace, project, test = self.user.test_by_ids(test_spec.account_id, test_spec.workspace_id,
+                                                                      test_spec.project_id, test_spec.test_id)
+            if test is None:
+                raise TaurusConfigError("Test not found: %s", test_name)
+            self.log.info("Found test by link: %s", test_name)
+        else:
+            account = self.resolve_account(account_name)
+            workspace = self.resolve_workspace(account, workspace_name)
+            project = self.resolve_project(workspace, project_name)
+            test = self.resolve_test(project, test_name)
+
+        if isinstance(test, MultiTest):
+            self.log.info("Detected test type: multi")
+            test_class = CloudCollectionTest
+        elif isinstance(test, Test):
+            self.log.info("Detected test type: standard")
+            test_class = CloudTaurusTest
+        else:
+            if launch_existing_test:
+                raise TaurusConfigError("Can't find test for launching: %r" % test_name)
+            if use_deprecated or cloud_mode == 'taurusCloud':
+                self.log.info("Will create old-style test")
+                test_class = CloudTaurusTest
+            else:
+                self.log.info("Will create new-style test")
+                test_class = CloudCollectionTest
+
+        assert test_class is not None
+        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test,
+                            self.log)
+        router._workspaces = self.workspaces
+        router.cloud_mode = cloud_mode
+        router.dedicated_ips = self.settings.get("dedicated-ips", False)
+        router.is_functional = self.is_functional
+        return router
+
+    def _create_project_or_use_default(self, workspace, proj_name):
+        if proj_name:
+            return workspace.create_project(proj_name)
+        else:
+            info = self.user.fetch()
+            project = workspace.projects(ident=info['defaultProject']['id']).first()
+            if not project:
+                project = workspace.create_project("Taurus Tests Project")
+            return project
+
     def _default_or_create_project(self, proj_name):
         if proj_name:
             return self.workspaces.first().create_project(proj_name)
         else:
             info = self.user.fetch()
-            project = self.workspaces.projects(proj_id=info['defaultProject']['id']).first()
+            project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
             if not project:
                 project = self.workspaces.first().create_project("Taurus Tests Project")
             return project
+
 
 
 class BaseCloudTest(object):
@@ -1487,7 +1624,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
         finder.is_functional = self.engine.is_functional_mode()
-        self.router = finder.resolve_test_type()
+        self.router = finder.resolve_test_type_link()
 
         if not self.launch_existing_test:
             self.router.prepare_locations(self.executors, self.engine.config)

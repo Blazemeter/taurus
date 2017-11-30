@@ -1214,7 +1214,7 @@ def is_url(url):
 
 def parse_blazemeter_test_link(link):
     """
-    https://a.blazemeter.com/app/#/accounts/97961/workspaces/89846/projects/229969/tests/5823512/overview
+    https://a.blazemeter.com/app/#/accounts/97961/workspaces/89846/projects/229969/tests/5823512
 
     :param link:
     :return:
@@ -1227,5 +1227,5 @@ def parse_blazemeter_test_link(link):
     if match is None:
         return None
 
-    TestParams = namedtuple('TestParams', 'account,workspace,project,test')
-    return TestParams(*match.groups())
+    TestParams = namedtuple('TestParams', 'account_id,workspace_id,project_id,test_id')
+    return TestParams(*[int(x) for x in match.groups()])

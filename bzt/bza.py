@@ -150,12 +150,19 @@ class User(BZAObject):
         """ Quick check if we can access the service """
         self._request(self.address + '/api/v4/web/version')
 
-    def accounts(self):
+    def accounts(self, ident=None, name=None):
         """
         :rtype: BZAObjectsList[Account]
         """
         res = self._request(self.address + '/api/v4/accounts')
-        return BZAObjectsList([Account(self, x) for x in res['result']])
+        accounts = []
+        for acc in res['result']:
+            if ident is not None and acc['id'] != ident:
+                continue
+            if name is not None and acc['name'] != name:
+                continue
+            accounts.append(Account(self, acc))
+        return BZAObjectsList(accounts)
 
     def fetch(self):
         res = self._request(self.address + '/api/v4/user')
@@ -207,20 +214,53 @@ class User(BZAObject):
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)
 
+    def test_by_ids(self, account_id=None, workspace_id=None, project_id=None, test_id=None):
+        account = self.accounts(ident=account_id).first()
+        if not account:
+            raise ValueError("Account not found: %s" % account_id)
+        workspace = account.workspaces(ident=workspace_id).first()
+        project = workspace.projects(ident=project_id).first()
+        if project:
+            target = project
+        else:
+            target = workspace
+
+        test = target.multi_tests(ident=test_id).first()
+        if test is None:
+            test = target.tests(ident=test_id).first()
+
+        if test is None:
+            return None
+
+        return account, workspace, project, test
+
 
 class Account(BZAObject):
-    def workspaces(self):
+    def workspaces(self, ident=None, name=None):
         """
         :rtype: BZAObjectsList[Workspace]
         """
         params = {"accountId": self['id'], 'enabled': 'true', 'limit': 100}
         params = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
         res = self._request(self.address + '/api/v4/workspaces?' + urlencode(params))
-        return BZAObjectsList([Workspace(self, x) for x in res['result'] if x['enabled']])
+        workspaces = []
+        for wksp in res['result']:
+            if not wksp['enabled']:
+                continue
+
+            if name is not None and wksp['name'] != name:
+                continue
+
+            if ident is not None and wksp['id'] != ident:
+                continue
+
+            workspaces.append(Workspace(self, wksp))
+
+        return BZAObjectsList(workspaces)
 
 
 class Workspace(BZAObject):
-    def projects(self, name=None, proj_id=None):
+    def projects(self, name=None, ident=None):
         """
         :rtype: BZAObjectsList[Project]
         """
@@ -234,11 +274,11 @@ class Workspace(BZAObject):
             if name is not None and item['name'] != name:
                 continue
 
-            if proj_id is not None and item['id'] != proj_id:
+            if ident is not None and item['id'] != ident:
                 continue
 
             projects.append(Project(self, item))
-        return projects
+        return BZAObjectsList(projects)
 
     def locations(self, include_private=False):
         if 'locations' not in self:
