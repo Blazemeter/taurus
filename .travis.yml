@@ -36,14 +36,15 @@ install:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     mono --version
   else
+    alias pip=pip2
     rvm get stable
   fi
   nvm install 6.11
   nvm use 6.11
   gem install rspec
-  pip2 install pip --upgrade
-  pip2 install -r requirements.txt
-  pip2 install -r tests/ci/requirements.txt
+  pip install pip --upgrade
+  pip install -r requirements.txt
+  pip install -r tests/ci/requirements.txt
 
 script:
 - |
