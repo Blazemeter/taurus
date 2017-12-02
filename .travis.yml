@@ -14,13 +14,17 @@ python:
 - "3.5"
 - "3.6"
 
-env: PIP=pip
+env:
+- PIP=pip GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
 
 matrix:
   include:
   - os: osx
-    language: generic
-    env: PIP=pip2
+    python: "2.7"
+    env:
+    - PIP=pip2
+    - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
+    - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
 
 addons:
   firefox: "54.0"
@@ -39,25 +43,17 @@ install:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     mono --version
   else
-    gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 && rvm get stable
+    gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable
   fi
 - nvm install 6.11
 - nvm use 6.11
 - gem install rspec
-- $PIP install --user --upgrade pip
-- $PIP install --user -r requirements.txt
-- $PIP install --user -r tests/ci/requirements.txt
+- $PIP install --upgrade pip
+- $PIP install -r requirements.txt
+- $PIP install -r tests/ci/requirements.txt
 
 script:
-- |
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources  --exclude-dir=tests/ci
-  else
-    coverage run  --source=. `which nosetests` tests -v \
-      --exclude-dir=tests/resources  \
-      --exclude-dir=tests/ci --exclude-test=tests.modules.selenium.test_csharp
-    #  tests/ci/build-brew.sh
-  fi
+- coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
 
 after_success:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m; fi
