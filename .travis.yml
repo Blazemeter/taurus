@@ -10,14 +10,19 @@ matrix:
   include:
   - os: linux
     python: 2.7
+    env: PIP=pip
   - os: linux
     python: 3.4
+    env: PIP=pip
   - os: linux
     python: 3.5
+    env: PIP=pip
   - os: linux
     python: 3.6
+    env: PIP=pip
   - os: osx
     language: generic
+    env: PIP=pip2
 
 addons:
   firefox: "54.0"
@@ -36,15 +41,14 @@ install:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     mono --version
   else
-    alias pip=pip2
     rvm get stable
   fi
   nvm install 6.11
   nvm use 6.11
   gem install rspec
-  pip install pip --upgrade
-  pip install -r requirements.txt
-  pip install -r tests/ci/requirements.txt
+  $PIP install pip --upgrade
+  $PIP install -r requirements.txt
+  $PIP install -r tests/ci/requirements.txt
 
 script:
 - |
