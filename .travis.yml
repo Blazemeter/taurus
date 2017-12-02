@@ -43,12 +43,12 @@ install:
   else
     rvm get stable
   fi
-  nvm install 6.11
-  nvm use 6.11
-  gem install rspec
-  $PIP install pip --upgrade
-  $PIP install -r requirements.txt
-  $PIP install -r tests/ci/requirements.txt
+- nvm install 6.11
+- nvm use 6.11
+- gem install rspec
+- $PIP install pip --upgrade
+- $PIP install -r requirements.txt
+- $PIP install -r tests/ci/requirements.txt
 
 script:
 - |
