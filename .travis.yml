@@ -18,8 +18,6 @@ env:
   global:
   - PIP=pip
   - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
-  matrix:
-  - NOSE="`which nosetests`"
 
 matrix:
   include:
@@ -27,7 +25,6 @@ matrix:
     language: generic
     env:
     - PIP=pip2
-    - NOSE="python -m nose"
     - OSX_PIP_OPT="--user"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
@@ -59,7 +56,7 @@ install:
 - $PIP install $OSX_PIP_OPT -r tests/ci/requirements.txt
 
 script:
-- coverage run --source=. $NOSE tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
+- coverage run --source=. python -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
 
 after_success:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m; fi
