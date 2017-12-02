@@ -15,14 +15,15 @@ python:
 - "3.6"
 
 env:
-- PIP=pip GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
+  global:
+  - PIP=pip
+  - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
 
 matrix:
   include:
   - os: osx
     python: "2.7"
     env:
-    - PIP=pip2
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
 
