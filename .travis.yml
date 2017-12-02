@@ -44,9 +44,9 @@ install:
 - nvm install 6.11
 - nvm use 6.11
 - gem install rspec
-- $PIP install pip --upgrade
-- $PIP install -r requirements.txt
-- $PIP install -r tests/ci/requirements.txt
+- $PIP install --user --upgrade pip
+- $PIP install --user -r requirements.txt
+- $PIP install --user -r tests/ci/requirements.txt
 
 script:
 - |
