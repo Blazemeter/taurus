@@ -22,10 +22,11 @@ env:
 matrix:
   include:
   - os: osx
-    python: "2.7"
+    language: generic
     env:
-    - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
+    - OSX_PIP_OPT="--user"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
+    - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
 addons:
   firefox: "54.0"
@@ -49,9 +50,9 @@ install:
 - nvm install 6.11
 - nvm use 6.11
 - gem install rspec
-- $PIP install --upgrade pip
-- $PIP install -r requirements.txt
-- $PIP install -r tests/ci/requirements.txt
+- $PIP install $OSX_PIP_OPT --upgrade pip
+- $PIP install $OSX_PIP_OPT -r requirements.txt
+- $PIP install $OSX_PIP_OPT -r tests/ci/requirements.txt
 
 script:
 - coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
