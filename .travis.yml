@@ -18,8 +18,7 @@ env:
   global:
   - PIP=pip
   - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
-  matrix:
-  - NOSE="nosetests"
+  - NOSE="\`which python\` -m nose"
 
 matrix:
   include:
@@ -27,7 +26,7 @@ matrix:
     language: generic
     env:
     - PIP=pip2
-    - NOSE="python -m nose"
+    #- NOSE="python -m nose"
     - OSX_PIP_OPT="--user"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
