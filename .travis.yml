@@ -38,7 +38,7 @@ addons:
 
 before_install:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
-- (if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo xvfb :99; fi)&
+  #- (if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo xvfb :99; fi)&
 
 install:
 - |
@@ -59,7 +59,7 @@ script:
 - coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
 
 after_success:
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m && codecow; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m && codecov; fi
 
 
 
