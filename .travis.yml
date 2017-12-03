@@ -6,18 +6,28 @@ branches:
   only:
   - master
 
+os: linux
+
+python:
+- "2.7"
+- "3.4"
+- "3.5"
+- "3.6"
+
+env:
+  global:
+  - DISPLAY=:99.0
+  - PIP_INSTALL="pip install"
+  - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
+
 matrix:
   include:
-  - os: linux
-    python: 2.7
-  - os: linux
-    python: 3.4
-  - os: linux
-    python: 3.5
-  - os: linux
-    python: 3.6
   - os: osx
     language: generic
+    env:
+    - PIP_INSTALL="sudo pip2 install"
+    - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
+    - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
 addons:
   firefox: "54.0"
@@ -27,38 +37,28 @@ addons:
       - mono-complete
 
 before_install:
-- export DISPLAY=:99.0
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
-- (if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo xvfb :99; fi)&
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
 
 install:
 - |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     mono --version
   else
-    rvm get stable
+    gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
-  nvm install 6.11
-  nvm use 6.11
-  gem install rspec
-  pip install pip --upgrade
-  pip install -r requirements.txt
-  pip install -r tests/ci/requirements.txt
+- nvm install 6.11
+- nvm use 6.11
+- gem install rspec
+- $PIP_INSTALL --upgrade pip
+- $PIP_INSTALL -r requirements.txt
+- $PIP_INSTALL -r tests/ci/requirements.txt
 
 script:
-- |
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    coverage run  --source=. `which nosetests` tests -v --exclude-dir=tests/resources  --exclude-dir=tests/ci
-  else
-    coverage run  --source=. `which nosetests` tests -v \
-      --exclude-dir=tests/resources  \
-      --exclude-dir=tests/ci --exclude-test=tests.modules.selenium.test_csharp
-    #  tests/ci/build-brew.sh
-  fi
+- coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
 
 after_success:
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m; fi
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then codecov; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m && codecov; fi
 
 
 
