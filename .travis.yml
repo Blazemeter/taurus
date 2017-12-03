@@ -55,15 +55,10 @@ install:
 - $PIP install $OSX_PIP_OPT --upgrade pip
 - $PIP install $OSX_PIP_OPT -r requirements.txt
 - $PIP install $OSX_PIP_OPT -r tests/ci/requirements.txt
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo easy_install nose; fi
 
 script:
-- |
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
-  else:
-    coverage run --source=. python -m nose tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
-  fi
-
+- coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
 
 after_success:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m; fi
