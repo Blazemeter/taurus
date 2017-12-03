@@ -25,7 +25,7 @@ matrix:
   - os: osx
     language: generic
     env:
-    - PIP_INSTALL="pip2 install --user"
+    - PIP_INSTALL="sudo pip2 install"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
@@ -38,7 +38,7 @@ addons:
 
 before_install:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
-  #- (if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo xvfb :99; fi)&
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
 
 install:
 - |
@@ -53,7 +53,7 @@ install:
 - $PIP_INSTALL --upgrade pip
 - $PIP_INSTALL -r requirements.txt
 - $PIP_INSTALL -r tests/ci/requirements.txt
-- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo easy_install nose coverage; fi
+#- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo easy_install nose coverage; fi
 
 script:
 - coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
