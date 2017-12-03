@@ -16,7 +16,8 @@ python:
 
 env:
   global:
-  - PIP=pip
+  - DISPLAY=:99.0
+  - PIP_INSTALL="pip install"
   - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
 
 matrix:
@@ -24,8 +25,7 @@ matrix:
   - os: osx
     language: generic
     env:
-    - PIP=pip2
-    - OSX_PIP_OPT="--user"
+    - PIP_INSTALL="pip2 install --user"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
@@ -37,7 +37,6 @@ addons:
       - mono-complete
 
 before_install:
-- export DISPLAY=:99.0
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
 - (if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo xvfb :99; fi)&
 
@@ -46,23 +45,21 @@ install:
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     mono --version
   else
-    gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable && \
-      echo "rvm update successful" || echo "rvm update fail"
+    gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
 - nvm install 6.11
 - nvm use 6.11
 - gem install rspec
-- $PIP install $OSX_PIP_OPT --upgrade pip
-- $PIP install $OSX_PIP_OPT -r requirements.txt
-- $PIP install $OSX_PIP_OPT -r tests/ci/requirements.txt
+- $PIP_INSTALL --upgrade pip
+- $PIP_INSTALL -r requirements.txt
+- $PIP_INSTALL -r tests/ci/requirements.txt
 - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo easy_install nose coverage; fi
 
 script:
 - coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
 
 after_success:
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m; fi
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then codecov; fi
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m && codecow; fi
 
 
 
