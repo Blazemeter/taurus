@@ -219,6 +219,8 @@ class User(BZAObject):
         if not account:
             raise ValueError("Account not found: %s" % account_id)
         workspace = account.workspaces(ident=workspace_id).first()
+        if workspace is None:
+            raise ValueError("Workspace not found: %s" % workspace_id)
         project = workspace.projects(ident=project_id).first()
         if project:
             target = project
@@ -230,7 +232,7 @@ class User(BZAObject):
             test = target.tests(ident=test_id).first()
 
         if test is None:
-            return None
+            raise ValueError("Test wasn't found")
 
         return account, workspace, project, test
 

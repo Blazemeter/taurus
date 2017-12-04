@@ -923,16 +923,6 @@ class ProjectFinder(object):
 
         return test
 
-    def get_test_search_params(self, test_lookup_name):
-        test_info = parse_blazemeter_test_link(test_lookup_name)
-        self.log.info("Parsed link: %s", test_info)
-        if test_info:
-            return {"name": None, "ident": int(test_info.test)}
-        elif isinstance(test_lookup_name, int) or test_lookup_name.isdigit():
-            return {"name": None, "ident": int(test_lookup_name)}
-        else:
-            return {"name": test_lookup_name, "ident": None}
-
     def resolve_account(self, account_name):
         account = None
 
