@@ -1010,7 +1010,7 @@ class ProjectFinder(object):
         launch_existing_test = self.settings.get("launch-existing-test", False)
 
         test_spec = parse_blazemeter_test_link(test_name)
-        self.log.info("Parsed test link: %s", test_spec)
+        self.log.debug("Parsed test link: %s", test_spec)
         if test_spec is not None:
             account, workspace, project, test = self.user.test_by_ids(test_spec.account_id, test_spec.workspace_id,
                                                                       test_spec.project_id, test_spec.test_id)
