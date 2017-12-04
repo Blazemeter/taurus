@@ -1345,6 +1345,38 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(12, len(self.mock.requests))
         self.assertEqual(self.obj.router.master['id'], 5)
 
+    def test_lookup_account_workspace(self):
+        self.configure(
+            get={
+                'https://a.blazemeter.com/api/v4/accounts': {"result": [{"id": 1, "name": "Acc name"}]},
+                'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
+                    "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
+                },
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=99999': {
+                    "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
+                },
+                'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&name=Test+name': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?projectId=3&name=Test+name': {"result": [
+                    {"id": 4, "name": "Test name", "configuration": {"type": "taurus"}}
+                ]},
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/tests/4/start': {"result": {"id": 5}},
+            }
+        )
+
+        self.obj.settings["account"] = "Acc name"
+        self.obj.settings["workspace"] = "Wksp name"
+        self.obj.settings["project"] = "Project name"
+        self.obj.settings["test"] = "Test name"
+        self.obj.settings["launch-existing-test"] = True
+
+        self.obj.prepare()
+        self.assertIsInstance(self.obj.router, CloudTaurusTest)
+        self.assertEqual(7, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(8, len(self.mock.requests))
+
 
 class TestCloudTaurusTest(BZTestCase):
     def test_defaults_clean(self):
