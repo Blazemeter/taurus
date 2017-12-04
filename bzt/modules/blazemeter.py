@@ -933,56 +933,6 @@ class ProjectFinder(object):
         else:
             return {"name": test_lookup_name, "ident": None}
 
-    def resolve_test_type(self):
-        use_deprecated = self.settings.get("use-deprecated-api", True)
-        default_location = self.settings.get("default-location", None)
-        cloud_mode = self.settings.get("cloud-mode", None)
-        proj_lookup_name = self.parameters.get("project", self.settings.get("project", None))
-        test_lookup_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
-        launch_existing_test = self.settings.get("launch-existing-test", False)
-
-        project = self._find_project(proj_lookup_name)
-
-        test_class = None
-
-        test_query = self.get_test_search_params(test_lookup_name)
-        test = self._ws_proj_switch(project).multi_tests(**test_query).first()
-        self.log.debug("Looked for collection: %s", test)
-        if test:
-            self.log.debug("Detected test type: new")
-            test_class = CloudCollectionTest
-        else:
-            test = self._ws_proj_switch(project).tests(**test_query).first()
-            self.log.debug("Looked for test: %s", test)
-            if test:
-                self.log.debug("Detected test type: old")
-                test_class = CloudTaurusTest
-            else:
-                if launch_existing_test:
-                    raise TaurusConfigError("Test not found: %r" % test_lookup_name)
-
-        if not project:
-            project = self._default_or_create_project(proj_lookup_name)
-            if proj_lookup_name:
-                test = None  # we have to create another test under this project
-
-        if not test:
-            if use_deprecated or cloud_mode == 'taurusCloud':
-                self.log.debug("Will create old-style test")
-                test_class = CloudTaurusTest
-            else:
-                self.log.debug("Will create new-style test")
-                test_class = CloudCollectionTest
-
-        assert test_class is not None
-        router = test_class(self.user, test, project, test_lookup_name, default_location, launch_existing_test,
-                            self.log)
-        router._workspaces = self.workspaces
-        router.cloud_mode = cloud_mode
-        router.dedicated_ips = self.settings.get("dedicated-ips", False)
-        router.is_functional = self.is_functional
-        return router
-
     def resolve_account(self, account_name):
         account = None
 
@@ -1060,10 +1010,9 @@ class ProjectFinder(object):
 
         return test
 
-    def resolve_test_type_link(self):
+    def resolve_test_type(self):
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
-        cloud_mode = self.settings.get("cloud-mode", None)
         account_name = self.parameters.get("account", self.settings.get("account", None))
         workspace_name = self.parameters.get("workspace", self.settings.get("workspace", None))
         project_name = self.parameters.get("project", self.settings.get("project", None))
@@ -1093,18 +1042,18 @@ class ProjectFinder(object):
         else:
             if launch_existing_test:
                 raise TaurusConfigError("Can't find test for launching: %r" % test_name)
-            if use_deprecated or cloud_mode == 'taurusCloud':
-                self.log.info("Will create old-style test")
+            if use_deprecated or self.settings.get("cloud-mode", None) == 'taurusCloud':
+                self.log.info("Will create standard test")
                 test_class = CloudTaurusTest
             else:
-                self.log.info("Will create new-style test")
+                self.log.info("Will create a multi test")
                 test_class = CloudCollectionTest
 
         assert test_class is not None
         router = test_class(self.user, test, project, test_name, default_location, launch_existing_test,
                             self.log)
         router._workspaces = self.workspaces
-        router.cloud_mode = cloud_mode
+        router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
         router.is_functional = self.is_functional
         return router
@@ -1624,7 +1573,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
         finder.is_functional = self.engine.is_functional_mode()
-        self.router = finder.resolve_test_type_link()
+        self.router = finder.resolve_test_type()
 
         if not self.launch_existing_test:
             self.router.prepare_locations(self.executors, self.engine.config)
