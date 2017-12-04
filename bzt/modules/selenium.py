@@ -26,7 +26,7 @@ from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.services import VirtualDisplay
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
-from bzt.utils import is_windows, is_mac, platform_bitness
+from bzt.utils import is_windows, is_mac, platform_bitness, readlines
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -340,7 +340,7 @@ class SeleniumWidget(Pile, PrioritizedWidget):
         reader_summary = ''
         if self.runner_output is not None and os.path.exists(self.runner_output):
             with open(self.runner_output, "rt") as fds:
-                lines = fds.readlines()
+                lines = readlines(fds)
                 if lines:
                     line = lines[-1]
                     if not line.endswith("\n") and len(lines) > 1:

@@ -49,10 +49,11 @@ class TestPBench(BZTestCase):
                 self.obj.pbench.stderr_file.close()
 
         if self.obj.reader:
-            if self.obj.reader.fds:
-                self.obj.reader.fds.close()
-            if self.obj.reader.stats_reader and self.obj.reader.stats_reader.fds:
-                self.obj.reader.stats_reader.fds.close()
+            if self.obj.reader.file and self.obj.reader.file.fds:
+                self.obj.reader.file.fds.close()
+            if self.obj.reader.stats_reader and self.obj.reader.stats_reader.file and\
+                    self.obj.reader.stats_reader.file.fds:
+                self.obj.reader.stats_reader.file.fds.close()
         super(TestPBench, self).tearDown()
 
 
@@ -95,7 +96,7 @@ class TestPBenchExecutor(TestPBench):
         while not self.obj.check():
             logging.debug("Running...")
             self.obj.engine.aggregator.check()
-            time.sleep(1)
+            time.sleep(0.1)
 
         self.obj.shutdown()
         self.obj.engine.aggregator.shutdown()
@@ -222,13 +223,25 @@ class TestPBenchExecutor(TestPBench):
         self.assertIsNotNone(self.obj.get_error_diagnostics())
 
 
+class MockByteFile(io.BytesIO):
+    def __init__(self, buf=None):
+        super(MockByteFile, self).__init__(buf)
+        self.name = "taurus_test"
+
+
 class TestScheduler(TestPBench):
+    def get_scheduler(self, buf=None):
+        filename = ''
+        scheduler = Scheduler(self.obj.get_load(), filename, logging.getLogger(""))
+        scheduler.payload_file.fds = MockByteFile(buf)
+        return scheduler
+
     def test_schedule_rps(self):
         self.obj.engine.config.merge({"provisioning": "test"})
         rps = 9
         rampup = 12
         self.obj.execution.merge({"throughput": rps, "ramp-up": rampup, "steps": 3, "hold-for": 0})
-        scheduler = Scheduler(self.obj.get_load(), io.BytesIO(b("4 test\ntest\n")), logging.getLogger(""))
+        scheduler = self.get_scheduler(b("4 test\ntest\n"))
 
         cnt = 0
         cur = 0
@@ -249,11 +262,11 @@ class TestScheduler(TestPBench):
     def test_schedule_with_no_rampup(self):
         self.obj.execution.merge({"concurrency": 10, "ramp-up": None, "steps": 3, "hold-for": 10})
         # this line shouln't throw an exception
-        Scheduler(self.obj.get_load(), io.BytesIO(b("4 test\ntest\n")), logging.getLogger(""))
+        self.get_scheduler(b("4 test\ntest\n"))
 
     def test_schedule_empty(self):
         # concurrency: 1, iterations: 1
-        scheduler = Scheduler(self.obj.get_load(), io.BytesIO(b("4 test\ntest\n")), logging.getLogger(""))
+        scheduler = self.get_scheduler(b("4 test\ntest\n"))
         items = list(scheduler.generate())
         for item in items:
             logging.debug("Item: %s", item)
@@ -261,8 +274,7 @@ class TestScheduler(TestPBench):
 
     def test_schedule_concurrency(self):
         self.obj.execution.merge({"concurrency": 5, "ramp-up": 10, "hold-for": 5})
-        scheduler = Scheduler(self.obj.get_load(),
-                              io.BytesIO(b("5 test1\ntest1\n5 test2\ntest2\n")), logging.getLogger(""))
+        scheduler = self.get_scheduler(b("5 test1\ntest1\n5 test2\ntest2\n"))
         items = list(scheduler.generate())
         self.assertEqual(8, len(items))
         self.assertEqual(-1, items[5][0])  # instance became unlimited
@@ -270,15 +282,13 @@ class TestScheduler(TestPBench):
 
     def test_schedule_throughput_only(self):
         self.obj.execution.merge({"throughput": 5})
-        scheduler = Scheduler(self.obj.get_load(),
-                              io.BytesIO(b("5 test1\ntest1\n5 test2\ntest2\n")), logging.getLogger(""))
+        scheduler = self.get_scheduler(b("5 test1\ntest1\n5 test2\ntest2\n"))
         items = list(scheduler.generate())
         self.assertTrue(len(items) > 0)
 
     def test_schedule_concurrency_steps(self):
         self.obj.execution.merge({"concurrency": 5, "ramp-up": 10, "steps": 3})
-        scheduler = Scheduler(self.obj.get_load(),
-                              io.BytesIO(b("5 test1\ntest1\n5 test2\ntest2\n")), logging.getLogger(""))
+        scheduler = self.get_scheduler(b("5 test1\ntest1\n5 test2\ntest2\n"))
         items = list(scheduler.generate())
         self.assertEqual(8, len(items))
         self.assertEqual(-1, items[5][0])  # instance became unlimited
@@ -296,7 +306,7 @@ class TestSchedulerSize(TestPBench):
         self.obj.pbench = TaurusPBenchTool(self.obj, logging.getLogger(''))
         self.obj.pbench.generate_payload(self.obj.get_scenario())
         payload_count = len(self.obj.get_scenario().get('requests', []))
-        sch = Scheduler(load, open(self.obj.pbench.payload_file, 'rb'), logging.getLogger(''))
+        sch = Scheduler(load, self.obj.pbench.payload_file, logging.getLogger(''))
         estimated_schedule_size = self.obj.pbench._estimate_schedule_size(load, payload_count)
         logging.debug("Estimated schedule size: %s", estimated_schedule_size)
         items = list(sch.generate())

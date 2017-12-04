@@ -26,8 +26,8 @@ class TestSiegeExecutor(BZTestCase):
             self.obj.stdout_file.close()
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
-        if self.obj.reader and self.obj.reader.fds:
-            self.obj.reader.fds.close()
+        if self.obj.reader and self.obj.reader.file and self.obj.reader.file.fds:
+            self.obj.reader.file.fds.close()
         super(TestSiegeExecutor, self).tearDown()
 
     def test_iter(self):

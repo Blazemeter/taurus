@@ -275,7 +275,8 @@ class TestReportReader(BZTestCase):
         second_part = '"b": 3}\n{"a": 3, "b": 4}\n'
         reader = LDJSONReader("yip", logging.getLogger())
         buffer = StringIO(first_part)
-        reader.fds = buffer
+        reader.file.fds = buffer
+        reader.file.fds.name = "yip"
 
         items = list(reader.read(last_pass=False))
         self.assertEqual(len(items), 1)

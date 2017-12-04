@@ -856,7 +856,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_internal_json_extractor(varname, jsonpath, default, scope, from_variable, match_num, concat):
+    def _get_internal_json_extractor(varname, jsonpath, default, scope, from_variable, match_no, concat):
         """
         :type varname: str
         :type default: str
@@ -864,12 +864,12 @@ class JMX(object):
         """
         package = "JSONPostProcessor"
         element = etree.Element(package,
-                                guiclass="%s.gui.JSONPathExtractorGui" % package,
+                                guiclass="%sGui" % package,
                                 testclass="%s" % package,
                                 testname="Get %s" % varname)
         element.append(JMX._string_prop("JSONPostProcessor.referenceNames", varname))
         element.append(JMX._string_prop("JSONPostProcessor.jsonPathExprs", jsonpath))
-        element.append(JMX._string_prop("JSONPostProcessor.match_numbers", match_num))
+        element.append(JMX._string_prop("JSONPostProcessor.match_numbers", match_no))
 
         if default:
             element.append(JMX._string_prop("JSONPostProcessor.defaultValues", default))

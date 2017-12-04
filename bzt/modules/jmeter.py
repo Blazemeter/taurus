@@ -44,7 +44,7 @@ from bzt.requests_model import ResourceFilesCollector
 from bzt.six import communicate
 from bzt.six import iteritems, string_types, StringIO, etree, parse, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
-from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time
+from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
 
@@ -1005,32 +1005,17 @@ class FuncJTLReader(FunctionalResultsReader):
         self.executor_label = "JMeter"
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',), recover=True)
-        self.offset = 0
-        self.filename = filename
         self.engine = engine
-        self.fds = None
+        self.file = FileReader(filename=filename, file_opener=lambda f: open(f, 'rb'), parent_logger=self.log)
         self.failed_processing = False
         self.read_records = 0
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
 
     def read(self, last_pass=True):
         """
         Read the next part of the file
         """
-
         if self.failed_processing:
             return
-
-        if not self.fds:
-            if os.path.exists(self.filename) and os.path.getsize(self.filename):
-                self.log.debug("Opening %s", self.filename)
-                self.fds = open(self.filename, 'rb')
-            else:
-                self.log.debug("File not exists: %s", self.filename)
-                return
 
         self.__read_next_chunk(last_pass)
 
@@ -1046,21 +1031,20 @@ class FuncJTLReader(FunctionalResultsReader):
                 yield sample
 
     def __read_next_chunk(self, last_pass):
-        self.fds.seek(self.offset)
-        while True:
-            read = self.fds.read(1024 * 1024)
-            if read.strip():
-                try:
-                    self.parser.feed(read)
-                except etree.XMLSyntaxError as exc:
-                    self.failed_processing = True
-                    self.log.debug("Error reading trace.jtl: %s", traceback.format_exc())
-                    self.log.warning("Failed to parse errors XML: %s", exc)
-            else:
+        while not self.failed_processing:
+            read = self.file.get_bytes(size=1024 * 1024)
+            if not read or not read.strip():
                 break
+
+            try:
+                self.parser.feed(read)
+            except etree.XMLSyntaxError as exc:
+                self.failed_processing = True
+                self.log.debug("Error reading trace.jtl: %s", traceback.format_exc())
+                self.log.warning("Failed to parse errors XML: %s", exc)
+
             if not last_pass:
-                continue
-        self.offset = self.fds.tell()
+                break
 
     def _write_sample_data(self, filename, contents):
         artifact = self.engine.create_artifact(filename, ".bin")
@@ -1068,7 +1052,8 @@ class FuncJTLReader(FunctionalResultsReader):
             fds.write(contents.encode('utf-8'))
         return artifact
 
-    def _extract_sample_assertions(self, sample_elem):
+    @staticmethod
+    def _extract_sample_assertions(sample_elem):
         assertions = []
         for result in sample_elem.findall("assertionResult"):
             name = result.findtext("name")
@@ -1224,9 +1209,7 @@ class IncrementalCSVReader(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
-        self.offset = 0
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.read_speed = 1024 * 1024
 
     def read(self, last_pass=False):
@@ -1235,24 +1218,10 @@ class IncrementalCSVReader(object):
         yield csv row
         :type last_pass: bool
         """
-        if not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            return
+        lines = self.file.get_lines(size=self.read_speed, last_pass=last_pass)
 
-        self.log.debug("Reading JTL: %s", self.filename)
-        self.fds.seek(self.offset)  # without this we have stuck reads on Mac
-
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-        else:
-            lines = self.fds.readlines(int(self.read_speed))
-        self.offset = self.fds.tell()
-        bytes_read = sum(len(line) for line in lines)
-        self.log.debug("Read lines: %s / %s bytes (at speed %s)", len(lines), bytes_read, self.read_speed)
-        if bytes_read >= self.read_speed:
-            self.read_speed = min(8 * 1024 * 1024, self.read_speed * 2)
-        elif bytes_read < self.read_speed / 2:
-            self.read_speed = max(self.read_speed / 2, 1024 * 1024)
+        lines_read = 0
+        bytes_read = 0
 
         for line in lines:
             if not line.endswith("\n"):
@@ -1261,6 +1230,9 @@ class IncrementalCSVReader(object):
 
             line = "%s%s" % (self.partial_buffer, line)
             self.partial_buffer = ""
+
+            lines_read += 1
+            bytes_read += len(line)
 
             if self.csv_reader is None:
                 dialect = guess_csv_dialect(line, force_doublequote=True)  # TODO: configurable doublequoting?
@@ -1271,37 +1243,22 @@ class IncrementalCSVReader(object):
 
             self.buffer.write(line)
 
-        self.buffer.seek(0)
-        for row in self.csv_reader:
-            yield row
-        self.buffer.seek(0)
-        self.buffer.truncate(0)
+        if lines_read:
+            self.log.debug("Read: %s lines / %s bytes (at speed %s)", lines_read, bytes_read, self.read_speed)
+            self._tune_speed(bytes_read)
 
-    def __open_fds(self):
-        """
-        Opens JTL file for reading
-        """
-        if not os.path.isfile(self.filename):
-            self.log.debug("File not appeared yet: %s", self.filename)
-            return False
+            self.buffer.seek(0)
+            for row in self.csv_reader:
+                yield row
 
-        fsize = os.path.getsize(self.filename)
-        if not fsize:
-            self.log.debug("File is empty: %s", self.filename)
-            return False
+            self.buffer.seek(0)
+            self.buffer.truncate(0)
 
-        if fsize <= self.offset:
-            self.log.debug("Waiting file to grow larget than %s, current: %s", self.offset, fsize)
-            return False
-
-        self.log.debug("Opening file: %s", self.filename)
-        self.fds = open(self.filename)
-        self.fds.seek(self.offset)
-        return True
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
+    def _tune_speed(self, bytes_read):
+        if bytes_read >= self.read_speed:
+            self.read_speed = min(8 * 1024 * 1024, self.read_speed * 2)
+        elif bytes_read < self.read_speed / 2:
+            self.read_speed = max(self.read_speed / 2, 1024 * 1024)
 
 
 class JTLErrorsReader(object):
@@ -1319,36 +1276,19 @@ class JTLErrorsReader(object):
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
-        # context = etree.iterparse(self.fds, events=('end',))
-        self.offset = 0
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename, file_opener=lambda f: open(f, 'rb'), parent_logger=self.log)
         self.buffer = BetterDict()
         self.failed_processing = False
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
 
     def read_file(self, final_pass=False):
         """
         Read the next part of the file
         """
+        while not self.failed_processing:
+            read = self.file.get_bytes(size=1024 * 1024)
+            if not read or not read.strip():
+                break
 
-        if self.failed_processing:
-            return
-
-        if not self.fds:
-            if os.path.exists(self.filename) and os.path.getsize(self.filename):  # getsize check to not stuck on mac
-                self.log.debug("Opening %s", self.filename)
-                self.fds = open(self.filename, 'rb')
-            else:
-                self.log.debug("File not exists: %s", self.filename)
-                return
-
-        self.fds.seek(self.offset)
-        read = self.fds.read(1024 * 1024)
-        if read.strip():
             try:
                 self.parser.feed(read)  # "Huge input lookup" error without capping :)
             except etree.XMLSyntaxError as exc:
@@ -1356,14 +1296,15 @@ class JTLErrorsReader(object):
                 self.log.debug("Error reading errors.jtl: %s", traceback.format_exc())
                 self.log.warning("Failed to parse errors XML: %s", exc)
 
-        self.offset = self.fds.tell()
-        for _action, elem in self.parser.read_events():
-            del _action
-            if elem.getparent() is not None and elem.getparent().tag == 'testResults':
-                self._parse_element(elem)
-                elem.clear()  # cleanup processed from the memory
-                while elem.getprevious() is not None:
-                    del elem.getparent()[0]
+            for _, elem in self.parser.read_events():
+                if elem.getparent() is not None and elem.getparent().tag == 'testResults':
+                    self._parse_element(elem)
+                    elem.clear()  # cleanup processed from the memory
+                    while elem.getprevious() is not None:
+                        del elem.getparent()[0]
+
+            if not final_pass:
+                break
 
     def _parse_element(self, elem):
         if elem.get('s'):
