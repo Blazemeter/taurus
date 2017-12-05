@@ -38,7 +38,7 @@ import time
 import webbrowser
 import zipfile
 from abc import abstractmethod
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, namedtuple
 from contextlib import contextmanager
 from math import log
 from subprocess import CalledProcessError
