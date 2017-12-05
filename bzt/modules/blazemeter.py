@@ -959,7 +959,7 @@ class ProjectFinder(object):
 
         if account is None:
             account = self.user.accounts().first()
-            self.log.info("Using first account: %s" % account)
+            self.log.debug("Using first account: %s" % account)
 
         return account
 
@@ -979,7 +979,7 @@ class ProjectFinder(object):
 
         if workspace is None:
             workspace = account.workspaces().first()
-            self.log.info("Using first workspace: %s" % workspace)
+            self.log.debug("Using first workspace: %s" % workspace)
 
         return workspace
 
