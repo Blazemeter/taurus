@@ -4,9 +4,9 @@ import select
 import socket
 import time
 import traceback
+import subprocess
 from abc import abstractmethod
 from collections import OrderedDict, namedtuple
-from sys import platform
 
 import psutil
 from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
@@ -225,6 +225,7 @@ class LocalMonitor(object):
         stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
                                              'rx', 'tx', 'dru', 'dwu', 'engine_loop', 'conn_all'))
 
+        # TODO: don't ask for unnecessary metrics
         try:
             mem_usage = psutil.virtual_memory().percent
         except KeyError:
@@ -259,19 +260,17 @@ class LocalMonitor(object):
             engine_loop = None
             disk_usage = None
 
-        if platform == 'darwin':  # TODO: add MacOS support
-            connections = []
-        else:
-            connections = psutil.net_connections(kind="all")
+        output = subprocess.check_output(['netstat', '-ant'])
+        output_lines = output.split('\n')
+        est_lines = [line for line in output_lines if line.find('EST') != -1]
+        conn_all = len(est_lines)
 
-        count_conn = lambda x: x.family == 2 and x.status not in ('TIME_WAIT', 'LISTEN')
-        connections = [y for y in connections if count_conn(y)]
         return stats(
             cpu=psutil.cpu_percent(),
             disk_usage=disk_usage,
             mem_usage=mem_usage,
             rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-            engine_loop=engine_loop, conn_all=len(connections)
+            engine_loop=engine_loop, conn_all=conn_all
         )
 
     def __get_disk_counters(self):
