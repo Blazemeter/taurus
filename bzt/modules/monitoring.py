@@ -15,7 +15,7 @@ from urwid import Pile, Text
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, urlopen, urlencode, b
+from bzt.six import iteritems, urlopen, urlencode, b, unicode_decode
 from bzt.utils import dehumanize_time
 
 
@@ -78,10 +78,6 @@ class Monitoring(Service, WidgetProvider, Singletone):
         for client in self.clients:
             client.disconnect()
         super(Monitoring, self).shutdown()
-
-    def post_process(self):
-        # shutdown agent?
-        super(Monitoring, self).post_process()
 
     def get_widget(self):
         widget = MonitoringWidget()
@@ -260,7 +256,8 @@ class LocalMonitor(object):
             engine_loop = None
             disk_usage = None
 
-        output = subprocess.check_output(['netstat', '-ant'])
+        # take all connections without address resolution
+        output = unicode_decode(subprocess.check_output(['netstat', '-an']))
         output_lines = output.split('\n')
         est_lines = [line for line in output_lines if line.find('EST') != -1]
         conn_all = len(est_lines)
@@ -270,8 +267,7 @@ class LocalMonitor(object):
             disk_usage=disk_usage,
             mem_usage=mem_usage,
             rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-            engine_loop=engine_loop, conn_all=conn_all
-        )
+            engine_loop=engine_loop, conn_all=conn_all)
 
     def __get_disk_counters(self):
         counters = None
