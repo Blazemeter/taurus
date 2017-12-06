@@ -85,7 +85,7 @@ def reraise(exc_info):
 
 
 def stream_decode(string):
-    if not isinstance(string, unicode):
+    if not isinstance(string, text_type):
         return string.decode()
     else:
         return string
