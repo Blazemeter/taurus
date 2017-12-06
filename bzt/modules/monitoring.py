@@ -15,7 +15,7 @@ from urwid import Pile, Text
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, urlopen, urlencode, b, unicode_decode
+from bzt.six import iteritems, urlopen, urlencode, b, stream_decode
 from bzt.utils import dehumanize_time
 
 
@@ -257,8 +257,8 @@ class LocalMonitor(object):
             disk_usage = None
 
         # take all connections without address resolution
-        output = unicode_decode(subprocess.check_output(['netstat', '-an']))
-        output_lines = output.split('\n')
+        output = subprocess.check_output(['netstat', '-an'])
+        output_lines = stream_decode(output).split('\n')    # in py3 stream has 'bytes' type
         est_lines = [line for line in output_lines if line.find('EST') != -1]
         conn_all = len(est_lines)
 
