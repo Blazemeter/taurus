@@ -63,7 +63,7 @@ class CLI(object):
     @run_once
     def setup_logging(options):
         """
-        Setting up console and file loggind, colored if possible
+        Setting up console and file logging, colored if possible
 
         :param options: OptionParser parsed options
         """
