@@ -352,16 +352,33 @@ def readlines(_file, hint=None):
 
 
 class FileReader(object):
-    def __init__(self, filename='', file_opener=open, parent_logger=logging.getLogger('')):
+    def __init__(self, filename="", file_opener=None, parent_logger=None):
         self.fds = None
+        if parent_logger:
+            self.log = parent_logger.getChild(self.__class__.__name__)
+        else:
+            self.log = logging.getLogger(self.__class__.__name__)
+
+        if file_opener:
+            self.file_opener = file_opener  # external method for opening of file
+        else:
+            self.file_opener = lambda f: open(f, mode='rb')     # default mode is binary
 
         # for non-trivial openers filename must be empty (more complicate than just open())
-        #  it turns all regular file checks off, see is_ready()
+        # it turns all regular file checks off, see is_ready()
         self.name = filename
 
-        self.file_opener = file_opener  # external method for opening of file
         self.offset = 0
-        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def _readlines(self, hint=None):
+        # get generator instead of list (in regular readlines())
+        length = 0
+        for line in self.fds:
+            yield line
+            if hint and hint > 0:
+                length += len(line)
+                if length >= hint:
+                    return
 
     def is_ready(self):
         if not self.fds:
@@ -388,21 +405,22 @@ class FileReader(object):
                 size = -1
             self.log.debug("Reading: %s", self.name)
             self.fds.seek(self.offset)
-            for line in readlines(self.fds, hint=size):
+            for line in self._readlines(hint=size):
                 self.offset += len(line)
-                yield line
+                yield line.decode("utf8")   # default charset is utf8
 
     def get_line(self):
-        line = ''
+        line = ""
         if self.is_ready():
             self.log.debug("Reading: %s", self.name)
             self.fds.seek(self.offset)
             line = self.fds.readline()
             self.offset += len(line)
 
-        return line
+        return line.decode("utf8")  # default charset is utf8
 
     def get_bytes(self, size=-1, last_pass=False):
+        """ doesn't make any encoding """
         if self.is_ready():
             if last_pass:
                 size = -1
