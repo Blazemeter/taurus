@@ -154,6 +154,7 @@ class TestJTLReader(BZTestCase):
         reader.ignored_labels = [u("Тест.Эхо")]
         for point in reader.datapoints():
             cumulative = point[DataPoint.CUMULATIVE]
+            self.assertIn('САП.АутентифицироватьРасш', cumulative)
             self.assertNotIn("Тест.Эхо", cumulative)
 
     def test_jtl_doublequoting(self):
