@@ -1253,7 +1253,7 @@ class LDJSONReader(object):
     def __init__(self, filename, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.file = FileReader(filename=filename,
-                               file_opener=lambda f: open(f, 'rt', buffering=1),
+                               file_opener=lambda f: open(f, 'rb', buffering=1),
                                parent_logger=self.log)
         self.partial_buffer = ""
 
