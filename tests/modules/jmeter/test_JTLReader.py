@@ -5,7 +5,6 @@ import sys
 import logging
 
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
-from bzt.six import u
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 from bzt.modules.aggregator import DataPoint
@@ -149,13 +148,13 @@ class TestJTLReader(BZTestCase):
         values = [x for x in obj.datapoints(True)]
         self.assertEquals(4, len(values))
 
-    def test_reader_unicode(self):
+    def test_areader_unicode(self):
         reader = JTLReader(RESOURCES_DIR + "/jmeter/jtl/unicode.jtl", logging.getLogger(''), None)
-        reader.ignored_labels = [u("Тест.Эхо")]
+        reader.ignored_labels = [u"Тест.Эхо"]
         for point in reader.datapoints():
             cumulative = point[DataPoint.CUMULATIVE]
-            self.assertIn('САП.АутентифицироватьРасш', cumulative)
-            self.assertNotIn("Тест.Эхо", cumulative)
+            self.assertIn(u"САП.АутентифицироватьРасш", cumulative)
+            self.assertNotIn(u"Тест.Эхо", cumulative)
 
     def test_jtl_doublequoting(self):
         obj = JTLReader(RESOURCES_DIR + "/jmeter/jtl/doublequoting.jtl", logging.getLogger(), None)

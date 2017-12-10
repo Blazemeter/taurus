@@ -37,6 +37,10 @@ import tempfile
 import time
 import webbrowser
 import zipfile
+import locale
+import os
+import psutil
+import shutil
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
@@ -44,10 +48,6 @@ from math import log
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
-
-import os
-import psutil
-import shutil
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
@@ -367,7 +367,7 @@ class FileReader(object):
         # for non-trivial openers filename must be empty (more complicate than just open())
         # it turns all regular file checks off, see is_ready()
         self.name = filename
-
+        self.cp = 'utf8'    # default code page is utf8
         self.offset = 0
 
     def _readlines(self, hint=None):
@@ -399,6 +399,15 @@ class FileReader(object):
             self.name = self.fds.name
             return True
 
+    def decode(self, line):
+        try:
+            return line.decode(self.cp)
+        except UnicodeDecodeError:
+            self.log.warning("Content encoding of '%s' doesn't match %s", self.name, self.cp)
+            self.cp = locale.getpreferredencoding()
+            self.log.warning("Proposed code page: %s", self.cp)
+            return line.decode(self.cp)
+
     def get_lines(self, size=-1, last_pass=False):
         if self.is_ready():
             if last_pass:
@@ -407,7 +416,7 @@ class FileReader(object):
             self.fds.seek(self.offset)
             for line in self._readlines(hint=size):
                 self.offset += len(line)
-                yield line.decode("utf8")   # default charset is utf8
+                yield self.decode(line)
 
     def get_line(self):
         line = ""
@@ -417,7 +426,7 @@ class FileReader(object):
             line = self.fds.readline()
             self.offset += len(line)
 
-        return line.decode("utf8")  # default charset is utf8
+        return self.decode(line)
 
     def get_bytes(self, size=-1, last_pass=False):
         """ doesn't make any encoding """

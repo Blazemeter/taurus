@@ -32,8 +32,8 @@ from itertools import dropwhile
 from cssselect import GenericTranslator
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNetworkError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable, Provisioning, \
-    SETTINGS
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import SelfDiagnosable, Provisioning, SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -41,7 +41,7 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector
-from bzt.six import communicate
+from bzt.six import communicate, PY2
 from bzt.six import iteritems, string_types, StringIO, etree, parse, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
@@ -1240,6 +1240,9 @@ class IncrementalCSVReader(object):
                 self.csv_reader.fieldnames += line.strip().split(self.csv_reader.dialect.delimiter)
                 self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)
                 continue
+
+            if PY2: # todo: fix csv parsing of unicode strings on PY2
+                line = line.encode('utf8')
 
             self.buffer.write(line)
 
