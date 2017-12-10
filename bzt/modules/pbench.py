@@ -536,12 +536,11 @@ class Scheduler(object):
             if not line.strip():  # we're fine to skip empty lines between records
                 continue
 
-            parts = line.split(b(' '))
+            parts = line.split(' ')
             if len(parts) < 2:
                 raise TaurusInternalException("Wrong format for meta-info line: %s" % line)
 
             payload_len, marker = parts
-            marker = marker.decode()
             payload_len = int(payload_len)
             payload = self.payload_file.get_bytes(payload_len).decode()
             yield payload_len, payload_offset, payload, marker.strip(), len(line), rec_type
