@@ -703,7 +703,7 @@ class DataLogReader(ResultsReader):
         if not os.path.getsize(filename):
             self.log.debug('simulation.log is empty')
         else:
-            return open(filename)
+            return open(filename, 'rb')
 
 
 class Gatling(RequiredTool):
