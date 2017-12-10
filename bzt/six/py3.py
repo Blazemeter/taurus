@@ -84,13 +84,6 @@ def reraise(exc_info):
     raise exc
 
 
-def stream_decode(string):
-    if not isinstance(string, text_type):
-        return string.decode()
-    else:
-        return string
-
-
 def unicode_decode(string):
     return string
 
