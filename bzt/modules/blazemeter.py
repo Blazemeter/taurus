@@ -1251,6 +1251,11 @@ class CloudTaurusTest(BaseCloudTest):
         if self.launch_existing_test:
             return
 
+        test_type = self._test.get('configuration', {}).get('type')
+        if test_type != TAURUS_TEST_TYPE:
+            self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
+            self._test = None
+
         if self._test is None:
             test_config = {
                 "type": TAURUS_TEST_TYPE,
@@ -1266,9 +1271,6 @@ class CloudTaurusTest(BaseCloudTest):
         if delete_old_files:
             self._test.delete_files()
 
-        test_type = self._test.get('configuration', {}).get('type')
-        if test_type != TAURUS_TEST_TYPE:
-            raise TaurusConfigError("Can't reuse test type %r as Taurus test" % test_type)
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
         self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
@@ -1371,7 +1373,6 @@ class CloudCollectionTest(BaseCloudTest):
 
         collection_draft = self._user.collection_draft(self._test_name, taurus_config, rfiles)
         if self._test is None:
-
             self.log.debug("Creating cloud collection test")
             self._test = self._project.create_multi_test(collection_draft)
         else:
