@@ -147,6 +147,8 @@ class Molotov(RequiredTool):
 
     def check_if_installed(self):
         self.log.debug('Checking Molotov: %s' % self.tool_path)
+        self.out = []
+        self.exc = None
         try:
             stdout, stderr = communicate(shell_exec([self.tool_path, '--version']))
             self.log.debug("Molotov stdout/stderr: %s, %s", stdout, stderr)
