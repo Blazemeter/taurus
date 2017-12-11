@@ -1251,10 +1251,11 @@ class CloudTaurusTest(BaseCloudTest):
         if self.launch_existing_test:
             return
 
-        test_type = self._test.get('configuration', {}).get('type')
-        if test_type != TAURUS_TEST_TYPE:
-            self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
-            self._test = None
+        if self._test is not None:
+            test_type = self._test.get('configuration', {}).get('type')
+            if test_type != TAURUS_TEST_TYPE:
+                self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
+                self._test = None
 
         if self._test is None:
             test_config = {
