@@ -3,9 +3,10 @@ import sys
 import logging
 
 from psutil import Popen
+from os.path import join
 
-from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows
-from tests import BZTestCase
+from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, FileReader
+from tests import BZTestCase, RESOURCES_DIR
 
 
 class TestJavaVM(BZTestCase):
@@ -51,3 +52,17 @@ class TestLogStreams(BZTestCase):
         self.assertNotIn('test3', debug_buf)
         self.assertIn('test5', debug_buf)
         self.assertTrue(len(warn_buf) > 0)
+
+
+class TestFileReader(BZTestCase):
+    def test_file_len(self):
+        obj = FileReader(join(RESOURCES_DIR, 'jmeter', 'jtl', 'file.notfound'))
+        self.sniff_log(obj.log)
+        list(obj.get_lines(size=1))
+        self.assertIn('File not appeared yet', self.log_recorder.debug_buff.getvalue())
+        obj.name = join(RESOURCES_DIR, 'jmeter', 'jtl', 'unicode.jtl')
+        lines = list(obj.get_lines(size=1))
+        self.assertEqual(1, len(lines))
+        lines = list(obj.get_lines(last_pass=True))
+        self.assertEqual(13, len(lines))
+        self.assertTrue(all(l.endswith('\n') for l in lines))
