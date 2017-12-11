@@ -1000,23 +1000,24 @@ class ProjectFinder(object):
 
         return project
 
-    def resolve_test(self, project, test_name):
+    def resolve_test(self, project, test_name, taurus_only=False):
         test = None
 
         is_int = isinstance(test_name, (int, float))
         is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
+        test_type = TAURUS_TEST_TYPE if taurus_only else None
         if is_int or is_digit:
             test_id = int(test_name)
             self.log.debug("Treating project name as ID: %s", test_id)
             test = project.multi_tests(ident=test_id).first()
             if not test:
-                test = project.tests(ident=test_id).first()
+                test = project.tests(ident=test_id, test_type=test_type).first()
             if not test:
                 raise TaurusConfigError("BlazeMeter test not found by ID: %s" % test_id)
         elif test_name is not None:
             test = project.multi_tests(name=test_name).first()
             if not test:
-                test = project.tests(name=test_name).first()
+                test = project.tests(name=test_name, test_type=test_type).first()
 
         return test
 
@@ -1031,9 +1032,12 @@ class ProjectFinder(object):
 
         test_spec = parse_blazemeter_test_link(test_name)
         self.log.debug("Parsed test link: %s", test_spec)
+        look_for_taurus_only = not launch_existing_test
         if test_spec is not None:
+            # if we're to launch existing test - look for any type, otherwise - taurus only
             account, workspace, project, test = self.user.test_by_ids(test_spec.account_id, test_spec.workspace_id,
-                                                                      test_spec.project_id, test_spec.test_id)
+                                                                      test_spec.project_id, test_spec.test_id,
+                                                                      taurus_only=look_for_taurus_only)
             if test is None:
                 raise TaurusConfigError("Test not found: %s", test_name)
             self.log.info("Found test by link: %s", test_name)
@@ -1041,22 +1045,22 @@ class ProjectFinder(object):
             account = self.resolve_account(account_name)
             workspace = self.resolve_workspace(account, workspace_name)
             project = self.resolve_project(workspace, project_name)
-            test = self.resolve_test(project, test_name)
+            test = self.resolve_test(project, test_name, taurus_only=look_for_taurus_only)
 
         if isinstance(test, MultiTest):
-            self.log.info("Detected test type: multi")
+            self.log.debug("Detected test type: multi")
             test_class = CloudCollectionTest
         elif isinstance(test, Test):
-            self.log.info("Detected test type: standard")
+            self.log.debug("Detected test type: standard")
             test_class = CloudTaurusTest
         else:
             if launch_existing_test:
                 raise TaurusConfigError("Can't find test for launching: %r" % test_name)
             if use_deprecated or self.settings.get("cloud-mode", None) == 'taurusCloud':
-                self.log.info("Will create standard test")
+                self.log.debug("Will create standard test")
                 test_class = CloudTaurusTest
             else:
-                self.log.info("Will create a multi test")
+                self.log.debug("Will create a multi test")
                 test_class = CloudCollectionTest
 
         assert test_class is not None
