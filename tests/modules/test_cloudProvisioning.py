@@ -1409,6 +1409,45 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.startup()
         self.assertEqual(8, len(self.mock.requests))
 
+    def test_lookup_test_different_type(self):
+        self.configure(
+            engine_cfg={
+                "execution": [
+                    {"executor": "mock",
+                     "iterations": 1,
+                     "locations": {"eu-west-1": 1},
+                     "scenario": {"requests": ["http://blazedemo.com/"]}}
+                ]
+            },
+            get={
+                'https://a.blazemeter.com/api/v4/accounts': {"result": [{"id": 1, "name": "Acc name"}]},
+                'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
+                    "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1,
+                                "locations": [{"id": "eu-west-1"}]}]
+                },
+                'https://a.blazemeter.com/api/v4/workspaces/2': {
+                    "result": {"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1,
+                               "locations": [{"id": "eu-west-1"}]}
+                },
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=99999': {
+                    "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
+                },
+                'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&name=ExternalTest': {"result": []},
+                'https://a.blazemeter.com/api/v4/tests?projectId=3&name=ExternalTest': {"result": [
+                    {"id": 4, "name": "ExternalTest", "configuration": {"type": "external"}},
+                ]},
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/tests/4/files': {"result": {}},
+            },
+            patch={
+                'https://a.blazemeter.com/api/v4/tests/4': {"result": {}},
+            }
+        )
+
+        self.obj.settings["test"] = "ExternalTest"
+        self.obj.prepare()
+        self.assertEqual(13, len(self.mock.requests))
 
 
 class TestCloudTaurusTest(BZTestCase):
