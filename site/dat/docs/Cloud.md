@@ -49,6 +49,56 @@ execution:
 Then you can just switch `provisioning` and load settings will be taken accordingly. For example, running `bzt config.yml -o provisioning=cloud` is an easy way to toggle on `cloud` provisioning. Short form `bzt config.yml -cloud` is available and contrariwise you can turn off cloud provisioning by the similar way: `bzt config.yml -local`   
 The `concurrency` and `througput` are always *total* value for execution, no matter how many locations will be involved.
 
+## Specifying Account, Workspace and Project
+
+Accounts, Workspaces and Projects are BlazeMeter's features that help to exactly specify the access rights and support
+shared access to tests and BM features. You can learn more about Workspaces and Projects from BlazeMeter docs, e.g.
+an article [Workspaces and Projects](https://guide.blazemeter.com/hc/en-us/articles/213685389-Workspaces-and-Projects-Workspaces-and-Projects).
+
+With Taurus, it is possible to specify both names and identifiers for all entities listed.
+
+Example:
+```yaml
+execution:
+- scenario: my-scenario
+
+scenarios:
+  my-scenario:
+    requests:
+    - http://blazedemo.com/
+    
+modules:
+  cloud:
+    account: My Account  # numeric identifier can also be specified
+    workspace: Shared Workspace
+    project: Taurus tests
+    test: Example test
+```
+
+If the test can be resolved (when account, workspace, project and test do exist) — then the test will be
+updated with provided Taurus configuration and then the test will be launched.
+
+If the cloud test doesn't exist — it will be created and launched.
+
+By default, Taurus will use the default user's account and a default workspace, so it's not required to specify
+account, workspace and project every time.
+
+There's also a useful shortcut that allows to specify all parameters at once by using a link to existing BlazeMeter test:
+
+```yaml
+execution:
+- scenario: my-scenario
+
+scenarios:
+  my-scenario:
+    requests:
+    - http://blazedemo.com/
+    
+modules:
+  cloud:
+    test: https://a.blazemeter.com/app/#/accounts/99/workspaces/999/projects/9999/tests/99999
+```
+
 ## Launching Existing Cloud Tests
 
 Taurus provides a way to launch pre-configured cloud tests by their name or id. This is the default behaviour
@@ -64,23 +114,31 @@ modules:
     launch-existing-test: true  # you can omit this field if your `execution` section is empty
 ```
 
-In the case of multiple tests with the same name your can provide a test idd instead of a name:
+Just like in the previous section, it is possible to specify `account`, `workspace` and other fields and
+to use identifiers.
+
+It's also possible to use the link to the test to launch it:
 ```yaml
 provisioning: cloud
 
 modules:
   cloud:
-    test: 581781
+    test: https://a.blazemeter.com/app/#/accounts/99/workspaces/999/projects/9999/tests/99999
+```
+
+It also makes it possible to launch a cloud test with a single command line command:
+```bash
+$ bzt -cloud -o modules.cloud.test=https://a.blazemeter.com/app/#/accounts/97961/workspaces/89846/projects/132315/tests/5817816
 ```
 
 ## Detach Mode
 
-You can start Cloud test and stop Taurus without waiting for test results with attribute `detach`:
+You can start Cloud test and stop Taurus without awaiting test results with the `detach` attribute:
 ```yaml
 modules:
   cloud:
     token: ******    
-    detach: true # run cloud test and exit    
+    detach: true  # launch cloud test and immediately exit    
 ```
 or use appropriate alias for this: `bzt config.yml -cloud -detach`
 
