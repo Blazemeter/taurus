@@ -55,8 +55,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
-        self.reporting_setup(suffix=".ldjson")
-
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
         test_mode = self.execution.get("test-mode", None) or "apiritif"
