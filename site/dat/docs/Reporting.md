@@ -128,8 +128,8 @@ modules:
     ignore-labels: # sample labels from this list 
       - ignore     # will be ignored by results reader
       
-    buffer-multiplier: 0.5  # choose middle value from following percentiles list (95.0)
-    buffer-scale-choice: 2  # make buffer two times bigger than need to receive 95% samples      
+    buffer-scale-choice: 0.5  # choose middle value from following percentiles list (95.0)
+    buffer-multiplier: 2  # make buffer two times bigger than need to receive 95% samples
     min-buffer-len: 2s      # minimal length of buffer (default: 2s)
     max-buffer-len: 2h      # maximal length of buffer (default: infinity)
     

@@ -19,7 +19,6 @@ limitations under the License.
 import logging
 import time
 from math import ceil
-from os import path
 
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
@@ -27,7 +26,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, FileReader
 
 
 class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister, SelfDiagnosable):
@@ -188,38 +187,11 @@ class DataLogReader(ResultsReader):
     def __init__(self, filename, parent_logger):
         super(DataLogReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.concurrency = None
 
-    def _calculate_datapoints(self, final_pass=False):  # FIXME: why override it?
-        for point in super(DataLogReader, self)._calculate_datapoints(final_pass):
-            yield point
-
-    def __open_fds(self):
-        if not path.isfile(self.filename):
-            self.log.debug("File not appeared yet")
-            return False
-
-        if not path.getsize(self.filename):
-            self.log.debug("File is empty: %s", self.filename)
-            return False
-
-        if not self.fds:
-            self.fds = open(self.filename)
-
-        return True
-
     def _read(self, last_pass=False):
-        while not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-            self.fds.close()
-        else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read    git
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if line.count(chr(0x1b)) != 2:  # skip garbage
@@ -245,10 +217,6 @@ class DataLogReader(ResultsReader):
             _concur = self.concurrency
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, '', _rsize
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
 
 
 class Siege(RequiredTool):
