@@ -12,7 +12,7 @@ from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.python import ApiritifNoseExecutor
 from bzt.six import BytesIO
-from bzt.utils import LDJSONReader
+from bzt.utils import LDJSONReader, FileReader
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
@@ -113,9 +113,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")) as fds:
-            lines = fds.readlines()
-            self.assertEquals(4, len(lines), ('4 != %s\n' % len(lines)) + '\n'.join(lines))
+        reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv"))
+        lines = reader.get_lines(last_pass=True)
+        self.assertEquals(4, len(lines))
 
     def test_fail_on_zero_results(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))

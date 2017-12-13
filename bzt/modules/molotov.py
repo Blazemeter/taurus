@@ -147,24 +147,19 @@ class Molotov(RequiredTool):
 
     def check_if_installed(self):
         self.log.debug('Checking Molotov: %s' % self.tool_path)
-        self.out = []
-        self.exc = None
         try:
             stdout, stderr = communicate(shell_exec([self.tool_path, '--version']))
             self.log.debug("Molotov stdout/stderr: %s, %s", stdout, stderr)
-            self.out = (stdout, stderr)
             version_s = stdout.strip()
             version = LooseVersion(version_s)
             if version < LooseVersion("1.4"):
                 raise ToolError("You must install molotov>=1.4 to use this executor (version %s detected)" % version)
-        except (CalledProcessError, OSError, AttributeError) as exc:
-            self.exc = exc
+        except (CalledProcessError, OSError, AttributeError):
             return False
         return True
 
     def install(self):
-        raise ToolError("You must install molotov tool (version 1.4 or greater) to use it\n"
-                        "out: %s\n path: %s\nexc: %s" % (self.out, self.tool_path, self.exc))
+        raise ToolError("You must install molotov tool (version 1.4 or greater) to use it")
 
 
 class MolotovReportReader(ResultsReader):
