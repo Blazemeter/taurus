@@ -115,7 +115,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.shutdown()
         reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv"))
         lines = reader.get_lines(last_pass=True)
-        self.assertEquals(4, len(lines))
+        self.assertEquals(4, len(list(lines)))
 
     def test_fail_on_zero_results(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
