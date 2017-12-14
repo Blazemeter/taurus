@@ -142,7 +142,6 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 class Molotov(RequiredTool):
     def __init__(self, tool_path, parent_logger):
         super(Molotov, self).__init__("Molotov", tool_path)
-        self.tool_path = tool_path
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.exc = ''
         self.out = ''
