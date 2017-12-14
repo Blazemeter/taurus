@@ -144,11 +144,14 @@ class Molotov(RequiredTool):
         super(Molotov, self).__init__("Molotov", tool_path)
         self.tool_path = tool_path
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.exc = ''
+        self.out = ''
 
     def check_if_installed(self):
         self.log.debug('Checking Molotov: %s' % self.tool_path)
         try:
             stdout, stderr = communicate(shell_exec([self.tool_path, '--version']))
+            self.out = stdout, stderr
             self.log.debug("Molotov stdout/stderr: %s, %s", stdout, stderr)
             version_s = stdout.strip()
             version = LooseVersion(version_s)
@@ -159,7 +162,17 @@ class Molotov(RequiredTool):
         return True
 
     def install(self):
-        raise ToolError("You must install molotov tool (version 1.4 or greater) to use it")
+        import subprocess
+        py_out = subprocess.check_output(['where', 'python'], stderr=subprocess.STDOUT)
+        pip_out = subprocess.check_output(['pip', 'list'], stderr=subprocess.STDOUT)
+
+        raise ToolError(
+            "You must install molotov tool (version 1.4 or greater) to use it\n"
+            "tool_path: {tool_path}\n"
+            "exc: {exc}\nout: {out}\n"
+            "python: {python}\n"
+            "pip list: {pip_out}".format(
+                tool_path=self.tool_path, exc=self.exc, out=self.out, python=py_out, pip_out=pip_out))
 
 
 class MolotovReportReader(ResultsReader):
