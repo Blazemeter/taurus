@@ -158,7 +158,7 @@ class Molotov(RequiredTool):
         return True
 
     def install(self):
-        raise ToolError("You must install molotov tool (version 1.4 or greater) to use it\n")
+        raise ToolError("You must install molotov tool (version 1.4 or greater) to use it")
 
 
 class MolotovReportReader(ResultsReader):

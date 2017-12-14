@@ -1242,7 +1242,7 @@ class IncrementalCSVReader(object):
                 continue
 
             if PY2: # todo: fix csv parsing of unicode strings on PY2
-                line = line.encode('utf8')
+                line = line.encode('utf-8')
 
             self.buffer.write(line)
 

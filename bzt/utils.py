@@ -356,7 +356,7 @@ class FileReader(object):
         # for non-trivial openers filename must be empty (more complicate than just open())
         # it turns all regular file checks off, see is_ready()
         self.name = filename
-        self.cp = 'utf8'    # default code page is utf8
+        self.cp = 'utf-8'    # default code page is utf-8
         self.offset = 0
 
     def _readlines(self, hint=None):
