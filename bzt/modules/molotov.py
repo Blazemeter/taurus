@@ -143,53 +143,22 @@ class Molotov(RequiredTool):
     def __init__(self, tool_path, parent_logger):
         super(Molotov, self).__init__("Molotov", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.exc = ''
-        self.out = ''
 
     def check_if_installed(self):
         self.log.debug('Checking Molotov: %s' % self.tool_path)
         try:
             stdout, stderr = communicate(shell_exec([self.tool_path, '--version']))
-            self.out = stdout, stderr
             self.log.debug("Molotov stdout/stderr: %s, %s", stdout, stderr)
             version_s = stdout.strip()
             version = LooseVersion(version_s)
             if version < LooseVersion("1.4"):
                 raise ToolError("You must install molotov>=1.4 to use this executor (version %s detected)" % version)
-        except (CalledProcessError, OSError, AttributeError) as exc:
-            self.exc = exc
+        except (CalledProcessError, OSError, AttributeError):
             return False
         return True
 
     def install(self):
-        import subprocess
-        PYTHON = os.environ.get('PYTHON', '')
-        PATH = os.environ.get('PATH', '')
-        list_dir = os.listdir(PYTHON)
-
-        python = PYTHON + '/python'
-        try:
-            py_out = subprocess.check_output([python, '--version'], stderr=subprocess.STDOUT)
-        except BaseException as exc:
-            py_out = exc
-
-        try:
-            pip_list = subprocess.check_output([python, '-m', 'pip', 'list'], stderr=subprocess.STDOUT)
-        except BaseException as exc:
-            pip_list = exc
-
-        raise ToolError(
-            "You must install molotov tool (version 1.4 or greater) to use it\n"
-            "tool_path: {tool_path}\n"
-            "molotov --version: {exc}\n"
-            "out: {out}\n"
-            "$PYTHON: {PYTHON}\n"
-            "$PATH: {PATH}\n"
-            "list of python dir: {list_dir}\n"
-            "python: {python}\n"
-            "pip list: {pip_list}".format(
-                tool_path=self.tool_path, exc=self.exc, out=self.out,
-                python=py_out, pip_list=pip_list, PYTHON=PYTHON, list_dir=list_dir, PATH=PATH))
+        raise ToolError("You must install molotov tool (version 1.4 or greater) to use it\n")
 
 
 class MolotovReportReader(ResultsReader):

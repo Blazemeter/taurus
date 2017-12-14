@@ -33,7 +33,7 @@ before_test:
   - node --version
 
 test_script:
-  - "%PYTHON%\\python.exe -m nose tests/modules/test_molotov.py -v --exclude-dir=tests/resources \
+  - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
       --exclude-dir=tests/ci --with-coverage --cover-inclusive"
 
 after_test:
