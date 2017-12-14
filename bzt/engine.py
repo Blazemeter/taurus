@@ -627,7 +627,7 @@ class Configuration(BetterDict):
                 configs = []
                 with open(config_file) as fds:
                     if self.tab_replacement_spaces:
-                        contents = self._replace_tabs(readlines(fds), config_file)
+                        contents = self._replace_tabs(fds.readlines(), config_file)
                     else:
                         contents = fds.read()
 

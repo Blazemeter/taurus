@@ -340,17 +340,6 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
                      preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
 
 
-def readlines(_file, hint=None):
-    # get generator instead of list (in regular readlines())
-    length = 0
-    for line in _file:
-        yield line
-        if hint and hint > 0:
-            length += len(line)
-            if length >= hint:
-                return
-
-
 class FileReader(object):
     def __init__(self, filename="", file_opener=None, parent_logger=None):
         self.fds = None

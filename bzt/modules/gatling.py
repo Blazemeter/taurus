@@ -241,7 +241,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         mod_success = False
 
         with open(origin_launcher) as fds:
-            for line in readlines(fds):
+            for line in fds.readlines():
                 if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
                     mod_success = True
                     continue

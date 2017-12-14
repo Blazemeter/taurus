@@ -340,7 +340,7 @@ class SeleniumWidget(Pile, PrioritizedWidget):
         reader_summary = ''
         if self.runner_output is not None and os.path.exists(self.runner_output):
             with open(self.runner_output, "rt") as fds:
-                lines = readlines(fds)
+                lines = fds.readlines()
                 if lines:
                     line = lines[-1]
                     if not line.endswith("\n") and len(lines) > 1:
