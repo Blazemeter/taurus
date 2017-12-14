@@ -3,5 +3,6 @@
 .dockerignore
 Dockerfile
 tests
+dist
 site
 **/*.pyc
