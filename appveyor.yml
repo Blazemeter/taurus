@@ -21,7 +21,7 @@ install:
   - "%PYTHON%\\python.exe -m pip install pip --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
   - "%PYTHON%\\python.exe -m pip install -r tests/ci/requirements.txt"
-  - set PATH=C:\Ruby22\bin;%PATH%
+  - set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
   - gem install rspec
 
 build: off

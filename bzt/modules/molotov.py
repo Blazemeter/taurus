@@ -142,7 +142,6 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 class Molotov(RequiredTool):
     def __init__(self, tool_path, parent_logger):
         super(Molotov, self).__init__("Molotov", tool_path)
-        self.tool_path = tool_path
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
@@ -159,7 +158,7 @@ class Molotov(RequiredTool):
         return True
 
     def install(self):
-        raise ToolError("You must install molotov tool (version 1.4 or greater) to use it")
+        raise ToolError("You must install molotov tool (version 1.4 or greater) to use it\n")
 
 
 class MolotovReportReader(ResultsReader):

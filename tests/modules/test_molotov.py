@@ -7,7 +7,7 @@ from os.path import exists, join
 from bzt import ToolError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.molotov import MolotovExecutor, MolotovReportReader
-from bzt.utils import EXE_SUFFIX
+from bzt.utils import EXE_SUFFIX, is_windows
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
@@ -82,6 +82,7 @@ class TestMolotov(BZTestCase):
         self.assertEqual(resources, [LOADTEST_PY])
 
     @unittest.skipUnless(sys.version_info >= (3, 5), "enabled only on 3.5+")
+    @unittest.skipIf(is_windows(), "disabled on windows")
     def test_full(self):
         self.obj.execution.merge({
             "concurrency": 3,

@@ -43,7 +43,7 @@ from bzt.six import build_opener, install_opener, urlopen, numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
-from bzt.utils import str_representer, readlines
+from bzt.utils import str_representer
 
 SETTINGS = "settings"
 
@@ -627,7 +627,7 @@ class Configuration(BetterDict):
                 configs = []
                 with open(config_file) as fds:
                     if self.tab_replacement_spaces:
-                        contents = self._replace_tabs(readlines(fds), config_file)
+                        contents = self._replace_tabs(fds.readlines(), config_file)
                     else:
                         contents = fds.read()
 
