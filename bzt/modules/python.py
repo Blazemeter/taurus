@@ -235,7 +235,6 @@ import apiritif
                 test_method.append(self.gen_new_line(indent=0))
 
         test_class.append(test_method)
-        return {}
 
     def _add_url_request(self, default_address, req, test_method):
         parsed_url = parse.urlparse(req.url)
@@ -825,7 +824,6 @@ log.setLevel(logging.DEBUG)
 
     def build_source_code(self):
         self.tree = self.build_tree()
-        return {}
 
     def save(self, filename):
         with open(filename, 'wt') as fds:
