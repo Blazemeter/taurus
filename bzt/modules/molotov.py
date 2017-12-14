@@ -163,16 +163,27 @@ class Molotov(RequiredTool):
 
     def install(self):
         import subprocess
-        py_out = subprocess.check_output(['where', 'python3'], stderr=subprocess.STDOUT)
-        pip_out = subprocess.check_output(['python3', '-m', 'pip', 'list'], stderr=subprocess.STDOUT)
+        PYTHON = os.environ.get('PYTHON', '')
+
+        try:
+            py_out = subprocess.check_output(['where', 'python3'], stderr=subprocess.STDOUT)
+        except BaseException as exc:
+            py_out = exc
+
+        try:
+            pip_out = subprocess.check_output(['python3', '-m', 'pip', 'list'], stderr=subprocess.STDOUT)
+        except BaseException as exc:
+            pip_out = exc
 
         raise ToolError(
             "You must install molotov tool (version 1.4 or greater) to use it\n"
             "tool_path: {tool_path}\n"
             "exc: {exc}\nout: {out}\n"
+            "$PYTHON: PYTHON"
             "python: {python}\n"
             "pip list: {pip_out}".format(
-                tool_path=self.tool_path, exc=self.exc, out=self.out, python=py_out, pip_out=pip_out))
+                tool_path=self.tool_path, exc=self.exc, out=self.out,
+                python=py_out, pip_out=pip_out, PYTHON=PYTHON))
 
 
 class MolotovReportReader(ResultsReader):
