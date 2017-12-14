@@ -136,40 +136,6 @@ class TestSeleniumStuff(SeleniumTestCase):
         resources = self.obj.resource_files()
         self.assertEqual(0, len(resources))
 
-    def test_labels_translation(self):
-        self.configure({
-            "scenarios": {
-                "req_sel": {
-                    "requests": [
-                        "http://blazedemo.com",
-                        {
-                            'url': 'http://blazemeter.com',
-                            'label': 'Main Page'
-                        }]}}})
-        self.obj.execution.merge({
-            "scenario": "req_sel"})
-        self.obj.prepare()
-        name1 = 'test_00000_http_blazedemo_com'
-        name2 = 'test_00001_Main_Page'
-        name3 = 'test_00002_just_for_lulz'
-        reader = self.obj.runner.reader
-        reader.report_reader.json_reader = LDJSONReaderEmul()
-        reader.report_reader.json_reader.data.extend([
-            {
-                'test_case': name1, 'start_time': 1472049887, 'duration': 1.0, 'status': 'PASSED',
-                'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
-            }, {
-                'test_case': name2, 'start_time': 1472049888, 'duration': 1.0, 'status': 'PASSED',
-                'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
-            }, {
-                'test_case': name3, 'start_time': 1472049889, 'duration': 1.0, 'status': 'PASSED',
-                'test_suite': 'Tests', 'error_msg': None, 'error_trace': None, 'extras': None,
-            }])
-        res = list(reader._read())
-        self.assertIn('http_blazedemo_com', res[0])
-        self.assertIn('Main_Page', res[1])
-        self.assertIn('just_for_lulz', res[2])
-
     def test_dont_copy_local_script_to_artifacts(self):
         "ensures that .java file is not copied into artifacts-dir"
         filename = "BlazeDemo.java"

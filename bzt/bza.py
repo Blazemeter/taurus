@@ -699,7 +699,7 @@ class Session(BZAObject):
         else:
             body.add_file_as_string('file', filename, contents)
 
-        url = self.address + "/api/v4/image/%s/files?signature=%s"
+        url = self.data_address + "/api/v4/image/%s/files?signature=%s"
         url %= self['id'], self.data_signature
         hdr = {"Content-Type": str(body.get_content_type())}
         response = self._request(url, body.form_as_bytes(), headers=hdr)

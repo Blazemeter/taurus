@@ -33,7 +33,7 @@ class TestBlazeMeterUploader(BZTestCase):
                 "master": {'id': 1},
                 "signature": "sign"
             }},
-            'https://a.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
+            'https://data.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
             'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1' +
             '&pq=0&target=labels_bulk&update=1': {},
             'https://a.blazemeter.com/api/v4/sessions/1/stop': {"result": True},
@@ -147,7 +147,7 @@ class TestBlazeMeterUploader(BZTestCase):
                 {"result": {'session': {"statusCode": 140, 'status': 'ENDED'}}},
                 {},
             ],
-            'https://a.blazemeter.com/api/v4/image/1/files?signature=sign': [
+            'https://data.blazemeter.com/api/v4/image/1/files?signature=sign': [
                 IOError("monitoring push expected fail"),
                 {"result": True},
                 {"result": True},
@@ -220,7 +220,7 @@ class TestBlazeMeterUploader(BZTestCase):
         mock = BZMock(obj._user)
         mock.mock_post.update({
             'https://data.blazemeter.com/submit.php?session_id=direct&signature=sign&test_id=None&user_id=None&pq=0&target=labels_bulk&update=1': {},
-            'https://a.blazemeter.com/api/v4/image/direct/files?signature=sign': {"result": True},
+            'https://data.blazemeter.com/api/v4/image/direct/files?signature=sign': {"result": True},
             'https://a.blazemeter.com/api/v4/sessions/direct/stop': {"result": True},
             'https://data.blazemeter.com/submit.php?session_id=direct&signature=sign&test_id=None&user_id=None&pq=0&target=engine_health&update=1': {'result': {'session': {}}}
         })
@@ -256,7 +256,7 @@ class TestBlazeMeterUploader(BZTestCase):
                 "master": {"id": 1},
             }},
             'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {},
-            'https://a.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
+            'https://data.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
             'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1': {'result': {'session': {}}},
         })
         obj.prepare()
@@ -310,7 +310,7 @@ class TestBlazeMeterUploader(BZTestCase):
             'https://a.blazemeter.com/api/v4/masters/master1/public-token': {'result': {'publicToken': 'publicToken'}},
             'https://data.blazemeter.com/submit.php?session_id=sess1&signature=&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {
                 "result": {'session': {}}},
-            'https://a.blazemeter.com/api/v4/image/sess1/files?signature=': {'result': True},
+            'https://data.blazemeter.com/api/v4/image/sess1/files?signature=': {'result': True},
         })
 
         obj = BlazeMeterUploader()
@@ -412,13 +412,13 @@ class TestBlazeMeterClientUnicode(BZTestCase):
         """
         session = Session(data={'id': 1})
         mock = BZMock(session)
-        mock.mock_post['https://a.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
+        mock.mock_post['https://data.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
         session.upload_file(RESOURCES_DIR + "jmeter/unicode_file")
 
     def test_binary_unicode_error(self):
         session = Session(data={'id': 1})
         mock = BZMock(session)
-        mock.mock_post['https://a.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
+        mock.mock_post['https://data.blazemeter.com/api/v4/image/1/files?signature=None'] = {"result": 1}
         with open(RESOURCES_DIR + "jmeter/jmeter-dist-2.13.zip", 'rb') as fds:
             zip_content = fds.read()
         session.upload_file("jtls_and_more.zip", zip_content)
