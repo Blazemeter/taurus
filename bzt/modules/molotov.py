@@ -156,14 +156,15 @@ class Molotov(RequiredTool):
             version = LooseVersion(version_s)
             if version < LooseVersion("1.4"):
                 raise ToolError("You must install molotov>=1.4 to use this executor (version %s detected)" % version)
-        except (CalledProcessError, OSError, AttributeError):
+        except (CalledProcessError, OSError, AttributeError) as exc:
+            self.exc = exc
             return False
         return True
 
     def install(self):
         import subprocess
-        py_out = subprocess.check_output(['where', 'python'], stderr=subprocess.STDOUT)
-        pip_out = subprocess.check_output(['pip', 'list'], stderr=subprocess.STDOUT)
+        py_out = subprocess.check_output(['where', 'python3'], stderr=subprocess.STDOUT)
+        pip_out = subprocess.check_output(['python3', '-m', 'pip', 'list'], stderr=subprocess.STDOUT)
 
         raise ToolError(
             "You must install molotov tool (version 1.4 or greater) to use it\n"
