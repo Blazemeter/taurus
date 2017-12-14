@@ -164,6 +164,8 @@ class Molotov(RequiredTool):
     def install(self):
         import subprocess
         PYTHON = os.environ.get('PYTHON', '')
+        PATH = os.environ.get('PATH', '')
+        list_dir = os.listdir(PYTHON)
 
         python = PYTHON + '/python'
         try:
@@ -182,10 +184,12 @@ class Molotov(RequiredTool):
             "molotov --version: {exc}\n"
             "out: {out}\n"
             "$PYTHON: {PYTHON}\n"
+            "$PATH: {PATH}\n"
+            "list of python dir: {list_dir}\n"
             "python: {python}\n"
             "pip list: {pip_list}".format(
                 tool_path=self.tool_path, exc=self.exc, out=self.out,
-                python=py_out, pip_list=pip_list, PYTHON=PYTHON))
+                python=py_out, pip_list=pip_list, PYTHON=PYTHON, list_dir=list_dir, PATH=PATH))
 
 
 class MolotovReportReader(ResultsReader):
