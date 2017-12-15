@@ -5,14 +5,9 @@ import sys
 import logging
 
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul
 from bzt.modules.aggregator import DataPoint
-
-
-def close_file(obj):
-    if obj and obj.file and obj.file.fds:
-        obj.file.fds.close()
 
 
 class TestFuncJTLReader(BZTestCase):
@@ -25,7 +20,7 @@ class TestFuncJTLReader(BZTestCase):
         self.obj = FuncJTLReader(jtl_file, engine, logging.getLogger(''))
 
     def tearDown(self):
-        close_file(self.obj)
+        close_reader_file(self.obj)
         super(TestFuncJTLReader, self).tearDown()
 
     def test_functional_reader_pass(self):
@@ -129,7 +124,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.obj = JTLErrorsReader(jtl_file, logging.getLogger(''))
 
     def tearDown(self):
-        close_file(self.obj)
+        close_reader_file(self.obj)
         super(TestJTLErrorsReader, self).tearDown()
 
     def test_nonstandard_errors_format(self):
@@ -155,8 +150,8 @@ class TestJTLReader(BZTestCase):
 
     def tearDown(self):
         if self.obj:
-            close_file(self.obj.csvreader)
-            close_file(self.obj.errors_reader)
+            close_reader_file(self.obj.csvreader)
+            close_reader_file(self.obj.errors_reader)
         super(TestJTLReader, self).tearDown()
 
     def test_tranctl_jtl(self):

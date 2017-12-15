@@ -1,10 +1,15 @@
+# coding=utf-8
 """ unit test """
+import os
 import sys
 import logging
+import tempfile
+import locale
 
 from psutil import Popen
 from os.path import join
 
+from bzt.six import PY2
 from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, FileReader
 from tests import BZTestCase, RESOURCES_DIR
 
@@ -55,14 +60,47 @@ class TestLogStreams(BZTestCase):
 
 
 class TestFileReader(BZTestCase):
+    def setUp(self):
+        super(TestFileReader, self).setUp()
+        self.obj = None
+
+    def configure(self, file_name):
+        self.obj = FileReader(file_name)
+
+    def tearDown(self):
+        if self.obj and self.obj.fds:
+            self.obj.fds.close()
+        super(TestFileReader, self).tearDown()
+
     def test_file_len(self):
-        obj = FileReader(join(RESOURCES_DIR, 'jmeter', 'jtl', 'file.notfound'))
-        self.sniff_log(obj.log)
-        list(obj.get_lines(size=1))
+        self.configure(join(RESOURCES_DIR, 'jmeter', 'jtl', 'file.notfound'))
+        self.sniff_log(self.obj.log)
+        list(self.obj.get_lines(size=1))
         self.assertIn('File not appeared yet', self.log_recorder.debug_buff.getvalue())
-        obj.name = join(RESOURCES_DIR, 'jmeter', 'jtl', 'unicode.jtl')
-        lines = list(obj.get_lines(size=1))
+        self.obj.name = join(RESOURCES_DIR, 'jmeter', 'jtl', 'unicode.jtl')
+        lines = list(self.obj.get_lines(size=1))
         self.assertEqual(1, len(lines))
-        lines = list(obj.get_lines(last_pass=True))
+        lines = list(self.obj.get_lines(last_pass=True))
         self.assertEqual(13, len(lines))
         self.assertTrue(all(l.endswith('\n') for l in lines))
+
+    def test_decode(self):
+        string = "Тест.Эхо"
+        fd, gen_file_name = tempfile.mkstemp()
+        os.close(fd)
+        with open(gen_file_name, 'wb') as fd:
+            if PY2:
+                fd.write(bytearray(string + '\n'))
+            else:
+                fd.write((string + '\n').encode(locale.getpreferredencoding()))
+
+        try:
+            self.configure(gen_file_name)
+            lines = list(self.obj.get_lines(True))
+            self.assertEqual(1, len(lines))
+            self.assertEqual(string, lines[0].rstrip())
+        finally:
+            if self.obj.fds:
+                self.obj.fds.close()
+
+            os.remove(gen_file_name)

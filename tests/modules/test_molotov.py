@@ -8,7 +8,7 @@ from bzt import ToolError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.molotov import MolotovExecutor, MolotovReportReader
 from bzt.utils import EXE_SUFFIX, is_windows
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul
 
 TOOL_NAME = 'molotov-mock' + EXE_SUFFIX
@@ -27,9 +27,8 @@ class TestMolotov(BZTestCase):
             self.obj.stdout_file.close()
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
-        if (self.obj.reader and self.obj.reader.ldjson_reader and self.obj.reader.ldjson_reader.file and
-                self.obj.reader.ldjson_reader.file.fds):
-            self.obj.reader.ldjson_reader.file.fds.close()
+        if self.obj.reader:
+            close_reader_file(self.obj.reader.ldjson_reader)
         super(TestMolotov, self).tearDown()
 
     def test_mocked(self):
