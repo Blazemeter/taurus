@@ -341,6 +341,8 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 
 
 class FileReader(object):
+    SYS_ENCODING = locale.getpreferredencoding()
+
     def __init__(self, filename="", file_opener=None, parent_logger=None):
         self.fds = None
         if parent_logger:
@@ -393,7 +395,7 @@ class FileReader(object):
             return line.decode(self.cp)
         except UnicodeDecodeError:
             self.log.warning("Content encoding of '%s' doesn't match %s", self.name, self.cp)
-            self.cp = locale.getpreferredencoding()
+            self.cp = SYS_ENCODING
             self.log.warning("Proposed code page: %s", self.cp)
             return line.decode(self.cp)
 

@@ -4,14 +4,14 @@ import os
 import sys
 import logging
 import tempfile
-import locale
 
 from psutil import Popen
 from os.path import join
 
 from bzt.six import PY2
-from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, FileReader
+from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows
 from tests import BZTestCase, RESOURCES_DIR
+from tests.mocks import MockFileReader
 
 
 class TestJavaVM(BZTestCase):
@@ -62,10 +62,10 @@ class TestLogStreams(BZTestCase):
 class TestFileReader(BZTestCase):
     def setUp(self):
         super(TestFileReader, self).setUp()
-        self.obj = None
+        self.obj = MockFileReader()
 
     def configure(self, file_name):
-        self.obj = FileReader(file_name)
+        self.obj.name = file_name
 
     def tearDown(self):
         if self.obj and self.obj.fds:
@@ -92,7 +92,7 @@ class TestFileReader(BZTestCase):
             if PY2:
                 fd.write(bytearray(old_string + '\n'))
             else:
-                fd.write((old_string + '\n').encode(locale.getpreferredencoding()))
+                fd.write((old_string + '\n').encode(self.obj.SYS_ENCODING))
 
         try:
             self.configure(gen_file_name)

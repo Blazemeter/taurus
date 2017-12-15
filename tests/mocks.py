@@ -13,7 +13,7 @@ from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.six import b
-from bzt.utils import load_class, to_json, get_full_path, get_uniq_name
+from bzt.utils import load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows
 from . import random_sample, TEST_DIR
 
 try:
@@ -21,6 +21,10 @@ try:
 except ImportError:
     # noinspection PyUnresolvedReferences
     from builtins import KeyboardInterrupt
+
+
+class MockFileReader(FileReader):
+    SYS_ENCODING = 'cp1251' if is_windows() else 'utf-8'
 
 
 class EngineEmul(Engine):
