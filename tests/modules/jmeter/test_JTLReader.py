@@ -114,6 +114,11 @@ class TestFuncJTLReader(BZTestCase):
         samples = list(self.obj.read(last_pass=True))
         self.assertNotEqual(len(samples), 0)
 
+    def test_unicode_errors(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/unicode-reqs.jtl")
+        samples = list(self.obj.read(last_pass=True))
+        self.assertTrue(all(sample.test_case == 'чсмтчомтчжом' for sample in samples))
+
 
 class TestJTLErrorsReader(BZTestCase):
     def setUp(self):

@@ -85,20 +85,23 @@ class TestFileReader(BZTestCase):
         self.assertTrue(all(l.endswith('\n') for l in lines))
 
     def test_decode(self):
-        string = "Тест.Эхо"
+        old_string = "Тест.Эхо"
         fd, gen_file_name = tempfile.mkstemp()
         os.close(fd)
         with open(gen_file_name, 'wb') as fd:
             if PY2:
-                fd.write(bytearray(string + '\n'))
+                fd.write(bytearray(old_string + '\n'))
             else:
-                fd.write((string + '\n').encode(locale.getpreferredencoding()))
+                fd.write((old_string + '\n').encode(locale.getpreferredencoding()))
 
         try:
             self.configure(gen_file_name)
             lines = list(self.obj.get_lines(True))
             self.assertEqual(1, len(lines))
-            self.assertEqual(string, lines[0].rstrip())
+            new_string = lines[0].rstrip()
+            if PY2:
+                new_string = new_string.encode('utf-8')
+            self.assertEqual(old_string, new_string)
         finally:
             if self.obj.fds:
                 self.obj.fds.close()
