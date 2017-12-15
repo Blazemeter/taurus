@@ -395,7 +395,7 @@ class FileReader(object):
             return line.decode(self.cp)
         except UnicodeDecodeError:
             self.log.warning("Content encoding of '%s' doesn't match %s", self.name, self.cp)
-            self.cp = SYS_ENCODING
+            self.cp = self.SYS_ENCODING
             self.log.warning("Proposed code page: %s", self.cp)
             return line.decode(self.cp)
 

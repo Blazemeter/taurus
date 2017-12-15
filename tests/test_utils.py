@@ -37,17 +37,20 @@ class TestLogStreams(BZTestCase):
             sys.stdout.write('test3')
 
         with log_std_streams(logger=self.captured_logger, stdout_level=logging.DEBUG):
-            process = Popen(['echo', '"test5"'])
+            cmd = ['echo', '"test5"']
+            if is_windows():
+                cmd = ['cmd', '/c'] + cmd
+            process = Popen(cmd)
             process.wait()
 
         missed_file = get_uniq_name('.', 'test6', '')
 
         with log_std_streams(logger=self.captured_logger, stderr_level=logging.WARNING):
             if is_windows():
-                cmd = 'dir'
+                cmd = ['cmd', '/c', 'dir']
             else:
-                cmd = 'ls'
-            process = Popen([cmd, missed_file])
+                cmd = ['ls']
+            process = Popen(cmd + [missed_file])
             process.wait()
 
         debug_buf = self.log_recorder.debug_buff.getvalue()
