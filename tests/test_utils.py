@@ -91,16 +91,20 @@ class TestFileReader(BZTestCase):
         old_string = "Тест.Эхо"
         fd, gen_file_name = tempfile.mkstemp()
         os.close(fd)
-        with open(gen_file_name, 'wb') as fd:
-            if PY2:
-                fd.write(bytearray(old_string + '\n'))
-            else:
-                fd.write((old_string + '\n').encode(self.obj.SYS_ENCODING))
+
+        mod_str = old_string + '\n'
+        if PY2:
+            mod_str = bytearray(mod_str).decode('utf-8')    # convert to utf-8 on py2 for writing...
+
+        with open(gen_file_name, 'wb') as fd:                   # use target system encoding for writing
+            fd.write(mod_str.encode(self.obj.SYS_ENCODING))     # important on win where it's not 'utf-8'
 
         try:
             self.configure(gen_file_name)
+            self.assertEqual('utf-8', self.obj.cp)
             lines = list(self.obj.get_lines(True))
-            self.assertEqual(1, len(lines))
+            self.assertEqual(self.obj.SYS_ENCODING, self.obj.cp)    # on win self.obj.cp must be changed during of
+            self.assertEqual(1, len(lines))                         # reading (see MockFileReader)
             new_string = lines[0].rstrip()
             if PY2:
                 new_string = new_string.encode('utf-8')
