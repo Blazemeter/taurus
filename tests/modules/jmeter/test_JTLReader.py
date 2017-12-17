@@ -135,11 +135,12 @@ class TestJTLErrorsReader(BZTestCase):
         close_reader_file(self.obj)
         super(TestJTLErrorsReader, self).tearDown()
 
-    def test_nonstandard_errors_format(self):
-        self.configure(RESOURCES_DIR + "/jmeter/jtl/nonstandard-errors.jtl")
+    def test_nonstandard_errors_unicode(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/nonstandard-unicode.jtl")
         self.obj.read_file(final_pass=True)
         values = self.obj.get_data(sys.maxsize)
-        self.assertNotEquals(values[''][0]['msg'].find('Cannot find function error in object FirefoxDriver'), -1)
+        self.assertNotEquals(values[''][0]['msg'].find(u'Cannot find function error in object Файфокс'), -1)
+        self.assertNotEquals(values[''][1]['msg'].find('Cannot find function error in object FirefoxDriver'), -1)
 
     def test_standard_errors_format(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/standard-errors.jtl")
