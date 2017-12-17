@@ -419,8 +419,7 @@ class FileReader(object):
 
         return self.decode(line)
 
-    def get_bytes(self, size=-1, last_pass=False):
-        """ doesn't make any encoding """
+    def get_bytes(self, size=-1, last_pass=False, decode=True):
         if self.is_ready():
             if last_pass:
                 size = -1
@@ -428,7 +427,10 @@ class FileReader(object):
             self.fds.seek(self.offset)
             _bytes = self.fds.read(size)
             self.offset += len(_bytes)
-            return _bytes
+            if decode:
+                return self.decode(_bytes)
+            else:
+                return _bytes
 
     def __del__(self):
         if self.fds:

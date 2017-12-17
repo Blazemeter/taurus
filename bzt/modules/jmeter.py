@@ -1006,7 +1006,7 @@ class FuncJTLReader(FunctionalResultsReader):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',), recover=True)
         self.engine = engine
-        self.file = FileReader(filename=filename, file_opener=lambda f: open(f, 'rb'), parent_logger=self.log)
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.failed_processing = False
         self.read_records = 0
 
@@ -1279,7 +1279,7 @@ class JTLErrorsReader(object):
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
-        self.file = FileReader(filename=filename, file_opener=lambda f: open(f, 'rb'), parent_logger=self.log)
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.buffer = BetterDict()
         self.failed_processing = False
 

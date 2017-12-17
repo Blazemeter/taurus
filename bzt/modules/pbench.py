@@ -493,8 +493,7 @@ class Scheduler(object):
         self.need_start_loop = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
-        self.payload_file = FileReader(filename=payload_filename, file_opener=lambda f: open(f, 'rb'),
-                                       parent_logger=self.log)
+        self.payload_file = FileReader(filename=payload_filename, parent_logger=self.log)
         if not load.duration and not load.iterations:
             self.iteration_limit = 1
         else:
