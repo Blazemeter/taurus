@@ -390,7 +390,7 @@ class FileReader(object):
             self.name = self.fds.name
             return True
 
-    def decode(self, line):
+    def _decode(self, line):
         try:
             return line.decode(self.cp)
         except UnicodeDecodeError:
@@ -407,7 +407,7 @@ class FileReader(object):
             self.fds.seek(self.offset)
             for line in self._readlines(hint=size):
                 self.offset += len(line)
-                yield self.decode(line)
+                yield self._decode(line)
 
     def get_line(self):
         line = ""
@@ -417,7 +417,7 @@ class FileReader(object):
             line = self.fds.readline()
             self.offset += len(line)
 
-        return self.decode(line)
+        return self._decode(line)
 
     def get_bytes(self, size=-1, last_pass=False, decode=True):
         if self.is_ready():
@@ -428,7 +428,7 @@ class FileReader(object):
             _bytes = self.fds.read(size)
             self.offset += len(_bytes)
             if decode:
-                return self.decode(_bytes)
+                return self._decode(_bytes)
             else:
                 return _bytes
 
