@@ -541,7 +541,7 @@ class Scheduler(object):
 
             payload_len, marker = parts
             payload_len = int(payload_len)
-            payload = self.payload_file.get_bytes(payload_len).decode()
+            payload = self.payload_file.get_bytes(payload_len)
             yield payload_len, payload_offset, payload, marker.strip(), len(line), rec_type
             rec_type = self.REC_TYPE_SCHEDULE
 
