@@ -233,8 +233,8 @@ class LocalMonitor(object):
 
         net = psutil.net_io_counters()
         if net is not None:
-            tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
-            rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
+            tx_bytes = int((net.bytes_sent - self.__net_counters.bytes_sent) / interval)
+            rx_bytes = int((net.bytes_recv - self.__net_counters.bytes_recv) / interval)
             self.__net_counters = net
         else:
             rx_bytes = 0.0
@@ -242,8 +242,8 @@ class LocalMonitor(object):
 
         disk = self.__get_disk_counters()
         if disk is not None:
-            dru = (disk.read_bytes - self.__disk_counters.read_bytes) / interval
-            dwu = (disk.write_bytes - self.__disk_counters.write_bytes) / interval
+            dru = int((disk.read_bytes - self.__disk_counters.read_bytes) / interval)
+            dwu = int((disk.write_bytes - self.__disk_counters.write_bytes) / interval)
             self.__disk_counters = disk
         else:
             dru = 0.0
@@ -453,7 +453,7 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
             if item['source'] not in self.host_metrics:
                 self.host_metrics[item['source']] = OrderedDict()
 
-            for key in sorted(item.keys()):
+            for key in item:
                 if key not in ("source", "ts"):
                     color = ''
                     if key in self.host_metrics[item['source']]:
@@ -468,11 +468,18 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
         for host, metrics in iteritems(self.host_metrics):
             text.append(('stat-hdr', " %s \n" % host))
 
-            if len(metrics):
-                maxwidth = max([len(key) for key in metrics.keys()])
+            if metrics:
+                maxwidth = max([len(key) for key in metrics])
 
                 for metric, value in iteritems(metrics):
-                    rendered = ('%.3f' % value[0]) if value[0] is not None else 'N/A'
+                    if value[0] is None:
+                        rendered = 'N/A'
+                    elif isinstance(value[0], float):
+                        rendered = "{:.3f}".format(value[0])
+                    elif isinstance(value[0], int):
+                        rendered = "{:,}".format(value[0])
+                    else:
+                        rendered = value[0]
                     values = (' ' * (maxwidth - len(metric)), metric, rendered)
                     text.append((value[1], "  %s%s: %s\n" % values))
 
