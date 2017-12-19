@@ -37,6 +37,10 @@ import tempfile
 import time
 import webbrowser
 import zipfile
+import locale
+import os
+import psutil
+import shutil
 from abc import abstractmethod
 from collections import defaultdict, Counter, namedtuple
 from contextlib import contextmanager
@@ -44,10 +48,6 @@ from math import log
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
-
-import os
-import psutil
-import shutil
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
@@ -340,28 +340,36 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
                      preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
 
 
-def readlines(_file, hint=None):
-    # get generator instead of list (in regular readlines())
-    length = 0
-    for line in _file:
-        yield line
-        if hint and hint > 0:
-            length += len(line)
-            if length >= hint:
-                return
-
-
 class FileReader(object):
-    def __init__(self, filename='', file_opener=open, parent_logger=logging.getLogger('')):
+    SYS_ENCODING = locale.getpreferredencoding()
+
+    def __init__(self, filename="", file_opener=None, parent_logger=None):
         self.fds = None
+        if parent_logger:
+            self.log = parent_logger.getChild(self.__class__.__name__)
+        else:
+            self.log = logging.getLogger(self.__class__.__name__)
+
+        if file_opener:
+            self.file_opener = file_opener  # external method for opening of file
+        else:
+            self.file_opener = lambda f: open(f, mode='rb')     # default mode is binary
 
         # for non-trivial openers filename must be empty (more complicate than just open())
-        #  it turns all regular file checks off, see is_ready()
+        # it turns all regular file checks off, see is_ready()
         self.name = filename
-
-        self.file_opener = file_opener  # external method for opening of file
+        self.cp = 'utf-8'    # default code page is utf-8
         self.offset = 0
-        self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def _readlines(self, hint=None):
+        # get generator instead of list (in regular readlines())
+        length = 0
+        for line in self.fds:
+            yield line
+            if hint and hint > 0:
+                length += len(line)
+                if length >= hint:
+                    return
 
     def is_ready(self):
         if not self.fds:
@@ -382,27 +390,36 @@ class FileReader(object):
             self.name = self.fds.name
             return True
 
+    def _decode(self, line):
+        try:
+            return line.decode(self.cp)
+        except UnicodeDecodeError:
+            self.log.warning("Content encoding of '%s' doesn't match %s", self.name, self.cp)
+            self.cp = self.SYS_ENCODING
+            self.log.warning("Proposed code page: %s", self.cp)
+            return line.decode(self.cp)
+
     def get_lines(self, size=-1, last_pass=False):
         if self.is_ready():
             if last_pass:
                 size = -1
             self.log.debug("Reading: %s", self.name)
             self.fds.seek(self.offset)
-            for line in readlines(self.fds, hint=size):
+            for line in self._readlines(hint=size):
                 self.offset += len(line)
-                yield line
+                yield self._decode(line)
 
     def get_line(self):
-        line = ''
+        line = ""
         if self.is_ready():
             self.log.debug("Reading: %s", self.name)
             self.fds.seek(self.offset)
             line = self.fds.readline()
             self.offset += len(line)
 
-        return line
+        return self._decode(line)
 
-    def get_bytes(self, size=-1, last_pass=False):
+    def get_bytes(self, size=-1, last_pass=False, decode=True):
         if self.is_ready():
             if last_pass:
                 size = -1
@@ -410,7 +427,10 @@ class FileReader(object):
             self.fds.seek(self.offset)
             _bytes = self.fds.read(size)
             self.offset += len(_bytes)
-            return _bytes
+            if decode:
+                return self._decode(_bytes)
+            else:
+                return _bytes
 
     def __del__(self):
         if self.fds:
@@ -1226,7 +1246,7 @@ class LDJSONReader(object):
     def __init__(self, filename, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.file = FileReader(filename=filename,
-                               file_opener=lambda f: open(f, 'rt', buffering=1),
+                               file_opener=lambda f: open(f, 'rb', buffering=1),
                                parent_logger=self.log)
         self.partial_buffer = ""
 

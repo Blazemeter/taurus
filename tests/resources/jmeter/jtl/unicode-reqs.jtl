@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<sample t="492" it="0" lt="48" ct="5" ts="1513327393895" s="true" lb="чсмтчомтчжом" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="" by="9" sby="0" sc="1" ec="0" ng="1" na="1" hn="artem-fedorov-pc">
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">responsee</responseData>
+  <responseFile class="java.lang.String"></responseFile>
+  <samplerData class="java.lang.String"></samplerData>
+</sample>
+
+<sample t="205" it="0" lt="11" ct="4" ts="1513327432077" s="true" lb="чсмтчомтчжом" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="" by="27" sby="0" sc="1" ec="0" ng="1" na="1" hn="artem-fedorov-pc">
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">responsee??????????????????</responseData>
+  <responseFile class="java.lang.String"></responseFile>
+  <samplerData class="java.lang.String"></samplerData>
+</sample>
+
+</testResults>

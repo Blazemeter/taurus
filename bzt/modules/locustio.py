@@ -222,7 +222,7 @@ class SlavesReader(ResultsProvider):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.join_buffer = {}
         self.num_slaves = num_slaves
-        self.file = FileReader(filename=filename, file_opener=lambda f: open(f, 'rt'), parent_logger=self.log)
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.read_buffer = ""
 
     def _calculate_datapoints(self, final_pass=False):

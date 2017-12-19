@@ -11,8 +11,8 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.python import ApiritifNoseExecutor
-from bzt.six import StringIO
-from bzt.utils import LDJSONReader
+from bzt.six import BytesIO
+from bzt.utils import LDJSONReader, FileReader
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
@@ -113,9 +113,9 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        with open(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")) as fds:
-            lines = fds.readlines()
-            self.assertEquals(4, len(lines))
+        reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv"))
+        lines = reader.get_lines(last_pass=True)
+        self.assertEquals(4, len(list(lines)))
 
     def test_fail_on_zero_results(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
@@ -237,10 +237,10 @@ class TestReportReader(BZTestCase):
         self.assertEqual(items[3][6], 'UNKNOWN')
 
     def test_reader_buffering(self):
-        first_part = '{"a": 1, "b": 2}\n{"a": 2,'
-        second_part = '"b": 3}\n{"a": 3, "b": 4}\n'
+        first_part = b'{"a": 1, "b": 2}\n{"a": 2,'
+        second_part = b'"b": 3}\n{"a": 3, "b": 4}\n'
         reader = LDJSONReader("yip", logging.getLogger())
-        buffer = StringIO(first_part)
+        buffer = BytesIO(first_part)
         reader.file.fds = buffer
         reader.file.fds.name = "yip"
 
