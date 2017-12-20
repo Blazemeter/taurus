@@ -201,7 +201,7 @@ class TsungStatsReader(ResultsReader):
             return
 
         self.log.debug('Opening file: %s', filename)
-        return open(filename)
+        return open(filename, mode='rb')
 
     def _read_concurrency(self, last_pass):
         lines = self.log_file.get_lines(size=1024 * 1024, last_pass=last_pass)

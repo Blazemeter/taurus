@@ -493,8 +493,7 @@ class Scheduler(object):
         self.need_start_loop = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
-        self.payload_file = FileReader(filename=payload_filename, file_opener=lambda f: open(f, 'rb'),
-                                       parent_logger=self.log)
+        self.payload_file = FileReader(filename=payload_filename, parent_logger=self.log)
         if not load.duration and not load.iterations:
             self.iteration_limit = 1
         else:
@@ -536,14 +535,13 @@ class Scheduler(object):
             if not line.strip():  # we're fine to skip empty lines between records
                 continue
 
-            parts = line.split(b(' '))
+            parts = line.split(' ')
             if len(parts) < 2:
                 raise TaurusInternalException("Wrong format for meta-info line: %s" % line)
 
             payload_len, marker = parts
-            marker = marker.decode()
             payload_len = int(payload_len)
-            payload = self.payload_file.get_bytes(payload_len).decode()
+            payload = self.payload_file.get_bytes(payload_len)
             yield payload_len, payload_offset, payload, marker.strip(), len(line), rec_type
             rec_type = self.REC_TYPE_SCHEDULE
 

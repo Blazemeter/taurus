@@ -77,7 +77,7 @@ class BZAObject(dict):
         url = str(url)
 
         if isinstance(data, text_type):
-            data = data.encode("utf8")
+            data = data.encode("utf-8")
 
         if isinstance(data, (dict, list)):
             data = to_json(data)

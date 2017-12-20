@@ -47,7 +47,7 @@ dCBqYXZhLmxhbmcuVGhyZWFkLnJ1bihUaHJlYWQuamF2YTo3NDUpCg==</responseData>
   <resultFileName></resultFileName>
   <samplerData>com.googlecode.jmeter.plugins.webdriver.sampler.WebDriverSampler@2d022136</samplerData>
   <threadName>Thread Group 1-1</threadName>
-  <responseMessage>sun.org.mozilla.javascript.internal.EcmaError: TypeError: Cannot find function error in object FirefoxDriver: firefox on LINUX (9e62a0b2-e95d-42e6-99c1-faa0aee5c2f4). (&lt;Unknown source&gt;#3) in &lt;Unknown source&gt; at line number 3</responseMessage>
+  <responseMessage>sun.org.mozilla.javascript.internal.EcmaError: TypeError: Cannot find function error in object Файфокс: firefox on LINUX (9e62a0b2-e95d-42e6-99c1-faa0aee5c2f4). (&lt;Unknown source&gt;#3) in &lt;Unknown source&gt; at line number 3</responseMessage>
   <responseHeaders></responseHeaders>
   <contentType>text/plain</contentType>
   <requestHeaders></requestHeaders>

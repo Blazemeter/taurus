@@ -16,7 +16,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, A
 from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchTool
 from bzt.six import parse, b
 from bzt.utils import is_windows
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul
 
 
@@ -49,11 +49,8 @@ class TestPBench(BZTestCase):
                 self.obj.pbench.stderr_file.close()
 
         if self.obj.reader:
-            if self.obj.reader.file and self.obj.reader.file.fds:
-                self.obj.reader.file.fds.close()
-            if self.obj.reader.stats_reader and self.obj.reader.stats_reader.file and\
-                    self.obj.reader.stats_reader.file.fds:
-                self.obj.reader.stats_reader.file.fds.close()
+            close_reader_file(self.obj.reader)
+            close_reader_file(self.obj.reader.stats_reader)
         super(TestPBench, self).tearDown()
 
 
