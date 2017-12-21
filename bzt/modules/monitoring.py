@@ -140,6 +140,7 @@ class LocalClient(MonitoringClient):
         if not self.interval:
             self.interval = self.engine.check_interval
 
+        self.last_check = None
         self.cached_data = None
 
     def connect(self):
