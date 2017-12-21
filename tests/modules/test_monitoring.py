@@ -159,7 +159,7 @@ class TestMonitoring(BZTestCase):
             psutil.net_io_counters = lambda: None
             psutil.disk_io_counters = lambda: None
 
-            client.monitor.get_resource_stats()  # should throw no exception
+            client.monitor.get_resource_stats(['cpu'])  # should throw no exception
         finally:
             psutil.net_io_counters = net_io_counters
             psutil.disk_io_counters = disk_io_counters
