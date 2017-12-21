@@ -54,8 +54,7 @@ class Monitoring(Service, WidgetProvider, Singletone):
                     label = config['label']
                 else:
                     label = None
-                client = client_class(self.log, label, config)
-                client.engine = self.engine
+                client = client_class(self.engine, self.log, label, config)
                 self.clients.append(client)
                 client.connect()
 
@@ -92,23 +91,17 @@ class MonitoringListener(object):
 
 
 class MonitoringClient(object):
-    def __init__(self):
-        self.engine = None
-
-    @abstractmethod
     def connect(self):
-        pass
-
-    @abstractmethod
-    def start(self):
         pass
 
     @abstractmethod
     def get_data(self):
         pass
 
-    @abstractmethod
     def disconnect(self):
+        pass
+
+    def start(self):
         pass
 
 
@@ -116,52 +109,58 @@ class LocalClient(MonitoringClient):
     """
     :type monitor: LocalMonitor
     """
-    METRICS = ['cpu', 'mem', 'disk-space', 'engine-loop', 'bytes-recv',
-               'bytes-sent', 'disk-read', 'disk-write', 'conn-all']
+    AVAILABLE_METRICS = ['cpu', 'mem', 'disk-space', 'engine-loop', 'bytes-recv',
+                         'bytes-sent', 'disk-read', 'disk-write', 'conn-all']
 
-    def __init__(self, parent_logger, label, config):
+    def __init__(self, engine, parent_logger, label, config):
         super(LocalClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.engine = engine
         self.config = config
+
         if label:
             self.label = label
         else:
             self.label = 'local'
         self.monitor = None
 
-    def connect(self):
-        self.monitor = LocalMonitor.get_instance(self.log, self.engine)
-
-    def start(self):
-        pass
-
-    def get_data(self):
-        _time = time.time()
-        res = []
-
         exc = TaurusConfigError('Metric is required in Local monitoring client')
         metric_names = self.config.get('metrics', exc)
 
-        bad_list = set(metric_names) - set(self.METRICS)
+        bad_list = set(metric_names) - set(self.AVAILABLE_METRICS)
         if bad_list:
             self.log.warning('Wrong metrics found: %s', bad_list)
 
-        good_list = set(metric_names) & set(self.METRICS)
+        good_list = set(metric_names) & set(self.AVAILABLE_METRICS)
         if not good_list:
             raise exc
+        self.metrics = good_list
 
-        metric_values = self.monitor.get_resource_stats(good_list)
+        self.interval = self.config.get('interval', None)
+        if not self.interval:
+            self.interval = self.engine.check_interval
 
-        for name in metric_names:
-            res.append({
-                'source': self.label,
-                'ts': _time,
-                name: metric_values[name]})
+        self.cached_data = None
 
-        return res
+    def connect(self):
+        self.monitor = LocalMonitor.get_instance(self.log, self.engine)
 
-    def disconnect(self):
-        pass
+    def get_data(self):
+
+        now = time.time()
+
+        if not self.cached_data or now - self.last_check > self.interval:
+            self.last_check = now
+            self.cached_data = []
+            metric_values = self.monitor.get_resource_stats(self.metrics)
+
+            for name in self.metrics:
+                self.cached_data.append({
+                    'source': self.label,
+                    'ts': now,
+                    name: metric_values[name]})
+
+        return self.cached_data
 
 
 class LocalMonitor(object):
@@ -286,9 +285,10 @@ class LocalMonitor(object):
 
 
 class GraphiteClient(MonitoringClient):
-    def __init__(self, parent_logger, label, config):
+    def __init__(self, engine, parent_logger, label, config):
         super(GraphiteClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.engine = engine
         self.config = config
         exc = TaurusConfigError('Graphite client requires address parameter')
         self.address = self.config.get("address", exc)
@@ -361,17 +361,15 @@ class GraphiteClient(MonitoringClient):
             res.append(item)
         return res
 
-    def disconnect(self):
-        pass
-
 
 class ServerAgentClient(MonitoringClient):
-    def __init__(self, parent_logger, label, config):
+    def __init__(self, engine, parent_logger, label, config):
         """
         :type parent_logger: logging.Logger
         :type config: dict
         """
         super(ServerAgentClient, self).__init__()
+        self.engine = engine
         self.host_label = label
         exc = TaurusConfigError('ServerAgent client requires address parameter')
         self.address = config.get("address", exc)
