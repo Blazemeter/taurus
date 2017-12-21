@@ -141,12 +141,16 @@ class LocalClient(MonitoringClient):
 
         exc = TaurusConfigError('Metric is required in Local monitoring client')
         metric_names = self.config.get('metrics', exc)
-        wrong_list = set(metric_names) - set(self.METRICS)
-        inter_list = set(metric_names) & set(self.METRICS)
 
-        if wrong_list:
-            self.log.warning('Wrong metrics found: %s', wrong_list)
-        metric_values = self.monitor.get_resource_stats(inter_list)
+        bad_list = set(metric_names) - set(self.METRICS)
+        if bad_list:
+            self.log.warning('Wrong metrics found: %s', bad_list)
+
+        good_list = set(metric_names) & set(self.METRICS)
+        if not good_list:
+            raise exc
+
+        metric_values = self.monitor.get_resource_stats(good_list)
 
         for name in metric_names:
             res.append({
@@ -237,10 +241,6 @@ class LocalMonitor(object):
         if 'cpu' in metrics:
             result['cpu'] = psutil.cpu_percent()
 
-        # elif metric_name == 'disk-read':
-        #     item['disk-read'] = metric_values.dru
-        # elif metric_name == 'disk-write':
-        #     item['disk-write'] = metric_values.dwu
         if 'bytes-recv' in metrics or 'bytes-sent' in metrics:
             net = psutil.net_io_counters()
             if net is not None:
