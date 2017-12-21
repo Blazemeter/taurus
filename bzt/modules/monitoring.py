@@ -133,13 +133,10 @@ class LocalClient(MonitoringClient):
     def start(self):
         pass
 
-    def engine_resource_stats(self):
-        return self.monitor.resource_stats()
-
     def get_data(self):
         _time = time.time()
         res = []
-        metric_values = self.engine_resource_stats()
+        metric_values = self.monitor.get_resource_stats()
 
         exc = TaurusConfigError('Metric is required in Local monitoring client')
         for metric_name in self.config.get('metrics', exc):
@@ -195,7 +192,7 @@ class LocalMonitor(object):
             cls.__instance = LocalMonitor(parent_logger, engine)
         return cls.__instance
 
-    def resource_stats(self):
+    def get_resource_stats(self):
         if not self.__counters_ts:
             self.__disk_counters = self.__get_disk_counters()
             self.__net_counters = psutil.net_io_counters()
@@ -207,12 +204,12 @@ class LocalMonitor(object):
 
         # don't recalculate stats too frequently
         if interval >= self.engine.check_interval or self.__cached_stats is None:
-            self.__cached_stats = self.calc_resource_stats(interval)
+            self.__cached_stats = self._calc_resource_stats(interval)
             self.__counters_ts = now
 
         return self.__cached_stats
 
-    def calc_resource_stats(self, interval):
+    def _calc_resource_stats(self, interval):
         """
         Get local resource stats
 
@@ -279,6 +276,7 @@ class LocalMonitor(object):
             counters = psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
             # noinspection PyProtectedMember
         return counters
+
 
 class GraphiteClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
