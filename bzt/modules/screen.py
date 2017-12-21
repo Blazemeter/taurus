@@ -40,7 +40,7 @@ class GUIScreen(BaseScreen):
 
     def __init__(self):
         super(GUIScreen, self).__init__()
-        urwid.set_encoding('utf8')
+        urwid.set_encoding('utf-8')
         self.root = None
         self.size = (180, 60)
         self.title = "Taurus Status"
@@ -134,7 +134,7 @@ class GUIScreen(BaseScreen):
             for part in row:
                 txt = part[2]
                 if not isinstance(txt, text_type):
-                    txt = txt.decode('utf8')
+                    txt = txt.decode('utf-8')
                 strlen = len(txt)
                 self.text.insert(tkinter.END, txt)
                 if part[0] is not None:

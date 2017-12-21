@@ -104,6 +104,11 @@ def random_datapoint(n):
     return point
 
 
+def close_reader_file(obj):
+    if obj and obj.file and obj.file.fds:
+        obj.file.fds.close()
+
+
 class BZTestCase(TestCase):
     def setUp(self):
         self.captured_logger = None

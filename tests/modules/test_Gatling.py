@@ -6,7 +6,7 @@ import time
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.six import u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
-from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR
+from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file
 from tests.mocks import EngineEmul
 from bzt.modules.provisioning import Local
 from bzt import ToolError, TaurusConfigError
@@ -30,8 +30,7 @@ class TestGatlingExecutor(BZTestCase):
             self.obj.stdout_file.close()
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
-        if self.obj.reader and self.obj.reader.fds:
-            self.obj.reader.fds.close()
+        close_reader_file(self.obj.reader)
         super(TestGatlingExecutor, self).tearDown()
 
     def test_external_jar_wrong_launcher(self):

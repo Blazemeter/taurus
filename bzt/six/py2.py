@@ -72,7 +72,7 @@ def b(string):
 
 
 def u(string):
-    if not isinstance(string, unicode):
+    if not isinstance(string, text_type):
         return unicode(string.replace('\\', '\\\\'), "unicode_escape")
     else:
         return string

@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from setuptools import setup
+from distutils.version import LooseVersion
 
 # noinspection PyPackageRequirements
 import pip
@@ -22,7 +23,7 @@ import bzt
 
 
 # thanks to pip there are two :incompatible ways to parse requirements.txt
-if hasattr(pip, '__version__') and pip.__version__ >= '7':
+if hasattr(pip, '__version__') and LooseVersion(str(pip.__version__)) >= LooseVersion('7.0'):
     # new versions of pip require a session
     requirements = pip.req.parse_requirements('requirements.txt', session=pip.download.PipSession())
 else:

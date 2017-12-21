@@ -27,6 +27,9 @@ class TestCloudProvisioningOld(BZTestCase):
         mock = BZMock()
 
         mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/masters/1/multi-tests': {"result": []},
             'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
             'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": []}},
             'https://a.blazemeter.com/api/v4/masters/1': {"result": {"note": "message"}},

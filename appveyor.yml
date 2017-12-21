@@ -3,6 +3,10 @@ skip_branch_with_pr: true
 
 environment:
   matrix:
+    - PYTHON: "C:\\Python35"
+      PYTHON_VERSION: "3.5.x"
+      PYTHON_ARCH: "64"
+      NODEJS_VERSION: "6"
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
@@ -17,7 +21,7 @@ install:
   - "%PYTHON%\\python.exe -m pip install pip wheel --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
   - "%PYTHON%\\python.exe -m pip install -r tests/ci/requirements.txt"
-  - set PATH=C:\Ruby22\bin;%PATH%
+  - set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
   - gem install rspec
 
 build: off

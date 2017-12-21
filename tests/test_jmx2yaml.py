@@ -4,7 +4,7 @@ import yaml
 
 from bzt.engine import ScenarioExecutor
 from bzt.jmx2yaml import JMX2YAML
-from bzt.utils import get_full_path
+from bzt.utils import get_full_path, FileReader
 
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
@@ -445,7 +445,8 @@ class TestConverter(BZTestCase):
         self.configure(RESOURCES_DIR + "jmeter/jmx/jsr223.jmx")
         try:
             self.obj.process()
-            yml = yaml.load(open(self.obj.dst_file).read())
+            lines = FileReader(self.obj.dst_file).get_lines(last_pass=True)
+            yml = yaml.load(''.join(lines))
             scenarios = yml.get("scenarios")
             scenario = scenarios["Thread Group"]
             requests = scenario["requests"]
@@ -453,7 +454,7 @@ class TestConverter(BZTestCase):
             request = requests[0]
             self.assertIn("jsr223", request)
             jsrs = request["jsr223"]
-            self.assertIsInstance(jsrs, list)
+            self.assertTrue(isinstance(jsrs, list))
             self.assertEqual(len(jsrs), 5)
             self.assertEqual(jsrs[0]["language"], "beanshell")
             self.assertEqual(jsrs[0]["script-text"], "scripty")
