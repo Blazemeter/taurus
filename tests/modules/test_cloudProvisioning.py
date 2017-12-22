@@ -1142,7 +1142,8 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(reqs[12]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
         self.assertEqual(reqs[12]['method'], 'PATCH')
         data = json.loads(reqs[12]['data'])
-        self.assertEqual(data['configuration']['plugins'], {"functionalExecution": {"enabled": True}})
+        plugins = data['configuration']['plugins']
+        self.assertEqual(plugins["functionalExecution"], {"enabled": True})
         start_req = reqs[-1]
         self.assertTrue(start_req['url'].endswith('?functionalExecution=true'))
 
@@ -1448,6 +1449,54 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["test"] = "ExternalTest"
         self.obj.prepare()
         self.assertEqual(13, len(self.mock.requests))
+
+    def test_send_report_email_default(self):
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
+                {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
+            ]},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
+                {'result': []},
+                {'result': [{'id': 1}]}
+            ],
+            'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+        }, post={
+            'https://a.blazemeter.com/api/v4/tests/1/start': {'result': {'id': 'mid'}}
+        })
+        self.obj.settings.merge({"project": "myproject"})
+        self.obj.prepare()
+        self.obj.startup()
+        reqs = self.mock.requests
+        self.assertEqual(reqs[12]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
+        self.assertEqual(reqs[12]['method'], 'PATCH')
+        data = json.loads(reqs[12]['data'])
+        plugins = data['configuration']['plugins']
+        self.assertEqual(plugins["reportEmail"], {"enabled": False})
+
+    def test_send_report_email(self):
+        self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
+            'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
+                {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
+            ]},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
+                {'result': []},
+                {'result': [{'id': 1}]}
+            ],
+            'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
+        }, post={
+            'https://a.blazemeter.com/api/v4/tests/1/start': {'result': {'id': 'mid'}}
+        })
+        self.obj.settings.merge({"project": "myproject", "send-report-email": True})
+        self.obj.prepare()
+        self.obj.startup()
+        reqs = self.mock.requests
+        self.assertEqual(reqs[12]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
+        self.assertEqual(reqs[12]['method'], 'PATCH')
+        data = json.loads(reqs[12]['data'])
+        plugins = data['configuration']['plugins']
+        self.assertEqual(plugins["reportEmail"], {"enabled": True})
 
 
 class TestCloudTaurusTest(BZTestCase):
