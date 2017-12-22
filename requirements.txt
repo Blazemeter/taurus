@@ -14,4 +14,3 @@ pyyaml
 requests>=2.11.1
 selenium
 urwid
-hdrhistogram

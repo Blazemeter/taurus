@@ -21,9 +21,8 @@ import re
 from abc import abstractmethod
 from collections import Counter
 
-from hdrh.histogram import HdrHistogram
-
 from bzt import TaurusInternalException, TaurusConfigError
+from bzt.hdr_histogram import HdrHistogram
 from bzt.engine import Aggregator
 from bzt.six import iteritems
 from bzt.utils import BetterDict, dehumanize_time
@@ -70,7 +69,7 @@ class KPISet(BetterDict):
         # vectors
         self.get(self.ERRORS, [])
         self.get(self.RESP_CODES, Counter())
-        self.get(self.RESP_TIMES_HDR, HdrHistogram(1, 1 * 60 * 60 * 1000, 5))
+        self.get(self.RESP_TIMES_HDR, HdrHistogram(1, 1 * 60 * 1000, 1))
         self.get(self.PERCENTILES)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
 
@@ -177,10 +176,10 @@ class KPISet(BetterDict):
             self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
         hdr = self[self.RESP_TIMES_HDR]
-        if hdr and hdr.get_total_count():
+        if hdr.get_total_count():
             self[self.PERCENTILES] = {
-                str(float(perc)): hdr.get_value_at_percentile(perc) / 1000.0
-                for perc in self.perc_levels
+                str(float(perc)): value / 1000.0
+                for perc, value in iteritems(hdr.get_percentile_to_value_dict(self.perc_levels))
             }
 
         return self

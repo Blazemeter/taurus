@@ -2,9 +2,6 @@ import os
 from collections import Counter
 import time
 
-from hdrh.histogram import HdrHistogram
-
-from bzt.six import iteritems
 from tests import BZTestCase, random_datapoint
 from tests.mocks import EngineEmul
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
