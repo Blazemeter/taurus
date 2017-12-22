@@ -235,7 +235,7 @@ class LocalMonitor(object):
             output = subprocess.check_output(['netstat', '-an'])
             output_lines = stream_decode(output).split('\n')    # in py3 stream has 'bytes' type
             est_lines = [line for line in output_lines if line.find('EST') != -1]
-            metrics['conn-all'] = len(est_lines)
+            result['conn-all'] = len(est_lines)
 
         if 'cpu' in metrics:
             result['cpu'] = psutil.cpu_percent()
