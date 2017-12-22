@@ -98,6 +98,19 @@ class TestMonitoring(BZTestCase):
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
         return data
 
+    def test_all_metrics(self):
+        config = {'interval': '1m', 'metrics': LocalClient.AVAILABLE_METRICS}
+        obj = LocalClient(logging.getLogger(''), 'label', config)
+        obj.engine = EngineEmul()
+        obj.connect()
+        self.assertEqual(60, obj.interval)
+        data = obj.get_data()
+        for item in data:
+            metrics = set(item.keys()) - {'ts', 'source'}
+            self.assertEqual(1, len(metrics))
+            self.assertIn(metrics.pop(), LocalClient.AVAILABLE_METRICS)
+        self.assertEqual(len(data), len(LocalClient.AVAILABLE_METRICS))
+
     def test_local_without_engine(self):
         config = {'metrics': ['cpu']}
         obj = LocalClient(logging.getLogger(''), 'label', config)

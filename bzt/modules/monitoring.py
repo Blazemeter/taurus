@@ -139,7 +139,7 @@ class LocalClient(MonitoringClient):
             raise exc
         self.metrics = good_list
 
-        self.interval = self.config.get('interval', None)
+        self.interval = dehumanize_time(self.config.get('interval', None))
 
         self.last_check = None
         self.cached_data = None
