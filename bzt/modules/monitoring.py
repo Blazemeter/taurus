@@ -54,7 +54,8 @@ class Monitoring(Service, WidgetProvider, Singletone):
                     label = config['label']
                 else:
                     label = None
-                client = client_class(self.engine, self.log, label, config)
+                client = client_class(self.log, label, config)
+                client.engine = self.engine
                 self.clients.append(client)
                 client.connect()
 
@@ -91,6 +92,9 @@ class MonitoringListener(object):
 
 
 class MonitoringClient(object):
+    def __init__(self):
+        self.engine = None
+
     def connect(self):
         pass
 
@@ -112,10 +116,9 @@ class LocalClient(MonitoringClient):
     AVAILABLE_METRICS = ['cpu', 'mem', 'disk-space', 'engine-loop', 'bytes-recv',
                          'bytes-sent', 'disk-read', 'disk-write', 'conn-all']
 
-    def __init__(self, engine, parent_logger, label, config):
+    def __init__(self, parent_logger, label, config):
         super(LocalClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.engine = engine
         self.config = config
 
         if label:
@@ -137,23 +140,25 @@ class LocalClient(MonitoringClient):
         self.metrics = good_list
 
         self.interval = self.config.get('interval', None)
-        if not self.interval:
-            self.interval = self.engine.check_interval
 
         self.last_check = None
         self.cached_data = None
+
+    def engine_resource_stats(self):
+        return self.monitor.resource_stats(self.metrics)
 
     def connect(self):
         self.monitor = LocalMonitor.get_instance(self.log, self.engine)
 
     def get_data(self):
-
         now = time.time()
+        if not self.interval:
+            self.interval = self.engine.check_interval
 
         if not self.cached_data or now - self.last_check > self.interval:
             self.last_check = now
             self.cached_data = []
-            metric_values = self.monitor.get_resource_stats(self.metrics)
+            metric_values = self.engine_resource_stats()
 
             for name in self.metrics:
                 self.cached_data.append({
@@ -184,7 +189,7 @@ class LocalMonitor(object):
             cls.__instance = LocalMonitor(parent_logger, engine)
         return cls.__instance
 
-    def get_resource_stats(self, metrics):
+    def resource_stats(self, metrics):
         if not self.__counters_ts:
             self.__disk_counters = self.__get_disk_counters()
             self.__net_counters = psutil.net_io_counters()
@@ -220,16 +225,10 @@ class LocalMonitor(object):
                     self.__informed_on_mem_issue = True
 
         if 'disk-space' in metrics:
-            if self.engine:
-                result['disk-space'] = psutil.disk_usage(self.engine.artifacts_dir).percent
-            else:
-                result['disk-space'] = None
+            result['disk-space'] = psutil.disk_usage(self.engine.artifacts_dir).percent
 
         if 'engine-loop' in metrics:
-            if self.engine:
-                result['engine-loop'] = self.engine.engine_loop_utilization
-            else:
-                result['engine-loop'] = None
+            result['engine-loop'] = self.engine.engine_loop_utilization
 
         if 'conn-all' in metrics:
             # take all connections without address resolution
@@ -286,10 +285,9 @@ class LocalMonitor(object):
 
 
 class GraphiteClient(MonitoringClient):
-    def __init__(self, engine, parent_logger, label, config):
+    def __init__(self,  parent_logger, label, config):
         super(GraphiteClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.engine = engine
         self.config = config
         exc = TaurusConfigError('Graphite client requires address parameter')
         self.address = self.config.get("address", exc)
@@ -364,13 +362,12 @@ class GraphiteClient(MonitoringClient):
 
 
 class ServerAgentClient(MonitoringClient):
-    def __init__(self, engine, parent_logger, label, config):
+    def __init__(self, parent_logger, label, config):
         """
         :type parent_logger: logging.Logger
         :type config: dict
         """
         super(ServerAgentClient, self).__init__()
-        self.engine = engine
         self.host_label = label
         exc = TaurusConfigError('ServerAgent client requires address parameter')
         self.address = config.get("address", exc)

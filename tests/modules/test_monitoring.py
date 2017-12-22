@@ -101,6 +101,7 @@ class TestMonitoring(BZTestCase):
     def test_local_without_engine(self):
         config = {'metrics': ['cpu']}
         obj = LocalClient(logging.getLogger(''), 'label', config)
+        obj.engine = EngineEmul()
         obj.connect()
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
@@ -113,6 +114,9 @@ class TestMonitoring(BZTestCase):
         config = {'metrics': ['cpu']}
         client1 = LocalClient(logging.getLogger(''), 'label', config)
         client2 = LocalClient(logging.getLogger(''), 'label', config)
+
+        client1.engine = EngineEmul()
+        client2.engine = EngineEmul()
 
         client1.connect()
         client2.connect()
@@ -159,7 +163,7 @@ class TestMonitoring(BZTestCase):
             psutil.net_io_counters = lambda: None
             psutil.disk_io_counters = lambda: None
 
-            client.monitor.get_resource_stats(['cpu'])  # should throw no exception
+            client.monitor.resource_stats(['cpu'])  # should throw no exception
         finally:
             psutil.net_io_counters = net_io_counters
             psutil.disk_io_counters = disk_io_counters
