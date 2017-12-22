@@ -2,16 +2,16 @@
 import json
 import select
 import socket
+import subprocess
 import time
 import traceback
-import subprocess
 from abc import abstractmethod
 from collections import OrderedDict
-
-import psutil
-from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from urwid import Pile, Text
 
+import psutil
+
+from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
@@ -233,7 +233,7 @@ class LocalMonitor(object):
         if 'conn-all' in metrics:
             # take all connections without address resolution
             output = subprocess.check_output(['netstat', '-an'])
-            output_lines = stream_decode(output).split('\n')    # in py3 stream has 'bytes' type
+            output_lines = stream_decode(output).split('\n')  # in py3 stream has 'bytes' type
             est_lines = [line for line in output_lines if line.find('EST') != -1]
             result['conn-all'] = len(est_lines)
 
@@ -285,7 +285,7 @@ class LocalMonitor(object):
 
 
 class GraphiteClient(MonitoringClient):
-    def __init__(self,  parent_logger, label, config):
+    def __init__(self, parent_logger, label, config):
         super(GraphiteClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
