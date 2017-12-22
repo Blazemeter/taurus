@@ -6,7 +6,7 @@ import time
 import traceback
 import subprocess
 from abc import abstractmethod
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
 
 import psutil
 from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
