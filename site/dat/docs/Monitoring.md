@@ -23,7 +23,8 @@ Following metrics are collected locally:
 services:
 - module: monitoring
   local:
-  - metrics:
+  - interval: 20s   # polling interval
+    metrics:
     - cpu
     - disk-space
     - engine-loop

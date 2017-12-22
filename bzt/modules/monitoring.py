@@ -2,20 +2,20 @@
 import json
 import select
 import socket
+import subprocess
 import time
 import traceback
 from abc import abstractmethod
-from collections import OrderedDict, namedtuple
-from sys import platform
-
-import psutil
-from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
+from collections import OrderedDict
 from urwid import Pile, Text
 
+import psutil
+
+from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, urlopen, urlencode, b
+from bzt.six import iteritems, urlopen, urlencode, b, stream_decode
 from bzt.utils import dehumanize_time
 
 
@@ -79,10 +79,6 @@ class Monitoring(Service, WidgetProvider, Singletone):
             client.disconnect()
         super(Monitoring, self).shutdown()
 
-    def post_process(self):
-        # shutdown agent?
-        super(Monitoring, self).post_process()
-
     def get_widget(self):
         widget = MonitoringWidget()
         self.add_listener(widget)
@@ -99,20 +95,17 @@ class MonitoringClient(object):
     def __init__(self):
         self.engine = None
 
-    @abstractmethod
     def connect(self):
-        pass
-
-    @abstractmethod
-    def start(self):
         pass
 
     @abstractmethod
     def get_data(self):
         pass
 
-    @abstractmethod
     def disconnect(self):
+        pass
+
+    def start(self):
         pass
 
 
@@ -120,63 +113,60 @@ class LocalClient(MonitoringClient):
     """
     :type monitor: LocalMonitor
     """
+    AVAILABLE_METRICS = ['cpu', 'mem', 'disk-space', 'engine-loop', 'bytes-recv',
+                         'bytes-sent', 'disk-read', 'disk-write', 'conn-all']
 
     def __init__(self, parent_logger, label, config):
         super(LocalClient, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.config = config
+
         if label:
             self.label = label
         else:
             self.label = 'local'
         self.monitor = None
 
+        exc = TaurusConfigError('Metric is required in Local monitoring client')
+        metric_names = self.config.get('metrics', exc)
+
+        bad_list = set(metric_names) - set(self.AVAILABLE_METRICS)
+        if bad_list:
+            self.log.warning('Wrong metrics found: %s', bad_list)
+
+        good_list = set(metric_names) & set(self.AVAILABLE_METRICS)
+        if not good_list:
+            raise exc
+        self.metrics = good_list
+
+        self.interval = dehumanize_time(self.config.get('interval', None))
+
+        self.last_check = None
+        self.cached_data = None
+
+    def engine_resource_stats(self):
+        return self.monitor.resource_stats(self.metrics)
+
     def connect(self):
         self.monitor = LocalMonitor.get_instance(self.log, self.engine)
 
-    def start(self):
-        pass
-
-    def engine_resource_stats(self):
-        return self.monitor.resource_stats()
-
     def get_data(self):
-        _time = time.time()
-        res = []
-        metric_values = self.engine_resource_stats()
+        now = time.time()
+        if not self.interval:
+            self.interval = self.engine.check_interval
 
-        exc = TaurusConfigError('Metric is required in Local monitoring client')
-        for metric_name in self.config.get('metrics', exc):
-            item = {
-                'source': self.label,
-                'ts': _time}
-            if metric_name == 'cpu':
-                item['cpu'] = metric_values.cpu
-            elif metric_name == 'mem':
-                item['mem'] = metric_values.mem_usage
-            elif metric_name == 'disk-space':
-                item['disk-space'] = metric_values.disk_usage
-            elif metric_name == 'engine-loop':
-                item['engine-loop'] = metric_values.engine_loop
-            elif metric_name == 'bytes-recv':
-                item['bytes-recv'] = metric_values.rx
-            elif metric_name == 'bytes-sent':
-                item['bytes-sent'] = metric_values.tx
-            elif metric_name == 'disk-read':
-                item['disk-read'] = metric_values.dru
-            elif metric_name == 'disk-write':
-                item['disk-write'] = metric_values.dwu
-            elif metric_name == 'conn-all':
-                item['conn-all'] = metric_values.conn_all
-            else:
-                self.log.warning('Wrong metric: %s', metric_name)
+        if not self.cached_data or now - self.last_check > self.interval:
+            self.last_check = now
+            self.cached_data = []
+            metric_values = self.engine_resource_stats()
 
-            res.append(item)
+            for name in self.metrics:
+                self.cached_data.append({
+                    'source': self.label,
+                    'ts': now,
+                    name: metric_values[name]})
 
-        return res
-
-    def disconnect(self):
-        pass
+        return self.cached_data
 
 
 class LocalMonitor(object):
@@ -199,7 +189,7 @@ class LocalMonitor(object):
             cls.__instance = LocalMonitor(parent_logger, engine)
         return cls.__instance
 
-    def resource_stats(self):
+    def resource_stats(self, metrics):
         if not self.__counters_ts:
             self.__disk_counters = self.__get_disk_counters()
             self.__net_counters = psutil.net_io_counters()
@@ -211,68 +201,76 @@ class LocalMonitor(object):
 
         # don't recalculate stats too frequently
         if interval >= self.engine.check_interval or self.__cached_stats is None:
-            self.__cached_stats = self.calc_resource_stats(interval)
+            self.__cached_stats = self._calc_resource_stats(interval, metrics)
             self.__counters_ts = now
 
         return self.__cached_stats
 
-    def calc_resource_stats(self, interval):
+    def _calc_resource_stats(self, interval, metrics):
         """
         Get local resource stats
 
-        :return: namedtuple
+        :return: dict
         """
-        stats = namedtuple("ResourceStats", ('cpu', 'disk_usage', 'mem_usage',
-                                             'rx', 'tx', 'dru', 'dwu', 'engine_loop', 'conn_all'))
+        result = {}
 
-        try:
-            mem_usage = psutil.virtual_memory().percent
-        except KeyError:
-            mem_usage = None
-            if not self.__informed_on_mem_issue:
-                self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
-                self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
-                self.__informed_on_mem_issue = True
+        if 'mem' in metrics:
+            try:
+                result['mem'] = psutil.virtual_memory().percent
+            except KeyError:
+                result['mem'] = None
+                if not self.__informed_on_mem_issue:
+                    self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
+                    self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
+                    self.__informed_on_mem_issue = True
 
-        net = psutil.net_io_counters()
-        if net is not None:
-            tx_bytes = (net.bytes_sent - self.__net_counters.bytes_sent) / interval
-            rx_bytes = (net.bytes_recv - self.__net_counters.bytes_recv) / interval
-            self.__net_counters = net
-        else:
-            rx_bytes = 0.0
-            tx_bytes = 0.0
+        if 'disk-space' in metrics:
+            result['disk-space'] = psutil.disk_usage(self.engine.artifacts_dir).percent
 
-        disk = self.__get_disk_counters()
-        if disk is not None:
-            dru = (disk.read_bytes - self.__disk_counters.read_bytes) / interval
-            dwu = (disk.write_bytes - self.__disk_counters.write_bytes) / interval
-            self.__disk_counters = disk
-        else:
-            dru = 0.0
-            dwu = 0.0
+        if 'engine-loop' in metrics:
+            result['engine-loop'] = self.engine.engine_loop_utilization
 
-        if self.engine:
-            engine_loop = self.engine.engine_loop_utilization
-            disk_usage = psutil.disk_usage(self.engine.artifacts_dir).percent
-        else:
-            engine_loop = None
-            disk_usage = None
+        if 'conn-all' in metrics:
+            # take all connections without address resolution
+            output = subprocess.check_output(['netstat', '-an'])
+            output_lines = stream_decode(output).split('\n')  # in py3 stream has 'bytes' type
+            est_lines = [line for line in output_lines if line.find('EST') != -1]
+            result['conn-all'] = len(est_lines)
 
-        if platform == 'darwin':  # TODO: add MacOS support
-            connections = []
-        else:
-            connections = psutil.net_connections(kind="all")
+        if 'cpu' in metrics:
+            result['cpu'] = psutil.cpu_percent()
 
-        count_conn = lambda x: x.family == 2 and x.status not in ('TIME_WAIT', 'LISTEN')
-        connections = [y for y in connections if count_conn(y)]
-        return stats(
-            cpu=psutil.cpu_percent(),
-            disk_usage=disk_usage,
-            mem_usage=mem_usage,
-            rx=rx_bytes, tx=tx_bytes, dru=dru, dwu=dwu,
-            engine_loop=engine_loop, conn_all=len(connections)
-        )
+        if 'bytes-recv' in metrics or 'bytes-sent' in metrics:
+            net = psutil.net_io_counters()
+            if net is not None:
+                tx_bytes = int((net.bytes_sent - self.__net_counters.bytes_sent) / interval)
+                rx_bytes = int((net.bytes_recv - self.__net_counters.bytes_recv) / interval)
+                self.__net_counters = net
+            else:
+                rx_bytes = 0.0
+                tx_bytes = 0.0
+
+            if 'bytes-recv' in metrics:
+                result['bytes-recv'] = rx_bytes
+            if 'bytes-sent' in metrics:
+                result['bytes-sent'] = tx_bytes
+
+        if 'disk-read' in metrics or 'disk-write' in metrics:
+            disk = self.__get_disk_counters()
+            if disk is not None:
+                dru = int((disk.read_bytes - self.__disk_counters.read_bytes) / interval)
+                dwu = int((disk.write_bytes - self.__disk_counters.write_bytes) / interval)
+                self.__disk_counters = disk
+            else:
+                dru = 0.0
+                dwu = 0.0
+
+            if 'disk-read' in metrics:
+                result['disk-read'] = dru
+            if 'disk-write' in metrics:
+                result['disk-write'] = dwu
+
+        return result
 
     def __get_disk_counters(self):
         counters = None
@@ -284,6 +282,7 @@ class LocalMonitor(object):
             counters = psutil._common.sdiskio(0, 0, 0, 0, 0, 0)  # pylint: disable=protected-access
             # noinspection PyProtectedMember
         return counters
+
 
 class GraphiteClient(MonitoringClient):
     def __init__(self, parent_logger, label, config):
@@ -360,9 +359,6 @@ class GraphiteClient(MonitoringClient):
 
             res.append(item)
         return res
-
-    def disconnect(self):
-        pass
 
 
 class ServerAgentClient(MonitoringClient):
@@ -458,7 +454,7 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
             if item['source'] not in self.host_metrics:
                 self.host_metrics[item['source']] = OrderedDict()
 
-            for key in sorted(item.keys()):
+            for key in item:
                 if key not in ("source", "ts"):
                     color = ''
                     if key in self.host_metrics[item['source']]:
@@ -473,11 +469,18 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
         for host, metrics in iteritems(self.host_metrics):
             text.append(('stat-hdr', " %s \n" % host))
 
-            if len(metrics):
-                maxwidth = max([len(key) for key in metrics.keys()])
+            if metrics:
+                maxwidth = max([len(key) for key in metrics])
 
                 for metric, value in iteritems(metrics):
-                    rendered = ('%.3f' % value[0]) if value[0] is not None else 'N/A'
+                    if value[0] is None:
+                        rendered = 'N/A'
+                    elif isinstance(value[0], float):
+                        rendered = "{:.3f}".format(value[0])
+                    elif isinstance(value[0], int):
+                        rendered = "{:,}".format(value[0])
+                    else:
+                        rendered = value[0]
                     values = (' ' * (maxwidth - len(metric)), metric, rendered)
                     text.append((value[1], "  %s%s: %s\n" % values))
 
