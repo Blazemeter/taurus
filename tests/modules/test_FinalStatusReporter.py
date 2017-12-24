@@ -308,3 +308,28 @@ class TestFinalStatusReporter(BZTestCase):
         with open(xml_report) as fds:
             report_content = fds.read()
         self.assertIn('<TestDuration>10.0</TestDuration>', report_content)
+
+    def test_csv_report_fieldname_order(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        csv_report = obj.engine.create_artifact("report", ".csv")
+        obj.parameters.merge({
+            "dump-csv": csv_report,
+        })
+
+        obj.startup()
+        obj.aggregated_second(self.__get_datapoint(ts=90))
+        obj.aggregated_second(self.__get_datapoint(ts=100))
+        obj.shutdown()
+        obj.post_process()
+
+        self.assertTrue(os.path.exists(csv_report))
+        with open(csv_report) as fds:
+            fieldnames = fds.readline().strip().split(",")
+
+        perc_fields = [float(name[5:]) for name in fieldnames if name.startswith('perc_')]
+        self.assertTrue(sorted(perc_fields) == perc_fields)
+
+        rc_fields = [float(name[3:]) for name in fieldnames if name.startswith('rc_')]
+        self.assertTrue(sorted(rc_fields) == rc_fields)

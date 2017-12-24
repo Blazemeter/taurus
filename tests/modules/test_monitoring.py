@@ -125,6 +125,9 @@ class TestMonitoring(BZTestCase):
         client1 = LocalClient(EngineEmul(), logging.getLogger(''), 'label', config)
         client2 = LocalClient(EngineEmul(),logging.getLogger(''), 'label', config)
 
+        client1.engine = EngineEmul()
+        client2.engine = EngineEmul()
+
         client1.connect()
         client2.connect()
 
