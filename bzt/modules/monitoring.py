@@ -148,7 +148,7 @@ class LocalClient(MonitoringClient):
         self.last_check = None
         self.cached_data = None
 
-    def engine_resource_stats(self):
+    def _engine_resource_stats(self):
         return self.monitor.resource_stats(self.metrics)
 
     def connect(self):
@@ -157,10 +157,11 @@ class LocalClient(MonitoringClient):
     def get_data(self):
         now = time.time()
 
+        # returns the same data if called too early
         if not self.cached_data or now > self.last_check + self.interval:
             self.last_check = now
             self.cached_data = []
-            metric_values = self.engine_resource_stats()
+            metric_values = self._engine_resource_stats()
 
             for name in self.metrics:
                 self.cached_data.append({
@@ -328,12 +329,15 @@ class GraphiteClient(MonitoringClient):
         return json.load(str_data)
 
     def _get_response(self):
-        json_list = self._data_transfer()
-        assert all('target' in dic.keys() for dic in json_list), "Key 'target' not found in graphite response"
-        return json_list
-
-    def connect(self):
-        self._get_response()
+        try:
+            json_list = self._data_transfer()
+            msg = "Key 'target' not found in graphite response"
+            assert all('target' in dic.keys() for dic in json_list), msg
+            return json_list
+        except BaseException:
+            self.log.debug("Metrics receiving: %s", traceback.format_exc())
+            self.log.warning("Fail to receive metrics from %s", self.address)
+            return []
 
     def start(self):
         self.start_time = time.time()
@@ -341,29 +345,25 @@ class GraphiteClient(MonitoringClient):
 
     def get_data(self):
         now = time.time()
-        if now < self.last_check + self.interval:
-            return []
-        self.last_check = now
-
-        try:
-            json_list = self._get_response()
-        except BaseException:
-            self.log.debug("Metrics receiving: %s", traceback.format_exc())
-            self.log.warning("Fail to receive metrics from %s", self.address)
-            return []
-
         res = []
-        for element in json_list:
-            item = {
-                'ts': now,
-                'source': '%s' % self.host_label}
 
-            for datapoint in reversed(element['datapoints']):
-                if datapoint[0] is not None:
-                    item[element['target']] = datapoint[0]
-                    break
+        # returns empty data if called too early
+        if now > self.last_check + self.interval:
+            self.last_check = now
+            json_list = self._get_response()
 
-            res.append(item)
+            for element in json_list:
+                item = {
+                    'ts': now,
+                    'source': '%s' % self.host_label}
+
+                for datapoint in reversed(element['datapoints']):
+                    if datapoint[0] is not None:
+                        item[element['target']] = datapoint[0]
+                        break
+
+                res.append(item)
+
         return res
 
 
