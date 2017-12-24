@@ -40,6 +40,7 @@ class Monitoring(Service, WidgetProvider, Singletone):
         self.listeners.append(listener)
 
     def prepare(self):
+        super(Monitoring, self).prepare()
         for client_name in self.parameters:
             if client_name in self.client_classes:
                 client_class = self.client_classes[client_name]
@@ -54,8 +55,7 @@ class Monitoring(Service, WidgetProvider, Singletone):
                     label = config['label']
                 else:
                     label = None
-                client = client_class(self.log, label, config)
-                client.engine = self.engine
+                client = client_class(self.engine, self.log, label, config)
                 self.clients.append(client)
                 client.connect()
 
@@ -92,8 +92,10 @@ class MonitoringListener(object):
 
 
 class MonitoringClient(object):
-    def __init__(self):
-        self.engine = None
+    def __init__(self, engine, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.engine = engine
+        self.last_check = None
 
     def connect(self):
         pass
@@ -116,9 +118,8 @@ class LocalClient(MonitoringClient):
     AVAILABLE_METRICS = ['cpu', 'mem', 'disk-space', 'engine-loop', 'bytes-recv',
                          'bytes-sent', 'disk-read', 'disk-write', 'conn-all']
 
-    def __init__(self, parent_logger, label, config):
-        super(LocalClient, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, engine, parent_log, label, config):
+        super(LocalClient, self).__init__(engine, parent_log)
         self.config = config
 
         if label:
@@ -139,7 +140,10 @@ class LocalClient(MonitoringClient):
             raise exc
         self.metrics = good_list
 
+        # interval for client
         self.interval = dehumanize_time(self.config.get('interval', None))
+        if not self.interval:
+            self.interval = self.engine.check_interval
 
         self.last_check = None
         self.cached_data = None
@@ -152,10 +156,8 @@ class LocalClient(MonitoringClient):
 
     def get_data(self):
         now = time.time()
-        if not self.interval:
-            self.interval = self.engine.check_interval
 
-        if not self.cached_data or now - self.last_check > self.interval:
+        if not self.cached_data or now > self.last_check + self.interval:
             self.last_check = now
             self.cached_data = []
             metric_values = self.engine_resource_stats()
@@ -285,20 +287,24 @@ class LocalMonitor(object):
 
 
 class GraphiteClient(MonitoringClient):
-    def __init__(self, parent_logger, label, config):
-        super(GraphiteClient, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, engine, parent_log, label, config):
+        super(GraphiteClient, self).__init__(engine, parent_log)
         self.config = config
         exc = TaurusConfigError('Graphite client requires address parameter')
         self.address = self.config.get("address", exc)
-        self.interval = int(dehumanize_time(self.config.get('interval', '5s')))
+
+        # interval for client
+        interval = self.config.get('interval', None)
+        if not interval:
+            interval = '5s'
+        self.interval = int(dehumanize_time(interval))
+
         self.url = self._get_url()
         if label:
             self.host_label = label
         else:
             self.host_label = self.address
         self.start_time = None
-        self.check_time = None
         self.timeout = int(dehumanize_time(self.config.get('timeout', '5s')))
 
     def _get_url(self):
@@ -330,14 +336,14 @@ class GraphiteClient(MonitoringClient):
         self._get_response()
 
     def start(self):
-        self.check_time = int(time.time())
-        self.start_time = self.check_time
+        self.start_time = time.time()
+        self.last_check = 0
 
     def get_data(self):
-        current_time = int(time.time())
-        if current_time < self.check_time + self.interval:
+        now = time.time()
+        if now < self.last_check + self.interval:
             return []
-        self.check_time = current_time
+        self.last_check = now
 
         try:
             json_list = self._get_response()
@@ -349,7 +355,7 @@ class GraphiteClient(MonitoringClient):
         res = []
         for element in json_list:
             item = {
-                'ts': int(time.time()),
+                'ts': now,
                 'source': '%s' % self.host_label}
 
             for datapoint in reversed(element['datapoints']):
@@ -362,12 +368,12 @@ class GraphiteClient(MonitoringClient):
 
 
 class ServerAgentClient(MonitoringClient):
-    def __init__(self, parent_logger, label, config):
+    def __init__(self, engine, parent_log, label, config):
         """
-        :type parent_logger: logging.Logger
+        :type parent_log: logging.Logger
         :type config: dict
         """
-        super(ServerAgentClient, self).__init__()
+        super(ServerAgentClient, self).__init__(engine, parent_log)
         self.host_label = label
         exc = TaurusConfigError('ServerAgent client requires address parameter')
         self.address = config.get("address", exc)
@@ -378,14 +384,21 @@ class ServerAgentClient(MonitoringClient):
             self.port = 4444
 
         self._partial_buffer = ""
-        self.log = parent_logger.getChild(self.__class__.__name__)
         exc = TaurusConfigError('ServerAgent client requires metrics list')
         metrics = config.get('metrics', exc)
-        self._result_fields = [x for x in metrics]  # TODO: handle more complex metric specifications and labeling
+
+        # TODO: handle more complex metric specifications and labeling
+        self._result_fields = [x for x in metrics]
+
         self._metrics_command = "\t".join([x for x in metrics])
         self.socket = socket.socket()
         self.select = select.select
-        self.interval = int(dehumanize_time(config.get("interval", 1)))
+
+        # interval for server (ServerAgent)
+        interval = config.get("interval", None)
+        if not interval:
+            interval = 1
+        self.interval = int(dehumanize_time(interval))
 
     def connect(self):
         try:
@@ -409,7 +422,7 @@ class ServerAgentClient(MonitoringClient):
             self.socket.close()
 
     def start(self):
-        self.socket.send(b("interval:%s\n" % self.interval if self.interval > 0 else 1))
+        self.socket.send(b("interval:%s\n" % self.interval))
         command = "metrics:%s\n" % self._metrics_command
         self.log.debug("Sending metrics command: %s", command)
         self.socket.send(b(command))
@@ -419,6 +432,7 @@ class ServerAgentClient(MonitoringClient):
         """
         :rtype: list[dict]
         """
+        now = time.time()
         readable, writable, errored = self.select([self.socket], [self.socket], [self.socket], 0)
         self.log.debug("Stream states: %s / %s / %s", readable, writable, errored)
         for _ in errored:
@@ -435,7 +449,7 @@ class ServerAgentClient(MonitoringClient):
                 self.log.debug("Data line: %s", line)
                 values = line.split("\t")
                 item = {x: float(values.pop(0)) for x in self._result_fields}
-                item['ts'] = int(time.time())
+                item['ts'] = now
                 item['source'] = source
                 res.append(item)
 

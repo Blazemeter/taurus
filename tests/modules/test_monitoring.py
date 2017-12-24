@@ -79,10 +79,10 @@ class TestMonitoring(BZTestCase):
         obj.startup()
         obj.check()
 
-        obj.clients[0].check_time -= obj.clients[0].interval * 2
+        obj.clients[0].last_check -= obj.clients[0].interval * 2
         obj.check()
 
-        obj.clients[0].check_time -= obj.clients[0].interval * 2
+        obj.clients[0].last_check -= obj.clients[0].interval * 2
         obj.clients[0].prepared_data = "wrong data"
         obj.check()
 
@@ -91,8 +91,7 @@ class TestMonitoring(BZTestCase):
 
     def test_local_with_engine(self):
         config = {'metrics': ['cpu', 'engine-loop']}
-        obj = LocalClient(logging.getLogger(''), 'label', config)
-        obj.engine = EngineEmul()
+        obj = LocalClient(EngineEmul(), logging.getLogger(''), 'label', config)
         obj.connect()
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
@@ -100,8 +99,7 @@ class TestMonitoring(BZTestCase):
 
     def test_all_metrics(self):
         config = {'interval': '1m', 'metrics': LocalClient.AVAILABLE_METRICS}
-        obj = LocalClient(logging.getLogger(''), 'label', config)
-        obj.engine = EngineEmul()
+        obj = LocalClient(EngineEmul(), logging.getLogger(''), 'label', config)
         obj.connect()
         self.assertEqual(60, obj.interval)
         data = obj.get_data()
@@ -113,8 +111,7 @@ class TestMonitoring(BZTestCase):
 
     def test_local_without_engine(self):
         config = {'metrics': ['cpu']}
-        obj = LocalClient(logging.getLogger(''), 'label', config)
-        obj.engine = EngineEmul()
+        obj = LocalClient(EngineEmul(), logging.getLogger(''), 'label', config)
         obj.connect()
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
@@ -125,11 +122,8 @@ class TestMonitoring(BZTestCase):
         # It will often return 0.0 , 50.0 or 100.0 if called too frequently,
         # which turns out to be the case when multiple LocalClient objects are used.
         config = {'metrics': ['cpu']}
-        client1 = LocalClient(logging.getLogger(''), 'label', config)
-        client2 = LocalClient(logging.getLogger(''), 'label', config)
-
-        client1.engine = EngineEmul()
-        client2.engine = EngineEmul()
+        client1 = LocalClient(EngineEmul(), logging.getLogger(''), 'label', config)
+        client2 = LocalClient(EngineEmul(),logging.getLogger(''), 'label', config)
 
         client1.connect()
         client2.connect()
@@ -165,8 +159,8 @@ class TestMonitoring(BZTestCase):
         self.assertEquals(b("test\n"), obj.clients[0].socket.sent_data)
 
     def test_psutil_potential_bugs(self):
-        client = LocalClient(logging.getLogger(''), 'label', {'metrics': ['cpu', 'mem', 'disks', 'conn-all']})
-        client.engine = EngineEmul()
+        conf = {'metrics': ['cpu', 'mem', 'disks', 'conn-all']}
+        client = LocalClient(EngineEmul(), logging.getLogger(''), 'label', conf)
         client.connect()
 
         try:
@@ -188,8 +182,8 @@ class LoggingMonListener(MonitoringListener):
 
 
 class ServerAgentClientEmul(ServerAgentClient):
-    def __init__(self, parent_logger, label, config):
-        super(ServerAgentClientEmul, self).__init__(parent_logger, label, config)
+    def __init__(self, engine, parent_logger, label, config):
+        super(ServerAgentClientEmul, self).__init__(engine, parent_logger, label, config)
         self.socket = SocketEmul()
         self.socket.recv_data = b("Yep\n")
         self.select = self.select_emul
