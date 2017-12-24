@@ -53,8 +53,7 @@ class ChromeProfiler(Monitoring):
         self.client = None
 
     def prepare(self):
-        self.client = ChromeClient(self.log)
-        self.client.engine = self.engine
+        self.client = ChromeClient(self.engine, self.log)
 
         processors = self.settings.get("processors", {})
         for proc_name, proc in iteritems(processors):
@@ -457,10 +456,8 @@ class ChromeClient(MonitoringClient):
     :type engine: bzt.Engine
     :type processors: list[PerformanceDataProcessor]
     """
-    def __init__(self, parent_logger):
-        super(ChromeClient, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.engine = None
+    def __init__(self, engine, parent_logger):
+        super(ChromeClient, self).__init__(engine, parent_logger)
         self.processors = []
 
     def add_processor(self, proc):
