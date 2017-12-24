@@ -79,10 +79,10 @@ class TestMonitoring(BZTestCase):
         obj.startup()
         obj.check()
 
-        obj.clients[0].last_check -= obj.clients[0].interval * 2
+        obj.clients[0]._last_check -= obj.clients[0].interval * 2
         obj.check()
 
-        obj.clients[0].last_check -= obj.clients[0].interval * 2
+        obj.clients[0]._last_check -= obj.clients[0].interval * 2
         obj.clients[0].prepared_data = "wrong data"
         obj.check()
 
@@ -123,16 +123,13 @@ class TestMonitoring(BZTestCase):
         # which turns out to be the case when multiple LocalClient objects are used.
         config = {'metrics': ['cpu']}
         client1 = LocalClient(EngineEmul(), logging.getLogger(''), 'label', config)
-        client2 = LocalClient(EngineEmul(),logging.getLogger(''), 'label', config)
-
-        client1.engine = EngineEmul()
-        client2.engine = EngineEmul()
+        client2 = LocalClient(EngineEmul(), logging.getLogger(''), 'label', config)
 
         client1.connect()
         client2.connect()
 
-        self.assertIsInstance(client1.monitor, LocalMonitor)
-        self.assertIsInstance(client2.monitor, LocalMonitor)
+        self.assertTrue(isinstance(client1.monitor, LocalMonitor))
+        self.assertTrue(isinstance(client2.monitor, LocalMonitor))
         self.assertIs(client1.monitor, client2.monitor)
 
         data1 = client1.get_data()
@@ -166,8 +163,9 @@ class TestMonitoring(BZTestCase):
         client = LocalClient(EngineEmul(), logging.getLogger(''), 'label', conf)
         client.connect()
 
+        import psutil
+
         try:
-            import psutil
             net_io_counters = psutil.net_io_counters
             disk_io_counters = psutil.disk_io_counters
             psutil.net_io_counters = lambda: None

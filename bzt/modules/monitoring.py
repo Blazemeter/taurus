@@ -95,7 +95,7 @@ class MonitoringClient(object):
     def __init__(self, engine, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.engine = engine
-        self.last_check = None
+        self._last_check = 0     # the last check was long time ago
 
     def connect(self):
         pass
@@ -145,7 +145,6 @@ class LocalClient(MonitoringClient):
         if not self.interval:
             self.interval = self.engine.check_interval
 
-        self.last_check = None
         self.cached_data = None
 
     def _engine_resource_stats(self):
@@ -158,8 +157,8 @@ class LocalClient(MonitoringClient):
         now = time.time()
 
         # returns the same data if called too early
-        if not self.cached_data or now > self.last_check + self.interval:
-            self.last_check = now
+        if now > self._last_check + self.interval:
+            self._last_check = now
             self.cached_data = []
             metric_values = self._engine_resource_stats()
 
@@ -181,10 +180,10 @@ class LocalMonitor(object):
             raise TaurusInternalException("LocalMonitor can't be instantiated twice, use get_instance()")
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.engine = engine
-        self.__disk_counters = None
-        self.__net_counters = None
-        self.__counters_ts = None
-        self.__cached_stats = None
+        self._disk_counters = None
+        self._net_counters = None
+        self._last_check = None
+        self._cached_data = None
 
     @classmethod
     def get_instance(cls, parent_logger, engine):
@@ -193,21 +192,21 @@ class LocalMonitor(object):
         return cls.__instance
 
     def resource_stats(self, metrics):
-        if not self.__counters_ts:
-            self.__disk_counters = self.__get_disk_counters()
-            self.__net_counters = psutil.net_io_counters()
-            self.__counters_ts = time.time()
+        if not self._last_check:
+            self._disk_counters = self.__get_disk_counters()
+            self._net_counters = psutil.net_io_counters()
+            self._last_check = time.time()
             time.sleep(0.2)  # small enough for human, big enough for machine
 
         now = time.time()
-        interval = now - self.__counters_ts
+        interval = now - self._last_check
 
         # don't recalculate stats too frequently
-        if interval >= self.engine.check_interval or self.__cached_stats is None:
-            self.__cached_stats = self._calc_resource_stats(interval, metrics)
-            self.__counters_ts = now
+        if interval >= self.engine.check_interval or self._cached_data is None:
+            self._cached_data = self._calc_resource_stats(interval, metrics)
+            self._last_check = now
 
-        return self.__cached_stats
+        return self._cached_data
 
     def _calc_resource_stats(self, interval, metrics):
         """
@@ -246,9 +245,9 @@ class LocalMonitor(object):
         if 'bytes-recv' in metrics or 'bytes-sent' in metrics:
             net = psutil.net_io_counters()
             if net is not None:
-                tx_bytes = int((net.bytes_sent - self.__net_counters.bytes_sent) / interval)
-                rx_bytes = int((net.bytes_recv - self.__net_counters.bytes_recv) / interval)
-                self.__net_counters = net
+                tx_bytes = int((net.bytes_sent - self._net_counters.bytes_sent) / float(interval))
+                rx_bytes = int((net.bytes_recv - self._net_counters.bytes_recv) / float(interval))
+                self._net_counters = net
             else:
                 rx_bytes = 0.0
                 tx_bytes = 0.0
@@ -261,9 +260,9 @@ class LocalMonitor(object):
         if 'disk-read' in metrics or 'disk-write' in metrics:
             disk = self.__get_disk_counters()
             if disk is not None:
-                dru = int((disk.read_bytes - self.__disk_counters.read_bytes) / interval)
-                dwu = int((disk.write_bytes - self.__disk_counters.write_bytes) / interval)
-                self.__disk_counters = disk
+                dru = int((disk.read_bytes - self._disk_counters.read_bytes) / float(interval))
+                dwu = int((disk.write_bytes - self._disk_counters.write_bytes) / float(interval))
+                self._disk_counters = disk
             else:
                 dru = 0.0
                 dwu = 0.0
@@ -305,7 +304,6 @@ class GraphiteClient(MonitoringClient):
             self.host_label = label
         else:
             self.host_label = self.address
-        self.start_time = None
         self.timeout = int(dehumanize_time(self.config.get('timeout', '5s')))
 
     def _get_url(self):
@@ -339,17 +337,13 @@ class GraphiteClient(MonitoringClient):
             self.log.warning("Fail to receive metrics from %s", self.address)
             return []
 
-    def start(self):
-        self.start_time = time.time()
-        self.last_check = 0
-
     def get_data(self):
         now = time.time()
         res = []
 
         # returns empty data if called too early
-        if now > self.last_check + self.interval:
-            self.last_check = now
+        if now > self._last_check + self.interval:
+            self._last_check = now
             json_list = self._get_response()
 
             for element in json_list:
