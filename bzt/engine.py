@@ -1025,7 +1025,7 @@ class ScenarioExecutor(EngineModule):
                 env = {name.upper(): env[name] for name in env}
                 new_keys = set(env.keys())
                 if old_keys != new_keys:
-                    msg = 'Some taurus environment variables might be been lost: %s'
+                    msg = 'Some taurus environment variables might have been lost: %s'
                     self.log.debug(msg, list(old_keys - new_keys))
                 environ = BetterDict()
                 environ.merge(cur_env)

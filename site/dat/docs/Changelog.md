@@ -3,6 +3,7 @@
 ## 1.10.4 <sup>next</sup>
  - don't level down logging if `settings.verbose` is set
  - set `write-xml-jtl=full` in JMeter if `settings.verbose` is set
+ - fix error when exception is not shown for failed JMeter run
 
 ## 1.10.3 <sup>22 nov 2017</sup>
  - use builtin JSON extractor in JMeter, if possible
