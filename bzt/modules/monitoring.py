@@ -6,7 +6,7 @@ import subprocess
 import time
 import traceback
 from abc import abstractmethod
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from urwid import Pile, Text
 
 import psutil
@@ -55,7 +55,7 @@ class Monitoring(Service, WidgetProvider, Singletone):
                     label = config['label']
                 else:
                     label = None
-                client = client_class(self.engine, self.log, label, config)
+                client = client_class(self.log, label, config, self.engine)
                 self.clients.append(client)
                 client.connect()
 
@@ -92,9 +92,13 @@ class MonitoringListener(object):
 
 
 class MonitoringClient(object):
-    def __init__(self, engine, parent_log):
+    def __init__(self, parent_log, engine):
         self.log = parent_log.getChild(self.__class__.__name__)
+
+        if not engine:
+            self.log.warning('Deprecated constructor detected!')
         self.engine = engine
+
         self._last_check = 0     # the last check was long time ago
 
     def connect(self):
@@ -118,8 +122,8 @@ class LocalClient(MonitoringClient):
     AVAILABLE_METRICS = ['cpu', 'mem', 'disk-space', 'engine-loop', 'bytes-recv',
                          'bytes-sent', 'disk-read', 'disk-write', 'conn-all']
 
-    def __init__(self, engine, parent_log, label, config):
-        super(LocalClient, self).__init__(engine, parent_log)
+    def __init__(self, parent_log, label, config, engine=None):
+        super(LocalClient, self).__init__(parent_log, engine)
         self.config = config
 
         if label:
@@ -143,11 +147,37 @@ class LocalClient(MonitoringClient):
         # interval for client
         self.interval = dehumanize_time(self.config.get('interval', None))
         if not self.interval:
-            self.interval = self.engine.check_interval
+            if self.engine:
+                self.interval = self.engine.check_interval
+            else:
+                self.interval = 1   # deprecated variant
 
         self.cached_data = None
 
-    def _engine_resource_stats(self):
+    # emulation of deprecated interface
+    def engine_resource_stats(self):
+        stats = namedtuple("ResourceStats", (
+            'cpu', 'disk_usage', 'mem_usage', 'rx', 'tx', 'dru', 'dwu', 'engine_loop', 'conn_all'))
+
+        res_stats = self._get_resource_stats()
+
+        cpu = res_stats.get('cpu', None)
+        disk_usage = res_stats.get('disk-space', None)
+        mem_usage = res_stats.get('mem', None)
+        rx = res_stats.get('bytes-recv', None)
+        tx = res_stats.get('bytes-sent', None)
+        dru = res_stats.get('disk-read', None)
+        dwu = res_stats.get('disk-write', None)
+        engine_loop = res_stats.get('engine-loop', None)
+        conn_all = res_stats.get('conn-all', None)
+
+        return stats(cpu=cpu, disk_usage=disk_usage, mem_usage=mem_usage, rx=rx, tx=tx,
+                     dru=dru, dwu=dwu, engine_loop=engine_loop, conn_all=conn_all)
+
+    def _get_resource_stats(self):
+        if not self.monitor:
+            raise TaurusInternalException('Local monitor must be instantiated')
+
         return self.monitor.resource_stats(self.metrics)
 
     def connect(self):
@@ -160,7 +190,7 @@ class LocalClient(MonitoringClient):
         if now > self._last_check + self.interval:
             self._last_check = now
             self.cached_data = []
-            metric_values = self._engine_resource_stats()
+            metric_values = self._get_resource_stats()
 
             for name in self.metrics:
                 self.cached_data.append({
@@ -175,6 +205,8 @@ class LocalMonitor(object):
     __instance = None
 
     def __init__(self, parent_logger, engine):
+        if not engine:
+            raise TaurusInternalException('Local monitor requires valid engine instance')
         self.__informed_on_mem_issue = False
         if self.__instance is not None:
             raise TaurusInternalException("LocalMonitor can't be instantiated twice, use get_instance()")
@@ -287,8 +319,8 @@ class LocalMonitor(object):
 
 
 class GraphiteClient(MonitoringClient):
-    def __init__(self, engine, parent_log, label, config):
-        super(GraphiteClient, self).__init__(engine, parent_log)
+    def __init__(self, parent_log, label, config, engine=None):
+        super(GraphiteClient, self).__init__(parent_log, engine)
         self.config = config
         exc = TaurusConfigError('Graphite client requires address parameter')
         self.address = self.config.get("address", exc)
@@ -362,12 +394,12 @@ class GraphiteClient(MonitoringClient):
 
 
 class ServerAgentClient(MonitoringClient):
-    def __init__(self, engine, parent_log, label, config):
+    def __init__(self, parent_log, label, config, engine=None):
         """
         :type parent_log: logging.Logger
         :type config: dict
         """
-        super(ServerAgentClient, self).__init__(engine, parent_log)
+        super(ServerAgentClient, self).__init__(parent_log, engine)
         self.host_label = label
         exc = TaurusConfigError('ServerAgent client requires address parameter')
         self.address = config.get("address", exc)
