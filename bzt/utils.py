@@ -597,7 +597,7 @@ def to_json(obj):
     :param obj:
     :return:
     """
-
+    # NOTE: you can set allow_nan=False to fail when serializing NaN/Infinity
     return json.dumps(obj, indent=True, cls=ComplexEncoder)
 
 
