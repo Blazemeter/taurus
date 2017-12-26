@@ -5,7 +5,7 @@ from os.path import join
 from bzt import ToolError, TaurusConfigError
 from bzt.modules.siege import SiegeExecutor, DataLogReader
 from bzt.utils import EXE_SUFFIX
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul
 from bzt.modules.aggregator import ConsolidatingAggregator
 
@@ -26,8 +26,7 @@ class TestSiegeExecutor(BZTestCase):
             self.obj.stdout_file.close()
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
-        if self.obj.reader and self.obj.reader.fds:
-            self.obj.reader.fds.close()
+        close_reader_file(self.obj.reader)
         super(TestSiegeExecutor, self).tearDown()
 
     def test_iter(self):

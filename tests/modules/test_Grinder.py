@@ -5,7 +5,7 @@ import time
 
 import os
 from bzt import ToolError
-from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR
+from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.grinder import GrinderExecutor, DataLogReader
@@ -31,8 +31,7 @@ class TestGrinderExecutor(BZTestCase):
             self.obj.stdout_file.close()
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
-        if self.obj.reader and self.obj.reader.fds:
-            self.obj.reader.fds.close()
+        close_reader_file(self.obj.reader)
         super(TestGrinderExecutor, self).tearDown()
 
     def test_install_Grinder(self):

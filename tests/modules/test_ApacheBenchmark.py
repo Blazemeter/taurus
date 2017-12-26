@@ -3,7 +3,7 @@ import time
 import os
 
 from bzt.modules.ab import ApacheBenchmarkExecutor, TSVDataReader
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul
 from bzt.utils import EXE_SUFFIX
 from bzt import ToolError, TaurusConfigError
@@ -27,8 +27,7 @@ class TestApacheBenchExecutor(BZTestCase):
             self.obj.stdout_file.close()
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
-        if self.obj.reader and self.obj.reader.fds:
-            self.obj.reader.fds.close()
+        close_reader_file(self.obj.reader)
         super(TestApacheBenchExecutor, self).tearDown()
 
     def test_iter(self):

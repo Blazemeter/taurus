@@ -18,7 +18,7 @@ from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJ
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
-from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR
+from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
 from tests.modules.jmeter import MockJMeterExecutor
 
 
@@ -52,13 +52,11 @@ class TestJMeterExecutor(BZTestCase):
         if self.obj.stderr_file:
             self.obj.stderr_file.close()
         if self.obj.reader:
-            if isinstance(self.obj.reader, FuncJTLReader) and self.obj.reader.fds:
-                self.obj.reader.fds.close()
+            if isinstance(self.obj.reader, FuncJTLReader):
+                close_reader_file(self.obj.reader)
             if isinstance(self.obj.reader, JTLReader):
-                if self.obj.reader.csvreader and self.obj.reader.csvreader.fds:
-                    self.obj.reader.csvreader.fds.close()
-                if self.obj.reader.errors_reader and self.obj.reader.errors_reader.fds:
-                    self.obj.reader.errors_reader.fds.close()
+                close_reader_file(self.obj.reader.csvreader)
+                close_reader_file(self.obj.reader.errors_reader)
 
         super(TestJMeterExecutor, self).tearDown()
 

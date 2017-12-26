@@ -19,7 +19,6 @@ limitations under the License.
 import logging
 import time
 from math import ceil
-from os import path
 from subprocess import CalledProcessError
 
 from bzt import TaurusConfigError, ToolError
@@ -28,7 +27,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, FileReader
 
 
 class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
@@ -170,8 +169,7 @@ class TSVDataReader(ResultsReader):
     def __init__(self, filename, parent_logger):
         super(TSVDataReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.skipped_header = False
         self.concurrency = None
         self.url_label = None
@@ -180,33 +178,10 @@ class TSVDataReader(ResultsReader):
         self.concurrency = concurrency
         self.url_label = url_label
 
-    def __open_fds(self):
-        if not path.isfile(self.filename):
-            self.log.debug("File not appeared yet")
-            return False
-
-        if not path.getsize(self.filename):
-            self.log.debug("File is empty: %s", self.filename)
-            return False
-
-        if not self.fds:
-            self.fds = open(self.filename)
-
         return True
 
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
-
     def _read(self, last_pass=False):
-        while not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-        if last_pass:
-            lines = self.fds.readlines()
-            self.fds.close()
-        else:
-            lines = self.fds.readlines(1024 * 1024)
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if not self.skipped_header:

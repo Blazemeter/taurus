@@ -98,9 +98,23 @@ class TestMonitoring(BZTestCase):
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
         return data
 
+    def test_all_metrics(self):
+        config = {'interval': '1m', 'metrics': LocalClient.AVAILABLE_METRICS}
+        obj = LocalClient(logging.getLogger(''), 'label', config)
+        obj.engine = EngineEmul()
+        obj.connect()
+        self.assertEqual(60, obj.interval)
+        data = obj.get_data()
+        for item in data:
+            metrics = set(item.keys()) - {'ts', 'source'}
+            self.assertEqual(1, len(metrics))
+            self.assertIn(metrics.pop(), LocalClient.AVAILABLE_METRICS)
+        self.assertEqual(len(data), len(LocalClient.AVAILABLE_METRICS))
+
     def test_local_without_engine(self):
         config = {'metrics': ['cpu']}
         obj = LocalClient(logging.getLogger(''), 'label', config)
+        obj.engine = EngineEmul()
         obj.connect()
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
@@ -113,6 +127,9 @@ class TestMonitoring(BZTestCase):
         config = {'metrics': ['cpu']}
         client1 = LocalClient(logging.getLogger(''), 'label', config)
         client2 = LocalClient(logging.getLogger(''), 'label', config)
+
+        client1.engine = EngineEmul()
+        client2.engine = EngineEmul()
 
         client1.connect()
         client2.connect()
@@ -159,11 +176,10 @@ class TestMonitoring(BZTestCase):
             psutil.net_io_counters = lambda: None
             psutil.disk_io_counters = lambda: None
 
-            client.engine_resource_stats()  # should throw no exception
+            client.monitor.resource_stats(['cpu'])  # should throw no exception
         finally:
             psutil.net_io_counters = net_io_counters
             psutil.disk_io_counters = disk_io_counters
-
 
 
 class LoggingMonListener(MonitoringListener):

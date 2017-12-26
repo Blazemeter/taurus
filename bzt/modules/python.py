@@ -31,7 +31,7 @@ from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSampl
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
-from bzt.utils import BetterDict, ensure_is_dict, shell_exec
+from bzt.utils import BetterDict, ensure_is_dict, shell_exec, FileReader
 from bzt.utils import get_full_path, RequiredTool, PythonGenerator, dehumanize_time
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -44,7 +44,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def __init__(self):
         super(ApiritifNoseExecutor, self).__init__()
-        self._tailer = NoneTailer()
+        self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
         self._readers = []
 
     def prepare(self):
@@ -54,8 +54,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 self.script = self.__tests_from_requests()
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
-
-        self.reporting_setup(suffix=".ldjson")
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
@@ -102,10 +100,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         if load.steps:
             cmdline += ['--steps', str(load.steps)]
 
+        if self.__is_verbose():
+            cmdline += ['--verbose']
+
         cmdline += [self.script]
         self.start_time = time.time()
         self._start_subprocess(cmdline)
-        self._tailer = FileTailer(self.stdout_file)
+        self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
 
     def has_results(self):
         if not self._readers:
@@ -148,14 +149,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
         executor_verbose = self.settings.get("verbose", engine_verbose)
         return executor_verbose
-
-
-class TaurusNosePlugin(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(TaurusNosePlugin, self).__init__("TaurusNosePlugin", tool_path, download_link)
-
-    def install(self):
-        raise ToolError("Automatic installation of Taurus nose plugin isn't implemented")
 
 
 class SeleniumScriptBuilder(PythonGenerator):
@@ -242,7 +235,6 @@ import apiritif
                 test_method.append(self.gen_new_line(indent=0))
 
         test_class.append(test_method)
-        return {}
 
     def _add_url_request(self, default_address, req, test_method):
         parsed_url = parse.urlparse(req.url)
@@ -408,35 +400,6 @@ import apiritif
             selector = selector[1:-1]
 
         return aby, atype, param, selector
-
-
-class NoneTailer(object):
-    def get_lines(self):
-        return ()
-
-
-class FileTailer(NoneTailer):
-    def __init__(self, filename):
-        super(FileTailer, self).__init__()
-        self.file_name = filename
-        self._fds = None
-        self.offset = 0
-
-    def get_lines(self):
-        if not self._fds:
-            if os.path.isfile(self.file_name):
-                self._fds = open(self.file_name)
-            else:
-                return
-
-        self._fds.seek(self.offset)
-        for line in self._fds.readlines():
-            yield line.rstrip()
-        self.offset = self._fds.tell()
-
-    def __del__(self):
-        if self._fds:
-            self._fds.close()
 
 
 class ApiritifScriptGenerator(PythonGenerator):
@@ -861,7 +824,6 @@ log.setLevel(logging.DEBUG)
 
     def build_source_code(self):
         self.tree = self.build_tree()
-        return {}
 
     def save(self, filename):
         with open(filename, 'wt') as fds:
@@ -1055,7 +1017,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(PyTestExecutor, self).__init__()
         self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "pytest_runner.py")
-        self._tailer = NoneTailer()
+        self._tailer = FileReader('', file_opener=lambda _: None, parent_logger=self.log)
         self._additional_args = []
 
     def prepare(self):
@@ -1107,7 +1069,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         self._start_subprocess(cmdline)
 
         if self.__is_verbose():
-            self._tailer = FileTailer(self.stdout_file)
+            self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
 
     def check(self):
         self.__log_lines()
