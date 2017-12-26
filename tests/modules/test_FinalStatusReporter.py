@@ -309,6 +309,13 @@ class TestFinalStatusReporter(BZTestCase):
             report_content = fds.read()
         self.assertIn('<TestDuration>10.0</TestDuration>', report_content)
 
+    def test_xml_report_test_duration_failed_prepare(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        obj.aggregated_second(self.__get_datapoint(ts=100))
+        obj.post_process()  # shouldn't raise ValueError because obj.start_time is None
+
     def test_csv_report_fieldname_order(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
