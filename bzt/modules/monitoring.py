@@ -124,7 +124,7 @@ class LocalClient(MonitoringClient):
         self.config = config
         if not engine:
             self.log.warning('Deprecated constructor detected!')
-            self.config['metrics'] = self.AVAILABLE_METRICS
+            self.config['metrics'] = self.AVAILABLE_METRICS     # be generous to old clients
 
         if label:
             self.label = label
