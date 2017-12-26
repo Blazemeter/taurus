@@ -152,7 +152,7 @@ class LocalClient(MonitoringClient):
             else:
                 self.interval = 1   # deprecated variant
 
-        self.cached_data = None
+        self._cached_data = None
 
     # emulation of deprecated interface
     def engine_resource_stats(self):
@@ -186,19 +186,18 @@ class LocalClient(MonitoringClient):
     def get_data(self):
         now = time.time()
 
-        # returns the same data if called too early
         if now > self._last_check + self.interval:
             self._last_check = now
-            self.cached_data = []
+            self._cached_data = []
             metric_values = self._get_resource_stats()
 
             for name in self.metrics:
-                self.cached_data.append({
+                self._cached_data.append({
                     'source': self.label,
                     'ts': now,
                     name: metric_values[name]})
 
-        return self.cached_data
+        return self._cached_data
 
 
 class LocalMonitor(object):
@@ -337,6 +336,7 @@ class GraphiteClient(MonitoringClient):
         else:
             self.host_label = self.address
         self.timeout = int(dehumanize_time(self.config.get('timeout', '5s')))
+        self._cached_data = None
 
     def _get_url(self):
         exc = TaurusConfigError('Graphite client requires metrics list')
@@ -371,10 +371,9 @@ class GraphiteClient(MonitoringClient):
 
     def get_data(self):
         now = time.time()
-        res = []
 
-        # returns empty data if called too early
         if now > self._last_check + self.interval:
+            self._cached_data = []
             self._last_check = now
             json_list = self._get_response()
 
@@ -388,9 +387,9 @@ class GraphiteClient(MonitoringClient):
                         item[element['target']] = datapoint[0]
                         break
 
-                res.append(item)
+                self._cached_data.append(item)
 
-        return res
+        return self._cached_data
 
 
 class ServerAgentClient(MonitoringClient):
