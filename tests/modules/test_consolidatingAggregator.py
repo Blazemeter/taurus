@@ -135,6 +135,12 @@ class TestConsolidatingAggregator(BZTestCase):
             dst.compact_times()
             self.assertEqual(100, len(dst[KPISet.RESP_TIMES]))
 
+    def test_inf_values(self):
+        obj = ConsolidatingAggregator()
+        obj.settings['max-buffer-len'] = "inf"
+        obj.prepare()
+        self.assertEqual(obj.max_buffer_len, float("inf"))
+
 
 class MockListener(AggregatorListener):
     def __init__(self):

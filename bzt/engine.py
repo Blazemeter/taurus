@@ -33,6 +33,8 @@ from distutils.version import LooseVersion
 from json import encoder
 
 import os
+
+import math
 import yaml
 from yaml.representer import SafeRepresenter
 
@@ -704,6 +706,7 @@ class Configuration(BetterDict):
 
             acopy = copy.deepcopy(self)
             BetterDict.traverse(acopy, self.masq_sensitive)
+            BetterDict.traverse(acopy, self.replace_infinities)
             with open(filename, "wb") as fhd:
                 self.log.debug("Dumping %s config into %s", fmt, filename)
                 acopy.write(fhd, fmt)
@@ -718,6 +721,15 @@ class Configuration(BetterDict):
                 if key.lower().endswith(suffix):
                     if value and isinstance(value, (string_types, text_type)):
                         container[key] = '*' * 8
+
+    @staticmethod
+    def replace_infinities(value, key, container):
+        """
+        Remove non-string JSON values used by default JSON encoder (Infinity, -Infinity, NaN)
+        """
+        if isinstance(container[key], float):
+            if math.isinf(container[key]) or math.isnan(container[key]):
+                container[key] = str(container[key])
 
     def _replace_tabs(self, lines, fname):
         has_tab_indents = re.compile("^( *)(\t+)( *\S*)")
