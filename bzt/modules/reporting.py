@@ -42,7 +42,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         self.last_sec = None
         self.cumulative_results = None
         self.start_time = time.time()  # default value
-        self.end_time = None
+        self.end_time = time.time()
         self.first_ts = float("inf")
         self.last_ts = 0
 
