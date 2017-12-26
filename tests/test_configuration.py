@@ -1,11 +1,13 @@
 # coding=utf-8
+import json
 import logging
 import tempfile
 
 from bzt import six
 from bzt.engine import Configuration
-from bzt.utils import BetterDict
+from bzt.utils import BetterDict, dehumanize_time
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG
+from tests.mocks import EngineEmul
 
 
 class TestConfiguration(BZTestCase):
@@ -201,3 +203,16 @@ class TestConfiguration(BZTestCase):
         })
         self.assertEqual(obj["execution"][0]["iterations"], 20)
         self.assertEqual(obj["execution"][1]["iterations"], 30)
+
+    def encode_decode_infinities(self):
+        engine = EngineEmul()
+        obj = Configuration()
+        obj.merge({
+            "foo": float("inf"),
+        })
+        cfg = engine.create_artifact("config", ".json")
+        obj.dump(cfg, Configuration.JSON)
+        with open(cfg) as fds:
+            dump = json.loads(fds.read())
+        self.assertEqual(dump["foo"], "inf")
+        self.assertEqual(dehumanize_time(dump["foo"]), float("inf"))
