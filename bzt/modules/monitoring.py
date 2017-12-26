@@ -214,6 +214,8 @@ class LocalMonitor(object):
         self._disk_counters = None
         self._net_counters = None
         self._last_check = None
+
+        self._cached_source = None
         self._cached_data = None
 
     @classmethod
@@ -233,7 +235,8 @@ class LocalMonitor(object):
         interval = now - self._last_check
 
         # don't recalculate stats too frequently
-        if interval >= self.engine.check_interval or self._cached_data is None:
+        if metrics != self._cached_source or interval >= self.engine.check_interval:
+            self._cached_source = metrics
             self._cached_data = self._calc_resource_stats(interval, metrics)
             self._last_check = now
 
