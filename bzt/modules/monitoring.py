@@ -494,7 +494,7 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
             if item['source'] not in self.host_metrics:
                 self.host_metrics[item['source']] = OrderedDict()
 
-            for key in item:
+            for key in sorted(item.keys()):
                 if key not in ("source", "ts"):
                     color = ''
                     if key in self.host_metrics[item['source']]:
