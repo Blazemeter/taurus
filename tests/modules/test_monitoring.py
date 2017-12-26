@@ -95,11 +95,11 @@ class TestMonitoring(BZTestCase):
         obj.connect()
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
-        return data
 
     def test_deprecated_local(self):
-        config = {'metrics': ['mem', 'disk-space', 'engine-loop', 'conn-all',
-                              'cpu', 'bytes-recv', 'bytes-sent', 'disk-read', 'disk-write']}
+        # strange metrics, anyway full list of available ones will be used
+        config = {'metrics': ['memory', 'disk']}
+
         obj = LocalClient(logging.getLogger(''), 'label', config)
         obj.engine = EngineEmul()
         obj.connect()
@@ -107,7 +107,6 @@ class TestMonitoring(BZTestCase):
         self.assertTrue(all(val is not None for val in [
             data.cpu, data.disk_usage, data.mem_usage, data.mem_usage, data.rx,
             data.tx, data.dru, data.dwu, data.engine_loop, data.conn_all]))
-        return data
 
     def test_all_metrics(self):
         config = {'interval': '1m', 'metrics': LocalClient.AVAILABLE_METRICS}
@@ -127,7 +126,6 @@ class TestMonitoring(BZTestCase):
         obj.connect()
         data = obj.get_data()
         self.assertTrue(all('source' in item.keys() and 'ts' in item.keys() for item in data))
-        return data
 
     def test_multiple_local_monitorings_cpu(self):
         # psutil.cpu_percent() has interesting semantics.

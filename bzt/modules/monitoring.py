@@ -94,11 +94,7 @@ class MonitoringListener(object):
 class MonitoringClient(object):
     def __init__(self, parent_log, engine):
         self.log = parent_log.getChild(self.__class__.__name__)
-
-        if not engine:
-            self.log.warning('Deprecated constructor detected!')
         self.engine = engine
-
         self._last_check = 0     # the last check was long time ago
 
     def connect(self):
@@ -124,7 +120,11 @@ class LocalClient(MonitoringClient):
 
     def __init__(self, parent_log, label, config, engine=None):
         super(LocalClient, self).__init__(parent_log, engine)
+
         self.config = config
+        if not engine:
+            self.log.warning('Deprecated constructor detected!')
+            self.config['metrics'] = self.AVAILABLE_METRICS
 
         if label:
             self.label = label
@@ -319,7 +319,7 @@ class LocalMonitor(object):
 
 
 class GraphiteClient(MonitoringClient):
-    def __init__(self, parent_log, label, config, engine=None):
+    def __init__(self, parent_log, label, config, engine):
         super(GraphiteClient, self).__init__(parent_log, engine)
         self.config = config
         exc = TaurusConfigError('Graphite client requires address parameter')
@@ -394,7 +394,7 @@ class GraphiteClient(MonitoringClient):
 
 
 class ServerAgentClient(MonitoringClient):
-    def __init__(self, parent_log, label, config, engine=None):
+    def __init__(self, parent_log, label, config, engine):
         """
         :type parent_log: logging.Logger
         :type config: dict
