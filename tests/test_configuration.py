@@ -204,7 +204,7 @@ class TestConfiguration(BZTestCase):
         self.assertEqual(obj["execution"][0]["iterations"], 20)
         self.assertEqual(obj["execution"][1]["iterations"], 30)
 
-    def encode_decode_infinities(self):
+    def test_encode_decode_infinities(self):
         engine = EngineEmul()
         obj = Configuration()
         obj.merge({

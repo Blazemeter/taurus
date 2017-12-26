@@ -706,6 +706,7 @@ class Configuration(BetterDict):
 
             acopy = copy.deepcopy(self)
             BetterDict.traverse(acopy, self.masq_sensitive)
+            BetterDict.traverse(acopy, self.replace_infinities)
             with open(filename, "wb") as fhd:
                 self.log.debug("Dumping %s config into %s", fmt, filename)
                 acopy.write(fhd, fmt)
