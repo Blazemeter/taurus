@@ -16,7 +16,7 @@ from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
 from bzt.six import iteritems, urlopen, urlencode, b, stream_decode
-from bzt.utils import dehumanize_time
+from bzt.utils import dehumanize_time, BetterDict
 
 
 class Monitoring(Service, WidgetProvider, Singletone):
@@ -41,20 +41,27 @@ class Monitoring(Service, WidgetProvider, Singletone):
 
     def prepare(self):
         super(Monitoring, self).prepare()
-        for client_name in self.parameters:
+        clients = (param for param in self.parameters if param not in ('run-at', 'module'))
+        for client_name in clients:
             if client_name in self.client_classes:
                 client_class = self.client_classes[client_name]
             else:
-                if client_name == 'server-agents':
-                    self.log.warning('Monitoring: obsolete config file format detected.')
+                self.log.warning('Unknown monitoring found: %s', client_name)
                 continue
             for config in self.parameters.get(client_name):
-                if isinstance(config, str):
-                    self.log.warning('Monitoring: obsolete configuration detected: %s', config)
-                if 'label' in config:
-                    label = config['label']
-                else:
-                    label = None
+                label = config.get('label', None)
+
+                if client_name == 'local':
+                    if any([client for client in self.clients
+                            if isinstance(client, self.client_classes[client_name])]):
+                        break   # skip the second and following local monitoring clients
+                    else:
+                        if len(self.parameters.get(client_name)) > 1:
+                            self.log.warning('LocalMonitoring client found twice, configs will be joined')
+                        config = BetterDict()
+                        for cfg in self.parameters.get(client_name):
+                            config.merge(cfg)
+
                 client = client_class(self.log, label, config, self.engine)
                 self.clients.append(client)
                 client.connect()
@@ -122,6 +129,7 @@ class LocalClient(MonitoringClient):
         super(LocalClient, self).__init__(parent_log, engine)
 
         self.config = config
+
         if not engine:
             self.log.warning('Deprecated constructor detected!')
             self.config['metrics'] = self.AVAILABLE_METRICS     # be generous to old clients
@@ -130,28 +138,10 @@ class LocalClient(MonitoringClient):
             self.label = label
         else:
             self.label = 'local'
+
         self.monitor = None
-
-        exc = TaurusConfigError('Metric is required in Local monitoring client')
-        metric_names = self.config.get('metrics', exc)
-
-        bad_list = set(metric_names) - set(self.AVAILABLE_METRICS)
-        if bad_list:
-            self.log.warning('Wrong metrics found: %s', bad_list)
-
-        good_list = set(metric_names) & set(self.AVAILABLE_METRICS)
-        if not good_list:
-            raise exc
-        self.metrics = good_list
-
-        # interval for client
-        self.interval = dehumanize_time(self.config.get('interval', None))
-        if not self.interval:
-            if self.engine:
-                self.interval = self.engine.check_interval
-            else:
-                self.interval = 1   # deprecated variant
-
+        self.interval = None
+        self.metrics = None
         self._cached_data = None
 
     # emulation of deprecated interface
@@ -177,11 +167,26 @@ class LocalClient(MonitoringClient):
     def _get_resource_stats(self):
         if not self.monitor:
             raise TaurusInternalException('Local monitor must be instantiated')
-
-        return self.monitor.resource_stats(self.metrics)
+        return self.monitor.resource_stats()
 
     def connect(self):
-        self.monitor = LocalMonitor.get_instance(self.log, self.engine)
+        exc = TaurusConfigError('Metric is required in Local monitoring client')
+        metric_names = self.config.get('metrics', exc)
+
+        bad_list = set(metric_names) - set(self.AVAILABLE_METRICS)
+        if bad_list:
+            self.log.warning('Wrong metrics found: %s', bad_list)
+
+        good_list = set(metric_names) & set(self.AVAILABLE_METRICS)
+        if not good_list:
+            raise exc
+        self.metrics = list(set(good_list))
+
+        self.monitor = LocalMonitor(self.log, self.metrics, self.engine)
+
+        self.interval = dehumanize_time(self.config.get('interval', None))
+        if not self.interval:
+            self.interval = self.engine.check_interval
 
     def get_data(self):
         now = time.time()
@@ -201,30 +206,18 @@ class LocalClient(MonitoringClient):
 
 
 class LocalMonitor(object):
-    __instance = None
-
-    def __init__(self, parent_logger, engine):
+    def __init__(self, parent_logger, metrics, engine):
         if not engine:
             raise TaurusInternalException('Local monitor requires valid engine instance')
-        self.__informed_on_mem_issue = False
-        if self.__instance is not None:
-            raise TaurusInternalException("LocalMonitor can't be instantiated twice, use get_instance()")
+        self._informed_on_mem_issue = False
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.metrics = metrics
         self.engine = engine
         self._disk_counters = None
         self._net_counters = None
         self._last_check = None
 
-        self._cached_source = None
-        self._cached_data = None
-
-    @classmethod
-    def get_instance(cls, parent_logger, engine):
-        if cls.__instance is None:
-            cls.__instance = LocalMonitor(parent_logger, engine)
-        return cls.__instance
-
-    def resource_stats(self, metrics):
+    def resource_stats(self):
         if not self._last_check:
             self._disk_counters = self.__get_disk_counters()
             self._net_counters = psutil.net_io_counters()
@@ -233,16 +226,19 @@ class LocalMonitor(object):
 
         now = time.time()
         interval = now - self._last_check
+        self._last_check = now
+        return self._calc_resource_stats(interval)
 
-        # don't recalculate stats too frequently
-        if metrics != self._cached_source or interval >= self.engine.check_interval:
-            self._cached_source = metrics
-            self._cached_data = self._calc_resource_stats(interval, metrics)
-            self._last_check = now
+    def __get_mem_info(self):
+        try:
+            return psutil.virtual_memory().percent
+        except KeyError:
+            if not self._informed_on_mem_issue:
+                self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
+                self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
+                self._informed_on_mem_issue = True
 
-        return self._cached_data
-
-    def _calc_resource_stats(self, interval, metrics):
+    def _calc_resource_stats(self, interval):
         """
         Get local resource stats
 
@@ -250,33 +246,26 @@ class LocalMonitor(object):
         """
         result = {}
 
-        if 'mem' in metrics:
-            try:
-                result['mem'] = psutil.virtual_memory().percent
-            except KeyError:
-                result['mem'] = None
-                if not self.__informed_on_mem_issue:
-                    self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
-                    self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
-                    self.__informed_on_mem_issue = True
+        if 'mem' in self.metrics:
+            result['mem'] = self.__get_mem_info()
 
-        if 'disk-space' in metrics:
+        if 'disk-space' in self.metrics:
             result['disk-space'] = psutil.disk_usage(self.engine.artifacts_dir).percent
 
-        if 'engine-loop' in metrics:
+        if 'engine-loop' in self.metrics:
             result['engine-loop'] = self.engine.engine_loop_utilization
 
-        if 'conn-all' in metrics:
+        if 'conn-all' in self.metrics:
             # take all connections without address resolution
             output = subprocess.check_output(['netstat', '-an'])
             output_lines = stream_decode(output).split('\n')  # in py3 stream has 'bytes' type
             est_lines = [line for line in output_lines if line.find('EST') != -1]
             result['conn-all'] = len(est_lines)
 
-        if 'cpu' in metrics:
+        if 'cpu' in self.metrics:
             result['cpu'] = psutil.cpu_percent()
 
-        if 'bytes-recv' in metrics or 'bytes-sent' in metrics:
+        if 'bytes-recv' in self.metrics or 'bytes-sent' in self.metrics:
             net = psutil.net_io_counters()
             if net is not None:
                 tx_bytes = int((net.bytes_sent - self._net_counters.bytes_sent) / float(interval))
@@ -286,12 +275,12 @@ class LocalMonitor(object):
                 rx_bytes = 0.0
                 tx_bytes = 0.0
 
-            if 'bytes-recv' in metrics:
+            if 'bytes-recv' in self.metrics:
                 result['bytes-recv'] = rx_bytes
-            if 'bytes-sent' in metrics:
+            if 'bytes-sent' in self.metrics:
                 result['bytes-sent'] = tx_bytes
 
-        if 'disk-read' in metrics or 'disk-write' in metrics:
+        if 'disk-read' in self.metrics or 'disk-write' in self.metrics:
             disk = self.__get_disk_counters()
             if disk is not None:
                 dru = int((disk.read_bytes - self._disk_counters.read_bytes) / float(interval))
@@ -301,9 +290,9 @@ class LocalMonitor(object):
                 dru = 0.0
                 dwu = 0.0
 
-            if 'disk-read' in metrics:
+            if 'disk-read' in self.metrics:
                 result['disk-read'] = dru
-            if 'disk-write' in metrics:
+            if 'disk-write' in self.metrics:
                 result['disk-write'] = dwu
 
         return result
