@@ -6,7 +6,7 @@ import subprocess
 import time
 import traceback
 from abc import abstractmethod
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from urwid import Pile, Text
 
 import psutil
@@ -16,7 +16,7 @@ from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
 from bzt.six import iteritems, urlopen, urlencode, b, stream_decode
-from bzt.utils import dehumanize_time
+from bzt.utils import dehumanize_time, BetterDict
 
 
 class Monitoring(Service, WidgetProvider, Singletone):
@@ -40,22 +40,29 @@ class Monitoring(Service, WidgetProvider, Singletone):
         self.listeners.append(listener)
 
     def prepare(self):
-        for client_name in self.parameters:
+        super(Monitoring, self).prepare()
+        clients = (param for param in self.parameters if param not in ('run-at', 'module'))
+        for client_name in clients:
             if client_name in self.client_classes:
                 client_class = self.client_classes[client_name]
             else:
-                if client_name == 'server-agents':
-                    self.log.warning('Monitoring: obsolete config file format detected.')
+                self.log.warning('Unknown monitoring found: %s', client_name)
                 continue
             for config in self.parameters.get(client_name):
-                if isinstance(config, str):
-                    self.log.warning('Monitoring: obsolete configuration detected: %s', config)
-                if 'label' in config:
-                    label = config['label']
-                else:
-                    label = None
-                client = client_class(self.log, label, config)
-                client.engine = self.engine
+                label = config.get('label', None)
+
+                if client_name == 'local':
+                    if any([client for client in self.clients
+                            if isinstance(client, self.client_classes[client_name])]):
+                        break   # skip the second and following local monitoring clients
+                    else:
+                        if len(self.parameters.get(client_name)) > 1:
+                            self.log.warning('LocalMonitoring client found twice, configs will be joined')
+                        config = BetterDict()
+                        for cfg in self.parameters.get(client_name):
+                            config.merge(cfg)
+
+                client = client_class(self.log, label, config, self.engine)
                 self.clients.append(client)
                 client.connect()
 
@@ -92,8 +99,10 @@ class MonitoringListener(object):
 
 
 class MonitoringClient(object):
-    def __init__(self):
-        self.engine = None
+    def __init__(self, parent_log, engine):
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.engine = engine
+        self._last_check = 0     # the last check was long time ago
 
     def connect(self):
         pass
@@ -116,17 +125,51 @@ class LocalClient(MonitoringClient):
     AVAILABLE_METRICS = ['cpu', 'mem', 'disk-space', 'engine-loop', 'bytes-recv',
                          'bytes-sent', 'disk-read', 'disk-write', 'conn-all']
 
-    def __init__(self, parent_logger, label, config):
-        super(LocalClient, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, parent_log, label, config, engine=None):
+        super(LocalClient, self).__init__(parent_log, engine)
+
         self.config = config
+
+        if not engine:
+            self.log.warning('Deprecated constructor detected!')
+            self.config['metrics'] = self.AVAILABLE_METRICS     # be generous to old clients
 
         if label:
             self.label = label
         else:
             self.label = 'local'
-        self.monitor = None
 
+        self.monitor = None
+        self.interval = None
+        self.metrics = None
+        self._cached_data = None
+
+    # emulation of deprecated interface
+    def engine_resource_stats(self):
+        stats = namedtuple("ResourceStats", (
+            'cpu', 'disk_usage', 'mem_usage', 'rx', 'tx', 'dru', 'dwu', 'engine_loop', 'conn_all'))
+
+        res_stats = self._get_resource_stats()
+
+        cpu = res_stats.get('cpu', None)
+        disk_usage = res_stats.get('disk-space', None)
+        mem_usage = res_stats.get('mem', None)
+        rx = res_stats.get('bytes-recv', None)
+        tx = res_stats.get('bytes-sent', None)
+        dru = res_stats.get('disk-read', None)
+        dwu = res_stats.get('disk-write', None)
+        engine_loop = res_stats.get('engine-loop', None)
+        conn_all = res_stats.get('conn-all', None)
+
+        return stats(cpu=cpu, disk_usage=disk_usage, mem_usage=mem_usage, rx=rx, tx=tx,
+                     dru=dru, dwu=dwu, engine_loop=engine_loop, conn_all=conn_all)
+
+    def _get_resource_stats(self):
+        if not self.monitor:
+            raise TaurusInternalException('Local monitor must be instantiated')
+        return self.monitor.resource_stats()
+
+    def connect(self):
         exc = TaurusConfigError('Metric is required in Local monitoring client')
         metric_names = self.config.get('metrics', exc)
 
@@ -137,76 +180,65 @@ class LocalClient(MonitoringClient):
         good_list = set(metric_names) & set(self.AVAILABLE_METRICS)
         if not good_list:
             raise exc
-        self.metrics = good_list
+        self.metrics = list(set(good_list))
+
+        self.monitor = LocalMonitor(self.log, self.metrics, self.engine)
 
         self.interval = dehumanize_time(self.config.get('interval', None))
-
-        self.last_check = None
-        self.cached_data = None
-
-    def engine_resource_stats(self):
-        return self.monitor.resource_stats(self.metrics)
-
-    def connect(self):
-        self.monitor = LocalMonitor.get_instance(self.log, self.engine)
-
-    def get_data(self):
-        now = time.time()
         if not self.interval:
             self.interval = self.engine.check_interval
 
-        if not self.cached_data or now - self.last_check > self.interval:
-            self.last_check = now
-            self.cached_data = []
-            metric_values = self.engine_resource_stats()
+    def get_data(self):
+        now = time.time()
+
+        if now > self._last_check + self.interval:
+            self._last_check = now
+            self._cached_data = []
+            metric_values = self._get_resource_stats()
 
             for name in self.metrics:
-                self.cached_data.append({
+                self._cached_data.append({
                     'source': self.label,
                     'ts': now,
                     name: metric_values[name]})
 
-        return self.cached_data
+        return self._cached_data
 
 
 class LocalMonitor(object):
-    __instance = None
-
-    def __init__(self, parent_logger, engine):
-        self.__informed_on_mem_issue = False
-        if self.__instance is not None:
-            raise TaurusInternalException("LocalMonitor can't be instantiated twice, use get_instance()")
+    def __init__(self, parent_logger, metrics, engine):
+        if not engine:
+            raise TaurusInternalException('Local monitor requires valid engine instance')
+        self._informed_on_mem_issue = False
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.metrics = metrics
         self.engine = engine
-        self.__disk_counters = None
-        self.__net_counters = None
-        self.__counters_ts = None
-        self.__cached_stats = None
+        self._disk_counters = None
+        self._net_counters = None
+        self._last_check = None
 
-    @classmethod
-    def get_instance(cls, parent_logger, engine):
-        if cls.__instance is None:
-            cls.__instance = LocalMonitor(parent_logger, engine)
-        return cls.__instance
-
-    def resource_stats(self, metrics):
-        if not self.__counters_ts:
-            self.__disk_counters = self.__get_disk_counters()
-            self.__net_counters = psutil.net_io_counters()
-            self.__counters_ts = time.time()
+    def resource_stats(self):
+        if not self._last_check:
+            self._disk_counters = self.__get_disk_counters()
+            self._net_counters = psutil.net_io_counters()
+            self._last_check = time.time()
             time.sleep(0.2)  # small enough for human, big enough for machine
 
         now = time.time()
-        interval = now - self.__counters_ts
+        interval = now - self._last_check
+        self._last_check = now
+        return self._calc_resource_stats(interval)
 
-        # don't recalculate stats too frequently
-        if interval >= self.engine.check_interval or self.__cached_stats is None:
-            self.__cached_stats = self._calc_resource_stats(interval, metrics)
-            self.__counters_ts = now
+    def __get_mem_info(self):
+        try:
+            return psutil.virtual_memory().percent
+        except KeyError:
+            if not self._informed_on_mem_issue:
+                self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
+                self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
+                self._informed_on_mem_issue = True
 
-        return self.__cached_stats
-
-    def _calc_resource_stats(self, interval, metrics):
+    def _calc_resource_stats(self, interval):
         """
         Get local resource stats
 
@@ -214,60 +246,53 @@ class LocalMonitor(object):
         """
         result = {}
 
-        if 'mem' in metrics:
-            try:
-                result['mem'] = psutil.virtual_memory().percent
-            except KeyError:
-                result['mem'] = None
-                if not self.__informed_on_mem_issue:
-                    self.log.debug("Failed to get memory usage: %s", traceback.format_exc())
-                    self.log.warning("Failed to get memory usage, use -v to get more detailed error info")
-                    self.__informed_on_mem_issue = True
+        if 'mem' in self.metrics:
+            result['mem'] = self.__get_mem_info()
 
-        if 'disk-space' in metrics:
+        if 'disk-space' in self.metrics:
             result['disk-space'] = psutil.disk_usage(self.engine.artifacts_dir).percent
 
-        if 'engine-loop' in metrics:
+        if 'engine-loop' in self.metrics:
             result['engine-loop'] = self.engine.engine_loop_utilization
 
-        if 'conn-all' in metrics:
+        if 'conn-all' in self.metrics:
             # take all connections without address resolution
             output = subprocess.check_output(['netstat', '-an'])
             output_lines = stream_decode(output).split('\n')  # in py3 stream has 'bytes' type
             est_lines = [line for line in output_lines if line.find('EST') != -1]
             result['conn-all'] = len(est_lines)
 
-        if 'cpu' in metrics:
+        if 'cpu' in self.metrics:
             result['cpu'] = psutil.cpu_percent()
 
-        if 'bytes-recv' in metrics or 'bytes-sent' in metrics:
+        if 'bytes-recv' in self.metrics or 'bytes-sent' in self.metrics:
             net = psutil.net_io_counters()
             if net is not None:
-                tx_bytes = int((net.bytes_sent - self.__net_counters.bytes_sent) / interval)
-                rx_bytes = int((net.bytes_recv - self.__net_counters.bytes_recv) / interval)
-                self.__net_counters = net
+                tx_bytes = int((net.bytes_sent - self._net_counters.bytes_sent) / float(interval))
+                rx_bytes = int((net.bytes_recv - self._net_counters.bytes_recv) / float(interval))
+                self._net_counters = net
             else:
                 rx_bytes = 0.0
                 tx_bytes = 0.0
 
-            if 'bytes-recv' in metrics:
+            if 'bytes-recv' in self.metrics:
                 result['bytes-recv'] = rx_bytes
-            if 'bytes-sent' in metrics:
+            if 'bytes-sent' in self.metrics:
                 result['bytes-sent'] = tx_bytes
 
-        if 'disk-read' in metrics or 'disk-write' in metrics:
+        if 'disk-read' in self.metrics or 'disk-write' in self.metrics:
             disk = self.__get_disk_counters()
             if disk is not None:
-                dru = int((disk.read_bytes - self.__disk_counters.read_bytes) / interval)
-                dwu = int((disk.write_bytes - self.__disk_counters.write_bytes) / interval)
-                self.__disk_counters = disk
+                dru = int((disk.read_bytes - self._disk_counters.read_bytes) / float(interval))
+                dwu = int((disk.write_bytes - self._disk_counters.write_bytes) / float(interval))
+                self._disk_counters = disk
             else:
                 dru = 0.0
                 dwu = 0.0
 
-            if 'disk-read' in metrics:
+            if 'disk-read' in self.metrics:
                 result['disk-read'] = dru
-            if 'disk-write' in metrics:
+            if 'disk-write' in self.metrics:
                 result['disk-write'] = dwu
 
         return result
@@ -285,21 +310,25 @@ class LocalMonitor(object):
 
 
 class GraphiteClient(MonitoringClient):
-    def __init__(self, parent_logger, label, config):
-        super(GraphiteClient, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, parent_log, label, config, engine):
+        super(GraphiteClient, self).__init__(parent_log, engine)
         self.config = config
         exc = TaurusConfigError('Graphite client requires address parameter')
         self.address = self.config.get("address", exc)
-        self.interval = int(dehumanize_time(self.config.get('interval', '5s')))
+
+        # interval for client
+        interval = self.config.get('interval', None)
+        if not interval:
+            interval = '5s'
+        self.interval = int(dehumanize_time(interval))
+
         self.url = self._get_url()
         if label:
             self.host_label = label
         else:
             self.host_label = self.address
-        self.start_time = None
-        self.check_time = None
         self.timeout = int(dehumanize_time(self.config.get('timeout', '5s')))
+        self._cached_data = None
 
     def _get_url(self):
         exc = TaurusConfigError('Graphite client requires metrics list')
@@ -322,52 +351,46 @@ class GraphiteClient(MonitoringClient):
         return json.load(str_data)
 
     def _get_response(self):
-        json_list = self._data_transfer()
-        assert all('target' in dic.keys() for dic in json_list), "Key 'target' not found in graphite response"
-        return json_list
-
-    def connect(self):
-        self._get_response()
-
-    def start(self):
-        self.check_time = int(time.time())
-        self.start_time = self.check_time
-
-    def get_data(self):
-        current_time = int(time.time())
-        if current_time < self.check_time + self.interval:
-            return []
-        self.check_time = current_time
-
         try:
-            json_list = self._get_response()
+            json_list = self._data_transfer()
+            msg = "Key 'target' not found in graphite response"
+            assert all('target' in dic.keys() for dic in json_list), msg
+            return json_list
         except BaseException:
             self.log.debug("Metrics receiving: %s", traceback.format_exc())
             self.log.warning("Fail to receive metrics from %s", self.address)
             return []
 
-        res = []
-        for element in json_list:
-            item = {
-                'ts': int(time.time()),
-                'source': '%s' % self.host_label}
+    def get_data(self):
+        now = time.time()
 
-            for datapoint in reversed(element['datapoints']):
-                if datapoint[0] is not None:
-                    item[element['target']] = datapoint[0]
-                    break
+        if now > self._last_check + self.interval:
+            self._cached_data = []
+            self._last_check = now
+            json_list = self._get_response()
 
-            res.append(item)
-        return res
+            for element in json_list:
+                item = {
+                    'ts': now,
+                    'source': '%s' % self.host_label}
+
+                for datapoint in reversed(element['datapoints']):
+                    if datapoint[0] is not None:
+                        item[element['target']] = datapoint[0]
+                        break
+
+                self._cached_data.append(item)
+
+        return self._cached_data
 
 
 class ServerAgentClient(MonitoringClient):
-    def __init__(self, parent_logger, label, config):
+    def __init__(self, parent_log, label, config, engine):
         """
-        :type parent_logger: logging.Logger
+        :type parent_log: logging.Logger
         :type config: dict
         """
-        super(ServerAgentClient, self).__init__()
+        super(ServerAgentClient, self).__init__(parent_log, engine)
         self.host_label = label
         exc = TaurusConfigError('ServerAgent client requires address parameter')
         self.address = config.get("address", exc)
@@ -378,14 +401,21 @@ class ServerAgentClient(MonitoringClient):
             self.port = 4444
 
         self._partial_buffer = ""
-        self.log = parent_logger.getChild(self.__class__.__name__)
         exc = TaurusConfigError('ServerAgent client requires metrics list')
         metrics = config.get('metrics', exc)
-        self._result_fields = [x for x in metrics]  # TODO: handle more complex metric specifications and labeling
+
+        # TODO: handle more complex metric specifications and labeling
+        self._result_fields = [x for x in metrics]
+
         self._metrics_command = "\t".join([x for x in metrics])
         self.socket = socket.socket()
         self.select = select.select
-        self.interval = int(dehumanize_time(config.get("interval", 1)))
+
+        # interval for server (ServerAgent)
+        interval = config.get("interval", None)
+        if not interval:
+            interval = 1
+        self.interval = int(dehumanize_time(interval))
 
     def connect(self):
         try:
@@ -409,7 +439,7 @@ class ServerAgentClient(MonitoringClient):
             self.socket.close()
 
     def start(self):
-        self.socket.send(b("interval:%s\n" % self.interval if self.interval > 0 else 1))
+        self.socket.send(b("interval:%s\n" % self.interval))
         command = "metrics:%s\n" % self._metrics_command
         self.log.debug("Sending metrics command: %s", command)
         self.socket.send(b(command))
@@ -419,6 +449,7 @@ class ServerAgentClient(MonitoringClient):
         """
         :rtype: list[dict]
         """
+        now = time.time()
         readable, writable, errored = self.select([self.socket], [self.socket], [self.socket], 0)
         self.log.debug("Stream states: %s / %s / %s", readable, writable, errored)
         for _ in errored:
@@ -435,7 +466,7 @@ class ServerAgentClient(MonitoringClient):
                 self.log.debug("Data line: %s", line)
                 values = line.split("\t")
                 item = {x: float(values.pop(0)) for x in self._result_fields}
-                item['ts'] = int(time.time())
+                item['ts'] = now
                 item['source'] = source
                 res.append(item)
 
@@ -454,7 +485,7 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
             if item['source'] not in self.host_metrics:
                 self.host_metrics[item['source']] = OrderedDict()
 
-            for key in item:
+            for key in sorted(item.keys()):
                 if key not in ("source", "ts"):
                     color = ''
                     if key in self.host_metrics[item['source']]:

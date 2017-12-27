@@ -53,6 +53,7 @@ services:
   server-agent:
   - address: 192.168.0.1:4444
     label: target-server  # if you specify label, it will be used in reports instead of ip:port
+    interval: 3s    # polling interval
     metrics:
     - cpu
     - disks
