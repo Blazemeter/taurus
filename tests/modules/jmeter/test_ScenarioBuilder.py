@@ -1,5 +1,5 @@
 from . import MockJMeterExecutor
-from bzt.modules.jmeter import JMeterScenarioBuilder
+from bzt.jmx.tools import JMeterScenarioBuilder
 from tests import BZTestCase, RESOURCES_DIR
 from tempfile import mkstemp
 from bzt.six import etree
