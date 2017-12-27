@@ -44,16 +44,16 @@ class JTLReader(ResultsReader):
         else:
             self.errors_reader = None
 
-    def _read(self, last_pass=False):
+    def _read(self, final_pass=False):
         """
         Generator method that returns next portion of data
 
-        :type last_pass: bool
+        :type final_pass: bool
         """
         if self.errors_reader:
-            self.errors_reader.read_file(last_pass)
+            self.errors_reader.read_file(final_pass)
 
-        for row in self.csvreader.read(last_pass):
+        for row in self.csvreader.read(final_pass):
             label = unicode_decode(row["label"])
             if self.is_distributed:
                 concur = int(row["grpThreads"])
