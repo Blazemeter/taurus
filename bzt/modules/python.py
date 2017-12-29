@@ -28,6 +28,8 @@ import time
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
 from bzt.modules import SubprocessedExecutor, ConsolidatingAggregator, FuncSamplesReader, FunctionalAggregator
+from bzt.modules.aggregator import ResultsReader
+from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
@@ -45,7 +47,23 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def __init__(self):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
-        self._readers = []
+
+    def reporting_setup(self, prefix=None, suffix=None):
+        if not self.reported:
+            self.log.debug("Skipping reporting setup for executor %s", self)
+            return
+
+        if self.engine.is_functional_mode():
+            self.reader = ApiritifFuncReader(self.engine, self.log)
+        else:
+            self.reader = ApiritifLoadReader(self.log)
+
+        if not self.register_reader:
+            self.log.debug("Skipping reader registration for executor %s", self)
+            return
+
+        if isinstance(self.engine.aggregator, (ConsolidatingAggregator, FunctionalAggregator)):
+            self.engine.aggregator.add_underling(self.reader)
 
     def prepare(self):
         self.script = self.get_script_path()
@@ -54,6 +72,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 self.script = self.__tests_from_requests()
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
+        self.reporting_setup()  # no prefix/suffix because we don't fully control report file names
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
@@ -109,9 +128,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
 
     def has_results(self):
-        if not self._readers:
+        if not self.reader:
             return False
-        return any(reader.read_records > 0 for reader in self._readers)
+        return self.reader.read_records > 0
 
     def check(self):
         for line in self._tailer.get_lines():
@@ -120,15 +139,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 pos = line.index(marker)
                 fname = line[pos + len(marker):].strip()
                 self.log.debug("Adding result reader for %s", fname)
-                if not self.engine.is_functional_mode():
-                    reader = JTLReader(fname, self.log)
-                    if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-                        self.engine.aggregator.add_underling(reader)
-                else:
-                    reader = FuncSamplesReader(self.report_file, self.engine, self.log)
-                    if isinstance(self.engine.aggregator, FunctionalAggregator):
-                        self.engine.aggregator.add_underling(reader)
-                self._readers.append(reader)
+                self.reader.register_file(fname)
 
         return super(ApiritifNoseExecutor, self).check()
 
@@ -150,8 +161,52 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         executor_verbose = self.settings.get("verbose", engine_verbose)
         return executor_verbose
 
+
 class NoseTester(ApiritifNoseExecutor):
     pass
+
+
+class ApiritifLoadReader(ResultsReader):
+    def __init__(self, parent_log):
+        super(ApiritifLoadReader, self).__init__()
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.filenames = []
+        self.readers = []
+        self.read_records = False
+
+    def register_file(self, report_filename):
+        self.filenames.append(report_filename)
+        reader = JTLReader(report_filename, self.log)
+        self.readers.append(reader)
+
+    def _read(self, final_pass=False):
+        for reader in self.readers:
+            if not self.read_records:
+                self.read_records = True
+            for sample in reader._read(final_pass):
+                yield sample
+
+
+class ApiritifFuncReader(FunctionalResultsReader):
+    def __init__(self, engine, parent_log):
+        super(ApiritifFuncReader, self).__init__()
+        self.engine = engine
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.filenames = []
+        self.readers = []
+        self.read_records = False
+
+    def register_file(self, report_filename):
+        self.filenames.append(report_filename)
+        reader = FuncSamplesReader(report_filename, self.engine, self.log)
+        self.readers.append(reader)
+
+    def read(self, last_pass=False):
+        for reader in self.readers:
+            for sample in reader.read(last_pass):
+                if not self.read_records:
+                    self.read_records = True
+                yield sample
 
 
 class SeleniumScriptBuilder(PythonGenerator):
