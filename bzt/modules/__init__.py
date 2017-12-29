@@ -49,18 +49,17 @@ class ReportableExecutor(ScenarioExecutor):
 
         self.report_file = self.report_file.replace(os.path.sep, '/')
 
-        if not self.register_reader:
-            self.log.debug("Skipping reader setup for executor %s", self)
-            return
-
         if self.engine.is_functional_mode():
             self.reader = FuncSamplesReader(self.report_file, self.engine, self.log)
-            if isinstance(self.engine.aggregator, FunctionalAggregator):
-                self.engine.aggregator.add_underling(self.reader)
         else:
             self.reader = LoadSamplesReader(self.report_file, self.log)
-            if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-                self.engine.aggregator.add_underling(self.reader)
+
+        if not self.register_reader:
+            self.log.debug("Skipping reader registration for executor %s", self)
+            return
+
+        if isinstance(self.engine.aggregator, (ConsolidatingAggregator, FunctionalAggregator)):
+            self.engine.aggregator.add_underling(self.reader)
 
 
 class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, WidgetProvider):
