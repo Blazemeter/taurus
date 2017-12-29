@@ -150,6 +150,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         executor_verbose = self.settings.get("verbose", engine_verbose)
         return executor_verbose
 
+class NoseTester(ApiritifNoseExecutor):
+    pass
+
 
 class SeleniumScriptBuilder(PythonGenerator):
     """
