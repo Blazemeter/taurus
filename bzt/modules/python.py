@@ -83,7 +83,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
-        builder.build_source_code()
+
+        builder.build_source_code(self.execution, self.settings)
         builder.save(filename)
         return filename
 
@@ -230,9 +231,13 @@ import apiritif
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
         self.wdlog = wdlog
+        self.execution = None
+        self.settings = None
 
-    def build_source_code(self):
+    def build_source_code(self, execution=None, settings=None):
         self.log.debug("Generating Test Case test methods")
+        self.execution = execution
+        self.settings = settings
         imports = self.add_imports()
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
@@ -314,12 +319,29 @@ import apiritif
 
     def gen_setup_method(self):
         self.log.debug("Generating setUp test method")
-        browsers = ["Firefox", "Chrome", "Ie", "Opera"]
-        browser = self.scenario.get("browser", "Firefox")
-        if browser not in browsers:
+        browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
+        if self.execution and self.execution.get("browser", None):
+            browser = self.execution.get("browser", "Firefox")
+        else:
+            browser = self.scenario.get("browser", None)
+        if browser and (browser not in browsers):
             raise TaurusConfigError("Unsupported browser name: %s" % browser)
 
         setup_method_def = self.gen_method_definition("setUp", ["self"])
+
+        remote_executor = self.settings.get("remote", None)
+
+        if not remote_executor:
+            if self.execution and self.execution.get("remote", None):
+                remote_executor = self.execution.get("remote", None)
+            else:
+                remote_executor = self.scenario.get("remote", None)
+
+        if not browser and remote_executor:
+            browser = "Remote"
+
+        if browser == "Remote" and not remote_executor:
+            remote_executor = "http://localhost:4444/wd/hub"
 
         if browser == 'Firefox':
             setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
@@ -330,6 +352,33 @@ import apiritif
         elif browser == 'Chrome':
             statement = "self.driver = webdriver.Chrome(service_log_path=%s)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
+        elif browser == 'Remote':
+            desire_capabilities = {}
+
+            if self.execution and self.execution.get("capabilities", None):
+                remote_capabilities = self.execution.get("capabilities", "{}")
+            else:
+                remote_capabilities = self.scenario.get("capabilities", "{}")
+
+            supported_capabilities = ["browser", "version", "javascript"]
+            for capability in remote_capabilities:
+                for cap_key in capability.keys():
+                    if cap_key not in supported_capabilities:
+                        raise TaurusConfigError("Unsupported capability name: %s" % cap_key)
+                    else:
+                        if cap_key == "browser":
+                            desire_capabilities["browserName"] = capability[cap_key]
+                        elif cap_key == "version":
+                            desire_capabilities["version"] = capability[cap_key]
+                        elif cap_key == "javascript":
+                            desire_capabilities["javascriptEnabled"] = capability[cap_key]
+
+            statement = "self.driver = webdriver.Remote(" \
+                        "command_executor={command_executor} " \
+                        ", desired_capabilities={desired_capabilities})"
+
+            setup_method_def.append(self.gen_statement(
+                statement.format(command_executor=repr(remote_executor), desired_capabilities=repr(desire_capabilities))))
         else:
             setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
 
@@ -471,6 +520,8 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(self.log)
         self.__access_method = None
+        self.execution = None
+        self.settings=None
 
     def gen_empty_line_stmt(self):
         return ast.Expr(value=ast.Name(id=" "))
@@ -880,7 +931,9 @@ log.setLevel(logging.DEBUG)
         mod = ast.fix_missing_locations(mod)
         return mod
 
-    def build_source_code(self):
+    def build_source_code(self, execution=None, settings=None):
+        self.execution = execution
+        self.settings=settings
         self.tree = self.build_tree()
 
     def save(self, filename):
