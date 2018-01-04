@@ -1,1 +1,0 @@
-Use requests.Session for BZA requests (giving us keep-alive)
