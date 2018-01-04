@@ -34,7 +34,8 @@ class BZAObject(dict):
         self.token = None
         self.log = logging.getLogger(self.__class__.__name__)
         self._cookies = cookielib.CookieJar()
-        self.http_request = requests.request
+        self.http_session = requests.Session()
+        self.http_request = self.http_session.request
 
         # copy infrastructure from prototype
         if isinstance(proto, BZAObject):
