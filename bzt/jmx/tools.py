@@ -77,9 +77,6 @@ class AbstractThreadGroup(object):
         self.gtype = self.__class__.__name__
         self.log = logger.getChild(self.gtype)
 
-    def create(self):  # todo: delegate content of group creation to itself?
-        return None
-
     def get_testname(self):
         return self.element.get('testname')
 
@@ -92,23 +89,31 @@ class AbstractThreadGroup(object):
     def get_ramp_up(self, pure=False):
         self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
 
+    def get_duration(self):
+        self.log.warning('Getting of duration for %s not implemented', self.gtype)
+
+    def get_iterations(self):
+        self.log.warning('Getting of iterations for %s not implemented', self.gtype)
+
     def get_concurrency(self, pure=False):
         if not self.CONCURRENCY_SEL:
             self.log.warning('Getting of concurrency for %s not implemented', self.gtype)
             return 1
 
-        concurrency_str = self.element.find(self.CONCURRENCY_SEL).text
+        return self._get_val(self.CONCURRENCY_SEL, name='concurrency', default=1, pure=pure)
+
+    def _get_val(self, selector, name='', default=None, convertor=int, pure=False):
+        string_val = self.element.find(selector).text
         if pure:
-            return concurrency_str
+            return string_val
 
         try:
-            concurrency = int(concurrency_str)
+            return convertor(string_val)
         except ValueError:
-            msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, concurrency_str, self.gtype)
-            concurrency = 1
-
-        return concurrency
+            if default:
+                msg = "Parsing {param} '{val}' in group '{gtype}' failed, choose {default}"
+                self.log.warning(msg.format(param=name, val=string_val, gtype=self.gtype, default=default))
+                return default
 
     def get_on_error(self):
         action = self.element.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
@@ -119,6 +124,30 @@ class AbstractThreadGroup(object):
 class ThreadGroup(AbstractThreadGroup):
     XPATH = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
     CONCURRENCY_SEL = ".//*[@name='ThreadGroup.num_threads']"
+
+    def get_duration(self):
+        sched_sel = ".//*[@name='ThreadGroup.scheduler']"
+        scheduler = self._get_val(sched_sel, "scheduler", pure=True)
+
+        if scheduler == 'true':
+            duration_sel = ".//*[@name='ThreadGroup.duration']"
+            return self._get_val(duration_sel, "duration")
+        elif scheduler == 'false':
+            ramp_sel = ".//*[@name='ThreadGroup.ramp_time']"
+            return self._get_val(ramp_sel, "ramp-up")
+        else:
+            msg = 'Getting of ramp-up for %s is impossible due to scheduler: %s'
+            self.log.warning(msg, (self.gtype, scheduler))
+
+    def get_iterations(self):
+        loop_control_sel = ".//*[@name='LoopController.continue_forever']"
+        loop_controller = self._get_val(loop_control_sel, name="loop controller", pure=True)
+        if loop_controller == "false":
+            loop_sel = ".//*[@name='LoopController.loops']"
+            return self._get_val(loop_sel, name="loops")
+        else:
+            msg = 'Getting of ramp-up for %s is impossible due to loop_controller: %s'
+            self.log.warning(msg, (self.gtype, loop_controller))
 
 
 class SteppingThreadGroup(AbstractThreadGroup):
@@ -140,22 +169,18 @@ class ConcurrencyThreadGroup(AbstractThreadGroup):
         concurrency_prop.text = str(concurrency)
 
     def get_ramp_up(self, pure=False):
-        ramp_up_str = self.element.find(self.RAMP_UP_SEL).text
-        if pure:
-            return ramp_up_str
-
-        try:
-            ramp_up = int(ramp_up_str)
-        except ValueError:
-            msg = "Parsing ramp-up '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, ramp_up_str, self.gtype)
-            ramp_up = 0
-
-        return ramp_up
+        return self._get_val(self.RAMP_UP_SEL, name="ramp-up", default=0, pure=pure)
 
     def set_ramp_up(self, ramp_up=None):
         ramp_up_element = self.element.find(self.RAMP_UP_SEL)
         ramp_up_element.text = str(ramp_up)
+
+    def get_duration(self):
+        hold_sel = ".//*[@name='Hold']"
+        hold = self._get_val(hold_sel, name="hold")
+        ramp_up = self.get_ramp_up()
+        if hold is not None and ramp_up is not None:
+            return hold + ramp_up
 
 
 class ThreadGroupHandler(object):
