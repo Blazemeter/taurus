@@ -223,6 +223,7 @@ from selenium.common.exceptions import NoAlertPresentException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
 
 import apiritif
 """
@@ -457,14 +458,21 @@ import apiritif
             'byid': "ID",
             'bylinktext': "LINK_TEXT"
         }
-        if atype in ('click', 'keys'):
+        if atype in ('click', 'keys', 'asserttext'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
             if atype == 'click':
                 action = "click()"
-            else:
-                action = "send_keys(%r)" % param
+            elif atype == 'keys':
+                if type(param) is str and param.startswith("KEY_"):
+                    action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
+                else:
+                    action = "send_keys(%r)" % param
 
-            return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
+            if atype == 'asserttext':
+                action = "get_attribute('value')"
+                return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[aby], selector, action), param), indent=indent)
+            else:
+                return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
@@ -477,6 +485,10 @@ import apiritif
             return self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent)
         elif atype == 'clear' and aby == 'cookies':
             return self.gen_statement("self.driver.delete_all_cookies()", indent=indent)
+        elif atype == 'assert' and aby == 'title':
+            return self.gen_statement("self.assertEqual(self.driver.title,%r)" % selector, indent=indent)
+
+
 
         raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
@@ -489,8 +501,8 @@ import apiritif
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        actions = "click|wait|keys|pause|clear"
-        bys = "byName|byID|byCSS|byXPath|byLinkText|For|Cookies"
+        actions = "click|wait|keys|pause|clear|assert|assertText"
+        bys = "byName|byID|byCSS|byXPath|byLinkText|For|Cookies|Title"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, bys), re.IGNORECASE)
         res = expr.match(name)
         if not res:
