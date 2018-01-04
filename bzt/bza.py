@@ -19,7 +19,7 @@ from bzt.utils import to_json, MultiPartForm
 
 
 class BZAObject(dict):
-    _SESSION = requests.Session()
+    _SESSION = requests.Session()  # session is shared across all BZAObject ancestors
 
     def __init__(self, proto=None, data=None):
         """
