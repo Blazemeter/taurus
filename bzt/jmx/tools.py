@@ -90,9 +90,17 @@ class AbstractThreadGroup(object):
         self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
 
     def get_duration(self):
+        """
+        task duration or None if getting isn't possible (skipped, timeless, jmeter variables, etc.)
+        Note: only ThreadGroup and ConcurrentThreadGroup are supported
+        """
         self.log.warning('Getting of duration for %s not implemented', self.gtype)
 
     def get_iterations(self):
+        """
+        iterations number or None if getting isn't possible (skipped, unsupported, jmeter variables, etc.)
+        Note: only ThreadGroup and ConcurrentThreadGroup are supported
+        """
         self.log.warning('Getting of iterations for %s not implemented', self.gtype)
 
     def get_concurrency(self, pure=False):
@@ -103,13 +111,18 @@ class AbstractThreadGroup(object):
         return self._get_val(self.CONCURRENCY_SEL, name='concurrency', default=1, pure=pure)
 
     def _get_val(self, selector, name='', default=None, convertor=int, pure=False):
-        string_val = self.element.find(selector).text
+        element = self.element.find(selector)
+        if element is None:
+            string_val = None
+        else:
+            string_val = element.text
+
         if pure:
             return string_val
 
         try:
             return convertor(string_val)
-        except ValueError:
+        except (ValueError, TypeError):
             if default:
                 msg = "Parsing {param} '{val}' in group '{gtype}' failed, choose {default}"
                 self.log.warning(msg.format(param=name, val=string_val, gtype=self.gtype, default=default))
@@ -181,6 +194,10 @@ class ConcurrencyThreadGroup(AbstractThreadGroup):
         ramp_up = self.get_ramp_up()
         if hold is not None and ramp_up is not None:
             return hold + ramp_up
+        elif hold is None:
+            return ramp_up
+        elif ramp_up is None:
+            return hold
 
 
 class ThreadGroupHandler(object):

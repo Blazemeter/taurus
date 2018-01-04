@@ -33,6 +33,16 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.assertEqual(4, len(set(groups)))   # no one group was modified
         self.assertEqual("", self.log_recorder.warn_buff.getvalue())
 
+        res_values = {}
+        for group in groupset:
+            res_values[group.get_testname()] = {"iter": group.get_iterations(), "duration": group.get_duration()}
+
+        self.assertEqual(res_values,
+                         {'TG.01': {'duration': 3, 'iter': 100},
+                          'CTG.02': {'duration': 100, 'iter': None},
+                          'STG.03': {'duration': None, 'iter': None},
+                          'UTG.04': {'duration': None, 'iter': None}})
+
     def test_TG_cs(self):
         """ ThreadGroup: concurrency, steps """
         self.configure(load={'concurrency': 69, 'steps': 5},
@@ -53,10 +63,10 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         res_values = {}
         for group in self.get_groupset():
-            self.assertEqual('ThreadGroup', group.gtype)
+            self.assertEqual("ThreadGroup", group.gtype)
             self.assertEqual("false", group.element.find(".//*[@name='LoopController.continue_forever']").text)
             self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)   # no loop limit
-            res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'on_error': group.get_on_error()}
+            res_values[group.get_testname()] = {"conc": group.get_concurrency(), "on_error": group.get_on_error()}
 
         self.assertEqual(res_values,
                          {'TG.01': {'conc': 14, 'on_error': 'startnextloop'},
@@ -182,9 +192,13 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual("70", group.element.find(".//*[@name='Hold']").text)
 
-            res_values[group.get_testname()] = group.get_concurrency()
+            res_values[group.get_testname()] = {"conc": group.get_concurrency(), "duration": group.get_duration()}
 
-        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1})
+        self.assertEqual(res_values,
+                         {"TG.01": {"conc": 2, "duration": 70},
+                          "CTG.02": {"conc": 3, "duration": 70},
+                          "STG.03": {"conc": 4, "duration": 70},
+                          "UTG.04": {"conc": 1, "duration": 70}})
 
     def test_TG_ci(self):
         """ ThreadGroup: concurrency, iterations """
