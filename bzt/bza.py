@@ -19,8 +19,6 @@ from bzt.utils import to_json, MultiPartForm
 
 
 class BZAObject(dict):
-    _SESSION = requests.Session()  # session is shared across all BZAObject ancestors
-
     def __init__(self, proto=None, data=None):
         """
         :type proto: BZAObject
@@ -36,7 +34,8 @@ class BZAObject(dict):
         self.token = None
         self.log = logging.getLogger(self.__class__.__name__)
         self._cookies = cookielib.CookieJar()
-        self.http_request = self._SESSION.request
+        self.http_session = requests.Session()
+        self.http_request = self.http_session.request
 
         # copy infrastructure from prototype
         if isinstance(proto, BZAObject):
