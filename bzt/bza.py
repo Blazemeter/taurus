@@ -19,6 +19,8 @@ from bzt.utils import to_json, MultiPartForm
 
 
 class BZAObject(dict):
+    _SESSION = requests.Session()
+
     def __init__(self, proto=None, data=None):
         """
         :type proto: BZAObject
@@ -34,7 +36,7 @@ class BZAObject(dict):
         self.token = None
         self.log = logging.getLogger(self.__class__.__name__)
         self._cookies = cookielib.CookieJar()
-        self.http_request = requests.request
+        self.http_request = self._SESSION.request
 
         # copy infrastructure from prototype
         if isinstance(proto, BZAObject):
