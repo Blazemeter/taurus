@@ -11,7 +11,7 @@
  - fix crash when attempting to use external test as a cloud test
  - add `send-report-email` option for cloud tests
  - support `account` and `workspace` entities for cloud tests
- - use `requests.Session` for BZA requests (giving us keep-alive)
+ - use `requests.Session` for BZA requests (enabled keep-alive)
  - fix reporting for concurrent apiritif
  - fix duration reporting in `final-stats` for some cases
  - fix the way Taurus reads result file globally
