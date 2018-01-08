@@ -221,6 +221,8 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
@@ -458,21 +460,37 @@ import apiritif
             'byid': "ID",
             'bylinktext': "LINK_TEXT"
         }
-        if atype in ('click', 'keys', 'asserttext'):
+        action_chains = {
+            'doubleclick': "double_click",
+            'mousedown': "click_and_hold",
+            'mouseup': "release",
+            'mousemove': "move_to_element"
+        }
+        if atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys', 'asserttext', 'select'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
             if atype == 'click':
                 action = "click()"
             elif atype == 'keys':
+                action = "send_keys(%r)" % param
                 if type(param) is str and param.startswith("KEY_"):
                     action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
-                else:
-                    action = "send_keys(%r)" % param
-
-            if atype == 'asserttext':
+            elif action_chains.has_key(atype):
+                tpl = "self.driver.find_element(By.%s, %r)"
+                action = action_chains[atype]
+                return self.gen_statement(
+                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[aby], selector))),
+                    indent=indent)
+            elif atype == 'select':
+                tpl = "self.driver.find_element(By.%s, %r)"
+                action = "select_by_visible_text(%r)" % param
+                return self.gen_statement("Select(%s).%s" % (tpl % (bys[aby], selector), action),
+                                          indent=indent)
+            elif atype == 'asserttext':
+                # TODO: Why .text doesn't works ? 'value' is the only possible attribute for the type of element?
                 action = "get_attribute('value')"
-                return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[aby], selector, action), param), indent=indent)
-            else:
-                return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
+                return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[aby], selector, action), param),
+                                          indent=indent)
+            return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
@@ -488,8 +506,6 @@ import apiritif
         elif atype == 'assert' and aby == 'title':
             return self.gen_statement("self.assertEqual(self.driver.title,%r)" % selector, indent=indent)
 
-
-
         raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
     def _parse_action(self, action_config):
@@ -501,7 +517,7 @@ import apiritif
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        actions = "click|wait|keys|pause|clear|assert|assertText"
+        actions = "click|doubleClick|mouseDown|mouseUp|mouseMove|select|wait|keys|pause|clear|assert|assertText"
         bys = "byName|byID|byCSS|byXPath|byLinkText|For|Cookies|Title"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, bys), re.IGNORECASE)
         res = expr.match(name)
