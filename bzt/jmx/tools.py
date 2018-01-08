@@ -215,7 +215,6 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
     def get_iterations(self):
         iter_sel = ".//*[@name='Iterations']"
         return self._get_val(iter_sel, name="iterations")
-        # todo: ask @doratias about meaning for TG vs CTG/ATG
 
 
 class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
