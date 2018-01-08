@@ -11,7 +11,6 @@ from collections import OrderedDict
 import requests
 
 from bzt import TaurusNetworkError, ManualShutdown, VERSION
-from bzt.six import cookielib
 from bzt.six import string_types
 from bzt.six import text_type
 from bzt.six import urlencode
@@ -29,12 +28,12 @@ class BZAObject(dict):
 
         self.address = "https://a.blazemeter.com"
         self.data_address = "https://data.blazemeter.com"
-        self.timeout = 10
+        self.timeout = 30
         self.logger_limit = 256
         self.token = None
         self.log = logging.getLogger(self.__class__.__name__)
-        self._cookies = cookielib.CookieJar()
-        self.http_request = requests.request
+        self.http_session = requests.Session()
+        self.http_request = self.http_session.request
 
         # copy infrastructure from prototype
         if isinstance(proto, BZAObject):
@@ -85,8 +84,7 @@ class BZAObject(dict):
 
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
 
-        response = self.http_request(method=log_method, url=url, data=data, headers=headers, cookies=self._cookies,
-                                     timeout=self.timeout)
+        response = self.http_request(method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
 
         resp = response.content
         if not isinstance(resp, str):
