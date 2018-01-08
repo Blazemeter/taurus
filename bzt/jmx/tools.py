@@ -87,18 +87,21 @@ class AbstractThreadGroup(object):
     def set_ramp_up(self, ramp_up=None):
         self.log.warning('Setting of ramp-up for %s not implemented', self.gtype)
 
+    def get_duration(self):
+        self.log.warning('Getting of duration for %s not implemented', self.gtype)
+
+    def get_rate(self):
+        self.log.warning('Getting of rate for %s not implemented', self.gtype)
+
+    def get_iterations(self):
+        self.log.warning('Getting of iterations for %s not implemented', self.gtype)
+
     def get_ramp_up(self, pure=False):
         if not self.RAMP_UP_SEL:
             self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
             return 1
 
         return self._get_val(self.RAMP_UP_SEL, name='ramp-up', default=0, pure=pure)
-
-    def get_duration(self):
-        self.log.warning('Getting of duration for %s not implemented', self.gtype)
-
-    def get_iterations(self):
-        self.log.warning('Getting of iterations for %s not implemented', self.gtype)
 
     def get_concurrency(self, pure=False):
         if not self.CONCURRENCY_SEL:
@@ -114,7 +117,7 @@ class AbstractThreadGroup(object):
 
         try:
             return convertor(string_val)
-        except ValueError:
+        except (ValueError, TypeError):
             if default:
                 msg = "Parsing {param} '{val}' in group '{gtype}' failed, choose {default}"
                 self.log.warning(msg.format(param=name, val=string_val, gtype=self.gtype, default=default))
@@ -168,16 +171,39 @@ class UltimateThreadGroup(AbstractThreadGroup):
 class AbstractDynamicThreadGroup(AbstractThreadGroup):
     RAMP_UP_SEL = ".//*[@name='RampUp']"
 
+    def _get_time_unit(self):
+        unit_sel = ".//*[@name='Unit']"
+        return self._get_val(unit_sel, name="unit", pure=True)
+
     def set_ramp_up(self, ramp_up=None):
         ramp_up_element = self.element.find(self.RAMP_UP_SEL)
         ramp_up_element.text = str(ramp_up)
 
     def get_duration(self):
         hold_sel = ".//*[@name='Hold']"
+
         hold = self._get_val(hold_sel, name="hold")
         ramp_up = self.get_ramp_up()
+
+        # 'empty' means 0 sec, let's detect that
+        p_hold = self._get_val(hold_sel, name="hold", pure=True)
+        p_ramp_up = self.get_ramp_up(pure=True)
+        if hold is None and not p_hold:
+            hold = 0
+        if ramp_up is None and not p_ramp_up:
+            ramp_up = 0
+
         if hold is not None and ramp_up is not None:
-            return hold + ramp_up
+            result = hold + ramp_up
+            if self._get_time_unit() == 'M':
+                result *= 60
+
+            return result
+
+    def get_iterations(self):
+        iter_sel = ".//*[@name='Iterations']"
+        return self._get_val(iter_sel, name="iterations")
+        # todo: ask @doratias about meaning for TG vs CTG/ATG
 
 
 class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
