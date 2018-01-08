@@ -93,7 +93,7 @@ class AbstractThreadGroup(object):
         """
         self.log.warning('Getting of duration for %s not implemented', self.gtype)
 
-    def get_rate(self):
+    def get_rate(self, pure=False):
         self.log.warning('Getting of rate for %s not implemented', self.gtype)
 
     def get_iterations(self):
