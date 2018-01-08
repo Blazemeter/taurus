@@ -88,12 +88,19 @@ class AbstractThreadGroup(object):
         self.log.warning('Setting of ramp-up for %s not implemented', self.gtype)
 
     def get_duration(self):
+        """
+        task duration or None if getting isn't possible (skipped, timeless, jmeter variables, etc.)
+        """
         self.log.warning('Getting of duration for %s not implemented', self.gtype)
 
     def get_rate(self):
         self.log.warning('Getting of rate for %s not implemented', self.gtype)
 
     def get_iterations(self):
+        """
+        iterations number or None if getting isn't possible (skipped, unsupported, jmeter variables, etc.)
+        Note: ConcurrencyThreadGroup and ArrivalsThreadGroup aren't stopped by iterations limit
+        """
         self.log.warning('Getting of iterations for %s not implemented', self.gtype)
 
     def get_ramp_up(self, pure=False):
@@ -111,7 +118,12 @@ class AbstractThreadGroup(object):
         return self._get_val(self.CONCURRENCY_SEL, name='concurrency', default=1, pure=pure)
 
     def _get_val(self, selector, name='', default=None, convertor=int, pure=False):
-        string_val = self.element.find(selector).text
+        element = self.element.find(selector)
+        if element is None:
+            string_val = None
+        else:
+            string_val = element.text
+
         if pure:
             return string_val
 
