@@ -70,6 +70,7 @@ class RequestCompiler(RequestVisitor):
 
 class AbstractThreadGroup(object):
     XPATH = None
+    RAMP_UP_SEL = None
     CONCURRENCY_SEL = None
 
     def __init__(self, element, logger):
@@ -87,7 +88,11 @@ class AbstractThreadGroup(object):
         self.log.warning('Setting of ramp-up for %s not implemented', self.gtype)
 
     def get_ramp_up(self, pure=False):
-        self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
+        if not self.RAMP_UP_SEL:
+            self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
+            return 1
+
+        return self._get_val(self.RAMP_UP_SEL, name='ramp-up', default=0, pure=pure)
 
     def get_duration(self):
         self.log.warning('Getting of duration for %s not implemented', self.gtype)
@@ -159,17 +164,9 @@ class UltimateThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup'
 
 
-class ConcurrencyThreadGroup(AbstractThreadGroup):
-    XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.concurrency\.ConcurrencyThreadGroup'
-    CONCURRENCY_SEL = ".//*[@name='TargetLevel']"
+# parent of ConcurrencyThreadGroup and ArrivalThreadGroup
+class AbstractDynamicThreadGroup(AbstractThreadGroup):
     RAMP_UP_SEL = ".//*[@name='RampUp']"
-
-    def set_concurrency(self, concurrency=None):
-        concurrency_prop = self.element.find(self.CONCURRENCY_SEL)
-        concurrency_prop.text = str(concurrency)
-
-    def get_ramp_up(self, pure=False):
-        return self._get_val(self.RAMP_UP_SEL, name="ramp-up", default=0, pure=pure)
 
     def set_ramp_up(self, ramp_up=None):
         ramp_up_element = self.element.find(self.RAMP_UP_SEL)
@@ -183,8 +180,29 @@ class ConcurrencyThreadGroup(AbstractThreadGroup):
             return hold + ramp_up
 
 
+class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
+    XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.concurrency\.ConcurrencyThreadGroup'
+    CONCURRENCY_SEL = ".//*[@name='TargetLevel']"
+
+    def set_concurrency(self, concurrency=None):
+        concurrency_prop = self.element.find(self.CONCURRENCY_SEL)
+        concurrency_prop.text = str(concurrency)
+
+
+class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
+    XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.arrivals\.ArrivalsThreadGroup'
+    RATE_SEL = ".//*[@name='TargetLevel']"
+
+    def get_rate(self, pure=False):
+        return self._get_val(self.RATE_SEL, name='rate', default=1, pure=pure)
+
+    def set_rate(self, rate=None):
+        rate_prop = self.element.find(self.RATE_SEL)
+        rate_prop.text = str(rate)
+
+
 class ThreadGroupHandler(object):
-    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup]
+    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup]
 
     def __init__(self, logger):
         self.log = logger.getChild(self.__class__.__name__)
