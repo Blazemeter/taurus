@@ -342,6 +342,8 @@ import apiritif
 
         if not browser and remote_executor:
             browser = "Remote"
+        elif not browser:
+            browser = "Firefox"
 
         if browser == "Remote" and not remote_executor:
             remote_executor = "http://localhost:4444/wd/hub"
