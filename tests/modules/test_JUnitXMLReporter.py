@@ -34,7 +34,7 @@ class TestJUnitXML(BZTestCase):
 
         cumul_data = KPISet.from_dict({
             KPISet.AVG_CONN_TIME: 7.890211417203362e-06,
-            KPISet.RESP_TIMES_HDR: Counter({
+            KPISet.RESP_TIMES: Counter({
                 0.0: 32160, 0.001: 24919, 0.002: 1049, 0.003: 630, 0.004: 224, 0.005: 125,
                 0.006: 73, 0.007: 46, 0.008: 32, 0.009: 20, 0.011: 8, 0.01: 8, 0.017: 3,
                 0.016: 3, 0.014: 3, 0.013: 3, 0.04: 2, 0.012: 2, 0.079: 1, 0.081: 1,
@@ -71,7 +71,7 @@ class TestJUnitXML(BZTestCase):
 
         cumul_data = KPISet.from_dict({
             KPISet.AVG_CONN_TIME: 7.890211417203362e-06,
-            KPISet.RESP_TIMES_HDR: Counter({
+            KPISet.RESP_TIMES: Counter({
                 0.0: 32160, 0.001: 24919, 0.002: 1049, 0.003: 630, 0.004: 224, 0.005: 125,
                 0.006: 73, 0.007: 46, 0.008: 32, 0.009: 20, 0.011: 8, 0.01: 8, 0.017: 3,
                 0.016: 3, 0.014: 3, 0.013: 3, 0.04: 2, 0.012: 2, 0.079: 1, 0.081: 1,
@@ -120,7 +120,7 @@ class TestJUnitXML(BZTestCase):
 
         cumul_data[""] = KPISet.from_dict({
             KPISet.AVG_CONN_TIME: 7.890211417203362e-06,
-            KPISet.RESP_TIMES_HDR: Counter({
+            KPISet.RESP_TIMES: Counter({
                 0.0: 32160, 0.001: 24919, 0.002: 1049, 0.003: 630, 0.004: 224, 0.005: 125,
                 0.006: 73, 0.007: 46, 0.008: 32, 0.009: 20, 0.011: 8, 0.01: 8, 0.017: 3,
                 0.016: 3, 0.014: 3, 0.013: 3, 0.04: 2, 0.012: 2, 0.079: 1, 0.081: 1,
@@ -145,7 +145,7 @@ class TestJUnitXML(BZTestCase):
 
         cumul_data["http://192.168.1.1/somequery"] = KPISet.from_dict({
             KPISet.AVG_CONN_TIME: 9.609548856969457e-06,
-            KPISet.RESP_TIMES_HDR: Counter({
+            KPISet.RESP_TIMES: Counter({
                 0.0: 17219, 0.001: 11246, 0.002: 543, 0.003: 341,
                 0.004: 121,
                 0.005: 66, 0.006: 36, 0.007: 33, 0.008: 18,
@@ -170,7 +170,7 @@ class TestJUnitXML(BZTestCase):
 
         cumul_data["http://192.168.1.1/anotherquery"] = KPISet.from_dict({
             KPISet.AVG_CONN_TIME: 6.1707580253574335e-06,
-            KPISet.RESP_TIMES_HDR: Counter({0.0: 14941, 0.001: 13673, 0.002: 506,
+            KPISet.RESP_TIMES: Counter({0.0: 14941, 0.001: 13673, 0.002: 506,
                                         0.003: 289, 0.004: 103,
                                         0.005: 59, 0.006: 37, 0.008: 14,
                                         0.007: 13, 0.009: 8, 0.01: 3,
@@ -200,7 +200,7 @@ class TestJUnitXML(BZTestCase):
 
         cumul_data["http://192.168.100.100/somequery"] = KPISet.from_dict({
             KPISet.AVG_CONN_TIME: 9.609548856969457e-06,
-            KPISet.RESP_TIMES_HDR: Counter({
+            KPISet.RESP_TIMES: Counter({
                 0.0: 17219, 0.001: 11246, 0.002: 543,
                 0.003: 341, 0.004: 121,
                 0.005: 66, 0.006: 36, 0.007: 33, 0.008: 18,

@@ -39,7 +39,7 @@ class KPISet(BetterDict):
     SUCCESSES = "succ"
     FAILURES = "fail"
     BYTE_COUNT = "bytes"
-    RESP_TIMES_HDR = "rt_hdr"
+    RESP_TIMES = "rt"
     AVG_RESP_TIME = "avg_rt"
     STDEV_RESP_TIME = "stdev_rt"
     AVG_LATENCY = "avg_lt"
@@ -69,7 +69,7 @@ class KPISet(BetterDict):
         # vectors
         self.get(self.ERRORS, [])
         self.get(self.RESP_CODES, Counter())
-        self.get(self.RESP_TIMES_HDR, HdrHistogram(1, 60 * 60 * 1000, 3))  # is maximum value of 60 minutes enough?
+        self.get(self.RESP_TIMES, HdrHistogram(1, 60 * 60 * 1000, 3))  # is maximum value of 60 minutes enough?
         self.get(self.PERCENTILES)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
 
@@ -131,7 +131,7 @@ class KPISet(BetterDict):
         else:
             self[self.SUCCESSES] += 1
 
-        self[self.RESP_TIMES_HDR].record_value(int(round(r_time * 1000, 3)))
+        self[self.RESP_TIMES].record_value(int(round(r_time * 1000, 3)))
 
         if byte_count is not None:
             self[self.BYTE_COUNT] += byte_count
@@ -175,7 +175,7 @@ class KPISet(BetterDict):
         if len(self._concurrencies):
             self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
-        hdr = self[self.RESP_TIMES_HDR]
+        hdr = self[self.RESP_TIMES]
         if hdr.get_total_count():
             self[self.PERCENTILES] = {
                 str(float(perc)): value / 1000.0
@@ -206,8 +206,8 @@ class KPISet(BetterDict):
         if src[self.CONCURRENCY]:
             self._concurrencies[sid] = src[self.CONCURRENCY]
 
-        if src[self.RESP_TIMES_HDR]:
-            self[self.RESP_TIMES_HDR].add(src[self.RESP_TIMES_HDR])
+        if src[self.RESP_TIMES]:
+            self[self.RESP_TIMES].add(src[self.RESP_TIMES])
 
         if not self[self.PERCENTILES]:
             # using existing percentiles
@@ -227,16 +227,16 @@ class KPISet(BetterDict):
         """
         inst = KPISet()
         for key, val in iteritems(obj):
-            if key in (inst.RESP_TIMES_HDR):
+            if key in (inst.RESP_TIMES):
                 continue
             inst[key] = val
         inst.sum_cn = obj[inst.AVG_CONN_TIME] * obj[inst.SAMPLE_COUNT]
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
         inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
-        if isinstance(obj[inst.RESP_TIMES_HDR], dict):
-            for value, count in iteritems(obj[inst.RESP_TIMES_HDR]):
-                inst[inst.RESP_TIMES_HDR].record_value(value, count)
+        if isinstance(obj[inst.RESP_TIMES], dict):
+            for value, count in iteritems(obj[inst.RESP_TIMES]):
+                inst[inst.RESP_TIMES].record_value(value, count)
         for error in inst[KPISet.ERRORS]:
             error['urls'] = Counter(error['urls'])
         return inst
