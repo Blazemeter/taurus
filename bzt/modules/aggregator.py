@@ -69,7 +69,7 @@ class KPISet(BetterDict):
         # vectors
         self.get(self.ERRORS, [])
         self.get(self.RESP_CODES, Counter())
-        self.get(self.RESP_TIMES_HDR, HdrHistogram(1, 30 * 60 * 1000, 1))  # is maximum value of 30 minutes enough?
+        self.get(self.RESP_TIMES_HDR, HdrHistogram(1, 60 * 60 * 1000, 3))  # is maximum value of 60 minutes enough?
         self.get(self.PERCENTILES)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
 
