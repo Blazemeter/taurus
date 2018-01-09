@@ -92,6 +92,9 @@ class HierarchicHTTPRequest(HTTPRequest):
             path = str(file_dict.get("path", path_exc))
             if '${' not in path:    # exclude varables
                 path = get_full_path(self.engine.find_file(path))   # prepare full path for jmx
+            else:
+                msg = "Path '%s' contains variable and can't be expanded. Don't use relative paths in 'upload-files'!"
+                self.log.warning(msg % path)
 
             file_dict["path"] = path
 
