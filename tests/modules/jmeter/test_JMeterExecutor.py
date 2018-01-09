@@ -1945,7 +1945,7 @@ class TestJMeterExecutor(BZTestCase):
         norm = ['${some_var}',
                 os.path.join(RESOURCES_DIR, 'jmeter', 'body-file.dat'),
                 os.path.join(RESOURCES_DIR, 'jmeter', 'unicode-file')]
-        self.assertEqual(paths, norm)
+        self.assertEqual(paths, norm, "norm[1]: '%s'\RES_DIR: '%s'" % (norm[1], RESOURCES_DIR))
 
     def test_data_sources_jmx_gen_loop(self):
         self.configure({
