@@ -1943,8 +1943,8 @@ class TestJMeterExecutor(BZTestCase):
         paths = [_file.find('stringProp[@name="File.path"]').text for _file in files]
         paths.sort()
         norm = ['${some_var}',
-                '/home/taras/Projects/taurus/tests/resources/jmeter/body-file.dat',
-                '/home/taras/Projects/taurus/tests/resources/jmeter/unicode-file']
+                os.path.join(RESOURCES_DIR, 'jmeter', 'body-file.dat'),
+                os.path.join(RESOURCES_DIR, 'jmeter', 'unicode-file')]
         self.assertEqual(paths, norm)
 
     def test_data_sources_jmx_gen_loop(self):
