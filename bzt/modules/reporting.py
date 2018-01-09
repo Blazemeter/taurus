@@ -41,8 +41,8 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         super(FinalStatus, self).__init__()
         self.last_sec = None
         self.cumulative_results = None
-        self.start_time = None
-        self.end_time = None
+        self.start_time = time.time()  # default value
+        self.end_time = time.time()
         self.first_ts = float("inf")
         self.last_ts = 0
 
@@ -251,33 +251,38 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         self.log.info("Dumping final status as CSV: %s", filename)
         # FIXME: what if there's no last_sec
         with open(get_full_path(filename), 'wt') as fhd:
-            writer = csv.DictWriter(fhd, self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys())
+            fieldnames = self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys()
+            writer = csv.DictWriter(fhd, fieldnames)
             writer.writeheader()
             for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
                 writer.writerow(self.__get_csv_dict(label, kpiset))
 
     def __get_csv_dict(self, label, kpiset):
         kpi_copy = copy.deepcopy(kpiset)
-        # sort label
         res = OrderedDict()
+        res['label'] = label
+
+        # sort label
         for key in sorted(kpi_copy.keys()):
             res[key] = kpi_copy[key]
 
-        for level, val in iteritems(kpiset[KPISet.PERCENTILES]):
+        del res[KPISet.ERRORS]
+        del res[KPISet.RESP_TIMES_HDR]
+        del res[KPISet.RESP_CODES]
+        del res[KPISet.PERCENTILES]
+
+        percentiles = list(iteritems(kpiset[KPISet.PERCENTILES]))
+        for level, val in sorted(percentiles, key=lambda lv: (float(lv[0]), lv[1])):
             res['perc_%s' % level] = val
 
-        for rcd, val in iteritems(kpiset[KPISet.RESP_CODES]):
+        resp_codes = list(iteritems(kpiset[KPISet.RESP_CODES]))
+        for rcd, val in sorted(resp_codes):
             res['rc_%s' % rcd] = val
 
         for key in res:
             if isinstance(res[key], float):
                 res[key] = "%.5f" % res[key]
 
-        del res[KPISet.ERRORS]
-        del res[KPISet.RESP_TIMES_HDR]
-        del res[KPISet.RESP_CODES]
-        del res[KPISet.PERCENTILES]
-        res['label'] = label
         return res
 
 

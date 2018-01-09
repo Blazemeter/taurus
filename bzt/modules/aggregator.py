@@ -547,14 +547,11 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.min_buffer_len = dehumanize_time(self.settings.get("min-buffer-len", self.min_buffer_len))
 
         max_buffer_len = self.settings.get("max-buffer-len", self.max_buffer_len)
-        try:  # for max_buffer_len == float('inf')
+        try:
             self.max_buffer_len = dehumanize_time(max_buffer_len)
         except TaurusInternalException as exc:
-            self.log.debug("Exception in dehumanize_time(%s)" % max_buffer_len)
-            if str(exc).find('inf') != -1:
-                self.max_buffer_len = max_buffer_len
-            else:
-                raise TaurusConfigError("Wrong 'max-buffer-len' value: %s" % max_buffer_len)
+            self.log.debug("Exception in dehumanize_time(%s): %s", max_buffer_len, exc)
+            raise TaurusConfigError("Wrong 'max-buffer-len' value: %s" % max_buffer_len)
 
         self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 

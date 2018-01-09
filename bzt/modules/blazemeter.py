@@ -1029,6 +1029,7 @@ class ProjectFinder(object):
         project_name = self.parameters.get("project", self.settings.get("project", None))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
         launch_existing_test = self.settings.get("launch-existing-test", False)
+        send_report_email = self.settings.get("send-report-email", False)
 
         test_spec = parse_blazemeter_test_link(test_name)
         self.log.debug("Parsed test link: %s", test_spec)
@@ -1070,6 +1071,7 @@ class ProjectFinder(object):
         router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
         router.is_functional = self.is_functional
+        router.send_report_email = send_report_email
         return router
 
     def _create_project_or_use_default(self, workspace, proj_name):
@@ -1091,7 +1093,6 @@ class ProjectFinder(object):
             if not project:
                 project = self.workspaces.first().create_project("Taurus Tests Project")
             return project
-
 
 
 class BaseCloudTest(object):
@@ -1120,6 +1121,7 @@ class BaseCloudTest(object):
         self.cloud_mode = None
         self.dedicated_ips = False
         self.is_functional = False
+        self.send_report_email = False
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
@@ -1276,7 +1278,8 @@ class CloudTaurusTest(BaseCloudTest):
         self._test.upload_files(taurus_config, rfiles)
         self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
         self._test.update_props({
-            'configuration': {'plugins': {'functionalExecution': {'enabled': self.is_functional}}}
+            'configuration': {'plugins': {'functionalExecution': {'enabled': self.is_functional},
+                                          'reportEmail': {"enabled": self.send_report_email}}}
         })
 
     def launch_test(self):

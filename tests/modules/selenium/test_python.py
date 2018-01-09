@@ -5,7 +5,8 @@ import time
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
-from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor
+from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor, ApiritifLoadReader, \
+    ApiritifFuncReader
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
@@ -835,6 +836,27 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.log.info(test_script)
         self.assertIn("'/?rs={}'.format(apiritif.random_string(3))", test_script)
         self.assertIn("'/?rs={}'.format(apiritif.random_string(4, 'abcdef'))", test_script)
+
+    def test_load_reader(self):
+        reader = ApiritifLoadReader(self.obj.log)
+        items = list(reader._read())
+        self.assertEqual(len(items), 0)
+        reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
+        items = list(reader._read())
+        self.assertEqual(len(items), 2)
+        reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
+        reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
+        items = list(reader._read())
+        self.assertEqual(len(items), 4)
+
+    def test_func_reader(self):
+        reader = ApiritifFuncReader(self.obj.engine, self.obj.log)
+        items = list(reader.read())
+        self.assertEqual(len(items), 0)
+        reader.register_file(RESOURCES_DIR + "apiritif/transactions.ldjson")
+        reader.register_file(RESOURCES_DIR + "apiritif/transactions.ldjson")
+        items = list(reader.read())
+        self.assertEqual(len(items), 12)
 
 
 class TestPyTestExecutor(BZTestCase):

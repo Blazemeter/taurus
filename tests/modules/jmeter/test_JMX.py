@@ -30,12 +30,26 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.assertIn(msg, self.log_recorder.debug_buff.getvalue())
         groupset = self.get_groupset()
         groups = [group.gtype for group in groupset]
-        self.assertEqual(4, len(set(groups)))   # no one group was modified
+        self.assertEqual(5, len(set(groups)))   # no one group was modified
         self.assertEqual("", self.log_recorder.warn_buff.getvalue())
+        res_values = {}
+        for group in groupset:
+            res_values[group.get_testname()] = {
+                'conc': group.get_concurrency(),
+                'rate': group.get_rate(),
+                'duration': group.get_duration(),
+                'iterations': group.get_iterations()}
+
+        self.assertEqual(res_values,
+                         {'TG.01': {'conc': 2, 'duration': 3, 'iterations': 100, 'rate': None},
+                          'CTG.02': {'conc': 3, 'duration': 100, 'iterations': None, 'rate': None},
+                          'STG.03': {'conc': 4, 'duration': None, 'iterations': None, 'rate': None},
+                          'UTG.04': {'conc': 1, 'duration': None, 'iterations': None, 'rate': None},
+                          'ATG.05': {'conc': 1, 'duration': 480, 'iterations': 33, 'rate': 2}})
 
     def test_TG_cs(self):
         """ ThreadGroup: concurrency, steps """
-        self.configure(load={'concurrency': 69, 'steps': 5},
+        self.configure(load={'concurrency': 76, 'steps': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)     # because no duration
         self.sniff_log(self.obj.log)
@@ -62,7 +76,8 @@ class TestLoadSettingsProcessor(BZTestCase):
                          {'TG.01': {'conc': 14, 'on_error': 'startnextloop'},
                           'CTG.02': {'conc': 21, 'on_error': 'stopthread'},
                           'STG.03': {'conc': 28, 'on_error': 'stoptest'},
-                          'UTG.04': {'conc': 7, 'on_error': 'stoptestnow'}})
+                          'UTG.04': {'conc': 7, 'on_error': 'stoptestnow'},
+                          'ATG.05': {'conc': 7, 'on_error': 'continue'}})
 
     def test_CTG_crs(self):
         """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
@@ -90,10 +105,11 @@ class TestLoadSettingsProcessor(BZTestCase):
             res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'on_error': group.get_on_error()}
 
         self.assertEqual(res_values,
-                         {'TG.01': {'conc': 14, 'on_error': 'startnextloop'},
-                          'CTG.02': {'conc': 21, 'on_error': 'stopthread'},
-                          'STG.03': {'conc': 28, 'on_error': 'stoptest'},
-                          'UTG.04': {'conc': 7, 'on_error': 'stoptestnow'}})
+                         {'TG.01': {'conc': 13, 'on_error': 'startnextloop'},
+                          'CTG.02': {'conc': 19, 'on_error': 'stopthread'},
+                          'STG.03': {'conc': 26, 'on_error': 'stoptest'},
+                          'UTG.04': {'conc': 6, 'on_error': 'stoptestnow'},
+                          'ATG.05': {'conc': 6, 'on_error': 'continue'}})
 
     def test_CTG_prop_rs(self):
         """ ConcurrencyThreadGroup: properties in ramp-up, steps """
@@ -112,7 +128,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
             res_values[group.get_testname()] = group.get_concurrency()
 
-        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1})
+        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1, 'ATG.05': 1})
 
     def test_CTG_prop_trh(self):
         """ ConcurrencyThreadGroup: properties in throughput, ramp-up, hold-for """
@@ -184,7 +200,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
             res_values[group.get_testname()] = group.get_concurrency()
 
-        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1})
+        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1, 'ATG.05': 1})
 
     def test_TG_ci(self):
         """ ThreadGroup: concurrency, iterations """
@@ -217,7 +233,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
             res_values[group.get_testname()] = group.get_concurrency()
 
-        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1})
+        self.assertEqual(res_values, {'TG.01': 2, 'CTG.02': 3, 'STG.03': 4, 'UTG.04': 1, 'ATG.05': 1})
 
 
 class TestJMX(BZTestCase):

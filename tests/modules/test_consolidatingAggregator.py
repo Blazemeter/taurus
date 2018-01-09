@@ -124,6 +124,12 @@ class TestConsolidatingAggregator(BZTestCase):
             for kpiset in dp['current'].values():
                 self.assertNotEqual(42, kpiset.rtimes_len)
 
+    def test_inf_values(self):
+        obj = ConsolidatingAggregator()
+        obj.settings['max-buffer-len'] = "inf"
+        obj.prepare()
+        self.assertEqual(obj.max_buffer_len, float("inf"))
+
 
 class MockListener(AggregatorListener):
     def __init__(self):

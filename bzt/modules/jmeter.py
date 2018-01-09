@@ -398,7 +398,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         except KeyboardInterrupt:
             raise
         except BaseException as exc:
-            ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
+            raise ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
 
     def check(self):
         """

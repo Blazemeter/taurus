@@ -42,7 +42,7 @@ import os
 import psutil
 import shutil
 from abc import abstractmethod
-from collections import defaultdict, Counter, namedtuple
+from collections import defaultdict, Counter
 from contextlib import contextmanager
 from math import log
 from subprocess import CalledProcessError
@@ -113,6 +113,8 @@ def dehumanize_time(str_time):
     """
     Convert value like 1d4h33m12s103ms into seconds
 
+    Also, incidentally translates strings like "inf" into float("inf")
+
     :param str_time: string to convert
     :return: float value in seconds
     :raise TaurusInternalException: in case of unsupported unit
@@ -120,7 +122,7 @@ def dehumanize_time(str_time):
     if not str_time:
         return 0
 
-    parser = re.compile(r'([\d\.]+)([a-zA-Z]*)')
+    parser = re.compile(r'([\d\.\-infa]+)([a-zA-Z]*)')
     parts = parser.findall(str(str_time).replace(' ', ''))
 
     if len(parts) == 0:
@@ -129,7 +131,10 @@ def dehumanize_time(str_time):
 
     result = 0.0
     for value, unit in parts:
-        value = float(value)
+        try:
+            value = float(value)
+        except ValueError:
+            raise TaurusInternalException("Unsupported float string: %r" % value)
         unit = unit.lower()
         if unit == 'ms':
             result += value / 1000.0
@@ -597,7 +602,7 @@ def to_json(obj):
     :param obj:
     :return:
     """
-
+    # NOTE: you can set allow_nan=False to fail when serializing NaN/Infinity
     return json.dumps(obj, indent=True, cls=ComplexEncoder)
 
 
