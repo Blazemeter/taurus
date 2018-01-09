@@ -22,9 +22,9 @@ from abc import abstractmethod
 from collections import Counter
 
 from bzt import TaurusInternalException, TaurusConfigError
-from bzt.hdr_histogram import HdrHistogram
 from bzt.engine import Aggregator
 from bzt.six import iteritems
+from bzt.stats.hdr import HdrHistogram
 from bzt.utils import BetterDict, dehumanize_time
 
 

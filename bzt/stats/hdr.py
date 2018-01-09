@@ -5,8 +5,8 @@ Ported from
 https://github.com/HdrHistogram/HdrHistogram_py by Alec Hothan
 
 The important edits:
-- encoding/decoding routines were thrown away, as they make code difficult to distribute
-- some iterators and histogram methods were omitted to minimize the amount of code needed
+- encoding/decoding routines were thrown away, as they rely on C extensions, which make code hard to distribute
+- some iterators and histogram methods were omitted to minimize the amount of code
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,10 +22,11 @@ limitations under the License.
 """
 from __future__ import division
 
-import ctypes
 from abc import abstractmethod
 import math
 import sys
+
+import numpy
 
 
 def get_bucket_count(value, subb_count, unit_mag):
@@ -269,7 +270,7 @@ class HdrHistogram(object):
         self.max_value = 0
         self.total_count = 0
         self.counts_len = (self.bucket_count + 1) * (self.sub_bucket_count // 2)
-        self.counts = (ctypes.c_int64 * self.counts_len)()
+        self.counts = numpy.zeros(self.counts_len, dtype=numpy.int64)
 
     @staticmethod
     def _clz(value):
@@ -535,16 +536,7 @@ class HdrHistogram(object):
                 (self.sub_bucket_count == other_hist.sub_bucket_count) and \
                 (self.unit_magnitude == other_hist.unit_magnitude):
 
-            # from pyhdrh import add_array
-            # add_array(ctypes.addressof(self.counts),
-            #           ctypes.addressof(other_hist.counts),
-            #           self.counts_len,
-            #           8)
-            index = 0
-            while index < len(other_hist.counts):
-                self.counts[index] += other_hist.counts[index]
-                index += 1
-
+            self.counts += other_hist.counts  # TODO: check other_hist.counts dtype?
             self.total_count += other_hist.get_total_count()
             self.max_value = max(self.max_value, other_hist.get_max_value())
             self.min_value = min(self.get_min_value(), other_hist.get_min_value())

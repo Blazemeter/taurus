@@ -1,4 +1,4 @@
-from bzt.hdr_histogram import HdrHistogram
+from bzt.stats.hdr import HdrHistogram
 from tests import BZTestCase
 
 
@@ -141,12 +141,28 @@ class TestHdrHistogram(BZTestCase):
         histogram.record_value(1)
         histogram.record_value(2)
         self.assertEqual(histogram.get_value_at_percentile(50.0), 1)
-        self.assertEqual(histogram.get_value_at_percentile(50.00000000000001), 1)
         histogram.record_value(2)
         histogram.record_value(2)
         histogram.record_value(2)
         self.assertEqual(histogram.get_value_at_percentile(30), 2)
 
-    # TODO: check HdrHistogram.add
-    # TODO: check HdrHistogram.get_percentile_to_value_dict
+    def test_add(self):
+        hist1 = HdrHistogram(1, 3600 * 1000 * 1000, 3)
+        hist1.record_value(1, count=100)
+        hist1.record_value(2, count=100)
+        hist2 = HdrHistogram(1, 3600 * 1000 * 1000, 3)
+        hist2.record_value(1, count=100)
+        hist2.record_value(2, count=200)
+        self.assertEqual(hist1.get_value_at_percentile(50.0), 1)
+        self.assertEqual(hist2.get_value_at_percentile(50.0), 2)
+        hist1.add(hist2)
+        self.assertEqual(hist1.get_value_at_percentile(50.0), 2)
 
+    def test_percentile_dict(self):
+        hist = HdrHistogram(1, 3600 * 1000 * 1000, 3)
+        for i in range(1, 10000):
+            hist.record_value(i, 10000 - i)
+        percentiles = [0.0, 50.0, 90.0, 95.0, 99.0, 100.0]
+        values = hist.get_percentile_to_value_dict(percentiles)
+        expected = {0.0: 1, 50.0: 2929, 99.0: 9007, 100.0: 9999, 90.0: 6839, 95.0: 7767}
+        self.assertEqual(values, expected)
