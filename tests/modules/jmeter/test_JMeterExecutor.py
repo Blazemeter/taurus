@@ -1916,6 +1916,37 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(files[1].find('stringProp[@name="File.mimetype"]').text, "application/pdf")
         self.assertEqual(files[2].find('stringProp[@name="File.mimetype"]').text, "application/octet-stream")
 
+    def test_upload_files_paths(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "method": "POST",
+                        "upload-files": [{
+                            "path": "${some_var}",      # variable
+                            "param": "stats",
+                        }, {
+                            "path": "body-file.dat",     # relpath from RES_DIR/jmeter
+                            "param": "report",
+                        }, {
+                            "path": os.path.join(RESOURCES_DIR, 'jmeter', 'unicode-file'),  # abs path
+                            "param": "stuff"}]}]}}})
+        self.obj.engine.file_search_paths.append(os.path.join(RESOURCES_DIR, 'jmeter'))
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
+        request = xml_tree.find('.//HTTPSamplerProxy')
+        self.assertIsNotNone(request)
+        file_query = 'elementProp[@name="HTTPsampler.Files"]/collectionProp[@name="HTTPFileArgs.files"]/elementProp'
+        files = request.findall(file_query)
+        self.assertEqual(len(files), 3)
+        paths = [_file.find('stringProp[@name="File.path"]').text for _file in files]
+        paths.sort()
+        norm = ['${some_var}',
+                '/home/taras/Projects/taurus/tests/resources/jmeter/body-file.dat',
+                '/home/taras/Projects/taurus/tests/resources/jmeter/unicode-file']
+        self.assertEqual(paths, norm)
+
     def test_data_sources_jmx_gen_loop(self):
         self.configure({
             'execution': {
