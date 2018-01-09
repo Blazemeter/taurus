@@ -16,7 +16,6 @@ from tests.mocks import EngineEmul
 
 
 class TestJUnitXML(BZTestCase):
-
     def test_prepare_filename_in_settings(self):
         # test path parameter from config
         obj = JUnitXMLReporter()
