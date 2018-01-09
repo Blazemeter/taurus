@@ -3,6 +3,7 @@
 ## 1.10.4 <sup>next</sup>
  - don't level down logging if `settings.verbose` is set
  - set `write-xml-jtl=full` in JMeter if `settings.verbose` is set
+ - fix files upload resolve for JMeter variables 
  - fix error when exception is not shown for failed JMeter run
  - fix JSONPath Extractor generated for JMeter
  - set default timeout for BlazeMeter integration to 30 seconds
