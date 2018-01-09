@@ -157,6 +157,7 @@ class AbstractHdrIterator(object):
             return self.current_iteration_value
 
         raise StopIteration()
+    next = __next__
 
     @abstractmethod
     def reached_iteration_level(self):
