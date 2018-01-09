@@ -90,7 +90,7 @@ class HierarchicHTTPRequest(HTTPRequest):
 
             path_exc = TaurusConfigError("Items from upload-files must specify path to file")
             path = str(file_dict.get("path", path_exc))
-            if not path.startswith('$'):    # exclude varables
+            if '${' not in path:    # exclude varables
                 path = get_full_path(self.engine.find_file(path))   # prepare full path for jmx
 
             file_dict["path"] = path
