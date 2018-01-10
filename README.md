@@ -7,6 +7,9 @@ Quick links: [Taurus Documentation](http://gettaurus.org/docs/) | [Knowledge Bas
 ## Purpose
 Hides the complexity of performance and functional tests with an automation-friendly convenience wrapper. Taurus relies on JMeter, Gatling, Locust.io, Grinder and Selenium WebDriver as its underlying tools. Free and open source under Apache 2.0 License.
 
+## Fork Purpose (3dgiordano)
+Improve the current support of Selenium Webdriver, providing support for more selenium commands, remote-webdriver support and other functionalities commonly used in selenium scripts.
+The improvements made will be proposed to the Taurus team, as long as they are not proposed and accepted, they have my fork to take advantage of and use all the new features incorporated.
 
 ## Installation or Upgrade
 
