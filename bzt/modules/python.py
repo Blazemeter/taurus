@@ -321,6 +321,8 @@ import apiritif
         test_method.append(self.gen_new_line(indent=0))
 
     def gen_setup_method(self):
+        desire_capabilities = {}
+
         self.log.debug("Generating setUp test method")
         browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
         if self.execution and self.execution.get("browser", None):
@@ -340,6 +342,25 @@ import apiritif
             else:
                 remote_executor = self.scenario.get("remote", None)
 
+            if not remote_executor:
+                # Saucelabs
+                saucelabs = self.settings.get("saucelabs", None)
+                if saucelabs:
+                    sauce_username = None
+                    sauce_access_key = None
+                    for sauce_keys in saucelabs:
+                        if "username" in sauce_keys:
+                            sauce_username = sauce_keys["username"]
+                        elif "access_key" in sauce_keys:
+                            sauce_access_key = sauce_keys["access_key"]
+                    if sauce_username and sauce_access_key:
+                        browser = "Remote"
+                        desire_capabilities["name"] = "Powered by Taurus"
+                        remote_executor = "http://%s:%s@ondemand.saucelabs.com:80/wd/hub" % (sauce_username,
+                                                                                             sauce_access_key)
+                    else:
+                        raise TaurusConfigError("The configuration of Saucelabs requires username and access_key keys")
+
         if not browser and remote_executor:
             browser = "Remote"
         elif not browser:
@@ -358,14 +379,13 @@ import apiritif
             statement = "self.driver = webdriver.Chrome(service_log_path=%s)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'Remote':
-            desire_capabilities = {}
 
             if self.execution and self.execution.get("capabilities", None):
                 remote_capabilities = self.execution.get("capabilities", "{}")
             else:
                 remote_capabilities = self.scenario.get("capabilities", "{}")
 
-            supported_capabilities = ["browser", "version", "javascript"]
+            supported_capabilities = ["browser", "version", "javascript", "platform"]
             for capability in remote_capabilities:
                 for cap_key in capability.keys():
                     if cap_key not in supported_capabilities:
@@ -377,6 +397,8 @@ import apiritif
                             desire_capabilities["version"] = capability[cap_key]
                         elif cap_key == "javascript":
                             desire_capabilities["javascriptEnabled"] = capability[cap_key]
+                        else:
+                            desire_capabilities[cap_key] = capability[cap_key]
 
             statement = "self.driver = webdriver.Remote(" \
                         "command_executor={command_executor} " \
