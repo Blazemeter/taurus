@@ -101,6 +101,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         # todo: deprecated, remove it later
         self.runner.settings.merge(self.settings.get('selenium-tools').get(runner_type))
 
+        if "remote" in self.settings:
+            self.runner.settings["remote"] = self.settings.get('remote')
+        if "saucelabs" in self.settings:
+            self.runner.settings["saucelabs"] = self.settings.get('saucelabs')
+
         self.runner.parameters = self.parameters
         self.runner.provisioning = self.provisioning
         self.runner.execution = copy.deepcopy(self.execution)
