@@ -393,8 +393,6 @@ import apiritif
                     else:
                         if cap_key == "browser":
                             desire_capabilities["browserName"] = capability[cap_key]
-                        elif cap_key == "version":
-                            desire_capabilities["version"] = capability[cap_key]
                         elif cap_key == "javascript":
                             desire_capabilities["javascriptEnabled"] = capability[cap_key]
                         else:
