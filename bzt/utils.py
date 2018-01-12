@@ -352,16 +352,13 @@ class Environment(object):
         else:
             self.set(data)
 
-    def set(self, pairs):
-        if not isinstance(pairs, dict):
-            pairs = [pairs]
-
-        for pair in pairs:
-            key, val = pair
+    def set(self, env):
+        for key in env:
             key = str(key)
             if is_windows():
                 key = key.upper()
 
+            val = env[key]
             if key in self.data:
                 if val is None:
                     self.log.debug("Remove '%s' from environment", key)
@@ -369,6 +366,8 @@ class Environment(object):
                 else:
                     self.log.debug("Replace '%s' in environment", key)
                     self.data[key] = str(val)
+            else:
+                self._add({key: val}, '')
 
     def add_path(self, pair):
         self._add(pair, os.pathsep)
@@ -380,24 +379,25 @@ class Environment(object):
         self.set(env)
 
     def _add(self, pair, separator, finish=False):
-        key, val = pair
-        key = str(key)
-        if is_windows():
-            key = key.upper()
+        for key in pair:
+            val = pair[key]
+            key = str(key)
+            if is_windows():
+                key = key.upper()
 
-        if val is None:
-            self.log.debug("Skip empty variable '%s'", key)
+            if val is None:
+                self.log.debug("Skip empty variable '%s'", key)
 
-        self.log.debug("Add '%s' to environment", key)
-        val = str(val)
+            self.log.debug("Add '%s' to environment", key)
+            val = str(val)
 
-        if key in self.data:
-            if finish:
-                self.data[key] += separator + val  # add to the end
+            if key in self.data:
+                if finish:
+                    self.data[key] += separator + val  # add to the end
+                else:
+                    self.data[key] = val + separator + self.data[key]  # add to the beginning
             else:
-                self.data[key] = val + separator + self.data[key]  # add to the beginning
-        else:
-            self.data[key] = str(val)
+                self.data[key] = str(val)
 
     def get(self, key=None):
         if key:
