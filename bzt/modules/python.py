@@ -90,14 +90,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        py_path = os.getenv("PYTHONPATH")
-        taurus_dir = get_full_path(__file__, step_up=3)
-        if py_path:
-            py_path = os.pathsep.join((py_path, taurus_dir))
-        else:
-            py_path = taurus_dir
-
-        self.env["PYTHONPATH"] = py_path
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         report_type = ".ldjson" if self.engine.is_functional_mode() else ".csv"
         report_tpl = self.engine.create_artifact("apiritif-", "") + "%s" + report_type
@@ -1111,7 +1104,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         """
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
         cmdline += self._additional_args
@@ -1175,7 +1168,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+        self.env.add_path({"PYTHONPATH":  get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
 
