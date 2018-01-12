@@ -861,7 +861,6 @@ class Provisioning(EngineModule):
             instance = self.engine.instantiate_module(executor)
             instance.provisioning = self
             instance.execution = execution
-            instance.env = Environment(instance.log, self.engine.env.get())
             assert isinstance(instance, ScenarioExecutor)
             self.executors.append(instance)
 

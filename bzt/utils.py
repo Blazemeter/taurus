@@ -370,29 +370,42 @@ class Environment(object):
                     self.log.debug("Replace '%s' in environment", key)
                     self.data[key] = str(val)
 
-    def add(self, pairs):
-        if not isinstance(pairs, dict):
-            pairs = [pairs]
+    def add_path(self, pair):
+        self._add(pair, os.pathsep)
 
-        for pair in pairs:
-            key, val = pair
+    def add_java_param(self, pair):
+        self._add(pair, " ")
+
+    def _add(self, pair, separator, finish=False):
+        key, val = pair
+        key = str(key)
+        if is_windows():
+            key = key.upper()
+
+        if val is None:
+            self.log.debug("Skip empty variable '%s'", key)
+
+        self.log.debug("Add '%s' to environment", key)
+        val = str(val)
+
+        if key in self.data:
+            if finish:
+                self.data[key] += separator + val  # add to the end
+            else:
+                self.data[key] = val + separator + self.data[key]  # add to the beginning
+        else:
+            self.data[key] = str(val)
+
+    def get(self, key=None):
+        if key:
             key = str(key)
             if is_windows():
                 key = key.upper()
 
-            if val is None:
-                self.log.debug("Skip empty variable '%s'", key)
-
-            self.log.debug("Add '%s' to environment", key)
-            val = str(val)
-
-            if key in self.data:
-                self.data[key] = val + os.pathsep + self.data[key]
-            else:
-                self.data[key] = str(val)
-
-    def get(self):
-        return copy.deepcopy(self.data)
+            return self.data.get(key, None)
+        else:
+            # full environment
+            return copy.deepcopy(self.data)
 
 
 class FileReader(object):
