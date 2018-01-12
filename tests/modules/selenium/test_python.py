@@ -50,7 +50,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")))
 
@@ -70,7 +70,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")))
 
@@ -89,7 +89,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(0.2)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
         diagnostics = "\n".join(self.obj.get_error_diagnostics())
@@ -111,7 +111,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(0.2)
+            time.sleep(self.obj.engine.check_interval)
         diagnostics = "\n".join(self.obj.get_error_diagnostics())
         self.assertIn("Nothing to test", diagnostics)
 
@@ -129,7 +129,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             self.obj.startup()
             for _ in range(3):
                 self.assertFalse(self.obj.check())
-                time.sleep(1.0)
+                time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
 

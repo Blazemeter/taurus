@@ -236,8 +236,8 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
         # if load.hold:
         #    cmdline += ['--hold-for', str(load.hold)]
 
-        self.env.set({"NODE_PATH", self.newman_tool.env.get("NODE_PATH")})
-        self.env.add_path({"NODE_PATH", os.path.join(os.path.dirname(__file__), "..", "resources")})
+        self.env.set({"NODE_PATH": self.newman_tool.env.get("NODE_PATH")})
+        self.env.add_path({"NODE_PATH": os.path.join(get_full_path(__file__, step_up=2), "resources")})
 
         self._start_subprocess(cmdline, cwd=script_dir)
 
