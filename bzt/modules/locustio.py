@@ -87,10 +87,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
         wrapper = os.path.join(get_full_path(__file__, step_up=2), "resources", "locustio-taurus-wrapper.py")
 
-        env = BetterDict()
-        env.merge({"PYTHONPATH": self.engine.artifacts_dir + os.pathsep + os.getcwd()})
-        if os.getenv("PYTHONPATH"):
-            env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
+        self.env.add_path({"PYTHONPATH": self.engine.artifacts_dir})
+        self.env.add_path({"PYTHONPATH": os.getcwd()})
+        self.env.set({"LOCUST_DURATION": dehumanize_time(load.duration)})
 
         self.log_file = self.engine.create_artifact("locust", ".log")
         args = [sys.executable, wrapper, '-f', self.script]
@@ -100,19 +99,18 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         if load.iterations:
             args.append("--num-request=%d" % load.iterations)
 
-        env['LOCUST_DURATION'] = dehumanize_time(load.duration)
         if self.is_master:
             args.extend(["--master", '--expect-slaves=%s' % self.expected_slaves])
-            env["SLAVES_LDJSON"] = self.slaves_ldjson
+            self.env.set({"SLAVES_LDJSON": self.slaves_ldjson})
         else:
-            env["JTL"] = self.kpi_jtl
+            self.env.set({"JTL": self.kpi_jtl})
 
         host = self.get_scenario().get("default-address", None)
         if host is not None:
             args.append('--host=%s' % host)
 
         self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
-        self.process = self.execute(args, stderr=STDOUT, stdout=self.__out, env=env)
+        self.process = self.execute(args, stderr=STDOUT, stdout=self.__out)
 
     def get_widget(self):
         """
