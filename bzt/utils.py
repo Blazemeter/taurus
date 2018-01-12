@@ -376,6 +376,9 @@ class Environment(object):
     def add_java_param(self, pair):
         self._add(pair, " ")
 
+    def update(self, env):   # compatibility with taurus-server
+        self.set(env)
+
     def _add(self, pair, separator, finish=False):
         key, val = pair
         key = str(key)

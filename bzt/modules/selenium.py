@@ -39,7 +39,7 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         pass
 
     @abstractmethod
-    def add_env(self, env):
+    def add_env(self, env):     # compatibility with taurus-server
         """
         Add environment variables into selenium process env
         :type env: dict[str,str]
@@ -73,21 +73,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.script = None
         self.runner_working_dir = None
         self.register_reader = True
-        self.virtual_display_service = Service()  # TODO: remove compatibility with deprecated virtual-display setting
         self.webdrivers = []
 
-    def add_env(self, env):
-        if "PATH" in self.additional_env and "PATH" in env:
-            old_path = self.additional_env["PATH"]
-            new_path = env["PATH"]
-            merged_path = []
-            for item in old_path.split(os.pathsep) + new_path.split(os.pathsep):
-                if item in merged_path:
-                    continue
-                else:
-                    merged_path.append(item)
-            env["PATH"] = os.pathsep.join(merged_path)
-        self.additional_env.update(env)
+    def add_env(self, env):     # compatibility with taurus-server
+        self.env.set(env)
 
     def get_runner_working_dir(self):
         if self.runner_working_dir is None:
@@ -97,9 +86,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     def create_runner(self):
         runner_type = self.get_runner_type()
         self.runner = self.engine.instantiate_module(runner_type)
-
-        # todo: deprecated, remove it later
-        self.runner.settings.merge(self.settings.get('selenium-tools').get(runner_type))
 
         self.runner.parameters = self.parameters
         self.runner.provisioning = self.provisioning
@@ -170,15 +156,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
 
-    def _add_webdrivers_to_path(self):
-        path_var = os.getenv("PATH")
-        paths = [driver.get_driver_dir() for driver in self.webdrivers]
-        path = os.pathsep.join(paths) + os.pathsep + path_var
-        self.add_env({"PATH": path})
-
     def prepare(self):
         self.install_required_tools()
-        self._add_webdrivers_to_path()
+        for driver in self.webdrivers:
+            self.env.add_path({"PATH": driver.get_driver_dir()})
 
         if self.get_load().concurrency and self.get_load().concurrency > 1:
             msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
@@ -268,7 +249,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         """
         self.virtual_display_service.startup()
         self.start_time = time.time()
-        self.runner.env.update(self.additional_env)
+        self.runner.env.set(self.env.get())
         self.runner.startup()
 
     def check(self):

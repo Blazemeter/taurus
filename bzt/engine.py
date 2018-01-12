@@ -154,9 +154,10 @@ class Engine(object):
         self.log.info("Preparing...")
         interval = self.config.get(SETTINGS).get("check-interval", self.check_interval)
         self.check_interval = dehumanize_time(interval)
+        self.env = Environment(self.log)
+        self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
 
         try:
-            self.__set_env()
             self.__prepare_aggregator()
             self.__prepare_services()
             self.__prepare_provisioning()
@@ -166,10 +167,6 @@ class Engine(object):
         except BaseException as exc:
             self.stopping_reason = exc
             raise
-
-    def __set_env(self):
-        self.env = Environment(self.log)
-        self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
 
     def _startup(self):
         modules = self.services + [self.aggregator] + self.reporters + [self.provisioning]  # order matters
