@@ -26,6 +26,7 @@ import mimetypes
 import platform
 import random
 import re
+import copy
 import shlex
 import signal
 import socket
@@ -335,14 +336,63 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
         args = shlex.split(args, posix=not is_windows())
     logging.getLogger(__name__).debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
-    if env:
-        env = {k: str(v) for k, v in iteritems(env)}
-
     if is_windows():
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env)
     else:
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
                      preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
+
+
+class Environment(object):
+    def __init__(self, parent_log, data=None):
+        self.data = {}
+        self.log = parent_log.getChild(self.__class__.__name__)
+        if data is None:
+            self.set(dict(os.environ))
+        else:
+            self.set(data)
+
+    def set(self, pairs):
+        if not isinstance(pairs, dict):
+            pairs = [pairs]
+
+        for pair in pairs:
+            key, val = pair
+            key = str(key)
+            if is_windows():
+                key = key.upper()
+
+            if key in self.data:
+                if val is None:
+                    self.log.debug("Remove '%s' from environment", key)
+                    self.data.pop(key)
+                else:
+                    self.log.debug("Replace '%s' in environment", key)
+                    self.data[key] = str(val)
+
+    def add(self, pairs):
+        if not isinstance(pairs, dict):
+            pairs = [pairs]
+
+        for pair in pairs:
+            key, val = pair
+            key = str(key)
+            if is_windows():
+                key = key.upper()
+
+            if val is None:
+                self.log.debug("Skip empty variable '%s'", key)
+
+            self.log.debug("Add '%s' to environment", key)
+            val = str(val)
+
+            if key in self.data:
+                self.data[key] = val + os.pathsep + self.data[key]
+            else:
+                self.data[key] = str(val)
+
+    def get(self):
+        return copy.deepcopy(self.data)
 
 
 class FileReader(object):
