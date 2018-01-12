@@ -134,7 +134,7 @@ Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should wor
 ```
 sudo apt-get update
 sudo apt-get install python default-jre-headless python-tk python-pip python-dev \
-  libxml2-dev libxslt-dev zlib1g-dev
+  libxml2-dev libxslt-dev zlib1g-dev net-tools
 sudo pip install bzt
 ```
 Upgrading to latest is as simple as this:
