@@ -85,7 +85,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     def create_runner(self):
         runner_type = self.get_runner_type()
         self.runner = self.engine.instantiate_module(runner_type)
-
+        self.runner.env = self.env
         self.runner.parameters = self.parameters
         self.runner.provisioning = self.provisioning
         self.runner.execution = copy.deepcopy(self.execution)

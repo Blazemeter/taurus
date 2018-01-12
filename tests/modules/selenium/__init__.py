@@ -24,6 +24,7 @@ class SeleniumTestCase(BZTestCase):
         self.obj.settings.merge({"virtual-display": {"width": 1024, "height": 768}})
         engine_obj.create_artifacts_dir(paths)
         self.obj.engine = engine_obj
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -31,8 +32,3 @@ class SeleniumTestCase(BZTestCase):
         if isinstance(self.obj.execution, list):
             self.obj.execution = self.obj.execution[0]
 
-    def tearDown(self):
-        super(SeleniumTestCase, self).tearDown()
-        if isinstance(self.obj, SeleniumExecutor):
-            if isinstance(self.obj.virtual_display_service, VirtualDisplay):
-                self.obj.virtual_display_service.free_virtual_display()

@@ -28,6 +28,7 @@ class TestTestNGTester(BZTestCase):
         self.obj.settings = engine_obj.config.get("modules").get("testng")
         engine_obj.create_artifacts_dir(paths)
         self.obj.engine = engine_obj
+        self.obj.env = self.obj.engine.env
 
     def test_simple(self):
         self.obj.execution.merge({
@@ -112,6 +113,7 @@ class TestJUnitTester(BZTestCase):
         self.obj.settings = engine_obj.config.get("modules").get("junit")
         engine_obj.create_artifacts_dir(paths)
         self.obj.engine = engine_obj
+        self.obj.env = self.obj.engine.env
 
     def test_install_tools(self):
         """
