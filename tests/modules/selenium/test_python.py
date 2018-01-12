@@ -139,6 +139,7 @@ class TestNoseRunner(BZTestCase):
         super(TestNoseRunner, self).setUp()
         self.obj = ApiritifNoseExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -151,11 +152,9 @@ class TestNoseRunner(BZTestCase):
             "ramp-up": "10s",
             "hold-for": "10s",
             "steps": 5,
-
             "scenario": {
-                "script": RESOURCES_DIR + "apiritif/test_codegen.py"
-            }
-        })
+                "script": RESOURCES_DIR + "apiritif/test_codegen.py"}})
+
         self.obj.prepare()
         self.obj.get_widget()
         try:
@@ -177,11 +176,8 @@ class TestNoseRunner(BZTestCase):
                     "default-address": "http://blazedemo.com",
                     "requests": [
                         "/",
-                        "/reserve.php",
-                    ]
-                }
-            }]
-        })
+                        "/reserve.php"]}}]})
+
         self.obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "test_requests.py")))
         try:
@@ -864,6 +860,7 @@ class TestPyTestExecutor(BZTestCase):
         super(TestPyTestExecutor, self).setUp()
         self.obj = PyTestExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -1010,6 +1007,7 @@ class TestRobotExecutor(BZTestCase):
         super(TestRobotExecutor, self).setUp()
         self.obj = RobotExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)

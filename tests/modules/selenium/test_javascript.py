@@ -205,6 +205,7 @@ class TestNewmanExecutor(BZTestCase):
     def test_flow(self):
         obj = NewmanExecutor()
         obj.engine = EngineEmul()
+        obj.env = obj.engine.env
         obj.engine.aggregator = ConsolidatingAggregator()
         obj.engine.config.merge({"scenarios": {"newman": {
             "script": RESOURCES_DIR + 'functional/postman.json',

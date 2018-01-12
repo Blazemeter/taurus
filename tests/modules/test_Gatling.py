@@ -65,13 +65,13 @@ class TestGatlingExecutor(BZTestCase):
         self.obj.startup()
         self.obj.shutdown()
 
-        jar_files = self.obj.jar_list
         modified_launcher = self.obj.launcher
         with open(modified_launcher) as modified:
             modified_lines = modified.readlines()
 
-        self.assertIn('fake_grinder.jar', jar_files)
-        self.assertIn('another_dummy.jar', jar_files)
+        for jar in ('fake_grinder.jar', 'another_dummy.jar'):
+            for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
+                self.assertIn(jar, self.obj.env.get(var))
 
         for line in modified_lines:
             self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))
@@ -366,7 +366,9 @@ class TestGatlingExecutor(BZTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        self.assertIn('simulations.jar', self.obj.jar_list)
+
+        for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
+            self.assertIn("simulations.jar", self.obj.env.get(var))
 
     def test_files_find_file(self):
         curdir = get_full_path(os.curdir)
@@ -390,8 +392,10 @@ class TestGatlingExecutor(BZTestCase):
                     time.sleep(self.obj.engine.check_interval)
             finally:
                 self.obj.shutdown()
-            self.assertIn('simulations.jar', self.obj.jar_list)
-            self.assertIn('deps.jar', self.obj.jar_list)
+
+            for jar in ("simulations.jar", "deps.jar"):
+                for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
+                    self.assertIn(jar, self.obj.env.get(var))
         finally:
             os.chdir(curdir)
 
