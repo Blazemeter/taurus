@@ -160,15 +160,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         # add logback configurations used by worker processes (logback-worker.xml)
         res_dir = os.path.join(get_full_path(__file__, step_up=2), 'resources')
-        classpath = res_dir
-        classpath += os.path.pathsep + os.path.join(res_dir, "grinder-logger-1.0.jar")
+        self.env.add_path({"CLASSPATH": res_dir})
+        self.env.add_path({"CLASSPATH": os.path.join(res_dir, "grinder-logger-1.0.jar")})
+        self.env.add_path({"CLASSPATH": self.settings.get("path", None)})
 
-        path = self.settings.get("path", None)
-        if path:
-            classpath += os.path.pathsep + path
-
-        self.cmd_line = ["java", "-classpath", classpath]
-        self.cmd_line += ["net.grinder.Grinder", self.properties_file]
+        self.cmd_line = ["java", "net.grinder.Grinder", self.properties_file]
 
     def startup(self):
         """
@@ -179,12 +175,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         err = self.engine.create_artifact("grinder-stderr", ".log")
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
+        self.env.set({"T_GRINDER_PREFIX": self.exec_id})
 
-        env = {"T_GRINDER_PREFIX": self.exec_id}
-        self.process = self.execute(self.cmd_line,
-                                    stdout=self.stdout_file,
-                                    stderr=self.stderr_file,
-                                    env=env)
+        self.process = self.execute(self.cmd_line, stdout=self.stdout_file, stderr=self.stderr_file)
 
     def check(self):
         """
@@ -239,7 +232,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def install_required_tools(self):
         grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
-        grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
+        grinder_path = get_full_path(grinder_path)
         self.settings["path"] = grinder_path
         download_link = self.settings.get("download-link", "")
         required_tools = [TclLibrary(self.log),
