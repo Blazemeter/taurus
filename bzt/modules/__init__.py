@@ -68,7 +68,6 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
 
     All executors must implement the following interface.
     """
-
     def __init__(self):
         super(SubprocessedExecutor, self).__init__()
         self.script = None

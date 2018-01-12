@@ -27,13 +27,12 @@ class TestEngine(BZTestCase):
             BASE_CONFIG,
             RESOURCES_DIR + "json/get-post.json",
             RESOURCES_DIR + "json/reporting.json",
-            self.paths
-        ]
+            self.paths]
         self.obj.configure(configs)
         self.obj.prepare()
 
         for executor in self.obj.provisioning.executors:
-            executor._env['TEST_MODE'] = 'files'
+            executor.env.set({"TEST_MODE": "files"})
 
         self.obj.run()
         self.obj.post_process()
@@ -51,7 +50,7 @@ class TestEngine(BZTestCase):
         self.assertEquals(1, len(self.obj.services))
 
         for executor in self.obj.provisioning.executors:
-            executor._env['TEST_MODE'] = 'files'
+            executor.env.set({"TEST_MODE": "files"})
 
         self.obj.run()
         self.obj.post_process()
@@ -116,6 +115,7 @@ class TestScenarioExecutor(BZTestCase):
         self.engine = EngineEmul()
         self.executor = ScenarioExecutor()
         self.executor.engine = self.engine
+        self.executor.env = self.executor.engine.env
 
     def test_scenario_extraction_script(self):
         self.engine.config.merge({
@@ -208,6 +208,8 @@ class TestScenarioExecutor(BZTestCase):
 
     def test_passes_artifacts_dir(self):
         cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
+        self.engine.prepare()
+        self.executor.env.set(self.engine.env.get())
         process = self.executor.execute(cmdline, shell=True)
         stdout, _ = communicate(process)
         self.assertEquals(self.engine.artifacts_dir, stdout.strip())
@@ -217,8 +219,10 @@ class TestScenarioExecutor(BZTestCase):
         line_tpl = "echo %%%s%%" if is_windows() else "echo $%s"
         cmdlines = [line_tpl % "aaa", line_tpl % "AAA"]
         results = set()
+        self.executor.env.set({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})
         for cmdline in cmdlines:
-            process = self.executor.execute(cmdline, shell=True, env=env)
+            self.executor.env.set(env)
+            process = self.executor.execute(cmdline, shell=True)
             stdout, _ = communicate(process)
             results.add(stdout.strip())
         if is_windows():

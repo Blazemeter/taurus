@@ -115,8 +115,10 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
                         "tools-dir": dummy_installation_path}}})
 
             self.obj.execution.merge({
-                "scenario": {"script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"}})
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"}})
             self.obj.prepare()
+
             self.assertTrue(exists(join(dummy_installation_path, "node_modules")))
             self.assertTrue(exists(join(dummy_installation_path, "node_modules", "mocha")))
             self.assertTrue(exists(join(dummy_installation_path, "node_modules", "mocha", "index.js")))

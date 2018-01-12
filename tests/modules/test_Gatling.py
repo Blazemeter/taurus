@@ -425,8 +425,10 @@ class TestGatlingExecutor(BZTestCase):
         self.assertEqual(res_files, [csv_path])
 
     def test_diagnostics(self):
-        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "gatling/simulations.jar",
-                                               "simulation": "tests.gatling.BasicSimulation"}})
+        self.obj.execution.merge({
+            "scenario": {
+                "script": RESOURCES_DIR + "gatling/simulations.jar",
+                "simulation": "tests.gatling.BasicSimulation"}})
         self.obj.prepare()
         try:
             self.obj.startup()
@@ -441,15 +443,13 @@ class TestGatlingExecutor(BZTestCase):
         self.obj.execution.merge({
             "scenario": {
                 "keepalive": True,
-                "requests": ["http://blazedemo.com/"],
-            }
-        })
-        saved_env = BetterDict()
-        self.obj.execute = lambda self, *args, **kwargs: saved_env.merge(kwargs['env'])
+                "requests": ["http://blazedemo.com/"]}})
+
+        self.obj.execute = lambda *args, **kwargs: None
         self.obj.prepare()
         self.obj.startup()
-        self.assertIn("gatling.http.ahc.allowPoolingConnections=true", saved_env["JAVA_OPTS"])
-        self.assertIn("gatling.http.ahc.keepAlive=true", saved_env["JAVA_OPTS"])
+        self.assertIn("gatling.http.ahc.allowPoolingConnections=true", self.obj.env.get("JAVA_OPTS"))
+        self.assertIn("gatling.http.ahc.keepAlive=true", self.obj.env.get("JAVA_OPTS"))
 
 
 class TestDataLogReader(BZTestCase):

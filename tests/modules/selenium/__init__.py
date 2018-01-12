@@ -1,6 +1,4 @@
-from bzt.modules.services import VirtualDisplay
 from tests import BZTestCase, local_paths_config, BASE_CONFIG
-
 from bzt.modules.selenium import SeleniumExecutor
 from tests.mocks import EngineEmul
 
@@ -9,7 +7,6 @@ class SeleniumTestCase(BZTestCase):
     """
     :type obj: SubprocessedExecutor
     """
-
     def __init__(self, methodName='runTest'):
         super(SeleniumTestCase, self).__init__(methodName)
         self.obj = None
