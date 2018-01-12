@@ -13,6 +13,7 @@ def get_ab():
     path = os.path.abspath(RESOURCES_DIR + "ab/ab" + EXE_SUFFIX)
     obj = ApacheBenchmarkExecutor()
     obj.engine = EngineEmul()
+    obj.env = obj.engine.env
     obj.settings.merge({"path": path})
     return obj
 

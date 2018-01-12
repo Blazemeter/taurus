@@ -16,6 +16,7 @@ def get_gatling():
     path = os.path.abspath(RESOURCES_DIR + "gatling/gatling" + EXE_SUFFIX)
     obj = GatlingExecutor()
     obj.engine = EngineEmul()
+    obj.env = obj.engine.env
     obj.settings.merge({"path": path})
     return obj
 

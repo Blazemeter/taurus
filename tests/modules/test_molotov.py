@@ -21,6 +21,7 @@ class TestMolotov(BZTestCase):
         super(TestMolotov, self).setUp()
         self.obj = MolotovExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def tearDown(self):
         if self.obj.stdout_file:

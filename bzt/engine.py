@@ -73,6 +73,7 @@ class Engine(object):
         self.reporters = []
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.env = Environment(self.log)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
@@ -84,7 +85,7 @@ class Engine(object):
         self.engine_loop_utilization = 0
         self.prepared = []
         self.started = []
-        self.env = None
+
         self.default_cwd = None
         self.logging_level_down = lambda: None
         self.logging_level_up = lambda: None
@@ -154,7 +155,7 @@ class Engine(object):
         self.log.info("Preparing...")
         interval = self.config.get(SETTINGS).get("check-interval", self.check_interval)
         self.check_interval = dehumanize_time(interval)
-        self.env = Environment(self.log)
+
         self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
 
         try:
