@@ -14,7 +14,7 @@ class SeleniumTestCase(BZTestCase):
     def setUp(self):
         super(SeleniumTestCase, self).setUp()
         engine_obj = EngineEmul()
-        paths = [BASE_CONFIG, local_paths_config()]
+        paths = [local_paths_config()]
         engine_obj.configure(paths)  # FIXME: avoid using whole engine in particular module test!
         self.obj = SeleniumExecutor()
         self.obj.settings = engine_obj.config.get("modules").get("selenium")

@@ -1,6 +1,6 @@
 """ unit test """
 from bzt import TaurusConfigError
-from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BASE_CONFIG
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR
 
 from bzt.engine import ScenarioExecutor
 from bzt.six import string_types, communicate
@@ -24,7 +24,6 @@ class TestEngine(BZTestCase):
 
     def test_requests(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "json/get-post.json",
             RESOURCES_DIR + "json/reporting.json",
             self.paths]
@@ -39,7 +38,6 @@ class TestEngine(BZTestCase):
 
     def test_double_exec(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "yaml/triple.yml",
             RESOURCES_DIR + "json/reporting.json",
             self.paths
@@ -57,7 +55,6 @@ class TestEngine(BZTestCase):
 
     def test_unknown_module(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "json/gatling.json",
             self.paths
         ]
@@ -85,7 +82,6 @@ class TestEngine(BZTestCase):
 
     def test_yaml_multi_docs(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "yaml/multi-docs.yml",
             self.paths
         ]
@@ -95,7 +91,6 @@ class TestEngine(BZTestCase):
 
     def test_json_format_regression(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "json/json-but-not-yaml.json"
         ]
         self.obj.configure(configs)
@@ -103,7 +98,6 @@ class TestEngine(BZTestCase):
 
     def test_invalid_format(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "jmeter-dist-3.0.zip"
         ]
         self.assertRaises(TaurusConfigError, lambda: self.obj.configure(configs))
