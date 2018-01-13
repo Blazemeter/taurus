@@ -80,7 +80,7 @@ class TestJMeterExecutor(BZTestCase):
         elif prov == 'cloud':
             self.obj.engine.provisioning = CloudProvisioning()
         else:
-            raise ('Wrong provisioning value: %s' % prov)
+            self.fail('Wrong provisioning value: %s' % prov)
 
     def test_jmx(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})

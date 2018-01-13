@@ -34,9 +34,10 @@ class EngineEmul(Engine):
         directory = get_full_path(TEST_DIR)
         prefix = datetime.datetime.now().strftime(self.ARTIFACTS_DIR)
         self.config.merge({
-            "provisioning": "mock",
+            "provisioning": "local",
             "modules": {
-                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__},
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                "local": ModuleMock.__module__ + "." + ModuleMock.__name__},
             "settings": {
                 "check-updates": False,
                 "artifacts-dir": get_uniq_name(directory=directory, prefix=prefix)}})
