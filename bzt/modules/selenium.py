@@ -51,7 +51,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     """
     Selenium executor
     :type runner: bzt.modules.SubprocessedExecutor
-    :type virtual_display_service: VirtualDisplay
     """
 
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot"]
@@ -97,8 +96,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             self.runner.execution["test-mode"] = "selenium"
 
     def get_virtual_display(self):
-        if isinstance(self.virtual_display_service, VirtualDisplay):
-            return self.virtual_display_service.get_virtual_display()
+        pass    # for compatibility with taurus server
 
     def _get_chromedriver_link(self):
         settings = self.settings.get('chromedriver')
@@ -164,17 +162,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
             msg += 'For details look at http://gettaurus.org/docs/Cloud.md'
             self.log.warning(msg)
-
-        # backwards-compatible virtual-display settings
-        vd_conf = self.settings.get("virtual-display")
-        if vd_conf:
-            self.log.warning("Configuring virtual-display in Selenium module settings is deprecated."
-                             " Use the service approach instead")
-            service_conf = copy.deepcopy(vd_conf)
-            service_conf["module"] = "virtual-display"
-            self.virtual_display_service = VirtualDisplay()
-            self.virtual_display_service.parameters.merge(service_conf)
-            self.virtual_display_service.prepare()
 
         self.create_runner()
         self.runner.prepare()
@@ -246,9 +233,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         Start runner
         :return:
         """
-        self.virtual_display_service.startup()
         self.start_time = time.time()
-        self.runner.env.set(self.env.get())
         self.runner.startup()
 
     def check(self):
@@ -256,8 +241,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         check if test completed
         :return:
         """
-        self.virtual_display_service.check()
-
         if self.widget:
             self.widget.update()
 
@@ -273,13 +256,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         shutdown test_runner
         :return:
         """
-        self.virtual_display_service.shutdown()
-
         self.runner.shutdown()
         self.report_test_duration()
 
     def post_process(self):
-        self.virtual_display_service.post_process()
         self.runner.post_process()
 
         if os.path.exists("geckodriver.log"):
