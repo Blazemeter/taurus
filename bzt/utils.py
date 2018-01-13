@@ -387,6 +387,7 @@ class Environment(object):
 
             if val is None:
                 self.log.debug("Skip empty variable '%s'", key)
+                return
 
             val = str(val)
 

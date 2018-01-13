@@ -78,9 +78,13 @@ class TestProxy2JMX(BZTestCase):
                     'token': '123'}}})
         self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
 
+        executor = SeleniumExecutor()
+        executor.env = self.obj.engine.env
+        self.obj.engine.provisioning.executors = [executor]
+
         self.obj.prepare()
         self.assertEqual(self.obj.proxy_addr, 'http://host1:port1')
-        self.obj.engine.provisioning.executors = [SeleniumExecutor()]
+
         self.obj.startup()
         self.obj.shutdown()
         self.obj.post_process()
@@ -112,14 +116,21 @@ class TestProxy2JMX(BZTestCase):
         self.assertEqual(self.obj.proxy_addr, 'http://host1:port1')
 
     def _check_linux(self):
-        self.obj.startup()
         required_env = {
             'DESKTOP_SESSION': None, 'HTTP_PROXY': 'http://host1:port1', 'https_proxy': 'http://host1:port1',
             'GNOME_DESKTOP_SESSION_ID': None, 'http_proxy': 'http://host1:port1', 'XDG_CURRENT_DESKTOP': None,
             'HTTPS_PROXY': 'http://host1:port1', 'CHROMIUM_USER_FLAGS': '--proxy-server=http://host1:port1',
             'KDE_FULL_SESSION': None}
-        additional_env = self.obj.engine.provisioning.executors[0].additional_env
-        self.assertEqual(additional_env, required_env)
+
+        self.obj.startup()
+
+        real_env = self.obj.engine.provisioning.executors[0].env.get()
+        for key in required_env:
+            if required_env[key] is None:
+                self.assertNotIn(key, real_env)
+            else:
+                self.assertIn(key, real_env)
+                self.assertEqual(required_env[key], real_env[key], key)
 
     def _check_windows(self):
         art_dir = self.obj.engine.artifacts_dir
@@ -148,14 +159,14 @@ class TestProxy2JMX(BZTestCase):
         loader_dir = set(os.listdir(join(art_dir, 'chrome-loader')))
         self.assertEqual(loader_dir, {'chrome.exe', 'chromedriver.exe'})
 
-        additional_env = self.obj.engine.provisioning.executors[0].additional_env
         required_env = {str(key.upper()): str(required_env[key]) for key in required_env}
-        additional_env = {str(key.upper()): str(additional_env[key]) for key in additional_env}
+        real_env = self.obj.engine.provisioning.executors[0].env.get()
+        real_env = {str(key.upper()): str(real_env[key]) for key in real_env}
 
-        self.assertTrue(additional_env['PATH'].startswith(join(self.obj.engine.artifacts_dir, 'chrome-loader')))
+        self.assertTrue(real_env["PATH"].startswith(join(self.obj.engine.artifacts_dir, "chrome-loader")))
         for key in required_env:
-            self.assertIn(key, additional_env)
-            self.assertEqual(required_env[key], additional_env[key])
+            self.assertIn(key, real_env)
+            self.assertEqual(required_env[key], real_env[key])
 
     def _check_mac(self):
         self.obj.startup()
@@ -180,8 +191,12 @@ class TestProxy2JMX(BZTestCase):
         self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
         self.sniff_log(self.obj.log)
 
+        executor = SeleniumExecutor()
+        executor.env = self.obj.engine.env
+        self.obj.engine.provisioning.executors = [executor]
+
         self.obj.prepare()
-        self.obj.engine.provisioning.executors = [SeleniumExecutor()]
+
         if is_linux():
             self._check_linux()
         elif is_windows():
