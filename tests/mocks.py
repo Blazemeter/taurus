@@ -37,6 +37,7 @@ class EngineEmul(Engine):
 
         self.config.get('settings')['check-updates'] = False
         self.create_artifacts_dir()
+        self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
         self.config.merge({"provisioning": "local"})
         self.config.merge({"modules": {"mock": ModuleMock.__module__ + "." + ModuleMock.__name__}})
         self.prepare_exc = None

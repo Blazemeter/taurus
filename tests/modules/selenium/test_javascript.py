@@ -161,7 +161,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def test_simple(self):
@@ -220,7 +220,7 @@ class TestNewmanExecutor(BZTestCase):
         obj.engine.aggregator.startup()
         while not obj.check():
             obj.engine.aggregator.check()
-            time.sleep(1)
+            time.sleep(obj.engine.check_interval)
         obj.shutdown()
         obj.engine.aggregator.shutdown()
         obj.post_process()

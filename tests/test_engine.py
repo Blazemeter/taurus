@@ -219,7 +219,7 @@ class TestScenarioExecutor(BZTestCase):
         line_tpl = "echo %%%s%%" if is_windows() else "echo $%s"
         cmdlines = [line_tpl % "aaa", line_tpl % "AAA"]
         results = set()
-        self.executor.env.set({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})
+
         for cmdline in cmdlines:
             self.executor.env.set(env)
             process = self.executor.execute(cmdline, shell=True)
