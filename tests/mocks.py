@@ -33,13 +33,15 @@ class EngineEmul(Engine):
 
         directory = get_full_path(TEST_DIR)
         prefix = datetime.datetime.now().strftime(self.ARTIFACTS_DIR)
-        self.config.get('settings')['artifacts-dir'] = get_uniq_name(directory=directory, prefix=prefix)
+        self.config.merge({
+            "provisioning": "mock",
+            "modules": {
+                "mock": ModuleMock.__module__ + "." + ModuleMock.__name__},
+            "settings": {
+                "check-updates": False,
+                "artifacts-dir": get_uniq_name(directory=directory, prefix=prefix)}})
 
-        self.config.get('settings')['check-updates'] = False
         self.create_artifacts_dir()
-        self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
-        self.config.merge({"provisioning": "local"})
-        self.config.merge({"modules": {"mock": ModuleMock.__module__ + "." + ModuleMock.__name__}})
         self.prepare_exc = None
         self.was_finalize = False
 

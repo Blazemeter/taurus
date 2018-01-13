@@ -156,8 +156,6 @@ class Engine(object):
         interval = self.config.get(SETTINGS).get("check-interval", self.check_interval)
         self.check_interval = dehumanize_time(interval)
 
-        self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
-
         try:
             self.__prepare_aggregator()
             self.__prepare_services()
@@ -346,6 +344,7 @@ class Engine(object):
         self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
+        self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
