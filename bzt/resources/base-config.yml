@@ -157,6 +157,10 @@ cli-aliases:
     modules:
       linter:
         lint-and-exit: true
+  nolint:
+    modules:
+      linter:
+        disable: true
 
 ---
 # real default config

@@ -51,6 +51,8 @@ class LinterService(Service):
         return self.parameters.get(key, self.settings.get(key, default))
 
     def prepare(self):
+        if self.settings.get("disable", False):
+            return
         self.log.info("Linting config")
         self.warn_on_unfamiliar_fields = self._get_conf_option("warn-on-unfamiliar-fields", True)
         self.linter = ConfigurationLinter(self.engine.config, self.log)
