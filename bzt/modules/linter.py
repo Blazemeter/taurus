@@ -127,7 +127,7 @@ class Warning(object):
         self.message = message
 
     def __str__(self):
-        return "Warning at path '%s': %s" % (self.path, self.message)
+        return "at path '%s': %s" % (self.path, self.message)
 
 
 class ConfigurationLinter(object):
@@ -210,6 +210,12 @@ class Checker(object):
         self.linter = linter
         self.log = linter.log.getChild(self.__class__.__name__)
 
+    def check_for_typos(self, cpath, key, variants):
+        edits, suggestion = most_similar_string(key, variants)
+        # NOTE: or should it be a list of suggestions?
+        if edits <= 3:
+            self.report(Warning(cpath, "Unfamiliar key %r. Did you mean %r?" % (key, suggestion)))
+
     def report(self, warning):
         self.linter.report_warning(warning)
 
@@ -221,12 +227,19 @@ class ExecutionChecker(Checker):
         self.linter.subscribe(Path("execution", "*"), self.on_execution_item)
 
     def on_execution(self, cpath, value):
-        if not isinstance(value, list):  # execution is dict. again
+        if not isinstance(value, list):  # single-execution case. again
             self.report(Warning(cpath, "'execution' is not a list"))
 
-    def on_execution_item(self, cpath, value):
-        # TODO: check execution items (concurrency, executor, iterations, etc)
-        pass
+    def on_execution_item(self, cpath, execution):
+        known_fields = [
+            "concurrency", "iterations", "hold-for", "ramp-up", "steps", "throughput", "files", "scenario"
+        ]
+        if not isinstance(execution, dict):
+            return
+        for field in execution:
+            if field not in known_fields:
+                self.check_for_typos(cpath, field, known_fields)
+            # TODO: check value type for all values (e.g. int|timestamp for hold-for, int for concurrency, etc)?
 
 
 class ToplevelChecker(Checker):
@@ -244,9 +257,4 @@ class ToplevelChecker(Checker):
             return
         for key in cfg:
             if key not in self.KNOWN_TOPLEVEL_SECTIONS:
-                edits, suggestion = most_similar_string(key, self.KNOWN_TOPLEVEL_SECTIONS)
-                # NOTE: or should it be a list of suggestions?
-                if edits <= 3:
-                    self.report(Warning(cpath, "Unfamiliar toplevel key %r. Did you mean %r?" % (key, suggestion)))
-                else:
-                    self.report(Warning(cpath, "Unfamiliar toplevel key %r" % key))
+                self.check_for_typos(cpath, key, self.KNOWN_TOPLEVEL_SECTIONS)
