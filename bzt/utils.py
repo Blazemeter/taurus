@@ -367,18 +367,18 @@ class Environment(object):
                     self.log.debug("Replace '%s' in environment", key)
                     self.data[key] = str(val)
             else:
-                self._add({key: val}, '')
+                self._add({key: val}, '', finish=False)
 
-    def add_path(self, pair):
-        self._add(pair, os.pathsep)
+    def add_path(self, pair, finish=False):
+        self._add(pair, os.pathsep, finish)
 
-    def add_java_param(self, pair):
-        self._add(pair, " ")
+    def add_java_param(self, pair, finish=False):
+        self._add(pair, " ", finish)
 
     def update(self, env):   # compatibility with taurus-server
         self.set(env)
 
-    def _add(self, pair, separator, finish=False):
+    def _add(self, pair, separator, finish):
         for key in pair:
             val = pair[key]
             key = str(key)
