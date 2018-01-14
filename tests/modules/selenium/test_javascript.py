@@ -109,12 +109,13 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             javascript.MOCHA_NPM_PACKAGE_NAME = mocha_link
             javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = wd_link
 
-            self.obj.settings.merge({
-                "selenium-tools": {
+            self.obj.engine.config.merge({
+                "modules": {
                     "mocha": {
                         "tools-dir": dummy_installation_path}}})
 
             self.obj.execution.merge({
+                "runner": "mocha",
                 "scenario": {
                     "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"}})
             self.obj.prepare()
