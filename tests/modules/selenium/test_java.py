@@ -425,7 +425,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
         base_class_path = ':'.join(self.obj.runner.base_class_path)
         self.assertIn(scenario_cp, base_class_path)
-        self.assertIn(settings_cp, base_class_path)
+        self.assertNotIn(settings_cp, base_class_path)  # deprecated, removed
 
     def test_resource_files_collection_remote_jar(self):
         self.configure({
