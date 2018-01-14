@@ -38,7 +38,7 @@ def dameraulevenshtein(seq1, seq2):
 
 
 def most_similar_string(key, variants):
-    return max([(dameraulevenshtein(key, v), v) for v in variants], key=lambda dv: dv[0])
+    return min([(dameraulevenshtein(key, v), v) for v in variants], key=lambda dv: dv[0])
 
 
 class LinterService(Service):
@@ -242,4 +242,9 @@ class ToplevelChecker(Checker):
             return
         for key in cfg:
             if key not in self.KNOWN_TOPLEVEL_SECTIONS:
-                self.report(Warning(cpath, "Unfamiliar toplevel key %r" % key))
+                edits, suggestion = most_similar_string(key, self.KNOWN_TOPLEVEL_SECTIONS)
+                # NOTE: or should it be a list of suggestions?
+                if edits <= 3:
+                    self.report(Warning(cpath, "Unfamiliar toplevel key %r. Did you mean %r?" % (key, suggestion)))
+                else:
+                    self.report(Warning(cpath, "Unfamiliar toplevel key %r" % key))
