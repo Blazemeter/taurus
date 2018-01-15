@@ -26,7 +26,7 @@ def dameraulevenshtein(seq1, seq2):
     oneago = None
     thisrow = list(range(1, len(seq2) + 1)) + [0]
     seq1_size = len(seq1)
-    seq2_size = len(seq1)
+    seq2_size = len(seq2)
     for x in range(seq1_size):
         twoago, oneago, thisrow = oneago, thisrow, [0] * len(seq2) + [x + 1]
         for y in range(seq2_size):
