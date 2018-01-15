@@ -2,7 +2,7 @@ import copy
 import traceback
 
 from bzt import NormalShutdown, TaurusConfigError
-from bzt.engine import Service
+from bzt.engine import Service, Singletone
 from bzt.six import iteritems, text_type, string_types
 from bzt.utils import load_class
 
@@ -44,7 +44,7 @@ def most_similar_string(key, variants):
     return min([(dameraulevenshtein(key, v), v) for v in variants], key=lambda dv: dv[0])
 
 
-class LinterService(Service):
+class LinterService(Service, Singletone):
     def __init__(self):
         super(LinterService, self).__init__()
         self.warn_on_unfamiliar_fields = True
@@ -59,9 +59,10 @@ class LinterService(Service):
         self.log.info("Linting config")
         self.warn_on_unfamiliar_fields = self._get_conf_option("warn-on-unfamiliar-fields", True)
         config_copy = copy.deepcopy(self.engine.config)
-        self.linter = ConfigurationLinter(config_copy, self.log)
         checkers_repo = self.settings.get("checkers")
         checkers_enabled = self.settings.get("checkers-enabled", [])
+        ignored_warnings = self.settings.get("ignore-warnings", [])
+        self.linter = ConfigurationLinter(config_copy, ignored_warnings, self.log)
         self.linter.register_checkers(checkers_repo, checkers_enabled)
         self.linter.lint()
         warnings = self.linter.get_warnings()
@@ -126,7 +127,8 @@ class Path(object):
 
 
 class ConfigWarning(object):
-    def __init__(self, path, message):
+    def __init__(self, identifier, path, message):
+        self.identifier = identifier
         self.path = path
         self.message = message
 
@@ -135,12 +137,18 @@ class ConfigWarning(object):
 
 
 class ConfigurationLinter(object):
-    def __init__(self, config, parent_log):
+    def __init__(self, config, ignored_warnings, parent_log):
+        """
+
+        :type config: dict
+        :type ignored_warnings: list[str]
+        """
         self.log = parent_log.getChild(self.__class__.__name__)
         self._subscriptions = {}
         self._warnings = []
-        self.config = config
-        self.checkers = []
+        self._config = config
+        self._checkers = []
+        self._ignored_warnings = ignored_warnings
 
     def register_checkers(self, checkers_repo, checkers_enabled):
         for checker_name in checkers_enabled:
@@ -150,7 +158,7 @@ class ConfigurationLinter(object):
             checker_class = load_class(checker_fqn)
             assert issubclass(checker_class, Checker)
             checker = checker_class(self)
-            self.checkers.append(checker)
+            self._checkers.append(checker)
 
     def subscribe(self, path, sub):
         if path in self._subscriptions:
@@ -159,7 +167,8 @@ class ConfigurationLinter(object):
             self._subscriptions[path] = [sub]
 
     def report_warning(self, warning):
-        self._warnings.append(warning)
+        if warning.identifier not in self._ignored_warnings:
+            self._warnings.append(warning)
 
     def run_subscribers(self, concrete_path, value):
         for sub_path, sub_funs in iteritems(self._subscriptions):
@@ -176,7 +185,7 @@ class ConfigurationLinter(object):
         if not path.is_concrete():
             raise ValueError("Can't access config by masked path: %s" % path)
 
-        cfg = self.config
+        cfg = self._config
         for key in path:
             if key not in cfg:
                 if raise_if_not_found:
@@ -188,7 +197,7 @@ class ConfigurationLinter(object):
 
     def lint(self):
         init_path = Path()
-        self.visit(init_path, self.config)
+        self.visit(init_path, self._config)
 
     def get_warnings(self):
         return self._warnings
@@ -228,23 +237,29 @@ class Checker(object):
         edits, suggestion = most_similar_string(key, variants)
         # NOTE: or should it be a list of suggestions?
         if edits <= 3:
-            self.report(cpath, "Unfamiliar key %r. Did you mean %r?" % (key, suggestion))
+            self.report('possible-typo', cpath, "unfamiliar name %r. Did you mean %r?" % (key, suggestion))
 
-    def report(self, cpath, message):
-        self.linter.report_warning(ConfigWarning(cpath, message))
+    def report(self, warning_id, cpath, message):
+        self.linter.report_warning(ConfigWarning(warning_id, cpath, message))
 
 
 class ExecutionChecker(Checker):
     def __init__(self, linter):
         super(ExecutionChecker, self).__init__(linter)
         self.linter.subscribe(Path("execution"), self.on_execution)
-        self.linter.subscribe(Path("execution", "*"), self.on_execution_item)
 
     def on_execution(self, cpath, value):
-        if not isinstance(value, list):  # single-execution case. again
-            self.report(cpath, "'execution' is not a list")
+        if isinstance(value, list):
+            for index, item in enumerate(value):
+                path = cpath.copy()
+                path.add_component(index)
+                self.on_execution_item(path, item)
+        else:
             if isinstance(value, dict):
+                self.report('single-execution', cpath, "'execution' should be a list")
                 self.on_execution_item(cpath, value)
+            else:
+                self.report('execution-non-list', cpath, "'execution' should be a list")
 
     def on_execution_item(self, cpath, execution):
         known_fields = [
@@ -253,7 +268,7 @@ class ExecutionChecker(Checker):
         if not isinstance(execution, dict):
             return
         if "scenario" not in execution:
-            self.report(cpath, "execution item doesn't specify scenario")
+            self.report('no-scenario', cpath, "execution item doesn't specify scenario")
         for field in execution:
             if field not in known_fields:
                 self.check_for_typos(cpath, field, known_fields)
@@ -285,22 +300,26 @@ class ScenarioChecker(Checker):
         self.linter.subscribe(Path("execution", "*", "scenario"), self.on_execution_scenario)
 
     def on_named_scenario(self, cpath, scenario):
-        if isinstance(scenario, dict):  # orelse?
-            self.check_script_requests(cpath, scenario)
+        if isinstance(scenario, dict):
+            self.check_scenario(cpath, scenario)
+        else:
+            self.report('scenario-non-dict', cpath, "scenario is not a dict")
 
     def on_execution_scenario(self, cpath, scenario):
         if isinstance(scenario, dict):
-            self.check_script_requests(cpath, scenario)
+            self.check_scenario(cpath, scenario)
         elif isinstance(scenario, (text_type, string_types)):
             scenario_name = scenario
             scenario_path = Path("scenarios", scenario_name)
             scenario = self.linter.get_config_value(scenario_path, raise_if_not_found=False)
             if not scenario:
-                self.report(cpath, "scenario %r is used but isn't defined" % scenario_name)
+                self.report('undefined-scenario', cpath, "scenario %r is used but isn't defined" % scenario_name)
 
-    def check_script_requests(self, cpath, scenario):
+    def check_scenario(self, cpath, scenario):
         if "script" not in scenario and "requests" not in scenario:
-            self.report(cpath, "scenario doesn't define neither 'script' nor 'requests'")
+            self.report('no-script-or-requests', cpath, "scenario doesn't define neither 'script' nor 'requests'")
+        elif "script" in scenario and "requests" in scenario:
+            self.report('script-and-requests', cpath, "scenario defines both 'script' and 'requests'")
 
 
 class JMeterScenarioChecker(Checker):
@@ -323,7 +342,7 @@ class JMeterScenarioChecker(Checker):
             scenario_name = scenario
             scenario = self.get_named_scenario(scenario_name)
             if not scenario:
-                self.report(cpath, "Scenario %r not found" % scenario_name)
+                self.report('undefined-scenario', cpath, "scenario %r not found" % scenario_name)
             scenario_path = Path("scenarios", scenario_name)
         else:
             scenario_path = cpath.copy()

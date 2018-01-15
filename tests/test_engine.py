@@ -48,7 +48,7 @@ class TestEngine(BZTestCase):
         self.obj.configure(configs)
         self.obj.prepare()
 
-        self.assertEquals(1, len(self.obj.services))
+        self.assertEquals(2, len(self.obj.services))
 
         for executor in self.obj.provisioning.executors:
             executor._env['TEST_MODE'] = 'files'
