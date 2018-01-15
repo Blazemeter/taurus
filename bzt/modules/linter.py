@@ -1,6 +1,5 @@
-from collections import defaultdict
-
 import copy
+import traceback
 
 from bzt import NormalShutdown, TaurusConfigError
 from bzt.engine import Service
@@ -26,9 +25,11 @@ def dameraulevenshtein(seq1, seq2):
     """
     oneago = None
     thisrow = list(range(1, len(seq2) + 1)) + [0]
-    for x in range(len(seq1)):
+    seq1_size = len(seq1)
+    seq2_size = len(seq1)
+    for x in range(seq1_size):
         twoago, oneago, thisrow = oneago, thisrow, [0] * len(seq2) + [x + 1]
-        for y in range(len(seq2)):
+        for y in range(seq2_size):
             delcost = oneago[y] + 1
             addcost = thisrow[y - 1] + 1
             subcost = oneago[y - 1] + (seq1[x] != seq2[y])
@@ -124,7 +125,7 @@ class Path(object):
         return any(part == "*" for part in self.components)
 
 
-class Warning(object):
+class ConfigWarning(object):
     def __init__(self, path, message):
         self.path = path
         self.message = message
@@ -151,11 +152,11 @@ class ConfigurationLinter(object):
             checker = checker_class(self)
             self.checkers.append(checker)
 
-    def subscribe(self, path, function):
+    def subscribe(self, path, sub):
         if path in self._subscriptions:
-            self._subscriptions[path].append(function)
+            self._subscriptions[path].append(sub)
         else:
-            self._subscriptions[path] = [function]
+            self._subscriptions[path] = [sub]
 
     def report_warning(self, warning):
         self._warnings.append(warning)
@@ -164,8 +165,12 @@ class ConfigurationLinter(object):
         for sub_path, sub_funs in iteritems(self._subscriptions):
             if sub_path.matches(concrete_path):
                 for fun in sub_funs:
-                    self.log.debug("Launching func %s at %s", fun, value)
-                    fun(concrete_path, value)
+                    try:
+                        self.log.debug("Launching func %s at %s", fun, value)
+                        fun(concrete_path, value)
+                    except BaseException:
+                        self.log.warning("Checker failed: %s", traceback.format_exc())
+                        raise
 
     def get_config_value(self, path, raise_if_not_found=True):
         if not path.is_concrete():
@@ -223,10 +228,10 @@ class Checker(object):
         edits, suggestion = most_similar_string(key, variants)
         # NOTE: or should it be a list of suggestions?
         if edits <= 3:
-            self.report(Warning(cpath, "Unfamiliar key %r. Did you mean %r?" % (key, suggestion)))
+            self.report(cpath, "Unfamiliar key %r. Did you mean %r?" % (key, suggestion))
 
-    def report(self, warning):
-        self.linter.report_warning(warning)
+    def report(self, cpath, message):
+        self.linter.report_warning(ConfigWarning(cpath, message))
 
 
 class ExecutionChecker(Checker):
@@ -237,7 +242,7 @@ class ExecutionChecker(Checker):
 
     def on_execution(self, cpath, value):
         if not isinstance(value, list):  # single-execution case. again
-            self.report(Warning(cpath, "'execution' is not a list"))
+            self.report(cpath, "'execution' is not a list")
             if isinstance(value, dict):
                 self.on_execution_item(cpath, value)
 
@@ -248,7 +253,7 @@ class ExecutionChecker(Checker):
         if not isinstance(execution, dict):
             return
         if "scenario" not in execution:
-            self.report(Warning(cpath, "execution item doesn't specify scenario"))
+            self.report(cpath, "execution item doesn't specify scenario")
         for field in execution:
             if field not in known_fields:
                 self.check_for_typos(cpath, field, known_fields)
@@ -291,11 +296,11 @@ class ScenarioChecker(Checker):
             scenario_path = Path("scenarios", scenario_name)
             scenario = self.linter.get_config_value(scenario_path, raise_if_not_found=False)
             if not scenario:
-                self.report(Warning(cpath, "scenario %r is used but isn't defined" % scenario_name))
+                self.report(cpath, "scenario %r is used but isn't defined" % scenario_name)
 
     def check_script_requests(self, cpath, scenario):
         if "script" not in scenario and "requests" not in scenario:
-            self.report(Warning(cpath, "scenario doesn't define neither 'script' nor 'requests'"))
+            self.report(cpath, "scenario doesn't define neither 'script' nor 'requests'")
 
 
 class JMeterScenarioChecker(Checker):
@@ -318,7 +323,7 @@ class JMeterScenarioChecker(Checker):
             scenario_name = scenario
             scenario = self.get_named_scenario(scenario_name)
             if not scenario:
-                self.report(Warning(cpath, "Scenario %r not found" % scenario_name))
+                self.report(cpath, "Scenario %r not found" % scenario_name)
             scenario_path = Path("scenarios", scenario_name)
         else:
             scenario_path = cpath.copy()
