@@ -238,6 +238,8 @@ class ExecutionChecker(Checker):
     def on_execution(self, cpath, value):
         if not isinstance(value, list):  # single-execution case. again
             self.report(Warning(cpath, "'execution' is not a list"))
+            if isinstance(value, dict):
+                self.on_execution_item(cpath, value)
 
     def on_execution_item(self, cpath, execution):
         known_fields = [
@@ -284,10 +286,12 @@ class ScenarioChecker(Checker):
     def on_execution_scenario(self, cpath, scenario):
         if isinstance(scenario, dict):
             self.check_script_requests(cpath, scenario)
-        else:
-            # scenario is string
-            # TODO: check if it's defined in 'scenarios'
-            pass
+        elif isinstance(scenario, (text_type, string_types)):
+            scenario_name = scenario
+            scenario_path = Path("scenarios", scenario_name)
+            scenario = self.linter.get_config_value(scenario_path, raise_if_not_found=False)
+            if not scenario:
+                self.report(Warning(cpath, "scenario %r is used but isn't defined" % scenario_name))
 
     def check_script_requests(self, cpath, scenario):
         if "script" not in scenario and "requests" not in scenario:
@@ -303,6 +307,8 @@ class JMeterScenarioChecker(Checker):
         return self.linter.get_config_value(Path("scenarios", scenario_name), raise_if_not_found=False)
 
     def on_execution_item(self, cpath, execution):
+        if not isinstance(execution, dict):
+            return
         if "executor" in execution and execution.get("executor") != "jmeter":
             return
         scenario = execution.get("scenario", None)
