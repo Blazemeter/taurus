@@ -74,6 +74,18 @@ modules:
     class: bzt.modules.services.AppiumLoader
   virtual-display:
     class: bzt.modules.services.VirtualDisplay
+  linter:
+    class: bzt.modules.linter.LinterService
+    checkers-enabled:
+    - execution
+    - toplevel
+    - scenario
+    - scenario-jmeter
+    checkers:
+      execution: bzt.modules.linter.ExecutionChecker
+      toplevel: bzt.modules.linter.ToplevelChecker
+      scenario: bzt.modules.linter.ScenarioChecker
+      scenario-jmeter: bzt.modules.linter.JMeterScenarioChecker
 
   # online services integrations
   blazemeter:
@@ -134,6 +146,14 @@ cli-aliases:
     modules:
       local:
         sequential: true
+  lint:
+    modules:
+      linter:
+        lint-and-exit: true
+  nolint:
+    modules:
+      linter:
+        disable: true
 
 ---
 # real default config
@@ -149,6 +169,7 @@ reporting:
 - console
 
 services:
+- module: linter
 - module: monitoring
   local:
   - metrics:
