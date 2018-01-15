@@ -179,7 +179,7 @@ class ConfigurationLinter(object):
                         fun(concrete_path, value)
                     except BaseException:
                         self.log.warning("Checker failed: %s", traceback.format_exc())
-                        raise
+                        continue
 
     def get_config_value(self, path, raise_if_not_found=True):
         if not path.is_concrete():
@@ -342,13 +342,14 @@ class JMeterScenarioChecker(Checker):
             scenario_name = scenario
             scenario = self.get_named_scenario(scenario_name)
             if not scenario:
-                self.report('undefined-scenario', cpath, "scenario %r not found" % scenario_name)
+                scenario = None
             scenario_path = Path("scenarios", scenario_name)
         else:
             scenario_path = cpath.copy()
             scenario_path.add_component("scenario")
 
-        self.check_jmeter_scenario(scenario_path, scenario)
+        if scenario is not None:
+            self.check_jmeter_scenario(scenario_path, scenario)
 
     def check_jmeter_scenario(self, cpath, scenario):
         known_fields = [
