@@ -355,10 +355,11 @@ class Environment(object):
     def set(self, env):
         for key in env:
             key = str(key)
+            val = env[key]
+
             if is_windows():
                 key = key.upper()
 
-            val = env[key]
             if key in self.data:
                 if val is None:
                     self.log.debug("Remove '%s' from environment", key)
