@@ -1498,6 +1498,32 @@ class TestCloudProvisioning(BZTestCase):
         plugins = data['configuration']['plugins']
         self.assertEqual(plugins["reportEmail"], {"enabled": True})
 
+    def test_v4_test_script_type(self):
+        self.configure(
+            engine_cfg={
+                ScenarioExecutor.EXEC: {
+                    "executor": "mock",
+                    "concurrency": 1,
+                    "locations": {
+                        "us-east-1": 1
+                    }}},
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
+            },
+            post={
+            }
+        )  # terminate
+        self.obj.settings["cloud-mode"] = "taurusCloud"
+        self.obj.prepare()
+
+        reqs = self.mock.requests
+        self.assertEqual(reqs[12]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
+        self.assertEqual(reqs[12]['method'], 'PATCH')
+        data = json.loads(reqs[12]['data'])
+        self.assertEquals(data["configuration"], {"executionType": "taurusCloud", "scriptType": "taurus"})
+
 
 class TestCloudTaurusTest(BZTestCase):
     def test_defaults_clean(self):

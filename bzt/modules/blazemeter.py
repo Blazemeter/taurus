@@ -1276,7 +1276,10 @@ class CloudTaurusTest(BaseCloudTest):
 
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
-        self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
+        exec_type_cfg = {'configuration': {'executionType': self.cloud_mode}}
+        if self.cloud_mode == "taurusCloud":
+            exec_type_cfg['configuration']['scriptType'] = "taurus"
+        self._test.update_props(exec_type_cfg)
         self._test.update_props({
             'configuration': {'plugins': {'functionalExecution': {'enabled': self.is_functional},
                                           'reportEmail': {"enabled": self.send_report_email}}}
