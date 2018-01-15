@@ -1,6 +1,9 @@
 # Changelog
 
-## 1.10.4 <sup>next</sup>
+## 1.10.5 <sup>next</sup>
+
+## 1.10.4 <sup>9 jan 2018</sup>
+ - collect `conn-all` monitoring metric with the help of `netstat` utility (note that that introduces depepdency on `net-tools` package for Linux)
  - don't level down logging if `settings.verbose` is set
  - set `write-xml-jtl=full` in JMeter if `settings.verbose` is set
  - fix files upload resolve for JMeter variables 
