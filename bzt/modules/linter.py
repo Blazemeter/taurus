@@ -1,8 +1,10 @@
 from collections import defaultdict
 
+import copy
+
 from bzt import NormalShutdown, TaurusConfigError
 from bzt.engine import Service
-from bzt.six import iteritems
+from bzt.six import iteritems, text_type, string_types
 from bzt.utils import load_class
 
 
@@ -55,7 +57,8 @@ class LinterService(Service):
             return
         self.log.info("Linting config")
         self.warn_on_unfamiliar_fields = self._get_conf_option("warn-on-unfamiliar-fields", True)
-        self.linter = ConfigurationLinter(self.engine.config, self.log)
+        config_copy = copy.deepcopy(self.engine.config)
+        self.linter = ConfigurationLinter(config_copy, self.log)
         checkers_repo = self.settings.get("checkers")
         checkers_enabled = self.settings.get("checkers-enabled", [])
         self.linter.register_checkers(checkers_repo, checkers_enabled)
@@ -141,7 +144,10 @@ class ConfigurationLinter(object):
     def register_checkers(self, checkers_repo, checkers_enabled):
         for checker_name in checkers_enabled:
             checker_fqn = checkers_repo.get(checker_name)
+            if not checker_fqn:
+                raise TaurusConfigError("Checker %r not found" % checker_name)
             checker_class = load_class(checker_fqn)
+            assert issubclass(checker_class, Checker)
             checker = checker_class(self)
             self.checkers.append(checker)
 
@@ -161,14 +167,17 @@ class ConfigurationLinter(object):
                     self.log.debug("Launching func %s at %s", fun, value)
                     fun(concrete_path, value)
 
-    def get_config_value(self, path):
+    def get_config_value(self, path, raise_if_not_found=True):
         if not path.is_concrete():
             raise ValueError("Can't access config by masked path: %s" % path)
 
         cfg = self.config
         for key in path:
             if key not in cfg:
-                raise ValueError("Key not found: %r" % key)
+                if raise_if_not_found:
+                    raise ValueError("Key not found: %r" % key)
+                else:
+                    return None
             cfg = cfg[key]
         return cfg
 
@@ -236,6 +245,8 @@ class ExecutionChecker(Checker):
         ]
         if not isinstance(execution, dict):
             return
+        if "scenario" not in execution:
+            self.report(Warning(cpath, "execution item doesn't specify scenario"))
         for field in execution:
             if field not in known_fields:
                 self.check_for_typos(cpath, field, known_fields)
@@ -258,3 +269,64 @@ class ToplevelChecker(Checker):
         for key in cfg:
             if key not in self.KNOWN_TOPLEVEL_SECTIONS:
                 self.check_for_typos(cpath, key, self.KNOWN_TOPLEVEL_SECTIONS)
+
+
+class ScenarioChecker(Checker):
+    def __init__(self, linter):
+        super(ScenarioChecker, self).__init__(linter)
+        self.linter.subscribe(Path("scenarios", "*"), self.on_named_scenario)
+        self.linter.subscribe(Path("execution", "*", "scenario"), self.on_execution_scenario)
+
+    def on_named_scenario(self, cpath, scenario):
+        if isinstance(scenario, dict):  # orelse?
+            self.check_script_requests(cpath, scenario)
+
+    def on_execution_scenario(self, cpath, scenario):
+        if isinstance(scenario, dict):
+            self.check_script_requests(cpath, scenario)
+        else:
+            # scenario is string
+            # TODO: check if it's defined in 'scenarios'
+            pass
+
+    def check_script_requests(self, cpath, scenario):
+        if "script" not in scenario and "requests" not in scenario:
+            self.report(Warning(cpath, "scenario doesn't define neither 'script' nor 'requests'"))
+
+
+class JMeterScenarioChecker(Checker):
+    def __init__(self, linter):
+        super(JMeterScenarioChecker, self).__init__(linter)
+        self.linter.subscribe(Path("execution", "*"), self.on_execution_item)
+
+    def get_named_scenario(self, scenario_name):
+        return self.linter.get_config_value(Path("scenarios", scenario_name), raise_if_not_found=False)
+
+    def on_execution_item(self, cpath, execution):
+        if "executor" in execution and execution.get("executor") != "jmeter":
+            return
+        scenario = execution.get("scenario", None)
+        if not scenario:
+            return
+        if isinstance(scenario, (text_type, string_types)):
+            scenario_name = scenario
+            scenario = self.get_named_scenario(scenario_name)
+            if not scenario:
+                self.report(Warning(cpath, "Scenario %r not found" % scenario_name))
+            scenario_path = Path("scenarios", scenario_name)
+        else:
+            scenario_path = cpath.copy()
+            scenario_path.add_component("scenario")
+
+        self.check_jmeter_scenario(scenario_path, scenario)
+
+    def check_jmeter_scenario(self, cpath, scenario):
+        known_fields = [
+            "script", "requests", "retrieve-resources", "variables", "modifications", "properties", "headers",
+            "think-time", "timeout", "default-address", "keepalive", "follow-redirects", "data-sources", "cookies"
+        ]
+        if not isinstance(scenario, dict):
+            return
+        for key in scenario:
+            if key not in known_fields:
+                self.check_for_typos(cpath, key, known_fields)
