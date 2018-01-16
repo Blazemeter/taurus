@@ -175,7 +175,6 @@ class ConfigurationLinter(object):
             if sub_path.matches(concrete_path):
                 for fun in sub_funs:
                     try:
-                        self.log.debug("Launching func %s at %s", fun, value)
                         fun(concrete_path, value)
                     except BaseException:
                         self.log.warning("Checker failed: %s", traceback.format_exc())
@@ -203,7 +202,6 @@ class ConfigurationLinter(object):
         return self._warnings
 
     def visit(self, path, value):
-        self.log.debug("Visiting value at %s", path)
         self.run_subscribers(path, value)
         if isinstance(value, dict):
             self.visit_dict(path, value)
