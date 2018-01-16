@@ -1,0 +1,1 @@
+Ensure that loaded configuration is dict, throw appropriate exception otherwise
