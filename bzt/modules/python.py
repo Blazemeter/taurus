@@ -385,7 +385,7 @@ import apiritif
             else:
                 remote_capabilities = self.scenario.get("capabilities", "{}")
 
-            supported_capabilities = ["browser", "version", "javascript", "platform"]
+            supported_capabilities = ["browser", "version", "javascript", "platform", "selenium"]
             for capability in remote_capabilities:
                 for cap_key in capability.keys():
                     if cap_key not in supported_capabilities:
@@ -395,6 +395,9 @@ import apiritif
                             desire_capabilities["browserName"] = capability[cap_key]
                         elif cap_key == "version":
                             desire_capabilities["version"] = str(capability[cap_key])
+                        elif cap_key == "selenium":
+                            desire_capabilities["seleniumVersion"] = str(capability[cap_key])
+                            desire_capabilities["browserstack.selenium_version"] = str(capability[cap_key])
                         elif cap_key == "javascript":
                             desire_capabilities["javascriptEnabled"] = capability[cap_key]
                         else:
