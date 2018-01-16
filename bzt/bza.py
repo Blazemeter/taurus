@@ -525,16 +525,6 @@ class Master(BZAObject):
         report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self['id'])
         return report_link
 
-    def send_custom_metrics(self, data):
-        url = self.address + "/api/v4/data/masters/%s/custom-metrics" % self['id']
-        res = self._request(url, data, method="POST")
-        return res
-
-    def send_custom_tables(self, data):
-        url = self.address + "/api/v4/data/masters/%s/custom-table" % self['id']
-        res = self._request(url, data, method="POST")
-        return res
-
     def fetch(self):
         url = self.address + "/api/v4/masters/%s" % self['id']
         res = self._request(url)
