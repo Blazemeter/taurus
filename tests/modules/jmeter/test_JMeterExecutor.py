@@ -15,6 +15,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
+from bzt.modules.jmeter import tools
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
@@ -30,13 +31,13 @@ def get_jmeter():
 
 
 def get_jmeter_executor_vars():
-    return (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
-            JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER)
+    return (tools.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
+            tools.MIRRORS_SOURCE, tools.CMDRUNNER, tools.PLUGINS_MANAGER)
 
 
 def set_jmeter_executor_vars(jmeter_vars):
-    (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
-     JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER) = jmeter_vars
+    (tools.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
+     tools.MIRRORS_SOURCE, tools.CMDRUNNER, tools.PLUGINS_MANAGER) = jmeter_vars
 
 
 class TestJMeterExecutor(BZTestCase):
@@ -276,11 +277,11 @@ class TestJMeterExecutor(BZTestCase):
         set_jmeter_executor_vars(jmeter_vars)
         try:
             jmeter_res_dir = "file:///" + RESOURCES_DIR + "/jmeter/"
-            JMeterExecutor.MIRRORS_SOURCE = jmeter_res_dir + "unicode_file"
-            JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_res_dir + "jmeter-dist-{version}.zip"
-            JMeterExecutor.PLUGINS_MANAGER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.CMDRUNNER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.PLUGINS = ['Alice', 'Bob']
+            tools.MIRRORS_SOURCE = jmeter_res_dir + "unicode_file"
+            tools.JMETER_DOWNLOAD_LINK = jmeter_res_dir + "jmeter-dist-{version}.zip"
+            tools.PLUGINS_MANAGER = jmeter_res_dir + "jmeter-plugins-manager.jar"
+            tools.CMDRUNNER = jmeter_res_dir + "jmeter-plugins-manager.jar"
+            tools.PLUGINS = ['Alice', 'Bob']
             JMeterExecutor.JMETER_VER = '2.13'
 
             self.obj.settings.merge({"path": path})
@@ -322,11 +323,11 @@ class TestJMeterExecutor(BZTestCase):
         jmeter_vars = get_jmeter_executor_vars()
         try:
             jmeter_res_dir = "file:///" + RESOURCES_DIR + "/jmeter/"
-            JMeterExecutor.MIRRORS_SOURCE = jmeter_res_dir + "unicode_file"
-            JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_res_dir + "jmeter-dist-{version}.zip"
-            JMeterExecutor.PLUGINS_MANAGER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.CMDRUNNER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.PLUGINS = ['Alice', 'Bob']
+            tools.MIRRORS_SOURCE = jmeter_res_dir + "unicode_file"
+            tools.JMETER_DOWNLOAD_LINK = jmeter_res_dir + "jmeter-dist-{version}.zip"
+            tools.PLUGINS_MANAGER = jmeter_res_dir + "jmeter-plugins-manager.jar"
+            tools.CMDRUNNER = jmeter_res_dir + "jmeter-plugins-manager.jar"
+            tools.PLUGINS = ['Alice', 'Bob']
             JMeterExecutor.JMETER_VER = '3.0'
 
             self.obj.settings.merge({"path": path})
