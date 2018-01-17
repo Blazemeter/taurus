@@ -303,14 +303,14 @@ class VirtualDisplay(Service, Singletone):
             self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
             self.virtual_display.start()
             VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine] = self.virtual_display
-
-        self.engine.shared_env.set({"DISPLAY": self.virtual_display.new_display_var})
+            self.engine.shared_env.set({"DISPLAY": self.virtual_display.new_display_var})
 
     def free_virtual_display(self):
         if self.virtual_display and self.virtual_display.is_alive():
             self.virtual_display.stop()
         if self.engine in VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
             del VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine]
+            self.engine.shared_env.set({"DISPLAY": None})
 
     def startup(self):
         self.set_virtual_display()
