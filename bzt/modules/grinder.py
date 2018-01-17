@@ -160,9 +160,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         # add logback configurations used by worker processes (logback-worker.xml)
         res_dir = os.path.join(get_full_path(__file__, step_up=2), 'resources')
-        self.env.add_path({"CLASSPATH": res_dir})
-        self.env.add_path({"CLASSPATH": os.path.join(res_dir, "grinder-logger-1.0.jar")})
-        self.env.add_path({"CLASSPATH": self.settings.get("path", None)})
+        self.env.add_path({"CLASSPATH": res_dir}, finish=True)
+        self.env.add_path({"CLASSPATH": os.path.join(res_dir, "grinder-logger-1.0.jar")}, finish=True)
+        self.env.add_path({"CLASSPATH": self.settings.get("path", None)}, finish=True)
 
         self.cmd_line = ["java", "net.grinder.Grinder", self.properties_file]
 
