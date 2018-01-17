@@ -291,17 +291,20 @@ class VirtualDisplay(Service, Singletone):
     def set_virtual_display(self):
         if is_windows():
             self.log.warning("Cannot have virtual display on Windows, ignoring")
+            return
+
+        if self.engine in VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
+            self.virtual_display = VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine]
         else:
-            if self.engine in VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
-                self.virtual_display = VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine]
-            else:
-                width = self.parameters.get("width", 1024)
-                height = self.parameters.get("height", 768)
-                self.virtual_display = Display(size=(width, height))
-                msg = "Starting virtual display[%s]: %s"
-                self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
-                self.virtual_display.start()
-                VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine] = self.virtual_display
+            width = self.parameters.get("width", 1024)
+            height = self.parameters.get("height", 768)
+            self.virtual_display = Display(size=(width, height))
+            msg = "Starting virtual display[%s]: %s"
+            self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
+            self.virtual_display.start()
+            VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine] = self.virtual_display
+
+        self.engine.shared_env.set({"DISPLAY": self.virtual_display.new_display_var})
 
     def free_virtual_display(self):
         if self.virtual_display and self.virtual_display.is_alive():

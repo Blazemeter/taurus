@@ -347,9 +347,7 @@ class Environment(object):
     def __init__(self, parent_log, data=None):
         self.data = {}
         self.log = parent_log.getChild(self.__class__.__name__)
-        if data is None:
-            self.set(dict(os.environ))
-        else:
+        if data is not None:
             self.set(data)
 
     def set(self, env):

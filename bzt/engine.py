@@ -73,7 +73,8 @@ class Engine(object):
         self.reporters = []
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.env = Environment(self.log)
+        self.env = Environment(self.log, dict(os.environ))
+        self.shared_env = Environment(self.log)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
@@ -1031,6 +1032,9 @@ class ScenarioExecutor(EngineModule):
             cwd = self.engine.default_cwd
 
         self.log.debug("Executing shell from %s: %s", cwd, args)
+
+        self.env.set(self.engine.shared_env.get())
+
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=self.env.get())
 
 
