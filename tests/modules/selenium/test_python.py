@@ -305,16 +305,12 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         ],
 
                     }, {
-                        "label": "empty"
-                    }]
-                }
-            },
-            "modules": {
-                "selenium": {
-                    "^virtual-display": 0}}})
+                        "label": "empty"}]}}})
+
         self.obj.prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.readlines()
+
         with open(RESOURCES_DIR + "selenium/generated_from_requests.py") as sample:
             sample_contents = sample.readlines()
 
