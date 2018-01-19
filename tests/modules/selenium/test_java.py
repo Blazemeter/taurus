@@ -417,15 +417,13 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                     'additional-classpath': [scenario_cp]},
                 'executor': 'selenium', },
             'modules': {
-                'selenium': {
-                    'selenium-tools': {
-                        'junit': {
-                            'additional-classpath': [settings_cp]}}}}})
+                'junit': {
+                    'additional-classpath': [settings_cp]}}})
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
         base_class_path = ':'.join(self.obj.runner.base_class_path)
         self.assertIn(scenario_cp, base_class_path)
-        self.assertNotIn(settings_cp, base_class_path)  # deprecated, removed
+        self.assertIn(settings_cp, base_class_path)
 
     def test_resource_files_collection_remote_jar(self):
         self.configure({
