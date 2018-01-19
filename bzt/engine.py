@@ -176,6 +176,15 @@ class Engine(object):
             module.startup()
         self.config.dump()
 
+    def start_subprocess(self, args, cwd, stdout, stderr, stdin, shell, env):
+        if cwd is None:
+            cwd = self.default_cwd
+
+        env = Environment(self.log, env.get())
+        env.set(self.shared_env.get())
+
+        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=env.get())
+
     def run(self):
         """
         Run the job. Calls `startup`, does periodic `check`,
@@ -1028,14 +1037,8 @@ class ScenarioExecutor(EngineModule):
     def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False):
         self.preprocess_args(args)
 
-        if cwd is None:
-            cwd = self.engine.default_cwd
-
-        self.log.debug("Executing shell from %s: %s", cwd, args)
-
-        self.env.set(self.engine.shared_env.get())
-
-        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=self.env.get())
+        return self.engine.start_subprocess(args=args, cwd=cwd, stdout=stdout,
+                                            stderr=stderr, stdin=stdin, shell=shell, env=self.env)
 
 
 class Reporter(EngineModule):
