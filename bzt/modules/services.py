@@ -302,6 +302,10 @@ class VirtualDisplay(Service, Singletone):
             msg = "Starting virtual display[%s]: %s"
             self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
             self.virtual_display.start()
+
+            # roll DISPLAY back for online report browser
+            os.environ["DISPLAY"] = self.virtual_display.old_display_var
+
             VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine] = self.virtual_display
             self.engine.shared_env.set({"DISPLAY": self.virtual_display.new_display_var})
 
