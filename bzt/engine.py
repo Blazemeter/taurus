@@ -45,7 +45,7 @@ from bzt.six import build_opener, install_opener, urlopen, numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
-from bzt.utils import str_representer
+from bzt.utils import str_representer, Environment
 
 SETTINGS = "settings"
 
@@ -73,6 +73,8 @@ class Engine(object):
         self.reporters = []
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.env = Environment(self.log, dict(os.environ))
+        self.shared_env = Environment(self.log)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
@@ -84,6 +86,7 @@ class Engine(object):
         self.engine_loop_utilization = 0
         self.prepared = []
         self.started = []
+
         self.default_cwd = None
         self.logging_level_down = lambda: None
         self.logging_level_up = lambda: None
@@ -172,6 +175,15 @@ class Engine(object):
             self.started.append(module)
             module.startup()
         self.config.dump()
+
+    def start_subprocess(self, args, cwd, stdout, stderr, stdin, shell, env):
+        if cwd is None:
+            cwd = self.default_cwd
+
+        env = Environment(self.log, env.get())
+        env.set(self.shared_env.get())
+
+        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=env.get())
 
     def run(self):
         """
@@ -342,6 +354,7 @@ class Engine(object):
         self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
+        self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
@@ -909,6 +922,7 @@ class ScenarioExecutor(EngineModule):
         self.reader = None
         self.delay = None
         self.start_time = None
+        self.env = None
         self.preprocess_args = lambda x: None
 
     def has_results(self):
@@ -1031,35 +1045,11 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
 
-    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
+    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False):
         self.preprocess_args(args)
 
-        if cwd is None:
-            cwd = self.engine.default_cwd
-
-        environ = BetterDict()
-        environ.merge(dict(os.environ))
-
-        if env is not None:
-            if is_windows():
-                # as variables in windows are case insensitive we should provide correct merging
-                cur_env = {name.upper(): environ[name] for name in environ}
-                old_keys = set(env.keys())
-                env = {name.upper(): env[name] for name in env}
-                new_keys = set(env.keys())
-                if old_keys != new_keys:
-                    msg = 'Some taurus environment variables might have been lost: %s'
-                    self.log.debug(msg, list(old_keys - new_keys))
-                environ = BetterDict()
-                environ.merge(cur_env)
-            environ.merge(env)
-
-        environ.merge({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})
-
-        environ = {key: environ[key] for key in environ.keys() if environ[key] is not None}
-
-        self.log.debug("Executing shell from %s: %s", cwd, args)
-        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
+        return self.engine.start_subprocess(args=args, cwd=cwd, stdout=stdout,
+                                            stderr=stderr, stdin=stdin, shell=shell, env=self.env)
 
 
 class Reporter(EngineModule):

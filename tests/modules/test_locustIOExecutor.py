@@ -28,6 +28,7 @@ class TestLocustIOExecutor(BZTestCase):
         sys.path.append(RESOURCES_DIR + "locust/")
         self.obj = LocustIOExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
         self.obj.engine.config['provisioning'] = 'local'
 
     def test_simple(self):

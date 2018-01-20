@@ -127,10 +127,10 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         for key, val in iteritems(self.scenario.get_headers()):
             args += ['--header', "%s: %s" % (key, val)]
 
-        env = {"SIEGERC": self.__rc_name}
+        self.env.set({"SIEGERC": self.__rc_name})
         self.start_time = time.time()
 
-        self.process = self.execute(args, stdout=self.stdout_file, stderr=self.stderr_file, env=env)
+        self.process = self.execute(args, stdout=self.stdout_file, stderr=self.stderr_file)
 
     def check(self):
         ret_code = self.process.poll()

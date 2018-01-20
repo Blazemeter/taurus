@@ -22,7 +22,7 @@ from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.six import string_types, iteritems
-from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node, dehumanize_time, to_json
+from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node, dehumanize_time, to_json, Environment
 
 MOCHA_NPM_PACKAGE_NAME = "mocha@4.0.1"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver@3.6.0"
@@ -89,7 +89,7 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
         if load.hold:
             mocha_cmdline += ['--hold-for', str(load.hold)]
 
-        self.env["NODE_PATH"] = self.mocha_tool.get_node_path_envvar()
+        self.env.set({"NODE_PATH": self.mocha_tool.env.get("NODE_PATH")})
 
         self._start_subprocess(mocha_cmdline)
 
@@ -155,7 +155,8 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
 
-        self.env["NODE_PATH"] = self.wdio_tool.get_node_path_envvar() + os.pathsep + "node_modules"
+        self.env.set({"NODE_PATH": self.wdio_tool.env.get("NODE_PATH")})
+        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
 
         self._start_subprocess(cmdline, cwd=script_dir)
 
@@ -235,8 +236,8 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
         # if load.hold:
         #    cmdline += ['--hold-for', str(load.hold)]
 
-        self.env["NODE_PATH"] = self.newman_tool.get_node_path_envvar() + os.pathsep + os.path.join(
-            os.path.dirname(__file__), "..", "resources")
+        self.env.set({"NODE_PATH": self.newman_tool.env.get("NODE_PATH")})
+        self.env.add_path({"NODE_PATH": os.path.join(get_full_path(__file__, step_up=2), "resources")})
 
         self._start_subprocess(cmdline, cwd=script_dir)
 
@@ -300,15 +301,8 @@ class NPMPackage(RequiredTool):
         self.node_tool = node_tool
         self.npm_tool = npm_tool
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.node_modules_dir = os.path.join(tools_dir, "node_modules")
-
-    def get_node_path_envvar(self):
-        node_path = os.environ.get("NODE_PATH")
-        if node_path:
-            new_path = node_path + os.pathsep + self.node_modules_dir
-        else:
-            new_path = self.node_modules_dir
-        return new_path
+        self.env = Environment(self.log, dict(os.environ))
+        self.env.add_path({"NODE_PATH": os.path.join(tools_dir, "node_modules")})
 
     def check_if_installed(self):
         try:
@@ -316,11 +310,8 @@ class NPMPackage(RequiredTool):
             package = self.package_name
             cmdline = [node_binary, '-e', "require('%s'); console.log('%s is installed');" % (package, package)]
             self.log.debug("%s check cmdline: %s", package, cmdline)
-            node_path = self.get_node_path_envvar()
-            self.log.debug("NODE_PATH for check: %s", node_path)
-            env = os.environ.copy()
-            env["NODE_PATH"] = str(node_path)
-            output = subprocess.check_output(cmdline, env=env, stderr=subprocess.STDOUT)
+            self.log.debug("NODE_PATH for check: %s", self.env.get("NODE_PATH"))
+            output = subprocess.check_output(cmdline, env=self.env.get(), stderr=subprocess.STDOUT)
             self.log.debug("%s check output: %s", self.package_name, output)
             return True
         except (CalledProcessError, OSError):

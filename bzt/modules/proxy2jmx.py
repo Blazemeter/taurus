@@ -94,12 +94,12 @@ class Proxy2JMX(Service, Singletone):
             if isinstance(executor, AbstractSeleniumExecutor):
                 if executor.label:
                     labels.append(executor.label)
-                executor.add_env(additional_env)
+                executor.env.set(additional_env)
 
             if isinstance(executor, SubprocessedExecutor):
                 if executor.label:
                     labels.append(executor.label)
-                executor.env.update(additional_env)
+                executor.env.set(additional_env)
 
         if len(labels) == 1:
             self.label += '_' + labels[0]

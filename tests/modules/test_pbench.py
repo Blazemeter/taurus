@@ -23,6 +23,7 @@ from tests.mocks import EngineEmul
 def get_pbench():
     obj = PBenchExecutor()
     obj.engine = EngineEmul()
+    obj.env = obj.engine.env
     obj.settings.merge({"path": join(RESOURCES_DIR, "pbench", "phantom.sh")})
     return obj
 

@@ -68,11 +68,9 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
 
     All executors must implement the following interface.
     """
-
     def __init__(self):
         super(SubprocessedExecutor, self).__init__()
         self.script = None
-        self.env = {}
         self.process = None
         self.opened_descriptors = []
         self.stdout_file = None
@@ -87,9 +85,8 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
         self.stderr_file = self.engine.create_artifact(prefix, ".err")
         std_err = open(self.stderr_file, "wt")
         self.opened_descriptors.append(std_err)
-        self.log.debug("Running process with env %s", self.env)
         self.start_time = time.time()
-        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env, **kwargs)
+        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, **kwargs)
 
     def resource_files(self):
         scenario = self.get_scenario()

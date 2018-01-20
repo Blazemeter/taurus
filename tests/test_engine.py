@@ -1,6 +1,6 @@
 """ unit test """
 from bzt import TaurusConfigError
-from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BASE_CONFIG
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR
 
 from bzt.engine import ScenarioExecutor
 from bzt.six import string_types, communicate
@@ -24,23 +24,20 @@ class TestEngine(BZTestCase):
 
     def test_requests(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "json/get-post.json",
             RESOURCES_DIR + "json/reporting.json",
-            self.paths
-        ]
+            self.paths]
         self.obj.configure(configs)
         self.obj.prepare()
 
         for executor in self.obj.provisioning.executors:
-            executor._env['TEST_MODE'] = 'files'
+            executor.env.set({"TEST_MODE": "files"})
 
         self.obj.run()
         self.obj.post_process()
 
     def test_double_exec(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "yaml/triple.yml",
             RESOURCES_DIR + "json/reporting.json",
             self.paths
@@ -51,14 +48,13 @@ class TestEngine(BZTestCase):
         self.assertEquals(2, len(self.obj.services))
 
         for executor in self.obj.provisioning.executors:
-            executor._env['TEST_MODE'] = 'files'
+            executor.env.set({"TEST_MODE": "files"})
 
         self.obj.run()
         self.obj.post_process()
 
     def test_unknown_module(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "json/gatling.json",
             self.paths
         ]
@@ -86,7 +82,6 @@ class TestEngine(BZTestCase):
 
     def test_yaml_multi_docs(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "yaml/multi-docs.yml",
             self.paths
         ]
@@ -96,7 +91,6 @@ class TestEngine(BZTestCase):
 
     def test_json_format_regression(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "json/json-but-not-yaml.json"
         ]
         self.obj.configure(configs)
@@ -104,7 +98,6 @@ class TestEngine(BZTestCase):
 
     def test_invalid_format(self):
         configs = [
-            BASE_CONFIG,
             RESOURCES_DIR + "jmeter-dist-3.0.zip"
         ]
         self.assertRaises(TaurusConfigError, lambda: self.obj.configure(configs))
@@ -116,6 +109,7 @@ class TestScenarioExecutor(BZTestCase):
         self.engine = EngineEmul()
         self.executor = ScenarioExecutor()
         self.executor.engine = self.engine
+        self.executor.env = self.executor.engine.env
 
     def test_scenario_extraction_script(self):
         self.engine.config.merge({
@@ -208,6 +202,8 @@ class TestScenarioExecutor(BZTestCase):
 
     def test_passes_artifacts_dir(self):
         cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
+        self.engine.prepare()
+        self.executor.env.set(self.engine.env.get())
         process = self.executor.execute(cmdline, shell=True)
         stdout, _ = communicate(process)
         self.assertEquals(self.engine.artifacts_dir, stdout.strip())
@@ -217,8 +213,10 @@ class TestScenarioExecutor(BZTestCase):
         line_tpl = "echo %%%s%%" if is_windows() else "echo $%s"
         cmdlines = [line_tpl % "aaa", line_tpl % "AAA"]
         results = set()
+
         for cmdline in cmdlines:
-            process = self.executor.execute(cmdline, shell=True, env=env)
+            self.executor.env.set(env)
+            process = self.executor.execute(cmdline, shell=True)
             stdout, _ = communicate(process)
             results.add(stdout.strip())
         if is_windows():

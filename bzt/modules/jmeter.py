@@ -42,7 +42,7 @@ from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector
 from bzt.six import communicate, PY2
-from bzt.six import iteritems, string_types, StringIO, etree, parse, unicode_decode, numeric_types
+from bzt.six import iteritems, string_types, StringIO, etree, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -80,7 +80,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.retcode = None
         self.distributed_servers = []
         self.management_port = None
-        self._env = {}
         self.resource_files_collector = None
         self.stdout_file = None
         self.stderr_file = None
@@ -334,10 +333,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         heap_size = self.settings.get("memory-xmx", None)
         if heap_size is not None:
             self.log.debug("Setting JVM heap size to %s", heap_size)
-            jvm_args = os.environ.get("JVM_ARGS", "")
-            if jvm_args:
-                jvm_args += ' '
-            self._env["JVM_ARGS"] = jvm_args + "-Xmx%s" % heap_size
+            self.env.add_java_param({"JVM_ARGS": "-Xmx%s" % heap_size})
 
     def __set_jmeter_properties(self, scenario):
         props = copy.deepcopy(self.settings.get("properties"))
@@ -394,7 +390,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self.start_time = time.time()
         try:
-            self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=self._env)
+            self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
         except KeyboardInterrupt:
             raise
         except BaseException as exc:
@@ -1547,32 +1543,6 @@ class JMeter(RequiredTool):
         cmd = [plugins_manager_cmd, 'install', plugin_str]
         self.log.debug("Trying: %s", cmd)
         try:
-            # prepare proxy settings
-            if self.proxy_settings and self.proxy_settings.get('address'):
-                env = BetterDict()
-                env.merge(dict(os.environ))
-                jvm_args = env.get('JVM_ARGS', '')
-
-                proxy_url = parse.urlsplit(self.proxy_settings.get("address"))
-                self.log.debug("Using proxy settings: %s", proxy_url)
-                host = proxy_url.hostname
-                port = proxy_url.port
-                if not port:
-                    port = 80
-
-                jvm_args += ' -Dhttp.proxyHost=%s -Dhttp.proxyPort=%s' % (host, port)  # TODO: remove it after pmgr 0.9
-                jvm_args += ' -Dhttps.proxyHost=%s -Dhttps.proxyPort=%s' % (host, port)
-
-                username = self.proxy_settings.get('username')
-                password = self.proxy_settings.get('password')
-
-                if username and password:
-                    # property names correspond to
-                    # https://github.com/apache/jmeter/blob/trunk/src/core/org/apache/jmeter/JMeter.java#L110
-                    jvm_args += ' -Dhttp.proxyUser="%s" -Dhttp.proxyPass="%s"' % (username, password)
-
-                env['JVM_ARGS'] = jvm_args
-
             proc = shell_exec(cmd)
             out, err = communicate(proc)
             self.log.debug("Install plugins: %s / %s", out, err)

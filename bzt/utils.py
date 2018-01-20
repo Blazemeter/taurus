@@ -26,6 +26,7 @@ import mimetypes
 import platform
 import random
 import re
+import copy
 import shlex
 import signal
 import socket
@@ -335,14 +336,78 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
         args = shlex.split(args, posix=not is_windows())
     logging.getLogger(__name__).debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
-    if env:
-        env = {k: str(v) for k, v in iteritems(env)}
-
     if is_windows():
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env)
     else:
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
                      preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
+
+
+class Environment(object):
+    def __init__(self, parent_log, data=None):
+        self.data = {}
+        self.log = parent_log.getChild(self.__class__.__name__)
+        if data is not None:
+            self.set(data)
+
+    def set(self, env):
+        for key in env:
+            key = str(key)
+            val = env[key]
+
+            if is_windows():
+                key = key.upper()
+
+            if key in self.data:
+                if val is None:
+                    self.log.debug("Remove '%s' from environment", key)
+                    self.data.pop(key)
+                else:
+                    self.log.debug("Replace '%s' in environment", key)
+                    self.data[key] = str(val)
+            else:
+                self._add({key: val}, '', finish=False)
+
+    def add_path(self, pair, finish=False):
+        self._add(pair, os.pathsep, finish)
+
+    def add_java_param(self, pair, finish=False):
+        self._add(pair, " ", finish)
+
+    def update(self, env):   # compatibility with taurus-server
+        self.set(env)
+
+    def _add(self, pair, separator, finish):
+        for key in pair:
+            val = pair[key]
+            key = str(key)
+            if is_windows():
+                key = key.upper()
+
+            if val is None:
+                self.log.debug("Skip empty variable '%s'", key)
+                return
+
+            val = str(val)
+
+            if key in self.data:
+                if finish:
+                    self.data[key] += separator + val  # add to the end
+                else:
+                    self.data[key] = val + separator + self.data[key]  # add to the beginning
+            else:
+                self.data[key] = str(val)
+
+    def get(self, key=None):
+        if key:
+            key = str(key)
+            if is_windows():
+                key = key.upper()
+
+            return self.data.get(key, None)
+        else:
+            # full environment
+            return copy.deepcopy(self.data)
 
 
 class FileReader(object):

@@ -230,7 +230,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.simulation_started = False
         self.dir_prefix = ''
         self.launcher = None
-        self.jar_list = ''
 
     def __build_launcher(self):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
@@ -284,9 +283,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                         jar_files.append(element)
 
         self.log.debug("JAR files list for Gatling: %s", jar_files)
-        if jar_files:
-            separator = os.pathsep
-            self.jar_list = separator + separator.join(jar_files)
+        for element in jar_files:
+            self.env.add_path({"JAVA_CLASSPATH": element})
+            self.env.add_path({"COMPILATION_CLASSPATH": element})
 
         if is_windows() or jar_files:
             self.log.debug("Building Gatling launcher")
@@ -339,34 +338,23 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         if os.path.isfile(self.script):
             if self.script.endswith('.jar'):
-                self.jar_list += os.pathsep + self.script
+                self.env.add_path({"JAVA_CLASSPATH": self.script})
+                self.env.add_path({"COMPILATION_CLASSPATH": self.script})
                 simulation_folder = None
             else:
                 simulation_folder = get_full_path(self.script, step_up=1)
         else:
             simulation_folder = self.script
 
+        self.__set_env()
         self.process = self.execute(self.__get_cmdline(simulation_folder),
                                     stdout=self.stdout_file,
-                                    stderr=self.stderr_file,
-                                    env=self.__get_env())
+                                    stderr=self.stderr_file)
 
-    def __get_env(self):
-        env = BetterDict()
-        env.merge(dict(os.environ))
-
-        java_opts = env.get('JAVA_OPTS', '') + ' ' + self.settings.get('java-opts', '')
-        java_opts += ' ' + self.__get_params_for_scala()
-
-        env.merge({"JAVA_OPTS": java_opts, "NO_PAUSE": "TRUE"})
-
-        if self.jar_list:
-            java_classpath = env.get('JAVA_CLASSPATH', '')
-            compilation_classpath = env.get('COMPILATION_CLASSPATH', '')
-            java_classpath += self.jar_list
-            compilation_classpath += self.jar_list
-            env.merge({'JAVA_CLASSPATH': java_classpath, 'COMPILATION_CLASSPATH': compilation_classpath})
-        return env
+    def __set_env(self):
+        self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
+        self.__set_params_for_scala()
+        self.env.set({"NO_PAUSE": "TRUE"})
 
     def __get_cmdline(self, simulation_folder):
         simulation = self.get_scenario().get("simulation")
@@ -384,41 +372,42 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         return cmdline
 
-    def __get_params_for_scala(self):
-        params_for_scala = self.settings.get('properties')
+    def __set_params_for_scala(self):
+        params = self.settings.get('properties')
         load = self.get_load()
         scenario = self.get_scenario()
 
         timeout = scenario.get('timeout', None)
         if timeout is not None:
-            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
+            params['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
         if scenario.get('keepalive', True):
             # gatling <= 2.2.0
-            params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'true'
-            params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
+            params['gatling.http.ahc.allowPoolingConnections'] = 'true'
+            params['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
             # gatling > 2.2.0
-            params_for_scala['gatling.http.ahc.keepAlive'] = 'true'
+            params['gatling.http.ahc.keepAlive'] = 'true'
         else:
             # gatling <= 2.2.0
-            params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'false'
-            params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
+            params['gatling.http.ahc.allowPoolingConnections'] = 'false'
+            params['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
             # gatling > 2.2.0
-            params_for_scala['gatling.http.ahc.keepAlive'] = 'false'
+            params['gatling.http.ahc.keepAlive'] = 'false'
         if load.concurrency is not None:
-            params_for_scala['concurrency'] = load.concurrency
+            params['concurrency'] = load.concurrency
         if load.ramp_up is not None:
-            params_for_scala['ramp-up'] = int(load.ramp_up)
+            params['ramp-up'] = int(load.ramp_up)
         if load.hold is not None:
-            params_for_scala['hold-for'] = int(load.hold)
+            params['hold-for'] = int(load.hold)
         if load.iterations is not None and load.iterations != 0:
-            params_for_scala['iterations'] = int(load.iterations)
+            params['iterations'] = int(load.iterations)
         if load.throughput:
             if load.duration:
-                params_for_scala['throughput'] = load.throughput
+                params['throughput'] = load.throughput
             else:
                 self.log.warning("You should set up 'ramp-up' and/or 'hold-for' for usage of 'throughput'")
 
-        return ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
+        for key in params:
+            self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, params[key])})
 
     def check(self):
         """

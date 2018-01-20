@@ -23,6 +23,7 @@ class TestTsungExecutor(BZTestCase):
         super(TestTsungExecutor, self).setUp()
         self.obj = TsungExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
         self.obj.settings = BetterDict()
         self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         self.obj.execution = BetterDict()

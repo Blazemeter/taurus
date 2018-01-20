@@ -13,7 +13,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules import java
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION, JavaC
 from bzt.utils import get_full_path, ToolError
-from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BASE_CONFIG, BUILD_DIR
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
@@ -22,12 +22,13 @@ class TestTestNGTester(BZTestCase):
     def setUp(self):
         super(TestTestNGTester, self).setUp()
         engine_obj = EngineEmul()
-        paths = [BASE_CONFIG, local_paths_config()]
+        paths = [local_paths_config()]
         engine_obj.configure(paths)
         self.obj = TestNGTester()
         self.obj.settings = engine_obj.config.get("modules").get("testng")
         engine_obj.create_artifacts_dir(paths)
         self.obj.engine = engine_obj
+        self.obj.env = self.obj.engine.env
 
     def test_simple(self):
         self.obj.execution.merge({
@@ -106,12 +107,13 @@ class TestJUnitTester(BZTestCase):
     def setUp(self):
         super(TestJUnitTester, self).setUp()
         engine_obj = EngineEmul()
-        paths = [BASE_CONFIG, local_paths_config()]
+        paths = [local_paths_config()]
         engine_obj.configure(paths)
         self.obj = JUnitTester()
         self.obj.settings = engine_obj.config.get("modules").get("junit")
         engine_obj.create_artifacts_dir(paths)
         self.obj.engine = engine_obj
+        self.obj.env = self.obj.engine.env
 
     def test_install_tools(self):
         """
@@ -415,10 +417,8 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                     'additional-classpath': [scenario_cp]},
                 'executor': 'selenium', },
             'modules': {
-                'selenium': {
-                    'selenium-tools': {
-                        'junit': {
-                            'additional-classpath': [settings_cp]}}}}})
+                'junit': {
+                    'additional-classpath': [settings_cp]}}})
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
         base_class_path = ':'.join(self.obj.runner.base_class_path)
