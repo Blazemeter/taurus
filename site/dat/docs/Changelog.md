@@ -1,10 +1,28 @@
 # Changelog
 
-## 1.10.4 <sup>next</sup>
+## 1.10.5 <sup>next</sup>
+
+## 1.10.4 <sup>9 jan 2018</sup>
+ - collect `conn-all` monitoring metric with the help of `netstat` utility (note that that introduces depepdency on `net-tools` package for Linux)
  - don't level down logging if `settings.verbose` is set
  - set `write-xml-jtl=full` in JMeter if `settings.verbose` is set
+ - fix files upload resolve for JMeter variables 
  - fix error when exception is not shown for failed JMeter run
-
+ - fix JSONPath Extractor generated for JMeter
+ - set default timeout for BlazeMeter integration to 30 seconds
+ - support specifying cloud test by link to BM
+ - fix launching cloud tests by id
+ - fix crash when attempting to use external test as a cloud test
+ - add `send-report-email` option for cloud tests
+ - support `account` and `workspace` entities for cloud tests
+ - use `requests.Session` for BZA requests (enabled keep-alive)
+ - fix reporting for concurrent apiritif
+ - fix duration reporting in `final-stats` for some cases
+ - fix the way Taurus reads result file globally
+ - optimize local resource monitoring collecting
+ - fix mixed order of percentile and response code fields in `final-stats`'s CSV report
+ - make 'effective.json' file to be JSON-strict (no infinity literals)
+ 
 ## 1.10.3 <sup>22 nov 2017</sup>
  - use builtin JSON extractor in JMeter, if possible
  - fix functioning of apiritif on Mac 

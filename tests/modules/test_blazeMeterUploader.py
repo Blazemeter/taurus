@@ -105,7 +105,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.kpi_buffer[-1][DataPoint.CUMULATIVE][''][KPISet.ERRORS] = [
             {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111'},
             {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
-        obj.send_monitoring = obj.send_custom_metrics = obj.send_custom_tables = False
+        obj.send_monitoring = False
         obj.post_process()
 
         # TODO: looks like this whole block of checks is useless
@@ -158,11 +158,6 @@ class TestBlazeMeterUploader(BZTestCase):
                 {"result": True},
                 {"result": True},
             ],
-            'https://a.blazemeter.com/api/v4/data/masters/1/custom-metrics': [
-                IOError("custom metric push expected fail"),
-                {"result": True},
-                {"result": True},
-            ],
             'https://a.blazemeter.com/api/v4/sessions/1/stop': {},
             'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1':
                 {"result": {'session': {}}}
@@ -172,8 +167,6 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.parameters['project'] = 'Proj name'
         obj.settings['token'] = '123'
         obj.settings['browser-open'] = 'none'
-        obj.settings['send-custom-metrics'] = True
-        obj.settings['send-custom-tables'] = True
         obj.engine = EngineEmul()
         shutil.copy(__file__, os.path.join(obj.engine.artifacts_dir, os.path.basename(__file__)))
         mock.apply(obj._user)
@@ -182,8 +175,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.startup()
         for x in range(0, 31):
             obj.aggregated_second(random_datapoint(x))
-        mon = [{"ts": 1, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0},
-               {"ts": 1, "source": "chrome", "memory": 32, "cpu": 23}]
+        mon = [{"ts": 1, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
         obj.monitoring_data(mon)
         obj.check()
         for x in range(32, 65):
@@ -197,7 +189,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.log.parent.addHandler(handler)
         obj.engine.config.get('modules').get('shellexec').get('env')['TAURUS_INDEX_ALL'] = 1
         obj.post_process()
-        self.assertEqual(23, len(mock.requests))
+        self.assertEqual(20, len(mock.requests))
         obj.engine.log.parent.removeHandler(handler)
 
     def test_monitoring_buffer_limit_option(self):

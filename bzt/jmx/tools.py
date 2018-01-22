@@ -70,15 +70,13 @@ class RequestCompiler(RequestVisitor):
 
 class AbstractThreadGroup(object):
     XPATH = None
+    RAMP_UP_SEL = None
     CONCURRENCY_SEL = None
 
     def __init__(self, element, logger):
         self.element = element
         self.gtype = self.__class__.__name__
         self.log = logger.getChild(self.gtype)
-
-    def create(self):  # todo: delegate content of group creation to itself?
-        return None
 
     def get_testname(self):
         return self.element.get('testname')
@@ -89,26 +87,53 @@ class AbstractThreadGroup(object):
     def set_ramp_up(self, ramp_up=None):
         self.log.warning('Setting of ramp-up for %s not implemented', self.gtype)
 
+    def get_duration(self):
+        """
+        task duration or None if getting isn't possible (skipped, timeless, jmeter variables, etc.)
+        """
+        self.log.warning('Getting of duration for %s not implemented', self.gtype)
+
+    def get_rate(self, pure=False):
+        self.log.warning('Getting of rate for %s not implemented', self.gtype)
+
+    def get_iterations(self):
+        """
+        iterations number or None if getting isn't possible (skipped, unsupported, jmeter variables, etc.)
+        Note: ConcurrencyThreadGroup and ArrivalsThreadGroup aren't stopped by iterations limit
+        """
+        self.log.warning('Getting of iterations for %s not implemented', self.gtype)
+
     def get_ramp_up(self, pure=False):
-        self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
+        if not self.RAMP_UP_SEL:
+            self.log.warning('Getting of ramp-up for %s not implemented', self.gtype)
+            return 1
+
+        return self._get_val(self.RAMP_UP_SEL, name='ramp-up', default=0, pure=pure)
 
     def get_concurrency(self, pure=False):
         if not self.CONCURRENCY_SEL:
             self.log.warning('Getting of concurrency for %s not implemented', self.gtype)
             return 1
 
-        concurrency_str = self.element.find(self.CONCURRENCY_SEL).text
+        return self._get_val(self.CONCURRENCY_SEL, name='concurrency', default=1, pure=pure)
+
+    def _get_val(self, selector, name='', default=None, convertor=int, pure=False):
+        element = self.element.find(selector)
+        if element is None:
+            string_val = None
+        else:
+            string_val = element.text
+
         if pure:
-            return concurrency_str
+            return string_val
 
         try:
-            concurrency = int(concurrency_str)
-        except ValueError:
-            msg = "Parsing concurrency '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, concurrency_str, self.gtype)
-            concurrency = 1
-
-        return concurrency
+            return convertor(string_val)
+        except (ValueError, TypeError):
+            if default:
+                msg = "Parsing {param} '{val}' in group '{gtype}' failed, choose {default}"
+                self.log.warning(msg.format(param=name, val=string_val, gtype=self.gtype, default=default))
+                return default
 
     def get_on_error(self):
         action = self.element.find(".//stringProp[@name='ThreadGroup.on_sample_error']")
@@ -120,6 +145,30 @@ class ThreadGroup(AbstractThreadGroup):
     XPATH = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
     CONCURRENCY_SEL = ".//*[@name='ThreadGroup.num_threads']"
 
+    def get_duration(self):
+        sched_sel = ".//*[@name='ThreadGroup.scheduler']"
+        scheduler = self._get_val(sched_sel, "scheduler", pure=True)
+
+        if scheduler == 'true':
+            duration_sel = ".//*[@name='ThreadGroup.duration']"
+            return self._get_val(duration_sel, "duration")
+        elif scheduler == 'false':
+            ramp_sel = ".//*[@name='ThreadGroup.ramp_time']"
+            return self._get_val(ramp_sel, "ramp-up")
+        else:
+            msg = 'Getting of ramp-up for %s is impossible due to scheduler: %s'
+            self.log.warning(msg, (self.gtype, scheduler))
+
+    def get_iterations(self):
+        loop_control_sel = ".//*[@name='LoopController.continue_forever']"
+        loop_controller = self._get_val(loop_control_sel, name="loop controller", pure=True)
+        if loop_controller == "false":
+            loop_sel = ".//*[@name='LoopController.loops']"
+            return self._get_val(loop_sel, name="loops")
+        else:
+            msg = 'Getting of ramp-up for %s is impossible due to loop_controller: %s'
+            self.log.warning(msg, (self.gtype, loop_controller))
+
 
 class SteppingThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.SteppingThreadGroup'
@@ -130,36 +179,67 @@ class UltimateThreadGroup(AbstractThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>kg\.apc\.jmeter\.threads\.UltimateThreadGroup'
 
 
-class ConcurrencyThreadGroup(AbstractThreadGroup):
-    XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.concurrency\.ConcurrencyThreadGroup'
-    CONCURRENCY_SEL = ".//*[@name='TargetLevel']"
+# parent of ConcurrencyThreadGroup and ArrivalThreadGroup
+class AbstractDynamicThreadGroup(AbstractThreadGroup):
     RAMP_UP_SEL = ".//*[@name='RampUp']"
 
-    def set_concurrency(self, concurrency=None):
-        concurrency_prop = self.element.find(self.CONCURRENCY_SEL)
-        concurrency_prop.text = str(concurrency)
-
-    def get_ramp_up(self, pure=False):
-        ramp_up_str = self.element.find(self.RAMP_UP_SEL).text
-        if pure:
-            return ramp_up_str
-
-        try:
-            ramp_up = int(ramp_up_str)
-        except ValueError:
-            msg = "Parsing ramp-up '%s' in group '%s' failed, choose 1"
-            self.log.warning(msg, ramp_up_str, self.gtype)
-            ramp_up = 0
-
-        return ramp_up
+    def _get_time_unit(self):
+        unit_sel = ".//*[@name='Unit']"
+        return self._get_val(unit_sel, name="unit", pure=True)
 
     def set_ramp_up(self, ramp_up=None):
         ramp_up_element = self.element.find(self.RAMP_UP_SEL)
         ramp_up_element.text = str(ramp_up)
 
+    def get_duration(self):
+        hold_sel = ".//*[@name='Hold']"
+
+        hold = self._get_val(hold_sel, name="hold")
+        ramp_up = self.get_ramp_up()
+
+        # 'empty' means 0 sec, let's detect that
+        p_hold = self._get_val(hold_sel, name="hold", pure=True)
+        p_ramp_up = self.get_ramp_up(pure=True)
+        if hold is None and not p_hold:
+            hold = 0
+        if ramp_up is None and not p_ramp_up:
+            ramp_up = 0
+
+        if hold is not None and ramp_up is not None:
+            result = hold + ramp_up
+            if self._get_time_unit() == 'M':
+                result *= 60
+
+            return result
+
+    def get_iterations(self):
+        iter_sel = ".//*[@name='Iterations']"
+        return self._get_val(iter_sel, name="iterations")
+
+
+class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
+    XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.concurrency\.ConcurrencyThreadGroup'
+    CONCURRENCY_SEL = ".//*[@name='TargetLevel']"
+
+    def set_concurrency(self, concurrency=None):
+        concurrency_prop = self.element.find(self.CONCURRENCY_SEL)
+        concurrency_prop.text = str(concurrency)
+
+
+class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
+    XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.arrivals\.ArrivalsThreadGroup'
+    RATE_SEL = ".//*[@name='TargetLevel']"
+
+    def get_rate(self, pure=False):
+        return self._get_val(self.RATE_SEL, name='rate', default=1, pure=pure)
+
+    def set_rate(self, rate=None):
+        rate_prop = self.element.find(self.RATE_SEL)
+        rate_prop.text = str(rate)
+
 
 class ThreadGroupHandler(object):
-    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup]
+    CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup]
 
     def __init__(self, logger):
         self.log = logger.getChild(self.__class__.__name__)
