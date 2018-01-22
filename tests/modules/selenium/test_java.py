@@ -26,7 +26,6 @@ class TestTestNGTester(BZTestCase):
         engine_obj.configure(paths)
         self.obj = TestNGTester()
         self.obj.settings = engine_obj.config.get("modules").get("testng")
-        engine_obj.create_artifacts_dir(paths)
         self.obj.engine = engine_obj
         self.obj.env = self.obj.engine.env
 
@@ -111,7 +110,6 @@ class TestJUnitTester(BZTestCase):
         engine_obj.configure(paths)
         self.obj = JUnitTester()
         self.obj.settings = engine_obj.config.get("modules").get("junit")
-        engine_obj.create_artifacts_dir(paths)
         self.obj.engine = engine_obj
         self.obj.env = self.obj.engine.env
 

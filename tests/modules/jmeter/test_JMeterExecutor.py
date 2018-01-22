@@ -84,7 +84,6 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_jmx(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
-        self.obj.engine.create_artifacts_dir()
         self.obj.prepare()
 
     def test_jmx_with_props(self):
@@ -92,7 +91,6 @@ class TestJMeterExecutor(BZTestCase):
             "concurrency": 10,
             "scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/props_tg.jmx"}
         })
-        self.obj.engine.create_artifacts_dir()
         self.obj.prepare()
 
     def test_jmx_2tg(self):
