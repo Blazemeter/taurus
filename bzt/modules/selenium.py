@@ -21,12 +21,11 @@ from abc import abstractmethod
 from urwid import Text, Pile
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import FileLister, Service, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.services import VirtualDisplay
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
-from bzt.utils import is_windows, is_mac, platform_bitness
+from bzt.utils import is_windows, is_mac, platform_bitness, Environment
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -154,6 +153,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                 tool.install()
 
     def prepare(self):
+        if self.env is None:
+            self.env = Environment(self.log, self.engine.env.get())   # for backward compatibility with taurus-server
+
         self.install_required_tools()
         for driver in self.webdrivers:
             self.env.add_path({"PATH": driver.get_driver_dir()})

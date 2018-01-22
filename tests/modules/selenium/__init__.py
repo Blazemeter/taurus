@@ -17,10 +17,11 @@ class SeleniumTestCase(BZTestCase):
         self.engine = EngineEmul()
         paths = [local_paths_config()]
         self.engine.configure(paths)  # FIXME: avoid using whole engine in particular module test!
-        self.engine.create_artifacts_dir(paths)
+
         self.virtual_display = VirtualDisplay()
         self.virtual_display.engine = self.engine
         self.virtual_display.startup()
+
         self.obj = SeleniumExecutor()
         self.obj.engine = self.engine
         self.obj.settings = self.engine.config.get("modules").get("selenium")
