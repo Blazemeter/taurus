@@ -304,7 +304,10 @@ class VirtualDisplay(Service, Singletone):
             self.virtual_display.start()
 
             # roll DISPLAY back for online report browser
-            os.environ["DISPLAY"] = self.virtual_display.old_display_var
+            if self.virtual_display.old_display_var:
+                os.environ["DISPLAY"] = self.virtual_display.old_display_var
+            else:
+                del os.environ["DISPLAY"]
 
             VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine] = self.virtual_display
             self.engine.shared_env.set({"DISPLAY": self.virtual_display.new_display_var})
