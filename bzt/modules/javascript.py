@@ -24,8 +24,8 @@ from bzt.modules import SubprocessedExecutor
 from bzt.six import string_types, iteritems
 from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node, dehumanize_time, to_json, Environment
 
-MOCHA_NPM_PACKAGE_NAME = "mocha"
-SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver"
+MOCHA_NPM_PACKAGE_NAME = "mocha@4.0.1"
+SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver@3.6.0"
 WDIO_NPM_PACKAGE_NAME = "webdriverio@4.8.0"
 WDIO_MOCHA_PLUGIN_NPM_PACKAGE_NAME = "wdio-mocha-framework"
 NEWMAN_NPM_PACKAGE_NAME = "newman"

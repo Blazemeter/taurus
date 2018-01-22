@@ -41,6 +41,10 @@ class TaurusConfigError(TaurusException):
     pass
 
 
+class InvalidTaurusConfiguration(TaurusConfigError):
+    pass
+
+
 class TaurusInternalException(TaurusException):
     pass
 

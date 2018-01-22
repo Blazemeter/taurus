@@ -127,7 +127,11 @@ class Path(object):
 
 
 class ConfigWarning(object):
-    def __init__(self, identifier, path, message):
+    ERROR = "Error"
+    WARNING = "Warning"
+
+    def __init__(self, severity, identifier, path, message):
+        self.severity = severity
         self.identifier = identifier
         self.path = path
         self.message = message
@@ -175,7 +179,6 @@ class ConfigurationLinter(object):
             if sub_path.matches(concrete_path):
                 for fun in sub_funs:
                     try:
-                        self.log.debug("Launching func %s at %s", fun, value)
                         fun(concrete_path, value)
                     except BaseException:
                         self.log.warning("Checker failed: %s", traceback.format_exc())
@@ -203,7 +206,6 @@ class ConfigurationLinter(object):
         return self._warnings
 
     def visit(self, path, value):
-        self.log.debug("Visiting value at %s", path)
         self.run_subscribers(path, value)
         if isinstance(value, dict):
             self.visit_dict(path, value)
@@ -237,10 +239,13 @@ class Checker(object):
         edits, suggestion = most_similar_string(key, variants)
         # NOTE: or should it be a list of suggestions?
         if edits <= 3:
-            self.report('possible-typo', cpath, "unfamiliar name %r. Did you mean %r?" % (key, suggestion))
+            key_path = cpath.copy()
+            key_path.add_component(key)
+            self.report(ConfigWarning.WARNING, 'possible-typo', key_path,
+                        "unfamiliar name %r. Did you mean %r?" % (key, suggestion))
 
-    def report(self, warning_id, cpath, message):
-        self.linter.report_warning(ConfigWarning(warning_id, cpath, message))
+    def report(self, severity, warning_id, cpath, message):
+        self.linter.report_warning(ConfigWarning(severity, warning_id, cpath, message))
 
 
 class ExecutionChecker(Checker):
@@ -256,10 +261,10 @@ class ExecutionChecker(Checker):
                 self.on_execution_item(path, item)
         else:
             if isinstance(value, dict):
-                self.report('single-execution', cpath, "'execution' should be a list")
+                self.report(ConfigWarning.WARNING, 'single-execution', cpath, "'execution' should be a list")
                 self.on_execution_item(cpath, value)
             else:
-                self.report('execution-non-list', cpath, "'execution' should be a list")
+                self.report(ConfigWarning.ERROR, 'execution-non-list', cpath, "'execution' should be a list")
 
     def on_execution_item(self, cpath, execution):
         known_fields = [
@@ -268,7 +273,7 @@ class ExecutionChecker(Checker):
         if not isinstance(execution, dict):
             return
         if "scenario" not in execution:
-            self.report('no-scenario', cpath, "execution item doesn't specify scenario")
+            self.report(ConfigWarning.ERROR, 'no-scenario', cpath, "execution item doesn't specify scenario")
         for field in execution:
             if field not in known_fields:
                 self.check_for_typos(cpath, field, known_fields)
@@ -303,7 +308,7 @@ class ScenarioChecker(Checker):
         if isinstance(scenario, dict):
             self.check_scenario(cpath, scenario)
         else:
-            self.report('scenario-non-dict', cpath, "scenario is not a dict")
+            self.report(ConfigWarning.ERROR, 'scenario-non-dict', cpath, "scenario is not a dict")
 
     def on_execution_scenario(self, cpath, scenario):
         if isinstance(scenario, dict):
@@ -313,13 +318,16 @@ class ScenarioChecker(Checker):
             scenario_path = Path("scenarios", scenario_name)
             scenario = self.linter.get_config_value(scenario_path, raise_if_not_found=False)
             if not scenario:
-                self.report('undefined-scenario', cpath, "scenario %r is used but isn't defined" % scenario_name)
+                self.report(ConfigWarning.ERROR, 'undefined-scenario', cpath,
+                            "scenario %r is used but isn't defined" % scenario_name)
 
     def check_scenario(self, cpath, scenario):
         if "script" not in scenario and "requests" not in scenario:
-            self.report('no-script-or-requests', cpath, "scenario doesn't define neither 'script' nor 'requests'")
+            self.report(ConfigWarning.ERROR, 'no-script-or-requests', cpath,
+                        "scenario doesn't define neither 'script' nor 'requests'")
         elif "script" in scenario and "requests" in scenario:
-            self.report('script-and-requests', cpath, "scenario defines both 'script' and 'requests'")
+            self.report(ConfigWarning.WARNING, 'script-and-requests', cpath,
+                        "scenario defines both 'script' and 'requests'")
 
 
 class JMeterScenarioChecker(Checker):

@@ -39,7 +39,7 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException
+from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
@@ -647,14 +647,16 @@ class Configuration(BetterDict):
                         contents = fds.read()
 
                     self._read_yaml_or_json(config_file, configs, contents)
+
+                for config in configs:
+                    self.merge(config)
+
             except KeyboardInterrupt:
+                raise
+            except InvalidTaurusConfiguration:
                 raise
             except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
-
-            for config in configs:
-                if config is not None:
-                    self.merge(config)
 
             if callback is not None:
                 callback(config_file)
@@ -662,14 +664,23 @@ class Configuration(BetterDict):
     def _read_yaml_or_json(self, config_file, configs, contents):
         try:
             self.log.debug("Reading %s as YAML", config_file)
-            configs.extend(yaml.load_all(contents))
+            yaml_documents = list(yaml.load_all(contents))
+            for doc in yaml_documents:
+                if doc is None:
+                    continue
+                if not isinstance(doc, dict):
+                    raise InvalidTaurusConfiguration("Configuration %s is invalid" % config_file)
+                configs.append(doc)
         except KeyboardInterrupt:
             raise
         except BaseException as yaml_load_exc:
             self.log.debug("Cannot read config file as YAML '%s': %s", config_file, yaml_load_exc)
             if contents.lstrip().startswith('{'):
                 self.log.debug("Reading %s as JSON", config_file)
-                configs.append(json.loads(contents))
+                config_value = json.loads(contents)
+                if not isinstance(config_value, dict):
+                    raise InvalidTaurusConfiguration("Configuration %s in invalid" % config_file)
+                configs.append(config_value)
             else:
                 raise
 
