@@ -27,7 +27,7 @@ class LDJSONReaderEmul(object):
             yield line
 
 
-class TestASeleniumStuff(SeleniumTestCase):
+class TestSeleniumStuff(SeleniumTestCase):
     def test_empty_scenario(self):
         """
         Raise runtime error when no scenario provided
