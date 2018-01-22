@@ -314,6 +314,7 @@ class VirtualDisplay(Service, Singletone):
 
     def free_virtual_display(self):
         if self.virtual_display and self.virtual_display.is_alive():
+            os.environ["DISPLAY"] = self.virtual_display.new_display_var
             self.virtual_display.stop()
         if self.engine in VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
             del VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine]
