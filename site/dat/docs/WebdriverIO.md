@@ -18,3 +18,13 @@ You can find an example of complete WebdriverIO/Mocha based test suite and a Tau
 in [examples/selenium/wdio](https://github.com/Blazemeter/taurus/tree/master/examples/selenium/wdio)
 folder of Taurus's repo.
 
+## Settings
+
+By default, Taurus will install wdio and its dependencies with npm into `~/.bzt/selenium-taurus/wdio/` directory.
+You can customize it with `tools-dir` module setting.
+
+```yaml
+modules:
+  wdio:
+    tools-dir: my-dir
+```
