@@ -50,25 +50,27 @@ class CLI(object):
     """
     console_handler = logging.StreamHandler(sys.stdout)
 
-    def __init__(self, options):
+    def __init__(self, options, from_command=False):
         self.signal_count = 0
         self.options = options
-        self.setup_logging(options)
+        self.setup_logging(options, from_command=from_command)
         self.log = logging.getLogger('')
-        self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
-        self.log.debug("Command-line options: %s", self.options)
-        self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
-        self.log.debug("OS: %s", platform.uname())
+        if not from_command:
+            self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
+            self.log.debug("Command-line options: %s", self.options)
+            self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
+            self.log.debug("OS: %s", platform.uname())
         self.engine = Engine(self.log)
         self.exit_code = 0
 
     @staticmethod
     @run_once
-    def setup_logging(options):
+    def setup_logging(options, from_command=False):
         """
         Setting up console and file logging, colored if possible
 
         :param options: OptionParser parsed options
+        :param from_command: When the invocation is from command
         """
         colors = {
             'WARNING': 'yellow',
@@ -76,14 +78,19 @@ class CLI(object):
             'CRITICAL': 'bold_red',
         }
         fmt_file = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
-        if sys.stdout.isatty():
-            fmt_verbose = ColoredFormatter("%(log_color)s[%(asctime)s %(levelname)s %(name)s] %(message)s",
-                                           log_colors=colors)
-            fmt_regular = ColoredFormatter("%(log_color)s%(asctime)s %(levelname)s: %(message)s",
-                                           "%H:%M:%S", log_colors=colors)
+
+        if from_command:
+            fmt_verbose = Formatter("%(message)s")
+            fmt_regular = Formatter("%(message)s")
         else:
-            fmt_verbose = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
-            fmt_regular = Formatter("%(asctime)s %(levelname)s: %(message)s", "%H:%M:%S")
+            if sys.stdout.isatty():
+                fmt_verbose = ColoredFormatter("%(log_color)s[%(asctime)s %(levelname)s %(name)s] %(message)s",
+                                               log_colors=colors)
+                fmt_regular = ColoredFormatter("%(log_color)s%(asctime)s %(levelname)s: %(message)s",
+                                               "%H:%M:%S", log_colors=colors)
+            else:
+                fmt_verbose = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
+                fmt_regular = Formatter("%(asctime)s %(levelname)s: %(message)s", "%H:%M:%S")
 
         logger = logging.getLogger('')
         logger.setLevel(logging.DEBUG)
@@ -865,7 +872,11 @@ def main():
 
     parsed_options, parsed_configs, parsed_suboptions, parsed_subargs, parsed_extra_args = parser.parse_args()
 
-    executor = CLI(parsed_options)
+    from_command = False
+    if isinstance(parsed_configs, SubCmdOptionParser):
+        from_command = True
+
+    executor = CLI(parsed_options, from_command=from_command)
 
     try:
         code = executor.perform(parsed_configs, parsed_subargs, parsed_extra_args)
