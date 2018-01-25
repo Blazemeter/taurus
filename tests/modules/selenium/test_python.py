@@ -1074,3 +1074,54 @@ class TestRobotExecutor(BZTestCase):
         lines = open(self.obj.report_file).readlines()
         self.assertEqual(3 * 5, len(lines))
 
+    def test_variables(self):
+        self.configure({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "variables": {
+                        "USERNAME": "janedoe",
+                    },
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test_novar.robot",
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
+        self.obj.log.info(samples)
+        self.assertEqual(5, len(samples))
+        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
+
+    def test_variables_file(self):
+        self.configure({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "variables": RESOURCES_DIR + "selenium/robot/simple/vars.yaml",
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test_novar.robot",
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
+        self.obj.log.info(samples)
+        self.assertEqual(5, len(samples))
+        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
