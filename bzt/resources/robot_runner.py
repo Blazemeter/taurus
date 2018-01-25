@@ -95,11 +95,14 @@ def run_robot(targets, report_file, iteration_limit, duration_limit, variablefil
     iteration = 0
     try:
         while True:
-            run(*targets,
-                listener=listener,  # pass Taurus listener
-                variablefile=variablefile,  # pass file with variables
-                output=None, log=None, report=None,  # mute default reporting
-                stdout=stdout, stderr=stderr)  # capture stdout/stderr
+            kwargs = {
+                'listener': listener,  # pass Taurus listener
+                'output': None, 'log': None, 'report': None,  # mute default reporting
+                'stdout': stdout, 'stderr': stderr,  # capture stdout/stderr
+            }
+            if variablefile is not None:
+                kwargs['variablefile'] = variablefile
+            run(*targets, **kwargs)
             iteration += 1
             if 0 < duration_limit < int(time.time()) - start_time:
                 break
