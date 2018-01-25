@@ -86,7 +86,7 @@ class TaurusListener:
         self._current_suite = None
 
 
-def run_robot(targets, report_file, iteration_limit, duration_limit):
+def run_robot(targets, report_file, iteration_limit, duration_limit, variablefile):
     listener = TaurusListener(report_file)
     listener.prepare()
     stdout = StringIO()
@@ -97,6 +97,7 @@ def run_robot(targets, report_file, iteration_limit, duration_limit):
         while True:
             run(*targets,
                 listener=listener,  # pass Taurus listener
+                variablefile=variablefile,  # pass file with variables
                 output=None, log=None, report=None,  # mute default reporting
                 stdout=stdout, stderr=stderr)  # capture stdout/stderr
             iteration += 1
@@ -119,6 +120,7 @@ if __name__ == '__main__':
     parser.add_option('-r', '--report-file', action='store', default='report.ldjson')
     parser.add_option('-i', '--iterations', action='store', default=0)
     parser.add_option('-d', '--duration', action='store', default=0)
+    parser.add_option('-v', '--variablefile', action='store', default=None)
     opts, args = parser.parse_args()
 
     opts.iterations = int(opts.iterations)
@@ -130,4 +132,4 @@ if __name__ == '__main__':
         else:
             opts.iterations = 1
 
-    run_robot(args, opts.report_file, int(opts.iterations), float(opts.duration))
+    run_robot(args, opts.report_file, int(opts.iterations), float(opts.duration), opts.variablefile)
