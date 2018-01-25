@@ -705,7 +705,7 @@ class Configuration(BetterDict):
             fds.write(json_s.encode('utf-8'))
         elif fmt == self.YAML:
             yml = yaml.dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True,
-                            encoding='utf-8')
+                            encoding='utf-8', width=float("inf"))
             fds.write(yml)
         else:
             raise TaurusInternalException("Unknown dump format: %s" % fmt)
