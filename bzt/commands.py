@@ -26,6 +26,8 @@ import json
 import sys
 import os
 
+from bzt.remote import Remote
+
 if os.name == 'nt':
     import msvcrt
     import ctypes
@@ -58,6 +60,10 @@ class Commands(object):
 
         :type parent_logger: logging.Logger
         """
+
+        self.indent = 2
+        self.indent_str = ' ' * self.indent
+
         self.settings_file = os.path.expanduser(os.path.join('~', ".bzt-commands"))
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.base_service = "https://kip7rvk9ih.execute-api.us-east-1.amazonaws.com/dev/"
@@ -67,6 +73,11 @@ class Commands(object):
             self.settings["user_uuid"] = str(uuid.uuid1())
         if "remote" not in self.settings:
             self.settings["remote"] = {}
+
+        # TODO: Hidded the on/off option, by defautl enabled
+        self.settings["remote"]["enabled"] = True
+
+        self.remote = Remote(parent_logger, self.settings["user_uuid"])
 
     def _hide_cursor(self):
         if os.name == 'nt':
@@ -129,11 +140,9 @@ class Commands(object):
         return table_instance.table.splitlines()
 
     def remote_catalog(self):
-        indent = 2
-        indent_str = ' ' * indent
 
         self.log.info('')
-        self.log.info(indent_str + "Catalog")
+        self.log.info(self.indent_str + "Catalog")
 
         r = requests.post(self.base_service + "list")
         #print(r.status_code)
@@ -147,21 +156,75 @@ class Commands(object):
         }
 
         for line in self._get_table(header, elements):
-            self.log.info(indent_str + line)
+            self.log.info(self.indent_str + line)
+
+        self.log.info(self.indent_str + "Done.")
 
     def remote_on(self):
-        self.log.info("Setting Remote On")
+        self.log.info(self.indent_str + "Setting Remote On")
         self.settings["remote"]["enabled"] = True
 
     def remote_off(self):
-        self.log.info("Setting Remote Off")
+        self.log.info(self.indent_str + "Setting Remote Off")
         self.settings["remote"]["enabled"] = False
 
-    def remote_attach(self, service_id):
-        self.log.info("Remote Attach: %s" % service_id)
+    def remote_attach(self, service_ids):
+        self.log.info(self.indent_str + "Remote Attach:")
 
-    def remote_detach(self, attach_id):
-        self.log.info("Remote Detach: %s" % attach_id)
+        attached_ids = []
+        for service_id in service_ids:
+            attach_id = self.remote.attach_service(service_id)
+            attached_ids.append(attach_id)
+
+        attached = self.remote.list_attached(attached_ids)
+        self._list_attached(attached)
+
+        self.log.info(self.indent_str + "Done.")
+
+    def remote_detach(self, attach_ids):
+        self.log.info(self.indent_str + "Remote Detach:")
+        if len(attach_ids) == 1 and attach_ids[0] == "*all":
+            attached = self.remote.list_attached()
+            list = []
+            for attach in attached:
+                list.append(attach["attach_id"])
+            attach_ids = list
+
+        for attach_id in attach_ids:
+            print(attach_id)
+            self.remote.detach_service(attach_id, "stop")
+
+        self.log.info(self.indent_str + "Done.")
+
+    def remote_inspect(self, attach_id):
+        self.log.info(self.indent_str + "Remote Inspect:")
+
+        self.log.info(self.indent_str + "Done.")
+
+    def _list_attached(self, attached):
+        elements = []
+        for attach in attached:
+            element = {
+                "service_id": attach["service_id"],
+                "attach_id": attach["attach_id"],
+                "machine_state": attach["machine_state"],
+                "service_state": attach["service_state"]
+            }
+            elements.append(element)
+
+        header = {
+            "headers": ["service_id", "attach_id", "machine_state", "service_state"],
+            "descriptions": {"service_id": "service_id:left", "attach_id": "attach_id:left",
+                             "machine_state": "Machine State:center", "service_state": "Service State:center"}
+        }
+
+        for line in self._get_table(header, elements):
+            self.log.info(self.indent_str + line)
 
     def remote_list(self):
-        self.log.info("Remote List")
+        self.log.info(self.indent_str + "Remote List")
+        attached = self.remote.list_attached()
+
+        self._list_attached(attached)
+
+        self.log.info(self.indent_str + "Done.")

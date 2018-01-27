@@ -272,18 +272,25 @@ class CLI(object):
                     commands.remote_catalog()
                 elif sub_args.name == "attach":
                     if len(extra_args) == 0:
-                        self.log.error("Specify service_id argument")
+                        self.log.error("Specify service_id argument, one or more separated by space")
                         self.exit_code = 1
                     else:
-                        service_id = extra_args[0]
-                        commands.remote_attach(service_id)
+                        service_ids = extra_args
+                        commands.remote_attach(service_ids)
                 elif sub_args.name == "detach":
                     if len(extra_args) == 0:
-                        self.log.error("Specify service_id argument")
+                        self.log.error("Specify service_id argument , one or more separated by space or use the keyword '*all' ")
                         self.exit_code = 1
                     else:
-                        attach_id = extra_args[0]
-                        commands.remote_detach(attach_id)
+                        attach_ids = extra_args
+                        commands.remote_detach(attach_ids)
+                elif sub_args.name == "inspect":
+                    if len(extra_args) == 0:
+                        self.log.error("Specify service_id argument, one or more separated by space")
+                        self.exit_code = 1
+                    else:
+                        attach_ids = extra_args
+                        commands.remote_detach(attach_ids)
                 elif sub_args.name == "list":
                     commands.remote_list()
                 else:
@@ -762,25 +769,25 @@ def get_option_parser():
 
     sub_commands = list()
 
-    sub_commands.append(SubCmdOptionParser('on',
-                                           SubCmdsOptionParser(
-                                               usage="bzt remote on",
-                                               description="Turn on the remote provisioning mode",
-                                               add_help_option=False
-                                           ),
-                                           help='Turn ON the remote provisioning mode',
-                                           )
-                        )
+    #sub_commands.append(SubCmdOptionParser('on',
+    #                                       SubCmdsOptionParser(
+    #                                           usage="bzt remote on",
+    #                                           description="Turn on the remote provisioning mode",
+    #                                           add_help_option=False
+    #                                       ),
+    #                                       help='Turn ON the remote provisioning mode',
+    #                                       )
+    #                    )
 
-    sub_commands.append(SubCmdOptionParser('off',
-                                           SubCmdsOptionParser(
-                                               usage="bzt remote off",
-                                               description="Turn off provisioning mode and release reserved resources",
-                                               add_help_option=False
-                                           ),
-                                           help='Turn OFF the remote provisioning mode',
-                                           )
-                        )
+    #sub_commands.append(SubCmdOptionParser('off',
+    #                                       SubCmdsOptionParser(
+    #                                           usage="bzt remote off",
+    #                                           description="Turn off provisioning mode and release reserved resources",
+    #                                           add_help_option=False
+    #                                       ),
+    #                                       help='Turn OFF the remote provisioning mode',
+    #                                       )
+    #                    )
 
     sub_commands.append(SubCmdOptionParser('catalog',
                                            SubCmdsOptionParser(
@@ -794,31 +801,41 @@ def get_option_parser():
 
     sub_commands.append(SubCmdOptionParser('attach',
                                            SubCmdsOptionParser(
-                                               usage="bzt remote attach service_id",
-                                               description="Attach the service to be used by Taurus",
+                                               usage="bzt remote attach service_id | service_id1 service_id2 ...",
+                                               description="Attach a service to Taurus",
                                                add_help_option=False
                                            ),
-                                           help='Attach the service to be used by Taurus',
+                                           help='Attach a service to Taurus',
                                            )
                         )
 
     sub_commands.append(SubCmdOptionParser('detach',
                                            SubCmdsOptionParser(
-                                               usage="bzt remote detach attach_id",
-                                               description="Detach the attached service",
+                                               usage="bzt remote detach attach_id | attach_id1 attach_id2 ... | *all",
+                                               description="Detach an attached service",
                                                add_help_option=False
                                            ),
-                                           help='Detach the attached service',
+                                           help='Detach an attached service',
                                            )
                         )
 
     sub_commands.append(SubCmdOptionParser('list',
                                            SubCmdsOptionParser(
                                                usage="bzt remote list",
-                                               description="List attached services and their status",
+                                               description="List services attached to Taurus",
                                                add_help_option=False
                                            ),
-                                           help='List attached services to be used by Taurus',
+                                           help='List services attached to Taurus',
+                                           )
+                        )
+
+    sub_commands.append(SubCmdOptionParser('inspect',
+                                           SubCmdsOptionParser(
+                                               usage="bzt remote inspect attach_id",
+                                               description="Inspect attached service, display detailed information",
+                                               add_help_option=False
+                                           ),
+                                           help='Inspect attached service',
                                            )
                         )
 
