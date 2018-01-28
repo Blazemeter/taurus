@@ -30,11 +30,11 @@ try:
 except ImportError:
     from pyvirtualdisplay import Display
 
-from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
+from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException, AutomatedShutdown
 from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
-from bzt.utils import replace_in_config, JavaVM, Node
+from bzt.utils import replace_in_config, JavaVM, Node, dehumanize_time
 
 
 class Unpacker(Service):
@@ -58,6 +58,25 @@ class Unpacker(Service):
             unpacked_list.append(archive[:-4])  # TODO: replace with top-level archive content
 
         replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)
+
+
+class TimeLimiter(Service, Singletone):
+    def __init__(self):
+        super(TimeLimiter, self).__init__()
+        self.start = None
+        self.max_time = None
+
+    def prepare(self):
+        self.max_time = dehumanize_time(self.parameters.get('max-time', None))
+
+    def startup(self):
+        self.start = time.time()
+
+    def check(self):
+        if self.max_time and self.start + self.max_time > time.time():
+            raise AutomatedShutdown('Time limit %s reached', self.max_time)
+
+        return super(TimeLimiter, self).check()
 
 
 class InstallChecker(Service, Singletone):

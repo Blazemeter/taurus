@@ -60,6 +60,8 @@ modules:
     class: bzt.modules.reporting.JUnitXMLReporter
   install-checker:
     class: bzt.modules.services.InstallChecker
+  time-limit:
+    class: bzt.modules.services.TimeLimiter
   console:
     class: bzt.modules.console.ConsoleStatusReporter
   consolidator:

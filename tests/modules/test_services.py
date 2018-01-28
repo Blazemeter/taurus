@@ -4,7 +4,7 @@ import shutil
 import zipfile
 from os.path import join
 
-from bzt import NormalShutdown, ToolError, TaurusConfigError
+from bzt import NormalShutdown, ToolError, TaurusConfigError, AutomatedShutdown
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader
@@ -107,6 +107,20 @@ class TestZipFolder(BZTestCase):
         self.assertFalse(obj.should_run())
         obj.parameters['run-at'] = 'cloud'
         self.assertTrue(obj.should_run())
+
+
+class TimeLimiter(BZTestCase):
+    def test_limit(self):
+        engine = EngineEmul()
+        engine.config.merge({
+            "services": [{
+                "module": "time-limit", "max-time": "0.1s"}],
+            "modules": {
+                "time-limit": "bzt.modules.services.TimeLimiter"
+            }})
+        engine.prepare()
+        self.assertRaises(AutomatedShutdown, engine.run)
+        # fixme: this test isn't accurate as other types of shutdown exceptions cause the same result (success)
 
 
 class TestToolInstaller(BZTestCase):
