@@ -20,6 +20,8 @@ import datetime
 import hashlib
 import json
 import logging
+import math
+import os
 import re
 import shutil
 import sys
@@ -32,9 +34,6 @@ from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
 
-import os
-
-import math
 import yaml
 from yaml.representer import SafeRepresenter
 
@@ -104,9 +103,13 @@ class Engine(object):
 
         merged_config = self._load_user_configs(user_configs)
 
-        if "included-configs" in self.config:
-            included_configs = [get_full_path(conf) for conf in self.config.pop("included-configs")]
+        all_includes = []
+        while "included-configs" in self.config:
+            includes = self.config.pop("included-configs")
+            included_configs = [self.find_file(conf) for conf in includes if conf not in all_includes + user_configs]
+            all_includes += includes
             self.config.load(included_configs)
+        self.config['included-configs'] = all_includes
 
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
@@ -1175,4 +1178,3 @@ class SelfDiagnosable(object):
         :rtype: list[str]
         """
         pass
-
