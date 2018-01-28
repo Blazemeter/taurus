@@ -19,7 +19,7 @@ import logging
 import os
 import yaml
 import uuid
-import requests
+
 from terminaltables import AsciiTable, SingleTable
 import json
 
@@ -51,6 +51,7 @@ class Commands(object):
                     self._save_settings()
                     self._show_cursor()
                 return result
+
             return newfunc
         else:
             return attr
@@ -66,7 +67,7 @@ class Commands(object):
 
         self.settings_file = os.path.expanduser(os.path.join('~', ".bzt-commands"))
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.base_service = "https://kip7rvk9ih.execute-api.us-east-1.amazonaws.com/dev/"
+
         self.settings = {}
         self._load_settings()
         if "user_uuid" not in self.settings:
@@ -144,15 +145,14 @@ class Commands(object):
         self.log.info('')
         self.log.info(self.indent_str + "Catalog")
 
-        r = requests.post(self.base_service + "list")
-        #print(r.status_code)
-        elements = r.json()
+        elements = self.remote.get_catalog()
 
-        #print(elements)
+        # print(elements)
 
         header = {
-            "headers":["ServiceID", "ServiceDesc", "ServiceType"],
-            "descriptions":{"ServiceID": "service_id:left", "ServiceDesc": "Description:left", "ServiceType": "Type:center"}
+            "headers": ["ServiceID", "ServiceDesc", "ServiceType"],
+            "descriptions": {"ServiceID": "service_id:left", "ServiceDesc": "Description:left",
+                             "ServiceType": "Type:center"}
         }
 
         for line in self._get_table(header, elements):
@@ -171,11 +171,7 @@ class Commands(object):
     def remote_attach(self, service_ids):
         self.log.info(self.indent_str + "Remote Attach:")
 
-        attached_ids = []
-        for service_id in service_ids:
-            attach_id = self.remote.attach_service(service_id)
-            attached_ids.append(attach_id)
-
+        attached_ids = self.remote.attach_services(service_ids)
         attached = self.remote.list_attached(attached_ids)
         self._list_attached(attached)
 
@@ -185,10 +181,10 @@ class Commands(object):
         self.log.info(self.indent_str + "Remote Detach:")
         if len(attach_ids) == 1 and attach_ids[0] == "*all":
             attached = self.remote.list_attached()
-            list = []
+            attach_list = []
             for attach in attached:
-                list.append(attach["attach_id"])
-            attach_ids = list
+                attach_list.append(attach["attach_id"])
+            attach_ids = attach_list
 
         for attach_id in attach_ids:
             print(attach_id)
@@ -204,18 +200,25 @@ class Commands(object):
     def _list_attached(self, attached):
         elements = []
         for attach in attached:
+            if "service_info" in attach and "selenium" in attach["service_info"]:
+                service_remote = attach["service_info"]["selenium"]["info"]["remote"]
+            else:
+                service_remote = "..."
             element = {
                 "service_id": attach["service_id"],
                 "attach_id": attach["attach_id"],
                 "machine_state": attach["machine_state"],
-                "service_state": attach["service_state"]
+                "service_state": attach["service_state"],
+
+                "service_remote": service_remote,
             }
             elements.append(element)
 
         header = {
-            "headers": ["service_id", "attach_id", "machine_state", "service_state"],
+            "headers": ["service_id", "attach_id", "machine_state", "service_state", "service_remote"],
             "descriptions": {"service_id": "service_id:left", "attach_id": "attach_id:left",
-                             "machine_state": "Machine State:center", "service_state": "Service State:center"}
+                             "machine_state": "Machine State:center", "service_state": "Service State:center",
+                             "service_remote": "Remote:left"}
         }
 
         for line in self._get_table(header, elements):
