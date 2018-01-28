@@ -1,3 +1,6 @@
 level2: true
 included-configs:
 - included-circular1.yml
+
+settings:
+  check-updates: true
