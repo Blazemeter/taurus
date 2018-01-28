@@ -128,7 +128,7 @@ usage for YAML-JSON incompatibilities, so you can use either JSON or YAML for
 your configs. Also you can have some of configs in JSON and some in YAML, the
 engine will perfectly deal with it. For example, following JSON file:
  
-```javascript
+```json
 {
   "execution": [
     {
