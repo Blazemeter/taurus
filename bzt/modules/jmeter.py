@@ -284,10 +284,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             else:
                 raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
-        # check for necessary plugins and install them if needed
-        if self.settings.get("detect-plugins", True):
-            self.tool.install_for_jmx(self.original_jmx)
-
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
             version = LooseVersion(str(self.settings.get("version", self.JMETER_VER)))
@@ -304,6 +300,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__set_jmeter_properties(scenario)
         self.__set_system_properties()
         self.__set_jvm_properties()
+
+        # check for necessary plugins and install them if needed
+        if self.settings.get("detect-plugins", True):
+            self.tool.install_for_jmx(self.modified_jmx)
 
         out = self.engine.create_artifact("jmeter", ".out")
         err = self.engine.create_artifact("jmeter", ".err")
