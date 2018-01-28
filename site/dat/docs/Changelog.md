@@ -7,6 +7,7 @@
  - unify environment variables specification
  - Remove chrome profiler as it was outdated and unfixable
  - call `install-for-jmx` on modified JMX instead of original
+ - wait for JMeter plugins manager to complete plugin installation
 
 ## 1.10.4 <sup>9 jan 2018</sup>
  - collect `conn-all` monitoring metric with the help of `netstat` utility (note that that introduces depepdency on `net-tools` package for Linux)
