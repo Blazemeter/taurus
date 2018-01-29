@@ -362,11 +362,6 @@ class Engine(object):
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
 
-        self.log.debug('Host environment: ')
-        env = self.env.get()
-        for name in env:
-            self.log.debug("  %s=%s" % (name, env[name]))
-
         # dump current effective configuration
         dump = self.create_artifact("effective", "")  # TODO: not good since this file not exists
         self.config.set_dump_file(dump)
