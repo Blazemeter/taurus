@@ -50,3 +50,14 @@ scenarios:
       glob1: val1
       glob2: val2
 ```
+
+## Settings
+
+By default, Taurus will install Newman and its dependencies with npm into `~/.bzt/newman/` directory.
+You can customize it with `tools-dir` module setting.
+
+```yaml
+modules:
+  newman:
+    tools-dir: my-dir
+```

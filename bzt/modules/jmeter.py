@@ -59,7 +59,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     """
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
-    PLUGINS_MANAGER_VERSION = "0.16"
+    PLUGINS_MANAGER_VERSION = "0.18"
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
                       '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
@@ -284,10 +284,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             else:
                 raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
-        # check for necessary plugins and install them if needed
-        if self.settings.get("detect-plugins", True):
-            self.tool.install_for_jmx(self.original_jmx)
-
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
             version = LooseVersion(str(self.settings.get("version", self.JMETER_VER)))
@@ -304,6 +300,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__set_jmeter_properties(scenario)
         self.__set_system_properties()
         self.__set_jvm_properties()
+
+        # check for necessary plugins and install them if needed
+        if self.settings.get("detect-plugins", True):
+            self.tool.install_for_jmx(self.modified_jmx)
 
         out = self.engine.create_artifact("jmeter", ".out")
         err = self.engine.create_artifact("jmeter", ".err")
@@ -1237,7 +1237,7 @@ class IncrementalCSVReader(object):
                 self.log.debug("Analyzed header line: %s", self.csv_reader.fieldnames)
                 continue
 
-            if PY2: # todo: fix csv parsing of unicode strings on PY2
+            if PY2:  # todo: fix csv parsing of unicode strings on PY2
                 line = line.encode('utf-8')
 
             self.buffer.write(line)
@@ -1491,6 +1491,9 @@ class JMeter(RequiredTool):
         if err and "Wrong command: install-for-jmx" in err:  # old manager
             self.log.debug("pmgr can't discover jmx for plugins")
 
+        if out and "Restarting JMeter" in out:
+            time.sleep(5)  # allow for modifications to complete
+
     def __install_jmeter(self, dest):
         if self.download_link:
             jmeter_dist = self._download(use_link=True)
@@ -1550,6 +1553,9 @@ class JMeter(RequiredTool):
             raise
         except BaseException as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
+
+        if out and "Restarting JMeter" in out:
+            time.sleep(5)  # allow for modifications to complete
 
     def _pmgr_path(self):
         dest = get_full_path(self.tool_path, step_up=2)

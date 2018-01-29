@@ -126,6 +126,7 @@ class Local(Provisioning):
 
             if executor.check():
                 self.finished_modules.append(executor)
+                self.log.debug("%s finished", executor)
             else:
                 finished = False
 

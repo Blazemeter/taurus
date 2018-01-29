@@ -20,3 +20,13 @@ You can also find an example of complete Mocha-based test suite and Taurus confi
 in [examples/selenium/mocha](https://github.com/Blazemeter/taurus/tree/master/examples/selenium/mocha)
 folder of Taurus's repo.
 
+## Settings
+
+By default, Taurus will install Mocha and its dependencies with npm into `~/.bzt/selenium-taurus/mocha/` directory.
+You can customize it with `tools-dir` module setting.
+
+```yaml
+modules:
+  mocha:
+    tools-dir: my-dir
+```

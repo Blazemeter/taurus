@@ -216,13 +216,16 @@ class Engine(object):
             reraise(exc_info)
 
     def _check_modules_list(self):
-        finished = False
+        stop = False
         modules = [self.provisioning, self.aggregator] + self.services + self.reporters  # order matters
         for module in modules:
             if module in self.started:
                 self.log.debug("Checking %s", module)
-                finished |= bool(module.check())
-        return finished
+                finished = bool(module.check())
+                if finished:
+                    self.log.debug("%s finished", module)
+                    stop = finished
+        return stop
 
     def _wait(self):
         """
@@ -471,6 +474,7 @@ class Engine(object):
         else:
             self.log.debug("No machine configs dir: %s", machine_dir)
 
+        self.log.debug("Base configs list: %s", base_configs)
         self.config.load(base_configs)
 
     def _load_user_configs(self, user_configs):
@@ -481,6 +485,7 @@ class Engine(object):
         # "tab-replacement-spaces" is not documented 'cause it loads only from base configs
         # so it's sort of half-working last resort
         self.config.tab_replacement_spaces = self.config.get(SETTINGS).get("tab-replacement-spaces", 4)
+        self.log.debug("User configs list: %s", user_configs)
         self.config.load(user_configs)
         user_config = Configuration()
         user_config.log = self.log.getChild(Configuration.__name__)
@@ -705,7 +710,7 @@ class Configuration(BetterDict):
             fds.write(json_s.encode('utf-8'))
         elif fmt == self.YAML:
             yml = yaml.dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True,
-                            encoding='utf-8')
+                            encoding='utf-8', width=float("inf"))
             fds.write(yml)
         else:
             raise TaurusInternalException("Unknown dump format: %s" % fmt)
