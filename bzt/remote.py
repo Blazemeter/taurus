@@ -106,3 +106,14 @@ class Remote(object):
         attached = response.json()
 
         return attached
+
+    def get_services(self, filter_services):
+
+        attached = self.list_attached()
+        filtered = []
+        for attach in attached:
+            service_id = attach["service_id"]
+            if service_id in filter_services:
+                filtered.append(attach)
+
+        return filtered

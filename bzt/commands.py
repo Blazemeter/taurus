@@ -20,7 +20,7 @@ import os
 import yaml
 import uuid
 
-from terminaltables import AsciiTable, SingleTable
+from terminaltables import AsciiTable
 import json
 
 import sys
