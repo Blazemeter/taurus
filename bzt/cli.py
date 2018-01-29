@@ -208,7 +208,7 @@ class CLI(object):
                 handler.setLevel(logging.DEBUG)
         self.log.debug("Leveled up log file verbosity")
 
-    def perform(self, configs, sub_args, extra_args):
+    def perform(self, configs, sub_args=None, extra_args=None):
         """
         Run the tool
 
