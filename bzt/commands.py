@@ -32,10 +32,10 @@ if os.name == 'nt':
     import msvcrt
     import ctypes
 
-
-class _CursorInfo(ctypes.Structure):
-    _fields_ = [("size", ctypes.c_int),
-                ("visible", ctypes.c_byte)]
+if os.name == 'nt':
+    class _CursorInfo(ctypes.Structure):
+        _fields_ = [("size", ctypes.c_int),
+                    ("visible", ctypes.c_byte)]
 
 
 class Commands(object):
