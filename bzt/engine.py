@@ -20,6 +20,8 @@ import datetime
 import hashlib
 import json
 import logging
+import math
+import os
 import re
 import shutil
 import sys
@@ -32,9 +34,6 @@ from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
 
-import os
-
-import math
 import yaml
 from yaml.representer import SafeRepresenter
 
@@ -355,6 +354,7 @@ class Engine(object):
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
         self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
+        os.environ["TAURUS_ARTIFACTS_DIR"] = self.artifacts_dir
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
@@ -1175,4 +1175,3 @@ class SelfDiagnosable(object):
         :rtype: list[str]
         """
         pass
-
