@@ -61,6 +61,7 @@ class Commands(object):
 
         :type parent_logger: logging.Logger
         """
+        super(Commands, self).__init__()
 
         self.indent = 2
         self.indent_str = ' ' * self.indent

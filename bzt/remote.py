@@ -54,6 +54,8 @@ class Remote(object):
 
     def __init__(self, parent_logger, user_id):
 
+        super(Remote, self).__init__()
+
         self.debug_time = False
         self.debug_time_ident = 0
 

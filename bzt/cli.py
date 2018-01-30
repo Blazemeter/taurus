@@ -594,14 +594,16 @@ class SubCmdOptionParser(object):
     invoked by a SubcommandOptionParser.
     """
 
-    def __init__(self, name, parser=None, help='', aliases=()):
+    def __init__(self, name, parser=None, help=None, aliases=()):
         """Creates a new subcommand. name is the primary way to invoke
         the subcommand; aliases are alternate names. parser is an
         OptionParser responsible for parsing the subcommand's options.
         help is a short description of the command. If no parser is
         given, it defaults to a new, empty OptionParser.
         """
-        self.class_name = str(self.__class__)
+
+        super(SubCmdOptionParser, self).__init__()
+
         self.name = name
         self.parser = parser or OptionParserWithAliases()
         self.aliases = aliases
@@ -623,6 +625,9 @@ class SubCmdsOptionParser(OptionParserWithAliases):
         options to OptionParser.__init__ are supported in addition
         to subcommands, a sequence of Subcommand objects.
         """
+
+        super(SubCmdsOptionParser, self).__init__()
+
         # The sub_command array, with the help command included.
         self.sub_commands = list(kwargs.pop('sub_commands', []))
         self.sub_commands.append(self._HelpSubcommand)
