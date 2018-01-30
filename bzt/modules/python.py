@@ -35,7 +35,6 @@ from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems
 from bzt.utils import BetterDict, ensure_is_dict, shell_exec, FileReader
 from bzt.utils import get_full_path, RequiredTool, PythonGenerator, dehumanize_time
-from bzt.commands import Commands
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
@@ -326,50 +325,15 @@ import apiritif
 
         self.log.debug("Generating setUp test method")
         browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
-        if self.execution and self.execution.get("browser", None):
-            browser = self.execution.get("browser", "Firefox")
-        else:
-            browser = self.scenario.get("browser", None)
+
+        browser = self.scenario.get("browser", self.execution.get("browser", None))
         if browser and (browser not in browsers):
             raise TaurusConfigError("Unsupported browser name: %s" % browser)
 
-        use_service = None
-        if self.execution and self.execution.get("service", None):
-            use_service = self.execution.get("service", None)
-        else:
-            use_service = self.scenario.get("service", None)
-        if use_service:
-            browser = "Remote"
-            remote_executor = "service"
-        else:
-            remote_executor = self.settings.get("remote", None)
-
         setup_method_def = self.gen_method_definition("setUp", ["self"])
 
-        if not remote_executor:
-            if self.execution and self.execution.get("remote", None):
-                remote_executor = self.execution.get("remote", None)
-            else:
-                remote_executor = self.scenario.get("remote", None)
-
-            if not remote_executor:
-                # Saucelabs
-                saucelabs = self.settings.get("saucelabs", None)
-                if saucelabs:
-                    sauce_username = None
-                    sauce_access_key = None
-                    for sauce_keys in saucelabs:
-                        if "username" in sauce_keys:
-                            sauce_username = sauce_keys["username"]
-                        elif "access_key" in sauce_keys:
-                            sauce_access_key = sauce_keys["access_key"]
-                    if sauce_username and sauce_access_key:
-                        browser = "Remote"
-                        desire_capabilities["name"] = "Powered by Taurus"
-                        remote_executor = "http://%s:%s@ondemand.saucelabs.com:80/wd/hub" % (sauce_username,
-                                                                                             sauce_access_key)
-                    else:
-                        raise TaurusConfigError("The configuration of Saucelabs requires username and access_key keys")
+        remote_executor = self.scenario.get("remote", self.execution.get("remote", None))
+        self.log.info("Exec Remote:" + str(remote_executor))
 
         if not browser and remote_executor:
             browser = "Remote"
@@ -390,10 +354,7 @@ import apiritif
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'Remote':
 
-            if self.execution and self.execution.get("capabilities", None):
-                remote_capabilities = self.execution.get("capabilities", {})
-            else:
-                remote_capabilities = self.scenario.get("capabilities", {})
+            remote_capabilities = self.scenario.get("capabilities", self.execution.get("capabilities", {}))
 
             supported_capabilities = ["browser", "version", "javascript", "platform", "selenium"]
             for capability in remote_capabilities:
@@ -412,22 +373,6 @@ import apiritif
                             desire_capabilities["javascriptEnabled"] = capability[cap_key]
                         else:
                             desire_capabilities[cap_key] = capability[cap_key]
-
-            if use_service:
-                # dynamically search according to capabilities
-                command_manager = Commands(self.log)
-                services = command_manager.remote.get_services([use_service])
-                service_remote = None
-                if len(services) > 0:
-                    desire_capabilities["browserName"] = use_service.split("-")[0]
-                    for attach in services:
-                        if "service_info" in attach and "selenium" in attach["service_info"]:
-                            service_remote = attach["service_info"]["selenium"]["info"]["remote"]
-                            break
-                if not service_remote:
-                    raise TaurusConfigError("No instance found for the %s service" % use_service)
-                else:
-                    remote_executor = service_remote
 
             statement = "self.driver = webdriver.Remote(" \
                         "command_executor={command_executor} " \

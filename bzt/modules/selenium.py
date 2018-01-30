@@ -27,6 +27,7 @@ from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.services import VirtualDisplay
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
 from bzt.utils import is_windows, is_mac, platform_bitness
+from bzt.commands import Commands
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -101,10 +102,34 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         # todo: deprecated, remove it later
         self.runner.settings.merge(self.settings.get('selenium-tools').get(runner_type))
 
-        if "remote" in self.settings:
-            self.runner.settings["remote"] = self.settings.get('remote')
-        if "saucelabs" in self.settings:
-            self.runner.settings["saucelabs"] = self.settings.get('saucelabs')
+        # Propagate to Runner Remote capabilities if is used and generate Environment variables for external script
+        service_remote = self.execution.get("remote", self.settings.get("remote", None))
+        service_capabilities = self.execution.get("capabilities", self.settings.get("capabilities", []))
+        use_service = self.execution.get("service", self.settings.get("service", None))
+        if use_service:
+            service_info = Commands(self.log).remote.pull_service(use_service)
+
+            if service_info["remote"]:
+                service_remote = service_info["remote"]
+                service_capabilities = service_info["capabilities"]
+
+        # Promote the resolution
+        self.execution["remote"] = service_remote
+        self.execution["capabilities"] = service_capabilities
+
+        # TODO: For debug, removoe
+        self.log.info("Service:" + str(use_service))
+        self.log.info("Remote:" + str(self.execution["remote"]))
+        self.log.info("Capabilities:" + str(len(self.execution["capabilities"])))
+
+        if "remote" in self.execution:
+            self.add_env({"BZT_REMOTE": self.execution["remote"]})
+        if "capabilities" in self.execution:
+            for remote_cap in self.execution["capabilities"]:
+                self.log.info("Type:" + str(remote_cap.__class__))
+                self.log.info("Str:" + str(remote_cap))
+                if "browser" in remote_cap:
+                    self.add_env({"BZT_REMOTE_BROWSER": remote_cap["browser"]})
 
         self.runner.parameters = self.parameters
         self.runner.provisioning = self.provisioning

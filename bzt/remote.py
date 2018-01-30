@@ -113,7 +113,22 @@ class Remote(object):
         filtered = []
         for attach in attached:
             service_id = attach["service_id"]
-            if service_id in filter_services:
+            if service_id in filter_services or len(filter_services) == 1 and filter_services[0] == "auto":
                 filtered.append(attach)
 
         return filtered
+
+    def pull_service(self, service_id):
+        # TODO: Migrate to lamda + database
+
+        services = self.get_services([service_id])
+        service_remote = None
+        capabilities = []
+        if len(services) > 0:
+            for attach in services:
+                if "service_info" in attach and "selenium" in attach["service_info"]:
+                    service_remote = attach["service_info"]["selenium"]["info"]["remote"]
+                    capabilities.append({"browser": attach["service_id"].split("-")[0]})
+                    break
+        return {"remote":service_remote, "capabilities": capabilities}
+
