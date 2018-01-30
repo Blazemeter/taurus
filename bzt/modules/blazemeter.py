@@ -1372,6 +1372,7 @@ class CloudCollectionTest(BaseCloudTest):
 
 class MasterProvisioning(Provisioning):
     def get_rfiles(self):
+        jmeter_var_pattern = re.compile("\${.+\}")
         rfiles = []
         additional_files = []
         for executor in self.executors:
@@ -1381,7 +1382,8 @@ class MasterProvisioning(Provisioning):
             config += to_json(executor.settings)
             for rfile in executor_rfiles:
                 if not os.path.exists(self.engine.find_file(rfile)):  # TODO: what about files started from 'http://'?
-                    raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
+                    if not jmeter_var_pattern.search(rfile):
+                        raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
                 if to_json(rfile) not in config:  # TODO: might be check is needed to improve
                     additional_files.append(rfile)
             rfiles += executor_rfiles
