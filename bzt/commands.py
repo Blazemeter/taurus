@@ -16,12 +16,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import logging
-import os
+# import os
 import yaml
 import uuid
 
 from terminaltables import AsciiTable
-import json
+# import json
 
 import sys
 import os
@@ -29,7 +29,7 @@ import os
 from bzt.remote import Remote
 
 if os.name == 'nt':
-    import msvcrt
+    # import msvcrt
     import ctypes
 
 if os.name == 'nt':
@@ -80,7 +80,8 @@ class Commands(object):
 
         self.remote = Remote(parent_logger, self.settings["user_uuid"])
 
-    def _hide_cursor(self):
+    @staticmethod
+    def _hide_cursor():
         if os.name == 'nt':
             ci = _CursorInfo()
             handle = ctypes.windll.kernel32.GetStdHandle(-11)
@@ -91,7 +92,8 @@ class Commands(object):
             sys.stdout.write("\033[?25l")
             sys.stdout.flush()
 
-    def _show_cursor(self):
+    @staticmethod
+    def _show_cursor():
         if os.name == 'nt':
             ci = _CursorInfo()
             handle = ctypes.windll.kernel32.GetStdHandle(-11)
@@ -114,7 +116,8 @@ class Commands(object):
         with open(self.settings_file, 'w+') as bzt_remote_file:
             yaml.dump(self.settings, bzt_remote_file)
 
-    def _get_table(self, header, data, title="", indent=0):
+    @staticmethod
+    def _get_table(header, data, title=""):
         table_headers = header["headers"]
         table_headers_desc = header["descriptions"]
         table_data = []
@@ -188,12 +191,12 @@ class Commands(object):
 
         for attach_id in attach_ids:
             print(attach_id)
-            self.remote.detach_service(attach_id, "stop")
+            self.remote.detach_service(attach_id)
 
         self.log.info(self.indent_str + "Done.")
 
     def remote_inspect(self, attach_id):
-        self.log.info(self.indent_str + "Remote Inspect:")
+        self.log.info(self.indent_str + "Remote Inspect:" + attach_id)
 
         self.log.info(self.indent_str + "Done.")
 

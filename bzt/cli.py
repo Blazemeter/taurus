@@ -279,7 +279,8 @@ class CLI(object):
                         commands.remote_attach(service_ids)
                 elif sub_args.name == "detach":
                     if len(extra_args) == 0:
-                        self.log.error("Specify service_id argument , one or more separated by space or use the keyword '*all' ")
+                        self.log.error("Specify service_id argument, one or more " +
+                                       "separated by space or use the keyword '*all'")
                         self.exit_code = 1
                     else:
                         attach_ids = extra_args
@@ -600,6 +601,7 @@ class SubCmdOptionParser(object):
         help is a short description of the command. If no parser is
         given, it defaults to a new, empty OptionParser.
         """
+        self.class_name = str(self.__class__)
         self.name = name
         self.parser = parser or OptionParserWithAliases()
         self.aliases = aliases
@@ -637,7 +639,7 @@ class SubCmdsOptionParser(OptionParserWithAliases):
         # Adjust the help-visible name of each subcommand.
         for sub_command in self.sub_commands:
             sub_command.parser.prog = '%s %s' % \
-                                     (self.get_prog_name(), sub_command.name)
+                                      (self.get_prog_name(), sub_command.name)
 
         # Our root parser needs to stop on the first unrecognized argument.
         self.disable_interspersed_args()
@@ -711,7 +713,7 @@ class SubCmdsOptionParser(OptionParserWithAliases):
                 return sub_command
         return None
 
-    def parse_args(self, a=None, v=None):
+    def parse_args(self, args=None, values=None):
         """Like OptionParser.parse_args, but returns these four items:
         - options: the options passed to the root parser
         - subcommand: the Subcommand object that was invoked
@@ -719,11 +721,12 @@ class SubCmdsOptionParser(OptionParserWithAliases):
         - subargs: the positional arguments passed to the subcommand
         """
 
-        options, args = super(SubCmdsOptionParser, self).parse_args(a, v)
+        options, args = super(SubCmdsOptionParser, self).parse_args(args, values)
 
         sub_command = None
         sub_options = None
         sub_args = None
+        sub_sub_args = None
 
         if not args:
             return options, args, None, None, None
@@ -736,11 +739,16 @@ class SubCmdsOptionParser(OptionParserWithAliases):
                 return options, args, None, None, None
 
             if isinstance(sub_command.parser, SubCmdsOptionParser):
-                sub_options, sub_args, sub_sub_options, sub_sub_args, extra_sub_args = sub_command.parser.parse_args(args[1:])
+                sub_options, sub_args, sub_sub_options, sub_sub_args, extra_sub_args = \
+                    sub_command.parser.parse_args(args[1:])
             else:
                 sub_options, sub_args = sub_command.parser.parse_args(args[1:])
                 sub_sub_options = None
                 sub_sub_args = None
+                extra_sub_args = None
+
+            if extra_sub_args:  # Remove the warnig from Codacy
+                pass
 
             if sub_command is self._HelpSubcommand:
                 if sub_args:
@@ -769,7 +777,7 @@ def get_option_parser():
 
     sub_commands = list()
 
-    #sub_commands.append(SubCmdOptionParser('on',
+    # sub_commands.append(SubCmdOptionParser('on',
     #                                       SubCmdsOptionParser(
     #                                           usage="bzt remote on",
     #                                           description="Turn on the remote provisioning mode",
@@ -779,7 +787,7 @@ def get_option_parser():
     #                                       )
     #                    )
 
-    #sub_commands.append(SubCmdOptionParser('off',
+    # sub_commands.append(SubCmdOptionParser('off',
     #                                       SubCmdsOptionParser(
     #                                           usage="bzt remote off",
     #                                           description="Turn off provisioning mode and release reserved resources",
@@ -870,7 +878,6 @@ def get_option_parser():
     return parser
 
 
-
 def signal_handler(sig, frame):
     """
     required for non-tty python runs to interrupt
@@ -888,6 +895,9 @@ def main():
     parser = get_option_parser()
 
     parsed_options, parsed_configs, parsed_suboptions, parsed_subargs, parsed_extra_args = parser.parse_args()
+
+    if parsed_suboptions:  # Remove the warnig from Codacy
+        pass
 
     from_command = False
     if isinstance(parsed_configs, SubCmdOptionParser):

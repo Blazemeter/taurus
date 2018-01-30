@@ -1,4 +1,4 @@
-import json
+# import json
 import time
 import requests
 
@@ -38,14 +38,15 @@ class Remote(object):
         attr = object.__getattribute__(self, name)
         if hasattr(attr, '__call__'):
             def newfunc(*args, **kwargs):
-
+                start_time = 0
                 if self.debug_time:
                     self.debug_time_ident += 1
                     start_time = time.time()
                 result = attr(*args, **kwargs)
                 if self.debug_time:
                     end_time = time.time()
-                    self.log.info(('  ' * self.debug_time_ident) + '%s function took %0.3f ms' % (attr.__name__, (end_time - start_time) * 1000.0))
+                    self.log.info(('  ' * self.debug_time_ident) +
+                                  '%s function took %0.3f ms' % (attr.__name__, (end_time - start_time) * 1000.0))
                 return result
             return newfunc
         else:
@@ -70,7 +71,7 @@ class Remote(object):
         # print(r.status_code)
         return r.json()
 
-    def detach_service(self, attach_id, reason=""):
+    def detach_service(self, attach_id):
 
         response = requests.post(self.base_service + "detach",
                                  json={"GroupUUID": self.user_id, "AttachmentID": attach_id})
@@ -80,7 +81,14 @@ class Remote(object):
     def attach_services(self, service_ids):
         remote_service = []
         for service_id in service_ids:
-            remote_service.append({"base_service": self.base_service, "cluster_id": "", "user_id": self.user_id, "service_id": service_id})
+            remote_service.append(
+                {
+                    "base_service": self.base_service,
+                    "cluster_id": "",
+                    "user_id": self.user_id,
+                    "service_id": service_id
+                }
+            )
 
         attach_ids = map(_attach_service, remote_service)
 
@@ -130,5 +138,4 @@ class Remote(object):
                     service_remote = attach["service_info"]["selenium"]["info"]["remote"]
                     capabilities.append({"browser": attach["service_id"].split("-")[0]})
                     break
-        return {"remote":service_remote, "capabilities": capabilities}
-
+        return {"remote": service_remote, "capabilities": capabilities}
