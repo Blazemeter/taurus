@@ -357,7 +357,6 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
 
             errors = []
             for er_dict in labels[key][KPISet.ERRORS]:
-                self.log.info(er_dict)
                 rc = str(er_dict["rc"])
                 msg = str(er_dict["msg"])
                 cnt = str(er_dict["cnt"])
