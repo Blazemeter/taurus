@@ -15,7 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import logging
+# import logging
 # import os
 import yaml
 import uuid
@@ -108,7 +108,7 @@ class Commands(object):
         if not os.path.isfile(self.settings_file):
             self._save_settings()
         with open(self.settings_file, 'r+') as bzt_remote_file:
-            self.settings = yaml.load(bzt_remote_file.read())
+            self.settings = yaml.safe_load(bzt_remote_file.read())
         if not self.settings:
             self.settings = {}
 

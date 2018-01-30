@@ -379,7 +379,8 @@ import apiritif
                         ", desired_capabilities={desired_capabilities})"
 
             setup_method_def.append(self.gen_statement(
-                statement.format(command_executor=repr(remote_executor), desired_capabilities=repr(desire_capabilities))))
+                statement.format(command_executor=repr(remote_executor),
+                                 desired_capabilities=repr(desire_capabilities))))
         else:
             setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
 
@@ -466,11 +467,12 @@ import apiritif
         }
         if atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys', 'asserttext', 'select'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
+            action = None
             if atype == 'click':
                 action = "click()"
             elif atype == 'keys':
                 action = "send_keys(%r)" % param
-                if type(param) is str and param.startswith("KEY_"):
+                if isinstance(param, str) and param.startswith("KEY_"):
                     action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
             elif action_chains.has_key(atype):
                 tpl = "self.driver.find_element(By.%s, %r)"
