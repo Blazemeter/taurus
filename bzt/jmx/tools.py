@@ -17,22 +17,15 @@ limitations under the License.
 """
 import json
 import os
-import re
 import traceback
 from distutils.version import LooseVersion
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
 from bzt.jmx import JMX
-from bzt.requests_model import RequestVisitor
+from bzt.requests_model import RequestVisitor, has_variable_pattern
 from bzt.six import etree, iteritems, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, get_host_ips, get_full_path, guess_csv_dialect
-
-JMETER_VARIABLE_PATTERN = re.compile("\${.+\}")
-
-
-def has_jmeter_variable(val):
-    return bool(JMETER_VARIABLE_PATTERN.search(val))
 
 
 class RequestCompiler(RequestVisitor):
@@ -820,7 +813,7 @@ class JMeterScenarioBuilder(JMX):
 
             delimiter = source.get('delimiter', None)
 
-            if has_jmeter_variable(source_path):
+            if has_variable_pattern(source_path):
                 msg = "Path to CSV contains JMeter variable/function, can't check for file existence: %s"
                 self.log.warning(msg, source_path)
                 if not delimiter:

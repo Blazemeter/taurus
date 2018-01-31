@@ -35,13 +35,12 @@ from bzt import TaurusConfigError, ToolError, TaurusInternalException, TaurusNet
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
 from bzt.engine import SelfDiagnosable, Provisioning, SETTINGS
 from bzt.jmx import JMX, JMeterScenarioBuilder, LoadSettingsProcessor
-from bzt.jmx.tools import has_jmeter_variable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
-from bzt.requests_model import ResourceFilesCollector
+from bzt.requests_model import ResourceFilesCollector, has_variable_pattern
 from bzt.six import communicate, PY2
 from bzt.six import iteritems, string_types, StringIO, etree, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
@@ -774,7 +773,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                         break
                     parent = parent.getparent()
 
-                if resource_element.text and not parent_disabled and not has_jmeter_variable(resource_element.text):
+                if resource_element.text and not parent_disabled and not has_variable_pattern(resource_element.text):
                     resource_files.append(resource_element.text)
         return resource_files
 
