@@ -56,7 +56,7 @@ class LinterService(Service, Singletone):
     def prepare(self):
         if self.settings.get("disable", False):
             return
-        self.log.info("Linting config")
+        self.log.debug("Linting config")
         self.warn_on_unfamiliar_fields = self._get_conf_option("warn-on-unfamiliar-fields", True)
         config_copy = copy.deepcopy(self.engine.config)
         checkers_repo = self.settings.get("checkers")
