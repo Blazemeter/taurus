@@ -19,6 +19,7 @@ import copy
 import logging
 import os
 import platform
+import re
 import sys
 import time
 import traceback
@@ -28,7 +29,6 @@ from collections import defaultdict, OrderedDict, Counter, namedtuple
 from functools import wraps
 from ssl import SSLError
 
-import re
 import yaml
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
@@ -37,6 +37,7 @@ from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test, Workspace, MultiTest
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
+from bzt.jmx.tools import has_jmeter_variable
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
@@ -1372,7 +1373,6 @@ class CloudCollectionTest(BaseCloudTest):
 
 class MasterProvisioning(Provisioning):
     def get_rfiles(self):
-        jmeter_var_pattern = re.compile("\${.+\}")
         rfiles = []
         additional_files = []
         for executor in self.executors:
@@ -1382,7 +1382,7 @@ class MasterProvisioning(Provisioning):
             config += to_json(executor.settings)
             for rfile in executor_rfiles:
                 if not os.path.exists(self.engine.find_file(rfile)):  # TODO: what about files started from 'http://'?
-                    if not jmeter_var_pattern.search(rfile):
+                    if not has_jmeter_variable(rfile):
                         raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
                 if to_json(rfile) not in config:  # TODO: might be check is needed to improve
                     additional_files.append(rfile)
@@ -1397,7 +1397,8 @@ class MasterProvisioning(Provisioning):
 
     def _fix_filenames(self, old_names):
         # check for concurrent base names
-        old_full_names = [get_full_path(self.engine.find_file(x)) for x in old_names]
+        old_full_names = [get_full_path(self.engine.find_file(x)) if not has_jmeter_variable(x) else x
+                          for x in old_names]
         rbases = [os.path.basename(get_full_path(rfile)) for rfile in old_full_names]
         rpaths = [get_full_path(rfile, step_up=1) for rfile in old_full_names]
         while rbases:

@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import re
 import shutil
 import tempfile
 import time
@@ -62,7 +61,6 @@ class TestCloudProvisioning(BZTestCase):
             self.obj.engine.config.merge({
                 "modules": {"mock": ModuleMock.__module__ + "." + ModuleMock.__name__},
                 "provisioning": "mock"})
-
 
         self.mock.mock_get.update(get if get else {})
         self.mock.mock_post.update(post if post else {})
@@ -821,7 +819,6 @@ class TestCloudProvisioning(BZTestCase):
             with open(self.obj.engine.artifacts_dir + '/cloud.yml') as cl_file:
                 str_cfg = cl_file.read()
 
-            jmeter_var_pattern = re.compile("\${.+\}")
             archive_found = False
             for old_name, new_name in names:
                 if new_name.endswith('.zip'):
@@ -830,10 +827,10 @@ class TestCloudProvisioning(BZTestCase):
                 # all resources on the disk, dir has been packed
                 path_to_file = get_full_path(self.obj.engine.find_file(old_name))
                 msg = 'File %s (%s) not found on disk' % (old_name, path_to_file)
-                self.assertTrue(os.path.exists(path_to_file) or jmeter_var_pattern.search(path_to_file), msg)
+                self.assertTrue(os.path.exists(path_to_file), msg)
                 msg = 'Short name %s not found in modified config' % new_name
                 self.assertIn(new_name, str_cfg, msg)  # all short names in config
-                if new_name != old_name and not jmeter_var_pattern.search(new_name):
+                if new_name != old_name:
                     msg = 'Long name %s found in config' % old_name
                     self.assertNotIn(old_name, str_cfg, msg)  # no one long name in config
 
@@ -880,7 +877,6 @@ class TestCloudProvisioning(BZTestCase):
                 'example_spec.rb',  # 24 (script)
                 'file-in-home-18.rb',  # 25 (sript)
                 'file-in-home-19.jar',  # global testng settings (additional-classpath)
-                '${localpath}${playready}.zip',
                 'variable_file_upload.jmx',
             })
         finally:
