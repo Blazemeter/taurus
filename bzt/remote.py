@@ -128,16 +128,24 @@ class Remote(object):
 
         return filtered
 
-    def pull_service(self, service_id):
+    def pull_service(self, service_id, reserved=[]):
         # TODO: Migrate to lamda + database
 
         services = self.get_services([service_id])
+        attach_id = None
         service_remote = None
         capabilities = []
+        service_vnc = None
         if len(services) > 0:
             for attach in services:
-                if "service_info" in attach and "selenium" in attach["service_info"]:
-                    service_remote = attach["service_info"]["selenium"]["info"]["remote"]
-                    capabilities.append({"browser": attach["service_id"].split("-")[0]})
-                    break
-        return {"remote": service_remote, "capabilities": capabilities}
+                if  attach["service_state"] == "RUNNING":
+                    attach_id = attach["attach_id"]
+                    if "service_info" in attach and "selenium" in attach["service_info"]:
+
+                        service_remote = attach["service_info"]["selenium"]["info"]["remote"]
+                        service_vnc = attach["service_info"]["selenium"]["info"]["vnc"]
+                        capabilities.append({"browser": attach["service_id"].split("-")[0]})
+
+                        if attach_id not in reserved:
+                            break
+        return {"attach_id": attach_id , "remote": service_remote, "capabilities": capabilities, "vnc": service_vnc}

@@ -326,13 +326,13 @@ import apiritif
         self.log.debug("Generating setUp test method")
         browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
 
-        browser = self.scenario.get("browser", self.execution.get("browser", None))
+        browser = self.scenario.get_noset("browser", self.execution.get_noset("browser", None))
         if browser and (browser not in browsers):
             raise TaurusConfigError("Unsupported browser name: %s" % browser)
 
         setup_method_def = self.gen_method_definition("setUp", ["self"])
 
-        remote_executor = self.scenario.get("remote", self.execution.get("remote", None))
+        remote_executor = self.scenario.get_noset("remote", self.execution.get_noset("remote", None))
         self.log.info("Exec Remote:" + str(remote_executor))
 
         if not browser and remote_executor:
@@ -354,7 +354,7 @@ import apiritif
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'Remote':
 
-            remote_capabilities = self.scenario.get("capabilities", self.execution.get("capabilities", {}))
+            remote_capabilities = self.scenario.get_noset("capabilities", self.execution.get_noset("capabilities", {}))
 
             supported_capabilities = ["browser", "version", "javascript", "platform", "selenium"]
             for capability in remote_capabilities:
