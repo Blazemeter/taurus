@@ -594,7 +594,7 @@ class SubCmdOptionParser(object):
     invoked by a SubcommandOptionParser.
     """
 
-    def __init__(self, name, parser=None, help=None, aliases=()):
+    def __init__(self, name, parser=None, help="", aliases=()):
         """Creates a new subcommand. name is the primary way to invoke
         the subcommand; aliases are alternate names. parser is an
         OptionParser responsible for parsing the subcommand's options.
@@ -607,7 +607,7 @@ class SubCmdOptionParser(object):
         self.name = name
         self.parser = parser or OptionParserWithAliases()
         self.aliases = aliases
-        self.help = help
+        self.help_hint = help
 
 
 class SubCmdsOptionParser(OptionParserWithAliases):
@@ -697,7 +697,7 @@ class SubCmdsOptionParser(OptionParserWithAliases):
                 indent_first = 0
             result.append(name)
             help_width = formatter.width - help_position
-            help_lines = textwrap.wrap(sub_command.help, help_width)
+            help_lines = textwrap.wrap(sub_command.help_hint, help_width)
             result.append("%*s%s\n" % (indent_first, "", help_lines[0]))
             result.extend(["%*s%s\n" % (help_position, "", line)
                            for line in help_lines[1:]])
