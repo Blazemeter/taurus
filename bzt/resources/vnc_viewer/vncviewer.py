@@ -11,7 +11,6 @@ MIT License
 from twisted.python import usage, log
 from twisted.internet import reactor, protocol
 # ~ from twisted.internet import defer
-from twisted.internet.protocol import Factory, Protocol
 
 # import pygame stuff
 import pygame
@@ -227,7 +226,7 @@ class PyGameApp:
         return not seen_events
 
     def mainloop(self, dum=None):
-        """gui 'mainloop', it is called repeated by twisteds mainloop 
+        """gui 'mainloop', it is called repeated by twisteds mainloop
            by using callLater"""
         # ~ self.clock.tick()
         no_work = self.checkEvents()

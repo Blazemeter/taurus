@@ -128,7 +128,9 @@ class Remote(object):
 
         return filtered
 
-    def pull_service(self, service_id, reserved=[]):
+    def pull_service(self, service_id, reserved=None):
+        reserved = reserved or []
+
         # TODO: Migrate to lamda + database
 
         services = self.get_services([service_id])

@@ -16,7 +16,7 @@ import sys
 from struct import pack, unpack
 import bzt.resources.vnc_viewer.pyDes as pyDes
 from twisted.python import usage, log
-from twisted.internet.protocol import Factory, Protocol
+from twisted.internet.protocol import Protocol
 from twisted.internet import protocol
 from twisted.application import internet, service
 
@@ -545,7 +545,7 @@ class RFBClient(Protocol):
     def commitUpdate(self, rectangles=None):
         """called after a series of updateRectangle(), copyRectangle()
            or fillRectangle() are finished.
-           typicaly, here is the place to request the next screen 
+           typicaly, here is the place to request the next screen
            update with FramebufferUpdateRequest(incremental=1).
            argument is a list of tuples (x,y,w,h) with the updated
            rectangles."""
