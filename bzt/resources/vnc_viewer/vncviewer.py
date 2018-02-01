@@ -11,10 +11,12 @@ MIT License
 from twisted.python import usage, log
 from twisted.internet import reactor, protocol
 # ~ from twisted.internet import defer
-
+import os
 # import pygame stuff
 import pygame
 from pygame.locals import *
+
+import bzt.resources as bztr
 
 # std stuff
 import sys, struct
@@ -126,13 +128,16 @@ class TextSprite(pygame.sprite.Sprite):
 
 # ~ class PyGameApp(pb.Referenceable, Game.Game):
 class PyGameApp:
+
+
     """Pygame main application"""
+    winstyle = 0
 
     def __init__(self):
-        width, height = 640, 480
+        width, height = 320, 240
         self.setRFBSize(width, height)
-        pygame.display.set_caption('Python VNC Viewer')
-        pygame.mouse.set_cursor(*POINTER)
+        pygame.display.set_caption('Taurus VNC Viewer')
+        # pygame.mouse.set_cursor(*POINTER)
         pygame.key.set_repeat(500, 30)
         self.clock = pygame.time.Clock()
         self.alive = 1
@@ -141,17 +146,22 @@ class PyGameApp:
         self.statustext = TextSprite((5, 0))
         self.sprites.add(self.statustext)
         self.buttons = 0
+        self.clock = pygame.time.Clock()
         self.protocol = None
+        self.fps = 60.0
+        self.winstyle = pygame.HWSURFACE | pygame.DOUBLEBUF | pygame.RESIZABLE  # 0
+
+        pygame.display.set_icon(pygame.image.load(os.path.join(os.path.dirname(os.path.abspath(bztr.__file__)),"taurus_logo.gif")))
 
     def setRFBSize(self, width, height, depth=32):
         """change screen size"""
         self.width, self.height = width, height
         self.area = Rect(0, 0, width, height)
-        winstyle = pygame.RESIZABLE  # 0  # |FULLSCREEN
+
         if depth == 32:
-            self.screen = pygame.display.set_mode(self.area.size, winstyle, 32)
+            self.screen = pygame.display.set_mode(self.area.size, self.winstyle, 32)
         elif depth == 8:
-            self.screen = pygame.display.set_mode(self.area.size, winstyle, 8)
+            self.screen = pygame.display.set_mode(self.area.size, self.winstyle, 8)
             # default palette is perfect ;-)
             # ~ pygame.display.set_palette([(x,x,x) for x in range(256)])
         # ~ elif depth is None:
@@ -162,6 +172,8 @@ class PyGameApp:
         else:
             # ~ self.screen = pygame.display.set_mode(self.area.size, winstyle, depth)
             raise ValueError("color depth not supported")
+
+        self.screen_rect = self.screen.get_rect()
         self.background = pygame.Surface((self.width, self.height), depth)
         self.background.fill(0)  # black
 
@@ -184,8 +196,8 @@ class PyGameApp:
             elif e.type == pygame.VIDEORESIZE:
                 # The main code that resizes the window:
                 # (recreate the window with the new size)
-                surface = pygame.display.set_mode((e.w, e.h),
-                                                  pygame.RESIZABLE)
+                self.setRFBSize(e.w, e.w)
+
             if self.protocol is not None:
                 if 1 == 2:  # TODO: Disable interaction
                     if e.type == KEYDOWN:
@@ -244,6 +256,7 @@ class PyGameApp:
             # ~ d = defer.Deferred()
             # ~ d.addCallback(self.mainloop)
             # ~ d.callback(None)
+            self.clock.tick(self.fps)
             reactor.callLater(no_work and 0.020, self.mainloop)
 
     # ~ def error(self):
@@ -354,9 +367,10 @@ class RFBToGUIeightbits(RFBToGUI):
 class VNCFactory(rfb.RFBFactory):
     """A factory for remote frame buffer connections."""
 
-    def __init__(self, remoteframebuffer, depth, fast, *args, **kwargs):
+    def __init__(self, remoteframebuffer, depth, fast, conn_id, *args, **kwargs):
         rfb.RFBFactory.__init__(self, *args, **kwargs)
         self.remoteframebuffer = remoteframebuffer
+        self.conn_id = conn_id
         if depth == 32:
             self.protocol = RFBToGUI
         elif depth == 8:
@@ -380,7 +394,7 @@ class VNCFactory(rfb.RFBFactory):
 
     def buildProtocol(self, addr):
         display = addr.port - 5900
-        pygame.display.set_caption('Python VNC Viewer on %s:%s' % (addr.host, display))
+        pygame.display.set_caption(self.conn_id + ' - Taurus VNC Viewer on %s:%s' % (addr.host, display))
         return rfb.RFBFactory.buildProtocol(self, addr)
 
     def clientConnectionLost(self, connector, reason):
@@ -418,7 +432,7 @@ class Options(usage.Options):
 
 class VncViewer(object):
 
-    def __init__(self, host, port, password, depth=32):
+    def __init__(self, host, port, password, conn_id, depth=32):
         pygame.init()
         remoteframebuffer = PyGameApp()
 
@@ -429,6 +443,7 @@ class VncViewer(object):
                 remoteframebuffer,  # the application/display
                 depth,  # color depth
                 False,  # if a fast connection is used
+                conn_id ,
                 password,  # password or none
                 1,  # shared session flag
             )

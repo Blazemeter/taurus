@@ -141,6 +141,7 @@ class Remote(object):
         if len(services) > 0:
             for attach in services:
                 if  attach["service_state"] == "RUNNING":
+                    service_id = attach["service_id"]
                     attach_id = attach["attach_id"]
                     if "service_info" in attach and "selenium" in attach["service_info"]:
 
@@ -150,4 +151,4 @@ class Remote(object):
 
                         if attach_id not in reserved:
                             break
-        return {"attach_id": attach_id , "remote": service_remote, "capabilities": capabilities, "vnc": service_vnc}
+        return {"service_id": service_id, "attach_id": attach_id, "remote": service_remote, "capabilities": capabilities, "vnc": service_vnc}

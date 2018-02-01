@@ -65,8 +65,8 @@ class ServiceAttached(object):
     def detach(cls, attach_id):
         cls.service_attached.remove(attach_id)
 
-def run_vncviewer(host, port, password):
-    vnc_viewer = VncViewer(host, port, password)
+def run_vncviewer(host, port, password, conn_id):
+    vnc_viewer = VncViewer(host, port, password, conn_id)
     return vnc_viewer
 
 class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -140,7 +140,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                 vnc_host = service_info["vnc"].split(":")[0]
                 vnc_port = int(service_info["vnc"].split(":")[1])
                 vnc_pass = "secret"
-                vnc_proc = Process(target=run_vncviewer, args=(vnc_host, vnc_port, vnc_pass ,))
+                vnc_proc = Process(target=run_vncviewer, args=(vnc_host, vnc_port, vnc_pass, service_info["service_id"],))
                 vnc_proc.daemon = True
                 vnc_proc.start()
                 self.vnc_connections.append(vnc_proc)
