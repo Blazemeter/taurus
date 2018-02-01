@@ -15,3 +15,5 @@ requests>=2.11.1
 selenium
 terminaltables>=3.1.0
 urwid
+twisted
+pygame
