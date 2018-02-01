@@ -14,7 +14,7 @@ MIT License
 
 import sys
 from struct import pack, unpack
-import pyDes
+import bzt.resources.vnc_viewer.pyDes as pyDes
 from twisted.python import usage, log
 from twisted.internet.protocol import Factory, Protocol
 from twisted.internet import protocol
