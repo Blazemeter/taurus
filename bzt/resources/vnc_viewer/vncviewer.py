@@ -328,10 +328,12 @@ class RFBToGUI(rfb.RFBClient):
         self.screen.fill(struct.unpack("BBBB", color), (x, y, width, height))
 
     def bell(self):
-        print("katsching")
+        pass
+        #print("katsching")
 
     def copy_text(self, text):
-        print("Clipboard: %r" % text)
+        pass
+        #print("Clipboard: %r" % text)
 
 
 # use a derrived class for other depths. hopefully with better performance
@@ -393,8 +395,7 @@ class VNCFactory(rfb.RFBFactory):
             ]
 
     def buildProtocol(self, addr):
-        display = addr.port - 5900
-        pygame.display.set_caption(self.conn_id + ' - Taurus VNC Viewer on %s:%s' % (addr.host, display))
+        pygame.display.set_caption(self.conn_id + ' - Taurus VNC Viewer on %s:%s' % (addr.host, addr.port))
         return rfb.RFBFactory.buildProtocol(self, addr)
 
     def clientConnectionLost(self, connector, reason):

@@ -59,6 +59,8 @@ class Remote(object):
         self.debug_time = False
         self.debug_time_ident = 0
 
+        self.list_attached_cached = None
+
         self.user_id = user_id
         self.log = parent_logger.getChild(self.__class__.__name__)
 
@@ -67,6 +69,7 @@ class Remote(object):
         # Disable boto logging and create remote clients
         logging.getLogger('boto3').setLevel(logging.CRITICAL)
         logging.getLogger('botocore').setLevel(logging.CRITICAL)
+
 
     def get_catalog(self):
         r = requests.post(self.base_service + "list")
@@ -117,9 +120,15 @@ class Remote(object):
 
         return attached
 
-    def get_services(self, filter_services):
+    def get_services(self, filter_services, cache=False):
 
-        attached = self.list_attached()
+        if cache and self.list_attached_cached:
+            attached = self.list_attached_cached
+        else:
+            attached = self.list_attached()
+            if cache:
+                self.list_attached_cached = attached
+
         filtered = []
         for attach in attached:
             service_id = attach["service_id"]
@@ -128,27 +137,28 @@ class Remote(object):
 
         return filtered
 
-    def pull_service(self, service_id, reserved=None):
+    def pull_service(self, service_id, reserved=None, cache=False):
         reserved = reserved or []
 
         # TODO: Migrate to lamda + database
 
-        services = self.get_services([service_id])
+        services = self.get_services([service_id], cache=cache)
         attach_id = None
         service_remote = None
         capabilities = []
         service_vnc = None
         if len(services) > 0:
             for attach in services:
-                if  attach["service_state"] == "RUNNING":
+                if attach["service_state"] == "RUNNING":
                     service_id = attach["service_id"]
                     attach_id = attach["attach_id"]
                     if "service_info" in attach and "selenium" in attach["service_info"]:
 
                         service_remote = attach["service_info"]["selenium"]["info"]["remote"]
                         service_vnc = attach["service_info"]["selenium"]["info"]["vnc"]
-                        capabilities.append({"browser": attach["service_id"].split("-")[0]})
+                        capabilities = [{"browser": attach["service_id"].split("-")[0]}]
 
                         if attach_id not in reserved:
                             break
-        return {"service_id": service_id, "attach_id": attach_id, "remote": service_remote, "capabilities": capabilities, "vnc": service_vnc}
+        return {"service_id": service_id, "attach_id": attach_id, "remote": service_remote,
+                "capabilities": capabilities, "vnc": service_vnc}

@@ -31,6 +31,7 @@ from bzt.commands import Commands
 from bzt.resources.vnc_viewer.vncviewer import VncViewer
 from multiprocessing import Process
 
+
 class AbstractSeleniumExecutor(ReportableExecutor):
     @abstractmethod
     def get_virtual_display(self):
@@ -50,8 +51,9 @@ class AbstractSeleniumExecutor(ReportableExecutor):
 
 
 class ServiceAttached(object):
-
     service_attached = []
+
+    remote = None
 
     @classmethod
     def get_attached(cls):
@@ -65,9 +67,19 @@ class ServiceAttached(object):
     def detach(cls, attach_id):
         cls.service_attached.remove(attach_id)
 
+    @classmethod
+    def get_remote(cls, log):
+        if cls.remote:
+            return cls.remote
+        else:
+            cls.remote = Commands(log).remote
+            return cls.remote
+
+
 def run_vncviewer(host, port, password, conn_id):
     vnc_viewer = VncViewer(host, port, password, conn_id)
     return vnc_viewer
+
 
 class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
@@ -130,7 +142,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         service_capabilities = self.execution.get_noset("capabilities", self.settings.get_noset("capabilities", []))
         use_service = self.execution.get_noset("service", self.settings.get_noset("service", None))
         if use_service:
-            service_info = Commands(self.log).remote.pull_service(use_service, ServiceAttached.get_attached())
+            service_info = ServiceAttached.get_remote(self.log).pull_service(use_service,
+                                                                             ServiceAttached.get_attached(), cache=True)
 
             if service_info["remote"]:
                 ServiceAttached.add_attach(service_info["attach_id"])
@@ -140,7 +153,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                 vnc_host = service_info["vnc"].split(":")[0]
                 vnc_port = int(service_info["vnc"].split(":")[1])
                 vnc_pass = "secret"
-                vnc_proc = Process(target=run_vncviewer, args=(vnc_host, vnc_port, vnc_pass, service_info["service_id"],))
+                vnc_proc = Process(target=run_vncviewer, args=(vnc_host, vnc_port, vnc_pass,
+                                                               service_info["service_id"],))
                 vnc_proc.daemon = True
                 vnc_proc.start()
                 self.vnc_connections.append(vnc_proc)
