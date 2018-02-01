@@ -197,7 +197,7 @@ class PyGameApp:
                         elif e.unicode:
                             self.protocol.keyEvent(ord(e.unicode))
                         else:
-                            print "warning: unknown key %r" % (e)
+                            print("warning: unknown key %r" % e)
                     elif e.type == KEYUP:
                         if e.key in MODIFIERS:
                             self.protocol.keyEvent(MODIFIERS[e.key], down=0)
@@ -316,10 +316,10 @@ class RFBToGUI(rfb.RFBClient):
         self.screen.fill(struct.unpack("BBBB", color), (x, y, width, height))
 
     def bell(self):
-        print "katsching"
+        print("katsching")
 
     def copy_text(self, text):
-        print "Clipboard: %r" % text
+        print("Clipboard: %r" % text)
 
 
 # use a derrived class for other depths. hopefully with better performance
@@ -445,8 +445,8 @@ def main():
     try:
         o.parseOptions()
     except usage.UsageError, errortext:
-        print "%s: %s" % (sys.argv[0], errortext)
-        print "%s: Try --help for usage details." % (sys.argv[0])
+        print("%s: %s" % (sys.argv[0], errortext))
+        print("%s: Try --help for usage details." % (sys.argv[0]))
         raise SystemExit(1)
 
     depth = int(o.opts['depth'])

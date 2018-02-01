@@ -81,7 +81,7 @@ def ask(screen, question, default='', password=0):
 def main():
     screen = pygame.display.set_mode((220, 40))
     screen.fill((0, 100, 255))
-    print ask(screen, "Name") + " was entered"
+    print(ask(screen, "Name") + " was entered")
 
 
 if __name__ == '__main__': main()

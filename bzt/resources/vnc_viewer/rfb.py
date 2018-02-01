@@ -150,7 +150,7 @@ class RFBClient(Protocol):
         else:
             log.msg("unknown auth response (%d)\n" % auth)
 
-    def _handleConnFailed(self):
+    def _handleConnFailed(self, block):
         (waitfor,) = unpack("!I", block)
         self.expect(self._handleConnMessage, waitfor)
 
@@ -182,7 +182,7 @@ class RFBClient(Protocol):
             self.vncAuthFailed("too many tries to log in")
             self.transport.loseConnection()
         else:
-            log.msg("unknown auth response (%d)\n" % auth)
+            log.msg("unknown auth response (%d)\n" % result)
 
     def _doClientInitialization(self):
         self.transport.write(pack("!B", self.factory.shared))
@@ -609,13 +609,13 @@ if __name__ == '__main__':
         """dummy client"""
 
         def vncConnectionMade(self):
-            print "Screen format: depth=%d bytes_per_pixel=%r" % (self.depth, self.bpp)
-            print "Desktop name: %r" % self.name
+            print("Screen format: depth=%d bytes_per_pixel=%r" % (self.depth, self.bpp))
+            print("Desktop name: %r" % self.name)
             self.SetEncodings([RAW_ENCODING])
             self.FramebufferUpdateRequest()
 
         def updateRectangle(self, x, y, width, height, data):
-            print "%s " * 5 % (x, y, width, height, repr(data[:20]))
+            print("%s " * 5 % (x, y, width, height, repr(data[:20])))
 
 
     class RFBTestFactory(protocol.ClientFactory):
@@ -623,13 +623,13 @@ if __name__ == '__main__':
         protocol = RFBTest
 
         def clientConnectionLost(self, connector, reason):
-            print reason
+            print(reason)
             from twisted.internet import reactor
             reactor.stop()
             # ~ connector.connect()
 
         def clientConnectionFailed(self, connector, reason):
-            print "connection failed:", reason
+            print("connection failed:" + reason)
             from twisted.internet import reactor
             reactor.stop()
 
@@ -642,13 +642,12 @@ if __name__ == '__main__':
             ['outfile', 'o', None, 'Logfile [default: sys.stdout]'],
         ]
 
-
     o = Options()
     try:
         o.parseOptions()
     except usage.UsageError, errortext:
-        print "%s: %s" % (sys.argv[0], errortext)
-        print "%s: Try --help for usage details." % (sys.argv[0])
+        print("%s: %s" % (sys.argv[0], errortext))
+        print("%s: Try --help for usage details." % (sys.argv[0]))
         raise SystemExit(1)
 
     logFile = sys.stdout
