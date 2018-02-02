@@ -162,7 +162,7 @@ class TestJUnitTester(BZTestCase):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "BlazeDemo.java"}})
         self.obj.prepare()
         self.obj.startup()
-        while self.obj.check():
+        while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
         self.obj.post_process()
