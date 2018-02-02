@@ -83,6 +83,17 @@ execution:
   scenario:
     script: ~/file-in-home-00.jmx
 
+- executor: jmeter
+  scenario:
+    script: resources/jmeter/jmx/variable_file_upload.jmx
+- executor: jmeter
+  scenario:
+    requests:
+    - url: /
+      upload-files:
+      - param: name
+        path: ${somepath}/somefile1.txt
+
 # 18, 19
 - executor: junit
   scenario:
