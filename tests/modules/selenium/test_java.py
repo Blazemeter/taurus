@@ -16,6 +16,7 @@ from bzt.utils import get_full_path, ToolError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
+from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
 
 
 class TestTestNGTester(BZTestCase):
@@ -159,13 +160,20 @@ class TestJUnitTester(BZTestCase):
             java.JUNIT_MIRRORS_SOURCE = junit_mirrors
 
     def test_simple(self):
+        self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "BlazeDemo.java"}})
         self.obj.prepare()
+        self.obj.engine.aggregator.prepare()
         self.obj.startup()
         while not self.obj.check():
+            self.obj.engine.aggregator.check()
             time.sleep(1)
         self.obj.shutdown()
+        self.obj.engine.aggregator.shutdown()
         self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        self.assertTrue(self.obj.has_results())
+        self.assertEqual(1, self.obj.engine.aggregator.cumulative[''][KPISet.SUCCESSES])
 
 
 class TestSeleniumJUnitTester(SeleniumTestCase):
