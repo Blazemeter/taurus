@@ -31,7 +31,6 @@ before_test:
   - gem -v
   - rspec --version
   - node --version
-install:
   - ps: $HTTPServer = Start-Process python tests/resources/httpserver/start.py
 
 test_script:
