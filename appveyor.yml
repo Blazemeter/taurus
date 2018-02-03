@@ -31,7 +31,8 @@ before_test:
   - gem -v
   - rspec --version
   - node --version
-  - start /b python tests/resources/httpserver/start.py
+install:
+  - ps: $HTTPServer = Start-Process python tests/resources/httpserver/start.py
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
@@ -40,3 +41,4 @@ test_script:
 after_test:
   - "coverage report -m"
   - "codecov"
+  - ps: Stop-Process -Id $HTTPServer.Id
