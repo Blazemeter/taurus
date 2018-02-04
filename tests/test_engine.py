@@ -1,10 +1,9 @@
 """ unit test """
 from bzt import TaurusConfigError
-from tests import BZTestCase, local_paths_config, RESOURCES_DIR
-
 from bzt.engine import ScenarioExecutor
 from bzt.six import string_types, communicate
 from bzt.utils import BetterDict, is_windows
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 
@@ -101,6 +100,26 @@ class TestEngine(BZTestCase):
             RESOURCES_DIR + "jmeter-dist-3.0.zip"
         ]
         self.assertRaises(TaurusConfigError, lambda: self.obj.configure(configs))
+
+    def test_included_configs(self):
+        configs = [
+            RESOURCES_DIR + "yaml/included-level1.yml",
+        ]
+        self.obj.configure(configs)
+        self.assertTrue(self.obj.config["level1"])
+        self.assertTrue(self.obj.config["level2"])
+        self.assertTrue(self.obj.config["level3"])
+        self.assertListEqual(['included-level2.yml', 'included-level3.yml'], self.obj.config["included-configs"])
+
+    def test_included_configs_cycle(self):
+        configs = [
+            RESOURCES_DIR + "yaml/included-circular1.yml",
+        ]
+        self.obj.configure(configs)
+        self.assertTrue(self.obj.config["level1"])
+        self.assertTrue(self.obj.config["level2"])
+        self.assertListEqual(['included-circular2.yml', 'included-circular1.yml', 'included-circular2.yml'],
+                             self.obj.config["included-configs"])
 
 
 class TestScenarioExecutor(BZTestCase):
