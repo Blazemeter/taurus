@@ -30,15 +30,11 @@ matrix:
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
 addons:
-  firefox: "54.0"
+  firefox: "57.0"
   apt:
     packages:
       - oracle-java8-set-default
       - mono-complete
-
-before_install:
-- if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
-- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
 
 install:
 - |
@@ -53,6 +49,11 @@ install:
 - $PIP_INSTALL --upgrade pip
 - $PIP_INSTALL -r requirements.txt
 - $PIP_INSTALL -r tests/ci/requirements.txt
+
+before_script:
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
+- python tests/resources/httpserver/start.py &
 
 script:
 - coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
