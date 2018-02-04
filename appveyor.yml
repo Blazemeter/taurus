@@ -16,7 +16,6 @@ platform:
   - x64
 
 install:
-  - choco uninstall firefox
   - choco install firefox --version 57.0.4
   - ps: Install-Product node $env:NODEJS_VERSION
   - "%PYTHON%\\python.exe -m pip install pip --upgrade"
@@ -35,8 +34,7 @@ before_test:
 #  - ps: $HTTPServer = Start-Process python tests/resources/httpserver/start.py
 
 test_script:
-  - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
-      --exclude-dir=tests/ci --with-coverage --cover-inclusive"
+  - "%PYTHON%\\python.exe -m nose tests -v tests.modules.selenium.test_java:TestJUnitTester.test_simple --with-coverage --cover-inclusive"
 
 after_test:
   - "coverage report -m"
