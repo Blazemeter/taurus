@@ -182,7 +182,26 @@ class TestJUnitTester(BZTestCase):
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
         self.assertTrue(self.obj.has_results())
-        self.assertEqual(1, self.obj.engine.aggregator.cumulative[''][KPISet.SUCCESSES])
+
+        content = ""
+        files = os.listdir(self.obj.engine.artifacts_dir)
+        while files:
+            _file = files.pop()
+            full_name = os.path.join(self.obj.engine.artifacts_dir, _file)
+
+            if os.path.isdir(full_name):
+                continue
+
+            content += "\n%s:\n" % _file
+
+            with open(os.path.join(full_name)) as fd:
+
+                for line in fd:
+                    content += "  " + line
+
+        content = "\n>>>> \n %s\n<<<< \n" % content
+
+        self.assertEqual(1, self.obj.engine.aggregator.cumulative[''][KPISet.SUCCESSES], content)
 
 
 class TestSeleniumJUnitTester(SeleniumTestCase):
