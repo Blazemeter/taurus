@@ -37,6 +37,6 @@ test_script:
   - "%PYTHON%\\python.exe -m nose tests.modules.selenium.test_java:TestJUnitTester.test_simple -vv"
 
 after_test:
-  - "coverage report -m"
-  - "codecov"
+#  - "coverage report -m"
+#  - "codecov"
   - ps: Stop-Process -Id $HTTPServer.Id
