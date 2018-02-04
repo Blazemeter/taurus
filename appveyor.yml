@@ -34,7 +34,7 @@ before_test:
 #  - ps: $HTTPServer = Start-Process python tests/resources/httpserver/start.py
 
 test_script:
-  - "%PYTHON%\\python.exe -m nose tests -v tests.modules.selenium.test_java:TestJUnitTester.test_simple --with-coverage --cover-inclusive"
+  - "%PYTHON%\\python.exe -m nose -v tests.modules.selenium.test_java:TestJUnitTester.test_simple --with-coverage --cover-inclusive"
 
 after_test:
   - "coverage report -m"
