@@ -19,6 +19,7 @@ import copy
 import logging
 import os
 import platform
+import re
 import sys
 import time
 import traceback
@@ -28,7 +29,6 @@ from collections import defaultdict, OrderedDict, Counter, namedtuple
 from functools import wraps
 from ssl import SSLError
 
-import re
 import yaml
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text

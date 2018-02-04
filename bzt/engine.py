@@ -20,6 +20,8 @@ import datetime
 import hashlib
 import json
 import logging
+import math
+import os
 import re
 import shutil
 import sys
@@ -32,9 +34,6 @@ from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
 
-import os
-
-import math
 import yaml
 from yaml.representer import SafeRepresenter
 
@@ -104,9 +103,13 @@ class Engine(object):
 
         merged_config = self._load_user_configs(user_configs)
 
-        if "included-configs" in self.config:
-            included_configs = [get_full_path(conf) for conf in self.config.pop("included-configs")]
+        all_includes = []
+        while "included-configs" in self.config:
+            includes = self.config.pop("included-configs")
+            included_configs = [self.find_file(conf) for conf in includes if conf not in all_includes + user_configs]
+            all_includes += includes
             self.config.load(included_configs)
+        self.config['included-configs'] = all_includes
 
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
@@ -216,13 +219,16 @@ class Engine(object):
             reraise(exc_info)
 
     def _check_modules_list(self):
-        finished = False
+        stop = False
         modules = [self.provisioning, self.aggregator] + self.services + self.reporters  # order matters
         for module in modules:
             if module in self.started:
                 self.log.debug("Checking %s", module)
-                finished |= bool(module.check())
-        return finished
+                finished = bool(module.check())
+                if finished:
+                    self.log.debug("%s finished", module)
+                    stop = finished
+        return stop
 
     def _wait(self):
         """
@@ -471,6 +477,7 @@ class Engine(object):
         else:
             self.log.debug("No machine configs dir: %s", machine_dir)
 
+        self.log.debug("Base configs list: %s", base_configs)
         self.config.load(base_configs)
 
     def _load_user_configs(self, user_configs):
@@ -481,6 +488,7 @@ class Engine(object):
         # "tab-replacement-spaces" is not documented 'cause it loads only from base configs
         # so it's sort of half-working last resort
         self.config.tab_replacement_spaces = self.config.get(SETTINGS).get("tab-replacement-spaces", 4)
+        self.log.debug("User configs list: %s", user_configs)
         self.config.load(user_configs)
         user_config = Configuration()
         user_config.log = self.log.getChild(Configuration.__name__)
@@ -1175,4 +1183,3 @@ class SelfDiagnosable(object):
         :rtype: list[str]
         """
         pass
-

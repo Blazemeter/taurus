@@ -31,6 +31,7 @@ before_test:
   - gem -v
   - rspec --version
   - node --version
+  - start /b python tests/resources/httpserver/start.py
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
