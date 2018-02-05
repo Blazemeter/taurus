@@ -7,9 +7,9 @@ import time
 import traceback
 from abc import abstractmethod
 from collections import OrderedDict, namedtuple
-from urwid import Pile, Text
 
 import psutil
+from urwid import Pile, Text
 
 from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service, Singletone
@@ -54,7 +54,7 @@ class Monitoring(Service, WidgetProvider, Singletone):
                 if client_name == 'local':
                     if any([client for client in self.clients
                             if isinstance(client, self.client_classes[client_name])]):
-                        break   # skip the second and following local monitoring clients
+                        break  # skip the second and following local monitoring clients
                     else:
                         if len(self.parameters.get(client_name)) > 1:
                             self.log.warning('LocalMonitoring client found twice, configs will be joined')
@@ -102,7 +102,7 @@ class MonitoringClient(object):
     def __init__(self, parent_log, engine):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.engine = engine
-        self._last_check = 0     # the last check was long time ago
+        self._last_check = 0  # the last check was long time ago
 
     def connect(self):
         pass
@@ -132,7 +132,7 @@ class LocalClient(MonitoringClient):
 
         if not engine:
             self.log.warning('Deprecated constructor detected!')
-            self.config['metrics'] = self.AVAILABLE_METRICS     # be generous to old clients
+            self.config['metrics'] = self.AVAILABLE_METRICS  # be generous to old clients
 
         if label:
             self.label = label
@@ -256,11 +256,15 @@ class LocalMonitor(object):
             result['engine-loop'] = self.engine.engine_loop_utilization
 
         if 'conn-all' in self.metrics:
-            # take all connections without address resolution
-            output = subprocess.check_output(['netstat', '-an'])
-            output_lines = stream_decode(output).split('\n')  # in py3 stream has 'bytes' type
-            est_lines = [line for line in output_lines if line.find('EST') != -1]
-            result['conn-all'] = len(est_lines)
+            try:
+                # take all connections without address resolution
+                output = subprocess.check_output(['netstat', '-an'])
+                output_lines = stream_decode(output).split('\n')  # in py3 stream has 'bytes' type
+                est_lines = [line for line in output_lines if line.find('EST') != -1]
+                result['conn-all'] = len(est_lines)
+            except BaseException as exc:
+                self.log.debug("Failed to get connections info: %s", exc)
+                result['conn-all'] = 0
 
         if 'cpu' in self.metrics:
             result['cpu'] = psutil.cpu_percent()
