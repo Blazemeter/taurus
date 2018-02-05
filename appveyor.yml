@@ -31,7 +31,7 @@ before_test:
   - gem -v
   - rspec --version
   - node --version
-#  - ps: $HTTPServer = Start-Process python tests/resources/httpserver/start.py
+  - ps: $HTTPServer = Start-Process python tests/resources/httpserver/start.py
 
 test_script:
   - "%PYTHON%\\python.exe -m nose -v tests.modules.selenium.test_java:TestJUnitTester.test_simple --with-coverage --cover-inclusive"
@@ -39,4 +39,4 @@ test_script:
 after_test:
   - "coverage report -m"
   - "codecov"
-#  - ps: Stop-Process -Id $HTTPServer.Id
+  - ps: Stop-Process -Id $HTTPServer.Id

@@ -173,6 +173,7 @@ class TestJUnitTester(BZTestCase):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "BlazeDemo.java"}})
         self.obj.prepare()
         self.obj.engine.aggregator.prepare()
+        self.obj.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % ("jna.nosys", "true")})
         self.obj.startup()
         while not self.obj.check():
             self.obj.engine.aggregator.check()
