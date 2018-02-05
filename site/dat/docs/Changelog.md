@@ -1,16 +1,16 @@
 # Changelog
 
 ## 1.10.5 <sup>next</sup>
- - add linter service for checking Taurus configs for errors/typos
+ - support recursive `included-configs`
  - support `variables` for Robot executor
- - ensure that loaded configuration is dict, throw appropriate exception otherwise
- - unify environment variables specification
- - remove chrome profiler as it was outdated and unfixable
+ - add linter service for checking Taurus configs for errors/typos
+ - unify environment variables setting for executors
  - call `install-for-jmx` on modified JMX instead of original
  - wait a bit for JMeter plugins manager to complete plugin installation
- - unify environment variables setting for executors
- - support recursive `included-configs`
  - for `cloud` provisioned test, don't fail on variable file name in upload
+ - don't fail if unable to get connections count in self-monitoring
+ - ensure that loaded configuration is dict, throw appropriate exception otherwise
+ - remove chrome profiler as it was outdated and unfixable
 
 ## 1.10.4 <sup>9 jan 2018</sup>
  - collect `conn-all` monitoring metric with the help of `netstat` utility (note that that introduces depepdency on `net-tools` package for Linux)
