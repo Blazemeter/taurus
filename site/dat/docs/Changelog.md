@@ -11,6 +11,8 @@
  - don't fail if unable to get connections count in self-monitoring
  - ensure that loaded configuration is dict, throw appropriate exception otherwise
  - remove chrome profiler as it was outdated and unfixable
+ - apply load settings for JMX later than modifications disable thread groups
+ - support Runtime Controller and Interleave Controller in `jmx2yaml`
 
 ## 1.10.4 <sup>9 jan 2018</sup>
  - collect `conn-all` monitoring metric with the help of `netstat` utility (note that that introduces depepdency on `net-tools` package for Linux)
