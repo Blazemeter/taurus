@@ -98,7 +98,12 @@ class TestJMeterExecutor(BZTestCase):
             "concurrency": 1051,
             "ramp-up": 15,
             "iterations": 100,
-            "scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/two_tg.jmx"}
+            "scenario": {
+                "script": RESOURCES_DIR + "/jmeter/jmx/two_tg.jmx",
+                "modifications": {
+                    "disable": ["should_disable"]
+                }
+            }
         })
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
@@ -1922,10 +1927,10 @@ class TestJMeterExecutor(BZTestCase):
                         "url": "http://blazedemo.com/",
                         "method": "POST",
                         "upload-files": [{
-                            "path": "${some_var}",      # variable
+                            "path": "${some_var}",  # variable
                             "param": "stats",
                         }, {
-                            "path": "body-file.dat",     # relpath from RES_DIR/jmeter
+                            "path": "body-file.dat",  # relpath from RES_DIR/jmeter
                             "param": "report",
                         }, {
                             "path": os.path.join(RESOURCES_DIR, 'jmeter', 'unicode-file'),  # abs path

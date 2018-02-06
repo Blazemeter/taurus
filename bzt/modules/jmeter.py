@@ -607,7 +607,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
 
         self.__apply_test_mode(jmx)
-        LoadSettingsProcessor(self).modify(jmx)
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
@@ -617,6 +616,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__fill_empty_delimiters(jmx)
 
         self.__apply_modifications(jmx)
+        LoadSettingsProcessor(self).modify(jmx)
 
         return jmx
 
