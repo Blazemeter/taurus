@@ -186,7 +186,6 @@ class CLI(object):
         self.engine.create_artifacts_dir(configs, merged_config)
         self.engine.default_cwd = os.getcwd()
 
-
     def _level_down_logging(self):
         self.log.debug("Leveling down log file verbosity, use -v option to have DEBUG messages enabled")
         for handler in self.log.handlers:
