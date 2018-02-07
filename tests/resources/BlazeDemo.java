@@ -21,7 +21,6 @@ public class BlazeDemo {
     public void BlazeDemo() {
         wd.get("http://localhost:8000/BlazeDemo.html");
         wd.findElement(By.cssSelector("input.btn.btn-primary")).click();
-        // wd.findElement(By.xpath("//table[@class='table']/tbody/tr[4]/td[1]/input")).click();
     }
 
     @After
