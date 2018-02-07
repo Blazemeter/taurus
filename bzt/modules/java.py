@@ -14,17 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
+import os
 import shutil
 import subprocess
 import time
-
-import os
 from os import listdir
 from os.path import join
 
 from bzt import ToolError, TaurusConfigError
-from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools, Scenario
+from bzt.modules import SubprocessedExecutor
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager
 
 SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.6/" \
@@ -85,6 +84,8 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
         self.base_class_path.extend(self.settings.get("additional-classpath", []))
         self.base_class_path.extend(self.get_scenario().get("additional-classpath", []))
+        self.base_class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_jar_path])
+
         self.props_file = self.engine.create_artifact("runner", ".properties")
 
         if not os.path.exists(self.working_dir):
@@ -96,7 +97,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         resources = super(JavaTestRunner, self).resource_files()
         resources.extend(self.get_scenario().get("additional-classpath", []))
         global_additional_classpath = self.settings.get("additional-classpath", [])
-        execution_files = self.execution.get('files', [])   # later we need to fix path for sending into cloud
+        execution_files = self.execution.get('files', [])  # later we need to fix path for sending into cloud
         execution_files.extend(global_additional_classpath)
         return resources
 
@@ -129,6 +130,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
                       "-target", self.target_java,
                       "-d", self.working_dir,
                       ]
+
         compile_cl.extend(["-cp", os.pathsep.join(self.base_class_path)])
         compile_cl.extend(self._collect_script_files({".java"}))
 
@@ -189,6 +191,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
     """
     Allows to test java and jar files
     """
+
     def __init__(self):
         super(JUnitTester, self).__init__()
         self.junit_path = None
@@ -233,9 +236,6 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
         self.base_class_path.extend(jar_list)
-
-        # add them last to have preference for user's JARs
-        self.base_class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_jar_path])
 
         with open(self.props_file, 'wt') as props:
             props.write("report_file=%s\n" % self.report_file)
