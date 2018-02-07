@@ -63,6 +63,13 @@ The improvements made will be proposed to the Taurus team, as long as they are n
 
 - Selenium test result (TODO) A report by console oriented to the functional results of the selenium script or the taurus selenium script generated.
 
+## Fork Status (visibility, compatibility and quality matters)
+
+[Appveyor](https://ci.appveyor.com/project/3dgiordano/taurus)
+[Codecov](https://codecov.io/gh/3dgiordano/taurus)
+[Travis CI](https://travis-ci.org/3dgiordano/taurus)
+[Codacy](https://www.codacy.com/app/3dgiordano/taurus/dashboard)
+
 ## Local fork installation
 Having the prerequisites installed, python + pip
 Download the fork version
