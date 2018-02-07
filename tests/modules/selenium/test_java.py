@@ -175,10 +175,8 @@ class TestJUnitTester(BZTestCase):
         self.obj.engine.aggregator.prepare()
         self.obj.startup()
         while not self.obj.check():
-            self.obj.engine.aggregator.check()
             time.sleep(1)
         self.obj.shutdown()
-        self.obj.engine.aggregator.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
         self.assertTrue(self.obj.has_results())

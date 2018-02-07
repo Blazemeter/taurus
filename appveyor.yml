@@ -41,4 +41,3 @@ after_test:
   - "coverage report -m"
   - "codecov"
   - ps: Stop-Process -Id $HTTPServer.Id
-
