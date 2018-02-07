@@ -34,7 +34,7 @@ The improvements made will be proposed to the Taurus team, as long as they are n
      - assertTextBy* (Done)
      - Special keys support (Like KEY_ENTER, KEY_TAB and [others](http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys)
      
-- Initial VNC Viewer (Done) - to be able to interactively visualize the execution of remote services if they allow it. * only for remote service instances.
+- Initial VNC Viewer (Done) - You can see what happens during the execution of your remote services execution * only for remote service instances.
 
 - Appium support in Taurus YML and its main commands (WIP)
       - Appium locators 
