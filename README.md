@@ -40,29 +40,29 @@ The improvements made will be proposed to the Taurus team, as long as they are n
 - Initial VNC Viewer (Done) - You can see what happens during the execution of your remote services execution * only for remote service instances.
 
 - Appium support in Taurus YML and its main commands (WIP)
-      - Appium locators 
-      - click
-      - clear
-      - sendKeys
-      - back
-      - tap
-      - swipe
+     - Appium locators 
+     - click
+     - clear
+     - sendKeys
+     - back
+     - tap
+     - swipe
 
 - Collection of all the logs provided by the remote services (WIP) * only for remote service instances.
 
 - Remote WebDriver support to allow connection with third party services (Done)
-       - Tested with Taurus Remote Services, local browsers, Saucelabs, BrowserStack, Selenium Grid and others
-       - New capabilities oriented connection
-           - browser
-           - version
-           - plarform
-           - selenium_version
+     - Tested with Taurus Remote Services, local browsers, Saucelabs, BrowserStack, Selenium Grid and others
+     - New capabilities oriented connection
+       - browser
+       - version
+       - plarform
+       - selenium_version
 
 - WebDriver connection to Script (Done) To be able to spread the information of remote web driver towards external script, allowing taurus and ml to simplify the use of new services or the use of other providers of remote web driver
-      - Environment variables
-        - BZT_REMOTE : Remote url
-        - BZT_REMOTE_BROWSER : Browser name for the capability
-        - others capabilities (TODO)
+     - Environment variables
+       - BZT_REMOTE : Remote url
+       - BZT_REMOTE_BROWSER : Browser name for the capability
+       - others capabilities (TODO)
 
 - Selenium test result (TODO) A report by console oriented to the functional results of the selenium script or the taurus selenium script generated.
 
