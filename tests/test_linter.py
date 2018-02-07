@@ -1,41 +1,8 @@
 import logging
 
-from bzt import TaurusConfigError, NormalShutdown
-from bzt.modules.linter import LinterService, ConfigurationLinter, ConfigWarning, Path
+from bzt.linter import ConfigurationLinter, ConfigWarning
 from bzt.utils import BetterDict
 from tests import BZTestCase
-from tests.mocks import EngineEmul
-
-
-class TestLinterService(BZTestCase):
-    def setUp(self):
-        super(TestLinterService, self).setUp()
-        self.obj = LinterService()
-        self.obj.engine = EngineEmul()
-        self.obj.settings.merge({
-            "checkers": {
-                "execution": "bzt.modules.linter.ExecutionChecker",
-                "toplevel": "bzt.modules.linter.ToplevelChecker",
-                "scenario": "bzt.modules.linter.ScenarioChecker",
-                "scenario-jmeter": "bzt.modules.linter.JMeterScenarioChecker",
-            },
-            "checkers-enabled": ["execution", "toplevel", "scenario", "scenario-jmeter"],
-        })
-
-    def test_normal(self):
-        self.obj.settings.merge({"lint-and-exit": True})
-        self.obj.engine.config.merge({"execution": [{"concurrency": 10, "scenario": {"script": "foo.jmx"}}]})
-        self.assertRaises(NormalShutdown, self.obj.prepare)
-
-    def test_single_execution(self):
-        self.obj.settings.merge({"lint-and-exit": True})
-        self.obj.engine.config.merge({"execution": {"concurrency": 10, "scenario": {"script": "foo.jmx"}}})
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
-
-    def test_ignore(self):
-        self.obj.settings.merge({"lint-and-exit": True, "ignore-warnings": ["single-execution"]})
-        self.obj.engine.config.merge({"execution": {"concurrency": 10, "scenario": {"script": "foo.jmx"}}})
-        self.assertRaises(NormalShutdown, self.obj.prepare)
 
 
 class TestLinter(BZTestCase):
@@ -44,12 +11,7 @@ class TestLinter(BZTestCase):
         self.config = BetterDict()
         self.ignored_warnings = []
         self.linter = ConfigurationLinter(self.config, self.ignored_warnings, logging.getLogger(''))
-        self.linter.register_checkers({
-            "execution": "bzt.modules.linter.ExecutionChecker",
-            "toplevel": "bzt.modules.linter.ToplevelChecker",
-            "scenario": "bzt.modules.linter.ScenarioChecker",
-            "scenario-jmeter": "bzt.modules.linter.JMeterScenarioChecker",
-        }, ["execution", "toplevel", "scenario", "scenario-jmeter"])
+        self.linter.register_checkers()
 
     def test_single_execution(self):
         self.config.merge({
