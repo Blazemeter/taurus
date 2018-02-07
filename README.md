@@ -13,7 +13,7 @@ The improvements made will be proposed to the Taurus team, as long as they are n
 
 ## Improvements to Taurus
 
-- Icon in taurus UI :) (goodbye to the default tkinter icon)
+- Icon in taurus UI :) (goodbye to default tkinter icon)
 
 - Command support to CLI (Done) - Run bzt -h and you will see a new section "Commands" in the style of tools like docker, aws-cli and other similar
 
@@ -68,10 +68,10 @@ The improvements made will be proposed to the Taurus team, as long as they are n
 
 ## Fork Status (visibility, compatibility and quality matters)
 
-[Appveyor](https://ci.appveyor.com/project/3dgiordano/taurus)
-[Codecov](https://codecov.io/gh/3dgiordano/taurus)
-[Travis CI](https://travis-ci.org/3dgiordano/taurus)
-[Codacy](https://www.codacy.com/app/3dgiordano/taurus/dashboard)
+- [Appveyor](https://ci.appveyor.com/project/3dgiordano/taurus)
+- [Codecov](https://codecov.io/gh/3dgiordano/taurus)
+- [Travis CI](https://travis-ci.org/3dgiordano/taurus)
+- [Codacy](https://www.codacy.com/app/3dgiordano/taurus/dashboard)
 
 ## Local fork installation
 Having the prerequisites installed, python + pip
