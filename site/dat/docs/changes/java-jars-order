@@ -1,0 +1,2 @@
+Make Java executors to prefer user-specified JAR files over default ones
+Make TestNG runner to fail less on missing transitional dependencies
