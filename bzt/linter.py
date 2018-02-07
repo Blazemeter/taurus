@@ -244,7 +244,7 @@ class ExecutionChecker(Checker):
 
 class ToplevelChecker(Checker):
     KNOWN_TOPLEVEL_SECTIONS = [
-        "cli-aliases", "execution", "install-id", "modules", "provisioning", "reporting", "scenarios",
+        "cli", "cli-aliases", "execution", "install-id", "modules", "provisioning", "reporting", "scenarios",
         "settings", "services", "version",
         "locations", "locations-weighted",  # v2 cloud tests only
         "included-configs",
