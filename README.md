@@ -11,7 +11,10 @@ Hides the complexity of performance and functional tests with an automation-frie
 Improve the current support of Selenium Webdriver, providing support for more selenium commands, remote-webdriver support and other functionalities commonly used in selenium scripts.
 The improvements made will be proposed to the Taurus team, as long as they are not proposed and accepted, they have my fork to take advantage of and use all the new features incorporated.
 
-## Improvements to Taurus 
+## Improvements to Taurus
+
+- Icon in taurus UI :) (goodbye to the default tkinter icon)
+
 - Command support to CLI (Done) - Run bzt -h and you will see a new section "Commands" in the style of tools like docker, aws-cli and other similar
 
 - New Command bzt remote (WIP) - Allow remote services instances to be used by Taurus, currently focused on Selenium / Appium
