@@ -24,6 +24,7 @@ RUN apt-get -y update \
     build-essential \
     libxslt1-dev \
     zlib1g-dev \
+    libffi-dev \
     libxi6 \
     libgconf-2-4 \
     libexif12 \
@@ -48,9 +49,6 @@ RUN apt-get -y update \
     mono-complete nuget \
     python3-dev python3-pip \
     net-tools \
-    autoconf \
-    automake \
-    libtool \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
   && pip install robotframework robotframework-seleniumlibrary \
