@@ -50,6 +50,7 @@ RUN apt-get -y update \
     net-tools \
     autoconf \
     automake \
+    libtool \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
   && pip install robotframework robotframework-seleniumlibrary \
