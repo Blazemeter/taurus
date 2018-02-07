@@ -49,6 +49,7 @@ RUN apt-get -y update \
     python3-dev python3-pip \
     net-tools \
     autoconf \
+    automake \
   && pip install --upgrade setuptools pip \
   && pip install locustio bzt && pip uninstall -y bzt \
   && pip install robotframework robotframework-seleniumlibrary \
