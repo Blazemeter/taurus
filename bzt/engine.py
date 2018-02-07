@@ -183,6 +183,11 @@ class Engine(object):
         env = Environment(self.log, env.get())
         env.set(self.shared_env.get())
 
+        if "java" in args:
+            eee = env.get()
+            for k in eee:
+                self.log.warning("%s=%s", k, eee[k])
+
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=env.get())
 
     def run(self):
