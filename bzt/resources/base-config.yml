@@ -169,7 +169,6 @@ reporting:
 - console
 
 services:
-- module: linter
 - module: monitoring
   local:
   - metrics:

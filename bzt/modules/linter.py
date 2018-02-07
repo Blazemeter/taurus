@@ -50,14 +50,11 @@ class LinterService(Service, Singletone):
         self.warn_on_unfamiliar_fields = True
         self.linter = None
 
-    def _get_conf_option(self, key, default=None):
-        return self.parameters.get(key, self.settings.get(key, default))
-
-    def prepare(self):
+    def lint_config(self):
         if self.settings.get("disable", False):
             return
         self.log.debug("Linting config")
-        self.warn_on_unfamiliar_fields = self._get_conf_option("warn-on-unfamiliar-fields", True)
+        self.warn_on_unfamiliar_fields = self.settings.get("warn-on-unfamiliar-fields", True)
         config_copy = copy.deepcopy(self.engine.config)
         checkers_repo = self.settings.get("checkers")
         checkers_enabled = self.settings.get("checkers-enabled", [])
@@ -69,7 +66,7 @@ class LinterService(Service, Singletone):
         for warning in warnings:
             self.log.warning(str(warning))
 
-        if self._get_conf_option("lint-and-exit", False):
+        if self.settings.get("lint-and-exit", False):
             if warnings:
                 raise TaurusConfigError("There were a few errors found in the configuration.")
             else:
@@ -284,6 +281,8 @@ class ToplevelChecker(Checker):
     KNOWN_TOPLEVEL_SECTIONS = [
         "cli-aliases", "execution", "install-id", "modules", "provisioning", "reporting", "scenarios",
         "settings", "services", "version",
+        "locations", "locations-weighted",  # v2 cloud tests only
+        "included-configs",
     ]
 
     def __init__(self, linter):

@@ -620,6 +620,10 @@ class Engine(object):
             self.log.debug("Failed to check for updates: %s", traceback.format_exc())
             self.log.warning("Failed to check for updates")
 
+    def lint_config(self):
+        linter = self.instantiate_module('linter')
+        linter.prepare()
+
 
 class Configuration(BetterDict):
     """
