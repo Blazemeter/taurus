@@ -130,6 +130,7 @@ class TestEngine(BZTestCase):
         os.environ["BZT_ENV_TEST_UNSET"] = "set"
         try:
             self.obj.configure(configs)
+            self.obj.eval_env()
             self.assertEquals("success/top", self.obj.config["toplevel"])
             self.assertEquals("success/test/${BZT_ENV_TEST_UNSET}", self.obj.config["settings"]["artifacts-dir"])
             self.assertEquals("http://${BZT_ENV_TEST}/", self.obj.config["scenarios"]["scen1"]["default-address"])

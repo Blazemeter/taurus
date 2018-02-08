@@ -112,9 +112,6 @@ class Engine(object):
         self.config['included-configs'] = all_includes
 
         self.config.merge({"version": bzt.VERSION})
-
-        self._eval_env()
-
         self._set_up_proxy()
 
         if self.config.get(SETTINGS).get("check-updates", True):
@@ -629,7 +626,7 @@ class Engine(object):
             self.log.debug("Failed to check for updates: %s", traceback.format_exc())
             self.log.warning("Failed to check for updates")
 
-    def _eval_env(self):
+    def eval_env(self):
         envs = self.config.get(SETTINGS).get("env")
         for varname in envs:
             if envs[varname] is None:
