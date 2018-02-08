@@ -538,17 +538,23 @@ class Engine(object):
         """
         Instantiate service modules, then prepare them
         """
-        services = self.config.get(Service.SERV, [])
-        for index, config in enumerate(services):
-            config = ensure_is_dict(services, index, "module")
+        srv_config = self.config.get(Service.SERV, [])
+        services = []
+        for index, config in enumerate(srv_config):
+            config = ensure_is_dict(srv_config, index, "module")
             cls = config.get('module', '')
             instance = self.instantiate_module(cls)
             instance.parameters = config
-            if self.__singletone_exists(instance, self.services):
+            if self.__singletone_exists(instance, services):
                 continue
             assert isinstance(instance, Service)
-            if instance.should_run():
-                self.services.append(instance)
+            services.append(instance)
+
+        for service in services[:]:
+            if not service.should_run():
+                services.remove(service)
+
+        self.services.extend(services)
 
         for module in self.services:
             self.prepared.append(module)
