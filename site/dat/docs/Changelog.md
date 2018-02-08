@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.10.5 <sup>next</sup>
+## 1.10.5 <sup>8 feb 2018</sup>
  - add `-lint functionality for checking Taurus configs for errors/typos
  - support recursive `included-configs`
  - support `variables` for Robot executor
