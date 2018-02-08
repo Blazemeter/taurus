@@ -352,6 +352,9 @@ class Environment(object):
             self.set(data)
 
     def set(self, env):
+        """
+        :type env: dict
+        """
         for key in env:
             key = str(key)
             val = env[key]
