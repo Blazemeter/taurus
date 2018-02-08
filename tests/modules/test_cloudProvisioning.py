@@ -62,7 +62,6 @@ class TestCloudProvisioning(BZTestCase):
                 "modules": {"mock": ModuleMock.__module__ + "." + ModuleMock.__name__},
                 "provisioning": "mock"})
 
-
         self.mock.mock_get.update(get if get else {})
         self.mock.mock_post.update(post if post else {})
         self.mock.mock_patch.update(patch if patch else {})
@@ -877,7 +876,8 @@ class TestCloudProvisioning(BZTestCase):
                 'file-in-home-17.js',  # 23 (sript)
                 'example_spec.rb',  # 24 (script)
                 'file-in-home-18.rb',  # 25 (sript)
-                'file-in-home-19.jar'  # global testng settings (additional-classpath)
+                'file-in-home-19.jar',  # global testng settings (additional-classpath)
+                'variable_file_upload.jmx',
             })
         finally:
             os.environ['HOME'] = back_home

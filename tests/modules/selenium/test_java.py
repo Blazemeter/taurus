@@ -11,11 +11,13 @@ from os import listdir
 from os.path import exists, join, dirname
 from bzt.engine import ScenarioExecutor
 from bzt.modules import java
+from bzt.modules.selenium import SeleniumExecutor
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION, JavaC
 from bzt.utils import get_full_path, ToolError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
+from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
 
 
 class TestTestNGTester(BZTestCase):
@@ -108,6 +110,14 @@ class TestJUnitTester(BZTestCase):
         engine_obj = EngineEmul()
         paths = [local_paths_config()]
         engine_obj.configure(paths)
+
+        # just download geckodriver & chromedriver with selenium
+        selenium = SeleniumExecutor()
+        selenium.engine = engine_obj
+        selenium.env = selenium.engine.env
+        selenium.execution.merge({"scenario": {"requests": ["req"]}})
+        selenium.prepare()
+
         self.obj = JUnitTester()
         self.obj.settings = engine_obj.config.get("modules").get("junit")
         self.obj.engine = engine_obj
@@ -159,13 +169,18 @@ class TestJUnitTester(BZTestCase):
             java.JUNIT_MIRRORS_SOURCE = junit_mirrors
 
     def test_simple(self):
+        self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "BlazeDemo.java"}})
         self.obj.prepare()
+        self.obj.engine.aggregator.prepare()
         self.obj.startup()
-        while self.obj.check():
+        while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
         self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        self.assertTrue(self.obj.has_results())
+        self.assertEqual(1, self.obj.engine.aggregator.cumulative[''][KPISet.SUCCESSES])
 
 
 class TestSeleniumJUnitTester(SeleniumTestCase):

@@ -217,7 +217,7 @@ Now you are able to start this file on its own:
 
 ## Included Configs
 
-After all config files loaded, Taurus will also merge into resulting configuration any `included-configs` from the list. Example syntax piece:
+After all config files loaded, Taurus will also recursively merge into resulting configuration any `included-configs` from the list. Example syntax piece:
 
 ```yaml
 included-configs:  # it must be a list of string values
