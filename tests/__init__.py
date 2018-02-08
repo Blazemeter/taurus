@@ -45,7 +45,7 @@ def __dir__():
 root_dir = __dir__() + '/../'
 os.chdir(root_dir)
 
-RESOURCES_DIR = __dir__() + "/resources/"
+RESOURCES_DIR = os.path.join(__dir__(), 'resources') + os.path.sep
 BUILD_DIR = __dir__() + "/../build/tmp/"
 TEST_DIR = __dir__() + "/../build/test/"
 BASE_CONFIG = __dir__() + "/../bzt/resources/base-config.yml"

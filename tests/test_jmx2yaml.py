@@ -519,3 +519,11 @@ class TestConverter(BZTestCase):
         self.assertEqual(requests[0].get('follow-redirects'), True)
         self.assertEqual(requests[1].get('follow-redirects'), True)
         self.assertEqual(requests[2].get('follow-redirects'), False)
+
+    def test_controllers(self):
+        self.configure(RESOURCES_DIR + "jmeter/jmx/all_controllers.jmx")
+        self.obj.process()
+        yml = yaml.load(open(self.obj.dst_file).read())
+        requests = yml.get("scenarios").get("Thread Group").get("requests")
+        self.assertEqual(len(requests), 14)
+

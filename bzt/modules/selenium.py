@@ -21,12 +21,11 @@ from abc import abstractmethod
 from urwid import Text, Pile
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import FileLister, Service, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
-from bzt.modules.services import VirtualDisplay
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
-from bzt.utils import is_windows, is_mac, platform_bitness
+from bzt.utils import is_windows, is_mac, platform_bitness, Environment
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -39,7 +38,7 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         pass
 
     @abstractmethod
-    def add_env(self, env):
+    def add_env(self, env):     # compatibility with taurus-server
         """
         Add environment variables into selenium process env
         :type env: dict[str,str]
@@ -51,7 +50,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     """
     Selenium executor
     :type runner: bzt.modules.SubprocessedExecutor
-    :type virtual_display_service: VirtualDisplay
     """
 
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot"]
@@ -67,27 +65,15 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
-        self.additional_env = {}
         self.end_time = None
         self.runner = None
         self.script = None
         self.runner_working_dir = None
         self.register_reader = True
-        self.virtual_display_service = Service()  # TODO: remove compatibility with deprecated virtual-display setting
         self.webdrivers = []
 
-    def add_env(self, env):
-        if "PATH" in self.additional_env and "PATH" in env:
-            old_path = self.additional_env["PATH"]
-            new_path = env["PATH"]
-            merged_path = []
-            for item in old_path.split(os.pathsep) + new_path.split(os.pathsep):
-                if item in merged_path:
-                    continue
-                else:
-                    merged_path.append(item)
-            env["PATH"] = os.pathsep.join(merged_path)
-        self.additional_env.update(env)
+    def add_env(self, env):     # compatibility with taurus-server
+        self.env.set(env)
 
     def get_runner_working_dir(self):
         if self.runner_working_dir is None:
@@ -97,10 +83,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     def create_runner(self):
         runner_type = self.get_runner_type()
         self.runner = self.engine.instantiate_module(runner_type)
-
-        # todo: deprecated, remove it later
-        self.runner.settings.merge(self.settings.get('selenium-tools').get(runner_type))
-
+        self.runner.env = self.env
         self.runner.parameters = self.parameters
         self.runner.provisioning = self.provisioning
         self.runner.execution = copy.deepcopy(self.execution)
@@ -112,8 +95,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             self.runner.execution["test-mode"] = "selenium"
 
     def get_virtual_display(self):
-        if isinstance(self.virtual_display_service, VirtualDisplay):
-            return self.virtual_display_service.get_virtual_display()
+        pass    # for compatibility with taurus server
 
     def _get_chromedriver_link(self):
         settings = self.settings.get('chromedriver')
@@ -170,31 +152,18 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                 self.log.info("Installing %s...", tool.tool_name)
                 tool.install()
 
-    def _add_webdrivers_to_path(self):
-        path_var = os.getenv("PATH")
-        paths = [driver.get_driver_dir() for driver in self.webdrivers]
-        path = os.pathsep.join(paths) + os.pathsep + path_var
-        self.add_env({"PATH": path})
-
     def prepare(self):
+        if self.env is None:
+            self.env = Environment(self.log, self.engine.env.get())   # for backward compatibility with taurus-server
+
         self.install_required_tools()
-        self._add_webdrivers_to_path()
+        for driver in self.webdrivers:
+            self.env.add_path({"PATH": driver.get_driver_dir()})
 
         if self.get_load().concurrency and self.get_load().concurrency > 1:
             msg = 'Selenium supports concurrency in cloud provisioning mode only\n'
             msg += 'For details look at http://gettaurus.org/docs/Cloud.md'
             self.log.warning(msg)
-
-        # backwards-compatible virtual-display settings
-        vd_conf = self.settings.get("virtual-display")
-        if vd_conf:
-            self.log.warning("Configuring virtual-display in Selenium module settings is deprecated."
-                             " Use the service approach instead")
-            service_conf = copy.deepcopy(vd_conf)
-            service_conf["module"] = "virtual-display"
-            self.virtual_display_service = VirtualDisplay()
-            self.virtual_display_service.parameters.merge(service_conf)
-            self.virtual_display_service.prepare()
 
         self.create_runner()
         self.runner.prepare()
@@ -266,9 +235,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         Start runner
         :return:
         """
-        self.virtual_display_service.startup()
         self.start_time = time.time()
-        self.runner.env.update(self.additional_env)
         self.runner.startup()
 
     def check(self):
@@ -276,8 +243,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         check if test completed
         :return:
         """
-        self.virtual_display_service.check()
-
         if self.widget:
             self.widget.update()
 
@@ -293,13 +258,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         shutdown test_runner
         :return:
         """
-        self.virtual_display_service.shutdown()
-
         self.runner.shutdown()
         self.report_test_duration()
 
     def post_process(self):
-        self.virtual_display_service.post_process()
         self.runner.post_process()
 
         if os.path.exists("geckodriver.log"):

@@ -50,7 +50,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")))
 
@@ -70,7 +70,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv")))
 
@@ -89,7 +89,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(0.2)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
         diagnostics = "\n".join(self.obj.get_error_diagnostics())
@@ -111,7 +111,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(0.2)
+            time.sleep(self.obj.engine.check_interval)
         diagnostics = "\n".join(self.obj.get_error_diagnostics())
         self.assertIn("Nothing to test", diagnostics)
 
@@ -129,7 +129,7 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             self.obj.startup()
             for _ in range(3):
                 self.assertFalse(self.obj.check())
-                time.sleep(1.0)
+                time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
 
@@ -139,6 +139,7 @@ class TestNoseRunner(BZTestCase):
         super(TestNoseRunner, self).setUp()
         self.obj = ApiritifNoseExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -151,11 +152,9 @@ class TestNoseRunner(BZTestCase):
             "ramp-up": "10s",
             "hold-for": "10s",
             "steps": 5,
-
             "scenario": {
-                "script": RESOURCES_DIR + "apiritif/test_codegen.py"
-            }
-        })
+                "script": RESOURCES_DIR + "apiritif/test_codegen.py"}})
+
         self.obj.prepare()
         self.obj.get_widget()
         try:
@@ -177,11 +176,8 @@ class TestNoseRunner(BZTestCase):
                     "default-address": "http://blazedemo.com",
                     "requests": [
                         "/",
-                        "/reserve.php",
-                    ]
-                }
-            }]
-        })
+                        "/reserve.php"]}}]})
+
         self.obj.prepare()
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, "test_requests.py")))
         try:
@@ -309,16 +305,12 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         ],
 
                     }, {
-                        "label": "empty"
-                    }]
-                }
-            },
-            "modules": {
-                "selenium": {
-                    "^virtual-display": 0}}})
+                        "label": "empty"}]}}})
+
         self.obj.prepare()
         with open(self.obj.script) as generated:
             gen_contents = generated.readlines()
+
         with open(RESOURCES_DIR + "selenium/generated_from_requests.py") as sample:
             sample_contents = sample.readlines()
 
@@ -864,6 +856,7 @@ class TestPyTestExecutor(BZTestCase):
         super(TestPyTestExecutor, self).setUp()
         self.obj = PyTestExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -1010,6 +1003,7 @@ class TestRobotExecutor(BZTestCase):
         super(TestRobotExecutor, self).setUp()
         self.obj = RobotExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -1080,3 +1074,54 @@ class TestRobotExecutor(BZTestCase):
         lines = open(self.obj.report_file).readlines()
         self.assertEqual(3 * 5, len(lines))
 
+    def test_variables(self):
+        self.configure({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "variables": {
+                        "USERNAME": "janedoe",
+                    },
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test_novar.robot",
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
+        self.obj.log.info(samples)
+        self.assertEqual(5, len(samples))
+        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
+
+    def test_variables_file(self):
+        self.configure({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "variables": RESOURCES_DIR + "selenium/robot/simple/vars.yaml",
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test_novar.robot",
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
+        self.obj.log.info(samples)
+        self.assertEqual(5, len(samples))
+        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))

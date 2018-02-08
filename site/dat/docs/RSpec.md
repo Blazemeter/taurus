@@ -21,10 +21,8 @@ Test scenario may be presented as single ruby file or as a folder.
 You can specify the path to Ruby interpreter, if you don't have it in $PATH:
 ```yaml
 modules:
-  selenium:
-    selenium-tools:
-      rspec:
-        interpreter: /home/user/ruby-2.4/bin/ruby
+  rspec:
+    interpreter: /home/user/ruby-2.4/bin/ruby
 ```
 
 The complete example of RSpec-based test suite and Taurus config can be found in

@@ -25,7 +25,7 @@ from bzt import ToolError
 from bzt.engine import Provisioning, SelfDiagnosable
 from bzt.six import numeric_types
 from bzt.six import reraise
-from bzt.utils import dehumanize_time
+from bzt.utils import dehumanize_time, Environment
 
 
 class Local(Provisioning):
@@ -68,6 +68,7 @@ class Local(Provisioning):
         super(Local, self).prepare()
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
+            executor.env = Environment(executor.log, self.engine.env.get())
             executor.prepare()
             self.engine.prepared.append(executor)
 
@@ -125,6 +126,7 @@ class Local(Provisioning):
 
             if executor.check():
                 self.finished_modules.append(executor)
+                self.log.debug("%s finished", executor)
             else:
                 finished = False
 

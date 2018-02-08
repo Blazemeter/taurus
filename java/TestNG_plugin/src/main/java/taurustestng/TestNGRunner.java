@@ -107,7 +107,7 @@ public class TestNGRunner {
         List<Class<?>> testClasses = new ArrayList<>();
         try {
             processJAR(testClasses, jarPath);
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException | NoClassDefFoundError e) {
             log.warning("Failed to add " + jarPath + "\n" + Utils.getStackTrace(e));
         }
         return testClasses;

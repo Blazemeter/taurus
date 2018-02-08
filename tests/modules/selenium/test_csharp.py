@@ -16,7 +16,6 @@ class TestNUnitExecutor(SeleniumTestCase):
         self.obj.runner.mono.tool_path = None
         self.obj.runner.runner_dir = RESOURCES_DIR + "selenium/nunit/bin/"
         self.obj.runner.runner_executable = RESOURCES_DIR + "selenium/nunit/bin/" + RUNNER_EXECUTABLE
-        self.obj.runner.env.update({"ARTIFACTS_DIR": self.obj.engine.artifacts_dir})
 
     def test_startup(self):
         self.obj.execution.merge({
@@ -28,7 +27,7 @@ class TestNUnitExecutor(SeleniumTestCase):
         self.setup_mock()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         samples = [json.loads(line) for line in open(self.obj.runner.report_file).readlines()]

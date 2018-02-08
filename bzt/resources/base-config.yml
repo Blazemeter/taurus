@@ -94,17 +94,6 @@ modules:
 modules:
   final_stats:
     class: bzt.modules.reporting.FinalStatus
-  chrome-metric-reporter:
-    class: bzt.modules.chrome.MetricReporter
-  chrome-profiler:
-    class: bzt.modules.chrome.ChromeProfiler
-    processors:
-      trace:
-        class: bzt.modules.chrome.TraceProcessor
-        extractors:
-        - bzt.modules.chrome.TabNameExtractor
-        - bzt.modules.chrome.MemoryMetricsExtractor
-
 
 ---
 cli-aliases:
@@ -145,6 +134,21 @@ cli-aliases:
     modules:
       local:
         sequential: true
+  lint:
+    cli:
+      linter:
+        lint-and-exit: true
+  nolint:
+    cli:
+      linter:
+        disable: true
+
+cli:
+  linter:
+    disable: false
+    warn-on-unfamiliar-fields: false
+    ignored-warnings: []
+    lint-and-exit: false
 
 ---
 # real default config

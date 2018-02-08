@@ -19,6 +19,7 @@ import copy
 import logging
 import os
 import platform
+import re
 import sys
 import time
 import traceback
@@ -28,7 +29,6 @@ from collections import defaultdict, OrderedDict, Counter, namedtuple
 from functools import wraps
 from ssl import SSLError
 
-import re
 import yaml
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
@@ -38,7 +38,6 @@ from bzt import TaurusInternalException, TaurusConfigError, TaurusException, Tau
 from bzt.bza import User, Session, Test, Workspace, MultiTest
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
-from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener
@@ -183,8 +182,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.upload_artifacts = True
         self.send_monitoring = True
         self.monitoring_buffer = None
-        self.send_custom_metrics = False
-        self.send_custom_tables = False
         self.public_report = False
         self.last_dispatch = 0
         self.results_url = None
@@ -204,8 +201,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         super(BlazeMeterUploader, self).prepare()
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
-        self.send_custom_metrics = self.settings.get("send-custom-metrics", self.send_custom_metrics)
-        self.send_custom_tables = self.settings.get("send-custom-tables", self.send_custom_tables)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
@@ -381,12 +376,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
             if self.send_monitoring:
                 self.__send_monitoring()
-
-            if self.send_custom_metrics:
-                self.__send_custom_metrics()
-
-            if self.send_custom_tables:
-                self.__send_custom_tables()
         finally:
             self._postproc_phase2()
 
@@ -471,8 +460,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
             if self.send_monitoring:
                 self.__send_monitoring()
-            if self.send_custom_metrics:
-                self.__send_custom_metrics()
         return super(BlazeMeterUploader, self).check()
 
     @send_with_retry
@@ -509,83 +496,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             engine_id = "0"
         data = self.monitoring_buffer.get_monitoring_json(self._session)
         self._session.send_monitoring_data(engine_id, data)
-
-    @send_with_retry
-    def __send_custom_metrics(self):
-        data = self.get_custom_metrics_json()
-        self._master.send_custom_metrics(data)
-
-    @send_with_retry
-    def __send_custom_tables(self):
-        data = self.get_custom_tables_json()
-        if not data:
-            return
-        self._master.send_custom_tables(data)
-
-    def get_custom_metrics_json(self):
-        datapoints = {}
-
-        for source, buff in iteritems(self.monitoring_buffer.data):
-            for timestamp, item in iteritems(buff):
-                if source == 'local':
-                    source = platform.node()
-
-                if timestamp not in datapoints:
-                    datapoints[timestamp] = {}
-
-                for field, value in iteritems(item):
-                    if field in ('ts', 'interval'):
-                        continue
-                    if source == 'chrome':
-                        if field.startswith("time"):
-                            prefix = "Time"
-                        elif field.startswith("network"):
-                            prefix = "Network"
-                        elif field.startswith("dom"):
-                            prefix = "DOM"
-                        elif field.startswith("js"):
-                            prefix = "JS"
-                        elif field.startswith("memory"):
-                            prefix = "Memory"
-                        else:
-                            prefix = "Metrics"
-                        field = self.get_chrome_metric_kpi_label(field)
-                    else:
-                        if field.lower().startswith('cpu'):
-                            prefix = 'System'
-                            field = 'CPU'
-                        elif field.lower().startswith('mem'):
-                            prefix = 'System'
-                            field = 'Memory'
-                            value *= 100
-                        elif field.lower().startswith('disk'):
-                            prefix = 'Disk'
-                        elif field.lower().startswith('bytes-') or field.lower().startswith('net'):
-                            prefix = 'Network'
-                        else:
-                            prefix = 'Monitoring'
-
-                    label = "/".join([source, prefix, field])
-                    datapoints[timestamp][label] = value
-
-        results = []
-        for timestamp in sorted(datapoints):
-            datapoint = OrderedDict([(metric, datapoints[timestamp][metric])
-                                     for metric in sorted(datapoints[timestamp])])
-            datapoint["ts"] = timestamp
-            results.append(datapoint)
-        return {"datapoints": results}
-
-    def get_chrome_metric_kpi_label(self, metric):
-        for module in self.engine.services:
-            if isinstance(module, ChromeProfiler):
-                return module.get_metric_label(metric)
-        return metric
-
-    def get_custom_tables_json(self):
-        for module in self.engine.services:
-            if isinstance(module, ChromeProfiler):
-                return module.get_custom_tables_json()
 
     def __format_listing(self, zip_listing):
         lines = []

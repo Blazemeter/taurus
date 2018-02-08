@@ -109,14 +109,17 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             javascript.MOCHA_NPM_PACKAGE_NAME = mocha_link
             javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = wd_link
 
-            self.obj.settings.merge({
-                "selenium-tools": {
+            self.obj.engine.config.merge({
+                "modules": {
                     "mocha": {
                         "tools-dir": dummy_installation_path}}})
 
             self.obj.execution.merge({
-                "scenario": {"script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"}})
+                "runner": "mocha",
+                "scenario": {
+                    "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"}})
             self.obj.prepare()
+
             self.assertTrue(exists(join(dummy_installation_path, "node_modules")))
             self.assertTrue(exists(join(dummy_installation_path, "node_modules", "mocha")))
             self.assertTrue(exists(join(dummy_installation_path, "node_modules", "mocha", "index.js")))
@@ -159,7 +162,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def test_simple(self):
@@ -205,6 +208,7 @@ class TestNewmanExecutor(BZTestCase):
     def test_flow(self):
         obj = NewmanExecutor()
         obj.engine = EngineEmul()
+        obj.env = obj.engine.env
         obj.engine.aggregator = ConsolidatingAggregator()
         obj.engine.config.merge({"scenarios": {"newman": {
             "script": RESOURCES_DIR + 'functional/postman.json',
@@ -217,7 +221,7 @@ class TestNewmanExecutor(BZTestCase):
         obj.engine.aggregator.startup()
         while not obj.check():
             obj.engine.aggregator.check()
-            time.sleep(1)
+            time.sleep(obj.engine.check_interval)
         obj.shutdown()
         obj.engine.aggregator.shutdown()
         obj.post_process()

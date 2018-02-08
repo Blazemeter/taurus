@@ -90,12 +90,11 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
         cmdline += [self._get_script()]
 
-        env = {}
-        env.update({"MOLOTOV_TAURUS_REPORT": self.report_file_name})
-        env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+        self.env.set({"MOLOTOV_TAURUS_REPORT": self.report_file_name})
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         self.start_time = time.time()
-        self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file, env=env)
+        self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
 
     def check(self):
         ret_code = self.process.poll()

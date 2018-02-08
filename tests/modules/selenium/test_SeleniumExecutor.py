@@ -205,8 +205,8 @@ class TestSeleniumStuff(SeleniumTestCase):
                 'script': RESOURCES_DIR + 'selenium/junit/jar/dummy.jar',
                 'runner': 'junit',
                 'additional-classpath': [RESOURCES_DIR + 'selenium/junit/jar/another_dummy.jar']}})
-        self.obj.settings.merge({
-            'selenium-tools': {
+        self.obj.engine.config.merge({
+            'modules': {
                 'junit': {
                     'additional-classpath': [RESOURCES_DIR + 'selenium/testng/jars/testng-suite.jar']}}})
         own_resources = self.obj.resource_files()
@@ -217,9 +217,12 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertEqual(len(all_resources), 3)
 
     def test_add_env_path(self):
-        self.obj.add_env({"PATH": os.pathsep.join(["foo", "bar"])})
-        self.obj.add_env({"PATH": os.pathsep.join(["bar", "baz"])})
-        self.assertEqual(self.obj.additional_env, {"PATH": os.pathsep.join(["foo", "bar", "baz"])})
+        path1 = os.path.join("foo", "bar")
+        path2 = os.path.join("bar", "baz")
+        self.obj.env.add_path({"PATH": path1})
+        self.obj.env.add_path({"PATH": path2})
+        self.assertIn(path1, self.obj.env.get("PATH"))
+        self.assertIn(path2, self.obj.env.get("PATH"))
 
 
 class TestReportReader(BZTestCase):

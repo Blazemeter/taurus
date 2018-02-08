@@ -18,12 +18,13 @@ import os
 import re
 import shlex
 import sys
+import time
 from abc import abstractmethod
 from collections import OrderedDict
 from subprocess import CalledProcessError
 
 import astunparse
-import time
+import yaml
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
@@ -32,7 +33,7 @@ from bzt.modules.aggregator import ResultsReader
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
-from bzt.six import parse, string_types, iteritems
+from bzt.six import parse, string_types, iteritems, text_type
 from bzt.utils import BetterDict, ensure_is_dict, shell_exec, FileReader
 from bzt.utils import get_full_path, RequiredTool, PythonGenerator, dehumanize_time
 
@@ -90,14 +91,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        py_path = os.getenv("PYTHONPATH")
-        taurus_dir = get_full_path(__file__, step_up=3)
-        if py_path:
-            py_path = os.pathsep.join((py_path, taurus_dir))
-        else:
-            py_path = taurus_dir
-
-        self.env["PYTHONPATH"] = py_path
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         report_type = ".ldjson" if self.engine.is_functional_mode() else ".csv"
         report_tpl = self.engine.create_artifact("apiritif-", "") + "%s" + report_type
@@ -1111,7 +1105,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         """
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
         cmdline += self._additional_args
@@ -1159,6 +1153,14 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(RobotExecutor, self).__init__()
         self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "robot_runner.py")
+        self.variables_file = None
+
+    def resource_files(self):
+        files = super(RobotExecutor, self).resource_files()
+        scenario = self.get_scenario()
+        if "variables" in scenario and isinstance(scenario["variables"], (string_types, text_type)):
+            files.append(scenario["variables"])
+        return files
 
     def prepare(self):
         self.install_required_tools()
@@ -1168,6 +1170,21 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
 
         self.reporting_setup(suffix=".ldjson")
 
+        scenario = self.get_scenario()
+        variables = scenario.get("variables")
+        if variables:
+            if isinstance(variables, (string_types, text_type)):
+                self.variables_file = get_full_path(variables)
+            elif isinstance(variables, dict):
+                self.variables_file = self.engine.create_artifact("robot-vars", ".yaml")
+                with open(self.variables_file, 'wb') as fds:
+                    yml = yaml.dump(variables,
+                                    default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True,
+                                    encoding='utf-8', width=float("inf"))
+                    fds.write(yml)
+            else:
+                raise TaurusConfigError("`variables` is neither file nor dict")
+
     def install_required_tools(self):
         self._check_tools([Robot(self.settings.get("interpreter", sys.executable), self.log),
                            TaurusRobotRunner(self.runner_path, "")])
@@ -1175,7 +1192,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.update({"PYTHONPATH": os.getenv("PYTHONPATH", "") + os.pathsep + get_full_path(__file__, step_up=3)})
+        self.env.add_path({"PYTHONPATH":  get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
 
@@ -1185,6 +1202,9 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
 
         if load.hold:
             cmdline += ['--duration', str(load.hold)]
+
+        if self.variables_file is not None:
+            cmdline += ['--variablefile', self.variables_file]
 
         cmdline += [self.script]
         self._start_subprocess(cmdline)

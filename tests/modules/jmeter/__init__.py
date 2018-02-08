@@ -39,6 +39,7 @@ class MockJMeterExecutor(JMeterExecutor):
         if has_ctg is None: has_ctg = True
 
         self.engine = EngineEmul()
+        self.env = self.engine.env
         self.execution.merge(load)
         self.settings.merge({"detect-plugins": False})
         self.settings.merge(settings)

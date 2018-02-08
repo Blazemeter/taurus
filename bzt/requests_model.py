@@ -19,6 +19,12 @@ import re
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.utils import ensure_is_dict, dehumanize_time, get_full_path
 
+VARIABLE_PATTERN = re.compile("\${.+\}")
+
+
+def has_variable_pattern(val):
+    return bool(VARIABLE_PATTERN.search(val))
+
 
 class Request(object):
     NAME = "request"
@@ -89,7 +95,15 @@ class HierarchicHTTPRequest(HTTPRequest):
                 raise TaurusConfigError("Items from upload-files must specify parameter name")
 
             path_exc = TaurusConfigError("Items from upload-files must specify path to file")
-            file_dict["path"] = get_full_path(self.engine.find_file(file_dict.get("path", path_exc)))
+            path = str(file_dict.get("path", path_exc))
+            if not has_variable_pattern(path):  # exclude variables
+                path = get_full_path(self.engine.find_file(path))  # prepare full path for jmx
+            else:
+                msg = "Path '%s' contains variable and can't be expanded. Don't use relative paths in 'upload-files'!"
+                self.log.warning(msg % path)
+
+            file_dict["path"] = path
+
             mime = mimetypes.guess_type(file_dict["path"])[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
         self.content_encoding = self.config.get('content-encoding', None)
@@ -294,8 +308,12 @@ class ResourceFilesCollector(RequestVisitor):
     def visit_hierarchichttprequest(self, request):
         files = []
         body_file = request.config.get('body-file')
-        if body_file:
+        if body_file and not has_variable_pattern(body_file):
             files.append(body_file)
+
+        uploads = request.config.get('upload-files', [])
+        files.extend([x['path'] for x in uploads if not has_variable_pattern(x['path'])])
+
         if 'jsr223' in request.config:
             jsrs = request.config.get('jsr223')
             if isinstance(jsrs, dict):

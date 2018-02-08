@@ -18,6 +18,7 @@ class TestSiegeExecutor(BZTestCase):
         super(TestSiegeExecutor, self).setUp()
         self.obj = SiegeExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.settings.merge({"path": TOOL_PATH})
 
