@@ -186,9 +186,9 @@ class BetterDict(defaultdict):
 
         if isinstance(value, string_types):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
-                return os.path.expandvars(value)
+                return value
             else:
-                return os.path.expandvars(text_type(value))
+                return text_type(value)
         else:
             return value
 
