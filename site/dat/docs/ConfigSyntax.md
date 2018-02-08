@@ -91,7 +91,7 @@ Available settings are:
  - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
  - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings.md)
  - `proxy` - proxy settings for BZA feeding, Taurus will use proxy settings from OS environment by default.
- - `env` - environment variables to set for Taurus, useful with [evaluating feature](EnvironmentVariableAccess). Setting environment variable to `null` makes it to delete variable, if one is set.
+ - `env` - environment variables to set for Taurus, useful with [evaluating feature](EnvironmentVariableAccess). Setting environment variable to `null` makes it to delete variable, if one is set. Special `TAURUS_ARTIFACTS_DIR` variable is set by Taurus, pointing onto artifacts dir location.
  
 See default settings below:
 
