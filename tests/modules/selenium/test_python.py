@@ -768,7 +768,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.settings['verbose'] = True
         self.obj.prepare()
         exp_file = RESOURCES_DIR + 'apiritif/test_codegen.py'
-        # import shutil; shutil.copy2(self.obj._script, exp_file)  # keep this coment to ease updates
+        # import shutil; shutil.copy2(self.obj.script, exp_file)  # keep this coment to ease updates
         self.assertFilesEqual(exp_file, self.obj.script)
 
     def test_jmeter_functions_time(self):
