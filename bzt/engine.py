@@ -361,6 +361,7 @@ class Engine(object):
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
         self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
+        os.environ["TAURUS_ARTIFACTS_DIR"] = self.artifacts_dir
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
@@ -560,6 +561,11 @@ class Engine(object):
             module.prepare()
 
     def __singletone_exists(self, instance, mods_list):
+        """
+        :type instance: EngineModule
+        :type mods_list: list[EngineModule]
+        :rtype: bool
+        """
         if not isinstance(instance, Singletone):
             return False
 
@@ -599,9 +605,9 @@ class Engine(object):
             opener = build_opener(proxy_handler)
             install_opener(opener)
 
-    def _check_updates(self, installID):
+    def _check_updates(self, install_id):
         try:
-            params = (bzt.VERSION, installID)
+            params = (bzt.VERSION, install_id)
             req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
             self.log.debug("Requesting updates info: %s", req)
             response = urlopen(req, timeout=10)
@@ -625,6 +631,23 @@ class Engine(object):
         except BaseException:
             self.log.debug("Failed to check for updates: %s", traceback.format_exc())
             self.log.warning("Failed to check for updates")
+
+    def eval_env(self):
+        envs = self.config.get(SETTINGS).get("env")
+        for varname in envs:
+            if envs[varname] is None:
+                if varname in os.environ:
+                    os.environ.pop(varname)
+            else:
+                os.environ[varname] = envs[varname]
+
+        def apply_env(value, key, container):
+            if key in ("scenario", "scenarios"):  # might stop undesired branches
+                return True  # don't traverse into
+            if isinstance(value, string_types):
+                container[key] = os.path.expandvars(value)
+
+        BetterDict.traverse(self.config, apply_env)
 
 
 class Configuration(BetterDict):
@@ -765,6 +788,7 @@ class Configuration(BetterDict):
         """
         Remove non-string JSON values used by default JSON encoder (Infinity, -Infinity, NaN)
         """
+        del value
         if isinstance(container[key], float):
             if math.isinf(container[key]) or math.isnan(container[key]):
                 container[key] = str(container[key])

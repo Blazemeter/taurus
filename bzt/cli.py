@@ -189,6 +189,7 @@ class CLI(object):
             CLI.console_handler.setLevel(logging.DEBUG)
         self.engine.create_artifacts_dir(configs, merged_config)
         self.engine.default_cwd = os.getcwd()
+        self.engine.eval_env()  # yacky, I don't like having it here, but how to apply it after aliases and artif dir?
 
     def __lint_config(self):
         settings = self.engine.config.get(CLI.CLI_SETTINGS).get("linter")
