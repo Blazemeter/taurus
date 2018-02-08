@@ -656,11 +656,11 @@ log.setLevel(logging.DEBUG)
                 )
             ],
         )
+        transaction.body.extend(self._gen_assertions(req))
+        transaction.body.extend(self._gen_jsonpath_assertions(req))
+        transaction.body.extend(self._gen_xpath_assertions(req))
         lines.append(transaction)
 
-        lines.extend(self._gen_assertions(req))
-        lines.extend(self._gen_jsonpath_assertions(req))
-        lines.extend(self._gen_xpath_assertions(req))
         lines.extend(self._gen_extractors(req))
 
         if think_time:
