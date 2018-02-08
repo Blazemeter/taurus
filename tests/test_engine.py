@@ -121,6 +121,14 @@ class TestEngine(BZTestCase):
         self.assertListEqual(['included-circular2.yml', 'included-circular1.yml', 'included-circular2.yml'],
                              self.obj.config["included-configs"])
 
+    def test_singletone_service(self):
+        configs = [
+            RESOURCES_DIR + "yaml/singletone-service.yml",
+        ]
+        self.obj.configure(configs)
+        self.obj.prepare()
+        self.assertEquals(0, len(self.obj.services))
+
 
 class TestScenarioExecutor(BZTestCase):
     def setUp(self):
