@@ -633,9 +633,12 @@ class Engine(object):
             self.log.warning("Failed to check for updates")
 
     def eval_env(self):
+        """
+        Should be done after `configure`
+        """
         envs = self.config.get(SETTINGS).get("env")
         for varname in envs:
-            self.env.set(envs[varname])
+            self.env.set({varname: envs[varname]})
             if envs[varname] is None:
                 if varname in os.environ:
                     os.environ.pop(varname)
