@@ -543,7 +543,6 @@ class Engine(object):
             config = ensure_is_dict(srv_config, index, "module")
             cls = config.get('module', '')
             instance = self.instantiate_module(cls)
-            self.log.warning("Instantiated: %s", config)
             instance.parameters = config
             if self.__singletone_exists(instance, services):
                 continue
@@ -555,7 +554,6 @@ class Engine(object):
                 services.remove(service)
 
         self.services.extend(services)
-        self.log.warning("%s", self.services)
 
         for module in self.services:
             self.prepared.append(module)
@@ -569,9 +567,7 @@ class Engine(object):
             if mod.parameters.get("module") == instance.parameters.get("module"):
                 msg = "Module '%s' can be only used once, will merge all new instances into single"
                 self.log.warning(msg % mod.parameters.get("module"))
-                self.log.warning("Merge %s into %s", instance.parameters, mod.parameters)
                 mod.parameters.merge(instance.parameters)
-                self.log.warning("Result %s ", mod.parameters)
                 return True
 
     def __prepare_aggregator(self):
@@ -1089,7 +1085,6 @@ class Service(EngineModule):
 
     def should_run(self):
         prov = self.engine.config.get(Provisioning.PROV)
-        self.log.info("Should?: %s %s", self, self.parameters)
         runat = self.parameters.get("run-at", "local")  # weird to have "local" hardcoded here
         if prov != runat:
             self.log.debug("Should not run because of non-matching prov: %s != %s", prov, runat)
