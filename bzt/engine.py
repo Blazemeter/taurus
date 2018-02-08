@@ -635,6 +635,7 @@ class Engine(object):
     def eval_env(self):
         envs = self.config.get(SETTINGS).get("env")
         for varname in envs:
+            self.env.set(envs[varname])
             if envs[varname] is None:
                 if varname in os.environ:
                     os.environ.pop(varname)
