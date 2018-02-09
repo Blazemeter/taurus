@@ -84,7 +84,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
-        builder.build_source_code()
+
+        builder.build_source_code(self.execution, self.settings)
         builder.save(filename)
         return filename
 
@@ -214,8 +215,11 @@ from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
 
 import apiritif
 """
@@ -224,9 +228,13 @@ import apiritif
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
         self.wdlog = wdlog
+        self.execution = None
+        self.settings = None
 
-    def build_source_code(self):
+    def build_source_code(self, execution=None, settings=None):
         self.log.debug("Generating Test Case test methods")
+        self.execution = execution
+        self.settings = settings
         imports = self.add_imports()
         self.root.append(imports)
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
@@ -307,13 +315,27 @@ import apiritif
         test_method.append(self.gen_new_line(indent=0))
 
     def gen_setup_method(self):
+        desire_capabilities = {}
+
         self.log.debug("Generating setUp test method")
-        browsers = ["Firefox", "Chrome", "Ie", "Opera"]
-        browser = self.scenario.get("browser", "Firefox")
-        if browser not in browsers:
+        browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
+
+        browser = self.scenario.get_noset("browser", self.execution.get_noset("browser", None))
+        if browser and (browser not in browsers):
             raise TaurusConfigError("Unsupported browser name: %s" % browser)
 
         setup_method_def = self.gen_method_definition("setUp", ["self"])
+
+        remote_executor = self.scenario.get_noset("remote", self.execution.get_noset("remote", None))
+        self.log.info("Exec Remote:" + str(remote_executor))
+
+        if not browser and remote_executor:
+            browser = "Remote"
+        elif not browser:
+            browser = "Firefox"
+
+        if browser == "Remote" and not remote_executor:
+            remote_executor = "http://localhost:4444/wd/hub"
 
         if browser == 'Firefox':
             setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
@@ -324,6 +346,35 @@ import apiritif
         elif browser == 'Chrome':
             statement = "self.driver = webdriver.Chrome(service_log_path=%s)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
+        elif browser == 'Remote':
+
+            remote_capabilities = self.scenario.get_noset("capabilities", self.execution.get_noset("capabilities", {}))
+
+            supported_capabilities = ["browser", "version", "javascript", "platform", "selenium"]
+            for capability in remote_capabilities:
+                for cap_key in capability.keys():
+                    if cap_key not in supported_capabilities:
+                        raise TaurusConfigError("Unsupported capability name: %s" % cap_key)
+                    else:
+                        if cap_key == "browser":
+                            desire_capabilities["browserName"] = capability[cap_key]
+                        elif cap_key == "version":
+                            desire_capabilities["version"] = str(capability[cap_key])
+                        elif cap_key == "selenium":
+                            desire_capabilities["seleniumVersion"] = str(capability[cap_key])
+                            desire_capabilities["browserstack.selenium_version"] = str(capability[cap_key])
+                        elif cap_key == "javascript":
+                            desire_capabilities["javascriptEnabled"] = capability[cap_key]
+                        else:
+                            desire_capabilities[cap_key] = capability[cap_key]
+
+            statement = "self.driver = webdriver.Remote(" \
+                        "command_executor={command_executor} " \
+                        ", desired_capabilities={desired_capabilities})"
+
+            setup_method_def.append(self.gen_statement(
+                statement.format(command_executor=repr(remote_executor),
+                                 desired_capabilities=repr(desire_capabilities))))
         else:
             setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
 
@@ -402,13 +453,37 @@ import apiritif
             'byid': "ID",
             'bylinktext': "LINK_TEXT"
         }
-        if atype in ('click', 'keys'):
+        action_chains = {
+            'doubleclick': "double_click",
+            'mousedown': "click_and_hold",
+            'mouseup': "release",
+            'mousemove': "move_to_element"
+        }
+        if atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys', 'asserttext', 'select'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
+            action = None
             if atype == 'click':
                 action = "click()"
-            else:
+            elif atype == 'keys':
                 action = "send_keys(%r)" % param
-
+                if isinstance(param, str) and param.startswith("KEY_"):
+                    action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
+            elif action_chains.has_key(atype):
+                tpl = "self.driver.find_element(By.%s, %r)"
+                action = action_chains[atype]
+                return self.gen_statement(
+                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[aby], selector))),
+                    indent=indent)
+            elif atype == 'select':
+                tpl = "self.driver.find_element(By.%s, %r)"
+                action = "select_by_visible_text(%r)" % param
+                return self.gen_statement("Select(%s).%s" % (tpl % (bys[aby], selector), action),
+                                          indent=indent)
+            elif atype == 'asserttext':
+                # TODO: Why .text doesn't works ? 'value' is the only possible attribute for the type of element?
+                action = "get_attribute('value')"
+                return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[aby], selector, action), param),
+                                          indent=indent)
             return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
@@ -422,6 +497,8 @@ import apiritif
             return self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent)
         elif atype == 'clear' and aby == 'cookies':
             return self.gen_statement("self.driver.delete_all_cookies()", indent=indent)
+        elif atype == 'assert' and aby == 'title':
+            return self.gen_statement("self.assertEqual(self.driver.title,%r)" % selector, indent=indent)
 
         raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
@@ -434,8 +511,8 @@ import apiritif
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        actions = "click|wait|keys|pause|clear"
-        bys = "byName|byID|byCSS|byXPath|byLinkText|For|Cookies"
+        actions = "click|doubleClick|mouseDown|mouseUp|mouseMove|select|wait|keys|pause|clear|assert|assertText"
+        bys = "byName|byID|byCSS|byXPath|byLinkText|For|Cookies|Title"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, bys), re.IGNORECASE)
         res = expr.match(name)
         if not res:
@@ -465,6 +542,8 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(self.log)
         self.__access_method = None
+        self.execution = None
+        self.settings=None
 
     def gen_empty_line_stmt(self):
         return ast.Expr(value=ast.Name(id=" "))
@@ -874,7 +953,9 @@ log.setLevel(logging.DEBUG)
         mod = ast.fix_missing_locations(mod)
         return mod
 
-    def build_source_code(self):
+    def build_source_code(self, execution=None, settings=None):
+        self.execution = execution
+        self.settings=settings
         self.tree = self.build_tree()
 
     def save(self, filename):
