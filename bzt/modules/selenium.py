@@ -25,6 +25,10 @@ from bzt.engine import FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
+from bzt.utils import is_windows, is_mac, platform_bitness
+from bzt.commands import Commands
+from bzt.resources.vnc_viewer.vncviewer import VncViewer
+from multiprocessing import Process
 from bzt.utils import is_windows, is_mac, platform_bitness, Environment
 
 
@@ -44,6 +48,37 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         :type env: dict[str,str]
         """
         pass
+
+
+class ServiceAttached(object):
+    service_attached = []
+
+    remote = None
+
+    @classmethod
+    def get_attached(cls):
+        return cls.service_attached
+
+    @classmethod
+    def add_attach(cls, attach_id):
+        cls.service_attached.append(attach_id)
+
+    @classmethod
+    def detach(cls, attach_id):
+        cls.service_attached.remove(attach_id)
+
+    @classmethod
+    def get_remote(cls, log):
+        if cls.remote:
+            return cls.remote
+        else:
+            cls.remote = Commands(log).remote
+            return cls.remote
+
+
+def run_vncviewer(host, port, password, conn_id):
+    vnc_viewer = VncViewer(host, port, password, conn_id)
+    return vnc_viewer
 
 
 class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -72,6 +107,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.register_reader = True
         self.webdrivers = []
 
+        self.vnc_connections = []
+
     def add_env(self, env):     # compatibility with taurus-server
         self.env.set(env)
 
@@ -84,9 +121,52 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         runner_type = self.get_runner_type()
         self.runner = self.engine.instantiate_module(runner_type)
         self.runner.env = self.env
+
+        # todo: deprecated, remove it later
+        self.runner.settings.merge(self.settings.get('selenium-tools').get(runner_type))
+
+        # Propagate to Runner Remote capabilities if is used and generate Environment variables for external script
+        service_remote = self.execution.get_noset("remote", self.settings.get_noset("remote", None))
+        service_capabilities = self.execution.get_noset("capabilities", self.settings.get_noset("capabilities", []))
+        use_service = self.execution.get_noset("service", self.settings.get_noset("service", None))
+        if use_service:
+            service_info = ServiceAttached.get_remote(self.log).pull_service(use_service,
+                                                                             ServiceAttached.get_attached(), cache=True)
+
+            if service_info["remote"]:
+                ServiceAttached.add_attach(service_info["attach_id"])
+                service_remote = service_info["remote"]
+                service_capabilities = service_info["capabilities"]
+            if service_info["vnc"] and self.settings.get_noset("service_vnc", True):
+                vnc_host = service_info["vnc"].split(":")[0]
+                vnc_port = int(service_info["vnc"].split(":")[1])
+                vnc_pass = "secret"
+                vnc_proc = Process(target=run_vncviewer, args=(vnc_host, vnc_port, vnc_pass,
+                                                               service_info["service_id"],))
+                vnc_proc.daemon = True
+                vnc_proc.start()
+                self.vnc_connections.append(vnc_proc)
+
         self.runner.parameters = self.parameters
         self.runner.provisioning = self.provisioning
         self.runner.execution = copy.deepcopy(self.execution)
+
+        # Promote the resolution
+        self.runner.execution["remote"] = service_remote
+        self.runner.execution["capabilities"] = service_capabilities
+
+        # TODO: For debug, remove
+        self.log.info("Service:" + str(use_service))
+        self.log.info("Remote:" + str(self.runner.execution["remote"]))
+        self.log.info("Capabilities:" + str(len(self.runner.execution["capabilities"])))
+
+        if "remote" in self.runner.execution:
+            self.add_env({"BZT_REMOTE": self.runner.execution["remote"]})
+        if "capabilities" in self.runner.execution:
+            for remote_cap in self.runner.execution["capabilities"]:
+                if "browser" in remote_cap:
+                    self.add_env({"BZT_REMOTE_BROWSER": remote_cap["browser"]})
+
         self.runner.execution['files'] = self.execution.get('files', [])
         self.runner.execution['executor'] = runner_type
         self.runner.register_reader = self.register_reader
