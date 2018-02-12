@@ -21,10 +21,11 @@ import re
 from abc import abstractmethod
 from collections import Counter
 
+from hdrpy import HdrHistogram
+
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems
-from bzt.stats.hdr import HdrHistogram
 from bzt.utils import BetterDict, dehumanize_time
 
 
@@ -69,7 +70,7 @@ class KPISet(BetterDict):
         # vectors
         self.get(self.ERRORS, [])
         self.get(self.RESP_CODES, Counter())
-        self.get(self.RESP_TIMES, HdrHistogram(1, 60 * 60 * 1000, 3))  # is maximum value of 60 minutes enough?
+        self.get(self.RESP_TIMES, HdrHistogram(1, 60 * 30 * 1000, 3))  # is maximum value of 30 minutes enough?
         self.get(self.PERCENTILES)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
 

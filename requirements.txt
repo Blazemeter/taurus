@@ -3,10 +3,10 @@ astunparse
 colorama; sys_platform == 'windows'
 colorlog
 cssselect
+hdrpy>=0.2
 ipaddress; python_version < '3.0'
 lxml>=3.8.0
 nose
-numpy>=1.0.0
 progressbar33
 psutil>=5,!=5.3.0
 pytest>=3
