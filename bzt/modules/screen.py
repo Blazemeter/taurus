@@ -17,6 +17,7 @@ limitations under the License.
 
 import logging
 import math
+import os
 
 import urwid
 from urwid import BaseScreen
@@ -24,6 +25,7 @@ from urwid import BaseScreen
 from bzt import ManualShutdown
 from bzt.six import text_type, iteritems, PY2
 from bzt.utils import is_windows
+import bzt.resources as bztr
 
 if PY2:  # we have to put import logic here to avoid requiring python-tk library on linux
     import tkFont as tkfont
@@ -76,7 +78,7 @@ class GUIScreen(BaseScreen):
 
         icon = tkinter.PhotoImage(file=os.path.join(os.path.dirname(os.path.abspath(bztr.__file__)), "taurus_logo.gif"))
         self.root.tk.call('wm', 'iconphoto', self.root._w, icon)
-        
+
     def _stop(self):
         if self.root:
             self.root.destroy()
