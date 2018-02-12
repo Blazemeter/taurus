@@ -1657,8 +1657,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
             if "functionalSummary" in full:
                 summary = full["functionalSummary"]
-                is_failed = summary.get("isFailed", False)
-                if is_failed:
+                if summary is None or summary.get("isFailed", False):
                     raise AutomatedShutdown("Cloud tests failed")
 
     def _download_logs(self):

@@ -1,14 +1,14 @@
 """ test """
+import datetime
 import logging
 import random
 import sys
 import tempfile
-import datetime
 from _socket import SOCK_STREAM, AF_INET
 
 import requests
 
-from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools
+from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools, Singletone, Service
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader
@@ -329,3 +329,7 @@ class BZMock(object):
         response._content = to_json(resp)
         response.status_code = 200
         return response
+
+
+class SingletoneServiceMock(ModuleMock, Singletone, Service):
+    pass
