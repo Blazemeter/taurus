@@ -251,9 +251,9 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
         class_path = os.pathsep.join(self.base_class_path)
-        junit_command_line = ["java", "-cp", class_path, "taurusjunit.CustomRunner", self.props_file]
+        junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true", "taurusjunit.CustomRunner", self.props_file]
 
-        self._start_subprocess(junit_command_line)
+        self._start_subprocess(junit_cmd_line)
 
 
 class TestNGTester(JavaTestRunner, HavingInstallableTools):

@@ -16,18 +16,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import csv
 import fnmatch
 import itertools
-import ipaddress
 import json
+import locale
 import logging
 import mimetypes
+import os
 import platform
 import random
 import re
-import copy
 import shlex
+import shutil
 import signal
 import socket
 import stat
@@ -38,10 +40,6 @@ import tempfile
 import time
 import webbrowser
 import zipfile
-import locale
-import os
-import psutil
-import shutil
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
@@ -50,11 +48,14 @@ from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
 
-from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
+import ipaddress
+import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
+
+from bzt import TaurusInternalException, TaurusNetworkError, ToolError
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
 
 
 def get_full_path(path, step_up=0):
@@ -269,19 +270,19 @@ class BetterDict(defaultdict):
     @classmethod
     def traverse(cls, obj, visitor):
         """
-        Deep traverse dict with visitor
+        Deep traverse dict with visitor. If visitor returns any value, don't traverse into
 
         :type obj: list or dict or object
         :type visitor: callable
         """
         if isinstance(obj, dict):
             for key, val in iteritems(obj):
-                visitor(val, key, obj)
-                cls.traverse(obj[key], visitor)
+                if not visitor(val, key, obj):
+                    cls.traverse(obj[key], visitor)
         elif isinstance(obj, list):
             for idx, val in enumerate(obj):
-                visitor(val, idx, obj)
-                cls.traverse(obj[idx], visitor)
+                if not visitor(val, idx, obj):
+                    cls.traverse(obj[idx], visitor)
 
     def filter(self, rules):
         keys = set(self.keys())
@@ -351,6 +352,9 @@ class Environment(object):
             self.set(data)
 
     def set(self, env):
+        """
+        :type env: dict
+        """
         for key in env:
             key = str(key)
             val = env[key]
@@ -374,7 +378,7 @@ class Environment(object):
     def add_java_param(self, pair, finish=False):
         self._add(pair, " ", finish)
 
-    def update(self, env):   # compatibility with taurus-server
+    def update(self, env):  # compatibility with taurus-server
         self.set(env)
 
     def _add(self, pair, separator, finish):
@@ -423,12 +427,12 @@ class FileReader(object):
         if file_opener:
             self.file_opener = file_opener  # external method for opening of file
         else:
-            self.file_opener = lambda f: open(f, mode='rb')     # default mode is binary
+            self.file_opener = lambda f: open(f, mode='rb')  # default mode is binary
 
         # for non-trivial openers filename must be empty (more complicate than just open())
         # it turns all regular file checks off, see is_ready()
         self.name = filename
-        self.cp = 'utf-8'    # default code page is utf-8
+        self.cp = 'utf-8'  # default code page is utf-8
         self.offset = 0
 
     def _readlines(self, hint=None):
@@ -883,7 +887,7 @@ class ExceptionalDownloader(request.FancyURLopener, object):
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
             response = self.retrieve(url, filename, reporthook, data)
-        except:
+        except BaseException:
             if fd:
                 os.close(fd)
                 os.remove(filename)
@@ -898,6 +902,7 @@ class RequiredTool(object):
     """
     Abstract required tool
     """
+
     def __init__(self, tool_name, tool_path, download_link=""):
         self.tool_name = tool_name
         self.tool_path = tool_path
@@ -1292,7 +1297,7 @@ class PythonGenerator(object):
 
 
 def str_representer(dumper, data):
-    "Representer for PyYAML that dumps multiline strings as | scalars"
+    """ Representer for PyYAML that dumps multiline strings as | scalars """
     if len(data.splitlines()) > 1:
         return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
     return dumper.represent_scalar('tag:yaml.org,2002:str', data)

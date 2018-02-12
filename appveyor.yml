@@ -16,7 +16,7 @@ platform:
   - x64
 
 install:
-  - choco install firefox -version 54.0
+  - choco install firefox --version 57.0.4
   - ps: Install-Product node $env:NODEJS_VERSION
   - "%PYTHON%\\python.exe -m pip install pip --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
@@ -31,7 +31,7 @@ before_test:
   - gem -v
   - rspec --version
   - node --version
-  - start /b python tests/resources/httpserver/start.py
+  - ps: $HTTPServer = Start-Process python tests/resources/httpserver/start.py
 
 test_script:
   - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
@@ -40,3 +40,4 @@ test_script:
 after_test:
   - "coverage report -m"
   - "codecov"
+  - ps: Stop-Process -Id $HTTPServer.Id

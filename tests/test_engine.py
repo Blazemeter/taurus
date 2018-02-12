@@ -1,4 +1,6 @@
 """ unit test """
+import os
+
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.six import string_types, communicate
@@ -44,7 +46,7 @@ class TestEngine(BZTestCase):
         self.obj.configure(configs)
         self.obj.prepare()
 
-        self.assertEquals(2, len(self.obj.services))
+        self.assertEquals(1, len(self.obj.services))
 
         for executor in self.obj.provisioning.executors:
             executor.env.set({"TEST_MODE": "files"})
@@ -120,6 +122,33 @@ class TestEngine(BZTestCase):
         self.assertTrue(self.obj.config["level2"])
         self.assertListEqual(['included-circular2.yml', 'included-circular1.yml', 'included-circular2.yml'],
                              self.obj.config["included-configs"])
+
+    def test_env_eval(self):
+        configs = [
+            RESOURCES_DIR + "yaml/env-eval.yml",
+        ]
+        os.environ["BZT_ENV_TEST_UNSET"] = "set"
+        try:
+            self.obj.configure(configs)
+            self.obj.eval_env()
+            self.assertEquals("success/top", self.obj.config["toplevel"])
+            self.assertEquals("success/test/${BZT_ENV_TEST_UNSET}", self.obj.config["settings"]["artifacts-dir"])
+            self.assertEquals("http://${BZT_ENV_TEST}/", self.obj.config["scenarios"]["scen1"]["default-address"])
+            self.assertEquals("/${BZT_ENV_TEST}/", self.obj.config["scenarios"]["scen1"]["requests"][0])
+        finally:
+            if "BZT_ENV_TEST" in os.environ:
+                os.environ.pop("BZT_ENV_TEST")
+            if "BZT_ENV_TEST_UNSET" in os.environ:
+                os.environ.pop("BZT_ENV_TEST_UNSET")
+
+    def test_singletone_service(self):
+        configs = [
+            RESOURCES_DIR + "yaml/singletone-service.yml",
+        ]
+        self.obj.configure(configs)
+        self.obj.prepare()
+        self.assertEquals(0, len(self.obj.services))
+
 
 
 class TestScenarioExecutor(BZTestCase):

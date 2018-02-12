@@ -37,6 +37,7 @@
     1. [ShellExec Service](ShellExec.md)
     1. [Resource Monitoring](Monitoring.md)
     1. [Proxy2JMX Converter](Proxy2JMX.md)
+ 1. [Configuration Linting Subsystem](Linter.md)
  1. [JMX to YAML converter](JMX2YAML.md)
  1. [SoapUI support](SoapUI.md)
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)

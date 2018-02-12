@@ -24,6 +24,7 @@ RUN apt-get -y update \
     build-essential \
     libxslt1-dev \
     zlib1g-dev \
+    libffi-dev \
     libxi6 \
     libgconf-2-4 \
     libexif12 \

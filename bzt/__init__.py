@@ -17,7 +17,7 @@ import os
 import sys, platform
 from abc import abstractmethod
 
-VERSION = "1.10.4"
+VERSION = "1.10.5"
 
 
 class RCProvider(object):

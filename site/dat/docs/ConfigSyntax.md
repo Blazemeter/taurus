@@ -89,8 +89,9 @@ Available settings are:
  - `artifacts-dir` - path template where to save artifact files, uses [strftime template syntax](http://strftime.org/)
  - `check-interval` - polling interval that used by engine after startup and until shutdown to determine if test is need to be stopped 
  - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
- - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings)
+ - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings.md)
  - `proxy` - proxy settings for BZA feeding, Taurus will use proxy settings from OS environment by default.
+ - `env` - environment variables to set for Taurus, useful with [evaluating feature](EnvironmentVariableAccess). Setting environment variable to `null` makes it to delete variable, if one is set. Special `TAURUS_ARTIFACTS_DIR` variable is set by Taurus, pointing onto artifacts dir location.
  
 See default settings below:
 
@@ -108,6 +109,9 @@ settings:
   verbose: false  # whenever you run bzt with -v option, it sets debug=true, 
                   # some modules might use it for debug features,
                   # setting this through config also switches CLI verbosity
+  env: # set environment variables to set
+    VARNAME1: VARVALUE1
+    VARNAME2: VARVALUE2
 ```
 
 ## Human-Readable Time Specifications
@@ -224,3 +228,9 @@ included-configs:  # it must be a list of string values
 - additional-local-file.yml  # to add local file just set its path
 - http://central.host/mystorage/remote.yml  # you can also download config from http/https location
 ```
+
+## Environment Variable Access
+
+Any string value you access in configuration file is subject to environment variables evaluating. Any string pattern like `${varname}` or `$varname` will be replaced with corresponding environment variable value, if matches (see [expandvars](https://docs.python.org/2/library/os.path.html#os.path.expandvars) for reference). 
+
+Please note that evaluation is not made for strings inside `scenarios` and `scenario` blocks of config. This is to not conflict with executor's internal variable evaluation features.

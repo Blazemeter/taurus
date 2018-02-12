@@ -178,6 +178,25 @@ class TestCLI(BZTestCase):
         configs = re.findall(r'[^\s\']*http_.*\.yml', log_content)
         self.assertGreater(len(configs), 0)
 
+    def test_normal(self):
+        self.option.append("cli.linter.lint-and-exit=true")
+        self.obj.engine.config.merge({"execution": [{"concurrency": 10, "scenario": {"script": "foo.jmx"}}]})
+        ret = self.obj.perform([])
+        self.assertEquals(0, ret)
+
+    def test_normal_error(self):
+        self.option.append("cli.linter.lint-and-exit=true")
+        self.obj.engine.config.merge({"execution": {"concurrency": 10, "scenario": {"script": "foo.jmx"}}})
+        ret = self.obj.perform([])
+        self.assertEquals(1, ret)
+
+    def test_ignore(self):
+        self.option.append("cli.linter.lint-and-exit=true")
+        self.option.append("cli.linter.ignored-warnings.0=single-execution")
+        self.obj.engine.config.merge({"execution": {"concurrency": 10, "scenario": {"script": "foo.jmx"}}})
+        ret = self.obj.perform([])
+        self.assertEquals(0, ret)
+
 
 class TestConfigOverrider(BZTestCase):
     def setUp(self):

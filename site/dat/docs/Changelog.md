@@ -1,9 +1,9 @@
 # Changelog
 
-## 1.10.5 <sup>next</sup>
+## 1.10.5 <sup>8 feb 2018</sup>
+ - add `-lint functionality for checking Taurus configs for errors/typos
  - support recursive `included-configs`
  - support `variables` for Robot executor
- - add linter service for checking Taurus configs for errors/typos
  - unify environment variables setting for executors
  - call `install-for-jmx` on modified JMX instead of original
  - wait a bit for JMeter plugins manager to complete plugin installation
@@ -13,6 +13,8 @@
  - remove chrome profiler as it was outdated and unfixable
  - apply load settings for JMX later than modifications disable thread groups
  - support Runtime Controller and Interleave Controller in `jmx2yaml`
+ - make Java executors to prefer user-specified JAR files over default ones
+ - make TestNG runner to fail less on missing transitional dependencies
 
 ## 1.10.4 <sup>9 jan 2018</sup>
  - collect `conn-all` monitoring metric with the help of `netstat` utility (note that that introduces depepdency on `net-tools` package for Linux)
