@@ -192,7 +192,6 @@ class BetterDict(defaultdict):
 
         :type key: object
         :type default: object
-        :type no_set: boolean
         """
         if default == defaultdict:
             default = BetterDict()
