@@ -1143,6 +1143,12 @@ class Scenario(UserDict, object):
         self.engine = engine
         self.data = scenario
 
+    def get_noset(self, key, default=defaultdict):
+        if hasattr(self.data, "get_noset"):
+            return self.data.get_noset(key, default)
+        else:
+            return self.get(key, default=defaultdict)
+
     def get(self, key, default=defaultdict):
         """
 

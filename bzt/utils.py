@@ -169,12 +169,30 @@ class BetterDict(defaultdict):
     def __init__(self, **kwargs):
         super(BetterDict, self).__init__(**kwargs)
 
+    def get_noset(self, key, default=defaultdict):
+        if default == defaultdict:
+            default = BetterDict()
+
+        if isinstance(default, BaseException) and key not in self:
+            raise default
+
+        value = super(BetterDict, self).get(key, default)
+
+        if isinstance(value, string_types):
+            if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
+                return value
+            else:
+                return text_type(value)
+        else:
+            return value
+
     def get(self, key, default=defaultdict):
         """
         Change get with setdefault
 
         :type key: object
         :type default: object
+        :type no_set: boolean
         """
         if default == defaultdict:
             default = BetterDict()
