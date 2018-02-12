@@ -3,7 +3,7 @@ astunparse
 colorama; sys_platform == 'windows'
 colorlog
 cssselect
-hdrpy>=0.2
+hdrpy>=0.3
 ipaddress; python_version < '3.0'
 lxml>=3.8.0
 nose
