@@ -371,7 +371,7 @@ import apiritif
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'Remote':
 
-            remote_capabilities = dict(self.scenario).get("capabilities", dict(self.execution).get("capabilities", {}))
+            remote_capabilities = dict(self.scenario).get("capabilities", dict(self.execution).get("capabilities", []))
             self.log.info(remote_capabilities)
             remote_capabilities = remote_capabilities + inherited_capabilities
 
