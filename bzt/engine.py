@@ -114,8 +114,8 @@ class Engine(object):
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
 
-        if self.config.get(SETTINGS).get("check-updates", True):
-            install_id = self.config.get("install-id", self._generate_id())
+        if self.config.get(SETTINGS).get("check-updates", True, force_set=True):
+            install_id = self.config.get("install-id", self._generate_id(), force_set=True)
 
             def wrapper():
                 return self._check_updates(install_id)
@@ -354,7 +354,7 @@ class Engine(object):
         Create directory for artifacts, directory name based on datetime.now()
         """
         if not self.artifacts_dir:
-            artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", self.ARTIFACTS_DIR)
+            artifacts_dir = self.config.get(SETTINGS, force_set=True).get("artifacts-dir", self.ARTIFACTS_DIR)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
 
         self.artifacts_dir = get_full_path(self.artifacts_dir)
@@ -402,9 +402,8 @@ class Engine(object):
         BetterDict.traverse(acopy, Configuration.masq_sensitive)
         self.log.debug("Module config: %s %s", alias, acopy)
 
-        clsname = settings.get('class', None)
-        if clsname is None:
-            raise TaurusConfigError("Class name for alias '%s' is not found in module settings: %s" % (alias, settings))
+        err = TaurusConfigError("Class name for alias '%s' is not found in module settings: %s" % (alias, settings))
+        clsname = settings.get('class', err)
 
         self.modules[alias] = load_class(clsname)
         if not issubclass(self.modules[alias], EngineModule):
@@ -505,10 +504,8 @@ class Engine(object):
         """
         Instantiate provisioning class
         """
-        cls = self.config.get(Provisioning.PROV, None)
-        if not cls:
-            msg = "Please check global config availability or configure provisioning settings"
-            raise TaurusConfigError(msg)
+        err = TaurusConfigError("Please check global config availability or configure provisioning settings")
+        cls = self.config.get(Provisioning.PROV, err)
         self.provisioning = self.instantiate_module(cls)
         self.prepared.append(self.provisioning)
         self.provisioning.prepare()
@@ -993,7 +990,7 @@ class ScenarioExecutor(EngineModule):
         if name is None and self.__scenario is not None:
             return self.__scenario
 
-        scenarios = self.engine.config.get("scenarios")
+        scenarios = self.engine.config.get("scenarios", force_set=True)
 
         if name is None:  # get current scenario
             exc = TaurusConfigError("Scenario is not found in execution: %s" % self.execution)
