@@ -325,7 +325,7 @@ import apiritif
 
         browser = dict(self.scenario).get("browser", None)
         # Split platform: Browser
-
+        browser_split = []
         if browser:
             browser_split = browser.split("-")
             browser = browser_split[0]
@@ -346,7 +346,7 @@ import apiritif
             if len(browser_split) > 1 and browser_split[1] in ["Chrome", "Safari"]:
                 inherited_capabilities.append({"browser": browser_split[1]})
 
-            else: # Native
+            else:  # Native
                 inherited_capabilities.append({"browser": ""})
         elif not browser:
             browser = "Firefox"
@@ -495,7 +495,7 @@ import apiritif
                 action = "send_keys(%r)" % param
                 if isinstance(param, str) and param.startswith("KEY_"):
                     action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
-            elif action_chains.has_key(atype):
+            elif atype in action_chains:
                 tpl = "self.driver.find_element(By.%s, %r)"
                 action = action_chains[atype]
                 return self.gen_statement(
@@ -569,8 +569,6 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(self.log)
         self.__access_method = None
-        self.execution = None
-        self.settings=None
 
     def gen_empty_line_stmt(self):
         return ast.Expr(value=ast.Name(id=" "))
@@ -1298,7 +1296,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.add_path({"PYTHONPATH":  get_full_path(__file__, step_up=3)})
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
 
