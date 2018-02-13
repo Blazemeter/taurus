@@ -38,7 +38,7 @@ class ShellExecutor(Service):
         if not isinstance(self.parameters.get(stage, []), list):
             self.parameters[stage] = [self.parameters[stage]]
 
-        for index, stage_task in enumerate(self.parameters[stage]):
+        for index, stage_task in enumerate(self.parameters.get(stage, [])):
             stage_task = ensure_is_dict(self.parameters[stage], index, "command")
             task_config = self.parameters[stage][index]
             default_cwd = self.settings.get("default-cwd", None)

@@ -1,8 +1,7 @@
 from random import random
 
-from tests import BZTestCase, r
-
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
+from tests import BZTestCase, r
 from tests.mocks import MockReader
 
 
@@ -22,7 +21,7 @@ class TestConsolidatingAggregator(BZTestCase):
     def test_merging(self):
         dst = DataPoint(0)
         src = DataPoint(0)
-        src[DataPoint.CUMULATIVE].get('', KPISet())
+        src[DataPoint.CUMULATIVE].get('', KPISet(), force_set=True)
         src[DataPoint.CUMULATIVE][''].sum_rt = 0.5
 
         src[DataPoint.CUMULATIVE][''][KPISet.SAMPLE_COUNT] = 1
