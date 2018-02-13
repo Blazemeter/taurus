@@ -58,20 +58,20 @@ class KPISet(BetterDict):
         self.perc_levels = perc_levels
         self.rtimes_len = rt_dist_maxlen
         # scalars
-        self.get(self.SAMPLE_COUNT, 0)
-        self.get(self.CONCURRENCY, 0)
-        self.get(self.SUCCESSES, 0)
-        self.get(self.FAILURES, 0)
-        self.get(self.AVG_RESP_TIME, 0)
-        self.get(self.STDEV_RESP_TIME, 0)
-        self.get(self.AVG_LATENCY, 0)
-        self.get(self.AVG_CONN_TIME, 0)
-        self.get(self.BYTE_COUNT, 0)
+        self.get(self.SAMPLE_COUNT, 0, force_set=True)
+        self.get(self.CONCURRENCY, 0, force_set=True)
+        self.get(self.SUCCESSES, 0, force_set=True)
+        self.get(self.FAILURES, 0, force_set=True)
+        self.get(self.AVG_RESP_TIME, 0, force_set=True)
+        self.get(self.STDEV_RESP_TIME, 0, force_set=True)
+        self.get(self.AVG_LATENCY, 0, force_set=True)
+        self.get(self.AVG_CONN_TIME, 0, force_set=True)
+        self.get(self.BYTE_COUNT, 0, force_set=True)
         # vectors
-        self.get(self.ERRORS, [])
-        self.get(self.RESP_TIMES, Counter())
-        self.get(self.RESP_CODES, Counter())
-        self.get(self.PERCENTILES)
+        self.get(self.ERRORS, [], force_set=True)
+        self.get(self.RESP_TIMES, Counter(), force_set=True)
+        self.get(self.RESP_CODES, Counter(), force_set=True)
+        self.get(self.PERCENTILES, force_set=True)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
 
     def __deepcopy__(self, memo):
@@ -228,7 +228,7 @@ class KPISet(BetterDict):
         :type src: KPISet
         :return:
         """
-        src.recalculate() # TODO: could be not resource efficient strat
+        src.recalculate()  # TODO: could be not resource efficient strat
 
         self.sum_cn += src.sum_cn
         self.sum_lt += src.sum_lt
@@ -361,7 +361,7 @@ class DataPoint(BetterDict):
         :return:
         """
         for label, val in iteritems(src):
-            dest = dst.get(label, KPISet(self.perc_levels))
+            dest = dst.get(label, KPISet(self.perc_levels), force_set=True)
             if not isinstance(val, KPISet):
                 val = KPISet.from_dict(val)
                 val.perc_levels = self.perc_levels
@@ -426,7 +426,7 @@ class ResultsProvider(object):
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.get(label, KPISet(self.track_percentiles, self.rtimes_len))
+            cumul = self.cumulative.get(label, KPISet(self.track_percentiles, self.rtimes_len), force_set=True)
             cumul.merge_kpis(data)
             cumul.compact_times()
             cumul.recalculate()
@@ -519,7 +519,7 @@ class ResultsReader(ResultsProvider):
             if label in current:
                 label = current[label]
             else:
-                label = current.get(label, KPISet(self.track_percentiles))
+                label = current.get(label, KPISet(self.track_percentiles), force_set=True)
 
             # empty means overall
             label.add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
@@ -694,7 +694,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                         self.log.debug("Putting datapoint %s into %s", tstamp, mints)
                         data[DataPoint.TIMESTAMP] = mints
                         tstamp = mints
-                self.buffer.get(tstamp, []).append(data)
+                self.buffer.get(tstamp, [], force_set=True).append(data)
 
     def _calculate_datapoints(self, final_pass=False):
         """
