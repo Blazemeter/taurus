@@ -169,7 +169,7 @@ class BetterDict(defaultdict):
     def __init__(self, **kwargs):
         super(BetterDict, self).__init__(**kwargs)
 
-    def get(self, key, default=defaultdict):
+    def get(self, key, default=defaultdict, force_set=False):
         """
         Change get with setdefault
 
@@ -182,7 +182,10 @@ class BetterDict(defaultdict):
         if isinstance(default, BaseException) and key not in self:
             raise default
 
-        value = self.setdefault(key, default)
+        if force_set:
+            value = self.setdefault(key, default)
+        else:
+            value = defaultdict.get(self, key, default)
 
         if isinstance(value, string_types):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
@@ -218,7 +221,7 @@ class BetterDict(defaultdict):
                 key = key[1:]
 
             if isinstance(val, dict):
-                dst = self.get(key)
+                dst = self.get(key, force_set=True)
                 if isinstance(dst, BetterDict):
                     dst.merge(val)
                 elif isinstance(dst, Counter):
