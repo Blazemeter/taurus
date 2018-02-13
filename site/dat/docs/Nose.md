@@ -32,7 +32,7 @@ Nose executor supports building test script from the `requests` option of `scena
 generate a Python script that will be launched with `nose`.
 
 Supported features:
-  - select browser Chrome, Firefox, Android-Chome (Appium), iOS-Safari (Appium) 
+  - select browser Chrome, Firefox, Android-Chome, iOS-Safari 
   - local webdriver, local remote webdriver or remote webdriver (selenium grid or others)
   - capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
   - set timeout/think-time on both scenario and request levels
