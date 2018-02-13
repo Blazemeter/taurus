@@ -34,7 +34,7 @@ from bzt.modules.aggregator import ResultsReader
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
-from bzt.six import parse, string_types, iteritems, text_type
+from bzt.six import parse, string_types, iteritems, text_type, etree
 from bzt.utils import BetterDict, ensure_is_dict, shell_exec, FileReader
 from bzt.utils import get_full_path, RequiredTool, PythonGenerator, dehumanize_time
 
@@ -209,7 +209,8 @@ class SeleniumScriptBuilder(PythonGenerator):
     """
     :type window_size: tuple[int,int]
     """
-    IMPORTS = """import unittest
+
+    IMPORTS_SELENIUM = """import unittest
 import re
 from time import sleep
 from selenium import webdriver
@@ -225,6 +226,22 @@ from selenium.webdriver.common.keys import Keys
 import apiritif
 """
 
+    IMPORTS_APPIUM = """import unittest
+import re
+from time import sleep
+from appium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoAlertPresentException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support import expected_conditions as econd
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
+
+import apiritif
+    """
+
     def __init__(self, scenario, parent_logger, wdlog):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
@@ -233,7 +250,6 @@ import apiritif
 
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
-        imports = self.add_imports()
 
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         test_class.append(self.gen_setup_method())
@@ -293,11 +309,18 @@ import apiritif
 
         test_class.append(test_method)
 
-        if self.appium:
-            imports.text = imports.text.replace("from selenium import webdriver", "from appium import webdriver")
+        imports = self.add_imports()
 
         self.root.append(imports)
         self.root.append(test_class)
+
+    def add_imports(self):
+        imports = super(SeleniumScriptBuilder, self).add_imports()
+        if self.appium:
+            imports.text = self.IMPORTS_APPIUM
+        else:
+            imports.text = self.IMPORTS_SELENIUM
+        return imports
 
     def _add_url_request(self, default_address, req, test_method):
         parsed_url = parse.urlparse(req.url)
