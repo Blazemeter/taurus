@@ -33,7 +33,7 @@ generate a Python script that will be launched with `nose`.
 
 Supported features:
   - select browser Chrome, Firefox, Android-Chome (Appium), iOS-Safari (Appium) 
-  - local webdriver, local remote webdriver or remote webdriver (selenium grid or others like browserstack, saucelabs and similars)
+  - local webdriver, local remote webdriver or remote webdriver (selenium grid or others)
   - capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
   - set timeout/think-time on both scenario and request levels
   - assertions (requested page source inspected use the new assertTitle or assertTextBy* for item level)
