@@ -34,7 +34,7 @@ from bzt.modules.aggregator import ResultsReader
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
-from bzt.six import parse, string_types, iteritems, text_type, etree
+from bzt.six import parse, string_types, iteritems, text_type
 from bzt.utils import BetterDict, ensure_is_dict, shell_exec, FileReader
 from bzt.utils import get_full_path, RequiredTool, PythonGenerator, dehumanize_time
 
