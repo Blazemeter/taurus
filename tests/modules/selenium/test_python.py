@@ -300,9 +300,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "doubleClickByXPath(/html/body/div[3]/h2)",
                             "mouseDownByXPath(/html/body/div[3]/form/select[1])",
                             "mouseUpByXPath(/html/body/div[3]/form/select[1]/option[6])",
-                            "selectByName(toPort): London",
-                            "keysByCSS(body input.btn.btn-primary): KEY_ENTER",
-                            "assertTextByID(address): 123 Beautiful st.",
+                            {"selectByName(toPort)": "London"},
+                            {"keysByCSS(body input.btn.btn-primary)": "KEY_ENTER"},
+                            {"assertTextByID(address)": "123 Beautiful st."},
                             {"waitByName('toPort')": "visible"},
                             {"keysByName(\"toPort\")": "B"},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
@@ -314,14 +314,12 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
 
                         ],
                     },
-                        {
-                            "label": "empty"
-                        }
+                        {"label": "empty"}
                     ]
                 },
                 "loc_sc_remote": {
-                    "remote: http://user:key@remote_web_driver_host:port/wd/hub",
-                    {"capabilities": [
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": [
                         {
                             "browser": "firefox",
                             "version": "54.0",
@@ -332,10 +330,10 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "device": "",
                             "app": ""
                         }
-                    ]},
-                    {"default-address": "http://blazedemo.com"},
-                    {"timeout": "3.5s"},
-                    {"requests": [{
+                    ],
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
                         "url": "/",
                         "assert": [{
                             "contains": ['contained_text'],
@@ -345,9 +343,12 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "waitByXPath(//input[@type='submit'])",
                             "assertTitle(BlazeDemo)"
                         ],
-                    }, {
-                        "label": "empty"}]}
-                }}})
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+                }
+        })
 
         self.obj.prepare()
         with open(self.obj.script) as generated:
@@ -359,6 +360,60 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         # strip line terminator and exclude specific build path
         gen_contents = [line.rstrip() for line in gen_contents if 'webdriver' not in line]
         sample_contents = [line.rstrip() for line in sample_contents if 'webdriver' not in line]
+
+        self.assertEqual(gen_contents, sample_contents)
+
+    def test_build_script_remote(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": [
+                        {
+                            "browser": "firefox",
+                            "version": "54.0",
+                            "platform": "linux",
+                            "javascript": "True",
+                            "os_version": "",
+                            "selenium": "",
+                            "device": "",
+                            "app": ""
+                        }
+                    ],
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+                }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.readlines()
+
+        with open(RESOURCES_DIR + "selenium/generated_from_requests_remote.py") as sample:
+            sample_contents = sample.readlines()
+
+        # strip line terminator
+        gen_contents = [line.rstrip() for line in gen_contents]
+        sample_contents = [line.rstrip() for line in sample_contents]
 
         self.assertEqual(gen_contents, sample_contents)
 

@@ -486,6 +486,7 @@ import apiritif
             'mouseup': "release",
             'mousemove': "move_to_element"
         }
+
         if atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys', 'asserttext', 'select'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
             action = None
