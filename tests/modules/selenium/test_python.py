@@ -426,7 +426,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "scenario": "loc_sc_appium"}],
             "scenarios": {
                 "loc_sc_appium": {
-                    "browser": "Android-Chrome",
+                    "browser": "Chrome-Android",
                     "capabilities": [
                         {
                             "device": "",

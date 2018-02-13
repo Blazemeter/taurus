@@ -66,7 +66,7 @@ Sample request scenario:
 ```yaml
 scenarios:
   request_example:
-    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Android-Chrome", "iOS-Safari"]
+    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Chrome-Android", "Safari-iOS"]
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
     default-address: http://demo.blazemeter.com  # specify a base address, so you can use short urls in requests
@@ -121,7 +121,7 @@ Sample Mobile (Appium) scenario:
 ```yaml
 scenarios:
   request_example:
-    browser: Android-Chrome
+    browser: Chrome-Android
     capabilities:
       - device: id_device # set the id of the device here (adb devices)
     # remote: custom_appium_url # You can specify a custom url 

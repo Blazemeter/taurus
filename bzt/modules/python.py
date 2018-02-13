@@ -345,14 +345,18 @@ import apiritif
         inherited_capabilities = []
 
         self.log.debug("Generating setUp test method")
-        browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote", "Android", "iOS"]
+        browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote", "Native"]
+        mobile_browsers = ["Chrome", "Safari", "Native"]
+        mobile_platforms = ["Android", "iOS"]
 
         browser = dict(self.scenario).get("browser", None)
         # Split platform: Browser
-        browser_split = []
+        browser_platform = None
         if browser:
             browser_split = browser.split("-")
             browser = browser_split[0]
+            if len(browser_split) > 1:
+                browser_platform = browser_split[1]
         if browser and (browser not in browsers):
             raise TaurusConfigError("Unsupported browser name: %s" % browser)
 
@@ -363,15 +367,14 @@ import apiritif
 
         if not browser and remote_executor:
             browser = "Remote"
-        elif browser and browser in ["Android", "iOS"]:
+        elif browser in mobile_browsers and browser_platform in mobile_platforms:
             self.appium = True
-            inherited_capabilities.append({"platform": browser})
-            browser = "Remote"
-            if len(browser_split) > 1 and browser_split[1] in ["Chrome", "Safari"]:
-                inherited_capabilities.append({"browser": browser_split[1]})
-
-            else:  # Native
+            inherited_capabilities.append({"platform": browser_platform})
+            if browser == "Native":
                 inherited_capabilities.append({"browser": ""})
+            else:
+                inherited_capabilities.append({"browser": browser})
+            browser = "Remote"  # Force to use remote web driver
         elif not browser:
             browser = "Firefox"
 
