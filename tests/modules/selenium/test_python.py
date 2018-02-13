@@ -294,6 +294,15 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)",
+                            "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
+                            "doubleClickByXPath(/html/body/div[3]/h2)",
+                            "mouseDownByXPath(/html/body/div[3]/form/select[1])",
+                            "mouseUpByXPath(/html/body/div[3]/form/select[1]/option[6])",
+                            "selectByName(toPort): London",
+                            "keysByCSS(body input.btn.btn-primary): KEY_ENTER",
+                            "assertTextByID(address): 123 Beautiful st.",
                             {"waitByName('toPort')": "visible"},
                             {"keysByName(\"toPort\")": "B"},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
@@ -302,8 +311,36 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "pauseFor(3s)",
                             "clearCookies()",
                             "clickByLinkText(destination of the week! The Beach!)"
+                            
                         ],
 
+                    }, {
+                        "label": "empty"}]},
+                "loc_sc_remote": {
+                    "remote: http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": [{
+                        "browser": "firefox",
+                        "version": "54.0",
+                        "platform": "linux",
+                        "javascript": "True",
+                        "os_version": "",
+                        "selenium": "",
+                        "device": "",
+                        "app": ""
+                        }
+                    ],
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
                     }, {
                         "label": "empty"}]}}})
 
