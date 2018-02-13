@@ -302,7 +302,7 @@ scenarios:
         page_title: <title>(\w+)</title>  #  must have at least one capture group
       extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
         varname: $.jsonpath[0].expression
-    - url: http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
+    - url: http://blazedemo.com/${varname_1}/${page_title}  # that's how we use those variables
       extract-css-jquery: # dictionary under it has form <var name>: <CSS/JQuery selector>
         extractor1: input[name~=my_input]
     - url: http://blazedemo.com/${varname}/${extractor1}.xml
@@ -356,8 +356,9 @@ You can choose `scope` for applying expressions. Possible targets are:
   - `all` - main sample and sub-samples
   - `children` - sub-samples
   - `variable` for search in JMeter variables
-Default value of `scope` is empty, it means search in main sample only
-`match-num` allows to choose the specific result from several ones. Default value is `-1` - generation of variables varname_1, varname_2, etc.
+Default value of `scope` is empty, it means search in main sample only.
+
+`match-no` allows to choose the specific result from several ones. Default value is `-1` - generation of variables _varname\_1_, _varname\_2_, etc. It means if you ask for _some\_var\_name_ JMeter won't generate variable with exactly that name by default. Set `match-no` to another value if you want to change this behaviour.
 
 Possible subjects for regexp are:
   - `body`
