@@ -344,7 +344,8 @@ class CLI(object):
             config = Configuration()
 
             for jmx_file in jmxes:
-                config.get(ScenarioExecutor.EXEC, []).append({"executor": "jmeter", "scenario": {"script": jmx_file}})
+                piece = {"executor": "jmeter", "scenario": {"script": jmx_file}}
+                config.get(ScenarioExecutor.EXEC, [], force_set=True).append(piece)
 
             config.dump(fname, Configuration.JSON)
 
@@ -439,7 +440,7 @@ class ConfigOverrider(object):
             value = option[option.index('=') + 1:]
             try:
                 self.__apply_single_override(dest, name, value)
-            except:
+            except BaseException:
                 self.log.debug("Failed override: %s", traceback.format_exc())
                 self.log.error("Failed to apply override %s=%s", name, value)
                 raise
