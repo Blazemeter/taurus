@@ -48,7 +48,6 @@ Supported features:
     - mouseUpBy* 
     - assertTextBy* Assert text on element
     - selectBy* Select value in drop down list
-    - clearBy*
     - assertTitle
 
 Note: * selected by ID/Name/CSS/XPath 
