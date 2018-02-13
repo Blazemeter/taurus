@@ -417,6 +417,52 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
 
         self.assertEqual(gen_contents, sample_contents)
 
+    def test_build_script_appium_browser(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc_appium"}],
+            "scenarios": {
+                "loc_sc_appium": {
+                    "browser": "Android-Chrome",
+                    "capabilities": [
+                        {
+                            "device": "",
+                        }
+                    ],
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+                }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.readlines()
+
+        with open(RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py") as sample:
+            sample_contents = sample.readlines()
+
+        # strip line terminator
+        gen_contents = [line.rstrip() for line in gen_contents]
+        sample_contents = [line.rstrip() for line in sample_contents]
+
+        self.assertEqual(gen_contents, sample_contents)
 
 class TestApiritifScriptGenerator(BZTestCase):
     def setUp(self):
