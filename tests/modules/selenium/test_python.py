@@ -311,27 +311,31 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "pauseFor(3s)",
                             "clearCookies()",
                             "clickByLinkText(destination of the week! The Beach!)"
-                            
-                        ],
 
-                    }, {
-                        "label": "empty"}]},
+                        ],
+                    },
+                        {
+                            "label": "empty"
+                        }
+                    ]
+                },
                 "loc_sc_remote": {
                     "remote: http://user:key@remote_web_driver_host:port/wd/hub",
-                    "capabilities": [{
-                        "browser": "firefox",
-                        "version": "54.0",
-                        "platform": "linux",
-                        "javascript": "True",
-                        "os_version": "",
-                        "selenium": "",
-                        "device": "",
-                        "app": ""
+                    {"capabilities": [
+                        {
+                            "browser": "firefox",
+                            "version": "54.0",
+                            "platform": "linux",
+                            "javascript": "True",
+                            "os_version": "",
+                            "selenium": "",
+                            "device": "",
+                            "app": ""
                         }
-                    ],
-                    "default-address": "http://blazedemo.com",
-                    "timeout": "3.5s",
-                    "requests": [{
+                    ]},
+                    {"default-address": "http://blazedemo.com"},
+                    {"timeout": "3.5s"},
+                    {"requests": [{
                         "url": "/",
                         "assert": [{
                             "contains": ['contained_text'],
@@ -342,7 +346,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "assertTitle(BlazeDemo)"
                         ],
                     }, {
-                        "label": "empty"}]}}})
+                        "label": "empty"}]}
+                }}})
 
         self.obj.prepare()
         with open(self.obj.script) as generated:
@@ -1015,10 +1020,10 @@ class TestPyTestExecutor(BZTestCase):
         self.assertEqual(7, len(report))
 
     def test_additional_args(self):
-        ADDITIONAL_ARGS = "--foo --bar"
+        additional_args = "--foo --bar"
         self.obj.execution.merge({
             "scenario": {
-                "additional-args": ADDITIONAL_ARGS,
+                "additional-args": additional_args,
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
@@ -1032,7 +1037,7 @@ class TestPyTestExecutor(BZTestCase):
             self.obj.shutdown()
         with open(self.obj.stdout_file) as fds:
             stdout = fds.read()
-            self.assertIn(ADDITIONAL_ARGS, stdout)
+            self.assertIn(additional_args, stdout)
 
 
 class TestRobotExecutor(BZTestCase):
