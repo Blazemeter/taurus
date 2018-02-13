@@ -25,6 +25,7 @@ from subprocess import CalledProcessError
 
 import astunparse
 import yaml
+import json
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
@@ -401,7 +402,7 @@ import apiritif
 
             setup_method_def.append(self.gen_statement(
                 statement.format(command_executor=repr(remote_executor),
-                                 desired_capabilities=repr(desire_capabilities))))
+                                 desired_capabilities=json.dumps(desire_capabilities, sort_keys=True))))
         else:
             setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
 
