@@ -85,7 +85,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
 
-        builder.build_source_code(self.execution, self.settings)
+        builder.build_source_code()
         builder.save(filename)
         return filename
 
@@ -228,14 +228,10 @@ import apiritif
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
         self.wdlog = wdlog
-        self.execution = None
-        self.settings = None
         self.appium = False
 
-    def build_source_code(self, execution=None, settings=None):
+    def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
-        self.execution = execution
-        self.settings = settings
         imports = self.add_imports()
 
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
@@ -327,7 +323,7 @@ import apiritif
         self.log.debug("Generating setUp test method")
         browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote", "Android", "iOS"]
 
-        browser = dict(self.scenario).get("browser", dict(self.execution).get("browser", None))
+        browser = dict(self.scenario).get("browser", None)
         # Split platform: Browser
 
         if browser:
@@ -338,7 +334,7 @@ import apiritif
 
         setup_method_def = self.gen_method_definition("setUp", ["self"])
 
-        remote_executor = dict(self.scenario).get("remote", dict(self.execution).get("remote", None))
+        remote_executor = dict(self.scenario).get("remote", None)
         self.log.info("Exec Remote:" + str(remote_executor))
 
         if not browser and remote_executor:
@@ -371,7 +367,7 @@ import apiritif
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'Remote':
 
-            remote_capabilities = dict(self.scenario).get("capabilities", dict(self.execution).get("capabilities", []))
+            remote_capabilities = dict(self.scenario).get("capabilities", [])
             self.log.info(remote_capabilities)
             remote_capabilities = remote_capabilities + inherited_capabilities
 
@@ -984,9 +980,7 @@ log.setLevel(logging.DEBUG)
         mod = ast.fix_missing_locations(mod)
         return mod
 
-    def build_source_code(self, execution=None, settings=None):
-        self.execution = execution
-        self.settings = settings
+    def build_source_code(self):
         self.tree = self.build_tree()
 
     def save(self, filename):
