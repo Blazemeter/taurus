@@ -363,7 +363,6 @@ import apiritif
         setup_method_def = self.gen_method_definition("setUp", ["self"])
 
         remote_executor = dict(self.scenario).get("remote", None)
-        self.log.info("Exec Remote:" + str(remote_executor))
 
         if not browser and remote_executor:
             browser = "Remote"
@@ -395,7 +394,6 @@ import apiritif
         elif browser == 'Remote':
 
             remote_capabilities = dict(self.scenario).get("capabilities", [])
-            self.log.info(remote_capabilities)
             remote_capabilities = remote_capabilities + inherited_capabilities
 
             supported_capabilities = ["browser", "version", "javascript", "platform", "os_version",
