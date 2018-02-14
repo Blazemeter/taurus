@@ -32,7 +32,7 @@ Nose executor supports building test script from the `requests` option of `scena
 generate a Python script that will be launched with `nose`.
 
 Supported features:
-  - select browser Chrome, Firefox, Android-Chome, iOS-Safari 
+  - select browser Chrome, Firefox, Ie, Opera, Android-Chome, iOS-Safari, Remote
   - local webdriver, local remote webdriver or remote webdriver (selenium grid or others)
   - capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
   - set timeout/think-time on both scenario and request levels
@@ -66,7 +66,7 @@ Sample request scenario:
 ```yaml
 scenarios:
   request_example:
-    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Chrome-Android", "Safari-iOS"]
+    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera", "Chrome-Android", "Safari-iOS"]
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
     default-address: http://demo.blazemeter.com  # specify a base address, so you can use short urls in requests
@@ -88,7 +88,42 @@ scenarios:
         not: false  # inverse assertion condition
 ```
 
+## Remote WebDriver
+
+It is possible to use the browser remotely using Remote WebDriver. It must be indicated as the browser name `Remote` and indicate in the `remote` property the URL in which the webdriver service is located to control the browser.
+
+To specify the capabilities of the Remote WebDriver, it is necessary to be able to configure properties necessary for remote instantiation. You must use the `capabilities` structure where you can specify the main properties required by the remote webdriver.
+
+Note: The capabilities are a way in which the remote service filters and selects the device or browser to be selected for the test, depending on its configuration according to the configured specifications. It is recommended to read the documentation of who provides the service
+
+### Capabilities commonly used 
+
+  - browser
+  - version
+  - platform
+  - device # Id of the device (Mobile browser)
+  - os_version # commonly used only for mobile
+
+Note: Currently it is possible to perform basic tests in mobile browsers using the available actions commands, in the future more commands related to mobile will be incorporated to allow a better interactivity.
+
 Sample Remote Webdriver scenario:
+```yaml
+scenarios:
+  request_example:
+    browser: Remote
+    remote: http://user:key@remote_web_driver_host:port/wd/hub
+    capabilities:
+      - browser: firefox  # Depends on the capabilities of the remote selenium server
+      - version: "54.0"
+    requests:
+    - url: http://demo.blazemeter.com  # url to open, only get method is supported
+      actions:  # holds list of actions to perform
+      - waitByCSS(body)
+    ...
+```
+It is possible to use only the `remote` property, and in this way declare the intention to use the `browser: Remote`, allowing a more compact yaml
+
+Sample usage of `remote` without `browser: Remote` clausule declaration:
 ```yaml
 scenarios:
   request_example:
@@ -96,28 +131,21 @@ scenarios:
     capabilities:
       - browser: firefox  # Depends on the capabilities of the remote selenium server
       - version: "54.0"
-    timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
-    think-time: 1s500ms  # global scenario delay between each request
-    default-address: http://demo.blazemeter.com  # specify a base address, so you can use short urls in requests
     requests:
-    - url: /  # url to open, only get method is supported
+    - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
       - waitByCSS(body)
-      - clickByID(mySubmitButton)
-      - pauseFor(5s)
-      - clearCookies()
-      - keysByName(myInputName): keys_to_type
-      - waitByID(myObjectToAppear): visible
-      assert: # assert executed after actions
-      - contains:
-        - blazemeter  # list of search patterns
-        - Trusted
-        subject: body # only body subject supported
-        regexp: false  # treat string as regular expression
-        not: false  # inverse assertion condition
+    ...
 ```
 
-Sample Mobile (Appium) scenario:
+## Mobile Browsers
+
+It is also possible to perform tests on mobile browsers. Currently the browsers supported are `Chrome-Android` and `Safari-iOS`.
+Mobile test services are provided by Appium, and it is possible to use Appium locally or some remote Appium service through the Remote WebDriver capability.
+
+Note: Taurus provides the ability to provide Appium provisioning support, it is recommended to read the documentation related to [Selenium Executor / Appium](Selenium.md#appium)
+
+Sample Mobile Browser scenario:
 ```yaml
 scenarios:
   request_example:
@@ -153,3 +181,4 @@ modules:
   android-emulator:
     avd: android10_arm128
 ```
+
