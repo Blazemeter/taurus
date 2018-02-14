@@ -268,7 +268,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         return modified_launcher
 
-    def _get_jars_from_files(self):
+    def get_cp_from_files(self):
         jar_files = []
         files = self.execution.get('files', [])
         for candidate in files:
@@ -284,18 +284,16 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return jar_files
 
     def get_additional_classpath(self):
-        cp = []
+        cp = self.get_scenario().get("additional-classpath", [])
         cp.extend(self.settings.get("additional-classpath", []))
-        cp.extend(self.get_scenario().get("additional-classpath", []))
+        cp.extend(self.get_cp_from_files())  # todo: for backward compatibility, remove it later as obsolete
         return cp
 
     def prepare(self):
         self.install_required_tools()
         scenario = self.get_scenario()
 
-        jars = []
-        jars += self._get_jars_from_files()  # todo: for backward compatibility, remove it later as obsolete
-        jars += self.get_additional_classpath()
+        jars = self.get_additional_classpath()
 
         self.log.debug("JAR files list for Gatling: %s", jars)
         for element in jars:
@@ -512,6 +510,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             for source in scenario.get_data_sources():
                 source_path = self.engine.find_file(source["path"])
                 files.append(source_path)
+        files.extend(self.get_additional_classpath())
         return files
 
     def get_error_diagnostics(self):
