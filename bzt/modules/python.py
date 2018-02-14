@@ -345,8 +345,8 @@ import apiritif
         inherited_capabilities = []
 
         self.log.debug("Generating setUp test method")
-        browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote", "Native"]
-        mobile_browsers = ["Chrome", "Safari", "Native"]
+        browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
+        mobile_browsers = ["Chrome", "Safari"]
         mobile_platforms = ["Android", "iOS"]
 
         browser = dict(self.scenario).get("browser", None)
@@ -369,10 +369,7 @@ import apiritif
         elif browser in mobile_browsers and browser_platform in mobile_platforms:
             self.appium = True
             inherited_capabilities.append({"platform": browser_platform})
-            if browser == "Native":
-                inherited_capabilities.append({"browser": ""})
-            else:
-                inherited_capabilities.append({"browser": browser})
+            inherited_capabilities.append({"browser": browser})
             browser = "Remote"  # Force to use remote web driver
         elif not browser:
             browser = "Firefox"
