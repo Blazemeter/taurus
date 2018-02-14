@@ -471,7 +471,7 @@ class FileReader(object):
             self.log.warning("Content encoding of '%s' doesn't match %s", self.name, self.cp)
             self.cp = self.SYS_ENCODING
             self.log.warning("Proposed code page: %s", self.cp)
-            return line.decode(self.cp)
+            return line.decode(self.cp, 'ignore')
 
     def get_lines(self, size=-1, last_pass=False):
         if self.is_ready():
