@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.10.6<sup>next</sup>
+ - bump up default JMeter to 4.0 and Plugins Manager to 0.19
+
 ## 1.10.5 <sup>8 feb 2018</sup>
  - add `-lint functionality for checking Taurus configs for errors/typos
  - support recursive `included-configs`
