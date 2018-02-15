@@ -53,6 +53,22 @@ class TestGatlingExecutor(BZTestCase):
             'scenario': 'tests/resources/gatling/bs'})
         self.assertRaises(ToolError, self.obj.prepare)
 
+    def test_additional_classpath(self):
+        jars = ("gatling", "simulations.jar"), ("gatling", "deps.jar"), ("grinder", "fake_grinder.jar")
+        jars = list(os.path.join(RESOURCES_DIR, *jar) for jar in jars)
+
+        self.obj.execution.merge({
+            "files": [jars[0]],
+            "scenario": {
+                "script": RESOURCES_DIR + "gatling/BasicSimulation.scala",
+                "additional-classpath": [jars[1]]}})
+        self.obj.settings.merge({"additional-classpath": [jars[2]]})
+        self.obj.prepare()
+
+        for jar in jars:
+            for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
+                self.assertIn(jar, self.obj.env.get(var))
+
     def test_external_jar_right_launcher(self):
         self.obj.execution.merge({
             'files': [
@@ -415,14 +431,16 @@ class TestGatlingExecutor(BZTestCase):
 
     def test_resource_files_data_sources(self):
         csv_path = RESOURCES_DIR + "test1.csv"
+        jar_file = "path_to_my_jar"
         self.obj.execution.merge({
             "scenario": {
                 "data-sources": [csv_path],
                 "requests": ["http://blazedemo.com/"],
             }
         })
+        self.obj.settings.merge({'additional-classpath': [jar_file]})
         res_files = self.obj.resource_files()
-        self.assertEqual(res_files, [csv_path])
+        self.assertEqual(res_files, [csv_path, jar_file])
 
     def test_diagnostics(self):
         self.obj.execution.merge({
