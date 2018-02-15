@@ -391,6 +391,7 @@ import apiritif
         elif browser == 'Remote':
 
             remote_capabilities = dict(self.scenario).get("capabilities", [])
+            if not isinstance(remote_capabilities, list): remote_capabilities = [remote_capabilities]
             remote_capabilities = remote_capabilities + inherited_capabilities
 
             supported_capabilities = ["browser", "version", "javascript", "platform", "os_version",
