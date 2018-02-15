@@ -66,7 +66,8 @@ Sample request scenario:
 ```yaml
 scenarios:
   request_example:
-    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera", "Chrome-Android", "Safari-iOS"]
+    browser: Firefox  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
+    headless: true  # available only for Chrome/Firefox and only on Selenium 3.8.0+, disabled by default
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
     default-address: http://demo.blazemeter.com  # specify a base address, so you can use short urls in requests

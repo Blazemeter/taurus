@@ -359,6 +359,12 @@ import apiritif
                 browser_platform = browser_split[1]
         if browser and (browser not in browsers):
             raise TaurusConfigError("Unsupported browser name: %s" % browser)
+        headless = False
+        if "headless" in self.scenario:
+            headless = self.scenario.get("headless")
+
+        if headless:
+            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
 
         setup_method_def = self.gen_method_definition("setUp", ["self"])
 
@@ -380,13 +386,20 @@ import apiritif
             remote_executor = "http://localhost:4723/wd/hub"
 
         if browser == 'Firefox':
+            setup_method_def.append(self.gen_statement("options = webdriver.FirefoxOptions()"))
+            if headless:
+                setup_method_def.append(self.gen_statement("options.set_headless()"))
             setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
             statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
             log_set = self.gen_statement(statement)
             setup_method_def.append(log_set)
-            setup_method_def.append(self.gen_statement("self.driver = webdriver.Firefox(profile)"))
+            tmpl = "self.driver = webdriver.Firefox(profile, firefox_options=options)"
+            setup_method_def.append(self.gen_statement(tmpl))
         elif browser == 'Chrome':
-            statement = "self.driver = webdriver.Chrome(service_log_path=%s)"
+            setup_method_def.append(self.gen_statement("options = webdriver.ChromeOptions()"))
+            if headless:
+                setup_method_def.append(self.gen_statement("options.set_headless()"))
+            statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'Remote':
 
@@ -426,6 +439,8 @@ import apiritif
                 statement.format(command_executor=repr(remote_executor),
                                  desired_capabilities=json.dumps(desire_capabilities, sort_keys=True))))
         else:
+            if headless:
+                self.log.warning("Browser %r doesn't support headless mode")
             setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
 
         scenario_timeout = self.scenario.get("timeout", None)

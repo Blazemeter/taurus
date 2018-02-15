@@ -363,6 +363,77 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
 
         self.assertEqual(gen_contents, sample_contents)
 
+    def test_headless_default(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertNotIn("options.set_headless()", gen_contents)
+
+    def test_headless_chrome(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "headless": True,
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertIn("options.set_headless()", gen_contents)
+
+    def test_headless_firefox(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "headless": True,
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertIn("options.set_headless()", gen_contents)
+
+    def test_headless_safari(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Opera",
+                    "headless": True,
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertNotIn("options.set_headless()", gen_contents)
+
     def test_build_script_remote(self):
         self.configure({
             "execution": [{
