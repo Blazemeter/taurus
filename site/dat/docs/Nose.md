@@ -113,8 +113,8 @@ scenarios:
     browser: Remote
     remote: http://user:key@remote_web_driver_host:port/wd/hub
     capabilities:
-      - browser: firefox  # Depends on the capabilities of the remote selenium server
-      - version: "54.0"
+      browser: firefox  # Depends on the capabilities of the remote selenium server
+      version: "54.0"
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
@@ -129,8 +129,8 @@ scenarios:
   request_example:
     remote: http://user:key@remote_web_driver_host:port/wd/hub
     capabilities:
-      - browser: firefox  # Depends on the capabilities of the remote selenium server
-      - version: "54.0"
+      browser: firefox  # Depends on the capabilities of the remote selenium server
+      version: "54.0"
     requests:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
@@ -151,7 +151,7 @@ scenarios:
   request_example:
     browser: Chrome-Android
     capabilities:
-      - device: id_device # set the id of the device here (adb devices)
+      device: id_device # set the id of the device here (adb devices)
     # remote: custom_appium_url # You can specify a custom url 
     timeout: 10  #  global scenario timeout for connecting, receiving results, 30 seconds by default
     think-time: 1s500ms  # global scenario delay between each request
