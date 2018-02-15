@@ -52,6 +52,9 @@ class RespTimesCounter(object):
         memo[id(self)] = item
         return item
 
+    def get_counts(self):
+        return self.histogram.get_value_counts()
+
 
 class KPISet(BetterDict):
     """
