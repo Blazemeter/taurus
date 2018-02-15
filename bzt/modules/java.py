@@ -461,3 +461,14 @@ class JUnitMirrorsManager(MirrorsManager):
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))
         return links
+
+
+class JavaEnv(object):
+    def get_additional_classpath(self):
+        pass
+
+    def get_cp_from_files(self):
+        pass
+
+    def get_files_from_cp(self):
+        pass

@@ -21,7 +21,7 @@ import subprocess
 import time
 
 from bzt import TaurusConfigError, ToolError
-from bzt.modules import JavaEnv
+from bzt.modules.java import JavaEnv
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget

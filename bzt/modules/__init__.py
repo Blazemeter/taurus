@@ -26,17 +26,6 @@ from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, Load
 from bzt.utils import shutdown_process
 
 
-class JavaEnv(object):
-    def get_additional_classpath(self):
-        pass
-
-    def get_cp_from_files(self):
-        pass
-
-    def get_files_from_cp(self):
-        pass
-
-
 class ReportableExecutor(ScenarioExecutor):
     def __init__(self):
         super(ReportableExecutor, self).__init__()
