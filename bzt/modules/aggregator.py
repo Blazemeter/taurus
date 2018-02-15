@@ -29,6 +29,30 @@ from bzt.six import iteritems
 from bzt.utils import BetterDict, dehumanize_time
 
 
+class RespTimesCounter(object):
+    def __init__(self, low, high, sign_figures):
+        super(RespTimesCounter, self).__init__()
+        self.low = low
+        self.high = high
+        self.sign_figures = sign_figures
+        self.histogram = HdrHistogram(low, high, sign_figures)
+
+    def add(self, item, count=1):
+        self.histogram.record_value(item, count)
+
+    def merge(self, other):
+        self.histogram.add(other.histogram)
+
+    def get_percentiles_dict(self, percentiles):
+        return self.histogram.get_percentile_to_value_dict(percentiles)
+
+    def __deepcopy__(self, memo):
+        item = RespTimesCounter(self.low, self.high, self.sign_figures)
+        item.histogram.add(self.histogram)
+        memo[id(self)] = item
+        return item
+
+
 class KPISet(BetterDict):
     """
     Main entity in results, contains all KPIs for single label,
@@ -70,7 +94,7 @@ class KPISet(BetterDict):
         # vectors
         self.get(self.ERRORS, [])
         self.get(self.RESP_CODES, Counter())
-        self.get(self.RESP_TIMES, HdrHistogram(1, 60 * 30 * 1000, 3))  # is maximum value of 30 minutes enough?
+        self.get(self.RESP_TIMES, RespTimesCounter(1, 60 * 30 * 1000, 3))  # is maximum value of 30 minutes enough?
         self.get(self.PERCENTILES)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
 
@@ -132,7 +156,9 @@ class KPISet(BetterDict):
         else:
             self[self.SUCCESSES] += 1
 
-        self[self.RESP_TIMES].record_value(int(round(r_time * 1000, 3)))
+        rtime_s = round(r_time, 3)
+        logging.warning("Recording rtime: %.3f", rtime_s)
+        self[self.RESP_TIMES].add(rtime_s, 1)
 
         if byte_count is not None:
             self[self.BYTE_COUNT] += byte_count
@@ -176,11 +202,11 @@ class KPISet(BetterDict):
         if len(self._concurrencies):
             self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
-        hdr = self[self.RESP_TIMES]
-        if hdr.get_total_count():
+        resp_times = self[self.RESP_TIMES]
+        if resp_times:
             self[self.PERCENTILES] = {
                 str(float(perc)): value / 1000.0
-                for perc, value in iteritems(hdr.get_percentile_to_value_dict(self.perc_levels))
+                for perc, value in iteritems(resp_times.get_percentiles_dict(self.perc_levels))
             }
 
         return self
@@ -208,7 +234,7 @@ class KPISet(BetterDict):
             self._concurrencies[sid] = src[self.CONCURRENCY]
 
         if src[self.RESP_TIMES]:
-            self[self.RESP_TIMES].add(src[self.RESP_TIMES])
+            self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
         elif not self[self.PERCENTILES]:
             # using existing percentiles
             # FIXME: it's not valid to overwrite, better take average
@@ -230,7 +256,7 @@ class KPISet(BetterDict):
             if key == inst.RESP_TIMES:
                 if isinstance(val, dict):
                     for value, count in iteritems(val):
-                        inst[inst.RESP_TIMES].record_value(value, count)
+                        inst[inst.RESP_TIMES].add(value, count)
             else:
                 inst[key] = val
 
@@ -675,3 +701,12 @@ class AggregatorListener(object):
         to close open file descriptors etc.
         """
         pass
+
+
+if __name__ == '__main__':
+    counter = RespTimesCounter(1, 1000, 3)
+    counter.add(100, 1)
+    counter.add(100, 2)
+    counter.add(100, 3)
+    print(counter.items())
+    print(counter.dump())
