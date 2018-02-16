@@ -21,7 +21,6 @@ import subprocess
 import time
 
 from bzt import TaurusConfigError, ToolError
-from bzt.modules.java import JavaEnv
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -212,8 +211,7 @@ class GatlingScriptBuilder(object):
         return template_line % params
 
 
-# todo: bring it to BaseJavaExecutor
-class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable, JavaEnv):
+class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     Gatling executor module
     """
