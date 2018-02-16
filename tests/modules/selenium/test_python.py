@@ -294,6 +294,15 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)",
+                            "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
+                            "doubleClickByXPath(/html/body/div[3]/h2)",
+                            "mouseDownByXPath(/html/body/div[3]/form/select[1])",
+                            "mouseUpByXPath(/html/body/div[3]/form/select[1]/option[6])",
+                            {"selectByName(toPort)": "London"},
+                            {"keysByCSS(body input.btn.btn-primary)": "KEY_ENTER"},
+                            {"assertTextByID(address)": "123 Beautiful st."},
                             {"waitByName('toPort')": "visible"},
                             {"keysByName(\"toPort\")": "B"},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
@@ -302,10 +311,44 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "pauseFor(3s)",
                             "clearCookies()",
                             "clickByLinkText(destination of the week! The Beach!)"
-                        ],
 
-                    }, {
-                        "label": "empty"}]}}})
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                },
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": [
+                        {
+                            "browser": "firefox",
+                            "version": "54.0",
+                            "platform": "linux",
+                            "javascript": "True",
+                            "os_version": "",
+                            "selenium": "",
+                            "device": "",
+                            "app": ""
+                        }
+                    ],
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+                }
+        })
 
         self.obj.prepare()
         with open(self.obj.script) as generated:
@@ -320,6 +363,177 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
 
         self.assertEqual(gen_contents, sample_contents)
 
+    def test_headless_default(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertNotIn("options.set_headless()", gen_contents)
+
+    def test_headless_chrome(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "headless": True,
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertIn("options.set_headless()", gen_contents)
+
+    def test_headless_firefox(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "headless": True,
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertIn("options.set_headless()", gen_contents)
+
+    def test_headless_safari(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Opera",
+                    "headless": True,
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertNotIn("options.set_headless()", gen_contents)
+
+    def test_build_script_remote(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": [
+                        {
+                            "browser": "firefox",
+                            "version": "54.0",
+                            "platform": "linux",
+                            "javascript": "True",
+                            "os_version": "",
+                            "selenium": "",
+                            "device": "",
+                            "app": ""
+                        }
+                    ],
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+                }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.readlines()
+
+        with open(RESOURCES_DIR + "selenium/generated_from_requests_remote.py") as sample:
+            sample_contents = sample.readlines()
+
+        # strip line terminator
+        gen_contents = [line.rstrip() for line in gen_contents]
+        sample_contents = [line.rstrip() for line in sample_contents]
+
+        self.assertEqual(gen_contents, sample_contents)
+
+    def test_build_script_appium_browser(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc_appium"}],
+            "scenarios": {
+                "loc_sc_appium": {
+                    "browser": "Chrome-Android",
+                    "capabilities": [
+                        {
+                            "device": "",
+                        }
+                    ],
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+                }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.readlines()
+
+        with open(RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py") as sample:
+            sample_contents = sample.readlines()
+
+        # strip line terminator
+        gen_contents = [line.rstrip() for line in gen_contents]
+        sample_contents = [line.rstrip() for line in sample_contents]
+
+        self.assertEqual(gen_contents, sample_contents)
 
 class TestApiritifScriptGenerator(BZTestCase):
     def setUp(self):
@@ -978,10 +1192,10 @@ class TestPyTestExecutor(BZTestCase):
         self.assertEqual(7, len(report))
 
     def test_additional_args(self):
-        ADDITIONAL_ARGS = "--foo --bar"
+        additional_args = "--foo --bar"
         self.obj.execution.merge({
             "scenario": {
-                "additional-args": ADDITIONAL_ARGS,
+                "additional-args": additional_args,
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
@@ -995,7 +1209,7 @@ class TestPyTestExecutor(BZTestCase):
             self.obj.shutdown()
         with open(self.obj.stdout_file) as fds:
             stdout = fds.read()
-            self.assertIn(ADDITIONAL_ARGS, stdout)
+            self.assertIn(additional_args, stdout)
 
 
 class TestRobotExecutor(BZTestCase):

@@ -181,8 +181,8 @@ class BasicSimulation extends Simulation {
 
 ## External Java Libraries Usage
 
-Thanks to Taurus you can use additional Java classes in your scala code. For this add required jar files or
-contained dir to `files` list:
+Thanks to Taurus you can use additional Java classes in your scala code.
+For that purpose add required jar files or contained dir to `additional-classpath` list:
 
 ```yaml
 execution:
@@ -190,11 +190,14 @@ execution:
   concurrency: 10
   hold-for: 1h
   scenario: example
-  files:
-  - first.jar
-  - second.jar
-  - folder_with_jars
 scenarios:
   example:
     script: my_file.scala
+    additional-classpath:
+    - deps/gson-1.0.1.jar
+    - deps/common-utils-0.15.1.jar
+modules:
+  gatling:
+    additional-classpath:
+    - most-important-lib.jar  #   global way to specify required libraries
 ```

@@ -25,7 +25,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader
+from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -266,10 +266,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         return modified_launcher
 
-    def prepare(self):
-        self.install_required_tools()
-        scenario = self.get_scenario()
-
+    def get_cp_from_files(self):
         jar_files = []
         files = self.execution.get('files', [])
         for candidate in files:
@@ -282,12 +279,26 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                     if os.path.isfile(element) and element.lower().endswith('.jar'):
                         jar_files.append(element)
 
-        self.log.debug("JAR files list for Gatling: %s", jar_files)
-        for element in jar_files:
+        return jar_files
+
+    def get_additional_classpath(self):
+        cp = self.get_scenario().get("additional-classpath", [])
+        cp.extend(self.settings.get("additional-classpath", []))
+        cp.extend(self.get_cp_from_files())  # todo: for backward compatibility, remove it later as obsolete
+        return cp
+
+    def prepare(self):
+        self.install_required_tools()
+        scenario = self.get_scenario()
+
+        jars = self.get_additional_classpath()
+
+        self.log.debug("JAR files list for Gatling: %s", jars)
+        for element in jars:
             self.env.add_path({"JAVA_CLASSPATH": element})
             self.env.add_path({"COMPILATION_CLASSPATH": element})
 
-        if is_windows() or jar_files:
+        if is_windows() or jars:
             self.log.debug("Building Gatling launcher")
             self.launcher = self.__build_launcher()
         else:
@@ -494,10 +505,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         if script:
             files.append(script)
         else:
-            scenario = self.get_scenario()
             for source in scenario.get_data_sources():
                 source_path = self.engine.find_file(source["path"])
                 files.append(source_path)
+        files.extend(self.get_additional_classpath())
         return files
 
     def get_error_diagnostics(self):

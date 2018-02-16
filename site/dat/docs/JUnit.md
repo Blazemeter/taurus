@@ -49,7 +49,7 @@ scenarios:
     script: tests/FrontendTest.java
     additional-classpath:
     - deps/gson-1.0.1.jar
-    - deps/common-utils-0.15.1.jar    
+    - deps/common-utils-0.15.1.jar
 ```
 
 ## Scenario Example
