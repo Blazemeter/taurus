@@ -70,7 +70,8 @@ CLOUD_CONFIG_FILTER_RULES = {
         "gatling": {
             "version": True,
             "properties": True,
-            "java-opts": True
+            "java-opts": True,
+            "additional-classpath": True
         },
         "grinder": {
             "properties": True,
