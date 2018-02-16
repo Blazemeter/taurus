@@ -469,9 +469,9 @@ class ConfigOverrider(object):
                 else:
                     pointer = pointer[part]
             elif isinstance(parts[index + 1], int) and isinstance(pointer, dict):
-                pointer = pointer.get(part, [])
+                pointer = pointer.get(part, [], force_set=True)
             else:
-                pointer = pointer.get(part)
+                pointer = pointer.get(part, force_set=True)
         self.__ensure_list_capacity(pointer, parts[-1])
         self.log.debug("Applying: [%s]=%s", parts[-1], value)
         if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
