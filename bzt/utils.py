@@ -162,17 +162,12 @@ def dehumanize_time(str_time):
 class BetterDict(defaultdict):
     """
     Wrapper for defaultdict that able to deep merge other dicts into itself
-
-    :param kwargs:
     """
-
-    def __init__(self, **kwargs):
-        super(BetterDict, self).__init__(**kwargs)
-
     def get(self, key, default=defaultdict, force_set=False):
         """
         Change get with setdefault
 
+        :param force_set:
         :type key: object
         :type default: object
         """

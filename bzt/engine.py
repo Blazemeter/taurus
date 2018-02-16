@@ -114,8 +114,8 @@ class Engine(object):
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
 
-        if self.config.get(SETTINGS).get("check-updates", True, force_set=True):
-            install_id = self.config.get("install-id", self._generate_id(), force_set=True)
+        if self.config.get(SETTINGS).get("check-updates", True):
+            install_id = self.config.get("install-id", self._generate_id())
 
             def wrapper():
                 return self._check_updates(install_id)

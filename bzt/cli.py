@@ -345,7 +345,7 @@ class CLI(object):
 
             for jmx_file in jmxes:
                 piece = {"executor": "jmeter", "scenario": {"script": jmx_file}}
-                config.get(ScenarioExecutor.EXEC, [], force_set=True).append(piece)
+                config.get(ScenarioExecutor.EXEC, [], force_set=True).append(piece)  # Does it brake single execution?
 
             config.dump(fname, Configuration.JSON)
 
