@@ -204,7 +204,7 @@ class TestScenarioExecutor(BZTestCase):
         body_files = [req.get('body-file') for req in scenario.get('requests')]
         body_fields = [req.get('body') for req in scenario.get('requests')]
         self.assertTrue(all(body_files))
-        self.assertEqual(None, body_fields[0])
+        self.assertFalse(body_fields[0])
         self.assertIn('body2', body_fields[1])
 
     def test_scenario_is_script(self):
