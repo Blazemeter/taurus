@@ -189,7 +189,8 @@ class TestJMeterExecutor(BZTestCase):
         body_fields = [req.get('body') for req in scenario.get('requests')]
         self.assertIn(body_file1, res_files)
         self.assertIn(body_file2, res_files)
-        self.assertEqual(body_fields, [None, 'body2'])
+        self.assertFalse(body_fields[0])
+        self.assertEqual(body_fields[1], 'body2')
         self.assertEqual(body_files, [body_file1, body_file2])
 
     def test_datasources_with_delimiter(self):

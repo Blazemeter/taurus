@@ -1326,7 +1326,7 @@ class JTLErrorsReader(object):
                 break
             labels = self.buffer.pop(t_stamp)
             for label, label_data in iteritems(labels):
-                res = result.get(label, [])
+                res = result.get(label, [], force_set=True)
                 for err_item in label_data:
                     KPISet.inc_list(res, ('msg', err_item['msg']), err_item)
 
@@ -1351,8 +1351,9 @@ class JTLErrorsReader(object):
         if message is None:
             message = elem.get('rm')
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
-        KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
-        KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
+        KPISet.inc_list(
+            self.buffer.get(t_stamp, force_set=True).get(label, [], force_set=True), ("msg", message), err_item)
+        KPISet.inc_list(self.buffer.get(t_stamp, force_set=True).get('', [], force_set=True), ("msg", message), err_item)
 
     def _extract_nonstandard(self, elem):
         t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
