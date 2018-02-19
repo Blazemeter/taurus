@@ -732,7 +732,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx = JMX(self.original_jmx)
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
             if resource_files_from_jmx:
-                execution_files = self.execution.get('files', [])
+                execution_files = self.execution.get('files', [], force_set=True)
                 execution_files.extend(self._resolve_jmx_relpaths(resource_files_from_jmx))
                 self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
                 script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))

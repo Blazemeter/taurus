@@ -836,7 +836,7 @@ class TestCloudProvisioning(BZTestCase):
 
             self.assertTrue(archive_found)
 
-            self.assertEqual(set(new_names), {  # source:
+            target_names = {  # source:
                 'dummy.jmx',  # execution 0 (script)
                 'test_CLI.py', 'file-in-home-02.res',  # 0 (files)
                 'jmeter-loader.bat', 'mocks.py',  # 0 (files)
@@ -878,7 +878,8 @@ class TestCloudProvisioning(BZTestCase):
                 'file-in-home-18.rb',  # 25 (sript)
                 'file-in-home-19.jar',  # global testng settings (additional-classpath)
                 'variable_file_upload.jmx',
-            })
+            }
+            self.assertEqual(set(new_names), target_names)
         finally:
             os.environ['HOME'] = back_home
             shutil.rmtree(temp_home)
