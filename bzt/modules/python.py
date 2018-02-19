@@ -1094,6 +1094,48 @@ class RandomStringFunction(JMeterFunction):
         )
 
 
+class Base64DecodeFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(Base64DecodeFunction, self).__init__(["text"], compiler)
+
+    def _compile(self, args):
+        if args.get("text") is None:
+            return None
+
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='base64_decode',
+                ctx=ast.Load(),
+            ),
+            args=[self.compiler.gen_expr(args["text"])],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+class Base64EncodeFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(Base64EncodeFunction, self).__init__(["text"], compiler)
+
+    def _compile(self, args):
+        if args.get("text") is None:
+            return None
+
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='base64_encode',
+                ctx=ast.Load(),
+            ),
+            args=[self.compiler.gen_expr(args["text"])],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
 class TimeFunction(JMeterFunction):
     def __init__(self, compiler):
         super(TimeFunction, self).__init__(["format", "varname"], compiler)
@@ -1178,6 +1220,8 @@ class JMeterExprCompiler(object):
             '__time': TimeFunction,
             '__Random': RandomFunction,
             '__RandomString': RandomStringFunction,
+            '__base64Encode': Base64EncodeFunction,
+            '__base64Decode': Base64DecodeFunction,
         }
         regexp = r"(\w+)\((.*?)\)"
         args_re = r'(?<!\\),'

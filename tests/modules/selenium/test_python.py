@@ -1043,6 +1043,48 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.assertIn("'/?rs={}'.format(apiritif.random_string(3))", test_script)
         self.assertIn("'/?rs={}'.format(apiritif.random_string(4, 'abcdef'))", test_script)
 
+    def test_jmeter_functions_base64_encode(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "headers": {
+                        "Authorization": "Basic ${__base64Encode(user:pass)}",
+                    },
+                    "requests": [
+                        "/",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("base64_encode('user:pass')", test_script)
+
+    def test_jmeter_functions_base64_decode(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "headers": {
+                        "Additional": "${__base64Decode(dGVzdCBzdHJpbmc=)}",
+                    },
+                    "requests": [
+                        "/",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("base64_decode('dGVzdCBzdHJpbmc=')", test_script)
+
     def test_load_reader(self):
         reader = ApiritifLoadReader(self.obj.log)
         items = list(reader._read())
