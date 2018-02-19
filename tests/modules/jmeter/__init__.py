@@ -41,7 +41,7 @@ class MockJMeterExecutor(JMeterExecutor):
         self.execution.merge(load)
         self.settings.merge({"detect-plugins": False})
         self.settings.merge(settings)
-        self.tool = MockJMeter(has_ctg)
+        self.tool = MockJMeter(has_ctg=has_ctg)
 
     def install_required_tools(self):
         if self.mock_install:
