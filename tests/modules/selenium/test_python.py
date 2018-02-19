@@ -1085,6 +1085,24 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.log.info(test_script)
         self.assertIn("base64_decode('dGVzdCBzdHJpbmc=')", test_script)
 
+    def test_jmeter_functions_urlencode(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "requests": [
+                        "/${__urlencode(Foo Bar Baz)}",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("encode_url('Foo Bar Baz')", test_script)
+
     def test_load_reader(self):
         reader = ApiritifLoadReader(self.obj.log)
         items = list(reader._read())

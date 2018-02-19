@@ -1158,6 +1158,27 @@ class TimeFunction(JMeterFunction):
         )
 
 
+class UrlEncodeFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(UrlEncodeFunction, self).__init__(["chars"], compiler)
+
+    def _compile(self, args):
+        if "chars" not in args:
+            return None
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='encode_url',
+                ctx=ast.Load(),
+            ),
+            args=[self.compiler.gen_expr(args["chars"])],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+
 class JMeterExprCompiler(object):
     def __init__(self, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
@@ -1222,6 +1243,7 @@ class JMeterExprCompiler(object):
             '__RandomString': RandomStringFunction,
             '__base64Encode': Base64EncodeFunction,
             '__base64Decode': Base64DecodeFunction,
+            '__urlencode': UrlEncodeFunction,
         }
         regexp = r"(\w+)\((.*?)\)"
         args_re = r'(?<!\\),'
