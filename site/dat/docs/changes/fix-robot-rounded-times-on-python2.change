@@ -1,0 +1,1 @@
+Fix Python2 + Robot issue with test durations rounded to seconds

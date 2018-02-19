@@ -68,7 +68,7 @@ class TaurusListener:
         sample.test_case = name
         sample.test_suite = self._current_suite
         sample.start_time = time.mktime(datetime.strptime(attrs['starttime'], '%Y%m%d %H:%M:%S.%f').timetuple())
-        sample.duration = attrs['elapsedtime'] / 1000
+        sample.duration = float(attrs['elapsedtime']) / 1000
         if attrs['status'] == 'PASS':
             sample.status = 'PASSED'
         else:
