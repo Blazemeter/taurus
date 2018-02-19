@@ -58,14 +58,14 @@ class TestCloudProvisioningOld(BZTestCase):
         prov.user.token = "test"
         prov.engine = EngineEmul()
         prov.engine.aggregator = ConsolidatingAggregator()
-        # prov.engine.config.merge({"modules": {"blazemeter": {"browser-open": False}}})
-        prov.engine.config[ScenarioExecutor.EXEC] = [{
-            "executor": "mock",
-            "locations": {
-                "aws": 1
-            },
-            "files": ModuleMock().get_resource_files()
-        }]
+
+        prov.engine.config.merge({
+            ScenarioExecutor.EXEC: [{
+                "executor": "mock",
+                "locations": {
+                    "aws": 1},
+                "files": ModuleMock().get_resource_files()}]})
+
         mock.apply(prov.user)
 
         prov.prepare()
