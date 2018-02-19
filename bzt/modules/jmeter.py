@@ -1351,9 +1351,9 @@ class JTLErrorsReader(object):
         if message is None:
             message = elem.get('rm')
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
-        KPISet.inc_list(
-            self.buffer.get(t_stamp, force_set=True).get(label, [], force_set=True), ("msg", message), err_item)
-        KPISet.inc_list(self.buffer.get(t_stamp, force_set=True).get('', [], force_set=True), ("msg", message), err_item)
+        buffer = self.buffer.get(t_stamp, force_set=True)
+        KPISet.inc_list(buffer.get(label, [], force_set=True), ("msg", message), err_item)
+        KPISet.inc_list(buffer.get('', [], force_set=True), ("msg", message), err_item)
 
     def _extract_nonstandard(self, elem):
         t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
@@ -1372,14 +1372,14 @@ class JTLErrorsReader(object):
             errtype = KPISet.ERRTYPE_ASSERT
             message = massert[0].text
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
-        KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
-        KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
+        buffer = self.buffer.get(t_stamp, force_set=True)
+        KPISet.inc_list(buffer.get(label, [], force_set=True), ("msg", message), err_item)
+        KPISet.inc_list(buffer.get('', [], force_set=True), ("msg", message), err_item)
 
     def get_failure_message(self, element):
         """
         Returns failure message
         """
-
         failed_assertion = self.__get_failed_assertion(element)
         if failed_assertion is not None:
             assertion_message = self.__get_assertion_message(failed_assertion)
