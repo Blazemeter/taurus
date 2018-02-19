@@ -2052,7 +2052,7 @@ class TestJMeterExecutor(BZTestCase):
                     "http://example.com/"]}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
 
     def test_detect_ver_wrong(self):
         self.obj.execution.merge({
@@ -2060,7 +2060,7 @@ class TestJMeterExecutor(BZTestCase):
                 "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
 
     def test_detect_ver_2_13(self):
         self.obj.execution.merge({
@@ -2068,14 +2068,14 @@ class TestJMeterExecutor(BZTestCase):
                 "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
-        self.assertEqual("2.13", self.obj.version)
+        self.assertEqual("2.13", self.obj.tool.version)
 
     def test_no_detect_2_13(self):
         self.obj.execution.merge({
             'scenario': {
                 "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
 
     def test_jsr223_block(self):
         script = RESOURCES_DIR + "/jmeter/jsr223_script.js"
