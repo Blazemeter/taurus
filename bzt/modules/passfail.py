@@ -128,7 +128,7 @@ class FailCriterion(object):
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
         self.window_logic = config.get('logic', 'for')
         self.agg_logic = self._get_aggregator_functor(self.window_logic, config['subject'])
-        self.condition = self._get_condition_functor(config.get('condition', '>', force_set=True))
+        self.condition = self._get_condition_functor(config.get('condition', '>'))
         self.threshold = dehumanize_time(config['threshold'])
         self.stop = config.get('stop', True)
         self.fail = config.get('fail', True)
