@@ -89,7 +89,7 @@ class ResultsTree(BetterDict):
         :type sample: FunctionalSample
         """
         test_suite = sample.test_suite
-        self.get(test_suite, []).append(sample)
+        self.get(test_suite, [], force_set=True).append(sample)
 
     def test_suites(self):
         return [key for key, _ in iteritems(self)]
