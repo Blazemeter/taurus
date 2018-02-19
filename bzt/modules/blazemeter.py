@@ -1495,7 +1495,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
         self.public_report = self.settings.get("public-report", self.public_report)
         is_execution_empty = "execution" not in self.engine.config or not bool(self.engine.config.get("execution", []))
-        self.launch_existing_test = self.settings.get("launch-existing-test", is_execution_empty)
+        self.launch_existing_test = self.settings.get("launch-existing-test", is_execution_empty, force_set=True)
 
         if not self.launch_existing_test:
             self._filter_reporting()
