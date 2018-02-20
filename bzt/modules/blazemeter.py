@@ -1218,12 +1218,14 @@ class CloudTaurusTest(BaseCloudTest):
                 name_split = [part.strip() for part in session['name'].split('/')]
                 location = session['configuration']['location']
                 count = session['configuration']['serversCount']
-                ex_item = mapping.get(name_split[0])
+                ex_item = mapping.get(name_split[0], force_set=True)
+
                 if len(name_split) > 1:
-                    script_item = ex_item.get(name_split[1])
+                    name = name_split[1]
                 else:
-                    script_item = ex_item.get("N/A", {})
-                script_item[location] = count
+                    name = "N/A"
+
+                ex_item.get(name, force_set=True)[location] = count
             except KeyError:
                 self._sessions = None
 
@@ -1494,7 +1496,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.detach = self.settings.get("detach", self.detach)
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
         self.public_report = self.settings.get("public-report", self.public_report)
-        is_execution_empty = "execution" not in self.engine.config or not bool(self.engine.config.get("execution", []))
+        is_execution_empty = not self.engine.config.get("execution")
         self.launch_existing_test = self.settings.get("launch-existing-test", is_execution_empty, force_set=True)
 
         if not self.launch_existing_test:
