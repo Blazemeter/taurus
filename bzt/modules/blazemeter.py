@@ -1355,7 +1355,7 @@ class CloudCollectionTest(BaseCloudTest):
                     scenario = name_split[1]
                 else:
                     scenario = "N/A"
-                scenario_item = mapping.get(scenario)
+                scenario_item = mapping.get(scenario, force_set=True)
                 if location not in scenario_item:
                     scenario_item[location] = 0
                 scenario_item[location] += servers_count
