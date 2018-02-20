@@ -1436,7 +1436,7 @@ class MasterProvisioning(Provisioning):
                 packed_list.append(base_dir_name + '.zip')
 
         if packed_list:
-            services = self.engine.config.get(Service.SERV, [])
+            services = self.engine.config.get(Service.SERV, [], force_set=True)
             services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list, 'run-at': 'local'})
 
         return result_list
