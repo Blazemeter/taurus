@@ -1103,6 +1103,24 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.log.info(test_script)
         self.assertIn("encode_url('Foo Bar Baz')", test_script)
 
+    def test_jmeter_functions_uuid(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "requests": [
+                        "/${__UUID()}",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("uuid()", test_script)
+
     def test_load_reader(self):
         reader = ApiritifLoadReader(self.obj.log)
         items = list(reader._read())

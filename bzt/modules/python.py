@@ -1178,6 +1178,23 @@ class UrlEncodeFunction(JMeterFunction):
         )
 
 
+class UuidFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(UuidFunction, self).__init__([], compiler)
+
+    def _compile(self, args):
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='uuid',
+                ctx=ast.Load(),
+            ),
+            args=[],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
 
 class JMeterExprCompiler(object):
     def __init__(self, parent_log):
@@ -1244,6 +1261,7 @@ class JMeterExprCompiler(object):
             '__base64Encode': Base64EncodeFunction,
             '__base64Decode': Base64DecodeFunction,
             '__urlencode': UrlEncodeFunction,
+            '__UUID': UuidFunction,
         }
         regexp = r"(\w+)\((.*?)\)"
         args_re = r'(?<!\\),'
