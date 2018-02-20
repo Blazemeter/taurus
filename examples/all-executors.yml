@@ -5,7 +5,7 @@ services:
   prepare: 
   - command: python -m SimpleHTTPServer 8000
     background: true
-  - command: sleep 600 && exit 1  # this will make it interrupt in case it hangs
+  - command: sleep 900 && exit 1  # this will make it interrupt in case it hangs
     background: true
   #check:
   #- command: ps auxff > processlist.txt
