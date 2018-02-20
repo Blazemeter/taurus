@@ -745,8 +745,8 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["check-interval"] = "0ms"  # do not skip checks
         self.obj.settings["use-deprecated-api"] = False
         cls = ServiceStubCaptureHAR.__module__ + "." + ServiceStubCaptureHAR.__name__
-        self.obj.engine.config.get("modules").get('capturehar')['class'] = cls
-        self.obj.engine.config.get(Service.SERV, []).append('capturehar')
+        self.obj.engine.config.get("modules", force_set=True).get("capturehar", force_set=True)["class"] = cls
+        self.obj.engine.config.get(Service.SERV, [], force_set=True).append("capturehar")
 
         self.sniff_log(self.obj.log)
         self.obj.prepare()
