@@ -1,0 +1,26 @@
+---
+execution:
+- concurrency: 1
+  hold-for: 1m
+  scenario: Swagger-Petstore
+scenarios:
+  Swagger-Petstore:
+    default-address: http://petstore.swagger.io
+    requests:
+    - label: findPetsByStatus
+      url: /v2/pet/findByStatus?status=%5B42%5D
+    - label: findPetsByTags
+      url: /v2/pet/findByTags?tags=%5B42%5D
+    - label: getPetById
+      url: /v2/pet/13
+    - label: getInventory
+      url: /v2/store/inventory
+    - label: getOrderById
+      url: /v2/store/order/13
+    - label: loginUser
+      url: /v2/user/login?username=string&password=string
+    - label: logoutUser
+      url: /v2/user/logout
+    - label: getUserByName
+      url: /v2/user/string
+
