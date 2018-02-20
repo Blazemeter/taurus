@@ -43,7 +43,7 @@ IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 class ApiritifNoseExecutor(SubprocessedExecutor):
     """
-    :type _readers: list[JTLReader]
+    :type _tailer: FileReader
     """
 
     def __init__(self):
