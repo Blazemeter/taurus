@@ -1,0 +1,15 @@
+---
+scenarios:
+  bdm:
+    script: WDJavaExample.java
+
+execution:
+  - executor: selenium
+    scenario: bdm
+    iterations: 1
+
+modules:
+  selenium:
+    selenium-tools:
+      junit: 
+        compile-target-java: 1.8

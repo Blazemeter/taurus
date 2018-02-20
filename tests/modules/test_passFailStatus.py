@@ -6,7 +6,7 @@ from bzt import AutomatedShutdown
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.passfail import PassFailStatus, DataCriterion
 from bzt.utils import BetterDict
-from tests import BZTestCase, __dir__, random_datapoint
+from tests import BZTestCase, random_datapoint, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 
@@ -14,7 +14,7 @@ class TestPassFailStatus(BZTestCase):
     def test_prepare(self):
         obj = PassFailStatus()
         obj.engine = EngineEmul()
-        config = json.loads(open(__dir__() + "/../json/passfail.json").read())
+        config = json.loads(open(RESOURCES_DIR + "json/passfail.json").read())
         obj.parameters = config['reporting'][0]
         obj.prepare()
         self.assertGreater(len(obj.criteria), 0)
@@ -165,7 +165,7 @@ class TestPassFailStatus(BZTestCase):
 
         self.assertEqual(obj.widget.text_widget.text, "")
 
-    def test_ashort_data(self):
+    def test_short_data(self):
         obj = PassFailStatus()
         obj.engine = EngineEmul()
 

@@ -1,0 +1,32 @@
+---
+execution:
+  executor: selenium
+  iterations: 1
+  scenario:
+    browser: Firefox
+    timeout: 10
+    think-time: 1s500ms
+    requests:
+    - url: "http://blazedemo.com/"
+      assert:
+      - contains:
+        - BlazeMeter
+        - Travel The World
+        subject: body
+        regexp: false
+        not: false
+      - contains:
+        - Simple
+        - Travel
+        regexp: true
+        not: false
+      - contains:
+        - NOTPRESENT
+        regexp: true
+        not: true
+    - url: "http://blazedemo.com/"
+      think-time: 1s
+      timeout: 2
+      assert:
+      - Find Flights
+    - url: "http://blazedemo.com/"

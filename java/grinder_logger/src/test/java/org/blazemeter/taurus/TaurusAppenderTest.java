@@ -29,12 +29,13 @@ public class TaurusAppenderTest {
         event.getLoggerContextVO().getPropertyMap().put("WORKER_NAME", "worker1");
         event.setLoggerName("data");
         event.setMessage("Tada!");
+        event.setCallerData(new StackTraceElement[0]);
         appender.setOutputStream(os);
         appender.start();
         appender.writeOut(event);
         appender.stop();
 
-        assertEquals("Test name for ID 1: label\nTada!\n", os.toString());
+        assertEquals("Tada!\n", os.toString());
     }
 
 }

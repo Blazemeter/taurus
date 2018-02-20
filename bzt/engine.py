@@ -20,6 +20,9 @@ import datetime
 import hashlib
 import json
 import logging
+import math
+import os
+import re
 import shutil
 import sys
 import threading
@@ -29,20 +32,19 @@ import uuid
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
-
-import os
-import yaml
-from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, ToolError
 from json import encoder
+
+import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
+from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestsParser
-from bzt.six import build_opener, install_opener, urlopen, numeric_types, iteritems
+from bzt.six import build_opener, install_opener, urlopen, numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
-from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, shutdown_process
-from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows
-from bzt.utils import str_representer
+from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
+from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
+from bzt.utils import str_representer, Environment
 
 SETTINGS = "settings"
 
@@ -57,6 +59,7 @@ class Engine(object):
     :type aggregator: bzt.modules.aggregator.ConsolidatingAggregator
     :type stopping_reason: BaseException
     """
+    ARTIFACTS_DIR = "%Y-%m-%d_%H-%M-%S.%f"
 
     def __init__(self, parent_logger):
         """
@@ -69,6 +72,8 @@ class Engine(object):
         self.reporters = []
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.env = Environment(self.log, dict(os.environ))
+        self.shared_env = Environment(self.log)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
@@ -80,9 +85,10 @@ class Engine(object):
         self.engine_loop_utilization = 0
         self.prepared = []
         self.started = []
+
         self.default_cwd = None
-        self.post_startup_hook = lambda: None
-        self.pre_shutdown_hook = lambda: None
+        self.logging_level_down = lambda: None
+        self.logging_level_up = lambda: None
 
     def configure(self, user_configs, read_config_files=True):
         """
@@ -97,17 +103,53 @@ class Engine(object):
 
         merged_config = self._load_user_configs(user_configs)
 
-        if "included-configs" in self.config:
-            included_configs = [get_full_path(conf) for conf in self.config.pop("included-configs")]
+        all_includes = []
+        while "included-configs" in self.config:
+            includes = self.config.pop("included-configs")
+            included_configs = [self.find_file(conf) for conf in includes if conf not in all_includes + user_configs]
+            all_includes += includes
             self.config.load(included_configs)
+        self.config['included-configs'] = all_includes
 
         self.config.merge({"version": bzt.VERSION})
         self._set_up_proxy()
 
-        thread = threading.Thread(target=self._check_updates)  # intentionally non-daemon thread
-        thread.start()
+        if self.config.get(SETTINGS).get("check-updates", True):
+            install_id = self.config.get("install-id", self._generate_id())
+
+            def wrapper():
+                return self._check_updates(install_id)
+
+            thread = threading.Thread(target=wrapper)  # intentionally non-daemon thread
+            thread.start()
 
         return merged_config
+
+    def _generate_id(self):
+        if os.getenv("JENKINS_HOME"):
+            prefix = "jenkins"
+        elif os.getenv("TRAVIS"):
+            prefix = "travis"
+        elif any([key.startswith("bamboo") for key in os.environ.keys()]):
+            prefix = "bamboo"
+        elif os.getenv("TEAMCITY_VERSION"):
+            prefix = "teamcity"
+        elif os.getenv("DOCKER_HOST"):
+            prefix = "docker"
+        elif os.getenv("AWS_"):
+            prefix = "amazon"
+        elif os.getenv("GOOGLE_APPLICATION_CREDENTIALS") or os.getenv("CLOUDSDK_CONFIG"):
+            prefix = "google_cloud"
+        elif os.getenv("WEBJOBS_NAME"):
+            prefix = "azure"
+        elif is_linux():
+            prefix = 'linux'
+        elif is_windows():
+            prefix = 'windows'
+        else:
+            prefix = 'macos'
+
+        return "%s-%x" % (prefix, uuid.getnode())
 
     def prepare(self):
         """
@@ -137,6 +179,15 @@ class Engine(object):
             module.startup()
         self.config.dump()
 
+    def start_subprocess(self, args, cwd, stdout, stderr, stdin, shell, env):
+        if cwd is None:
+            cwd = self.default_cwd
+
+        env = Environment(self.log, env.get())
+        env.set(self.shared_env.get())
+
+        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=env.get())
+
     def run(self):
         """
         Run the job. Calls `startup`, does periodic `check`,
@@ -146,7 +197,7 @@ class Engine(object):
         exc_info = None
         try:
             self._startup()
-            self.post_startup_hook()
+            self.logging_level_down()
             self._wait()
         except BaseException as exc:
             self.log.debug("%s:\n%s", exc, traceback.format_exc())
@@ -155,7 +206,7 @@ class Engine(object):
         finally:
             self.log.warning("Please wait for graceful shutdown...")
             try:
-                self.pre_shutdown_hook()
+                self.logging_level_up()
                 self._shutdown()
             except BaseException as exc:
                 self.log.debug("%s:\n%s", exc, traceback.format_exc())
@@ -168,13 +219,16 @@ class Engine(object):
             reraise(exc_info)
 
     def _check_modules_list(self):
-        finished = False
+        stop = False
         modules = [self.provisioning, self.aggregator] + self.services + self.reporters  # order matters
         for module in modules:
             if module in self.started:
                 self.log.debug("Checking %s", module)
-                finished |= bool(module.check())
-        return finished
+                finished = bool(module.check())
+                if finished:
+                    self.log.debug("%s finished", module)
+                    stop = finished
+        return stop
 
     def _wait(self):
         """
@@ -202,6 +256,7 @@ class Engine(object):
         :return:
         """
         self.log.info("Shutting down...")
+        self.log.debug("Current stop reason: %s", self.stopping_reason)
         exc_info = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
@@ -300,13 +355,14 @@ class Engine(object):
         Create directory for artifacts, directory name based on datetime.now()
         """
         if not self.artifacts_dir:
-            default = "%Y-%m-%d_%H-%M-%S.%f"
-            artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", default)
+            artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", self.ARTIFACTS_DIR)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
 
         self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
+        self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
+        os.environ["TAURUS_ARTIFACTS_DIR"] = self.artifacts_dir
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
@@ -425,6 +481,7 @@ class Engine(object):
         else:
             self.log.debug("No machine configs dir: %s", machine_dir)
 
+        self.log.debug("Base configs list: %s", base_configs)
         self.config.load(base_configs)
 
     def _load_user_configs(self, user_configs):
@@ -432,8 +489,15 @@ class Engine(object):
         :type user_configs: list[str]
         :rtype: Configuration
         """
+        # "tab-replacement-spaces" is not documented 'cause it loads only from base configs
+        # so it's sort of half-working last resort
+        self.config.tab_replacement_spaces = self.config.get(SETTINGS).get("tab-replacement-spaces", 4)
+        self.log.debug("User configs list: %s", user_configs)
         self.config.load(user_configs)
         user_config = Configuration()
+        user_config.log = self.log.getChild(Configuration.__name__)
+        user_config.tab_replacement_spaces = self.config.tab_replacement_spaces
+        user_config.warn_on_tab_replacement = False
         user_config.load(user_configs, self.__config_loaded)
         return user_config
 
@@ -462,6 +526,9 @@ class Engine(object):
             msg = "reporter 'module' field isn't recognized: %s"
             cls = reporter.get('module', TaurusConfigError(msg % reporter))
             instance = self.instantiate_module(cls, reporter)
+            instance.parameters = reporter
+            if self.__singletone_exists(instance, self.reporters):
+                continue
             assert isinstance(instance, Reporter)
             self.reporters.append(instance)
 
@@ -474,18 +541,43 @@ class Engine(object):
         """
         Instantiate service modules, then prepare them
         """
-        services = self.config.get(Service.SERV, [])
-        for index, config in enumerate(services):
-            config = ensure_is_dict(services, index, "module")
+        srv_config = self.config.get(Service.SERV, [])
+        services = []
+        for index, config in enumerate(srv_config):
+            config = ensure_is_dict(srv_config, index, "module")
             cls = config.get('module', '')
             instance = self.instantiate_module(cls, config)
+            instance.parameters = config
+            if self.__singletone_exists(instance, services):
+                continue
             assert isinstance(instance, Service)
-            if instance.should_run():
-                self.services.append(instance)
+            services.append(instance)
+
+        for service in services[:]:
+            if not service.should_run():
+                services.remove(service)
+
+        self.services.extend(services)
 
         for module in self.services:
             self.prepared.append(module)
             module.prepare()
+
+    def __singletone_exists(self, instance, mods_list):
+        """
+        :type instance: EngineModule
+        :type mods_list: list[EngineModule]
+        :rtype: bool
+        """
+        if not isinstance(instance, Singletone):
+            return False
+
+        for mod in mods_list:
+            if mod.parameters.get("module") == instance.parameters.get("module"):
+                msg = "Module '%s' can be only used once, will merge all new instances into single"
+                self.log.warning(msg % mod.parameters.get("module"))
+                mod.parameters.merge(instance.parameters)
+                return True
 
     def __prepare_aggregator(self):
         """
@@ -516,33 +608,53 @@ class Engine(object):
             opener = build_opener(proxy_handler)
             install_opener(opener)
 
-    def _check_updates(self):
-        if self.config.get(SETTINGS).get("check-updates", True):
-            try:
-                params = (bzt.VERSION, self.config.get("install-id", uuid.getnode()))
-                req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
-                self.log.debug("Requesting updates info: %s", req)
-                response = urlopen(req, timeout=10)
-                resp = response.read()
+    def _check_updates(self, install_id):
+        try:
+            params = (bzt.VERSION, install_id)
+            req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
+            self.log.debug("Requesting updates info: %s", req)
+            response = urlopen(req, timeout=10)
+            resp = response.read()
 
-                if not isinstance(resp, str):
-                    resp = resp.decode()
+            if not isinstance(resp, str):
+                resp = resp.decode()
 
-                self.log.debug("Taurus updates info: %s", resp)
+            self.log.debug("Taurus updates info: %s", resp)
 
-                data = json.loads(resp)
-                mine = LooseVersion(bzt.VERSION)
-                latest = LooseVersion(data['latest'])
-                if mine < latest or data['needsUpgrade']:
-                    msg = "There is newer version of Taurus %s available, consider upgrading. " \
-                          "What's new: http://gettaurus.org/docs/Changelog/"
-                    self.log.warning(msg, latest)
-                else:
-                    self.log.debug("Installation is up-to-date")
+            data = json.loads(resp)
+            mine = LooseVersion(bzt.VERSION)
+            latest = LooseVersion(data['latest'])
+            if mine < latest or data['needsUpgrade']:
+                msg = "There is newer version of Taurus %s available, consider upgrading. " \
+                      "What's new: http://gettaurus.org/docs/Changelog/"
+                self.log.warning(msg, latest)
+            else:
+                self.log.debug("Installation is up-to-date")
 
-            except BaseException:
-                self.log.debug("Failed to check for updates: %s", traceback.format_exc())
-                self.log.warning("Failed to check for updates")
+        except BaseException:
+            self.log.debug("Failed to check for updates: %s", traceback.format_exc())
+            self.log.warning("Failed to check for updates")
+
+    def eval_env(self):
+        """
+        Should be done after `configure`
+        """
+        envs = self.config.get(SETTINGS).get("env")
+        for varname in envs:
+            self.env.set({varname: envs[varname]})
+            if envs[varname] is None:
+                if varname in os.environ:
+                    os.environ.pop(varname)
+            else:
+                os.environ[varname] = envs[varname]
+
+        def apply_env(value, key, container):
+            if key in ("scenario", "scenarios"):  # might stop undesired branches
+                return True  # don't traverse into
+            if isinstance(value, string_types):
+                container[key] = os.path.expandvars(value)
+
+        BetterDict.traverse(self.config, apply_env)
 
 
 class Configuration(BetterDict):
@@ -558,6 +670,8 @@ class Configuration(BetterDict):
         super(Configuration, self).__init__()
         self.log = logging.getLogger('')
         self.dump_filename = None
+        self.tab_replacement_spaces = 0
+        self.warn_on_tab_replacement = True
 
     def load(self, config_files, callback=None):
         """
@@ -570,27 +684,49 @@ class Configuration(BetterDict):
         for config_file in config_files:
             try:
                 configs = []
-                self.log.debug("Reading %s", config_file)
                 with open(config_file) as fds:
-                    contents = fds.read()
-                    try:
-                        self.log.debug("Reading %s as YAML", config_file)
-                        configs.extend(yaml.load_all(contents))
-                    except BaseException as yaml_load_exc:
-                        self.log.debug("Error when reading config file as YAML '%s': %s", config_file, yaml_load_exc)
-                        if contents.lstrip().startswith('{'):
-                            self.log.debug("Reading %s as JSON", config_file)
-                            configs.append(json.loads(contents))
-                        else:
-                            raise
+                    if self.tab_replacement_spaces:
+                        contents = self._replace_tabs(fds.readlines(), config_file)
+                    else:
+                        contents = fds.read()
+
+                    self._read_yaml_or_json(config_file, configs, contents)
+
+                for config in configs:
+                    self.merge(config)
+
+            except KeyboardInterrupt:
+                raise
+            except InvalidTaurusConfiguration:
+                raise
             except BaseException as exc:
                 raise TaurusConfigError("Error when reading config file '%s': %s" % (config_file, exc))
 
-            for config in configs:
-                self.merge(config)
-
             if callback is not None:
                 callback(config_file)
+
+    def _read_yaml_or_json(self, config_file, configs, contents):
+        try:
+            self.log.debug("Reading %s as YAML", config_file)
+            yaml_documents = list(yaml.load_all(contents))
+            for doc in yaml_documents:
+                if doc is None:
+                    continue
+                if not isinstance(doc, dict):
+                    raise InvalidTaurusConfiguration("Configuration %s is invalid" % config_file)
+                configs.append(doc)
+        except KeyboardInterrupt:
+            raise
+        except BaseException as yaml_load_exc:
+            self.log.debug("Cannot read config file as YAML '%s': %s", config_file, yaml_load_exc)
+            if contents.lstrip().startswith('{'):
+                self.log.debug("Reading %s as JSON", config_file)
+                config_value = json.loads(contents)
+                if not isinstance(config_value, dict):
+                    raise InvalidTaurusConfiguration("Configuration %s in invalid" % config_file)
+                configs.append(config_value)
+            else:
+                raise
 
     def set_dump_file(self, filename):
         """
@@ -609,13 +745,15 @@ class Configuration(BetterDict):
         :raise TaurusInternalException:
         """
         if fmt == self.JSON:
-            fds.write(to_json(self))
+            json_s = to_json(self)
+            fds.write(json_s.encode('utf-8'))
         elif fmt == self.YAML:
-            yml = yaml.dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True)
+            yml = yaml.dump(self, default_flow_style=False, explicit_start=True, canonical=False, allow_unicode=True,
+                            encoding='utf-8', width=float("inf"))
             fds.write(yml)
         else:
             raise TaurusInternalException("Unknown dump format: %s" % fmt)
-        fds.write("\n")
+        fds.write("\n".encode('utf-8'))
 
     def dump(self, filename=None, fmt=None):
         """
@@ -636,7 +774,8 @@ class Configuration(BetterDict):
 
             acopy = copy.deepcopy(self)
             BetterDict.traverse(acopy, self.masq_sensitive)
-            with open(filename, "w") as fhd:
+            BetterDict.traverse(acopy, self.replace_infinities)
+            with open(filename, "wb") as fhd:
                 self.log.debug("Dumping %s config into %s", fmt, filename)
                 acopy.write(fhd, fmt)
 
@@ -647,8 +786,33 @@ class Configuration(BetterDict):
         """
         if isinstance(key, string_types):
             for suffix in ('password', 'secret', 'token',):
-                if key.lower().endswith(suffix) and value:
-                    container[key] = '*' * 8
+                if key.lower().endswith(suffix):
+                    if value and isinstance(value, (string_types, text_type)):
+                        container[key] = '*' * 8
+
+    @staticmethod
+    def replace_infinities(value, key, container):
+        """
+        Remove non-string JSON values used by default JSON encoder (Infinity, -Infinity, NaN)
+        """
+        del value
+        if isinstance(container[key], float):
+            if math.isinf(container[key]) or math.isnan(container[key]):
+                container[key] = str(container[key])
+
+    def _replace_tabs(self, lines, fname):
+        has_tab_indents = re.compile("^( *)(\t+)( *\S*)")
+        res = ""
+        for num, line in enumerate(lines):
+            replaced = has_tab_indents.sub(r"\1" + (" " * self.tab_replacement_spaces) + r"\3", line)
+            if replaced != line:
+                line = replaced
+                if self.warn_on_tab_replacement:
+                    self.log.warning("Replaced leading tabs in file %s, line %s", fname, num)
+                    self.log.warning("Line content is: %s", replaced.strip())
+                    self.log.warning("Please remember that YAML spec does not allow using tabs for indentation")
+            res += line
+        return res
 
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
@@ -672,6 +836,8 @@ class EngineModule(object):
         self.log = logging.getLogger('')
         self.engine = None
         self.parameters = BetterDict()
+        self.delay = None  # FIXME: why here? Why not in ScenarioExecutor?
+        self.start_time = None  # FIXME: why here? Why not in ScenarioExecutor?
 
     @property
     def settings(self):
@@ -731,6 +897,7 @@ class Provisioning(EngineModule):
     def __init__(self):
         super(Provisioning, self).__init__()
         self.executors = []
+        self.disallow_empty_execution = True
 
     def prepare(self):
         """
@@ -742,11 +909,15 @@ class Provisioning(EngineModule):
         default_executor = esettings.get("default-executor", None)
 
         exc = TaurusConfigError("No 'execution' is configured. Did you forget to pass config files?")
-        if ScenarioExecutor.EXEC not in self.engine.config:
+
+        if ScenarioExecutor.EXEC not in self.engine.config and self.disallow_empty_execution:
             raise exc
 
-        executions = self.engine.config.get(ScenarioExecutor.EXEC, exc)
-        if not isinstance(executions, list):
+        executions = self.engine.config.get(ScenarioExecutor.EXEC, [])
+        if not executions and self.disallow_empty_execution:
+            raise exc
+
+        if isinstance(executions, dict):
             executions = [executions]
 
         for execution in executions:
@@ -787,6 +958,7 @@ class ScenarioExecutor(EngineModule):
     THRPT = "throughput"
     EXEC = "execution"
     STEPS = "steps"
+    LOAD_FMT = namedtuple("LoadSpec", "concurrency throughput ramp_up hold iterations duration steps")
 
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
@@ -797,6 +969,8 @@ class ScenarioExecutor(EngineModule):
         self.reader = None
         self.delay = None
         self.start_time = None
+        self.env = None
+        self.preprocess_args = lambda x: None
 
     @property
     def execution(self):
@@ -888,7 +1062,6 @@ class ScenarioExecutor(EngineModule):
         steps = self.execution.get(ScenarioExecutor.STEPS, None)
         hold = dehumanize_time(self.execution.get(ScenarioExecutor.HOLD_FOR, 0))
         if ramp_up is None:
-            ramp_up = None
             duration = hold
         else:
             ramp_up = dehumanize_time(ramp_up)
@@ -910,12 +1083,8 @@ class ScenarioExecutor(EngineModule):
         if msg:
             raise TaurusConfigError(msg)
 
-        res = namedtuple("LoadSpec",
-                         ('concurrency', "throughput", 'ramp_up', 'hold', 'iterations', 'duration', 'steps'))
-
-        return res(concurrency=concurrency, ramp_up=ramp_up,
-                   throughput=throughput, hold=hold, iterations=iterations,
-                   duration=duration, steps=steps)
+        return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
+                             iterations=iterations, duration=duration, steps=steps)
 
     def get_resource_files(self):
         files_list = []
@@ -927,46 +1096,11 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
 
-    def get_hostaliases(self):
-        settings = self.engine.config.get(SETTINGS, {})
-        return settings.get("hostaliases", {})
+    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False):
+        self.preprocess_args(args)
 
-    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
-        if cwd is None:
-            cwd = self.engine.default_cwd
-        aliases = self.get_hostaliases()
-        hosts_file = None
-        if aliases:
-            hosts_file = self.engine.create_artifact("hostaliases", "")
-            with open(hosts_file, 'w') as fds:
-                for key, value in iteritems(aliases):
-                    fds.write("%s %s\n" % (key, value))
-
-        environ = BetterDict()
-        environ.merge(dict(os.environ))
-
-        if aliases:
-            environ["HOSTALIASES"] = hosts_file
-        if env is not None:
-            if is_windows():
-                # as variables in windows are case insensitive we should provide correct merging
-                cur_env = {name.upper(): environ[name] for name in environ}
-                old_keys = set(env.keys())
-                env = {name.upper(): env[name] for name in env}
-                new_keys = set(env.keys())
-                if old_keys != new_keys:
-                    msg = 'Some taurus environment variables might be been lost: %s'
-                    self.log.debug(msg, list(old_keys - new_keys))
-                environ = BetterDict()
-                environ.merge(cur_env)
-            environ.merge(env)
-
-        environ.merge({"TAURUS_ARTIFACTS_DIR": self.engine.artifacts_dir})
-
-        environ = {key: environ[key] for key in environ.keys() if environ[key] is not None}
-
-        self.log.debug("Executing shell from %s: %s", cwd, args)
-        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=environ)
+        return self.engine.start_subprocess(args=args, cwd=cwd, stdout=stdout,
+                                            stderr=stderr, stdin=stdin, shell=shell, env=self.env)
 
 
 class Reporter(EngineModule):
@@ -1007,9 +1141,11 @@ class Scenario(UserDict, object):
     """
 
     SCRIPT = "script"
+    COOKIES = "cookies"
     FIELD_RESP_CODE = "http-code"
     FIELD_HEADERS = "headers"
     FIELD_BODY = "body"
+    FIELD_DATA_SOURCES = 'data-sources'
 
     def __init__(self, engine, scenario=None):
         super(Scenario, self).__init__()
@@ -1063,6 +1199,14 @@ class Scenario(UserDict, object):
         requests_parser = RequestsParser(self, self.engine)
         return requests_parser.extract_requests(require_url=require_url)
 
+    def get_data_sources(self):
+        data_sources = self.get(self.FIELD_DATA_SOURCES, [])
+        if not isinstance(data_sources, list):
+            raise TaurusConfigError("data-sources '%s' is not a list" % data_sources)
+        for index, _ in enumerate(data_sources):
+            ensure_is_dict(data_sources, index, "path")
+        return self.get(self.FIELD_DATA_SOURCES, [])
+
 
 class HavingInstallableTools(object):
     @abstractmethod
@@ -1070,51 +1214,15 @@ class HavingInstallableTools(object):
         pass
 
 
-class SubprocessedExecutor(ScenarioExecutor):
-    """
-    Class for subprocessed executors
+class Singletone(object):
+    pass
 
-    All executors must implement the following interface.
-    """
 
-    def __init__(self):
-        super(SubprocessedExecutor, self).__init__()
+class SelfDiagnosable(object):
+    @abstractmethod
+    def get_error_diagnostics(self):
+        """
 
-        self.env = {}
-        self.process = None
-        self.opened_descriptors = []
-        self._stdout_file = None
-        self._stderr_file = None
-
-    def _start_subprocess(self, cmdline):
-        prefix = self.execution.get("executor", None) or "executor"
-        self._stdout_file = self.engine.create_artifact(prefix, ".out")
-        std_out = open(self._stdout_file, "wt")
-        self.opened_descriptors.append(std_out)
-        self._stderr_file = self.engine.create_artifact(prefix, ".err")
-        std_err = open(self._stderr_file, "wt")
-        self.opened_descriptors.append(std_err)
-        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, env=self.env)
-
-    def check(self):
-        ret_code = self.process.poll()
-        if ret_code is not None:
-            if ret_code != 0:
-                with open(self._stderr_file) as fds:
-                    std_err = fds.read()
-                msg = "Test runner %s (%s) has failed with retcode %s \n %s"
-                raise ToolError(msg % (self.label, self.__class__.__name__, ret_code, std_err.strip()))
-            return True
-        return False
-
-    def shutdown(self):
-        shutdown_process(self.process, self.log)
-        for desc in self.opened_descriptors:
-            desc.close()
-        self.opened_descriptors = []
-
-    def _check_tools(self, tools):
-        for tool in tools:
-            if not tool.check_if_installed():
-                self.log.info("Installing %s...", tool.tool_name)
-                tool.install()
+        :rtype: list[str]
+        """
+        pass

@@ -6,4 +6,5 @@ services:
 - proxy2jmx
 - module: shellexec
   prepare: rm -r ./converted/*
+  post-process: jmx2yaml ./converted/generated_Blazedemo.java.smart.jmx
 

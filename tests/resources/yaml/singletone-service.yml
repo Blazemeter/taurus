@@ -1,0 +1,10 @@
+provisioning: mock
+services:
+- run-at: local
+  module: singletone-mock
+- run-at: cloud
+  module: singletone-mock
+
+modules:
+  singletone-mock:
+    class: tests.mocks.SingletoneServiceMock

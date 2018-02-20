@@ -79,7 +79,9 @@ function TaurusReporter(runner, config) {
         test.startTime = testStartTime;
         var item = reportItem(test, test.err || {});
         try {
-            reportStream.write(JSON.stringify(item) + "\n");
+            reportStream.write(JSON.stringify(item) + "\n", function() {
+                config.reporterOptions.itemsWritten += 1;
+            });
         } catch(err) {
             process.stderr.write("error while writing: " + err.toString() + "\n");
         }
@@ -209,7 +211,8 @@ function runMocha() {
             reportStream: reportStream,
             totalTests: 0,
             passedTests: 0,
-            failedTests: 0
+            failedTests: 0,
+            itemsWritten: 0
         }
     };
 
@@ -217,7 +220,13 @@ function runMocha() {
         if (reportStream) {
             reportStream.end();
         }
-        process.exit(0);
+        setInterval(function() {
+            var totalTests = mochaConfig.reporterOptions.totalTests,
+                itemsWritten = mochaConfig.reporterOptions.itemsWritten;
+            if (itemsWritten >= totalTests) {
+                process.exit(0);
+            }
+        }, 100);
     };
 
     loopMocha(config, mochaConfig, 0, epoch(), done);

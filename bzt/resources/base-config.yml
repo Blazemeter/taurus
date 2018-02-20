@@ -12,6 +12,8 @@ modules:
     class: bzt.modules.jmeter.JMeterExecutor
   locust:
     class: bzt.modules.locustio.LocustIOExecutor
+  molotov:
+    class: bzt.modules.molotov.MolotovExecutor
   pbench:
     class: bzt.modules.pbench.PBenchExecutor
   siege:
@@ -23,7 +25,7 @@ modules:
   selenium:
     class: bzt.modules.selenium.SeleniumExecutor
   nose:
-    class: bzt.modules.python.NoseTester
+    class: bzt.modules.python.ApiritifNoseExecutor
   junit:
     class: bzt.modules.java.JUnitTester
   testng:
@@ -32,6 +34,18 @@ modules:
     class: bzt.modules.ruby.RSpecTester
   mocha:
     class: bzt.modules.javascript.MochaTester
+  nunit:
+    class: bzt.modules.csharp.NUnitExecutor
+  pytest:
+    class: bzt.modules.python.PyTestExecutor
+  wdio:
+    class: bzt.modules.javascript.WebdriverIOExecutor
+  robot:
+    class: bzt.modules.python.RobotExecutor
+  newman:
+    class: bzt.modules.javascript.NewmanExecutor
+  apiritif:
+    class: bzt.modules.python.ApiritifNoseExecutor
 
   # service & infra modules
   local:
@@ -58,6 +72,8 @@ modules:
     class: bzt.modules.services.AndroidEmulatorLoader
   appium:
     class: bzt.modules.services.AppiumLoader
+  virtual-display:
+    class: bzt.modules.services.VirtualDisplay
 
   # online services integrations
   blazemeter:
@@ -78,17 +94,6 @@ modules:
 modules:
   final_stats:
     class: bzt.modules.reporting.FinalStatus
-  chrome-metric-reporter:
-    class: bzt.modules.chrome.MetricReporter
-  chrome-profiler:
-    class: bzt.modules.chrome.ChromeProfiler
-    processors:
-      trace:
-        class: bzt.modules.chrome.TraceProcessor
-        extractors:
-        - bzt.modules.chrome.TabNameExtractor
-        - bzt.modules.chrome.MemoryMetricsExtractor
-
 
 ---
 cli-aliases:
@@ -121,10 +126,29 @@ cli-aliases:
   report:
     reporting:
     - blazemeter
+  public:
+    modules:
+      blazemeter:
+        public-report: true
   sequential:
     modules:
       local:
         sequential: true
+  lint:
+    cli:
+      linter:
+        lint-and-exit: true
+  nolint:
+    cli:
+      linter:
+        disable: true
+
+cli:
+  linter:
+    disable: false
+    warn-on-unfamiliar-fields: false
+    ignored-warnings: []
+    lint-and-exit: false
 
 ---
 # real default config
@@ -180,6 +204,5 @@ modules: # TODO: cleanup as much as possible from defaults
       jmeter.save.saveservice.autoflush: 'true'
       jmeter.save.saveservice.connect_time: 'true'
       jmeterengine.force.system.exit: 'true'
-      mode: Stripped
       summariser.name: ''
 

@@ -109,6 +109,10 @@ execution:
 
 scenarios:
   complex_sample:
+    data-sources:
+    - path: buyouts.csv  # path to CSV file
+      delimiter: ','  # optional, set to comma by default
+      loop: true  # loop over data source file, true by default
     default-address: blazedemo.com
     headers:
       HEADER_1: VALUE_1
@@ -132,6 +136,7 @@ scenarios:
         - 200
         subject: http-code
         not: true
+    - /purchase.php?username=${username}&email=${email}  # usage of variables from the CSV data source
 ```
 
 ## Configuration Options
@@ -141,7 +146,7 @@ scenarios:
  - `path`: "/somepath/folder/bin/gatling_executable"
     Path to Gatling executable.
     If no Gatling executable found, it will be automatically downloaded and installed in "path".
-    By default "~/.bzt/gatling-taurus/bin/gatling.sh".
+    By default "~/.bzt/gatling-taurus/{version}/bin/gatling.sh".
 
  - `java-opts`: string with some java options for Gatling
 
@@ -149,8 +154,12 @@ scenarios:
     Link to download Gatling.
     By default: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
 
- -  `version`: "2.1.7"
-    Gatling version, 2.1.7 by default
+ -  `version`: "2.3.0"
+    Gatling version, 2.3.0 by default
+
+ -  `dir_prefix`: "gatling-%s"
+    Gatling report prefix. Used by taurus to find gatling reports.
+    If you use gatling property "gatling.core.outputDirectoryBaseName", you may use also this setting.
 
  - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling
  documentation) and sending your own variables into Scala program:
@@ -172,8 +181,8 @@ class BasicSimulation extends Simulation {
 
 ## External Java Libraries Usage
 
-Thanks to Taurus you can use additional Java classes in your scala code. For this add required jar files or
-contained dir to `files` list:
+Thanks to Taurus you can use additional Java classes in your scala code.
+For that purpose add required jar files or contained dir to `additional-classpath` list:
 
 ```yaml
 execution:
@@ -181,17 +190,14 @@ execution:
   concurrency: 10
   hold-for: 1h
   scenario: example
-  files:
-  - first.jar
-  - second.jar
-  - folder_with_jars
 scenarios:
   example:
     script: my_file.scala
+    additional-classpath:
+    - deps/gson-1.0.1.jar
+    - deps/common-utils-0.15.1.jar
+modules:
+  gatling:
+    additional-classpath:
+    - most-important-lib.jar  #   global way to specify required libraries
 ```
-
-## Gatling 2.2.0 Support
-
-Taurus works with Gatling 2.2.0. However, with Gatling 2.2.0 it's not possible to extract such network stats
-as latency and connection time, as Gatling removed them from report data. Because of that, Taurus installs Gatling 2.1.7
-by default.

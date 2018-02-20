@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+  <httpSample t="117" lt="115" ct="93" ts="1498080598101" s="true" lb="https://fonts.googleapis.com/css?family=Roboto:400,400italic,700,700italic,300,300italic" rc="200" rm="OK" tn="Thread Group 1-1" dt="text" de="utf-8" by="1940" sby="598" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Content-Type: text/css; charset=utf-8
+Access-Control-Allow-Origin: *
+Timing-Allow-Origin: *
+Link: &lt;https://fonts.gstatic.com&gt;; rel=preconnect; crossorigin
+Expires: Wed, 21 Jun 2017 21:27:57 GMT
+Date: Wed, 21 Jun 2017 21:27:57 GMT
+Cache-Control: private, max-age=86400, stale-while-revalidate=604800
+Last-Modified: Wed, 21 Jun 2017 21:27:57 GMT
+Content-Encoding: br
+Transfer-Encoding: chunked
+Server: ESF
+X-XSS-Protection: 1; mode=block
+X-Frame-Options: SAMEORIGIN
+Alt-Svc: quic=&quot;:443&quot;; ma=2592000; v=&quot;38,37,36,35&quot;
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Referer: https://preprod.sepaq.com/fr/reservation/camping
+Accept-Encoding: gzip, deflate, sdch, br
+Accept-Language: fr-FR,fr;q=0.8,en-US;q=0.6,en;q=0.4
+Content-Length: 0
+Content-Type: text/plain; charset=ISO-8859-1
+Host: fonts.googleapis.com
+</requestHeader>
+    <responseData class="java.lang.String">�&#x6;&#x1b;&#x0;d&gt;�&gt;�k*��KB��0&#xb;K&#x1c;]QD&#x1b;��n���M�Z&#x4;��+li�R&#x1a;�&#x58e;���w�&#x10;�C&#x3;&#x16;ᙻ&#x16;p����B�h;��&gt;�&#x1c;@ר_���&#x8;�!��&lt;$�m&quot;~����?�_&#x1f;����&#x8;���Ϋ�&#xf;��&#x6;��~�sb�&#x4;�&#x7f;&#x10;&apos;��$���&#x1f;&#x4;&#x5;�je&#x1c;�?��U�q$u⾧G���m��&lt;�����&#x1a;?���{�)A�1~�ok�&#x16;H&#x7f;�X��
+��lK����u���&#xd;23�������&#xe;��L����6I��7ج���������2A�MN�@&#x12;&#x7f;�&#xf;��&#x15;`&#x1a;�����V3&#x8;�&#x7f;�(&#x1;&#x12;��&#x1c;�&#x1;�Ѭ\Џ&#x84;&#xb;��r�w�D�m���tz���&#xc;&#x1d;�&#x0;&#x1f;&gt;�&#x1;fG�Yh�m�&#x1c;��&#xe;�7���ev� �&#x10;_˟��;�̓��V�&amp;z��&#x4;ʲ�	.#&#x1a;_(&#xd;�c���#̃I��R&#x7f;Y&#x18;PL&#x8;P��&lt;�&#x1a;���p#���h��K����v��(_,&#xc;&#x1;�C@&#x15;��P�&#x0;	%���kq&lt;�ĭ0�&#x12;H��0ST_hY�j���Ц�Zl&#x17;&#xd;�&#x0;a9؀C�&#x3;�`j�E,
+S=&#x2;�&#x10;�&#x10;�&#x18;��,�&#x0;&#xd;&#x17;�_�9m!U�S�u&#xd;�s�ɑ���
+7&#x3;&#xe;�n�&#x16;&#x1e;(�fd&#x11;0+(&#x2;��&#x0;R�?&#x7f;Ȳ��,@&#x2;&#x1d;&#x2;&quot;W&#x14;��A&quot;&#x14;�0&#x4;&#xc;�&#x17;�=�&#x10;D�í4�\n&#x8;��/S�ӹ򇵙�G&gt;G&#x17;�=&#x6;,&#x2;f����9�^����h��D&lt;&gt;+&#x12;�H&#x1d;�&#x10;�=;�����np��`?_j� �&#x1c;ޑ�SS`���g&#x10;�J3&gt;���󶱗8����3&#x1d;y#�#¥�{F��s�&#x14;Q&#x11;�7$&quot;?�x٪�Z�@&#x1a;&#x17;x���o&#x1a;&#x13;+mx���m�Bs˅|5,s�-������&#x1a;ހ��j&#x1f;�4q&#x1f;ʔ��]i�&#x6;�(��E�&#x1b;�ݎ�m��]�&#x1e;B�I&#x1a;C�3&#x4;�VQ*��\T�I`&#x18;ٖ&#xb;58}��&#x17;&#x6;MΪ�j&#x1f;��Q���.�&#x6;���qAS����g�u�Q�3l:��M&#x11;k*1�&#x10;
+�y�[�NH�,�&apos;&#x12;N�&#x18;��.4�5)�(�8wL��{uC�	.w&#xc;�ʳ&#x3;&#xf;/��q��4A,3�ٖ���6!�&#xb;҅�-��&#x11;k�&quot;��8]���P���g[m�u���/?h��Y��&#x1c;�,��&#x1d;�Å�&#x1d;&#x13;��X1z%�H�2��&lt;���&lt;w�U���&#x15;U��)��; W&#x3;FU1�xt��&#x1e;&quot;&#x3;���dj��&#x3;��,N6y&#xb;���i&#x5;鹷��t�Y�&#x1a;&#x2;&#x6;lB�N�Z�,��qpK&#x1c;�7���#`��&#x1a;V̟�z�I�&#x15;{�����U=&#x8;&#x4;��&quot;MK��7K�&#x1e;&#xc;&#x1c;CU�B=��	&#x18;q�&#x15;N;V9��3d��R�Ż�I����3���&apos;����&#xd;��&#x7;&#x2;u�&amp;��&#x1e;~r&#x91;Zr&#x1f;&lt;8&#xd;f�&#x1d;&#xd;K�ZJB�&apos;	(���l��[`����
+O����&#x1b;&#x4;�$!�&#x18;fn&#x2;���=3
+��,S�5��P�@���x�T�n&#x14;�e&#x6;~���k`7���$�&quot;�&#xd;Q�f��p�EZ����&#x3;F5��H&#x2;&gt;�/�g���v&#x3;�{Q$�����&#x19;8&#x1d;$&#x2;�&#x14;W�po�;�ϽGG6S�L~���&#x8;�n	1&#x13;���zGpnV�s�G�Ζ&#x16;�=\|z�&#x15;&amp;�&#x19;�0y����X9(\&#x11;
+&#xf; �g:68�����B��!w�&#x1c;�!��&#x1b;�&#x1b;&#x3;</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>https://fonts.googleapis.com/css?family=Roboto:400,400italic,700,700italic,300,300italic</java.net.URL>
+  </httpSample>
+</testResults>

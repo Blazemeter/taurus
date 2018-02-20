@@ -1,42 +1,65 @@
+sudo: false
 language: python
+cache: pip  # use caching for pip's packages to speed up builds
+
+branches:
+  only:
+  - master
+
+os: linux
+
+python:
+- "2.7"
+- "3.4"
+- "3.5"
+- "3.6"
+
+env:
+  global:
+  - DISPLAY=:99.0
+  - PIP_INSTALL="pip install"
+  - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
 
 matrix:
   include:
-  - os: linux
-    python: 2.7
-  - os: linux
-    python: 3.3
-  - os: linux
-    python: 3.4
-  - os: linux
-    python: 3.5
-#  - os: osx
-#    language: generic
+  - os: osx
+    language: generic
+    env:
+    - PIP_INSTALL="sudo pip2 install"
+    - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
+    - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
 addons:
-  firefox: "51.0.1"
+  firefox: "57.0"
   apt:
     packages:
       - oracle-java8-set-default
-
-before_install: |
-  if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-    wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-macos.tar.gz -O geckodriver.tar.gz
-    sh -e Xvfb :99 -ac -screen 0 1024x768x8
-  else
-    wget https://github.com/mozilla/geckodriver/releases/download/v0.15.0/geckodriver-v0.15.0-linux64.tar.gz -O geckodriver.tar.gz
-    export DISPLAY=:99.0
-    sh -e /etc/init.d/xvfb start
-  fi
-  mkdir geckodriver
-  tar -xzf geckodriver.tar.gz
-  export PATH=$PATH:`pwd`
+      - mono-complete
 
 install:
-- nvm install 4.2
-- nvm use 4.2
+- |
+  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+    mono --version
+  else
+    gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
+  fi
+- nvm install 6.11
+- nvm use 6.11
 - gem install rspec
-- pip install codecov nose colorlog jsonpath-rw pyyaml psutil!=4.4.0 lxml cssselect urwid six selenium progressbar33 locustio pyvirtualdisplay
-script: coverage run -m nose
+- $PIP_INSTALL --upgrade pip
+- $PIP_INSTALL -r requirements.txt
+- $PIP_INSTALL -r tests/ci/requirements.txt
+
+before_script:
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
+- python tests/resources/httpserver/start.py &
+
+script:
+- coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
+
 after_success:
-  - codecov
+- if [ "$TRAVIS_OS_NAME" = "linux" ]; then coverage report -m && codecov; fi
+
+
+

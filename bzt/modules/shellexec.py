@@ -42,7 +42,7 @@ class ShellExecutor(Service):
             stage_task = ensure_is_dict(self.parameters[stage], index, "command")
             task_config = self.parameters[stage][index]
             default_cwd = self.settings.get("default-cwd", None)
-            cwd = task_config.get("cwd", default_cwd)
+            cwd = self.engine.find_file(task_config.get("cwd", default_cwd))
             if cwd is None:
                 working_dir = self.engine.default_cwd
             elif cwd == 'artifacts-dir':

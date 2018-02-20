@@ -17,16 +17,23 @@ limitations under the License.
 """
 
 import copy
+import json
 import os
 import subprocess
 import time
 import zipfile
-import json
 
-from bzt import NormalShutdown, ToolError, TaurusConfigError
-from bzt.engine import Service, HavingInstallableTools
+from bzt.six import communicate
+
+try:
+    from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
+except ImportError:
+    from pyvirtualdisplay import Display
+
+from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
+from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.six import get_stacktrace, urlopen, URLError
-from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool
+from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node
 
 
@@ -53,20 +60,22 @@ class Unpacker(Service):
         replace_in_config(self.engine.config, packed_list, unpacked_list, log=self.log)
 
 
-class InstallChecker(Service):
+class InstallChecker(Service, Singletone):
     def prepare(self):
         modules = self.engine.config.get("modules")
-        failure = None
+        problems = []
         for mod_name in modules.keys():
             try:
                 self._check_module(mod_name)
+            except KeyboardInterrupt:
+                raise  # let the engine handle it
             except BaseException as exc:
                 self.log.error("Failed to instantiate module %s", mod_name)
                 self.log.debug("%s", get_stacktrace(exc))
-                failure = exc if not failure else failure
+                problems.append(mod_name)
 
-        if failure:
-            raise ToolError("There were errors while checking for installed tools, see messages above")
+        if problems:
+            raise ToolError("There were errors while checking for installed tools for %s, see details above" % problems)
 
         raise NormalShutdown("Done checking for tools installed, will exit now")
 
@@ -103,7 +112,7 @@ class AndroidEmulatorLoader(Service):
             # try to read sdk path from env..
             sdk_path = os.environ.get('ANDROID_HOME')
             if sdk_path:
-                env_tool_path = os.path.join(sdk_path, 'tool', 'emulator')
+                env_tool_path = os.path.join(sdk_path, 'tools', 'emulator')
                 self.tool_path = get_full_path(env_tool_path)
                 self.settings['path'] = self.tool_path
             else:
@@ -126,7 +135,7 @@ class AndroidEmulatorLoader(Service):
         while not self.tool_is_started():
             time.sleep(1)
             if time.time() - start_time > self.startup_timeout:
-                raise ToolError("Android emulator %s cannot be loaded", self.avd)
+                raise ToolError("Android emulator %s cannot be loaded" % self.avd)
         self.log.info('Android emulator %s was started successfully', self.avd)
 
     def tool_is_started(self):
@@ -138,7 +147,7 @@ class AndroidEmulatorLoader(Service):
         self.log.debug("Trying: %s", cmd)
         try:
             proc = shell_exec(cmd)
-            out, _ = proc.communicate()
+            out, _ = communicate(proc)
             return out.strip() == '1'
         except BaseException as exc:
             raise ToolError('Checking if android emulator starts is impossible: %s', exc)
@@ -177,7 +186,7 @@ class AppiumLoader(Service):
         self.tool_path = self.settings.get('path', 'appium')
 
         required_tools = [Node(self.log),
-                          JavaVM("", "", self.log),
+                          JavaVM(self.log),
                           Appium(self.tool_path, "", self.log)]
 
         for tool in required_tools:
@@ -236,7 +245,7 @@ class Appium(RequiredTool):
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, IOError, OSError) as exc:
+        except (subprocess.CalledProcessError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
@@ -256,9 +265,74 @@ class AndroidEmulator(RequiredTool):
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, IOError, OSError) as exc:
+        except (subprocess.CalledProcessError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
     def install(self):
         raise ToolError("Automatic installation of %s is not implemented. Install it manually" % self.tool_name)
+
+
+class VirtualDisplay(Service, Singletone):
+    """
+    Selenium executor
+    :type virtual_display: Display
+    """
+
+    SHARED_VIRTUAL_DISPLAY = {}
+
+    def __init__(self):
+        super(VirtualDisplay, self).__init__()
+        self.virtual_display = None
+
+    def get_virtual_display(self):
+        return self.virtual_display
+
+    def set_virtual_display(self):
+        if is_windows():
+            self.log.warning("Cannot have virtual display on Windows, ignoring")
+            return
+
+        if self.engine in VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
+            self.virtual_display = VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine]
+        else:
+            width = self.parameters.get("width", 1024)
+            height = self.parameters.get("height", 768)
+            self.virtual_display = Display(size=(width, height))
+            msg = "Starting virtual display[%s]: %s"
+            self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
+            self.virtual_display.start()
+
+            # roll DISPLAY back for online report browser
+            if self.virtual_display.old_display_var:
+                os.environ["DISPLAY"] = self.virtual_display.old_display_var
+            else:
+                del os.environ["DISPLAY"]
+
+            VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine] = self.virtual_display
+            self.engine.shared_env.set({"DISPLAY": self.virtual_display.new_display_var})
+
+    def free_virtual_display(self):
+        if self.virtual_display and self.virtual_display.is_alive():
+            os.environ["DISPLAY"] = self.virtual_display.new_display_var
+            self.virtual_display.stop()
+        if self.engine in VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
+            del VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine]
+            self.engine.shared_env.set({"DISPLAY": None})
+
+    def startup(self):
+        self.set_virtual_display()
+
+    def check_virtual_display(self):
+        if self.virtual_display:
+            if not self.virtual_display.is_alive():
+                self.log.info("Virtual display out: %s", self.virtual_display.stdout)
+                self.log.warning("Virtual display err: %s", self.virtual_display.stderr)
+                raise TaurusInternalException("Virtual display failed: %s" % self.virtual_display.return_code)
+
+    def check(self):
+        self.check_virtual_display()
+        return False
+
+    def shutdown(self):
+        self.free_virtual_display()

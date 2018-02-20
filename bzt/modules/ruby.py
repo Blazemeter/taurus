@@ -1,10 +1,26 @@
-import subprocess
+"""
+Copyright 2017 BlazeMeter Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import traceback
-
 import os
-from bzt import ToolError, TaurusConfigError
 
-from bzt.engine import SubprocessedExecutor, HavingInstallableTools
+from subprocess import CalledProcessError, check_output, STDOUT
+
+from bzt import ToolError, TaurusConfigError
+from bzt.modules import SubprocessedExecutor
+from bzt.engine import HavingInstallableTools
 from bzt.utils import RequiredTool, is_windows, get_full_path, TclLibrary
 
 
@@ -18,14 +34,16 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
         self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
                                         "resources",
                                         "rspec_taurus_plugin.rb")
-        self._script = None
+        self.script = None
 
     def prepare(self):
         super(RSpecTester, self).prepare()
         self.install_required_tools()
-        self._script = self.get_script_path()
-        if not self._script:
-            raise TaurusConfigError("No script specified")
+        self.script = self.get_script_path()
+        if not self.script:
+            raise TaurusConfigError("Script not passed to runner %s" % self)
+
+        self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
         tools = []
@@ -45,9 +63,9 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
             interpreter,
             self.plugin_path,
             "--report-file",
-            self.execution.get("report-file"),
+            self.report_file,
             "--test-suite",
-            self._script
+            self.script
         ]
         load = self.get_load()
         if load.iterations:
@@ -66,10 +84,10 @@ class Ruby(RequiredTool):
 
     def check_if_installed(self):
         try:
-            output = subprocess.check_output([self.tool_path, '--version'], stderr=subprocess.STDOUT)
+            output = check_output([self.tool_path, '--version'], stderr=STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, OSError):
+        except (CalledProcessError, OSError):
             return False
 
     def install(self):
@@ -84,10 +102,10 @@ class RSpec(RequiredTool):
     def check_if_installed(self):
         try:
             rspec_exec = "rspec.bat" if is_windows() else "rspec"
-            output = subprocess.check_output([rspec_exec, '--version'], stderr=subprocess.STDOUT)
+            output = check_output([rspec_exec, '--version'], stderr=STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, OSError):
+        except (CalledProcessError, OSError):
             self.log.debug("RSpec check exception: %s", traceback.format_exc())
             return False
 

@@ -9,9 +9,8 @@ import time
 from collections import OrderedDict
 
 import requests
-from bzt import TaurusNetworkError, ManualShutdown, VERSION
 
-from bzt.six import cookielib
+from bzt import TaurusNetworkError, ManualShutdown, VERSION
 from bzt.six import string_types
 from bzt.six import text_type
 from bzt.six import urlencode
@@ -29,12 +28,12 @@ class BZAObject(dict):
 
         self.address = "https://a.blazemeter.com"
         self.data_address = "https://data.blazemeter.com"
-        self.timeout = 10
+        self.timeout = 30
         self.logger_limit = 256
         self.token = None
         self.log = logging.getLogger(self.__class__.__name__)
-        self._cookies = cookielib.CookieJar()
-        self.http_request = requests.request
+        self.http_session = requests.Session()
+        self.http_request = self.http_session.request
 
         # copy infrastructure from prototype
         if isinstance(proto, BZAObject):
@@ -61,7 +60,11 @@ class BZAObject(dict):
         headers["X-Client-Version"] = VERSION
 
         if isinstance(self.token, string_types) and ':' in self.token:
-            headers['Authorization'] = 'Basic ' + base64.b64encode(self.token)
+            token = self.token
+            if isinstance(token, text_type):
+                token = token.encode('ascii')
+            token = base64.b64encode(token).decode('ascii')
+            headers['Authorization'] = 'Basic ' + token
         elif self.token:
             headers["X-Api-Key"] = self.token
 
@@ -73,24 +76,30 @@ class BZAObject(dict):
         url = str(url)
 
         if isinstance(data, text_type):
-            data = data.encode("utf8")
+            data = data.encode("utf-8")
 
-        if isinstance(data, dict):
+        if isinstance(data, (dict, list)):
             data = to_json(data)
             headers["Content-Type"] = "application/json"
 
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
 
-        response = self.http_request(method=log_method, url=url, data=data, headers=headers, cookies=self._cookies,
-                                     timeout=self.timeout)
+        response = self.http_request(method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
 
         resp = response.content
         if not isinstance(resp, str):
             resp = resp.decode()
 
-        self.log.debug("Response: %s", resp[:self.logger_limit] if resp else None)
+        self.log.debug("Response [%s]: %s", response.status_code, resp[:self.logger_limit] if resp else None)
         if response.status_code >= 400:
-            raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
+            try:
+                result = json.loads(resp) if len(resp) else {}
+                if 'error' in result and result['error']:
+                    raise TaurusNetworkError("API call error %s: %s" % (url, result['error']))
+                else:
+                    raise TaurusNetworkError("API call error %s on %s: %s" % (response.status_code, url, result))
+            except ValueError:
+                raise TaurusNetworkError("API call error %s: %s %s" % (url, response.status_code, response.reason))
 
         if raw_result:
             return resp
@@ -139,12 +148,19 @@ class User(BZAObject):
         """ Quick check if we can access the service """
         self._request(self.address + '/api/v4/web/version')
 
-    def accounts(self):
+    def accounts(self, ident=None, name=None):
         """
         :rtype: BZAObjectsList[Account]
         """
         res = self._request(self.address + '/api/v4/accounts')
-        return BZAObjectsList([Account(self, x) for x in res['result']])
+        accounts = []
+        for acc in res['result']:
+            if ident is not None and acc['id'] != ident:
+                continue
+            if name is not None and acc['name'] != name:
+                continue
+            accounts.append(Account(self, acc))
+        return BZAObjectsList(accounts)
 
     def fetch(self):
         res = self._request(self.address + '/api/v4/user')
@@ -196,20 +212,56 @@ class User(BZAObject):
         hdr = {"Content-Type": str(body.get_content_type())}
         self._request(url, body.form_as_bytes(), headers=hdr)
 
+    def test_by_ids(self, account_id=None, workspace_id=None, project_id=None, test_id=None, taurus_only=False):
+        account = self.accounts(ident=account_id).first()
+        if not account:
+            raise ValueError("Account not found: %s" % account_id)
+        workspace = account.workspaces(ident=workspace_id).first()
+        if workspace is None:
+            raise ValueError("Workspace not found: %s" % workspace_id)
+        project = workspace.projects(ident=project_id).first()
+        if project:
+            target = project
+        else:
+            target = workspace
+
+        test = target.multi_tests(ident=test_id).first()
+        if test is None:
+            test_type = "taurus" if taurus_only else None
+            test = target.tests(ident=test_id, test_type=test_type).first()
+
+        if test is None:
+            raise ValueError("Test wasn't found")
+
+        return account, workspace, project, test
+
 
 class Account(BZAObject):
-    def workspaces(self):
+    def workspaces(self, ident=None, name=None):
         """
         :rtype: BZAObjectsList[Workspace]
         """
         params = {"accountId": self['id'], 'enabled': 'true', 'limit': 100}
         params = OrderedDict(sorted(params.items(), key=lambda t: t[0]))
         res = self._request(self.address + '/api/v4/workspaces?' + urlencode(params))
-        return BZAObjectsList([Workspace(self, x) for x in res['result'] if x['enabled']])
+        workspaces = []
+        for wksp in res['result']:
+            if not wksp['enabled']:
+                continue
+
+            if name is not None and wksp['name'] != name:
+                continue
+
+            if ident is not None and wksp['id'] != ident:
+                continue
+
+            workspaces.append(Workspace(self, wksp))
+
+        return BZAObjectsList(workspaces)
 
 
 class Workspace(BZAObject):
-    def projects(self, name=None, proj_id=None):
+    def projects(self, name=None, ident=None):
         """
         :rtype: BZAObjectsList[Project]
         """
@@ -223,11 +275,11 @@ class Workspace(BZAObject):
             if name is not None and item['name'] != name:
                 continue
 
-            if proj_id is not None and item['id'] != proj_id:
+            if ident is not None and item['id'] != ident:
                 continue
 
             projects.append(Project(self, item))
-        return projects
+        return BZAObjectsList(projects)
 
     def locations(self, include_private=False):
         if 'locations' not in self:
@@ -247,17 +299,22 @@ class Workspace(BZAObject):
         res = self._request(self.address + '/api/v4/private-locations?' + urlencode(params))
         return BZAObjectsList([BZAObject(self, x) for x in res['result']])
 
-    def tests(self, name=None, test_type=None):
+    def tests(self, name=None, ident=None, test_type=None):
         """
         :rtype: BZAObjectsList[Test]
         """
         params = OrderedDict({"workspaceId": self['id']})
         if name is not None:
             params["name"] = name
+        if ident is not None:
+            params["id"] = ident
 
         res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
         tests = BZAObjectsList()
         for item in res['result']:
+            if ident is not None and item['id'] != ident:
+                continue
+
             if name is not None and item['name'] != name:
                 continue
 
@@ -267,17 +324,22 @@ class Workspace(BZAObject):
             tests.append(Test(self, item))
         return tests
 
-    def multi_tests(self, name=None):
+    def multi_tests(self, name=None, ident=None):
         """
         :rtype: BZAObjectsList[MultiTest]
         """
         params = OrderedDict({"workspaceId": self['id']})
         if name is not None:
             params["name"] = name
+        if ident is not None:
+            params["id"] = ident
 
         res = self._request(self.address + '/api/v4/multi-tests?' + urlencode(params))
         tests = BZAObjectsList()
         for item in res['result']:
+            if ident is not None and item['id'] != ident:
+                continue
+
             if name is not None and item['name'] != name:
                 continue
 
@@ -300,17 +362,22 @@ class Location(BZAObject):
 
 
 class Project(BZAObject):
-    def tests(self, name=None, test_type=None):
+    def tests(self, name=None, ident=None, test_type=None):
         """
         :rtype: BZAObjectsList[Test]
         """
         params = OrderedDict({"projectId": self['id']})
         if name is not None:
             params["name"] = name
+        if ident is not None:
+            params["id"] = ident
 
         res = self._request(self.address + '/api/v4/tests?' + urlencode(params))
         tests = BZAObjectsList()
         for item in res['result']:
+            if ident is not None and item['id'] != ident:
+                continue
+
             if name is not None and item['name'] != name:
                 continue
 
@@ -320,17 +387,22 @@ class Project(BZAObject):
             tests.append(Test(self, item))
         return tests
 
-    def multi_tests(self, name=None):
+    def multi_tests(self, name=None, ident=None):
         """
         :rtype: BZAObjectsList[MultiTest]
         """
         params = OrderedDict({"projectId": self['id']})
         if name is not None:
             params["name"] = name
+        if ident is not None:
+            params["id"] = ident
 
         res = self._request(self.address + '/api/v4/multi-tests?' + urlencode(params))
         tests = BZAObjectsList()
         for item in res['result']:
+            if ident is not None and item['id'] != ident:
+                continue
+
             if name is not None and item['name'] != name:
                 continue
 
@@ -396,8 +468,10 @@ class Test(BZAObject):
             self.log.debug("Successfully deleted %d test files", len(response['removed']))
         return response['removed']
 
-    def start(self):
+    def start(self, as_functional=False):
         url = self.address + "/api/v4/tests/%s/start" % self['id']
+        if as_functional:
+            url += "?functionalExecution=true"
         resp = self._request(url, method='POST')
         master = Master(self, resp['result'])
         return master
@@ -450,16 +524,6 @@ class Master(BZAObject):
         public_token = res['result']['publicToken']
         report_link = self.address + "/app/?public-token=%s#/masters/%s/summary" % (public_token, self['id'])
         return report_link
-
-    def send_custom_metrics(self, data):
-        url = self.address + "/api/v4/data/masters/%s/custom-metrics" % self['id']
-        res = self._request(url, data, method="POST")
-        return res
-
-    def send_custom_tables(self, data):
-        url = self.address + "/api/v4/data/masters/%s/custom-table" % self['id']
-        res = self._request(url, data, method="POST")
-        return res
 
     def fetch(self):
         url = self.address + "/api/v4/masters/%s" % self['id']
@@ -516,6 +580,11 @@ class Master(BZAObject):
         res = self._request(url)
         return res['result']
 
+    def get_errors(self):
+        url = self.address + "/api/v4/masters/%s/reports/errorsreport/data?noDataError=false" % self['id']
+        res = self._request(url)
+        return res['result']
+
     def force_start(self):
         url = self.address + "/api/v4/masters/%s/force-start" % self['id']
         self._request(url, method="POST")
@@ -528,12 +597,21 @@ class Master(BZAObject):
         url = self.address + "/api/v4/masters/%s/full" % self['id']
         return self._request(url)['result']
 
+    def get_functional_report_groups(self):
+        url = self.address + "/api/v4/masters/%s/reports/functional/groups" % self['id']
+        return self._request(url)['result']
+
+    def get_functional_report_group(self, group_id):
+        url = self.address + "/api/v4/masters/%s/reports/functional/groups/%s" % (self['id'], group_id)
+        return self._request(url)['result']
+
 
 class Session(BZAObject):
     def __init__(self, proto=None, data=None):
         super(Session, self).__init__(proto, data)
         self.data_signature = None
         self.kpi_target = 'labels_bulk'
+        self.monitoring_upload_notified = False
 
     def fetch(self):
         url = self.address + "/api/v4/sessions/%s" % self['id']
@@ -550,26 +628,33 @@ class Session(BZAObject):
         url = self.address + "/api/v4/sessions/%s/stop" % self['id']
         self._request(url, method='POST')
 
+    def terminate(self):
+        url = self.address + "/api/v4/sessions/%s/terminate" % self['id']
+        self._request(url, method='POST')
+
     def stop_anonymous(self):
         url = self.address + "/api/v4/sessions/%s/terminate-external" % self['id']  # FIXME: V4 API has issue with it
         data = {"signature": self.data_signature, "testId": self['testId'], "sessionId": self['id']}
         self._request(url, data)
 
-    def send_kpi_data(self, data, is_check_response=True):
+    def send_kpi_data(self, data, is_check_response=True, submit_target=None):
         """
         Sends online data
 
+        :type submit_target: str
         :param is_check_response:
         :type data: str
         """
+        submit_target = self.kpi_target if submit_target is None else submit_target
         url = self.data_address + "/submit.php?session_id=%s&signature=%s&test_id=%s&user_id=%s"
         url %= self['id'], self.data_signature, self['testId'], self['userId']
-        url += "&pq=0&target=%s&update=1" % self.kpi_target
+        url += "&pq=0&target=%s&update=1" % submit_target
         hdr = {"Content-Type": "application/json"}
         response = self._request(url, data, headers=hdr)
 
         if response and 'response_code' in response and response['response_code'] != 200:
-            raise TaurusNetworkError("Failed to feed data, response code %s" % response['response_code'])
+            raise TaurusNetworkError("Failed to feed data to %s, response code %s" %
+                                     (submit_target, response['response_code']))
 
         if response and 'result' in response and is_check_response:
             result = response['result']['session']
@@ -579,7 +664,12 @@ class Session(BZAObject):
                 raise ManualShutdown("The test was interrupted through Web UI")
 
     def send_monitoring_data(self, engine_id, data):
-        self.upload_file('%s-%s-c.monitoring.json' % (self['id'], engine_id), to_json(data))
+        file_name = '%s-%s-c.monitoring.json' % (self['id'], engine_id)
+        self.upload_file(file_name, to_json(data))
+        if not self.monitoring_upload_notified:
+            self.log.debug("Sending engine health notification")
+            self.notify_monitoring_file(file_name)
+            self.monitoring_upload_notified = True
 
     def upload_file(self, filename, contents=None):
         """
@@ -597,7 +687,7 @@ class Session(BZAObject):
         else:
             body.add_file_as_string('file', filename, contents)
 
-        url = self.address + "/api/v4/image/%s/files?signature=%s"
+        url = self.data_address + "/api/v4/image/%s/files?signature=%s"
         url %= self['id'], self.data_signature
         hdr = {"Content-Type": str(body.get_content_type())}
         response = self._request(url, body.form_as_bytes(), headers=hdr)
@@ -607,6 +697,13 @@ class Session(BZAObject):
     def get_logs(self):
         url = self.address + "/api/v4/sessions/%s/reports/logs" % self['id']
         return self._request(url)['result']['data']
+
+    def notify_monitoring_file(self, file_name):
+        data = {
+            'fileName': file_name,
+        }
+        data_str = json.dumps(data)
+        self.send_kpi_data(data_str, submit_target='engine_health')
 
 
 class BZAProxy(BZAObject):
@@ -621,6 +718,10 @@ class BZAProxy(BZAObject):
         self._request(self.address + '/api/latest/proxy/recording/start', method='POST')
 
     def get_jmx(self):
+        response = self._request(self.address + '/api/latest/proxy/download?format=jmx&smart=false', raw_result=True)
+        return response
+
+    def get_smart_jmx(self):
         # wait for availability
         while True:
             response = self._request(self.address + '/api/latest/proxy')
@@ -648,3 +749,7 @@ class BZAProxy(BZAObject):
         self._request(self.address + '/api/latest/proxy/recording/clear', method='POST')
 
         return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])
+
+    def get_json(self):
+        response = self._request(self.address + '/api/latest/proxy/download?format=json', raw_result=True)
+        return response

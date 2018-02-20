@@ -41,8 +41,10 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         super(FinalStatus, self).__init__()
         self.last_sec = None
         self.cumulative_results = None
-        self.start_time = time.time()
-        self.end_time = None
+        self.start_time = time.time()  # default value
+        self.end_time = time.time()
+        self.first_ts = float("inf")
+        self.last_ts = 0
 
     def startup(self):
         self.start_time = time.time()
@@ -60,6 +62,8 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
 
         :type data: bzt.modules.aggregator.DataPoint
         """
+        self.first_ts = min(self.first_ts, data[DataPoint.TIMESTAMP])
+        self.last_ts = max(self.last_ts, data[DataPoint.TIMESTAMP])
         self.last_sec = data
 
     def aggregated_results(self, results, cumulative_results):
@@ -71,13 +75,14 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         """
         self.cumulative_results = cumulative_results
 
+    def shutdown(self):
+        self.end_time = time.time()
+
     def post_process(self):
         """
         Log basic stats
         """
         super(FinalStatus, self).post_process()
-
-        self.end_time = time.time()
 
         if self.parameters.get("test-duration", True):
             self.__report_duration()
@@ -123,7 +128,10 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             for case in self.cumulative_results.test_cases(test_suite):
                 if case.status in ("FAILED", "BROKEN"):
                     full_name = case.test_suite + "." + case.test_case
-                    self.log.info("Test %s failed:\n%s", full_name, case.error_trace)
+                    msg = "Test {test_case} failed: {error_msg}".format(test_case=full_name, error_msg=case.error_msg)
+                    if case.error_trace:
+                        msg += "\n" + case.error_trace
+                    self.log.warning(msg)
 
     def __report_summary(self):
         status_counter = Counter()
@@ -178,6 +186,12 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __dump_xml(self, filename):
         self.log.info("Dumping final status as XML: %s", filename)
         root = etree.Element("FinalStatus")
+
+        if self.first_ts < float("inf") and self.last_ts > 0:
+            duration_elem = etree.Element("TestDuration")
+            duration_elem.text = str(round(float(self.last_ts - self.first_ts), 3))
+            root.append(duration_elem)
+
         report_info = get_bza_report_info(self.engine, self.log)
         if report_info:
             link, _ = report_info[0]
@@ -237,37 +251,42 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         self.log.info("Dumping final status as CSV: %s", filename)
         # FIXME: what if there's no last_sec
         with open(get_full_path(filename), 'wt') as fhd:
-            writer = csv.DictWriter(fhd, self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys())
+            fieldnames = self.__get_csv_dict('', self.last_sec[DataPoint.CUMULATIVE]['']).keys()
+            writer = csv.DictWriter(fhd, fieldnames)
             writer.writeheader()
             for label, kpiset in iteritems(self.last_sec[DataPoint.CUMULATIVE]):
                 writer.writerow(self.__get_csv_dict(label, kpiset))
 
     def __get_csv_dict(self, label, kpiset):
         kpi_copy = copy.deepcopy(kpiset)
-        # sort label
         res = OrderedDict()
+        res['label'] = label
+
+        # sort label
         for key in sorted(kpi_copy.keys()):
             res[key] = kpi_copy[key]
 
-        for level, val in iteritems(kpiset[KPISet.PERCENTILES]):
+        del res[KPISet.ERRORS]
+        del res[KPISet.RESP_TIMES]
+        del res[KPISet.RESP_CODES]
+        del res[KPISet.PERCENTILES]
+
+        percentiles = list(iteritems(kpiset[KPISet.PERCENTILES]))
+        for level, val in sorted(percentiles, key=lambda lv: (float(lv[0]), lv[1])):
             res['perc_%s' % level] = val
 
-        for rcd, val in iteritems(kpiset[KPISet.RESP_CODES]):
+        resp_codes = list(iteritems(kpiset[KPISet.RESP_CODES]))
+        for rcd, val in sorted(resp_codes):
             res['rc_%s' % rcd] = val
 
         for key in res:
             if isinstance(res[key], float):
                 res[key] = "%.5f" % res[key]
 
-        del res['errors']
-        del res['rt']
-        del res['rc']
-        del res['perc']
-        res['label'] = label
         return res
 
 
-class JUnitXMLReporter(Reporter, AggregatorListener):
+class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListener):
     """
     A reporter that exports results in Jenkins JUnit XML format.
     """
@@ -276,13 +295,22 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         super(JUnitXMLReporter, self).__init__()
         self.last_second = None
         self.report_file_path = None
+        self.cumulative_results = None
 
     def prepare(self):
         if isinstance(self.engine.aggregator, ResultsProvider):
             self.engine.aggregator.add_listener(self)
+        elif isinstance(self.engine.aggregator, FunctionalAggregator):
+            self.engine.aggregator.add_listener(self)
 
     def aggregated_second(self, data):
         self.last_second = data
+
+    def aggregated_results(self, _, cumulative_results):
+        """
+        :type cumulative_results: bzt.modules.functional.ResultsTree
+        """
+        self.cumulative_results = cumulative_results
 
     def post_process(self):
         """
@@ -295,19 +323,24 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
         test_data_source = self.parameters.get("data-source", "sample-labels")
 
-        if test_data_source == "sample-labels":
-            if not self.last_second:
-                self.log.warning("No last second data to generate XUnit.xml")
-            else:
-                writer = XUnitFileWriter(self.engine, 'sample_labels')
-                self.process_sample_labels(writer)
+        if self.cumulative_results is None:
+            if test_data_source == "sample-labels":
+                if not self.last_second:
+                    self.log.warning("No last second data to generate XUnit.xml")
+                else:
+                    writer = XUnitFileWriter(self.engine)
+                    self.process_sample_labels(writer)
+                    writer.save_report(filename)
+            elif test_data_source == "pass-fail":
+                writer = XUnitFileWriter(self.engine)
+                self.process_pass_fail(writer)
                 writer.save_report(filename)
-        elif test_data_source == "pass-fail":
-            writer = XUnitFileWriter(self.engine, 'bzt_pass_fail')
-            self.process_pass_fail(writer)
-            writer.save_report(filename)
+            else:
+                raise TaurusConfigError("Unsupported data source: %s" % test_data_source)
         else:
-            raise TaurusConfigError("Unsupported data source: %s" % test_data_source)
+            writer = XUnitFileWriter(self.engine)
+            self.process_functional(writer)
+            writer.save_report(filename)
 
         self.report_file_path = filename  # TODO: just for backward compatibility, remove later
 
@@ -315,6 +348,7 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
         """
         :type xunit: XUnitFileWriter
         """
+        xunit.report_test_suite('sample_labels')
         labels = self.last_second[DataPoint.CUMULATIVE]
 
         for key in sorted(labels.keys()):
@@ -323,19 +357,24 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
 
             errors = []
             for er_dict in labels[key][KPISet.ERRORS]:
-                err_message = str(er_dict["rc"])
-                err_type = str(er_dict["msg"])
-                err_desc = "total errors of this type:" + str(er_dict["cnt"])
-                err_element = etree.Element("error", message=err_message, type=err_type)
+                rc = str(er_dict["rc"])
+                msg = str(er_dict["msg"])
+                cnt = str(er_dict["cnt"])
+                if er_dict["type"] == KPISet.ERRTYPE_ASSERT:
+                    err_element = etree.Element("failure", message=msg, type="Assertion Failure")
+                else:
+                    err_element = etree.Element("error", message=msg, type="Error")
+                err_desc = "%s\n(status code is %s)\n(total errors of this type: %s)" % (msg, rc, cnt)
                 err_element.text = err_desc
                 errors.append(err_element)
 
-            xunit.add_test_case(key, errors)
+            xunit.report_test_case('sample_labels', key, errors)
 
     def process_pass_fail(self, xunit):
         """
         :type xunit: XUnitFileWriter
         """
+        xunit.report_test_suite('bzt_pass_fail')
         mods = self.engine.reporters + self.engine.services  # TODO: remove it after passfail is only reporter
         pass_fail_objects = [_x for _x in mods if isinstance(_x, PassFailStatus)]
         self.log.debug("Processing passfail objects: %s", pass_fail_objects)
@@ -363,7 +402,43 @@ class JUnitXMLReporter(Reporter, AggregatorListener):
             else:
                 errors = ()
 
-            xunit.add_test_case(disp_name, errors)
+            xunit.report_test_case('bzt_pass_fail', disp_name, errors)
+
+    def process_functional(self, xunit):
+        for suite_name, samples in iteritems(self.cumulative_results):
+            duration = max(s.start_time for s in samples) - min(s.start_time for s in samples)
+            duration += max(samples, key=lambda s: s.start_time).duration
+            attrs = {
+                "name": suite_name,
+                "tests": str(len(samples)),
+                "errors": str(len([sample for sample in samples if sample.status == "BROKEN"])),
+                "skipped": str(len([sample for sample in samples if sample.status == "SKIPPED"])),
+                "failures": str(len([sample for sample in samples if sample.status == "FAILED"])),
+                "time": str(round(duration, 3)),
+                # TODO: "timestamp" attribute
+            }
+            xunit.add_test_suite(suite_name, attributes=attrs)
+            for sample in samples:
+                attrs = {
+                    "classname": sample.test_suite,
+                    "name": sample.test_case,
+                    "time": str(round(sample.duration, 3))
+                }
+                children = []
+                if sample.status == "BROKEN":
+                    error = etree.Element("error", type=sample.error_msg)
+                    if sample.error_trace:
+                        error.text = sample.error_trace
+                    children.append(error)
+                elif sample.status == "FAILED":
+                    failure = etree.Element("failure", message=sample.error_msg)
+                    if sample.error_trace:
+                        failure.text = sample.error_trace
+                    children.append(failure)
+                elif sample.status == "SKIPPED":
+                    skipped = etree.Element("skipped")
+                    children.append(skipped)
+                xunit.add_test_case(suite_name, attributes=attrs, children=children)
 
 
 def get_bza_report_info(engine, log):
@@ -378,7 +453,6 @@ def get_bza_report_info(engine, log):
         result.append((report_url, test_name if test_name is not None else report_url))
     else:
         bza_reporters = [_x for _x in engine.reporters if isinstance(_x, BlazeMeterUploader)]
-        """:type : list[bzt.modules.blazemeter.BlazeMeterUploader]"""
         for bza_reporter in bza_reporters:
             if bza_reporter.results_url:
                 test_name = bza_reporter.parameters.get("test", None)
@@ -394,7 +468,7 @@ class XUnitFileWriter(object):
     REPORT_FILE_NAME = "xunit"
     REPORT_FILE_EXT = ".xml"
 
-    def __init__(self, engine, suite_name):
+    def __init__(self, engine):
         """
         :type engine: bzt.engine.Engine
         :type suite_name: str
@@ -402,7 +476,7 @@ class XUnitFileWriter(object):
         super(XUnitFileWriter, self).__init__()
         self.engine = engine
         self.log = engine.log.getChild(self.__class__.__name__)
-        self.test_suite = etree.Element("testsuite", name=suite_name, package="bzt")
+        self.test_suites = OrderedDict()
         bza_report_info = get_bza_report_info(engine, self.log)
         self.class_name = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())
         self.report_urls = ["BlazeMeter report link: %s\n" % info_item[0] for info_item in bza_report_info]
@@ -419,23 +493,54 @@ class XUnitFileWriter(object):
                 if dirname and not os.path.exists(dirname):
                     os.makedirs(dirname)
 
-            etree_obj = etree.ElementTree(self.test_suite)
+            testsuites = etree.Element("testsuites")
+            for _, suite in iteritems(self.test_suites):
+                testsuites.append(suite)
+            etree_obj = etree.ElementTree(testsuites)
+
             self.log.info("Writing JUnit XML report into: %s", fname)
             with open(get_full_path(fname), 'wb') as _fds:
                 etree_obj.write(_fds, xml_declaration=True, encoding="UTF-8", pretty_print=True)
         except BaseException:
             raise TaurusInternalException("Cannot create file %s" % fname)
 
-    def add_test_case(self, case_name, children=()):
+    def report_test_suite(self, suite_name):
         """
+        :type suite_name: str
+        :type children: list[bzt.six.etree.Element]
+        """
+        self.add_test_suite(suite_name, attributes={"name": suite_name, "package_name": "bzt"})
+
+    def report_test_case(self, suite_name, case_name, children=None):
+        """
+        :type suite_name: str
         :type case_name: str
         :type children: list[bzt.six.etree.Element]
         """
-        test_case = etree.Element("testcase", classname=self.class_name, name=case_name)
+        children = children or []
         if self.report_urls:
-            system_out_etree = etree.SubElement(test_case, "system-out")
-            system_out_etree.text = "".join(self.report_urls)
+            system_out = etree.Element("system-out")
+            system_out.text = "".join(self.report_urls)
+            children.insert(0, system_out)
+        self.add_test_case(suite_name, attributes={"classname": self.class_name, "name": case_name}, children=children)
+
+    def add_test_suite(self, suite_name, attributes=None, children=()):
+        attributes = attributes or {}
+
+        suite = etree.Element("testsuite", **attributes)
 
         for child in children:
-            test_case.append(child)
-        self.test_suite.append(test_case)
+            suite.append(child)
+
+        if not suite_name in self.test_suites:
+            self.test_suites[suite_name] = suite
+
+    def add_test_case(self, suite_name, attributes=None, children=()):
+        attributes = attributes or {}
+
+        case = etree.Element("testcase", **attributes)
+
+        for child in children:
+            case.append(child)
+
+        self.test_suites[suite_name].append(case)

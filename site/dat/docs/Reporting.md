@@ -128,8 +128,8 @@ modules:
     ignore-labels: # sample labels from this list 
       - ignore     # will be ignored by results reader
       
-    buffer-multiplier: 0.5  # choose middle value from following percentiles list (95.0)
-    buffer-scale-choice: 2  # make buffer two times bigger than need to receive 95% samples      
+    buffer-scale-choice: 0.5  # choose middle value from following percentiles list (95.0)
+    buffer-multiplier: 2  # make buffer two times bigger than need to receive 95% samples
     min-buffer-len: 2s      # minimal length of buffer (default: 2s)
     max-buffer-len: 2h      # maximal length of buffer (default: infinity)
     
@@ -147,19 +147,19 @@ modules:
 ```
 `rtimes-len` allows to reduce memory consumption for heavy tests. On the other hand, you reduce the precision of distribution with that.
  
- ## Pass/Fail Criteria Subsystem
+## Pass/Fail Criteria Subsystem
  
  Pass/Fail module is used to dynamically update test status based on some runtime criteria. For
  example, you can use it to automatically fail the test when response time exceeds some threshold.
  Here's a sample:
  
- ```yaml
- reporting:
- - module: passfail
-   criteria:
-   - avg-rt of IndexPage>150ms for 10s, stop as failed
-   - fail of CheckoutPage>50% for 10s, stop as failed
- ```
+```yaml
+reporting:
+- module: passfail
+  criteria:
+  - avg-rt of IndexPage>150ms for 10s, stop as failed
+  - fail of CheckoutPage>50% for 10s, stop as failed
+```
  
- You can learn more about Pass/Fail criteria capabilities at its [page](PassFail.md).
+You can learn more about Pass/Fail criteria capabilities at its [page](PassFail.md).
  

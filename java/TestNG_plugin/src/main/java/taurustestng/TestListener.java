@@ -98,6 +98,10 @@ public class TestListener implements IResultListener {
 
     public void onConfigurationFailure(ITestResult tr) {
         log.info("onConfigurationFailure: " + Utils.getStackTrace(tr.getThrowable()));
+        failedCount += 1;
+        Sample sample = captureSample(tr);
+        reportToStdout(sample);
+        reporter.writeSample(sample);
     }
 
     public void onConfigurationSkip(ITestResult tr) {

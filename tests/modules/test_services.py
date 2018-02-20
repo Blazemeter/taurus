@@ -7,10 +7,9 @@ from os.path import join
 from bzt import NormalShutdown, ToolError, TaurusConfigError
 from bzt.engine import Service, Provisioning, EngineModule
 from bzt.modules.blazemeter import CloudProvisioning
-from bzt.modules.selenium import Node
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader
-from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM
-from tests import BZTestCase, __dir__
+from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node
+from tests import BZTestCase, __dir__, RESOURCES_DIR
 from tests.mocks import EngineEmul, ModuleMock
 from tests.modules.test_blazemeter import BZMock
 
@@ -28,10 +27,11 @@ class TestZipFolder(BZTestCase):
                     "us-east-1": 1,
                     "us-west": 2},
                 "scenario": {
-                    "script": __dir__() + "/../selenium/junit/java_package"}},
+                    "script": RESOURCES_DIR + "selenium/junit/java_package"}},
             "modules": {
                 "selenium": "bzt.modules.selenium.SeleniumExecutor",
-                "cloud": "bzt.modules.blazemeter.CloudProvisioning"},
+                "cloud": "bzt.modules.blazemeter.CloudProvisioning",
+                "junit": "bzt.modules.java.JUnitTester"},
             "provisioning": "cloud"
         })
 
@@ -40,10 +40,17 @@ class TestZipFolder(BZTestCase):
         mock = BZMock(obj.user)
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": []},
+            'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {
+                "result": [{"id": 1, 'name': 'Taurus Cloud Test', "configuration": {"type": "taurus"}}]
+            },
         })
         mock.mock_post.update({
-            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1}},
-            'https://a.blazemeter.com/api/v4/tests': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/projects': {"result": {"id": 1, 'workspaceId': 1}},
+            'https://a.blazemeter.com/api/v4/multi-tests': {"result": {}},
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {
+                "result": {"id": 1, "configuration": {"type": "taurus"}}
+            },
             'https://a.blazemeter.com/api/v4/tests/1/files': {}
         })
         mock.mock_patch.update({'https://a.blazemeter.com/api/v4/tests/1': {"result": {}}})
@@ -57,7 +64,7 @@ class TestZipFolder(BZTestCase):
 
     @staticmethod
     def __get_user_info():
-        with open(__dir__() + "/../json/blazemeter-api-user.json") as fhd:
+        with open(RESOURCES_DIR + "json/blazemeter-api-user.json") as fhd:
             return json.loads(fhd.read())
 
     def test_receive_and_unpack_on_worker(self):
@@ -166,7 +173,7 @@ class TestAndroidEmulatorLoader(BZTestCase):
 
     def create_fake_android_emulator(self):
         sdk_dir = join(self.android.engine.artifacts_dir, 'sdk')
-        src_dir = join(__dir__(), '..', 'android-emulator')
+        src_dir = RESOURCES_DIR + 'android-emulator'
         dest_dir = join(sdk_dir, 'tools')
         os.mkdir(sdk_dir)
         os.mkdir(dest_dir)
@@ -208,7 +215,7 @@ class TestAppiumLoader(BZTestCase):
         self.appium.post_process()
 
     def create_fake_appium(self):
-        src_dir = join(__dir__(), '..', 'appium')
+        src_dir = RESOURCES_DIR + 'appium'
         dest_dir = self.appium.engine.artifacts_dir
         shutil.copy2(join(src_dir, 'appium' + EXE_SUFFIX), dest_dir)
         os.chmod(join(dest_dir, 'appium' + EXE_SUFFIX), 0o755)

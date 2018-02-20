@@ -14,27 +14,31 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import logging
+import os
 import platform
+import shutil
 import signal
 import sys
 import tempfile
 import traceback
+from logging import Formatter
 from optparse import OptionParser, Option
 from tempfile import NamedTemporaryFile
 
-import os
 import yaml
+from colorlog import ColoredFormatter
+
+import bzt
 from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
 from bzt import TaurusException, ToolError
 from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from colorlog import ColoredFormatter
-from logging import Formatter
-
-import bzt
 from bzt.engine import Engine, Configuration, ScenarioExecutor
-from bzt.six import HTTPError, string_types, b, get_stacktrace
-from bzt.utils import run_once, is_int, BetterDict, is_piped
+from bzt.engine import SETTINGS
+from bzt.linter import ConfigurationLinter
+from bzt.six import HTTPError, string_types, get_stacktrace
+from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url
 
 
 class CLI(object):
@@ -43,6 +47,9 @@ class CLI(object):
 
     :param options: OptionParser parsed parameters
     """
+    console_handler = logging.StreamHandler(sys.stdout)
+
+    CLI_SETTINGS = "cli"
 
     def __init__(self, options):
         self.signal_count = 0
@@ -60,7 +67,7 @@ class CLI(object):
     @run_once
     def setup_logging(options):
         """
-        Setting up console and file loggind, colored if possible
+        Setting up console and file logging, colored if possible
 
         :param options: OptionParser parsed options
         """
@@ -96,19 +103,17 @@ class CLI(object):
             logger.addHandler(file_handler)
 
         # log something to console
-        console_handler = logging.StreamHandler(sys.stdout)
-
         if options.verbose:
-            console_handler.setLevel(logging.DEBUG)
-            console_handler.setFormatter(fmt_verbose)
+            CLI.console_handler.setLevel(logging.DEBUG)
+            CLI.console_handler.setFormatter(fmt_verbose)
         elif options.quiet:
-            console_handler.setLevel(logging.WARNING)
-            console_handler.setFormatter(fmt_regular)
+            CLI.console_handler.setLevel(logging.WARNING)
+            CLI.console_handler.setFormatter(fmt_regular)
         else:
-            console_handler.setLevel(logging.INFO)
-            console_handler.setFormatter(fmt_regular)
+            CLI.console_handler.setLevel(logging.INFO)
+            CLI.console_handler.setFormatter(fmt_regular)
 
-        logger.addHandler(console_handler)
+        logger.addHandler(CLI.console_handler)
 
         logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
 
@@ -154,15 +159,15 @@ class CLI(object):
         if self.options.no_system_configs is None:
             self.options.no_system_configs = False
 
-        user_file = os.path.expanduser(os.path.join('~', ".bzt-rc"))
-        if os.path.isfile(user_file):
-            self.log.debug("Adding personal config: %s", user_file)
-            bzt_rc = [user_file]
+        bzt_rc = os.path.expanduser(os.path.join('~', ".bzt-rc"))
+        if os.path.exists(bzt_rc):
+            self.log.debug("Using personal config: %s" % bzt_rc)
         else:
-            self.log.info("No personal config: %s", user_file)
-            bzt_rc = []
+            self.log.debug("Adding personal config: %s", bzt_rc)
+            self.log.info("No personal config found, creating one at %s", bzt_rc)
+            shutil.copy(os.path.join(get_full_path(__file__, step_up=1), 'resources', 'base-bzt-rc.yml'), bzt_rc)
 
-        merged_config = self.engine.configure(bzt_rc + configs, not self.options.no_system_configs)
+        merged_config = self.engine.configure([bzt_rc] + configs, not self.options.no_system_configs)
 
         # apply aliases
         for alias in self.options.aliases:
@@ -175,8 +180,35 @@ class CLI(object):
             overrider = ConfigOverrider(self.log)
             overrider.apply_overrides(self.options.option, self.engine.config)
 
+        settings = self.engine.config.get(SETTINGS)
+        settings.get('verbose', bool(self.options.verbose))  # respect value from config
+        if self.options.verbose:  # force verbosity if cmdline asked for it
+            settings['verbose'] = True
+
+        if settings.get('verbose'):
+            CLI.console_handler.setLevel(logging.DEBUG)
         self.engine.create_artifacts_dir(configs, merged_config)
         self.engine.default_cwd = os.getcwd()
+        self.engine.eval_env()  # yacky, I don't like having it here, but how to apply it after aliases and artif dir?
+
+    def __lint_config(self):
+        settings = self.engine.config.get(CLI.CLI_SETTINGS).get("linter")
+        self.log.debug("Linting config")
+        self.warn_on_unfamiliar_fields = settings.get("warn-on-unfamiliar-fields", True)
+        config_copy = copy.deepcopy(self.engine.config)
+        ignored_warnings = settings.get("ignored-warnings", [])
+        self.linter = ConfigurationLinter(config_copy, ignored_warnings, self.log)
+        self.linter.register_checkers()
+        self.linter.lint()
+        warnings = self.linter.get_warnings()
+        for warning in warnings:
+            self.log.warning(str(warning))
+
+        if settings.get("lint-and-exit", False):
+            if warnings:
+                raise TaurusConfigError("Errors were found in the configuration")
+            else:
+                raise NormalShutdown("Linting has finished, no errors were found")
 
     def _level_down_logging(self):
         self.log.debug("Leveling down log file verbosity, use -v option to have DEBUG messages enabled")
@@ -197,17 +229,22 @@ class CLI(object):
         :type configs: list
         :return: integer exit code
         """
+        url_shorthands = []
         jmx_shorthands = []
         try:
+            url_shorthands = self.__get_url_shorthands(configs)
+            configs.extend(url_shorthands)
+
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
 
-            if not self.options.verbose:
-                self.engine.post_startup_hook = self._level_down_logging
-                self.engine.pre_shutdown_hook = self._level_up_logging
+            if not self.engine.config.get(SETTINGS).get('verbose', False):
+                self.engine.logging_level_down = self._level_down_logging
+                self.engine.logging_level_up = self._level_up_logging
 
             self.__configure(configs)
             self.__move_log_to_artifacts()
+            self.__lint_config()
 
             self.engine.prepare()
             self.engine.run()
@@ -215,7 +252,7 @@ class CLI(object):
             self.handle_exception(exc)
         finally:
             try:
-                for fname in jmx_shorthands:
+                for fname in url_shorthands + jmx_shorthands:
                     os.remove(fname)
                 self.engine.post_process()
             except BaseException as exc:
@@ -278,6 +315,9 @@ class CLI(object):
             self.log.log(log_level, "Internal Error: %s", exc)
         elif isinstance(exc, ToolError):
             self.log.log(log_level, "Child Process Error: %s", exc)
+            if exc.diagnostics is not None:
+                for line in exc.diagnostics:
+                    self.log.log(log_level, line)
         elif isinstance(exc, TaurusNetworkError):
             self.log.log(log_level, "Network Error: %s", exc)
         else:
@@ -308,6 +348,73 @@ class CLI(object):
 
             config.dump(fname, Configuration.JSON)
 
+            return [fname]
+        else:
+            return []
+
+    def __get_url_shorthands(self, configs):
+        """
+        :type configs: list
+        :return: list
+        """
+        urls = []
+        for candidate in configs[:]:
+            if is_url(candidate):
+                urls.append(candidate)
+                configs.remove(candidate)
+
+        if urls:
+            self.log.debug("Adding HTTP shorthand config for: %s", urls)
+            config_fds = NamedTemporaryFile(prefix="http_", suffix=".yml")
+            fname = config_fds.name
+            config_fds.close()
+
+            config = Configuration()
+            config.merge({
+                "execution": [{
+                    "concurrency": "${__tstFeedback(Throughput_Limiter,1,${__P(concurrencyCap,1)},2)}",
+                    "hold-for": "2m",
+                    "throughput": "${__P(throughput,600)}",
+                    "scenario": "linear-growth",
+                }],
+                "scenarios": {
+                    "linear-growth": {
+                        "retrieve-resources": False,
+                        "timeout": "5s",
+                        "keepalive": False,
+                        "requests": [{
+                            "action": "pause",
+                            "pause-duration": 0,
+                            "jsr223": [{
+                                "language": "javascript",
+                                "execute": "before",
+                                "script-text": """
+var startTime = parseInt(props.get("startTime"));
+if (!startTime) {
+    startTime = Math.floor((new Date()).getTime() / 1000);
+    props.put("startTime", startTime);
+} else {
+    var now = Math.floor((new Date()).getTime() / 1000);
+    var offset = now - startTime;
+    if (offset < 60) {
+        var targetOffset = Math.max(offset * 10, 10);
+        props.put("throughput", targetOffset.toString());
+    }
+}"""
+                            }]
+                        }] + urls,
+                    }
+                },
+                "modules": {
+                    "jmeter": {
+                        "properties": {
+                            "throughput": 1,
+                            "concurrencyCap": 500,
+                        },
+                    }
+                }
+            })
+            config.dump(fname, Configuration.JSON)
             return [fname]
         else:
             return []
@@ -452,10 +559,7 @@ class OptionParserWithAliases(OptionParser, object):
         return res
 
 
-def main():
-    """
-    This function is used as entrypoint by setuptools
-    """
+def get_option_parser():
     usage = "Usage: bzt [options] [configs] [-aliases]"
     dsc = "BlazeMeter Taurus Tool v%s, the configuration-driven test running engine" % bzt.VERSION
     parser = OptionParserWithAliases(usage=usage, description=dsc, prog="bzt")
@@ -469,26 +573,7 @@ def main():
                       help="Prints all logging messages to console")
     parser.add_option('-n', '--no-system-configs', action='store_true',
                       help="Skip system and user config files")
-
-    parsed_options, parsed_configs = parser.parse_args()
-
-    executor = CLI(parsed_options)
-
-    if is_piped(sys.stdin):
-        stdin = sys.stdin.read()
-        if stdin:
-            with NamedTemporaryFile(prefix="stdin_", suffix=".config", delete=False) as fhd:
-                fhd.write(b(stdin))
-                parsed_configs.append(fhd.name)
-
-    try:
-        code = executor.perform(parsed_configs)
-    except BaseException as exc_top:
-        logging.error("%s: %s", type(exc_top).__name__, exc_top)
-        logging.debug("Exception: %s", traceback.format_exc())
-        code = 1
-
-    exit(code)
+    return parser
 
 
 def signal_handler(sig, frame):
@@ -499,6 +584,26 @@ def signal_handler(sig, frame):
     """
     del sig, frame
     raise ManualShutdown()
+
+
+def main():
+    """
+    This function is used as entrypoint by setuptools
+    """
+    parser = get_option_parser()
+
+    parsed_options, parsed_configs = parser.parse_args()
+
+    executor = CLI(parsed_options)
+
+    try:
+        code = executor.perform(parsed_configs)
+    except BaseException as exc_top:
+        logging.error("%s: %s", type(exc_top).__name__, exc_top)
+        logging.debug("Exception: %s", traceback.format_exc())
+        code = 1
+
+    exit(code)
 
 
 if __name__ == "__main__":

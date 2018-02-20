@@ -11,11 +11,18 @@ execution:
     iterations: 1
 
 services:
+- module: virtual-display
+  run-at: local
 - capturehar
 - screenshoter
 
-modules:
-  selenium:
-    virtual-display:
-      width: 1280
-      height: 800
+
+---
+# fail it when no report was generated
+services:
+- module: shellexec
+  post-process: ls ${TAURUS_ARTIFACTS_DIR}/cloud-artifacts/nose-req.har.html
+  run-at: cloud
+#- module: shellexec
+#  run-at: local
+#  shutdown: cp /tmp/*.log ${TAURUS_ARTIFACTS_DIR}/

@@ -1,11 +1,4 @@
-include bzt/resources/base-config.yml
 include LICENSE
 include NOTICE
-include bzt/resources/gatling_script.tpl
-include bzt/resources/logback-worker.xml
-include bzt/resources/taurus-junit-1.0.jar
-include bzt/resources/taurus-testng-1.0.jar
-include bzt/resources/grinder-logger-1.0.jar
-include bzt/resources/pbench.conf
-include bzt/resources/rspec_taurus_plugin.rb
-include bzt/resources/mocha-taurus-plugin.js
+include requirements.txt
+recursive-include bzt/resources *

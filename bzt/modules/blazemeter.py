@@ -17,30 +17,32 @@ limitations under the License.
 """
 import copy
 import logging
+import os
 import platform
+import re
 import sys
 import time
 import traceback
 import zipfile
 from abc import abstractmethod
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, Counter, namedtuple
 from functools import wraps
 from ssl import SSLError
 
-import os
 import yaml
-from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from requests.exceptions import ReadTimeout
 from urwid import Pile, Text
 
-from bzt.bza import User, Session, Test
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
+from bzt import AutomatedShutdown
+from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
+from bzt.bza import User, Session, Test, Workspace, MultiTest
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
-from bzt.modules.chrome import ChromeProfiler
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
+from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
-from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b
+from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
 from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes, \
     ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
@@ -54,15 +56,22 @@ CLOUD_CONFIG_FILTER_RULES = {
     "locations": True,
     "locations-weighted": True,
 
+    "settings": {
+        "verbose": True
+    },
+
     "modules": {
         "jmeter": {
             "version": True,
             "properties": True,
             "system-properties": True,
+            "xml-jtl-flags": True,
         },
         "gatling": {
             "version": True,
-            "properties": True
+            "properties": True,
+            "java-opts": True,
+            "additional-classpath": True
         },
         "grinder": {
             "properties": True,
@@ -71,14 +80,13 @@ CLOUD_CONFIG_FILTER_RULES = {
         "selenium": {
             "additional-classpath": True,
             "virtual-display": True,
-            "selenium-tools": {
-                "junit": {
-                    "compile-target-java": True
-                },
-                "testng": {
-                    "compile-target-java": True
-                }
-            }
+            "compile-target-java": True
+        },
+        "junit": {
+            "compile-target-java": True
+        },
+        "testng": {
+            "compile-target-java": True
         },
         "local": {
             "sequential": True
@@ -88,10 +96,32 @@ CLOUD_CONFIG_FILTER_RULES = {
         },
         "shellexec": {
             "env": True
-        }
-        # TODO: aggregator has plenty of relevant settings
+        },
+        "!blazemeter": {
+            "class": True,
+            "request-logging-limit": True,
+            "token": True,
+            "address": True,
+            "data-address": True,
+            "test": True,
+            "project": True,
+            "use-deprecated-api": True,
+            "default-location": True,
+            "browser-open": True,
+            "delete-test-files": True,
+            "report-name": True,
+            "timeout": True,
+            "public-report": True,
+            "check-interval": True,
+            "detach": True,
+        },
+        "consolidator": {
+            "rtimes-len": True
+        },
     }
 }
+
+CLOUD_CONFIG_FILTER_RULES['modules']['!cloud'] = CLOUD_CONFIG_FILTER_RULES['modules']['!blazemeter']
 
 
 def send_with_retry(method):
@@ -116,7 +146,26 @@ def send_with_retry(method):
     return _impl
 
 
-class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
+def parse_blazemeter_test_link(link):
+    """
+    https://a.blazemeter.com/app/#/accounts/97961/workspaces/89846/projects/229969/tests/5823512
+
+    :param link:
+    :return:
+    """
+    if not isinstance(link, (string_types, text_type)):
+        return None
+
+    regex = r'https://a.blazemeter.com/app/#/accounts/(\d+)/workspaces/(\d+)/projects/(\d+)/tests/(\d+)(?:/\w+)?'
+    match = re.match(regex, link)
+    if match is None:
+        return None
+
+    TestParams = namedtuple('TestParams', 'account_id,workspace_id,project_id,test_id')
+    return TestParams(*[int(x) for x in match.groups()])
+
+
+class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singletone):
     """
     Reporter class
 
@@ -130,10 +179,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.kpi_buffer = []
         self.send_interval = 30
         self._last_status_check = time.time()
+        self.send_data = True
+        self.upload_artifacts = True
         self.send_monitoring = True
         self.monitoring_buffer = None
-        self.send_custom_metrics = False
-        self.send_custom_tables = False
         self.public_report = False
         self.last_dispatch = 0
         self.results_url = None
@@ -144,6 +193,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.first_ts = sys.maxsize
         self.last_ts = 0
         self.report_name = None
+        self._dpoint_serializer = DatapointSerializer(self)
 
     def prepare(self):
         """
@@ -152,12 +202,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         super(BlazeMeterUploader, self).prepare()
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
-        self.send_custom_metrics = self.settings.get("send-custom-metrics", self.send_custom_metrics)
-        self.send_custom_tables = self.settings.get("send-custom-tables", self.send_custom_tables)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
         self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.public_report = self.settings.get("public-report", self.public_report)
+        self._dpoint_serializer.multi = self.settings.get("report-times-multiplier", self._dpoint_serializer.multi)
         token = self.settings.get("token", "")
         if not token:
             self.log.warning("No BlazeMeter API key provided, will upload anonymously")
@@ -179,6 +228,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             exc = TaurusConfigError("Need signature for session")
             self._session.data_signature = self.parameters.get("signature", exc)
             self._session.kpi_target = self.parameters.get("kpi-target", self._session.kpi_target)
+            self.send_data = self.parameters.get("send-data", self.send_data)
+            self.upload_artifacts = self.parameters.get("upload-artifacts", self.upload_artifacts)
         else:
             try:
                 self._user.ping()  # to check connectivity and auth
@@ -320,14 +371,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.log.debug("KPI bulk buffer len in post-proc: %s", len(self.kpi_buffer))
         try:
             self.log.info("Sending remaining KPI data to server...")
-            self.__send_data(self.kpi_buffer, False, True)
-            self.kpi_buffer = []
+            if self.send_data:
+                self.__send_data(self.kpi_buffer, False, True)
+                self.kpi_buffer = []
+
             if self.send_monitoring:
                 self.__send_monitoring()
-            if self.send_custom_metrics:
-                self.__send_custom_metrics()
-            if self.send_custom_tables:
-                self.__send_custom_tables()
         finally:
             self._postproc_phase2()
 
@@ -338,8 +387,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def _postproc_phase2(self):
         try:
-            self.__upload_artifacts()
-        except IOError:
+            if self.upload_artifacts:
+                self.__upload_artifacts()
+        except (IOError, TaurusNetworkError):
             self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
             self.set_last_status_check(self.parameters.get('forced-last-check', self._last_status_check))
@@ -353,12 +403,15 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
 
     def _postproc_phase3(self):
         try:
-            self.end_online()
+            if self.send_data:
+                self.end_online()
+
             if self._user.token and self.engine.stopping_reason:
                 exc_class = self.engine.stopping_reason.__class__.__name__
                 note = "%s: %s" % (exc_class, str(self.engine.stopping_reason))
                 self.append_note_to_session(note)
-                self.append_note_to_master(note)
+                if self._master:
+                    self.append_note_to_master(note)
 
         except KeyboardInterrupt:
             raise
@@ -402,13 +455,12 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         self.log.debug("KPI bulk buffer len: %s", len(self.kpi_buffer))
         if self.last_dispatch < (time.time() - self.send_interval):
             self.last_dispatch = time.time()
-            if len(self.kpi_buffer):
+            if self.send_data and len(self.kpi_buffer):
                 self.__send_data(self.kpi_buffer)
                 self.kpi_buffer = []
-                if self.send_monitoring:
-                    self.__send_monitoring()
-                if self.send_custom_metrics:
-                    self.__send_custom_metrics()
+
+            if self.send_monitoring:
+                self.__send_monitoring()
         return super(BlazeMeterUploader, self).check()
 
     @send_with_retry
@@ -419,7 +471,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         if not self._session:
             return
 
-        serialized = DatapointSerializer(self).get_kpi_body(data, is_final)
+        serialized = self._dpoint_serializer.get_kpi_body(data, is_final)
         self._session.send_kpi_data(serialized, do_check)
 
     def aggregated_second(self, data):
@@ -427,7 +479,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
         Send online data
         :param data: DataPoint
         """
-        self.kpi_buffer.append(data)
+        if self.send_data:
+            self.kpi_buffer.append(data)
 
     def set_last_status_check(self, value):
         self._last_status_check = value
@@ -444,83 +497,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener):
             engine_id = "0"
         data = self.monitoring_buffer.get_monitoring_json(self._session)
         self._session.send_monitoring_data(engine_id, data)
-
-    @send_with_retry
-    def __send_custom_metrics(self):
-        data = self.get_custom_metrics_json()
-        self._master.send_custom_metrics(data)
-
-    @send_with_retry
-    def __send_custom_tables(self):
-        data = self.get_custom_tables_json()
-        if not data:
-            return
-        self._master.send_custom_tables(data)
-
-    def get_custom_metrics_json(self):
-        datapoints = {}
-
-        for source, buff in iteritems(self.monitoring_buffer.data):
-            for timestamp, item in iteritems(buff):
-                if source == 'local':
-                    source = platform.node()
-
-                if timestamp not in datapoints:
-                    datapoints[timestamp] = {}
-
-                for field, value in iteritems(item):
-                    if field in ('ts', 'interval'):
-                        continue
-                    if source == 'chrome':
-                        if field.startswith("time"):
-                            prefix = "Time"
-                        elif field.startswith("network"):
-                            prefix = "Network"
-                        elif field.startswith("dom"):
-                            prefix = "DOM"
-                        elif field.startswith("js"):
-                            prefix = "JS"
-                        elif field.startswith("memory"):
-                            prefix = "Memory"
-                        else:
-                            prefix = "Metrics"
-                        field = self.get_chrome_metric_kpi_label(field)
-                    else:
-                        if field.lower().startswith('cpu'):
-                            prefix = 'System'
-                            field = 'CPU'
-                        elif field.lower().startswith('mem'):
-                            prefix = 'System'
-                            field = 'Memory'
-                            value *= 100
-                        elif field.lower().startswith('disk'):
-                            prefix = 'Disk'
-                        elif field.lower().startswith('bytes-') or field.lower().startswith('net'):
-                            prefix = 'Network'
-                        else:
-                            prefix = 'Monitoring'
-
-                    label = "/".join([source, prefix, field])
-                    datapoints[timestamp][label] = value
-
-        results = []
-        for timestamp in sorted(datapoints):
-            datapoint = OrderedDict([(metric, datapoints[timestamp][metric])
-                                     for metric in sorted(datapoints[timestamp])])
-            datapoint["ts"] = timestamp
-            results.append(datapoint)
-        return {"datapoints": results}
-
-    def get_chrome_metric_kpi_label(self, metric):
-        for module in self.engine.services:
-            if isinstance(module, ChromeProfiler):
-                return module.get_metric_label(metric)
-        return metric
-
-    def get_custom_tables_json(self):
-        for module in self.engine.services:
-            if isinstance(module, ChromeProfiler):
-                return module.get_custom_tables_json()
 
     def __format_listing(self, zip_listing):
         lines = []
@@ -672,6 +648,7 @@ class DatapointSerializer(object):
         """
         super(DatapointSerializer, self).__init__()
         self.owner = owner
+        self.multi = 1000  # miltiplier factor for reporting
 
     def get_kpi_body(self, data_buffer, is_final):
         # - reporting format:
@@ -699,7 +676,7 @@ class DatapointSerializer(object):
             for dpoint in data_buffer:
                 time_stamp = dpoint[DataPoint.TIMESTAMP]
                 for label, kpi_set in iteritems(dpoint[DataPoint.CURRENT]):
-                    exc = TaurusInternalException('Cumulative KPISet non-consistent')
+                    exc = TaurusInternalException('Cumulative KPISet is non-consistent')
                     report_item = report_items.get(label, exc)
                     report_item['intervals'].append(self.__get_interval(kpi_set, time_stamp))
 
@@ -756,15 +733,15 @@ class DatapointSerializer(object):
             "failed": cumul[KPISet.FAILURES],
             "hits": cumul[KPISet.SAMPLE_COUNT],
 
-            "avg": int(1000 * cumul[KPISet.AVG_RESP_TIME]),
-            "min": int(1000 * cumul[KPISet.PERCENTILES]["0.0"]) if "0.0" in cumul[KPISet.PERCENTILES] else 0,
-            "max": int(1000 * cumul[KPISet.PERCENTILES]["100.0"]) if "100.0" in cumul[KPISet.PERCENTILES] else 0,
-            "std": int(1000 * cumul[KPISet.STDEV_RESP_TIME]),
-            "tp90": int(1000 * cumul[KPISet.PERCENTILES]["90.0"]) if "90.0" in cumul[KPISet.PERCENTILES] else 0,
-            "tp95": int(1000 * cumul[KPISet.PERCENTILES]["95.0"]) if "95.0" in cumul[KPISet.PERCENTILES] else 0,
-            "tp99": int(1000 * cumul[KPISet.PERCENTILES]["99.0"]) if "99.0" in cumul[KPISet.PERCENTILES] else 0,
+            "avg": int(self.multi * cumul[KPISet.AVG_RESP_TIME]),
+            "min": int(self.multi * cumul[KPISet.PERCENTILES]["0.0"]) if "0.0" in cumul[KPISet.PERCENTILES] else 0,
+            "max": int(self.multi * cumul[KPISet.PERCENTILES]["100.0"]) if "100.0" in cumul[KPISet.PERCENTILES] else 0,
+            "std": int(self.multi * cumul[KPISet.STDEV_RESP_TIME]),
+            "tp90": int(self.multi * cumul[KPISet.PERCENTILES]["90.0"]) if "90.0" in cumul[KPISet.PERCENTILES] else 0,
+            "tp95": int(self.multi * cumul[KPISet.PERCENTILES]["95.0"]) if "95.0" in cumul[KPISet.PERCENTILES] else 0,
+            "tp99": int(self.multi * cumul[KPISet.PERCENTILES]["99.0"]) if "99.0" in cumul[KPISet.PERCENTILES] else 0,
 
-            "latencyAvg": int(1000 * cumul[KPISet.AVG_LATENCY]),
+            "latencyAvg": int(self.multi * cumul[KPISet.AVG_LATENCY]),
             "latencyMax": 0,
             "latencyMin": 0,
             "latencySTD": 0,
@@ -796,20 +773,21 @@ class DatapointSerializer(object):
             "failed": item[KPISet.FAILURES],
             "rc": rc_list,
             "t": {
-                "min": int(1000 * item[KPISet.PERCENTILES]["0.0"]) if "0.0" in item[KPISet.PERCENTILES] else 0,
-                "max": int(1000 * item[KPISet.PERCENTILES]["100.0"]) if "100.0" in item[KPISet.PERCENTILES] else 0,
-                "sum": 1000 * item[KPISet.AVG_RESP_TIME] * item[KPISet.SAMPLE_COUNT],
+                "min": int(self.multi * item[KPISet.PERCENTILES]["0.0"]) if "0.0" in item[KPISet.PERCENTILES] else 0,
+                "max": int(self.multi * item[KPISet.PERCENTILES]["100.0"]) if "100.0" in item[
+                    KPISet.PERCENTILES] else 0,
+                "sum": self.multi * item[KPISet.AVG_RESP_TIME] * item[KPISet.SAMPLE_COUNT],
                 "n": item[KPISet.SAMPLE_COUNT],
-                "std": 1000 * item[KPISet.STDEV_RESP_TIME],
-                "avg": 1000 * item[KPISet.AVG_RESP_TIME]
+                "std": self.multi * item[KPISet.STDEV_RESP_TIME],
+                "avg": self.multi * item[KPISet.AVG_RESP_TIME]
             },
             "lt": {
                 "min": 0,
                 "max": 0,
-                "sum": 1000 * item[KPISet.AVG_LATENCY] * item[KPISet.SAMPLE_COUNT],
-                "n": 1000 * item[KPISet.SAMPLE_COUNT],
+                "sum": self.multi * item[KPISet.AVG_LATENCY] * item[KPISet.SAMPLE_COUNT],
+                "n": item[KPISet.SAMPLE_COUNT],
                 "std": 0,
-                "avg": 1000 * item[KPISet.AVG_LATENCY]
+                "avg": self.multi * item[KPISet.AVG_LATENCY]
             },
             "by": {
                 "min": 0,
@@ -835,6 +813,7 @@ class ProjectFinder(object):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.user = user
         self.workspaces = workspaces
+        self.is_functional = False
 
     def _find_project(self, proj_name):
         """
@@ -843,7 +822,7 @@ class ProjectFinder(object):
         if isinstance(proj_name, (int, float)):  # TODO: what if it's string "123"?
             proj_id = int(proj_name)
             self.log.debug("Treating project name as ID: %s", proj_id)
-            project = self.workspaces.projects(proj_id=proj_id).first()
+            project = self.workspaces.projects(ident=proj_id).first()
             if not project:
                 raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
             return project
@@ -875,52 +854,153 @@ class ProjectFinder(object):
 
         return test
 
+    def resolve_account(self, account_name):
+        account = None
+
+        if isinstance(account_name, (int, float)):  # TODO: what if it's string "123"?
+            acc_id = int(account_name)
+            self.log.debug("Treating account name as ID: %s", acc_id)
+            account = self.user.accounts(ident=acc_id).first()
+            if not account:
+                raise TaurusConfigError("BlazeMeter account not found by ID: %s" % acc_id)
+        elif account_name is not None:
+            account = self.user.accounts(name=account_name).first()
+            if not account:
+                raise TaurusConfigError("BlazeMeter account not found by ID: %s" % account_name)
+
+        if account is None:
+            account = self.user.accounts().first()
+            self.log.debug("Using first account: %s" % account)
+
+        return account
+
+    def resolve_workspace(self, account, workspace_name):
+        workspace = None
+
+        if isinstance(workspace_name, (int, float)):  # TODO: what if it's string "123"?
+            workspace_id = int(workspace_name)
+            self.log.debug("Treating workspace name as ID: %s", workspace_id)
+            workspace = account.workspaces(ident=workspace_id).first()
+            if not workspace:
+                raise TaurusConfigError("BlazeMeter workspace not found by ID: %s" % workspace_id)
+        elif workspace_name is not None:
+            workspace = account.workspaces(name=workspace_name).first()
+            if not workspace:
+                raise TaurusConfigError("BlazeMeter workspace not found: %s" % workspace_name)
+
+        if workspace is None:
+            workspace = account.workspaces().first()
+            self.log.debug("Using first workspace: %s" % workspace)
+
+        return workspace
+
+    def resolve_project(self, workspace, project_name):
+        project = None
+
+        if isinstance(project_name, (int, float)):  # TODO: what if it's string "123"?
+            proj_id = int(project_name)
+            self.log.debug("Treating project name as ID: %s", proj_id)
+            project = workspace.projects(ident=proj_id).first()
+            if not project:
+                raise TaurusConfigError("BlazeMeter project not found by ID: %s" % proj_id)
+        elif project_name is not None:
+            project = workspace.projects(name=project_name).first()
+
+        if project is None:
+            project = self._create_project_or_use_default(workspace, project_name)
+
+        return project
+
+    def resolve_test(self, project, test_name, taurus_only=False):
+        test = None
+
+        is_int = isinstance(test_name, (int, float))
+        is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
+        test_type = TAURUS_TEST_TYPE if taurus_only else None
+        if is_int or is_digit:
+            test_id = int(test_name)
+            self.log.debug("Treating project name as ID: %s", test_id)
+            test = project.multi_tests(ident=test_id).first()
+            if not test:
+                test = project.tests(ident=test_id, test_type=test_type).first()
+            if not test:
+                raise TaurusConfigError("BlazeMeter test not found by ID: %s" % test_id)
+        elif test_name is not None:
+            test = project.multi_tests(name=test_name).first()
+            if not test:
+                test = project.tests(name=test_name, test_type=test_type).first()
+
+        return test
+
     def resolve_test_type(self):
         use_deprecated = self.settings.get("use-deprecated-api", True)
         default_location = self.settings.get("default-location", None)
-        proj_name = self.parameters.get("project", self.settings.get("project", None))
+        account_name = self.parameters.get("account", self.settings.get("account", None))
+        workspace_name = self.parameters.get("workspace", self.settings.get("workspace", None))
+        project_name = self.parameters.get("project", self.settings.get("project", None))
         test_name = self.parameters.get("test", self.settings.get("test", self.default_test_name))
+        launch_existing_test = self.settings.get("launch-existing-test", False)
+        send_report_email = self.settings.get("send-report-email", False)
 
-        project = self._find_project(proj_name)
-
-        test_class = None
-        test = self._ws_proj_switch(project).multi_tests(name=test_name).first()
-        self.log.debug("Looked for collection: %s", test)
-        if test:
-            self.log.debug("Detected test type: new")
-            test_class = CloudCollectionTest
+        test_spec = parse_blazemeter_test_link(test_name)
+        self.log.debug("Parsed test link: %s", test_spec)
+        look_for_taurus_only = not launch_existing_test
+        if test_spec is not None:
+            # if we're to launch existing test - look for any type, otherwise - taurus only
+            account, workspace, project, test = self.user.test_by_ids(test_spec.account_id, test_spec.workspace_id,
+                                                                      test_spec.project_id, test_spec.test_id,
+                                                                      taurus_only=look_for_taurus_only)
+            if test is None:
+                raise TaurusConfigError("Test not found: %s", test_name)
+            self.log.info("Found test by link: %s", test_name)
         else:
-            test = self._ws_proj_switch(project).tests(name=test_name, test_type=TAURUS_TEST_TYPE).first()
-            self.log.debug("Looked for test: %s", test)
-            if test:
-                self.log.debug("Detected test type: old")
-                test_class = CloudTaurusTest
+            account = self.resolve_account(account_name)
+            workspace = self.resolve_workspace(account, workspace_name)
+            project = self.resolve_project(workspace, project_name)
+            test = self.resolve_test(project, test_name, taurus_only=look_for_taurus_only)
 
-        if not project:
-            project = self._default_or_create_project(proj_name)
-            if proj_name:
-                test = None  # we have to create another test under this project
-
-        if not test:
-            if use_deprecated:
-                self.log.debug("Will create old-style test")
+        if isinstance(test, MultiTest):
+            self.log.debug("Detected test type: multi")
+            test_class = CloudCollectionTest
+        elif isinstance(test, Test):
+            self.log.debug("Detected test type: standard")
+            test_class = CloudTaurusTest
+        else:
+            if launch_existing_test:
+                raise TaurusConfigError("Can't find test for launching: %r" % test_name)
+            if use_deprecated or self.settings.get("cloud-mode", None) == 'taurusCloud':
+                self.log.debug("Will create standard test")
                 test_class = CloudTaurusTest
             else:
-                self.log.debug("Will create new-style test")
+                self.log.debug("Will create a multi test")
                 test_class = CloudCollectionTest
 
         assert test_class is not None
-        router = test_class(self.user, test, project, test_name, default_location, self.log)
+        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test,
+                            self.log)
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
+        router.dedicated_ips = self.settings.get("dedicated-ips", False)
+        router.is_functional = self.is_functional
+        router.send_report_email = send_report_email
         return router
+
+    def _create_project_or_use_default(self, workspace, proj_name):
+        if proj_name:
+            return workspace.create_project(proj_name)
+        else:
+            info = self.user.fetch()
+            project = workspace.projects(ident=info['defaultProject']['id']).first()
+            if not project:
+                project = workspace.create_project("Taurus Tests Project")
+            return project
 
     def _default_or_create_project(self, proj_name):
         if proj_name:
             return self.workspaces.first().create_project(proj_name)
         else:
             info = self.user.fetch()
-            project = self.workspaces.projects(proj_id=info['defaultProject']['id']).first()
+            project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
             if not project:
                 project = self.workspaces.first().create_project("Taurus Tests Project")
             return project
@@ -935,7 +1015,7 @@ class BaseCloudTest(object):
     :type cloud_mode: str
     """
 
-    def __init__(self, user, test, project, test_name, default_location, parent_log):
+    def __init__(self, user, test, project, test_name, default_location, launch_existing_test, parent_log):
         self.default_test_name = "Taurus Test"
         self.log = parent_log.getChild(self.__class__.__name__)
         self.default_location = default_location
@@ -946,17 +1026,42 @@ class BaseCloudTest(object):
         self._user = user
         self._project = project
         self._test = test
+        self.launch_existing_test = launch_existing_test
         self.master = None
         self._workspaces = None
         self.cloud_mode = None
+        self.dedicated_ips = False
+        self.is_functional = False
+        self.send_report_email = False
 
     @abstractmethod
     def prepare_locations(self, executors, engine_config):
         pass
 
-    @abstractmethod
     def prepare_cloud_config(self, engine_config):
-        pass
+        config = copy.deepcopy(engine_config)
+
+        if not isinstance(config[ScenarioExecutor.EXEC], list):
+            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
+
+        provisioning = config.get(Provisioning.PROV)
+        for execution in config[ScenarioExecutor.EXEC]:
+            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
+            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
+
+        config.filter(CLOUD_CONFIG_FILTER_RULES)
+        config['local-bzt-version'] = engine_config.get('version', 'N/A')
+        for key in list(config.keys()):
+            if not config[key]:
+                config.pop(key)
+
+        self.cleanup_defaults(config)
+
+        if self.dedicated_ips:
+            config[CloudProvisioning.DEDICATED_IPS] = True
+
+        assert isinstance(config, Configuration)
+        return config
 
     @abstractmethod
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
@@ -984,18 +1089,41 @@ class BaseCloudTest(object):
         self._last_status = self.master.get_status()
         return self._last_status
 
+    @staticmethod
+    def cleanup_defaults(config):
+        # cleanup configuration from empty values
+        default_values = {
+            'concurrency': None,
+            'iterations': None,
+            'ramp-up': None,
+            'steps': None,
+            'throughput': None,
+            'hold-for': 0,
+            'files': []
+        }
+        for execution in config[ScenarioExecutor.EXEC]:
+            if isinstance(execution['concurrency'], dict):
+                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
+
+            if not execution['concurrency']:
+                execution['concurrency'] = None
+
+            for key, value in iteritems(default_values):
+                if key in execution and execution[key] == value:
+                    execution.pop(key)
+
+        return config
+
 
 class CloudTaurusTest(BaseCloudTest):
-    def __init__(self, user, test, project, test_name, default_location, parent_log):
-        super(CloudTaurusTest, self).__init__(user, test, project, test_name, default_location, parent_log)
-
     def prepare_locations(self, executors, engine_config):
         available_locations = {}
-        is_taurus3 = self.cloud_mode == 'taurusCloud'
-        for loc in self._workspaces.locations(include_private=is_taurus3):
+        is_taurus4 = self.cloud_mode == 'taurusCloud'
+        workspace = Workspace(self._project, {'id': self._project['workspaceId']})
+        for loc in workspace.locations(include_private=is_taurus4):
             available_locations[loc['id']] = loc
 
-        if CloudProvisioning.LOC in engine_config:
+        if CloudProvisioning.LOC in engine_config and not is_taurus4:
             self.log.warning("Deprecated test API doesn't support global locations")
 
         for executor in executors:
@@ -1003,6 +1131,8 @@ class CloudTaurusTest(BaseCloudTest):
                     and isinstance(executor.execution[CloudProvisioning.LOC], dict):
                 exec_locations = executor.execution[CloudProvisioning.LOC]
                 self._check_locations(exec_locations, available_locations)
+            elif CloudProvisioning.LOC in engine_config and is_taurus4:
+                self._check_locations(engine_config[CloudProvisioning.LOC], available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
                 executor.execution[CloudProvisioning.LOC] = BetterDict()
@@ -1030,54 +1160,16 @@ class CloudTaurusTest(BaseCloudTest):
                 self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                 raise TaurusConfigError("Invalid location requested: %s" % location)
 
-    def prepare_cloud_config(self, engine_config):
-        config = copy.deepcopy(engine_config)
-
-        if not isinstance(config[ScenarioExecutor.EXEC], list):
-            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
-
-        provisioning = config.get(Provisioning.PROV)
-        for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
-            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
-
-        config.filter(CLOUD_CONFIG_FILTER_RULES)
-        config['local-bzt-version'] = engine_config.get('version', 'N/A')
-        for key in list(config.keys()):
-            if not config[key]:
-                config.pop(key)
-
-        self.cleanup_defaults(config)
-
-        assert isinstance(config, Configuration)
-        return config
-
-    @staticmethod
-    def cleanup_defaults(config):
-        # cleanup configuration from empty values
-        default_values = {
-            'concurrency': None,
-            'iterations': None,
-            'ramp-up': None,
-            'steps': None,
-            'throughput': None,
-            'hold-for': 0,
-            'files': []
-        }
-        for execution in config[ScenarioExecutor.EXEC]:
-            if isinstance(execution['concurrency'], dict):
-                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
-
-            if not execution['concurrency']:
-                execution['concurrency'] = None
-
-            for key, value in iteritems(default_values):
-                if key in execution and execution[key] == value:
-                    execution.pop(key)
-
-        return config
-
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
+        if self.launch_existing_test:
+            return
+
+        if self._test is not None:
+            test_type = self._test.get('configuration', {}).get('type')
+            if test_type != TAURUS_TEST_TYPE:
+                self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
+                self._test = None
+
         if self._test is None:
             test_config = {
                 "type": TAURUS_TEST_TYPE,
@@ -1096,10 +1188,14 @@ class CloudTaurusTest(BaseCloudTest):
         taurus_config = yaml.dump(taurus_config, default_flow_style=False, explicit_start=True, canonical=False)
         self._test.upload_files(taurus_config, rfiles)
         self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
+        self._test.update_props({
+            'configuration': {'plugins': {'functionalExecution': {'enabled': self.is_functional},
+                                          'reportEmail': {"enabled": self.send_report_email}}}
+        })
 
     def launch_test(self):
         self.log.info("Initiating cloud test with %s ...", self._test.address)
-        self.master = self._test.start()
+        self.master = self._test.start(as_functional=self.is_functional)
         return self.master.address + '/app/#/masters/%s' % self.master['id']
 
     def start_if_ready(self):
@@ -1182,51 +1278,16 @@ class CloudCollectionTest(BaseCloudTest):
                 self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
                 raise TaurusConfigError("Invalid location requested: %s" % location)
 
-    def prepare_cloud_config(self, engine_config):
-        config = copy.deepcopy(engine_config)
-
-        if not isinstance(config[ScenarioExecutor.EXEC], list):
-            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
-
-        provisioning = config.pop(Provisioning.PROV)
-        for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
-            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
-
-        for key in list(config.keys()):
-            fields = ("scenarios", ScenarioExecutor.EXEC, Service.SERV,
-                      CloudProvisioning.LOC, CloudProvisioning.LOC_WEIGHTED)
-            if key not in fields:
-                config.pop(key)
-            elif not config[key]:
-                config.pop(key)
-
-        # cleanup configuration from empty values
-        default_values = {
-            'concurrency': None,
-            'iterations': None,
-            'ramp-up': None,
-            'steps': None,
-            'throughput': None,
-            'hold-for': 0,
-            'files': []
-        }
-        for execution in config[ScenarioExecutor.EXEC]:
-            for key, value in iteritems(default_values):
-                if key in execution and execution[key] == value:
-                    execution.pop(key)
-
-        assert isinstance(config, Configuration)
-        return config
-
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
+        if self.launch_existing_test:
+            return
+
         # TODO: handle delete_old_files ?
         if not self._project:
             raise TaurusInternalException()  # TODO: build unit test to catch this situation
 
         collection_draft = self._user.collection_draft(self._test_name, taurus_config, rfiles)
         if self._test is None:
-
             self.log.debug("Creating cloud collection test")
             self._test = self._project.create_multi_test(collection_draft)
         else:
@@ -1263,11 +1324,12 @@ class CloudCollectionTest(BaseCloudTest):
             time.sleep(1.0)
 
     def stop_test(self):
-        if self._started:
+        if self._started and self._test:
             self.log.info("Shutting down cloud test...")
             self._test.stop()
             self.await_test_end()
-        else:
+        elif self.master:
+
             self.log.info("Shutting down cloud test...")
             self.master.stop()
 
@@ -1317,6 +1379,7 @@ class MasterProvisioning(Provisioning):
             executor_rfiles = executor.get_resource_files()
             config = to_json(self.engine.config.get('execution'))
             config += to_json(self.engine.config.get('scenarios'))
+            config += to_json(executor.settings)
             for rfile in executor_rfiles:
                 if not os.path.exists(self.engine.find_file(rfile)):  # TODO: what about files started from 'http://'?
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
@@ -1387,6 +1450,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     LOC = "locations"
     LOC_WEIGHTED = "locations-weighted"
+    DEDICATED_IPS = "dedicated-ips"
 
     def __init__(self):
         super(CloudProvisioning, self).__init__()
@@ -1404,6 +1468,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.public_report = False
         self.report_name = None
         self._workspaces = []
+        self.launch_existing_test = None
+        self.disallow_empty_execution = False
 
     def _merge_with_blazemeter_config(self):
         if 'blazemeter' not in self.engine.config.get('modules'):
@@ -1428,19 +1494,26 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.detach = self.settings.get("detach", self.detach)
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
         self.public_report = self.settings.get("public-report", self.public_report)
-        self._filter_reporting()
+        is_execution_empty = "execution" not in self.engine.config or not bool(self.engine.config.get("execution", []))
+        self.launch_existing_test = self.settings.get("launch-existing-test", is_execution_empty)
+
+        if not self.launch_existing_test:
+            self._filter_reporting()
 
         finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
         finder.default_test_name = "Taurus Cloud Test"
+        finder.is_functional = self.engine.is_functional_mode()
         self.router = finder.resolve_test_type()
-        self.router.prepare_locations(self.executors, self.engine.config)
 
-        res_files = self.get_rfiles()
-        files_for_cloud = self._fix_filenames(res_files)
-        config_for_cloud = self.router.prepare_cloud_config(self.engine.config)
-        config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
-        del_files = self.settings.get("delete-test-files", True)
-        self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
+        if not self.launch_existing_test:
+            self.router.prepare_locations(self.executors, self.engine.config)
+
+            res_files = self.get_rfiles()
+            files_for_cloud = self._fix_filenames(res_files)
+            config_for_cloud = self.router.prepare_cloud_config(self.engine.config)
+            config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
+            del_files = self.settings.get("delete-test-files", True)
+            self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
 
         self.report_name = self.settings.get("report-name", self.report_name)
         if self.report_name == 'ask' and sys.stdin.isatty():
@@ -1451,6 +1524,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.results_reader = ResultsFromBZA()
             self.results_reader.log = self.log
+            self.engine.aggregator.add_underling(self.results_reader)
+        elif isinstance(self.engine.aggregator, FunctionalAggregator):
+            self.results_reader = FunctionalBZAReader(self.log)
             self.engine.aggregator.add_underling(self.results_reader)
 
     def __dump_locations_if_needed(self):
@@ -1580,6 +1656,11 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                     self._download_logs()
                     break
 
+            if "functionalSummary" in full:
+                summary = full["functionalSummary"]
+                if summary is None or summary.get("isFailed", False):
+                    raise AutomatedShutdown("Cloud tests failed")
+
     def _download_logs(self):
         for session in self.router.master.sessions():
             assert isinstance(session, Session)
@@ -1622,6 +1703,31 @@ class ResultsFromBZA(ResultsProvider):
         self.master = master
         self.min_ts = 0
         self.log = logging.getLogger('')
+        self.prev_errors = BetterDict()
+        self.cur_errors = BetterDict()
+        self.handle_errors = True
+
+    def _get_err_diff(self):
+        # find diff of self.prev_errors and self.cur_errors
+        diff = {}
+        for label in self.cur_errors:
+            if label not in self.prev_errors:
+                diff[label] = self.cur_errors[label]
+                continue
+
+            for msg in self.cur_errors[label]:
+                if msg not in self.prev_errors[label]:
+                    prev_count = 0
+                else:
+                    prev_count = self.prev_errors[label][msg]['count']
+
+                delta = self.cur_errors[label][msg]['count'] - prev_count
+                if delta > 0:
+                    if label not in diff:
+                        diff[label] = {}
+                    diff[label][msg] = {'count': delta, 'rc': self.cur_errors[label][msg]['rc']}
+
+        return diff
 
     def _calculate_datapoints(self, final_pass=False):
         if self.master is None:
@@ -1641,13 +1747,14 @@ class ResultsFromBZA(ResultsProvider):
             if label.get('label') == 'ALL':
                 timestamps.extend([kpi['ts'] for kpi in label.get('kpis', [])])
 
+        self.handle_errors = True
+
         for tstmp in timestamps:
             point = DataPoint(tstmp)
             for label in data:
                 for kpi in label.get('kpis', []):
                     if kpi['ts'] != tstmp:
                         continue
-
                     label_str = label.get('label')
                     if label_str is None or label_str not in aggr:
                         self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
@@ -1656,9 +1763,64 @@ class ResultsFromBZA(ResultsProvider):
                     kpiset = self.__get_kpiset(aggr, kpi, label_str)
                     point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
+            if self.handle_errors:
+                self.handle_errors = False
+                self.cur_errors = self.__get_errors_from_BZA()
+                err_diff = self._get_err_diff()
+                if err_diff:
+                    for label in err_diff:
+                        point_label = '' if label == 'ALL' else label
+                        kpiset = point[DataPoint.CURRENT].get(point_label, KPISet())
+                        kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
+                    self.prev_errors = self.cur_errors
+
             point.recalculate()
+
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
+
+    def __get_errors_from_BZA(self):
+        #
+        # This method reads error report from BZA
+        #
+        # internal errors format:
+        # <request_label>:
+        #   <error_message>:
+        #     'count': <count of errors>
+        #     'rc': <response code>
+        #
+        result = {}
+        try:
+            errors = self.master.get_errors()
+        except (URLError, TaurusNetworkError):
+            self.log.warning("Failed to get errors, will retry in %s seconds...", self.master.timeout)
+            self.log.debug("Full exception: %s", traceback.format_exc())
+            time.sleep(self.master.timeout)
+            errors = self.master.get_errors()
+            self.log.info("Succeeded with retry")
+
+        for e_record in errors:
+            _id = e_record["_id"]
+            if _id == "ALL":
+                _id = ""
+            result[_id] = {}
+            for error in e_record['errors']:
+                result[_id][error['m']] = {'count': error['count'], 'rc': error['rc']}
+            for assertion in e_record['assertions']:
+                result[_id][assertion['failureMessage']] = {'count': assertion['failures'], 'rc': assertion['name']}
+        return result
+
+    def __get_kpi_errors(self, errors):
+        result = []
+        for msg in errors:
+            kpi_error = KPISet.error_item_skel(
+                error=msg,
+                ret_c=errors[msg]['rc'],
+                cnt=errors[msg]['count'],
+                errtype=KPISet.ERRTYPE_ERROR,  # TODO: what about asserts?
+                urls=Counter())
+            result.append(kpi_error)
+        return result
 
     def __get_kpiset(self, aggr, kpi, label):
         kpiset = KPISet()
@@ -1692,6 +1854,70 @@ class ResultsFromBZA(ResultsProvider):
             self.log.info("Succeeded with retry")
 
         return data, aggr
+
+
+class FunctionalBZAReader(FunctionalResultsReader):
+    def __init__(self, parent_log, master=None):
+        super(FunctionalBZAReader, self).__init__()
+        self.master = master
+        self.log = parent_log.getChild(self.__class__.__name__)
+
+    @staticmethod
+    def extract_samples_from_group(group, group_summary):
+        group_name = group_summary.get("name") or "Tests"
+        for sample in group["samples"]:
+            status = "PASSED"
+            if sample["error"]:
+                status = "FAILED"
+            error_msg = ""
+            error_trace = ""
+            assertions = sample.get("assertions")
+            if assertions:
+                for assertion in assertions:
+                    if assertion.get("isFailed"):
+                        error_msg = assertion.get("errorMessage")
+                        status = "BROKEN"
+
+            rtm = sample.get("responseTime") or 0.0
+            yield FunctionalSample(
+                test_case=sample["label"],
+                test_suite=group_name,
+                status=status,
+                start_time=int(sample["created"]),
+                duration=rtm / 1000.0,
+                error_msg=error_msg,
+                error_trace=error_trace,
+                extras={},
+                subsamples=[],
+            )
+
+    def read(self, last_pass=False):
+        if self.master is None:
+            return
+
+        if last_pass:
+            try:
+                groups = self.master.get_functional_report_groups()
+            except (URLError, TaurusNetworkError):
+                self.log.warning("Failed to get test groups, will retry in %s seconds...", self.master.timeout)
+                self.log.debug("Full exception: %s", traceback.format_exc())
+                time.sleep(self.master.timeout)
+                groups = self.master.get_functional_report_groups()
+                self.log.info("Succeeded with retry")
+
+            for group_summary in groups:
+                group_id = group_summary['groupId']
+                try:
+                    group = self.master.get_functional_report_group(group_id)
+                except (URLError, TaurusNetworkError):
+                    self.log.warning("Failed to get test group, will retry in %s seconds...", self.master.timeout)
+                    self.log.debug("Full exception: %s", traceback.format_exc())
+                    time.sleep(self.master.timeout)
+                    group = self.master.get_functional_report_group(group_id)
+                    self.log.info("Succeeded with retry")
+
+                for sample in self.extract_samples_from_group(group, group_summary):
+                    yield sample
 
 
 class CloudProvWidget(Pile, PrioritizedWidget):

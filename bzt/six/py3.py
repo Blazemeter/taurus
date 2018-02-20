@@ -16,20 +16,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 # pylint: skip-file
-
 import io
+import sys
 import operator
 import collections
 import traceback
 import urllib
-from io import IOBase
-
-import urllib.error
-import urllib.request
-import urllib.parse
-import configparser
-from http import server, cookiejar
 import socketserver
+import configparser
+
+from http import server, cookiejar
+
 
 string_types = str,
 integer_types = int,
@@ -37,7 +34,7 @@ numeric_types=(int, float, complex)
 class_types = type,
 text_type = str
 binary_type = bytes
-file_type = IOBase
+file_type = io.IOBase
 
 configparser = configparser
 UserDict = collections.UserDict
@@ -87,5 +84,20 @@ def reraise(exc_info):
     raise exc
 
 
+def stream_decode(string):
+    if not isinstance(string, text_type):
+        return string.decode()
+    else:
+        return string
+
+
 def unicode_decode(string):
     return string
+
+
+def communicate(proc):
+    stdout, stderr = proc.communicate()
+    if stderr:
+        stderr = str(stderr, sys.stderr.encoding or sys.getfilesystemencoding())
+    stdout = str(stdout, sys.stdout.encoding or sys.getfilesystemencoding())
+    return stdout, stderr

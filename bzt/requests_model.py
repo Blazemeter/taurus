@@ -1,15 +1,45 @@
+"""
+Copyright 2017 BlazeMeter Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
 import mimetypes
 import re
 
 from bzt import TaurusConfigError, TaurusInternalException
-from bzt.utils import ensure_is_dict, dehumanize_time
+from bzt.utils import ensure_is_dict, dehumanize_time, get_full_path
+
+VARIABLE_PATTERN = re.compile("\${.+\}")
+
+
+def has_variable_pattern(val):
+    return bool(VARIABLE_PATTERN.search(val))
 
 
 class Request(object):
     NAME = "request"
 
-    def __init__(self, config):
+    def __init__(self, config, scenario=None):
         self.config = config
+        self.scenario = scenario
+
+    def priority_option(self, name, default=None):
+        val = self.config.get(name, None)
+        if val is None:
+            val = self.scenario.get(name, None)
+        if val is None and default is not None:
+            val = default
+        return val
 
 
 class HTTPRequest(Request):
@@ -18,8 +48,7 @@ class HTTPRequest(Request):
     def __init__(self, config, scenario, engine):
         self.engine = engine
         self.log = self.engine.log.getChild(self.__class__.__name__)
-        super(HTTPRequest, self).__init__(config)
-        self.scenario = scenario
+        super(HTTPRequest, self).__init__(config, scenario)
         msg = "Option 'url' is mandatory for request but not found in %s" % config
         self.url = self.config.get("url", TaurusConfigError(msg))
         self.label = self.config.get("label", self.url)
@@ -33,14 +62,6 @@ class HTTPRequest(Request):
         self.think_time = self.config.get('think-time', None)
         self.follow_redirects = self.config.get('follow-redirects', None)
         self.body = self.__get_body()
-
-    def priority_option(self, name, default=None):
-        val = self.config.get(name, None)
-        if val is None:
-            val = self.scenario.get(name, None)
-        if val is None and default is not None:
-            val = default
-        return val
 
     def __get_body(self):
         body = self.config.get('body', None)
@@ -60,10 +81,30 @@ class HierarchicHTTPRequest(HTTPRequest):
     def __init__(self, config, scenario, engine):
         super(HierarchicHTTPRequest, self).__init__(config, scenario, engine)
         self.upload_files = self.config.get("upload-files", [])
+
+        method = self.config.get("method")
+        if method == "PUT" and len(self.upload_files) > 1:
+            self.upload_files = self.upload_files[:1]
+
         for file_dict in self.upload_files:
-            file_dict.get("param", TaurusConfigError("Items from upload-files must specify parameter name"))
-            path = file_dict.get('path', TaurusConfigError("Items from upload-files must specify path to file"))
-            mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
+            param = file_dict.get("param", None)
+
+            if method == "PUT":
+                file_dict["param"] = ""
+            if method == "POST" and not param:
+                raise TaurusConfigError("Items from upload-files must specify parameter name")
+
+            path_exc = TaurusConfigError("Items from upload-files must specify path to file")
+            path = str(file_dict.get("path", path_exc))
+            if not has_variable_pattern(path):  # exclude variables
+                path = get_full_path(self.engine.find_file(path))  # prepare full path for jmx
+            else:
+                msg = "Path '%s' contains variable and can't be expanded. Don't use relative paths in 'upload-files'!"
+                self.log.warning(msg % path)
+
+            file_dict["path"] = path
+
+            mime = mimetypes.guess_type(file_dict["path"])[0] or "application/octet-stream"
             file_dict.get('mime-type', mime)
         self.content_encoding = self.config.get('content-encoding', None)
 
@@ -127,8 +168,8 @@ class ForEachBlock(Request):
 class TransactionBlock(Request):
     NAME = "transaction"
 
-    def __init__(self, name, requests, config):
-        super(TransactionBlock, self).__init__(config)
+    def __init__(self, name, requests, config, scenario):
+        super(TransactionBlock, self).__init__(config, scenario)
         self.name = name
         self.requests = requests
 
@@ -144,6 +185,9 @@ class IncludeScenarioBlock(Request):
     def __init__(self, scenario_name, config):
         super(IncludeScenarioBlock, self).__init__(config)
         self.scenario_name = scenario_name
+
+    def __repr__(self):
+        return "IncludeScenarioBlock(scenario_name=%r)" % self.scenario_name
 
 
 class RequestsParser(object):
@@ -185,7 +229,7 @@ class RequestsParser(object):
             name = req.get('transaction')
             do_block = req.get('do', TaurusConfigError("'do' field is mandatory for transaction blocks"))
             do_requests = self.__parse_requests(do_block)
-            return TransactionBlock(name, do_requests, req)
+            return TransactionBlock(name, do_requests, req, self.scenario)
         elif 'include-scenario' in req:
             name = req.get('include-scenario')
             return IncludeScenarioBlock(name, req)
@@ -201,16 +245,16 @@ class RequestsParser(object):
             if duration is not None:
                 duration = dehumanize_time(duration)
             return ActionBlock(action, target, duration, req)
+        elif 'set-variables' in req:
+            mapping = req.get('set-variables')
+            return SetVariables(mapping, req)
         else:
             return HierarchicHTTPRequest(req, self.scenario, self.engine)
 
     def __parse_requests(self, raw_requests, require_url=True):
         requests = []
         for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
-            if not isinstance(raw_requests[key], dict):
-                req = ensure_is_dict(raw_requests, key, "url")
-            else:
-                req = raw_requests[key]
+            req = ensure_is_dict(raw_requests, key, "url")
             if not require_url and "url" not in req:
                 req["url"] = None
             requests.append(self.__parse_request(req))
@@ -227,6 +271,12 @@ class ActionBlock(Request):
         self.action = action
         self.target = target
         self.duration = duration
+
+
+class SetVariables(Request):
+    def __init__(self, mapping, config):
+        super(SetVariables, self).__init__(config)
+        self.mapping = mapping
 
 
 class RequestVisitor(object):
@@ -258,8 +308,12 @@ class ResourceFilesCollector(RequestVisitor):
     def visit_hierarchichttprequest(self, request):
         files = []
         body_file = request.config.get('body-file')
-        if body_file:
+        if body_file and not has_variable_pattern(body_file):
             files.append(body_file)
+
+        uploads = request.config.get('upload-files', [])
+        files.extend([x['path'] for x in uploads if not has_variable_pattern(x['path'])])
+
         if 'jsr223' in request.config:
             jsrs = request.config.get('jsr223')
             if isinstance(jsrs, dict):
@@ -311,4 +365,7 @@ class ResourceFilesCollector(RequestVisitor):
         return self.executor.res_files_from_scenario(scenario)
 
     def visit_actionblock(self, _):
+        return []
+
+    def visit_setvariables(self, _):
         return []

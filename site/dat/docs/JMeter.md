@@ -5,20 +5,33 @@ This executor type is used by default, it uses [Apache JMeter](http://jmeter.apa
 ## JMeter Location & Auto-Installation
 
 If there is no JMeter installed at the configured `path`, Taurus will attempt to install latest JMeter and Plugins into
-this location, by default `~/.bzt/jmeter-taurus/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
+this location, by default `~/.bzt/jmeter-taurus/{version}/bin/jmeter`. You can change this setting to your preferred JMeter location (consider putting it into `~/.bzt-rc` file). All module settings that relates to JMeter path and auto-installing are listed below:
 ```yaml
 modules:
   jmeter:
     path: ~/.bzt/jmeter-taurus/bin/jmeter
     download-link: https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip
-    version: 3.0
+    version: 3.0  # minimal supported version of JMeter is 2.9
+    force-ctg: true   # true by default
+    detect-plugins: true
     plugins:
     - jpgc-json=2.2
     - jmeter-ftp
     - jpgc-casutg
 ```
-`plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json, jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.  
-    
+`force-ctg` allows you to switch off the usage of ConcurrentThreadGroup for jmx script modifications purpose. This group
+provide `steps` execution parameter but requires `Custom Thread Groups` plugin (installed by default)
+
+With `version` parameter you can ask for specific tool version or use autodetect with `auto` value. In that case
+ taurus will analyze content of jmx file and try to guess appropriate the JMeter version.
+
+`plugins` option lets you describe list of JMeter plugins you want to use. If `plugins` option isn't found only
+following plugins will be installed: jpgc-casutg, jpgc-dummy, jpgc-ffw, jpgc-fifo, jpgc-functions, jpgc-json, 
+jpgc-perfmon, jpgc-prmctl, jpgc-tst. Keep in mind: you can change plugins list only for clean installation. 
+If you already have JMeter placed at `path` you need to remove it for plugins installation purpose.
+
+[JMeter Plugins Manager](#https://jmeter-plugins.org/wiki/PluginsManager/) allows you to install necessary plugins for your jmx file automatically and this feature doesn't require clean installation. You can turn it off with `detect-plugins` option. If you use your own installation of JMeter (with `path` option) make sure it includes `jmeter-plugins-manager` 0.16 or newer.
+
 ## Run Existing JMX File
 ```yaml
 execution:
@@ -33,7 +46,7 @@ or simply `bzt tests/jmx/dummy.jmx`
 
 TODO: explain how multi-thread group will accept concurrency with maintained proportion
 
-## JMeter Properties
+## JMeter Properties and Variables
 There are two places to specify JMeter properties: global at module-level and local at scenario-level. Scenario properties are merged into global properties and resulting set comes as input for JMeter, see corresponding `.properties` file in artifacts.
 You may also specify system properties for JMeter in system-properties section. They comes as system.properties file in artifacts.
 
@@ -58,6 +71,44 @@ scenarios:
     properties:
         my-hostname: www.prod.com
         log_level.jmeter: DEBUG
+```
+You can use properties in different parts of JMeter parameters to tune your script behaviour:
+```yaml
+execution:
+- concurrency: ${__P(my_conc,3)}    # use `my_conc` prop or default=3 if property isn't found
+  ramp-up: 30
+  hold-for: ${__P(my_hold,10)}
+  scenario: with_prop
+
+modules:
+  jmeter:
+    properties:
+      my_conc: 10
+      my_hold: 20
+
+scenarios:
+  with_prop:
+    requests:
+    - http://blazedemo.com/${__P(sub_dir)}
+    - https://blazemeter.com/${__P(sub_dir)}
+    properties:
+      my_hold: 15   # scenario-level property has priority
+      sub_dir: contacts
+```
+Usage of variables are similar but they can be used on scenario level only:
+```yaml
+scenarios:
+  sc_with_vars:
+    variables:
+      subdir: contacts
+      ref: http://gettaurus.org
+    requests:
+    - url: http://blazedemo.com/${subdir}
+      headers:
+        Referer: ${ref}
+    - url: https://blazemeter.com/${subdir}
+      headers:
+        Referer: ${ref}
 ```
 
 ## Open JMeter GUI
@@ -99,10 +150,6 @@ JMeter executor allows you to apply some modifications to the JMX file before ru
 scenarios:
   modification_example:
     script: tests/jmx/dummy.jmx
-    variables: # add User Defined Variables component to test plan, 
-               # overriding other global variables
-      user_def_var: http://demo.blazemeter.com/api/user
-      user_def_var2: user_def_val_2
     modifications:
       disable:  # Names of the tree elements to disable
       - Thread Group 1
@@ -161,6 +208,8 @@ scenarios:
     content-encoding: utf-8  # global content encoding, applied to all requests.
                              # Unset by default
     follow-redirects: true  # follow redirects for all HTTP requests
+    random-source-ip: false  # use one of host IPs to send requests, chosen randomly.
+                             # False by default
     data-sources: # list of external data sources
     - path/to/my.csv  # this is a shorthand form
     - path: path/to/another.csv  # this is full form, path option is required
@@ -219,12 +268,18 @@ scenarios:
       timeout: 1s  # local timeout, overrides global
       content-encoding: utf-8  # content encoding (at JMeter's level), unset by default
       follow-redirects: true  # follow HTTP redirects
+      random-source-ip: false  # use one of host IPs to send the request (chosen randomly).
+                               # False by default
 
       extract-regexp: {}  # explained below
       extract-jsonpath: {}  # explained below
       assert: []  # explained below
       jsr223: []  # explained below
 ```
+Notes for `upload-files`:
+
+- `POST` request method requires non-empty `param` values
+- `PUT` method allows only one file in upload-files block
 
 ##### Extractors
 
@@ -247,7 +302,7 @@ scenarios:
         page_title: <title>(\w+)</title>  #  must have at least one capture group
       extract-jsonpath: # dictionary under it has form <var name>: <JSONPath expression>
         varname: $.jsonpath[0].expression
-    - url: http://blazedemo.com/${varname}/${page_title}  # that's how we use those variables
+    - url: http://blazedemo.com/${varname_1}/${page_title}  # that's how we use those variables
       extract-css-jquery: # dictionary under it has form <var name>: <CSS/JQuery selector>
         extractor1: input[name~=my_input]
     - url: http://blazedemo.com/${varname}/${extractor1}.xml
@@ -274,6 +329,10 @@ scenarios:
         varname:
           jsonpath: $.jsonpath[0]  # jsonpath expression
           default: NOT_FOUND  # default value to use when jsonpath not found
+          from-variable: JM_VAR # JMeter variable for search
+          concat: false # \
+          scope: all    # - see below
+          match-no: 4   # /
     - url: http://blazedemo.com/${varname}/${page_title}
       extract-css-jquery:
         extractor2:
@@ -291,10 +350,21 @@ scenarios:
           use-tolerant-parser: false
 ```
 
+Parameters of jsonpath exractor `concat`, `scope` and `match-num` work only on JMeter >= 3.0
+If several results are found they will be concatenated with ',' if `concat`.
+You can choose `scope` for applying expressions. Possible targets are:
+  - `all` - main sample and sub-samples
+  - `children` - sub-samples
+  - `variable` for search in JMeter variables
+Default value of `scope` is empty, it means search in main sample only.
+
+`match-no` allows to choose the specific result from several ones. Default value is `-1` - generation of variables _varname\_1_, _varname\_2_, etc. It means if you ask for _some\_var\_name_ JMeter won't generate variable with exactly that name by default. Set `match-no` to another value if you want to change this behaviour.
+
 Possible subjects for regexp are:
   - `body`
   - `headers`
   - `http-code`
+  - `url`
 
 ##### Assertions
 
@@ -581,6 +651,7 @@ scenarios:
   transaction_example:
     requests:
     - transaction: Customer Session
+      force-parent-sample: False  # True by default
       do:
       - http://example.com/shop
       - http://example.com/shop/items/1
@@ -588,8 +659,9 @@ scenarios:
       - http://example.com/card
       - http://example.com/checkout
 ```
+Take note: you can specify force-parent-sample on both levels - scenario and transaction. If both are found local (transaction) value has priority.
 
-##### Include Scenario blocks
+##### Include Scenario Blocks
 `include-scenario` block allows you to include scenario in another one. You can use it to split your test plan into
 a few of independent scenarios that can be reused.
 
@@ -624,6 +696,7 @@ Keep in mind: the following scenario-level parameters of including scenario have
 - `timeout`
 - `think-time`
 - `follow-redirects`
+- `properties`
 
 ##### Action Blocks
 
@@ -652,6 +725,45 @@ scenarios:
       target: all-threads
 ```
 
+##### Set Variables Blocks
+
+`set-variables` block allows you to set JMeter variables from other variables.
+
+Example:
+```yaml
+scenarios:
+  set_vars_example:
+    variables:
+      foo: BAR
+    requests:
+    - http://blazedemo.com/?foo=${foo}
+    - set-variables:
+        foo: BAZ
+```
+
+This example will set initial value of `${foo}` to be "BAR", but after first iteration it will be
+changed to "BAZ".
+
+You can consider this block to be a syntactic sugar over JSR223 blocks, because that's exactly how it works.
+
+## User cookies
+Taurus allows you to set up some user cookies with follow syntax:
+```yaml
+scenarios:
+  little_cookies:
+    requests:
+    - http://blazedemo.com/login
+    - https://blazemeter.com/pricing
+    cookies:
+    - name: n0  # name of cookie, required
+      value: v0 # value of cookie, required
+      domain: blazedemo.com # hosts to which the cookie will be sent, required
+    - name: n1
+      value: v1
+      domain: blazemeter.com
+      path: /pricing  # must exist in the request for sending cookie
+      secure: true    # send only through https, optional, defalut: false
+```
 ## JMeter Test Log
 You can tune JTL file content with option `write-xml-jtl`. Possible values are 'error' (default), 'full', or any other value for 'none'. Keep in mind: max `full` logging can seriously load your system.
 ```yaml

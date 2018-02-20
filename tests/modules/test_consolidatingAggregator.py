@@ -1,9 +1,9 @@
 from random import random
 
-from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from tests import BZTestCase, r
+
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from tests.mocks import MockReader
-from bzt.modules.reporting import Reporter
 
 
 class TestConsolidatingAggregator(BZTestCase):
@@ -134,6 +134,12 @@ class TestConsolidatingAggregator(BZTestCase):
             dst.merge_kpis(src)
             dst.compact_times()
             self.assertEqual(100, len(dst[KPISet.RESP_TIMES]))
+
+    def test_inf_values(self):
+        obj = ConsolidatingAggregator()
+        obj.settings['max-buffer-len'] = "inf"
+        obj.prepare()
+        self.assertEqual(obj.max_buffer_len, float("inf"))
 
 
 class MockListener(AggregatorListener):

@@ -1,0 +1,11 @@
+---
+execution:
+- concurrency: 1
+  executor: selenium
+  hold-for: 5
+  scenario:
+    requests:
+      - url:  http://blazedemo.com
+
+services:
+- virtual-display

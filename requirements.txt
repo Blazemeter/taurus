@@ -1,0 +1,17 @@
+apiritif>=0.5
+astunparse
+colorama; sys_platform == 'windows'
+colorlog
+cssselect
+ipaddress; python_version < '3.0'
+lxml>=3.8.0
+nose
+progressbar33
+psutil>=5,!=5.3.0
+pytest>=3
+pyvirtualdisplay; sys_platform != 'windows'
+pyyaml
+requests>=2.11.1
+selenium
+Appium-Python-Client
+urwid

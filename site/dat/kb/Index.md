@@ -1,5 +1,6 @@
 # Getting Started
 
+ 1. Take [Beginner's Course](/learn/)
  1. [Getting Started with Taurus and JMeter](Basic1)
  
 # Articles
@@ -9,6 +10,8 @@
  1. [Reporting and Results Analysis on Taurus](Reporting)
  1. [Integrating Taurus with Jenkins](Jenkins)
  1. [How to Quickly and Easily Write Selenium Scripts on Taurus](SeleniumActions)
+ 1. [How to Easily Run Taurus with Bamboo](Bamboo)
+ 1. [Running Taurus with TeamCity](TeamCity)
 
 
 # Third-Party Articles
@@ -20,7 +23,7 @@
 
 # Videos
 
-The most recent video is: [Meetup on June 28, 2016: How to Simplify Load Testing JMeter and Beyond](https://www.youtube.com/watch?v=EFIWFfvKolw)
+The most recent video is: [Webinar on September 27, 2017: Automating Performance Tests with Taurus](https://www.youtube.com/watch?v=DN0VNnG-lzs)
 
 <iframe width="700" height="394" src="https://www.youtube.com/embed/EFIWFfvKolw" frameborder="0" allowfullscreen></iframe>
  

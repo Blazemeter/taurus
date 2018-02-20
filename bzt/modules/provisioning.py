@@ -22,10 +22,10 @@ import time
 import traceback
 
 from bzt import ToolError
-from bzt.engine import Provisioning
+from bzt.engine import Provisioning, SelfDiagnosable
 from bzt.six import numeric_types
 from bzt.six import reraise
-from bzt.utils import dehumanize_time
+from bzt.utils import dehumanize_time, Environment
 
 
 class Local(Provisioning):
@@ -36,6 +36,7 @@ class Local(Provisioning):
     def __init__(self):
         super(Local, self).__init__()
         self.finished_modules = []
+        self.start_time = None
 
     def _get_start_shift(self, shift):
         if not shift:
@@ -67,6 +68,7 @@ class Local(Provisioning):
         super(Local, self).prepare()
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
+            executor.env = Environment(executor.log, self.engine.env.get())
             executor.prepare()
             self.engine.prepared.append(executor)
 
@@ -90,6 +92,7 @@ class Local(Provisioning):
         prev_executor = None
         for executor in self.executors:
             if executor in self.engine.prepared and executor not in self.engine.started:  # needs to start
+                self.engine.logging_level_up()
                 if isinstance(executor.delay, numeric_types):
                     timed_start = time.time() >= self.start_time + executor.delay
                 else:
@@ -102,6 +105,7 @@ class Local(Provisioning):
                         self.log.info("Starting next sequential execution: %s", executor)
                     executor.startup()
                     self.engine.started.append(executor)
+                self.engine.logging_level_down()
 
             prev_executor = executor
 
@@ -122,6 +126,7 @@ class Local(Provisioning):
 
             if executor.check():
                 self.finished_modules.append(executor)
+                self.log.debug("%s finished", executor)
             else:
                 finished = False
 
@@ -158,7 +163,11 @@ class Local(Provisioning):
                     if executor in self.engine.started and not executor.has_results():
                         msg = "Empty results, most likely %s (%s) failed. " \
                               "Actual reason for this can be found in logs under %s"
-                        raise ToolError(msg % (executor.label, executor.__class__.__name__, self.engine.artifacts_dir))
+                        message = msg % (executor.label, executor.__class__.__name__, self.engine.artifacts_dir)
+                        diagnostics = None
+                        if isinstance(executor, SelfDiagnosable):
+                            diagnostics = executor.get_error_diagnostics()
+                        raise ToolError(message, diagnostics)
                 except BaseException as exc:
                     msg = "Exception in post_process of %s: %s %s"
                     self.log.debug(msg, executor.__class__.__name__, exc, traceback.format_exc())

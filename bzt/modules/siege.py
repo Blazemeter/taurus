@@ -19,24 +19,23 @@ limitations under the License.
 import logging
 import time
 from math import ceil
-from os import path
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, FileReader
 
 
-class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister):
+class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister, SelfDiagnosable):
     def __init__(self):
         super(SiegeExecutor, self).__init__()
         self.log = logging.getLogger('')
         self.process = None
-        self.__out = None
-        self.__err = None
+        self.stdout_file = None
+        self.stderr_file = None
         self.__rc_name = None
         self.__url_name = None
         self.tool_path = None
@@ -57,7 +56,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         self.__rc_name = self.engine.create_artifact("siegerc", "")
         with open(self.__rc_name, 'w') as rc_file:
             rc_file.writelines('\n'.join(config_params))
-            rc_file.close()
 
         if Scenario.SCRIPT in self.scenario and self.scenario[Scenario.SCRIPT]:
             self.__url_name = self.engine.find_file(self.scenario[Scenario.SCRIPT])
@@ -67,13 +65,14 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         else:
             raise TaurusConfigError("Siege: you must specify either script(url-file) or some requests")
 
-        out_file_name = self.engine.create_artifact("siege", ".out")
-        self.reader = DataLogReader(out_file_name, self.log)
+        out = self.engine.create_artifact("siege", ".out") \
+
+        self.stdout_file = open(out, 'w')
+        self.stderr_file = open(self.engine.create_artifact("siege", ".err"), 'w')
+
+        self.reader = DataLogReader(out, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
-
-        self.__out = open(out_file_name, 'w')
-        self.__err = open(self.engine.create_artifact("siege", ".err"), 'w')
 
     def resource_files(self):
         scenario = self.get_scenario()
@@ -98,7 +97,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
 
         with open(url_file_name, 'w') as url_file:
             url_file.writelines('\n'.join(user_vars + url_list))
-            url_file.close()
+
         return url_file_name
 
     def startup(self):
@@ -128,17 +127,17 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         for key, val in iteritems(self.scenario.get_headers()):
             args += ['--header', "%s: %s" % (key, val)]
 
-        env = {"SIEGERC": self.__rc_name}
+        self.env.set({"SIEGERC": self.__rc_name})
         self.start_time = time.time()
 
-        self.process = self.execute(args, stdout=self.__out, stderr=self.__err, env=env)
+        self.process = self.execute(args, stdout=self.stdout_file, stderr=self.stderr_file)
 
     def check(self):
         ret_code = self.process.poll()
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("Siege tool exited with non-zero code: %s" % ret_code)
+            raise ToolError("Siege tool exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
         return True
 
     def get_widget(self):
@@ -155,10 +154,12 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         If tool is still running - let's stop it.
         """
         shutdown_process(self.process, self.log)
-        if self.__out and not self.__out.closed:  # FIXME: this should happen in post_process
-            self.__out.close()
-        if self.__err and not self.__err.closed:
-            self.__err.close()
+
+    def post_process(self):
+        if self.stdout_file:
+            self.stdout_file.close()
+        if self.stderr_file:
+            self.stderr_file.close()
 
     def install_required_tools(self):
         tool_path = self.settings.get('path', 'siege')
@@ -167,43 +168,30 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
             siege.install()
         return tool_path
 
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.stdout_file is not None:
+            with open(self.stdout_file.name) as fds:
+                contents = fds.read().strip()
+                if contents:
+                    diagnostics.append("Siege STDOUT:\n" + contents)
+        if self.stderr_file is not None:
+            with open(self.stderr_file.name) as fds:
+                contents = fds.read().strip()
+                if contents:
+                    diagnostics.append("Siege STDERR:\n" + contents)
+        return diagnostics
+
 
 class DataLogReader(ResultsReader):
     def __init__(self, filename, parent_logger):
         super(DataLogReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.concurrency = None
 
-    def _calculate_datapoints(self, final_pass=False):  # FIXME: why override it?
-        for point in super(DataLogReader, self)._calculate_datapoints(final_pass):
-            yield point
-
-    def __open_fds(self):
-        if not path.isfile(self.filename):
-            self.log.debug("File not appeared yet")
-            return False
-
-        if not path.getsize(self.filename):
-            self.log.debug("File is empty: %s", self.filename)
-            return False
-
-        if not self.fds:
-            self.fds = open(self.filename)
-
-        return True
-
     def _read(self, last_pass=False):
-        while not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-            self.fds.close()
-        else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read    git
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if line.count(chr(0x1b)) != 2:  # skip garbage
@@ -217,7 +205,7 @@ class DataLogReader(ResultsReader):
             # _http = log_vals[1]           # 1. http protocol
             _rstatus = log_vals[2]  # 2. response status code
             _etime = float(log_vals[3])  # 3. elapsed time (total time - connection time)
-            _rsize = int(log_vals[4])     # 4. size of response
+            _rsize = int(log_vals[4])  # 4. size of response
             _url = log_vals[5]  # 6. long or short URL value
             # _url_id = int(log_vals[7])    # 7. url number
             _tstamp = time.strptime(log_vals[7], "%Y-%m-%d %H:%M:%S")
@@ -229,10 +217,6 @@ class DataLogReader(ResultsReader):
             _concur = self.concurrency
 
             yield _tstamp, _url, _concur, _etime, _con_time, _latency, _rstatus, _error, '', _rsize
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
 
 
 class Siege(RequiredTool):

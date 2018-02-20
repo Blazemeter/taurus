@@ -67,7 +67,8 @@ class FunctionalAggregator(Aggregator):
         self.process_readers(last_pass=True)
 
 
-FunctionalSample = namedtuple('Sample', 'test_case,test_suite,status,start_time,duration,error_msg,error_trace,extras')
+FunctionalSample = namedtuple('Sample',
+                              'test_case,test_suite,status,start_time,duration,error_msg,error_trace,extras,subsamples')
 # test_case: str - name of test case (method)
 # test_suite: str - name of test suite (class)
 # status: str - test status (PASSED / FAILED / BROKEN / SKIPPED)
@@ -76,6 +77,7 @@ FunctionalSample = namedtuple('Sample', 'test_case,test_suite,status,start_time,
 # error_msg: str - one-line error message
 # error_trace: str - error stacktrace
 # extras: dict - additional test info (description, file, full_name)
+# subsamples: list - list of subsamples
 
 
 class ResultsTree(BetterDict):
@@ -116,20 +118,16 @@ class FunctionalAggregatorListener(object):
 
 class TestReportReader(object):
     REPORT_ITEM_KEYS = ["test_case", "test_suite", "status", "start_time", "duration",
-                        "error_msg", "error_trace", "extras"]
+                        "error_msg", "error_trace", "extras", "subsamples"]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
-    def __init__(self, filename, parent_logger, translation_table=None):
+    def __init__(self, filename, parent_logger):
         super(TestReportReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.json_reader = LDJSONReader(filename, self.log)
-        self.translation_table = translation_table or {}
 
     def process_label(self, label):
-        if label in self.translation_table:
-            return self.translation_table[label]
-
         if isinstance(label, string_types):
             if label.startswith('test_') and label[5:10].isdigit():
                 return label[11:]
@@ -138,12 +136,6 @@ class TestReportReader(object):
 
     def read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
-            for key in self.REPORT_ITEM_KEYS:
-                if key not in row:
-                    self.log.debug("Unexpected test record: %s", row)
-                    self.log.warning("Test record doesn't conform to schema, skipping, %s", key)
-                    continue
-
             row["test_case"] = self.process_label(row["test_case"])
             yield row
 
@@ -156,9 +148,9 @@ class LoadSamplesReader(ResultsReader):
         "BROKEN": "500",
     }
 
-    def __init__(self, filename, parent_logger, translation_table):
+    def __init__(self, filename, parent_logger):
         super(LoadSamplesReader, self).__init__()
-        self.report_reader = TestReportReader(filename, parent_logger, translation_table)
+        self.report_reader = TestReportReader(filename, parent_logger)
         self.read_records = 0
 
     def extract_sample(self, item):
@@ -184,8 +176,8 @@ class LoadSamplesReader(ResultsReader):
 class FuncSamplesReader(FunctionalResultsReader):
     FIELDS_EXTRACTED_TO_ARTIFACTS = ["requestBody", "responseBody", "requestCookiesRaw"]
 
-    def __init__(self, filename, engine, parent_logger, translation_table):
-        self.report_reader = TestReportReader(filename, parent_logger, translation_table)
+    def __init__(self, filename, engine, parent_logger):
+        self.report_reader = TestReportReader(filename, parent_logger)
         self.engine = engine
         self.read_records = 0
 
@@ -203,12 +195,16 @@ class FuncSamplesReader(FunctionalResultsReader):
                     fds.write(contents.encode('utf-8'))
                 sample_extras[file_field] = artifact
 
+    def _sample_from_row(self, row):
+        subsamples = [self._sample_from_row(item) for item in row.get("subsamples", [])]
+        return FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
+                                status=row["status"], start_time=row["start_time"], duration=row["duration"],
+                                error_msg=row["error_msg"], error_trace=row["error_trace"],
+                                extras=row.get("extras", {}), subsamples=subsamples)
+
     def read(self, last_pass=False):
         for row in self.report_reader.read(last_pass):
             self.read_records += 1
-            sample = FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
-                                      status=row["status"], start_time=row["start_time"], duration=row["duration"],
-                                      error_msg=row["error_msg"], error_trace=row["error_trace"],
-                                      extras=row.get("extras", {}))
+            sample = self._sample_from_row(row)
             self._write_sample_data_to_artifacts(sample.extras)
             yield sample

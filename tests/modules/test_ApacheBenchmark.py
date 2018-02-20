@@ -1,95 +1,81 @@
 import logging
 import time
-from os import path
+import os
 
 from bzt.modules.ab import ApacheBenchmarkExecutor, TSVDataReader
-from tests import BZTestCase
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul
 from bzt.utils import EXE_SUFFIX
 from bzt import ToolError, TaurusConfigError
 
-TOOL_NAME = 'ab' + EXE_SUFFIX
 
-
-def get_res_path(resource):
-    return path.join(path.dirname(__file__), '..', 'ab', resource)
+def get_ab():
+    path = os.path.abspath(RESOURCES_DIR + "ab/ab" + EXE_SUFFIX)
+    obj = ApacheBenchmarkExecutor()
+    obj.engine = EngineEmul()
+    obj.env = obj.engine.env
+    obj.settings.merge({"path": path})
+    return obj
 
 
 class TestApacheBenchExecutor(BZTestCase):
+    def setUp(self):
+        self.obj = get_ab()
+        super(TestApacheBenchExecutor, self).setUp()
+
+    def tearDown(self):
+        if self.obj.stdout_file:
+            self.obj.stdout_file.close()
+        if self.obj.stderr_file:
+            self.obj.stderr_file.close()
+        close_reader_file(self.obj.reader)
+        super(TestApacheBenchExecutor, self).tearDown()
+
     def test_iter(self):
         "Ensures that executor doesn't fail with minimal configuration."
-        obj = ApacheBenchmarkExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
+        self.obj.execution.merge({
             "scenario": {
-                "requests": ["http://blazedemo.com"]
-            }
-        })
-        obj.prepare()
-        obj.get_widget()
+                "requests": ["http://blazedemo.com"]}})
+        self.obj.prepare()
+        self.obj.get_widget()
         try:
-            obj.startup()
-            while not obj.check():
-                time.sleep(obj.engine.check_interval)
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
         finally:
-            obj.shutdown()
-        obj.post_process()
-        self.assertNotEquals(obj.process, None)
-
-
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
 
     def test_no_request_exception(self):
         "Checks that executor.startup fails if there's no request specified."
-        obj = ApacheBenchmarkExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
-            "scenario": {}})
-        obj.prepare()
-        self.assertRaises(TaurusConfigError, obj.startup)
+        self.obj.execution.merge({"scenario": {}})
+        self.obj.prepare()
+        self.assertRaises(TaurusConfigError, self.obj.startup)
 
     def test_non_get_request_exception(self):
         """
         Checks that executor.startup fails if
         request with non-GET method is specified.
         """
-        obj = ApacheBenchmarkExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
+        self.obj.execution.merge({
             "scenario": {
-                "requests": [
-                    {
-                        "url": "http://blazedemo.com",
-                        "method": "POST",
-                    }
-                ]
-            }})
-        obj.prepare()
-        self.assertRaises(TaurusConfigError, obj.startup)
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "method": "POST"}]}})
+        self.obj.prepare()
+        self.assertRaises(TaurusConfigError, self.obj.startup)
 
     def test_no_apache_benchmark(self):
         "Checks that prepare() fails if ApacheBenchmark is not installed."
-        obj = ApacheBenchmarkExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": '*',})
-        obj.execution.merge({
+        self.obj.settings.merge({"path": "*"})
+        self.obj.execution.merge({
             "scenario": {
-                "requests": ["http://blazedemo.com"]
-            }})
-        self.assertRaises(ToolError, obj.prepare)
+                "requests": ["http://blazedemo.com"]}})
+        self.assertRaises(ToolError, self.obj.prepare)
 
     def test_full_execution(self):
-        obj = ApacheBenchmarkExecutor()
-        obj.engine = EngineEmul()
-        obj.settings.merge({
-            "path": get_res_path(TOOL_NAME),})
-        obj.execution.merge({
+        self.obj.execution.merge({
             "concurrency": 2,
             "iterations": 3,
             "headers": {
@@ -97,34 +83,41 @@ class TestApacheBenchExecutor(BZTestCase):
             },
             "scenario": {
                 "keepalive": True,
-                "requests": [
-                    {
-                        "url": "http://blazedemo.com",
-                        "headers": [
-                            {"X-Answer": "42"},
-                        ],
-                        "keepalive": False,
-                        "method": "GET",
-                    }
-                ],
-            }
-        })
-        obj.prepare()
-        obj.get_widget()
+                "requests": [{
+                    "url": "http://blazedemo.com",
+                    "headers": [{"X-Answer": "42"}],
+                    "keepalive": False,
+                    "method": "GET"}]}})
+        self.obj.prepare()
+        self.obj.get_widget()
         try:
-            obj.startup()
-            while not obj.check():
-                time.sleep(obj.engine.check_interval)
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
         finally:
-            obj.shutdown()
-        obj.post_process()
-        self.assertNotEquals(obj.process, None)
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertNotEquals(self.obj.process, None)
+
+    def test_diagnostics(self):
+        self.obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 1,
+            "scenario": {
+                "requests": ["http://blazedemo.com"]}})
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.assertIsNotNone(self.obj.get_error_diagnostics())
 
 
 class TestDataLogReader(BZTestCase):
     def test_read(self):
-        log_path = path.join(get_res_path('ab.tsv'))
-        obj = TSVDataReader(log_path, logging.getLogger(''))
+        log_path = os.path.abspath(RESOURCES_DIR + "ab/ab.tsv")
+        obj = TSVDataReader(log_path, logging.getLogger(""))
         list_of_values = list(obj.datapoints(True))
 
         self.assertEqual(len(list_of_values), 3)

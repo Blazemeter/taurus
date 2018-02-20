@@ -1,10 +1,13 @@
 import logging
 import os
+import re
 import shutil
 
-from bzt.cli import CLI, ConfigOverrider
+from bzt import TaurusException
+from tests import BZTestCase, RESOURCES_DIR
+
+from bzt.cli import CLI, ConfigOverrider, get_option_parser
 from bzt.engine import Configuration
-from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul, ModuleMock
 
 
@@ -12,7 +15,8 @@ class TestCLI(BZTestCase):
     def setUp(self):
         super(TestCLI, self).setUp()
         self.log = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
-        self.verbose = True
+        self.verbose = False
+        self.quiet = False
         self.no_system_configs = True
         self.option = []
         self.datadir = os.path.join(os.path.dirname(__file__), "..", "build", "acli")
@@ -21,8 +25,19 @@ class TestCLI(BZTestCase):
         self.obj.engine = EngineEmul()
 
     def test_perform_normal(self):
-        ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
+        ret = self.obj.perform([RESOURCES_DIR + "json/mock_normal.json"])
         self.assertEquals(0, ret)
+
+    def test_perform_aliases(self):
+        self.aliases = ['test']
+        ret = self.obj.perform([RESOURCES_DIR + "json/mock_normal.json"])
+        self.assertEquals(0, ret)
+        self.assertTrue(self.obj.engine.config['marker'])
+
+    def test_perform_prepare_exc(self):
+        self.obj.engine.prepare_exc = TaurusException()
+        ret = self.obj.perform([RESOURCES_DIR + "json/mock_normal.json"])
+        self.assertEquals(1, ret)
 
     def test_perform_overrides(self):
         self.option.append("test.subkey5.-1=value")
@@ -38,11 +53,11 @@ class TestCLI(BZTestCase):
     def test_perform_overrides_fail(self):
         self.option.append("test.subkey2.0.sskey=value")
         self.option.append("test.subkey.0=value")
-        ret = self.obj.perform([__dir__() + "/json/mock_normal.json"])
+        ret = self.obj.perform([RESOURCES_DIR + "json/mock_normal.json"])
         self.assertEquals(1, ret)
 
     def test_perform_prepare_err(self):
-        ret = self.obj.perform([__dir__() + "/json/mock_prepare_err.json"])
+        ret = self.obj.perform([RESOURCES_DIR + "json/mock_prepare_err.json"])
         self.assertEquals(1, ret)
 
         prov = self.obj.engine.provisioning
@@ -54,7 +69,7 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_postproc)
 
     def test_perform_start_err(self):
-        conf = __dir__() + "/json/mock_start_err.json"
+        conf = RESOURCES_DIR + "json/mock_start_err.json"
         self.assertEquals(1, self.obj.perform([conf]))
 
         prov = self.obj.engine.provisioning
@@ -65,7 +80,7 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_postproc)
 
     def test_perform_wait_err(self):
-        conf = __dir__() + "/json/mock_wait_err.json"
+        conf = RESOURCES_DIR + "json/mock_wait_err.json"
         self.assertEquals(1, self.obj.perform([conf]))
 
         prov = self.obj.engine.provisioning
@@ -76,7 +91,7 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_postproc)
 
     def test_perform_end_err(self):
-        conf = __dir__() + "/json/mock_end_err.json"
+        conf = RESOURCES_DIR + "json/mock_end_err.json"
         self.assertEquals(1, self.obj.perform([conf]))
 
         prov = self.obj.engine.provisioning
@@ -87,7 +102,7 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_postproc)
 
     def test_perform_postproc_err(self):
-        conf = __dir__() + "/json/mock_postproc_err.json"
+        conf = RESOURCES_DIR + "json/mock_postproc_err.json"
         self.assertEquals(3, self.obj.perform([conf]))
 
         prov = self.obj.engine.provisioning
@@ -98,12 +113,19 @@ class TestCLI(BZTestCase):
         self.assertTrue(prov.was_postproc)
 
     def test_jmx_shorthand(self):
-        ret = self.obj.perform([
-            __dir__() + "/json/mock_normal.json",
-            __dir__() + "/jmx/dummy.jmx",
-            __dir__() + "/jmx/dummy.jmx",
-        ])
+        json_config = RESOURCES_DIR + "json/mock_normal.json"
+        jmx1 = RESOURCES_DIR + "jmeter/jmx/dummy.jmx"
+        jmx2 = RESOURCES_DIR + "jmeter/jmx/http.jmx"
+
+        ret = self.obj.perform([json_config, jmx1, jmx2])
+
+        executions = self.obj.engine.config.get('execution', [])
+        scenarios = [execution.get('scenario', {}) for execution in executions]
+        scripts = set([scenario.get('script', None) for scenario in scenarios])
+
         self.assertEquals(0, ret)
+        self.assertIn(jmx1, scripts)
+        self.assertIn(jmx2, scripts)
 
     def test_override_artifacts_dir(self):
         # because EngineEmul sets up its own artifacts_dir
@@ -123,32 +145,62 @@ class TestCLI(BZTestCase):
                 shutil.rmtree(artifacts_dir)
 
     def test_logging_verbosity_adjustment(self):
-        was_verbose = self.verbose
-        try:
-            self.verbose = False
-            ret = self.obj.perform([
-                __dir__() + "/json/mock_normal.json",
-            ])
-            self.assertEquals(0, ret)
-            log_lines = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).readlines()
-            checking = False
-            found_line = False
-            for line in log_lines:
-                if "Leveling down" in line:
-                    found_line = True
-                    checking = True
-                elif "Leveled up" in line:
-                    checking = False
-                else:
-                    if checking:
-                        self.assertNotIn("DEBUG", line)
-            self.assertTrue(found_line)
-        finally:
-            self.verbose = was_verbose
+        self.verbose = False
+        ret = self.obj.perform([
+            RESOURCES_DIR + "json/mock_normal.json",
+        ])
+        self.assertEquals(0, ret)
+        log_lines = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).readlines()
+        checking = False
+        found_line = False
+        for line in log_lines:
+            if "Leveling down" in line:
+                found_line = True
+                checking = True
+            elif "Leveled up" in line:
+                checking = False
+            else:
+                if checking:
+                    self.assertNotIn("DEBUG", line)
+        self.assertTrue(found_line)
+
+    def test_cover_option_parser(self):
+        parser = get_option_parser()
+        parser.print_usage()
+
+    def test_http_shorthand(self):
+        self.option.append("modules.mock=" + ModuleMock.__module__ + "." + ModuleMock.__name__)
+        self.option.append("provisioning=mock")
+        self.option.append("settings.default-executor=mock")
+        code = self.obj.perform(["http://blazedemo.com/"])
+        self.assertEqual(code, 0)
+        log_content = open(os.path.join(self.obj.engine.artifacts_dir, "bzt.log")).read()
+        configs = re.findall(r'[^\s\']*http_.*\.yml', log_content)
+        self.assertGreater(len(configs), 0)
+
+    def test_normal(self):
+        self.option.append("cli.linter.lint-and-exit=true")
+        self.obj.engine.config.merge({"execution": [{"concurrency": 10, "scenario": {"script": "foo.jmx"}}]})
+        ret = self.obj.perform([])
+        self.assertEquals(0, ret)
+
+    def test_normal_error(self):
+        self.option.append("cli.linter.lint-and-exit=true")
+        self.obj.engine.config.merge({"execution": {"concurrency": 10, "scenario": {"script": "foo.jmx"}}})
+        ret = self.obj.perform([])
+        self.assertEquals(1, ret)
+
+    def test_ignore(self):
+        self.option.append("cli.linter.lint-and-exit=true")
+        self.option.append("cli.linter.ignored-warnings.0=single-execution")
+        self.obj.engine.config.merge({"execution": {"concurrency": 10, "scenario": {"script": "foo.jmx"}}})
+        ret = self.obj.perform([])
+        self.assertEquals(0, ret)
 
 
 class TestConfigOverrider(BZTestCase):
     def setUp(self):
+        super(TestConfigOverrider, self).setUp()
         self.obj = ConfigOverrider(logging.getLogger())
         self.config = Configuration()
 

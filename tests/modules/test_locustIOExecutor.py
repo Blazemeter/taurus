@@ -1,21 +1,34 @@
 import logging
-import os
 import sys
 import time
 
+import os
+import unittest
+
+try:
+    import unittest.mock as mock
+except ImportError:
+    import mock
+
 from bzt import six, ToolError
+from bzt.modules.jmeter import JTLReader
+from bzt.six import PY2
+from bzt.utils import dehumanize_time
+from tests import BZTestCase, __dir__, RESOURCES_DIR
+
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from bzt.modules.provisioning import Local
-from tests import BZTestCase, __dir__
 from tests.mocks import EngineEmul
 
 
 class TestLocustIOExecutor(BZTestCase):
     def setUp(self):
-        sys.path.append(__dir__() + "/../locust/")
+        super(TestLocustIOExecutor, self).setUp()
+        sys.path.append(RESOURCES_DIR + "locust/")
         self.obj = LocustIOExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
         self.obj.engine.config['provisioning'] = 'local'
 
     def test_simple(self):
@@ -26,7 +39,7 @@ class TestLocustIOExecutor(BZTestCase):
             "iterations": 10,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": __dir__() + "/../locust/simple.py"
+                "script": RESOURCES_DIR + "locust/simple.py"
             }
         })
         self.obj.prepare()
@@ -49,7 +62,7 @@ class TestLocustIOExecutor(BZTestCase):
             "hold-for": 30,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": __dir__() + "/../locust/simple.py"
+                "script": RESOURCES_DIR + "locust/simple.py"
             }
         })
 
@@ -60,6 +73,34 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertEqual(self.obj.widget.duration, 30)
         self.assertTrue(self.obj.widget.widgets[0].text.endswith("simple.py"))
         self.obj.shutdown()
+
+    def test_locust_fractional_hatch_rate(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
+        test_concurrency, test_ramp_up = 4, "60s"
+        expected_hatch_rate = test_concurrency / dehumanize_time(test_ramp_up)
+
+        self.obj.execution.merge({
+            "concurrency": test_concurrency,
+            "ramp-up": test_ramp_up,
+            "iterations": 10,
+            "hold-for": 30,
+            "scenario": {
+                "default-address": "http://blazedemo.com",
+                "script": RESOURCES_DIR + "locust/simple.py"
+            }
+        })
+
+        self.obj.prepare()
+        with mock.patch('bzt.modules.locustio.LocustIOExecutor.execute') as m:
+            self.obj.startup()
+            # Extract the hatch-rate cmdline arg that bzt passed to locust.
+            hatch = [
+                x.split('=')[1] for x in m.call_args[0][0]
+                if x.startswith("--hatch-rate")
+            ]
+            self.assertEqual(hatch[0], "%f" % expected_hatch_rate)
 
     def test_locust_master(self):
         if six.PY3:
@@ -73,7 +114,7 @@ class TestLocustIOExecutor(BZTestCase):
             "slaves": 1,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": __dir__() + "/../locust/simple.py"
+                "script": RESOURCES_DIR + "locust/simple.py"
             }
         })
 
@@ -94,12 +135,23 @@ class TestLocustIOExecutor(BZTestCase):
         if six.PY3:
             logging.warning("No locust available for python 3")
 
-        obj = SlavesReader(__dir__() + "/../locust/locust-slaves.ldjson", 2, logging.getLogger(""))
+        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves.ldjson", 2, logging.getLogger(""))
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(107, len(points))
         for point in points:
             self.assertGreater(point[DataPoint.CURRENT][''][KPISet.AVG_RESP_TIME], 0)
             self.assertGreater(point[DataPoint.CURRENT][''][KPISet.BYTE_COUNT], 0)
+
+    def test_locust_slave_results_errors(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
+        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves2.ldjson", 2, logging.getLogger(""))
+        points = [x for x in obj.datapoints(True)]
+        self.assertEquals(60, len(points))
+        for point in points:
+            self.assertEquals(len(point[DataPoint.CURRENT][''][KPISet.ERRORS]), 1)
+            self.assertGreaterEqual(point[DataPoint.CURRENT][''][KPISet.FAILURES], 70)
 
     def test_locust_resource_files(self):
         if six.PY3:
@@ -111,7 +163,7 @@ class TestLocustIOExecutor(BZTestCase):
             "hold-for": 30,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": __dir__() + "/../locust/simple.py"
+                "script": RESOURCES_DIR + "locust/simple.py"
             }
         })
         resource_files = self.obj.resource_files()
@@ -145,7 +197,7 @@ class TestLocustIOExecutor(BZTestCase):
             "hold-for": 30,
             "scenario": {
                 "default-address": "http://blazedemo.com",
-                "script": __dir__() + "/../locust/simple.py"
+                "script": RESOURCES_DIR + "locust/simple.py"
             }
         })
         self.obj.prepare()
@@ -213,19 +265,10 @@ class TestLocustIOExecutor(BZTestCase):
 
         self.obj.execution = self.obj.engine.config.get('execution')[0]
         self.obj.prepare()
-
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-        with open(__dir__() + "/../locust/generated_from_requests_1.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminators
-        gen_contents = [line.rstrip() for line in gen_contents]
-        sample_contents = [line.rstrip() for line in sample_contents]
-
-        self.assertEqual(gen_contents, sample_contents)
+        self.assertFilesEqual(RESOURCES_DIR + "locust/generated_from_requests_1.py", self.obj.script)
 
     def test_build_script_none_def_addr(self):
+        self.sniff_log(self.obj.log)
         self.obj.engine.config.merge({
             "execution": [{
                 "executor": "locust",
@@ -239,17 +282,10 @@ class TestLocustIOExecutor(BZTestCase):
 
         self.obj.execution = self.obj.engine.config.get('execution')[0]
         self.obj.prepare()
-
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-        with open(__dir__() + "/../locust/generated_from_requests_2.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminators
-        gen_contents = [line.rstrip() for line in gen_contents]
-        sample_contents = [line.rstrip() for line in sample_contents]
-
-        self.assertEqual(gen_contents, sample_contents)
+        self.obj.startup()
+        self.obj.shutdown()
+        debug_buff = self.log_recorder.debug_buff.getvalue()
+        self.assertNotIn("'--host='", debug_buff)
 
     def test_jtl_key_order(self):
         self.obj.execution.merge({
@@ -276,5 +312,51 @@ class TestLocustIOExecutor(BZTestCase):
                 jtl = fds.readlines()
 
             header_line = jtl[0].strip()
-            expected_header = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
-            self.assertEqual(header_line, expected_header)
+            expected = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
+            self.assertEqual(header_line, expected)
+
+    @unittest.skipUnless(PY2, "Locust is having issues with py3")
+    def test_jtl_quoting_issue(self):
+        self.obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 1,
+            "scenario": {
+                "default-address": "http://httpbin.org/status/503",
+                "requests": [
+                    "/"
+                ]
+            }
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+
+        kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
+        self.assertTrue(os.path.exists(kpi_path))
+
+        reader = JTLReader(kpi_path, self.obj.log, None)
+        for point in reader.datapoints():
+            pass
+
+    def test_diagnostics(self):
+        self.obj.execution.merge({
+            "concurrency": 1,
+            "iterations": 1,
+            "scenario": {
+                "default-address": "http://httpbin.org/status/503",
+                "requests": [
+                    "/"
+                ]
+            }
+        })
+        self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+        diagnostics = self.obj.get_error_diagnostics()
+        self.assertIsNotNone(diagnostics)

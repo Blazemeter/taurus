@@ -31,6 +31,17 @@ Taurus tool may use different underlying tools as executors for scenarios. Curre
   - [Siege](Siege.md), executor type `siege`
   - [ApacheBenchmark](ApacheBenchmark.md), executor type `ab`
   - [Tsung](Tsung.md), executor type `tsung`
+  - [Molotov](Molotov.md), executor type `molotov`
+  - [JUnit](JUnit.md), executor type `junit`
+  - [TestNG](TestNG.md), executor type `testng`
+  - [Nose](Nose.md), executor type `nose`
+  - [PyTest](PyTest.md), executor type `pytest`
+  - [RSpec](RSpec.md), executor type `rspec`
+  - [Mocha](Mocha.md), executor type `mocha`
+  - [NUnit](NUnit.md), executor type `nunit`
+  - [WebdriverIO](WebdriverIO.md), executor type `wdio`
+  - [Robot](Robot.md), executor type `robot`
+  - [Postman/Newman](Postman.md), executor type `newman`
 
 Default executor is `jmeter` and can be changed under [general settings](ConfigSyntax.md#top-level-settings) section.
 ```yaml

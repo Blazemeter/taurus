@@ -15,23 +15,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import os
 import re
 import subprocess
 import time
 
-import os
 from bzt import TaurusConfigError, ToolError
-
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary, FileReader
 
 
-class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     Grinder executor module
     """
@@ -161,15 +160,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         # add logback configurations used by worker processes (logback-worker.xml)
         res_dir = os.path.join(get_full_path(__file__, step_up=2), 'resources')
-        classpath = res_dir
-        classpath += os.path.pathsep + os.path.join(res_dir, "grinder-logger-1.0.jar")
+        self.env.add_path({"CLASSPATH": res_dir}, finish=True)
+        self.env.add_path({"CLASSPATH": os.path.join(res_dir, "grinder-logger-1.0.jar")}, finish=True)
+        self.env.add_path({"CLASSPATH": self.settings.get("path", None)}, finish=True)
 
-        path = self.settings.get("path", None)
-        if path:
-            classpath += os.path.pathsep + path
-
-        self.cmd_line = ["java", "-classpath", classpath]
-        self.cmd_line += ["net.grinder.Grinder", self.properties_file]
+        self.cmd_line = ["java", "net.grinder.Grinder", self.properties_file]
 
     def startup(self):
         """
@@ -180,12 +175,9 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         err = self.engine.create_artifact("grinder-stderr", ".log")
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
+        self.env.set({"T_GRINDER_PREFIX": self.exec_id})
 
-        env = {"T_GRINDER_PREFIX": self.exec_id}
-        self.process = self.execute(self.cmd_line,
-                                    stdout=self.stdout_file,
-                                    stderr=self.stderr_file,
-                                    env=env)
+        self.process = self.execute(self.cmd_line, stdout=self.stdout_file, stderr=self.stderr_file)
 
     def check(self):
         """
@@ -198,7 +190,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.retcode = self.process.poll()
         if self.retcode is not None:
             if self.retcode != 0:
-                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode)
+                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode,
+                                self.get_error_diagnostics())
 
             return True
         return False
@@ -239,11 +232,12 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def install_required_tools(self):
         grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
-        grinder_path = os.path.abspath(os.path.expanduser(grinder_path))
+        grinder_path = get_full_path(grinder_path)
         self.settings["path"] = grinder_path
+        download_link = self.settings.get("download-link", "")
         required_tools = [TclLibrary(self.log),
-                          JavaVM("", "", self.log),
-                          Grinder(grinder_path, self.log, GrinderExecutor.VERSION)]
+                          JavaVM(self.log),
+                          Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link=download_link)]
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -272,20 +266,33 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         return resource_files
 
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.stdout_file is not None:
+            with open(self.stdout_file.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Grinder STDOUT:\n" + contents)
+        if self.stderr_file is not None:
+            with open(self.stderr_file.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Grinder STDOUT:\n" + contents)
+        return diagnostics
+
 
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
     DELIMITER = ","
+    DETAILS_REGEX = re.compile(r"worker\.(\S+) (.+) -> (\S+) (.+), (\d+) bytes")
 
     def __init__(self, filename, parent_logger):
         super(DataLogReader, self).__init__()
         self.report_by_url = False
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.idx = {}
         self.partial_buffer = ""
-        self.offset = 0
         self.start_time = 0
         self.end_time = 0
         self.concurrency = 0
@@ -298,49 +305,73 @@ class DataLogReader(ResultsReader):
 
         :param last_pass:
         """
-        while not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-
         self.log.debug("Reading grinder results...")
-        self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-        else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
-        self.offset = self.fds.tell()
 
-        for lnum, line in enumerate(lines):
+        self.lines = list(self.file.get_lines(size=1024 * 1024, last_pass=last_pass))
+
+        lnum = None
+        start = time.time()
+
+        for lnum, line in enumerate(self.lines):
+            if not self.idx:
+                if not line.startswith('data.'):
+                    self.__split(line)  # to capture early test name records
+                    continue
+
+                line = line[line.find(' '):]
+
+                header_list = line.strip().split(self.DELIMITER)
+                for _ix, field in enumerate(header_list):
+                    self.idx[field.strip()] = _ix
+
             data_fields, worker_id = self.__split(line)
             if not data_fields:
-                self.log.debug("Skipping line: %s", line)
+                self.log.debug("Skipping line: %s", line.strip())
                 continue
 
-            t_stamp = int(data_fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0
-            r_time = int(data_fields[self.idx["Test time"]]) / 1000.0
-            latency = int(data_fields[self.idx["Time to first byte"]]) / 1000.0
-            r_code = data_fields[self.idx["HTTP response code"]].strip()
-            con_time = int(data_fields[self.idx["Time to resolve host"]]) / 1000.0
-            con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
-            bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
-            test_id = data_fields[self.idx["Test"]].strip()
-            thread_id = worker_id + '/' + data_fields[self.idx["Thread"]].strip()
-            if thread_id not in self.known_threads:
-                self.known_threads.add(thread_id)
-                self.concurrency += 1
+            yield self.parse_line(data_fields, worker_id, lnum)
 
-            url, error_msg = self.__parse_prev_line(lines, lnum)
-            source_id = ''
+        if lnum is not None:
+            duration = time.time() - start
+            if duration < 0.001:
+                duration = 0.001
 
-            if self.report_by_url:
-                label = url
-            elif test_id in self.test_names:
-                label = self.test_names[test_id]
-            else:
-                label = "Test #%s" % test_id
+            self.log.debug("Log reading speed: %s lines/s", (lnum + 1) / duration)
 
-            yield int(t_stamp), label, self.concurrency, r_time, con_time, \
-                  latency, r_code, error_msg, source_id, bytes_count
+    def parse_line(self, data_fields, worker_id, lnum):
+        worker_id = worker_id.split('.')[1]
+        t_stamp = int(int(data_fields[self.idx["Start time (ms since Epoch)"]]) / 1000.0)
+        r_time = int(data_fields[self.idx["Test time"]]) / 1000.0
+        latency = int(data_fields[self.idx["Time to first byte"]]) / 1000.0
+        r_code = data_fields[self.idx["HTTP response code"]].strip()
+        con_time = int(data_fields[self.idx["Time to resolve host"]]) / 1000.0
+        con_time += int(data_fields[self.idx["Time to establish connection"]]) / 1000.0
+        bytes_count = int(data_fields[self.idx["HTTP response length"]].strip())
+        test_id = data_fields[self.idx["Test"]].strip()
+        thread_id = worker_id + '/' + data_fields[self.idx["Thread"]].strip()
+        if thread_id not in self.known_threads:
+            self.known_threads.add(thread_id)
+            self.concurrency += 1
+
+        url, error_msg = self.__parse_prev_lines(worker_id, lnum, r_code, bytes_count)
+        if int(data_fields[self.idx["Errors"]]) or int(data_fields[self.idx['HTTP response errors']]):
+            if not error_msg:
+                if r_code != '0':
+                    error_msg = "HTTP %s" % r_code
+                else:
+                    error_msg = "Java exception calling TestRunner"
+        else:
+            error_msg = None  # suppress errors
+
+        if self.report_by_url:
+            label = url
+        elif test_id in self.test_names:
+            label = self.test_names[test_id]
+        else:
+            label = "Test #%s" % test_id
+
+        source_id = ''  # maybe use worker_id somehow?
+        return t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error_msg, source_id, bytes_count
 
     def __split(self, line):
         if not line.endswith("\n"):
@@ -378,62 +409,24 @@ class DataLogReader(ResultsReader):
 
         return data_fields, worker_id
 
-    def __parse_prev_line(self, lines, lnum):
-        label = ''
+    def __parse_prev_lines(self, worker_id, lnum, r_code, bytes_count):
+        url = ''
         error_msg = None
-        if lnum > 0:
-            line = lines[lnum - 1].strip()
-            if line.endswith('bytes'):
-                line = line.split(self.DELIMITER)[0]
-                log_parts = line.split(' ')
-                if len(log_parts) > 4:
-                    log_parts.pop(0)  # worker_id
-                    label = log_parts.pop(0)
-                    log_parts.pop(0)  # skip arrow
-                    status = log_parts.pop(0)
-                    if status != '200':
-                        error_msg = ' '.join(log_parts)
+        for lineNo in reversed(range(max(lnum - 100, 0), lnum)):  # looking max 100 lines back. TODO: parameterize?
+            line = self.lines[lineNo].strip()
+            matched = self.DETAILS_REGEX.match(line)
+            if not matched:
+                continue
 
-        return label, error_msg
+            if worker_id == matched.group(1) and r_code == matched.group(3) and str(bytes_count) == matched.group(5):
+                return matched.group(2), matched.group(4)
 
-    def __open_fds(self):
-        """
-        opens grinder kpi-file
-        """
-        if not os.path.isfile(self.filename):
-            self.log.debug("File not appeared yet: %s", self.filename)
-            return False
-
-        if not os.path.getsize(self.filename):
-            self.log.debug("File is empty: %s", self.filename)
-            return False
-
-        self.fds = open(self.filename)
-        line = ''
-        while not line.startswith('data.'):
-            line = self.fds.readline()
-            self.__split(line)  # to caprute early test name records
-            if line == '':  # end of file
-                self.fds.close()
-                self.fds = None
-                return False
-
-        self.offset = self.fds.tell()
-        line = line[line.find(' '):]
-
-        header_list = line.strip().split(self.DELIMITER)
-        for _ix, field in enumerate(header_list):
-            self.idx[field.strip()] = _ix
-        return True
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
+        return url, error_msg
 
 
 class Grinder(RequiredTool):
-    def __init__(self, tool_path, parent_logger, version):
-        super(Grinder, self).__init__("Grinder", tool_path)
+    def __init__(self, tool_path, parent_logger, version, download_link):
+        super(Grinder, self).__init__("Grinder", tool_path, download_link=download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
         self.mirror_manager = GrinderMirrorsManager(self.log, self.version)
@@ -453,7 +446,7 @@ class Grinder(RequiredTool):
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
         self.log.info("Will install %s into %s", self.tool_name, dest)
-        grinder_dist = self._download()
+        grinder_dist = self._download(use_link=bool(self.download_link))
         self.log.info("Unzipping %s", grinder_dist)
         unzip(grinder_dist, dest, 'grinder-' + self.version)
         os.remove(grinder_dist)

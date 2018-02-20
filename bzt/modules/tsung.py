@@ -23,15 +23,15 @@ import traceback
 import copy
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools
+from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import etree, parse, iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which, FileReader
 
 
-class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     Tsung executor module
     """
@@ -115,7 +115,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("Tsung exited with non-zero code: %s" % ret_code)
+            raise ToolError("Tsung exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
         return True
 
     def shutdown(self):
@@ -147,70 +147,66 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         else:
             return []
 
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.__out is not None:
+            with open(self.__out.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Tsung STDOUT:\n" + contents)
+        if self.__err is not None:
+            with open(self.__err.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Tsung STDERR:\n" + contents)
+        return diagnostics
+
 
 class TsungStatsReader(ResultsReader):
     def __init__(self, tsung_basedir, parent_logger):
         super(TsungStatsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.tsung_basedir = tsung_basedir
-        self.stats_filename = None
-        self.stats_fds = None
-        self.stats_offset = 0
-        self.log_filename = None
-        self.log_fds = None
-        self.log_offset = 0
+        self.stats_file = FileReader(parent_logger=self.log, file_opener=self.open_stats)
+        self.log_file = FileReader(parent_logger=self.log, file_opener=self.open_log)
         self.delimiter = ";"
         self.partial_buffer = ""
         self.skipped_header = False
         self.concurrency = 0
 
-    def _open_fds(self):
-        if not self._locate_stats_file():
-            return False
+    def open_stats(self, filename):
+        return self.open_file(ext='dump')
 
-        if not os.path.isfile(self.stats_filename):
-            self.log.debug("Stats file not appeared yet")
-            return False
+    def open_log(self, filename):
+        return self.open_file(ext='log')
 
-        if not os.path.getsize(self.stats_filename):
-            self.log.debug("Stats file is empty: %s", self.stats_filename)
-            return False
-
-        if not self.stats_fds:
-            self.stats_fds = open(self.stats_filename)
-        if not self.log_fds:
-            self.log_fds = open(self.log_filename)
-
-        return True
-
-    def _locate_stats_file(self):
+    def open_file(self, ext):
         basedir_contents = os.listdir(self.tsung_basedir)
 
         if not basedir_contents:
             self.log.debug("Tsung artifacts not appeared yet")
-            return False
+            return
+
         if len(basedir_contents) != 1:
             self.log.warning("Multiple files in Tsung basedir %s, this shouldn't happen", self.tsung_basedir)
-            return False
+            return
 
-        self.stats_filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.dump")
-        self.log_filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.log")
-        return True
+        filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung." + ext)
 
-    def __del__(self):
-        if self.stats_fds:
-            self.stats_fds.close()
-        if self.log_fds:
-            self.log_fds.close()
+        if not os.path.isfile(filename):
+            self.log.debug("File not appeared yet: %s", filename)
+            return
+        if not os.path.getsize(filename):
+            self.log.debug("File is empty: %s", filename)
+            return
+
+        self.log.debug('Opening file: %s', filename)
+        return open(filename, mode='rb')
 
     def _read_concurrency(self, last_pass):
-        self.log_fds.seek(self.log_offset)
-        if last_pass:
-            lines = self.log_fds.readlines()
-        else:
-            lines = self.log_fds.readlines(1024 * 1024)
-        self.log_offset = self.log_fds.tell()
+        lines = self.log_file.get_lines(size=1024 * 1024, last_pass=last_pass)
         extractor = re.compile(r'^stats: users (\d+) (\d+)$')
+
         for line in lines:
             match = extractor.match(line.strip())
             if not match:
@@ -219,19 +215,10 @@ class TsungStatsReader(ResultsReader):
             self.log.debug("Actual Tsung concurrency: %s", self.concurrency)
 
     def _read(self, last_pass=False):
-        while not self.stats_fds and not self._open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-
         self.log.debug("Reading Tsung results")
-        self.stats_fds.seek(self.stats_offset)
-        if last_pass:
-            lines = self.stats_fds.readlines()
-        else:
-            lines = self.stats_fds.readlines(1024 * 1024)
-        self.stats_offset = self.stats_fds.tell()
 
         self._read_concurrency(last_pass)
+        lines = self.stats_file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if not line.endswith("\n"):

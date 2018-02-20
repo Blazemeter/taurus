@@ -47,7 +47,7 @@ class TaurusFormatter
             :status => "PASSED",
             :error_msg => nil,
             :error_trace => nil,
-            :extras => nil}
+            :extras => {}}
     # TODO: location
     @tests_passed += 1
     report_stdout item
@@ -65,7 +65,7 @@ class TaurusFormatter
             :error_msg => exception.to_s.split(" ").join(" "),
             :error_trace => exception.backtrace.nil? ? nil : exception.backtrace.join("\n"),
             :status => "FAILED",
-            :extras => nil}
+            :extras => {}}
     @report << item.to_json << "\n"
     report_stdout item
   end
@@ -80,7 +80,7 @@ class TaurusFormatter
             :status => "SKIPPED",
             :error_msg => nil,
             :error_trace => nil,
-            :extras => nil}
+            :extras => {}}
     @report << item.to_json << "\n"
     @tests_passed += 1
     report_stdout item

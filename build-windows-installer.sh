@@ -9,9 +9,21 @@ ICON_RELPATH="../../site/img/taurus.ico"  # must have this path relative to the 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
+if [ "$#" -ne 1 ]
+then
+  echo "Usage: $0 <build_file>"
+  exit 1
+fi
+if ! [ -e "$1" ]; then
+  echo "$1 not found" >&2
+  exit 1
+fi
+BUILD_FILE="$1"
+BASE_BUILD_FILE=$(basename "$BUILD_FILE")
+
 # create NSIS script
 cat << EOF > "$BUILD_DIR/taurus.nsi"
-[% extends "pyapp_w_pylauncher.nsi" %]
+[% extends "pyapp_installpy.nsi" %]
 
 [% block install_commands %]
 [[ super() ]]
@@ -21,13 +33,14 @@ cat << EOF > "$BUILD_DIR/taurus.nsi"
   IntCmp \$0 0 InstalledPip CantInstallPip CantInstallPip
 
 InstalledPip:
-
   ; Install Taurus
-  nsExec::ExecToLog 'py -m pip install bzt>=${TAURUS_VERSION}'
+  nsExec::ExecToLog 'py -m pip install --upgrade "\$INSTDIR\\${BASE_BUILD_FILE}"'
   Pop \$0
   IntCmp \$0 0 InstalledBzt CantInstallBzt CantInstallBzt
 
 InstalledBzt:
+  ; Move chrome-loader to resources
+  nsExec::ExecToLog 'py -c "from bzt.modules.proxy2jmx import inject_loader; inject_loader(\"\$INSTDIR\")"'
   Goto EndInstall
 
 CantInstallPip:
@@ -45,6 +58,8 @@ EndInstall:
 
 [% block uninstall_commands %]
 [[ super() ]]
+  ; Remove chrome-loader
+  nsExec::ExecToLog 'py -c "from bzt.modules.proxy2jmx import remove_loader; remove_loader()"'
   nsExec::ExecToLog 'py -m pip uninstall -y bzt'
 [% endblock %]
 
@@ -136,8 +151,12 @@ entry_point=bzt.jmx2yaml:main
 entry_point=bzt.soapui2yaml:main
 
 [Python]
-version=2.7.12
+version=3.5.3
 bitness=64
+
+[Include]
+files = tmp/chrome-loader.exe
+  ../../${BUILD_FILE}
 
 [Build]
 nsi_template=taurus.nsi
@@ -145,5 +164,7 @@ directory=.
 installer_name=${INSTALLER_NAME}
 EOF
 
+mkdir "$BUILD_DIR"/tmp
+x86_64-w64-mingw32-gcc -std=c99 -o "$BUILD_DIR"/tmp/chrome-loader.exe bzt/resources/chrome-loader.c
 pynsist "$BUILD_DIR/installer.cfg"
 # Installer was saved to ${BUILD_DIR}/${INSTALLER_NAME}
