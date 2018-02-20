@@ -5,7 +5,6 @@ import time
 from bzt import AutomatedShutdown
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.passfail import PassFailStatus, DataCriterion
-from bzt.utils import BetterDict
 from tests import BZTestCase, random_datapoint, RESOURCES_DIR
 from tests.mocks import EngineEmul
 

@@ -100,7 +100,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
         execution_files = self.execution.get('files', [], force_set=True)
         execution_files.extend(global_additional_classpath)     # later we need to fix path for sending into cloud
-        
+
         return resources
 
     def _collect_script_files(self, extensions):
