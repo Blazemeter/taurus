@@ -1,0 +1,13 @@
+services:
+- module: shellexec
+  prepare:
+  - command: python3 demoapp/server.py
+    background: true
+
+execution:
+- executor: selenium
+  runner: robot
+  hold-for: 1m
+  scenario:
+    script: login_tests
+

@@ -1,0 +1,17 @@
+execution:
+- scenario: existing
+  concurrency: 50
+  ramp-up: 1m
+  hold-for: 2m
+
+scenarios:
+  existing:
+    headers:
+      add-one: myval
+    script: existing.jmx
+    modifications:
+      disable:
+      - https://redirector.gvt1.com/edgedl/chrome/dict/en-us-7-1.bdic
+
+reporting:
+- junit-xml

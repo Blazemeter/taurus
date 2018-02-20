@@ -23,14 +23,13 @@ retention policy of your account. For details see BlazeMeter service [website](h
 
 If you want the results to be stored in your existing BlazeMeter account, you'll need to specify
 the reporting settings in your configuration file. Get the API token from BlazeMeter.com (find it
-under your [Settings => API Key](https://a.blazemeter.com/app/#settings/api-key)) and put it
-into `token` option:
+under your [Settings => API Keys](https://a.blazemeter.com/app/#settings/api-keys)) and put it
+into `token` option. Join key ID and secret with single colon:
 
 ```yaml
----
 modules:
   blazemeter:
-    token: TDknBxu0hmVnJ7NqtG2F
+    token: TDknBxu0hmVnJ7NqtG2F:DFadfgdsljasdfkKSKSDDFKSDFJKSDJFKSDJFsdjfksjfjDSF
 ```
 
 <div class="alert alert-danger">
@@ -47,7 +46,6 @@ Now you can use `-report` command-line switch, or you can set BlazeMeter reporti
 your config, the `test` option specifies test name to use, `project` names group of tests:
 
 ```yaml
----
 reporting:
 - module: blazemeter
   report-name: Jenkins Build 1
@@ -58,7 +56,6 @@ reporting:
 Advanced settings:
 
 ```yaml
----
 modules:
   blazemeter:
     address: https://a.blazemeter.com  # reporting service address
@@ -66,6 +63,7 @@ modules:
     browser-open: start  # auto-open the report in browser, 
                          # can be "start", "end", "both", "none"
     send-interval: 30s   # send data each n-th second
+    report-times-multiplier: 1000  # multiplying factor for response times, advanced option
     timeout: 5s  # connect and request timeout for BlazeMeter API
     artifact-upload-size-limit: 5  # limit max size of file (in megabytes)
                                    # that goes into zip for artifact upload, 10 by default
@@ -81,3 +79,5 @@ Note how easy is to set report settings from command line, i.e. from inside Jenk
 ```bash
 bzt mytest.yml -o modules.blazemeter.report-name="Jenkins Build ${BUILD_NUMBER}"
 ```
+
+Also, there is CLI alias `-public` to automatically set `public-report=true`.

@@ -1,0 +1,268 @@
+worker.requests_sample-0 worker process 0
+worker.requests_sample-0 instrumentation agents: byte code transforming instrumenter for Jython 2.5; byte code transforming instrumenter for Java
+worker.requests_sample-0 registered plug-in net.grinder.plugin.http.HTTPPlugin
+worker.requests_sample-0 running "/tmp/bzt-artifacts/0415-110806/grinder_requests.py" using Jython 2.5.3 (2.5:c56500f08d34+, Aug 13 2012, 14:54:35) 
+[Java HotSpot(TM) 64-Bit Server VM (Oracle Corporation)]
+data.requests_sample-0 Thread, Run, Test, Start time (ms since Epoch), Test time, Errors, HTTP response code, HTTP response length, HTTP response errors, Time to resolve host, Time to establish connection, Time to first byte, New connections
+worker.requests_sample-0 starting, will do 5 runs
+worker.requests_sample-0 starting, will do 5 runs
+worker.requests_sample-0 starting, will do 5 runs
+worker.requests_sample-0 starting, will do 5 runs
+worker.requests_sample-0 starting, will do 5 runs
+worker.requests_sample-0 start time is 1492243688364 ms since Epoch
+worker.requests_sample-0 sleeping for 48000 ms
+worker.requests_sample-0 sleeping for 36000 ms
+worker.requests_sample-0 sleeping for 24000 ms
+worker.requests_sample-0 sleeping for 12000 ms
+worker.requests_sample-0 No sleep needed
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 0, 0, 1, 1492243688370, 211, 0, 200, 7693, 0, 0, 0, 208, 0
+worker.requests_sample-0 sleeping for 253 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 0, 0, 1, 1492243688835, 64, 0, 200, 10192, 0, 0, 0, 62, 0
+worker.requests_sample-0 sleeping for 168 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 0, 0, 1, 1492243689068, 61, 0, 404, 14844, 1, 0, 0, 60, 0
+worker.requests_sample-0 sleeping for 50 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 0, 1, 1, 1492243689180, 109, 0, 200, 7693, 0, 0, 0, 109, 0
+worker.requests_sample-0 sleeping for 239 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 0, 1, 1, 1492243689529, 60, 0, 200, 10192, 0, 0, 0, 59, 0
+worker.requests_sample-0 sleeping for 162 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 0, 1, 1, 1492243689752, 61, 0, 404, 14844, 1, 0, 0, 60, 0
+worker.requests_sample-0 sleeping for 56 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 0, 2, 1, 1492243689870, 139, 0, 200, 7693, 0, 0, 0, 138, 0
+worker.requests_sample-0 sleeping for 245 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 0, 2, 1, 1492243690254, 77, 0, 200, 10192, 0, 0, 0, 76, 0
+worker.requests_sample-0 sleeping for 150 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 0, 2, 1, 1492243690481, 76, 0, 404, 14844, 1, 0, 0, 74, 0
+worker.requests_sample-0 sleeping for 48 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 0, 3, 1, 1492243690605, 110, 0, 200, 7693, 0, 0, 0, 110, 0
+worker.requests_sample-0 sleeping for 242 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 0, 3, 1, 1492243690958, 59, 0, 200, 10192, 0, 0, 0, 58, 0
+worker.requests_sample-0 sleeping for 154 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 0, 3, 1, 1492243691173, 62, 0, 404, 14844, 1, 0, 0, 61, 0
+worker.requests_sample-0 sleeping for 49 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 0, 4, 1, 1492243691285, 119, 0, 200, 7693, 0, 0, 0, 118, 0
+worker.requests_sample-0 sleeping for 250 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 0, 4, 1, 1492243691654, 64, 0, 200, 10192, 0, 0, 0, 63, 0
+worker.requests_sample-0 sleeping for 142 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 0, 4, 1, 1492243691861, 65, 0, 404, 14844, 1, 0, 0, 64, 0
+worker.requests_sample-0 sleeping for 49 ms
+worker.requests_sample-0 finished 5 runs
+worker.requests_sample-0 slept for 12000ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 1, 0, 1, 1492243700369, 122, 0, 200, 7693, 0, 0, 0, 122, 0
+worker.requests_sample-0 sleeping for 270 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 1, 0, 1, 1492243700762, 67, 0, 200, 10192, 0, 0, 0, 66, 0
+worker.requests_sample-0 sleeping for 155 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 1, 0, 1, 1492243700984, 66, 0, 404, 14844, 1, 0, 0, 65, 0
+worker.requests_sample-0 sleeping for 58 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 1, 1, 1, 1492243701108, 130, 0, 200, 7693, 0, 0, 0, 130, 0
+worker.requests_sample-0 sleeping for 253 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 1, 1, 1, 1492243701492, 70, 0, 200, 10192, 0, 0, 0, 69, 0
+worker.requests_sample-0 sleeping for 135 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 1, 1, 1, 1492243701697, 71, 0, 404, 14844, 1, 0, 0, 70, 0
+worker.requests_sample-0 sleeping for 50 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 1, 2, 1, 1492243701819, 107, 0, 200, 7693, 0, 0, 0, 106, 0
+worker.requests_sample-0 sleeping for 261 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 1, 2, 1, 1492243702187, 60, 0, 200, 10192, 0, 0, 0, 60, 0
+worker.requests_sample-0 sleeping for 169 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 1, 2, 1, 1492243702417, 59, 0, 404, 14844, 1, 0, 0, 58, 0
+worker.requests_sample-0 sleeping for 51 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 1, 3, 1, 1492243702528, 116, 0, 200, 7693, 0, 0, 0, 115, 0
+worker.requests_sample-0 sleeping for 253 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 1, 3, 1, 1492243702897, 65, 0, 200, 10192, 0, 0, 0, 64, 0
+worker.requests_sample-0 sleeping for 158 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 1, 3, 1, 1492243703120, 65, 0, 404, 14844, 1, 0, 0, 63, 0
+worker.requests_sample-0 sleeping for 49 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 1, 4, 1, 1492243703234, 132, 0, 200, 7693, 0, 0, 0, 132, 0
+worker.requests_sample-0 sleeping for 248 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 1, 4, 1, 1492243703614, 73, 0, 200, 10192, 0, 0, 0, 71, 0
+worker.requests_sample-0 sleeping for 151 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 1, 4, 1, 1492243703838, 71, 0, 404, 14844, 1, 0, 0, 70, 0
+worker.requests_sample-0 sleeping for 48 ms
+worker.requests_sample-0 finished 5 runs
+worker.requests_sample-0 slept for 24000ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 2, 0, 1, 1492243712368, 119, 0, 200, 7693, 0, 0, 0, 119, 0
+worker.requests_sample-0 sleeping for 260 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 2, 0, 1, 1492243712748, 64, 0, 200, 10192, 0, 0, 0, 64, 0
+worker.requests_sample-0 sleeping for 144 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 2, 0, 1, 1492243712957, 64, 0, 404, 14844, 1, 0, 0, 63, 0
+worker.requests_sample-0 sleeping for 44 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 2, 1, 1, 1492243713066, 109, 0, 200, 7693, 0, 0, 0, 109, 0
+worker.requests_sample-0 sleeping for 267 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 2, 1, 1, 1492243713443, 59, 0, 200, 10192, 0, 0, 0, 58, 0
+worker.requests_sample-0 sleeping for 140 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 2, 1, 1, 1492243713642, 61, 0, 404, 14844, 1, 0, 0, 60, 0
+worker.requests_sample-0 sleeping for 47 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 2, 2, 1, 1492243713750, 119, 0, 200, 7693, 0, 0, 0, 117, 0
+worker.requests_sample-0 sleeping for 245 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 2, 2, 1, 1492243714114, 64, 0, 200, 10192, 0, 0, 0, 63, 0
+worker.requests_sample-0 sleeping for 158 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 2, 2, 1, 1492243714336, 65, 0, 404, 14844, 1, 0, 0, 64, 0
+worker.requests_sample-0 sleeping for 51 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 2, 3, 1, 1492243714452, 116, 0, 200, 7693, 0, 0, 0, 115, 0
+worker.requests_sample-0 sleeping for 240 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 2, 3, 1, 1492243714809, 62, 0, 200, 10192, 0, 0, 0, 61, 0
+worker.requests_sample-0 sleeping for 162 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 2, 3, 1, 1492243715033, 65, 0, 404, 14844, 1, 0, 0, 64, 0
+worker.requests_sample-0 sleeping for 56 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 2, 4, 1, 1492243715154, 117, 0, 200, 7693, 0, 0, 0, 115, 0
+worker.requests_sample-0 sleeping for 217 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 2, 4, 1, 1492243715488, 62, 0, 200, 10192, 0, 0, 0, 62, 0
+worker.requests_sample-0 sleeping for 156 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 2, 4, 1, 1492243715707, 63, 0, 404, 14844, 1, 0, 0, 62, 0
+worker.requests_sample-0 sleeping for 46 ms
+worker.requests_sample-0 finished 5 runs
+worker.requests_sample-0 slept for 36000ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 3, 0, 1, 1492243724368, 134, 0, 200, 7693, 0, 0, 0, 132, 0
+worker.requests_sample-0 sleeping for 255 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 3, 0, 1, 1492243724757, 69, 0, 200, 10192, 0, 0, 0, 69, 0
+worker.requests_sample-0 sleeping for 136 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 3, 0, 1, 1492243724963, 71, 0, 404, 14844, 1, 0, 0, 70, 0
+worker.requests_sample-0 sleeping for 44 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 3, 1, 1, 1492243725079, 137, 0, 200, 7693, 0, 0, 0, 137, 0
+worker.requests_sample-0 sleeping for 250 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 3, 1, 1, 1492243725467, 77, 0, 200, 10192, 0, 0, 0, 76, 0
+worker.requests_sample-0 sleeping for 144 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 3, 1, 1, 1492243725688, 75, 0, 404, 14844, 1, 0, 0, 74, 0
+worker.requests_sample-0 sleeping for 41 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 3, 2, 1, 1492243725804, 121, 0, 200, 7693, 0, 0, 0, 121, 0
+worker.requests_sample-0 sleeping for 247 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 3, 2, 1, 1492243726173, 63, 0, 200, 10192, 0, 0, 0, 63, 0
+worker.requests_sample-0 sleeping for 171 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 3, 2, 1, 1492243726408, 64, 0, 404, 14844, 1, 0, 0, 63, 0
+worker.requests_sample-0 sleeping for 50 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 3, 3, 1, 1492243726523, 114, 0, 200, 7693, 0, 0, 0, 113, 0
+worker.requests_sample-0 sleeping for 208 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 3, 3, 1, 1492243726845, 65, 0, 200, 10192, 0, 0, 0, 64, 0
+worker.requests_sample-0 sleeping for 160 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 3, 3, 1, 1492243727070, 63, 0, 404, 14844, 1, 0, 0, 62, 0
+worker.requests_sample-0 sleeping for 46 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 3, 4, 1, 1492243727179, 140, 0, 200, 7693, 0, 0, 0, 139, 0
+worker.requests_sample-0 sleeping for 259 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 3, 4, 1, 1492243727579, 75, 0, 200, 10192, 0, 0, 0, 74, 0
+worker.requests_sample-0 sleeping for 163 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 3, 4, 1, 1492243727817, 75, 0, 404, 14844, 1, 0, 0, 74, 0
+worker.requests_sample-0 sleeping for 49 ms
+worker.requests_sample-0 finished 5 runs
+worker.requests_sample-0 slept for 48000ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 4, 0, 1, 1492243736368, 118, 0, 200, 7693, 0, 0, 0, 117, 0
+worker.requests_sample-0 sleeping for 263 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 4, 0, 1, 1492243736749, 66, 0, 200, 10192, 0, 0, 0, 65, 0
+worker.requests_sample-0 sleeping for 145 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 4, 0, 1, 1492243736960, 63, 0, 404, 14844, 1, 0, 0, 62, 0
+worker.requests_sample-0 sleeping for 51 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 4, 1, 1, 1492243737075, 107, 0, 200, 7693, 0, 0, 0, 107, 0
+worker.requests_sample-0 sleeping for 250 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 4, 1, 1, 1492243737433, 59, 0, 200, 10192, 0, 0, 0, 58, 0
+worker.requests_sample-0 sleeping for 141 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 4, 1, 1, 1492243737633, 60, 0, 404, 14844, 1, 0, 0, 59, 0
+worker.requests_sample-0 sleeping for 45 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 4, 2, 1, 1492243737738, 106, 0, 200, 7693, 0, 0, 0, 106, 0
+worker.requests_sample-0 sleeping for 248 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 4, 2, 1, 1492243738093, 61, 0, 200, 10192, 0, 0, 0, 60, 0
+worker.requests_sample-0 sleeping for 149 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 4, 2, 1, 1492243738304, 58, 0, 404, 14844, 1, 0, 0, 57, 0
+worker.requests_sample-0 sleeping for 49 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 4, 3, 1, 1492243738411, 117, 0, 200, 7693, 0, 0, 0, 116, 0
+worker.requests_sample-0 sleeping for 235 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 4, 3, 1, 1492243738763, 62, 0, 200, 10192, 0, 0, 0, 60, 0
+worker.requests_sample-0 sleeping for 164 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 4, 3, 1, 1492243738989, 66, 0, 404, 14844, 1, 0, 0, 65, 0
+worker.requests_sample-0 sleeping for 50 ms
+worker.requests_sample-0 http://blazedemo.com/ -> 200 OK, 7693 bytes
+data.requests_sample-0 4, 4, 1, 1492243739105, 107, 0, 200, 7693, 0, 0, 0, 107, 0
+worker.requests_sample-0 sleeping for 264 ms
+worker.requests_sample-0 http://blazedemo.com/reserve.php -> 200 OK, 10192 bytes
+data.requests_sample-0 4, 4, 1, 1492243739476, 59, 0, 200, 10192, 0, 0, 0, 58, 0
+worker.requests_sample-0 sleeping for 141 ms
+worker.requests_sample-0 http://blazedemo.com/payment.php -> 404 Not Found, 14844 bytes
+data.requests_sample-0 4, 4, 1, 1492243739676, 58, 0, 404, 14844, 1, 0, 0, 57, 0
+worker.requests_sample-0 sleeping for 50 ms
+worker.requests_sample-0 finished 5 runs
+worker.requests_sample-0 elapsed time is 51421 ms
+worker.requests_sample-0 Final statistics for this process:
+worker.requests_sample-0 
+             Tests        Errors       Mean Test    Test Time    TPS          Mean         Response     Response     Mean time to Mean time to Mean time to 
+                                       Time (ms)    Standard                  response     bytes per    errors       resolve host establish    first byte   
+                                                    Deviation                 length       second                                 connection                
+                                                    (ms)                                                                                                    
+
+Test 1       75           0            84,40        30,13        1,46         10909,67     15912,27     25           -            -            83,49         "requests_sample"
+
+Totals       75           0            84,40        30,13        1,46         10909,67     15912,27     25           -            -            83,49        
+
+  Tests resulting in error only contribute to the Errors column.          
+  Statistics for individual tests can be found in the data file, including
+  (possibly incomplete) statistics for erroneous tests. Composite tests   
+  are marked with () and not included in the totals.                      
+

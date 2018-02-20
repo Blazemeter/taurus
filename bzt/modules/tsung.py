@@ -20,16 +20,18 @@ import os
 import re
 import time
 import traceback
+import copy
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools
+from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.six import etree, parse, iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which, FileReader
 
 
-class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     Tsung executor module
     """
@@ -113,7 +115,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("Tsung exited with non-zero code: %s" % ret_code)
+            raise ToolError("Tsung exited with non-zero code: %s" % ret_code, self.get_error_diagnostics())
         return True
 
     def shutdown(self):
@@ -145,70 +147,66 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         else:
             return []
 
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.__out is not None:
+            with open(self.__out.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Tsung STDOUT:\n" + contents)
+        if self.__err is not None:
+            with open(self.__err.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Tsung STDERR:\n" + contents)
+        return diagnostics
+
 
 class TsungStatsReader(ResultsReader):
     def __init__(self, tsung_basedir, parent_logger):
         super(TsungStatsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.tsung_basedir = tsung_basedir
-        self.stats_filename = None
-        self.stats_fds = None
-        self.stats_offset = 0
-        self.log_filename = None
-        self.log_fds = None
-        self.log_offset = 0
+        self.stats_file = FileReader(parent_logger=self.log, file_opener=self.open_stats)
+        self.log_file = FileReader(parent_logger=self.log, file_opener=self.open_log)
         self.delimiter = ";"
         self.partial_buffer = ""
         self.skipped_header = False
         self.concurrency = 0
 
-    def _open_fds(self):
-        if not self._locate_stats_file():
-            return False
+    def open_stats(self, filename):
+        return self.open_file(ext='dump')
 
-        if not os.path.isfile(self.stats_filename):
-            self.log.debug("Stats file not appeared yet")
-            return False
+    def open_log(self, filename):
+        return self.open_file(ext='log')
 
-        if not os.path.getsize(self.stats_filename):
-            self.log.debug("Stats file is empty: %s", self.stats_filename)
-            return False
-
-        if not self.stats_fds:
-            self.stats_fds = open(self.stats_filename)
-        if not self.log_fds:
-            self.log_fds = open(self.log_filename)
-
-        return True
-
-    def _locate_stats_file(self):
+    def open_file(self, ext):
         basedir_contents = os.listdir(self.tsung_basedir)
 
         if not basedir_contents:
             self.log.debug("Tsung artifacts not appeared yet")
-            return False
+            return
+
         if len(basedir_contents) != 1:
             self.log.warning("Multiple files in Tsung basedir %s, this shouldn't happen", self.tsung_basedir)
-            return False
+            return
 
-        self.stats_filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.dump")
-        self.log_filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung.log")
-        return True
+        filename = os.path.join(self.tsung_basedir, basedir_contents[0], "tsung." + ext)
 
-    def __del__(self):
-        if self.stats_fds:
-            self.stats_fds.close()
-        if self.log_fds:
-            self.log_fds.close()
+        if not os.path.isfile(filename):
+            self.log.debug("File not appeared yet: %s", filename)
+            return
+        if not os.path.getsize(filename):
+            self.log.debug("File is empty: %s", filename)
+            return
+
+        self.log.debug('Opening file: %s', filename)
+        return open(filename, mode='rb')
 
     def _read_concurrency(self, last_pass):
-        self.log_fds.seek(self.log_offset)
-        if last_pass:
-            lines = self.log_fds.readlines()
-        else:
-            lines = self.log_fds.readlines(1024 * 1024)
-        self.log_offset = self.log_fds.tell()
+        lines = self.log_file.get_lines(size=1024 * 1024, last_pass=last_pass)
         extractor = re.compile(r'^stats: users (\d+) (\d+)$')
+
         for line in lines:
             match = extractor.match(line.strip())
             if not match:
@@ -217,19 +215,10 @@ class TsungStatsReader(ResultsReader):
             self.log.debug("Actual Tsung concurrency: %s", self.concurrency)
 
     def _read(self, last_pass=False):
-        while not self.stats_fds and not self._open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-
         self.log.debug("Reading Tsung results")
-        self.stats_fds.seek(self.stats_offset)
-        if last_pass:
-            lines = self.stats_fds.readlines()
-        else:
-            lines = self.stats_fds.readlines(1024 * 1024)
-        self.stats_offset = self.stats_fds.tell()
 
         self._read_concurrency(last_pass)
+        lines = self.stats_file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if not line.endswith("\n"):
@@ -327,15 +316,21 @@ class TsungConfig(object):
         clients.append(client)
         return clients
 
+    def __first_http_request(self, scenario):
+        for request in scenario.get_requests():
+            if isinstance(request, HTTPRequest):
+                return request
+        return None
+
     def __gen_servers(self, scenario):
         default_address = scenario.get("default-address", None)
         if default_address:
             base_addr = parse.urlparse(default_address)
         else:
-            requests = list(scenario.get_requests())
-            if not requests:
+            first_request = self.__first_http_request(scenario)
+            if not first_request:
                 raise TaurusConfigError("Tsung: you must specify requests in scenario")
-            base_addr = parse.urlparse(requests[0].url)
+            base_addr = parse.urlparse(first_request.url)
             self.log.debug("default-address was not specified, using %s instead", base_addr.hostname)
 
         servers = etree.Element("servers")
@@ -382,17 +377,17 @@ class TsungConfig(object):
     def __gen_options(self, scenario):
         options = etree.Element("options")
 
-        global_think_time = scenario.data.get('think-time', None)
+        global_think_time = scenario.get('think-time', None)
         if global_think_time:
             think_time = int(dehumanize_time(global_think_time))
             options.append(etree.Element("option", name="thinktime", value=str(think_time), random="false"))
 
-        global_tcp_timeout = scenario.data.get('timeout')
+        global_tcp_timeout = scenario.get('timeout', None)
         if global_tcp_timeout:
-            timeout = int(dehumanize_time(global_tcp_timeout)) * 1000
+            timeout = int(dehumanize_time(global_tcp_timeout) * 1000)
             options.append(etree.Element("option", name="connect_timeout", value=str(timeout)))
 
-        global_max_retries = scenario.data.get('max-retries', 1)
+        global_max_retries = scenario.get('max-retries', 1)
         options.append(etree.Element("option", name="max_retries", value=str(global_max_retries)))
         return options
 
@@ -400,14 +395,18 @@ class TsungConfig(object):
         sessions = etree.Element("sessions")
         session = etree.Element("session", name="taurus_requests", probability="100", type="ts_http")
         for request in scenario.get_requests():
+            if not isinstance(request, HTTPRequest):
+                msg = "Tsung config generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, request.NAME)
+                continue
+
             request_elem = etree.Element("request")
             http_elem = etree.Element("http", url=request.url, method=request.method, version="1.1")
             if request.body:
                 http_elem.set('contents', request.body)
 
-            headers = {}
-            headers.update(scenario.data.get('headers', {}))
-            headers.update(request.headers)
+            headers = copy.deepcopy(scenario.get_headers())
+            headers.update(copy.deepcopy(request.headers))
             for header_name, header_value in iteritems(headers):
                 http_elem.append(etree.Element("http_header", name=header_name, value=header_value))
 

@@ -4,29 +4,29 @@ from subprocess import CalledProcessError
 
 from bzt.engine import Service
 from bzt.modules.shellexec import ShellExecutor
-from bzt.utils import BetterDict
+from bzt.utils import BetterDict, is_windows
 from tests import BZTestCase
-from tests.mocks import EngineEmul, RecordingHandler
+from tests.mocks import EngineEmul
 
 
 class TaskTestCase(BZTestCase):
     def setUp(self):
+        super(TaskTestCase, self).setUp()
         self.obj = ShellExecutor()
         self.obj.parameters = BetterDict()
         self.obj.engine = EngineEmul()
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.engine.default_cwd = os.getcwd()
-        self.log_recorder = RecordingHandler()
-        self.obj.log.addHandler(self.log_recorder)
-
-    def tearDown(self):
-        self.obj.log.removeHandler(self.log_recorder)
+        self.sniff_log(self.obj.log)
 
 
 class TestBlockingTasks(TaskTestCase):
     def test_task_prepare(self):
         self.obj.settings['env'] = {"VAR": 1}
-        task = "dir .. && cd .."
+        if is_windows():
+            task = "dir .. && cd .."
+        else:
+            task = "ls .. && cd .."
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
         self.obj.startup()

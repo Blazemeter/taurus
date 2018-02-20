@@ -17,13 +17,14 @@ Following metrics are collected locally:
 - `disk-read`/`disk-write` - disk I/O rate
 - `disk-space` - % disk space used for artifacts storage
 - `engine-loop` - Taurus "check loop" utilization, values higher than 1.0 means you should increase `settings.check-interval`
+- `conn-all` - quantity of network connections
 
 ```yaml
----
 services:
 - module: monitoring
   local:
-  - metrics:
+  - interval: 20s   # polling interval
+    metrics:
     - cpu
     - disk-space
     - engine-loop
@@ -47,12 +48,12 @@ you need to install and launch ServerAgent on each of your target servers and th
 [metrics](http://jmeter-plugins.org/wiki/PerfMonMetrics/) to collect under `services` item.
 For example: 
 ```yaml
----
 services:
 - module: monitoring
   server-agent:
   - address: 192.168.0.1:4444
     label: target-server  # if you specify label, it will be used in reports instead of ip:port
+    interval: 3s    # polling interval
     metrics:
     - cpu
     - disks
@@ -66,7 +67,6 @@ Graphite data source uses graphite The Render URL API to receive metrics.
 In this example you can see usage optional server `label`, `timeout` for graphite answers, `interval`
 between requests and interesting graphite data range definition with parameters `from`/`until`.
 ```yaml
----
 services:
 - module: monitoring
   graphite:

@@ -24,8 +24,10 @@ from abc import abstractmethod
 from collections import deque
 from datetime import datetime
 from itertools import groupby, islice, chain
-from logging import StreamHandler
 
+from bzt import TaurusInternalException
+from bzt.six import StringIO, numeric_types
+from logging import StreamHandler
 from urwid import LineBox, ListBox, RIGHT, CENTER, BOTTOM, CLIP, GIVEN, ProgressBar
 from urwid import Text, Pile, WEIGHT, Filler, Columns, Widget, CanvasCombine
 from urwid.decoration import Padding
@@ -35,11 +37,9 @@ from urwid.listbox import SimpleListWalker
 from urwid.widget import Divider
 
 import bzt
-from bzt import TaurusInternalException
-from bzt.engine import Reporter
+from bzt.engine import Reporter, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, ResultsProvider
 from bzt.modules.provisioning import Local
-from bzt.six import StringIO, numeric_types
 from bzt.utils import humanize_time, is_windows, DummyScreen
 
 try:
@@ -53,7 +53,7 @@ except ImportError:
     ConsoleScreen = GUIScreen
 
 
-class ConsoleStatusReporter(Reporter, AggregatorListener):
+class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
     """
     Class to show process status on the console
     :type logger_handlers: list[StreamHandler]
@@ -97,7 +97,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
         if screen_type == "console":
             if ConsoleScreen is DummyScreen or is_windows():
-                self.log.debug("Can't use console' screen, trying 'gui'")
+                self.log.debug("Can't use 'console' screen, trying 'gui'")
                 screen_type = "gui"
 
         if screen_type == "gui" and GUIScreen is DummyScreen:
@@ -117,7 +117,7 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
         disable = self.settings.get('disable', 'auto')
         explicit_disable = isinstance(disable, (bool, int)) and disable
         auto_disable = str(disable).lower() == 'auto' and not sys.stdout.isatty()
-        if explicit_disable or auto_disable:
+        if explicit_disable or auto_disable or self.engine.is_functional_mode():
             self.disabled = True
             return
 
@@ -249,6 +249,9 @@ class ConsoleStatusReporter(Reporter, AggregatorListener):
 
     def __redirect_streams(self):
         if self.__streams_redirected:
+            return
+
+        if isinstance(self.screen, DummyScreen):
             return
 
         if sys.stdout.isatty():
@@ -653,7 +656,7 @@ class CumulativeStats(LineBox):
     """
     Cumulative stats block
     """
-    title = "Cumulative Stats"
+    title = " Cumulative Stats"
 
     def __init__(self):
         self.data = DataPoint(0)
@@ -688,7 +691,7 @@ class CumulativeStats(LineBox):
             self._start_time = data.get('ts')
         duration = humanize_time(time.time() - self._start_time)
 
-        self.title_widget.set_text(self.title + " %s" % duration)
+        self.title_widget.set_text(self.title + " %s " % duration)
 
 
 class PercentilesList(ListBox):
@@ -1058,7 +1061,9 @@ class RCodesList(ListBox):
                 part,
                 overall[KPISet.RESP_CODES][key],
             )
-            if key[0] == '2':
+            if not len(key):
+                style = "stat-nonhttp"
+            elif key[0] == '2':
                 style = 'stat-2xx'
             elif key[0] == '3':
                 style = 'stat-3xx'

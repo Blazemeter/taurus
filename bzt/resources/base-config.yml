@@ -1,0 +1,208 @@
+---
+# base module class mapping
+modules:
+  # classic load executors
+  ab:
+    class: bzt.modules.ab.ApacheBenchmarkExecutor
+  gatling:
+    class: bzt.modules.gatling.GatlingExecutor
+  grinder:
+    class: bzt.modules.grinder.GrinderExecutor
+  jmeter:
+    class: bzt.modules.jmeter.JMeterExecutor
+  locust:
+    class: bzt.modules.locustio.LocustIOExecutor
+  molotov:
+    class: bzt.modules.molotov.MolotovExecutor
+  pbench:
+    class: bzt.modules.pbench.PBenchExecutor
+  siege:
+    class: bzt.modules.siege.SiegeExecutor
+  tsung:
+    class: bzt.modules.tsung.TsungExecutor
+
+  # selenium & functional executors
+  selenium:
+    class: bzt.modules.selenium.SeleniumExecutor
+  nose:
+    class: bzt.modules.python.ApiritifNoseExecutor
+  junit:
+    class: bzt.modules.java.JUnitTester
+  testng:
+    class: bzt.modules.java.TestNGTester
+  rspec:
+    class: bzt.modules.ruby.RSpecTester
+  mocha:
+    class: bzt.modules.javascript.MochaTester
+  nunit:
+    class: bzt.modules.csharp.NUnitExecutor
+  pytest:
+    class: bzt.modules.python.PyTestExecutor
+  wdio:
+    class: bzt.modules.javascript.WebdriverIOExecutor
+  robot:
+    class: bzt.modules.python.RobotExecutor
+  newman:
+    class: bzt.modules.javascript.NewmanExecutor
+  apiritif:
+    class: bzt.modules.python.ApiritifNoseExecutor
+
+  # service & infra modules
+  local:
+    class: bzt.modules.provisioning.Local
+  monitoring:
+    class: bzt.modules.monitoring.Monitoring
+  passfail:
+    class: bzt.modules.passfail.PassFailStatus
+  shellexec:
+    class: bzt.modules.shellexec.ShellExecutor
+  junit-xml:
+    class: bzt.modules.reporting.JUnitXMLReporter
+  install-checker:
+    class: bzt.modules.services.InstallChecker
+  console:
+    class: bzt.modules.console.ConsoleStatusReporter
+  consolidator:
+    class: bzt.modules.aggregator.ConsolidatingAggregator
+  final-stats:
+    class: bzt.modules.reporting.FinalStatus
+  functional-consolidator:
+    class: bzt.modules.functional.FunctionalAggregator
+  android-emulator:
+    class: bzt.modules.services.AndroidEmulatorLoader
+  appium:
+    class: bzt.modules.services.AppiumLoader
+  virtual-display:
+    class: bzt.modules.services.VirtualDisplay
+
+  # online services integrations
+  blazemeter:
+    class: bzt.modules.blazemeter.BlazeMeterUploader
+  cloud:
+    class: bzt.modules.blazemeter.CloudProvisioning
+  proxy2jmx:
+    class: bzt.modules.proxy2jmx.Proxy2JMX
+  unpacker:
+    class: bzt.modules.services.Unpacker
+  screenshoter:
+    class: bzt.modules.blazemeter.ServiceStubScreenshoter
+  capturehar:
+    class: bzt.modules.blazemeter.ServiceStubCaptureHAR
+
+---
+# experimental & deprecated
+modules:
+  final_stats:
+    class: bzt.modules.reporting.FinalStatus
+
+---
+cli-aliases:
+  cloud:
+    provisioning: cloud
+  detach:
+    modules:
+      cloud:
+        detach: true
+  func:
+    modules:
+      console:
+        disable: true
+    settings:
+      aggregator: functional-consolidator
+  gui:
+    modules:
+      jmeter:
+        gui: true
+  install-tools:
+    services:
+    - install-checker
+  local:
+    provisioning: local
+  locations:
+    modules:
+      cloud:
+        dump-locations: true
+    provisioning: cloud
+  report:
+    reporting:
+    - blazemeter
+  public:
+    modules:
+      blazemeter:
+        public-report: true
+  sequential:
+    modules:
+      local:
+        sequential: true
+  lint:
+    cli:
+      linter:
+        lint-and-exit: true
+  nolint:
+    cli:
+      linter:
+        disable: true
+
+cli:
+  linter:
+    disable: false
+    warn-on-unfamiliar-fields: false
+    ignored-warnings: []
+    lint-and-exit: false
+
+---
+# real default config
+
+settings:
+  aggregator: consolidator
+  default-executor: jmeter
+
+provisioning: local
+
+reporting:
+- final-stats
+- console
+
+services:
+- module: monitoring
+  local:
+  - metrics:
+    - cpu
+    - mem
+    - bytes-sent
+    - bytes-recv
+    - disk-read
+    - disk-write
+    - disk-space
+    - engine-loop
+    - conn-all
+
+modules: # TODO: cleanup as much as possible from defaults
+  cloud:
+    default-location: us-central1-a
+
+  gatling:
+    properties:
+      gatling.data.file.bufferSize: 256
+
+  grinder:
+    properties:
+      grinder.useConsole: false
+
+  jmeter:
+    plugins:
+    - jpgc-casutg
+    - jpgc-dummy
+    - jpgc-ffw
+    - jpgc-fifo
+    - jpgc-functions
+    - jpgc-json
+    - jpgc-perfmon
+    - jpgc-prmctl
+    - jpgc-tst
+    properties:
+      jmeter.save.saveservice.autoflush: 'true'
+      jmeter.save.saveservice.connect_time: 'true'
+      jmeterengine.force.system.exit: 'true'
+      summariser.name: ''
+

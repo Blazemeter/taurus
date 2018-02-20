@@ -18,6 +18,7 @@ limitations under the License.
 import fnmatch
 import logging
 import re
+import sys
 from abc import abstractmethod
 from collections import OrderedDict
 
@@ -125,18 +126,18 @@ class FailCriterion(object):
         self.agg_buffer = OrderedDict()
         self.percentage = str(config['threshold']).endswith('%')
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
-        self.agg_logic = self._get_aggregator_functor(config.get('logic', 'for'), config['subject'])
+        self.window_logic = config.get('logic', 'for')
+        self.agg_logic = self._get_aggregator_functor(self.window_logic, config['subject'])
         self.condition = self._get_condition_functor(config.get('condition', '>'))
         self.threshold = dehumanize_time(config['threshold'])
         self.stop = config.get('stop', True)
         self.fail = config.get('fail', True)
         self.message = config.get('message', None)
         self.window = dehumanize_time(config.get('timeframe', 0))
-        self.counting = 0
+        self._start = sys.maxsize
+        self._end = 0
         self.is_candidate = False
         self.is_triggered = False
-        self.started = None
-        self.ended = None
 
     def __repr__(self):
         if self.is_triggered:
@@ -154,28 +155,46 @@ class FailCriterion(object):
                     self.config['subject'],
                     self.config['condition'],
                     self.config['threshold'],
-                    self.config.get('logic', 'for'),
-                    self.counting)
-            return "%s: %s%s%s %s %s sec" % data
+                    self.window_logic,
+                    self.get_counting())
+            return "%s: %s%s%s %s %d sec" % data
 
     def process_criteria_logic(self, tstmp, get_value):
         value = self.agg_logic(tstmp, get_value)
-
         state = self.condition(value, self.threshold)
-        if state:
-            self._count(tstmp)
-        else:
-            self.counting = 0
-            if not self.is_triggered:
-                self.started = None
+
+        if self.window_logic == 'for':
+            if state:
+                self._start = min(self._start, tstmp)
+                self._end = tstmp
+            else:
+                self._start = sys.maxsize
+                self._end = 0
+
+            if self.get_counting() >= self.window:
+                self.trigger()
+        elif self.window_logic == 'within' and state:
+            self._start = tstmp - self.window + 1
+            self._end = tstmp
+            self.trigger()
+        elif self.window_logic == 'over' and state:
+            min_buffer_tstmp = min(self.agg_buffer.keys())
+            self._start = min_buffer_tstmp
+            self._end = tstmp
+            if self.get_counting() >= self.window:
+                self.trigger()
 
         logging.debug("%s %s: %s", tstmp, self, state)
+
+    def trigger(self):
+        if not self.is_triggered:
+            logging.warning("%s", self)
+        self.is_triggered = True
 
     def check(self):
         """
         Interrupt the execution if desired condition occured
-
-        :return: :raise AutomatedShutdown:
+        :raise AutomatedShutdown:
         """
         if self.stop and self.is_triggered:
             if self.fail:
@@ -206,14 +225,15 @@ class FailCriterion(object):
     def _get_aggregator_functor(self, logic, _subject):
         if logic == 'for':
             return lambda tstmp, value: value
-        elif logic == 'within':
+        elif logic in ('within', 'over'):
             return self._within_aggregator_avg  # FIXME: having simple average for percented values is a bit wrong
         else:
             raise TaurusConfigError("Unsupported window logic: %s" % logic)
 
     def _get_windowed_points(self, tstmp, value):
         self.agg_buffer[tstmp] = value
-        for tstmp_old in self.agg_buffer.keys():
+        keys = list(self.agg_buffer.keys())
+        for tstmp_old in keys:
             if tstmp_old <= tstmp - self.window:
                 del self.agg_buffer[tstmp_old]
                 continue
@@ -228,13 +248,8 @@ class FailCriterion(object):
         points = self._get_windowed_points(tstmp, value)
         return sum(points) / len(points)
 
-    def _count(self, tstmp):
-        self.ended = tstmp
-        self.counting += 1
-        if self.counting >= self.window:
-            if not self.is_triggered:
-                logging.warning("%s", self)
-            self.is_triggered = True
+    def get_counting(self):
+        return self._end - self._start + 1
 
 
 class DataCriterion(FailCriterion):
@@ -313,16 +328,20 @@ class DataCriterion(FailCriterion):
             level = str(float(subject[1:]))
             return lambda x: x[KPISet.PERCENTILES][level] if level in x[KPISet.PERCENTILES] else 0
         elif subject.startswith('rc'):
-            count = lambda x: sum([fnmatch.fnmatch(y, subject[2:]) for y in x[KPISet.RESP_CODES].keys()])
+            count = lambda x: sum([
+                                      x[KPISet.RESP_CODES][y]
+                                      for y in x[KPISet.RESP_CODES].keys()
+                                      if fnmatch.fnmatch(y, subject[2:])
+                                      ])
             if percentage:
-                return lambda x: 100.0 * count(x) / x[KPISet.SAMPLE_COUNT]
+                return lambda x: 100.0 * count(x) / float(x[KPISet.SAMPLE_COUNT])
             else:
                 return count
         else:
             raise TaurusConfigError("Unsupported fail criteria subject: %s" % subject)
 
     def _get_aggregator_functor(self, logic, subj):
-        if logic == 'within' and not self.percentage:
+        if logic in ('within', "over") and not self.percentage:
             if subj in ('hits',) or subj.startswith('succ') or subj.startswith('fail') or subj.startswith('rc'):
                 return self._within_aggregator_sum
 
@@ -360,10 +379,10 @@ class DataCriterion(FailCriterion):
             crit_str = crit_config
             action_str = ""
 
-        crit_pat = re.compile(r"([\w\?-]+)(\s*of\s*([\S ]+))?([<>=]+)(\S+)(\s+(for|within)\s+(\S+))?")
+        crit_pat = re.compile(r"([\w?*.-]+)(\s*of\s*([\S ]+))?\s*([<>=]+)\s*(\S+)(\s+(for|within|over)\s+(\S+))?")
         crit_match = crit_pat.match(crit_str.strip())
         if not crit_match:
-            raise TaurusConfigError("Criteria string is mailformed in its condition part: %s" % crit_str)
+            raise TaurusConfigError("Criteria string is malformed in its condition part: %s" % crit_str)
         crit_groups = crit_match.groups()
         res["subject"] = crit_groups[0]
         res["condition"] = crit_groups[3]
@@ -379,7 +398,7 @@ class DataCriterion(FailCriterion):
             action_pat = re.compile(r"(stop|continue)(\s+as\s+(failed|non-failed))?")
             act_match = action_pat.match(action_str.strip())
             if not act_match:
-                raise TaurusConfigError("Criteria string is mailformed in its action part: %s" % action_str)
+                raise TaurusConfigError("Criteria string is malformed in its action part: %s" % action_str)
             action_groups = act_match.groups()
             res["stop"] = action_groups[0] != "continue"
             res["fail"] = action_groups[2] is None or action_groups[2] == "failed"
@@ -392,6 +411,7 @@ class PassFailWidget(Pile, PrioritizedWidget):
     Represents console widget for pass/fail criteria visualisation
     If criterion is failing, it will be displayed on the widget
     return urwid widget
+    :type failing_criteria: list[FailCriterion]
     """
 
     def __init__(self, pass_fail_reporter):
@@ -399,7 +419,7 @@ class PassFailWidget(Pile, PrioritizedWidget):
         self.failing_criteria = []
         self.text_widget = Text("")
         super(PassFailWidget, self).__init__([self.text_widget])
-        PrioritizedWidget.__init__(self, priority=0)
+        PrioritizedWidget.__init__(self)
 
     def __prepare_colors(self):
         """
@@ -409,7 +429,7 @@ class PassFailWidget(Pile, PrioritizedWidget):
         result = []
         for failing_criterion in self.failing_criteria:
             if failing_criterion.window:
-                percent = failing_criterion.counting / failing_criterion.window
+                percent = failing_criterion.get_counting() / failing_criterion.window
             else:
                 percent = 1
             color = 'stat-txt'
@@ -429,7 +449,7 @@ class PassFailWidget(Pile, PrioritizedWidget):
         :return:
         """
         self.text_widget.set_text("")
-        self.failing_criteria = [x for x in self.pass_fail_reporter.criteria if x.counting > 0]
+        self.failing_criteria = [x for x in self.pass_fail_reporter.criteria if x.get_counting() > 0]
         if self.failing_criteria:
             widget_text = self.__prepare_colors()
             self.text_widget.set_text(widget_text)

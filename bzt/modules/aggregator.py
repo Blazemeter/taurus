@@ -228,7 +228,7 @@ class KPISet(BetterDict):
         :type src: KPISet
         :return:
         """
-        src.recalculate()
+        src.recalculate() # TODO: could be not resource efficient strat
 
         self.sum_cn += src.sum_cn
         self.sum_lt += src.sum_lt
@@ -259,7 +259,6 @@ class KPISet(BetterDict):
     @staticmethod
     def from_dict(obj):
         """
-
         :type obj: dict
         :rtype: KPISet
         """
@@ -378,7 +377,7 @@ class DataPoint(BetterDict):
         for val in self[self.CUMULATIVE].values():
             val.recalculate()
 
-    def merge_point(self, src):
+    def merge_point(self, src, do_recalculate=True):
         """
 
         :type src: DataPoint
@@ -392,7 +391,8 @@ class DataPoint(BetterDict):
         self.__merge_kpis(src[self.CURRENT], self[self.CURRENT], src[DataPoint.SOURCE_ID])
         self.__merge_kpis(src[self.CUMULATIVE], self[self.CUMULATIVE], src[DataPoint.SOURCE_ID])
 
-        self.recalculate()
+        if do_recalculate:
+            self.recalculate()
 
 
 class ResultsProvider(object):
@@ -403,7 +403,7 @@ class ResultsProvider(object):
     def __init__(self):
         super(ResultsProvider, self).__init__()
         self.cumulative = BetterDict()
-        self.track_percentiles = []
+        self.track_percentiles = [0.0, 50.0, 90.0, 95.0, 99.0, 99.9, 100.0]
         self.listeners = []
         self.buffer_len = 2
         self.min_buffer_len = 2
@@ -602,7 +602,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
         self.generalize_labels = False
-        self.ignored_labels = []
+        self.ignored_labels = ["ignore"]
         self.underlings = []
         self.buffer = BetterDict()
         self.rtimes_len = 1000
@@ -626,14 +626,11 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.min_buffer_len = dehumanize_time(self.settings.get("min-buffer-len", self.min_buffer_len))
 
         max_buffer_len = self.settings.get("max-buffer-len", self.max_buffer_len)
-        try:  # for max_buffer_len == float('inf')
+        try:
             self.max_buffer_len = dehumanize_time(max_buffer_len)
         except TaurusInternalException as exc:
-            self.log.debug("Exception in dehumanize_time(%s)" % max_buffer_len)
-            if str(exc).find('inf') != -1:
-                self.max_buffer_len = max_buffer_len
-            else:
-                raise TaurusConfigError("Wrong 'max-buffer-len' value: %s" % max_buffer_len)
+            self.log.debug("Exception in dehumanize_time(%s): %s", max_buffer_len, exc)
+            raise TaurusConfigError("Wrong 'max-buffer-len' value: %s" % max_buffer_len)
 
         self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 

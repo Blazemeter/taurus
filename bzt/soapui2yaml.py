@@ -1,6 +1,4 @@
 """
-SoapUI to YAML converter for Taurus
-
 Copyright 2017 BlazeMeter Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +23,7 @@ from bzt import TaurusInternalException
 from bzt.cli import CLI
 from bzt.engine import Configuration
 from bzt.modules.soapui import SoapUIScriptConverter
+from bzt.six import iteritems
 
 
 class SoapUI2YAML(object):
@@ -54,6 +53,8 @@ class SoapUI2YAML(object):
             self.log.error("Error while processing SoapUI project: %s", self.file_to_convert)
             raise
 
+        self._cleanup_config(converted_config)
+
         exporter = Configuration()
         exporter.merge(converted_config)
 
@@ -65,6 +66,14 @@ class SoapUI2YAML(object):
         exporter.dump(file_name, output_format)
 
         self.log.info("Done processing, result saved in %s", file_name)
+
+    @staticmethod
+    def _cleanup_config(config):
+        for _, scenario in iteritems(config.get("scenarios")):
+            if "test-case" in scenario:
+                scenario.pop("test-case")
+            if "test-suite" in scenario:
+                scenario.pop("test-suite")
 
 
 def process(parsed_options, args):

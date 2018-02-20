@@ -1,16 +1,24 @@
 """ unit test """
+import difflib
 import inspect
 import json
 import logging
 import os
 import tempfile
+from io import StringIO
+from logging import Handler
 from random import random
 from unittest.case import TestCase
 
+import sys
+
 from bzt.cli import CLI
+from bzt.engine import SelfDiagnosable
 from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.six import u
 from bzt.utils import run_once, EXE_SUFFIX
-TestCase.shortDescription = lambda self: None   # suppress nose habit to show docstring instead of method name
+
+TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
 
 
 @run_once
@@ -32,6 +40,15 @@ logging.info("Bootstrapped test")
 def __dir__():
     filename = inspect.getouterframes(inspect.currentframe())[1][1]
     return os.path.dirname(filename)
+
+# execute tests regardless of working directory
+root_dir = __dir__() + '/../'
+os.chdir(root_dir)
+
+RESOURCES_DIR = os.path.join(__dir__(), 'resources') + os.path.sep
+BUILD_DIR = __dir__() + "/../build/tmp/"
+TEST_DIR = __dir__() + "/../build/test/"
+BASE_CONFIG = __dir__() + "/../bzt/resources/base-config.yml"
 
 
 def r(mul=5):
@@ -87,8 +104,42 @@ def random_datapoint(n):
     return point
 
 
+def close_reader_file(obj):
+    if obj and obj.file and obj.file.fds:
+        obj.file.fds.close()
+
+
 class BZTestCase(TestCase):
-    pass
+    def setUp(self):
+        self.captured_logger = None
+        self.log_recorder = None
+
+    def sniff_log(self, log):
+        self.log_recorder = RecordingHandler()
+        self.captured_logger = log
+        self.captured_logger.addHandler(self.log_recorder)
+
+    def tearDown(self):
+        exc, _, _ = sys.exc_info()
+        if exc:
+            try:
+                if hasattr(self, 'obj') and isinstance(self.obj, SelfDiagnosable):
+                    diags = self.obj.get_error_diagnostics()
+                    if diags:
+                        for line in diags:
+                            logging.info(line)
+            except BaseException:
+                pass
+        if self.captured_logger:
+            self.captured_logger.removeHandler(self.log_recorder)
+            self.log_recorder.close()
+
+    def assertFilesEqual(self, expected, actual):
+        with open(expected) as exp, open(actual) as act:
+            diff = list(difflib.unified_diff(exp.readlines(), act.readlines()))
+            if diff:
+                msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
+                raise AssertionError(msg + "".join(diff))
 
 
 def local_paths_config():
@@ -99,21 +150,17 @@ def local_paths_config():
     settings = {
         "modules": {
             "jmeter": {
-                "path": dirname + "/jmeter/jmeter-loader" + EXE_SUFFIX,
+                "path": RESOURCES_DIR + "jmeter/jmeter-loader" + EXE_SUFFIX,
             },
             "grinder": {
-                "path": dirname + "//grinder/fake_grinder.jar",
+                "path": RESOURCES_DIR + "grinder/fake_grinder.jar",
             },
             "gatling": {
-                "path": dirname + "/gatling/gatling" + EXE_SUFFIX,
+                "path": RESOURCES_DIR + "gatling/gatling" + EXE_SUFFIX,
             },
-            "selenium": {
-                "selenium-tools": {
-                    "junit": {
-                        "path": dirname + "/../build/selenium/tools/junit/junit.jar",
-                        "selenium-server": dirname + "/../build/selenium/selenium-server.jar"
-                    }
-                }
+            "junit": {
+                "path": dirname + "/../build/selenium/tools/junit/junit.jar",
+                "selenium-server": dirname + "/../build/selenium/selenium-server.jar"
             }
         }
     }
@@ -121,3 +168,36 @@ def local_paths_config():
     with open(fname, 'w') as fds:
         fds.write(jstring)
     return fname
+
+
+class RecordingHandler(Handler):
+    def __init__(self):
+        super(RecordingHandler, self).__init__()
+        self.info_buff = StringIO()
+        self.err_buff = StringIO()
+        self.debug_buff = StringIO()
+        self.warn_buff = StringIO()
+
+    def emit(self, record):
+        """
+
+        :type record: logging.LogRecord
+        :return:
+        """
+        if record.levelno == logging.INFO:
+            self.write_log(self.info_buff, record.msg, record.args)
+        elif record.levelno == logging.ERROR:
+            self.write_log(self.err_buff, record.msg, record.args)
+        elif record.levelno == logging.WARNING:
+            self.write_log(self.warn_buff, record.msg, record.args)
+        elif record.levelno == logging.DEBUG:
+            self.write_log(self.debug_buff, record.msg, record.args)
+
+    def write_log(self, buff, str_template, args):
+        str_template += "\n"
+        if args:
+            buff.write(u(str_template % args))
+        else:
+            buff.write(u(str_template))
+
+

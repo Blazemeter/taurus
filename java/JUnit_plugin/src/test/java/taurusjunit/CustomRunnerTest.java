@@ -33,7 +33,7 @@ public class CustomRunnerTest extends TestCase {
         String[] args = {propsFile.getAbsolutePath()};
         CustomRunner.main(args);
 
-        assertEquals(2, getLinesCount(report));
+        assertEquals(1, getLinesCount(report));
     }
 
     public void testIterations() throws Exception {
@@ -55,7 +55,7 @@ public class CustomRunnerTest extends TestCase {
         String[] args = {propsFile.getAbsolutePath()};
         CustomRunner.main(args);
 
-        assertEquals(2 * 3, getLinesCount(report));
+        assertEquals(3, getLinesCount(report));
     }
 
     public void testHold() throws Exception {
@@ -68,7 +68,7 @@ public class CustomRunnerTest extends TestCase {
         Properties props = new Properties();
         props.setProperty(CustomRunner.REPORT_FILE, report.getAbsolutePath());
         props.setProperty(CustomRunner.TARGET_PREFIX + "jar", res.getPath());
-        props.setProperty(CustomRunner.HOLD, String.valueOf(60));
+        props.setProperty(CustomRunner.HOLD, String.valueOf(5));
 
         File propsFile = File.createTempFile("runner", ".properties");
         propsFile.deleteOnExit();
@@ -90,7 +90,7 @@ public class CustomRunnerTest extends TestCase {
         Properties props = new Properties();
         props.setProperty(CustomRunner.REPORT_FILE, report.getAbsolutePath());
         props.setProperty(CustomRunner.TARGET_PREFIX + "jar", res.getPath());
-        props.setProperty(CustomRunner.HOLD, String.valueOf(60));
+        props.setProperty(CustomRunner.HOLD, String.valueOf(5));
         props.setProperty(CustomRunner.ITERATIONS, String.valueOf(1));
 
         File propsFile = File.createTempFile("runner", ".properties");
@@ -100,6 +100,6 @@ public class CustomRunnerTest extends TestCase {
         String[] args = {propsFile.getAbsolutePath()};
         CustomRunner.main(args);
 
-        assertEquals(2, getLinesCount(report));
+        assertEquals(1, getLinesCount(report));
     }
 }

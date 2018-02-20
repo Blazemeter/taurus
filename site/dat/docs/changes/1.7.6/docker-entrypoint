@@ -1,1 +1,0 @@
-Used ENTRYPOINT in docker to allow command-line parameters passing

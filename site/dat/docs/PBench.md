@@ -14,7 +14,6 @@ sudo dpkg -i blazemeter-pbench-extras_0.0.6.1_amd64.deb  # built from https://gi
 
 Then use it like this:
 ```yaml
----
 execution:
 - executor: pbench
   scenario: simple_usage
@@ -50,11 +49,10 @@ sudo dpkg -i blazemeter-pbench-extras_0.0.6.1_amd64.deb
 ```
 
 ## Scenario Building
-High throughput and precision comes with a price of lost requests logic. No loops, no extractors, no assertions, no think-times. Also, all requests must go to the same `proto://server:port` address.
+High throughput and precision comes with a price of lost requests logic. No loops, no extractors, no assertions, no think-times, no automatic cookie handling. Also, all requests must go to the same `proto://server:port` address.
 
 First way to give it requests is to use usual Taurus requests spec of:
 ```yaml
----
 scenarios:
   pbench-example:
     default-address: http://blazedemo.com
@@ -77,7 +75,6 @@ scenarios:
  
 Second way is to generate the payload script yourself and use it. This is frequently done with custom scripts that takes production server logs as source data:
 ```yaml
----
 scenarios:
   pbench-example:
     default-address: http://blazedemo.com

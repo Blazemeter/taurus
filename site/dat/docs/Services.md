@@ -7,7 +7,6 @@ top-level section of config with list of service module configs:
 Services are configured with `services` toplevel section. `services` section contains a list of
 services to run:
 ```yaml
----
 services:
 - module: shellexec:
   post-process: ...
@@ -23,7 +22,6 @@ services:
 Taurus provides the following services:
 - `shellexec` used to execute additional shell commands when test is executed
 - `monitoring` allows including monitoring data in test reports
-- `chrome-profiler` allows to extract performance metrics from Chrome running Selenium tests
 
 ## Shell Executor Service Module
 
@@ -32,7 +30,6 @@ Taurus provides hooks to all Taurus [test execution phases](Lifecycle.md).
 
 Sample configuration:
 ```yaml
----
 services:
 - module: shellexec
   prepare:  
@@ -75,30 +72,26 @@ services:
 
 You can learn more about Monitoring Service at its [page](Monitoring.md)
 
-## Chrome Profiler Service
+## Virtual Display Service
 
-This service allows you to extract frontend performance stats from Chrome.
+If your tests open windows (e.g. Selenium tests) and you want to run them in a headless
+environment, you can tell Taurus to run virtual display by using `virtual-display` service.
 
-It calculates the following metrics:
-- page load metrics (time to 'load' event, time to full page load, etc)
-- network metrics (page footprint, time to first byte, number of HTTP requests, etc)
-- memory metrics (how much memory was consumed by browser, tab, JavaScript engine)
-- JavaScript CPU utilization
-- all HTTP requests that were made by browser tab
-- all AJAX requests
-- JavaScript functions that browser spent most of the time executing
+`virtual-display` is build on top of [Xvfb](https://www.x.org/archive/X11R7.6/doc/man/man1/Xvfb.1.xhtml),
+so it's only available on Linux.
 
-Service also comes with a reporter (named `chrome-metric-reporter`) that will print
-performance metrics extracted from Chrome to terminal at the end of the test.
-
-You can learn more about `chrome-profiler` service at its [own page](ChromeProfiler.md).
+```yaml
+services:
+- module: virtual-display
+  width: 1024
+  height: 768
+```
 
 ## Unpacker
 
 You can ask Taurus to unzip some of your files into artifacts directory before test starts (only zip format is supported). It's easy with `unpacker` service:
    
 ```yaml
----
 services:
 - module: unpacker
   files:
@@ -121,7 +114,6 @@ To invoke this service, just run Taurus like this `bzt -install-tools`.
 Useful for start/stop appium server automatically. This service doesn't provide installation ability so use [official documentation](http://appium.io) to get appium. You can specify path to appium through the appropriate setting:
 
 ```yaml
----
 services:
 - appium
 modules:
@@ -135,7 +127,6 @@ modules:
 It used to start/stop android emulator. For that purpose you have to get Android SDK by yourself and tell Taurus where it placed with path to emulator (usualy it can be found in <sdk_directory>/tools) in config or environment variable ANDROID_HOME, which contains SDK location. Moreover, you should choose one of your android emulators with `avd` option. 
 
 ```yaml
-----
 services:
 - android-emulator
 modules:

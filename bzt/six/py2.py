@@ -17,6 +17,7 @@ limitations under the License.
 """
 # pylint: skip-file
 
+import cookielib
 import types
 import traceback
 import urllib
@@ -42,6 +43,7 @@ UserDict = UserDict.UserDict
 BytesIO = StringIO.StringIO
 StringIO = StringIO.StringIO
 
+cookielib=cookielib
 parse = urlparse
 request = urllib
 urlopen = urllib2.urlopen
@@ -70,22 +72,30 @@ def b(string):
 
 
 def u(string):
-    if not isinstance(string, unicode):
+    if not isinstance(string, text_type):
         return unicode(string.replace('\\', '\\\\'), "unicode_escape")
     else:
         return string
 
 
 def get_stacktrace(exc):
-    return traceback.format_exc(exc)
+    return traceback.format_exc(exc).rstrip()
 
 
 def reraise(exc_info):
     raise exc_info[0], exc_info[1], exc_info[2]
 
 
+def stream_decode(string):
+    return string
+
+
 def unicode_decode(string):
-    if not isinstance(string, unicode):
+    if not isinstance(string, text_type):
         return string.decode('utf-8')
     else:
         return string
+
+
+def communicate(proc):
+    return proc.communicate()

@@ -7,9 +7,8 @@ Reporters are specified as list under top-level config key `reporting`, by defau
 configured with two reporters:
 
 ```yaml
----
 reporting:
-- final_stats
+- final-stats
 - console
 ```
 
@@ -17,9 +16,8 @@ The example above uses a shorthand form for specifying reporters. Full form is u
 and allows specifying some additional settings for reporters:
 
 ```yaml
----
 reporting:
-- module: final_stats
+- module: final-stats
 - module: console
 ```
 
@@ -61,9 +59,8 @@ for example:
 This reporter is enabled by default. You can tweak its behaviour with the following options:
 
 ```yaml
----
 reporting:
-- module: final_stats
+- module: final-stats
   summary: true  # overall samples count and percent of failures
   percentiles: true  # display average times and percentiles
   failed-labels: false  # provides list of sample labels with failures
@@ -72,12 +69,11 @@ reporting:
   dump-csv: filename to export data in CSV format
 ```
 
-### Dump Summary for Jenkins Plot Plugin
+### Dump Summary for Jenkins Plugins
 
-Two options `dump-csv` and `dump-xml` allows to export final cumulative stats into files that can be used
-by [Jenkins Plot Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Plot+Plugin) to plot historical data
-inside Jenkins. Prefer CSV as it is much easier to use with Plot Plugin. XML format also can be used with
-other tools to automate results processing.
+Two options `dump-xml` and `dump-csv` allows to export final cumulative stats into files that can be used
+by  [Jenkins Performance Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Performance+Plugin) and [Jenkins Plot Plugin](https://wiki.jenkins-ci.org/display/JENKINS/Plot+Plugin) to plot historical data
+inside Jenkins. CSV to use with Plot Plugin (you can read good [article](https://www.blazemeter.com/blog/how-run-taurus-jenkins-performance-plugin) about it). XML format is for Performance Plugin.
 
 Field names with explanations:
  -   `label` - is the sample group for which this CSV line presents the stats. Empty label means total of all labels
@@ -106,7 +102,6 @@ If `pass-fail` used as source data, report will contain [Pass/Fail](PassFail.md)
 Sample configuration:
 
 ```yaml
----
 reporting:
 - module: junit-xml
   filename: /path_to_file/file.xml
@@ -119,7 +114,6 @@ Aggregating facility module is set through general settings, by default
 it is: 
 
 ```yaml
----
 settings:
   aggregator: consolidator
 ```
@@ -127,7 +121,6 @@ settings:
 The `consolidator` has several settings:
 
 ```yaml
----
 modules:
   consolidator:
     generalize-labels: false  # replace digits and UUID sequences 
@@ -135,8 +128,8 @@ modules:
     ignore-labels: # sample labels from this list 
       - ignore     # will be ignored by results reader
       
-    buffer-multiplier: 0.5  # choose middle value from following percentiles list (95.0)
-    buffer-scale-choice: 2  # make buffer two times bigger than need to receive 95% samples      
+    buffer-scale-choice: 0.5  # choose middle value from following percentiles list (95.0)
+    buffer-multiplier: 2  # make buffer two times bigger than need to receive 95% samples
     min-buffer-len: 2s      # minimal length of buffer (default: 2s)
     max-buffer-len: 2h      # maximal length of buffer (default: infinity)
     
@@ -154,20 +147,19 @@ modules:
 ```
 `rtimes-len` allows to reduce memory consumption for heavy tests. On the other hand, you reduce the precision of distribution with that.
  
- ## Pass/Fail Criteria Subsystem
+## Pass/Fail Criteria Subsystem
  
  Pass/Fail module is used to dynamically update test status based on some runtime criteria. For
  example, you can use it to automatically fail the test when response time exceeds some threshold.
  Here's a sample:
  
- ```yaml
- ---
- reporting:
- - module: passfail
-   criteria:
-   - avg-rt of IndexPage>150ms for 10s, stop as failed
-   - fail of CheckoutPage>50% for 10s, stop as failed
- ```
+```yaml
+reporting:
+- module: passfail
+  criteria:
+  - avg-rt of IndexPage>150ms for 10s, stop as failed
+  - fail of CheckoutPage>50% for 10s, stop as failed
+```
  
- You can learn more about Pass/Fail criteria capabilities at its [page](PassFail.md).
+You can learn more about Pass/Fail criteria capabilities at its [page](PassFail.md).
  

@@ -1,5 +1,4 @@
 ```yaml
----
 execution:
 - concurrency: 100
   ramp-up: 1m

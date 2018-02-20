@@ -1,0 +1,44 @@
+{
+  "reporting": [
+    {
+      "module": "passfail",
+      "criteria": [
+        "concurr>=10 for 15s, stop as non-failed",
+        {
+          "subject": "avg-rt",
+          "condition": ">",
+          "threshold": "50ms",
+          "timeframe": "5s",
+          "label": "",
+          "stop": true,
+          "fail": true
+        },
+        {
+          "subject": "fail",
+          "condition": ">",
+          "threshold": "80%",
+          "timeframe": 3,
+          "label": "",
+          "stop": true,
+          "fail": true
+        },
+        {
+          "subject": "rc4??",
+          "condition": ">",
+          "threshold": "50%",
+          "timeframe": -1,
+          "label": "",
+          "stop": true,
+          "fail": true
+        },
+        "My criteria description: avg-rt of label>100ms for 1m, continue as non-failed",
+        "avg-rt of double label>100ms for 1m, continue as non-failed",
+        "rc4??>50%",
+        "rc4*>50%",
+        "p88>50",
+        "p99.99>50"
+      ]
+    }
+  ]
+}
+

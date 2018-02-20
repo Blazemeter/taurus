@@ -1,0 +1,13 @@
+execution:
+- executor: grinder
+  scenario: helloworld
+
+scenarios:
+  helloworld:
+    script: helloworld.py
+    properties:
+      grinder.processes: 5
+      grinder.threads: 5
+      grinder.runs: 100
+      grinder.processIncrement: 1
+      grinder.processIncrementInterval: 15000

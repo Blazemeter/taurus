@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import copy
 import os
 
 from bzt import TaurusInternalException
@@ -28,6 +29,7 @@ class SoapUIScriptConverter(object):
     def __init__(self, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.tree = None
+        self.interface = None
 
     def load(self, path):
         try:
@@ -57,6 +59,7 @@ class SoapUIScriptConverter(object):
         assertions = []
         assertion_tags = config_elem.findall('.//con:assertion', namespaces=self.NAMESPACES)
         for assertion in assertion_tags:
+            # TODO: XPath assertions / JSONPath assertions ?
             if assertion.get('type') in ('Simple Contains', 'Simple NotContains'):
                 subject = assertion.findtext('./con:configuration/token', namespaces=self.NAMESPACES)
                 use_regex = assertion.findtext('./con:configuration/useRegEx', namespaces=self.NAMESPACES)
@@ -64,7 +67,7 @@ class SoapUIScriptConverter(object):
 
                 assertions.append({"contains": [subject],
                                    "subject": "body",
-                                   "regexp": use_regex == "false",
+                                   "regexp": use_regex == "true",
                                    "not": negate,
                                    })
         return assertions
@@ -95,21 +98,113 @@ class SoapUIScriptConverter(object):
             request["body"] = body
 
         if params:
-            request["body"] = {
-                param.findtext("./con:name", namespaces=self.NAMESPACES): param.findtext("./con:value",
-                                                                                         namespaces=self.NAMESPACES)
-                for param in params
-            }
+            body = {}
+            for param in params:
+                key = param.findtext("./con:name", namespaces=self.NAMESPACES)
+                value = param.findtext("./con:value", namespaces=self.NAMESPACES)
+                body[key] = value
+            request["body"] = body
 
         return request
+
+    def _extract_soap_endpoint(self, interface_name, operation_name):
+        interface = self.tree.find("//con:interface[@name='%s']" % interface_name, namespaces=self.NAMESPACES)
+        if interface is None:
+            self.log.warning("Can't find intreface %s for operation %s, skipping", interface_name, operation_name)
+            return None
+
+        interface_endpoint = interface.findtext("./con:endpoints/con:endpoint", namespaces=self.NAMESPACES)
+
+        operation = interface.find(".//con:operation[@name='%s']" % operation_name, namespaces=self.NAMESPACES)
+        if operation is None:
+            self.log.warning("Can't find operation %s for interface %s, skipping", operation_name, interface_name)
+            return None
+
+        operation_endpoint = operation.findtext(".//con:endpoint", namespaces=self.NAMESPACES)
+
+        if operation_endpoint is not None:
+            return operation_endpoint
+        elif interface_endpoint is not None:
+            return interface_endpoint
+        else:
+            self.log.warning("Can't find endpoint for %s:%s", interface_name, operation_name)
+            return None
+
+    def _extract_soap_request(self, test_step):
+        label = test_step.get('name')
+        config = test_step.find('./con:config', namespaces=self.NAMESPACES)
+        body = config.findtext('./con:request/con:request', namespaces=self.NAMESPACES)
+
+        interface = config.findtext('./con:interface', namespaces=self.NAMESPACES)
+        operation = config.findtext('./con:operation', namespaces=self.NAMESPACES)
+        self.log.debug("Extracting SOAP request, interface=%r, operation=%r", interface, operation)
+        endpoint = self._extract_soap_endpoint(interface, operation)
+
+        if endpoint is None:
+            return
+
+        request = {
+            "url": endpoint,
+            "label": label,
+            "method": "POST",
+            "headers": {
+                "Content-Type": "text/xml; charset=utf-8",
+            }
+        }
+
+        if body:
+            request["body"] = body
+
+        return request
+
+    def _calc_base_address(self, test_step):
+        config = test_step.find('./con:config', namespaces=self.NAMESPACES)
+        service = config.get('service')
+        interfaces = self.tree.xpath('//con:interface', namespaces=self.NAMESPACES)
+        for interface in interfaces:
+            if interface.get("name") == service:
+                endpoint = interface.find('.//con:endpoints/con:endpoint', namespaces=self.NAMESPACES)
+                if endpoint is not None:
+                    service = endpoint.text
+                    break
+        return service
 
     def _extract_rest_request(self, test_step):
         label = test_step.get('name')
         config = test_step.find('./con:config', namespaces=self.NAMESPACES)
         method = config.get('method')
-        url = config.get('service') + config.get('resourcePath')
+
+        method_name = config.get('methodName')
+        method_obj = self.interface.find('.//con:method[@name="%s"]' % method_name, namespaces=self.NAMESPACES)
+        params = BetterDict()
+        if method_obj is not None:
+            parent = method_obj.getparent()
+            while parent.tag.endswith('resource'):
+                for param in parent.findall('./con:parameters/con:parameter', namespaces=self.NAMESPACES):
+                    param_name = param.findtext('./con:name', namespaces=self.NAMESPACES)
+                    param_value = param.findtext('./con:value', namespaces=self.NAMESPACES)
+                    def_value = param.findtext('./con:default', namespaces=self.NAMESPACES)
+                    if param_value:
+                        params[param_name] = param_value
+                    elif def_value:
+                        params[param_name] = def_value
+
+                parent = parent.getparent()
+
+        url = self._calc_base_address(test_step) + config.get('resourcePath')
         headers = self._extract_headers(config)
         assertions = self._extract_assertions(config)
+
+        params.merge({
+            entry.get("key"): entry.get("value")
+            for entry in config.findall('./con:restRequest/con:parameters/con:entry', namespaces=self.NAMESPACES)
+        })
+
+        for param_name in copy.copy(list(params.keys())):
+            template = "{" + param_name + "}"
+            if template in url:
+                param_value = params.pop(param_name)
+                url = url.replace(template, param_value)
 
         request = {"url": url, "label": label}
 
@@ -122,16 +217,23 @@ class SoapUIScriptConverter(object):
         if assertions:
             request["assert"] = assertions
 
+        body = {}
+        for key, value in iteritems(params):
+            body[key] = value
+
+        if body:
+            request["body"] = body
+
         return request
 
-    def _extract_properties(self, test_step):
-        properties = test_step.findall('./con:config/con:properties/con:property', namespaces=self.NAMESPACES)
-        return {
-            prop.findtext('./con:name',
-                          namespaces=self.NAMESPACES): prop.findtext('./con:value',
-                                                                     namespaces=self.NAMESPACES)
-            for prop in properties
-        }
+    def _extract_properties(self, block, key_prefix=""):
+        properties = block.findall('./con:properties/con:property', namespaces=self.NAMESPACES)
+        prop_map = {}
+        for prop in properties:
+            key = key_prefix + prop.findtext('./con:name', namespaces=self.NAMESPACES)
+            value = prop.findtext('./con:value', namespaces=self.NAMESPACES)
+            prop_map[key] = value
+        return prop_map
 
     def _extract_execution(self, test_case):
         load_exec = {}
@@ -150,7 +252,7 @@ class SoapUIScriptConverter(object):
             return False
 
         source_step_type = source_step.get("type")
-        if source_step_type not in ["httprequest", "restrequest"]:
+        if source_step_type not in ["httprequest", "restrequest", "request"]:
             self.log.warning("Unsupported source step type for Property Transfer (%s). Skipping", source_step_type)
             return False
 
@@ -169,7 +271,7 @@ class SoapUIScriptConverter(object):
 
         target_step_type = target_step.get("type")
         if target_step_type != "properties":
-            self.log.warning("Unsupported source step type for Property Transfer (%s). Skipping", target_step_type)
+            self.log.warning("Unsupported target step type for Property Transfer (%s). Skipping", target_step_type)
             return False
 
         return True
@@ -222,8 +324,9 @@ class SoapUIScriptConverter(object):
 
         return extractors
 
-    def _extract_scenario(self, test_case):
-        variables = {}
+    def _extract_scenario(self, test_case, case_level_props):
+        variables = BetterDict()
+        variables.merge(case_level_props)
         requests = []
 
         extractors = BetterDict()
@@ -235,13 +338,19 @@ class SoapUIScriptConverter(object):
                 request = self._extract_http_request(step)
             elif step.get("type") == "restrequest":
                 request = self._extract_rest_request(step)
+            elif step.get("type") == "request":
+                request = self._extract_soap_request(step)
             elif step.get("type") == "properties":
-                props = self._extract_properties(step)
-                variables.update(props)
+                config_block = step.find('./con:config', namespaces=self.NAMESPACES)
+                if config_block is not None:
+                    props = self._extract_properties(config_block)
+                    variables.merge(props)
             elif step.get("type") == "transfer":
                 extracted_extractors = self._extract_property_transfers(step)  # label -> extractor
                 if extracted_extractors:
                     extractors.merge(extracted_extractors)
+            elif step.get("type") == "groovy":
+                request = self._extract_script(step)
 
             if request is not None:
                 requests.append(request)
@@ -260,24 +369,66 @@ class SoapUIScriptConverter(object):
 
         return scenario
 
-    def _extract_config(self, test_suites, target_test_case=None):
+    def _extract_script(self, test_step):
+        label = test_step.get("name", "Script")
+        script = test_step.find('./con:config/script', namespaces=self.NAMESPACES).text
+        if script is not None:
+            script = script.strip()
+            return {
+                "label": label,
+                "action": "pause",
+                "target": "current-thread",
+                "pause-duration": "0ms",
+                "jsr223": [{
+                    "language": "groovy",
+                    "script-text": script,
+                }]
+            }
+
+    def _extract_test_case(self, test_case, test_suite, suite_level_props):
+        case_name = test_case.get("name")
+        scenario_name = test_suite.get("name") + "-" + case_name
+
+        case_properties = self._extract_properties(test_case)
+        case_properties = {
+            "#TestCase#" + key: value
+            for key, value in iteritems(case_properties)
+            }
+        case_level_props = BetterDict()
+        case_level_props.merge(suite_level_props)
+        case_level_props.merge(case_properties)
+
+        scenario = self._extract_scenario(test_case, case_level_props)
+        scenario['test-suite'] = test_suite.get("name")
+
+        return scenario_name, scenario
+
+    def _extract_config(self, project, test_suites, target_test_case=None):
         execution = []
         scenarios = {}
 
+        project_properties = self._extract_properties(project, key_prefix="#Project#")
+
         for suite in test_suites:
+            suite_props = BetterDict()
+            suite_props.merge(project_properties)
+            suite_props.merge(self._extract_properties(suite, key_prefix="#TestSuite#"))
+
             test_cases = suite.findall('.//con:testCase', namespaces=self.NAMESPACES)
             for case in test_cases:
                 case_name = case.get("name")
-                scenario_name = suite.get("name") + "-" + case_name
-                scenario = self._extract_scenario(case)
-                scenario['test-suite'] = suite.get("name")
-                self.log.debug("Extracted scenario: %s", scenario_name)
+                scenario_name, scenario = self._extract_test_case(case, suite, suite_props)
 
                 load_exec = self._extract_execution(case)
                 load_exec['scenario'] = scenario_name
                 self.log.debug("Extracted execution for scenario %s", scenario_name)
 
+                if not scenario["requests"]:
+                    self.log.warning("No requests extracted for scenario %s, skipping it" % scenario_name)
+                    continue
+
                 if target_test_case is None or target_test_case == case_name:
+                    self.log.debug("Extracted scenario: %s", scenario_name)
                     scenarios[scenario_name] = scenario
                     execution.append(load_exec)
 
@@ -298,13 +449,13 @@ class SoapUIScriptConverter(object):
         self.log.debug("Found projects: %s", projects)
         project = projects[0]
 
-        interface = project.find('.//con:interface', namespaces=self.NAMESPACES)
-        self.log.debug("Found interface: %s", interface)
+        self.interface = project.find('.//con:interface', namespaces=self.NAMESPACES)
+        self.log.debug("Found interface: %s", self.interface)
 
         test_suites = project.findall('.//con:testSuite', namespaces=self.NAMESPACES)
         self.log.debug("Found test suites: %s", test_suites)
 
-        config = self._extract_config(test_suites, target_test_case=target_test_case)
+        config = self._extract_config(project, test_suites, target_test_case=target_test_case)
 
         if not config["scenarios"]:
             self.log.warning("No scenarios were extracted")

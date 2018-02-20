@@ -42,7 +42,7 @@
     {else}
         <link rel="stylesheet" href="/img/taurus.css"/>
     {/if}
-    <link rel="stylesheet" href="/img/font-awesome-4.3.0/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"/>
 
 </head>
 
@@ -185,6 +185,17 @@
             $(".yaml-json-switch").append(toYAML.click()).append(toJSON);
         });
     </script>
+
+    <button class="js-gitter-toggle-chat-button gitter-button">
+        <i class="fa fa-comments-o" aria-hidden="true"></i> Users Chat
+    </button>
+    <script>
+        ((window.gitter = {}).chat = {}).options = {
+            room: 'Blazemeter/taurus',
+            activationElement: false
+        };
+    </script>
+    <script src="https://sidecar.gitter.im/dist/sidecar.v1.js" async defer></script>
 </footer>
 
 </body>

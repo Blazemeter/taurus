@@ -3,7 +3,7 @@ scenarios:
   bfile:
     think-time: 500ms
     requests:
-    - url: http://blazedemo.com/puchase.php
+    - url: http://blazedemo.com/purchase.php
       method: POST
       body-file: body-file-payload.json
       headers:

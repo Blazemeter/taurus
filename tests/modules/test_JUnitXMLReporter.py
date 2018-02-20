@@ -3,13 +3,15 @@ import os
 import tempfile
 from collections import Counter
 
+from bzt.modules import FuncSamplesReader
+from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.passfail import PassFailStatus, DataCriterion
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
 from bzt.utils import BetterDict
-from tests import BZTestCase
+from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 
@@ -100,7 +102,7 @@ class TestJUnitXML(BZTestCase):
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
         rep = BlazeMeterUploader()
-        rep.client.results_url = "http://report/123"
+        rep.results_url = "http://report/123"
         obj.engine.reporters.append(rep)
         obj.parameters = BetterDict()
 
@@ -122,9 +124,13 @@ class TestJUnitXML(BZTestCase):
                 0.006: 73, 0.007: 46, 0.008: 32, 0.009: 20, 0.011: 8, 0.01: 8, 0.017: 3,
                 0.016: 3, 0.014: 3, 0.013: 3, 0.04: 2, 0.012: 2, 0.079: 1, 0.081: 1,
                 0.019: 1, 0.015: 1}),
-            KPISet.ERRORS: [{'msg': 'Forbidden', 'cnt': 7373, 'type': 0,
-                             'urls': Counter({'http://192.168.1.1/anotherquery': 7373}),
-                             KPISet.RESP_CODES: '403'}],
+            KPISet.ERRORS: [{'msg': 'Forbidden', 'cnt': 7300, 'type': 0,
+                             'urls': Counter({'http://192.168.1.1/anotherquery': 7300}),
+                             KPISet.RESP_CODES: '403'},
+                            {'msg': 'Assertion failed: text /smth/ not found', 'cnt': 73, 'type': 1,
+                             'urls': Counter({'http://192.168.1.1/anotherquery': 73}),
+                             KPISet.RESP_CODES: '200'},
+                            ],
             KPISet.STDEV_RESP_TIME: 0.04947974228872108,
             KPISet.AVG_LATENCY: 0.0002825639815220692,
             KPISet.RESP_CODES: Counter({'304': 29656, '403': 29656, '200': 2}),
@@ -171,9 +177,13 @@ class TestJUnitXML(BZTestCase):
                                         0.017: 1, 0.013: 1, 0.015: 1,
                                         0.04: 1}),
             KPISet.ERRORS: [
-                {'msg': 'Forbidden', 'cnt': 7373, 'type': 0,
-                 'urls': Counter({'http://192.168.1.1/anotherquery': 7373}),
-                 KPISet.RESP_CODES: '403'}],
+                {'msg': 'Forbidden', 'cnt': 7300, 'type': 0,
+                 'urls': Counter({'http://192.168.1.1/anotherquery': 7300}),
+                 KPISet.RESP_CODES: '403'},
+                {'msg': 'Assertion failed: text /smth/ not found', 'cnt': 73, 'type': 1,
+                 'urls': Counter({'http://192.168.1.1/anotherquery': 73}),
+                 KPISet.RESP_CODES: '200'},
+            ],
             KPISet.STDEV_RESP_TIME: 0.032465137860758844,
             KPISet.AVG_LATENCY: 0.0005634272997032645,
             KPISet.RESP_CODES: Counter({'403': 29656}),
@@ -220,12 +230,15 @@ class TestJUnitXML(BZTestCase):
 
         logging.info("File: %s", f_contents)
         xml_tree = etree.fromstring(f_contents)
-        self.assertEqual('testsuite', xml_tree.tag)
-        self.assertListEqual(['sample_labels', "bzt"], xml_tree.values())
-        test_cases = xml_tree.getchildren()
+        self.assertEqual('testsuites', xml_tree.tag)
+        suite = xml_tree.getchildren()[0]
+        self.assertEqual('testsuite', suite.tag)
+        self.assertListEqual(['sample_labels', "bzt"], suite.values())
+        test_cases = suite.getchildren()
         self.assertEqual(3, len(test_cases))
         self.assertEqual('testcase', test_cases[0].tag)
         self.assertEqual('error', test_cases[0].getchildren()[1].tag)
+        self.assertEqual('failure', test_cases[0].getchildren()[2].tag)
         self.assertEqual('system-out', test_cases[0].getchildren()[0].tag)
         self.assertIn('BlazeMeter report link: http://report/123', test_cases[0].getchildren()[0].text)
 
@@ -234,7 +247,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
         obj.engine.provisioning = CloudProvisioning()
-        obj.engine.provisioning.client.results_url = "http://test/report/123"
+        obj.engine.provisioning.results_url = "http://test/report/123"
 
         pass_fail1 = PassFailStatus()
 
@@ -281,8 +294,10 @@ class TestJUnitXML(BZTestCase):
 
         logging.info("File: %s", f_contents)
         xml_tree = etree.fromstring(f_contents)
-        self.assertEqual('testsuite', xml_tree.tag)
-        test_cases = xml_tree.getchildren()
+        self.assertEqual('testsuites', xml_tree.tag)
+        suite = xml_tree.getchildren()[0]
+        self.assertEqual('testsuite', suite.tag)
+        test_cases = suite.getchildren()
         self.assertEqual(4, len(test_cases))
         self.assertEqual('testcase', test_cases[0].tag)
         self.assertEqual('error', test_cases[0].getchildren()[1].tag)
@@ -290,7 +305,7 @@ class TestJUnitXML(BZTestCase):
 
         sys_out = test_cases[0].getchildren()[0]
         self.assertEqual('system-out', sys_out.tag)
-        self.assertIn('Cloud report link: http://test/report/123', sys_out.text)
+        self.assertIn('BlazeMeter report link: http://test/report/123', sys_out.text)
 
     def test_report_criteria_without_label(self):
         obj = JUnitXMLReporter()
@@ -300,7 +315,8 @@ class TestJUnitXML(BZTestCase):
         pass_fail = PassFailStatus()
 
         criteria = DataCriterion({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
-                                  'condition': '<', 'subject': 'avg-rt'}, pass_fail)
+                                  'condition': '<', 'subject': 'avg-rt'},
+                                 pass_fail)
         pass_fail.criteria.append(criteria)
         criteria.is_triggered = True
 
@@ -311,3 +327,23 @@ class TestJUnitXML(BZTestCase):
         obj.prepare()
         obj.last_second = DataPoint(0)
         obj.post_process()
+
+    def test_functional_report(self):
+        engine = EngineEmul()
+        aggregator = FunctionalAggregator()
+        aggregator.engine = engine
+        engine.aggregator = aggregator
+
+        obj = JUnitXMLReporter()
+        obj.engine = engine
+        obj.parameters = BetterDict()
+
+        reader = FuncSamplesReader(RESOURCES_DIR + "functional/nose.ldjson", engine, logging.getLogger())
+        aggregator.add_underling(reader)
+
+        aggregator.prepare()
+        obj.prepare()
+        aggregator.post_process()
+        obj.post_process()
+
+        self.assertFilesEqual(obj.report_file_path, RESOURCES_DIR + "functional/xunit-report.xml")

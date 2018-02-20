@@ -1,12 +1,12 @@
 """ unit test """
 import os
 
-from bzt.engine import ScenarioExecutor
-from bzt.six import string_types
-from bzt.utils import BetterDict, EXE_SUFFIX, is_windows
-from tests import BZTestCase, __dir__, local_paths_config
-from tests.mocks import EngineEmul
 from bzt import TaurusConfigError
+from bzt.engine import ScenarioExecutor
+from bzt.six import string_types, communicate
+from bzt.utils import BetterDict, is_windows
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR
+from tests.mocks import EngineEmul
 
 
 class TestEngine(BZTestCase):
@@ -25,40 +25,38 @@ class TestEngine(BZTestCase):
 
     def test_requests(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
-            __dir__() + "/json/get-post.json",
-            __dir__() + "/json/reporting.json",
-            self.paths
-        ]
+            RESOURCES_DIR + "json/get-post.json",
+            RESOURCES_DIR + "json/reporting.json",
+            self.paths]
         self.obj.configure(configs)
         self.obj.prepare()
 
         for executor in self.obj.provisioning.executors:
-            executor._env['TEST_MODE'] = 'files'
+            executor.env.set({"TEST_MODE": "files"})
 
         self.obj.run()
         self.obj.post_process()
 
     def test_double_exec(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
-            __dir__() + "/yaml/triple.yml",
-            __dir__() + "/json/reporting.json",
+            RESOURCES_DIR + "yaml/triple.yml",
+            RESOURCES_DIR + "json/reporting.json",
             self.paths
         ]
         self.obj.configure(configs)
         self.obj.prepare()
 
+        self.assertEquals(1, len(self.obj.services))
+
         for executor in self.obj.provisioning.executors:
-            executor._env['TEST_MODE'] = 'files'
+            executor.env.set({"TEST_MODE": "files"})
 
         self.obj.run()
         self.obj.post_process()
 
     def test_unknown_module(self):
         configs = [
-            __dir__() + "/../bzt/10-base.json",
-            __dir__() + "/json/gatling.json",
+            RESOURCES_DIR + "json/gatling.json",
             self.paths
         ]
         self.obj.configure(configs)
@@ -66,6 +64,90 @@ class TestEngine(BZTestCase):
         self.obj.config["modules"]["unknown"] = BetterDict()
 
         self.assertRaises(TaurusConfigError, self.obj.prepare)
+
+    def test_null_aggregator(self):
+        self.obj.config.merge({
+            "execution": [{
+                "scenario": {
+                    "requests": [{"url": "http://example.com/"}],
+                }}],
+            "settings": {
+                "aggregator": None,
+                "default-executor": "jmeter",
+            },
+            "modules": {
+                "local": "bzt.modules.provisioning.Local",
+                "jmeter": "tests.modules.jmeter.MockJMeterExecutor",
+            }})
+        self.obj.prepare()
+
+    def test_yaml_multi_docs(self):
+        configs = [
+            RESOURCES_DIR + "yaml/multi-docs.yml",
+            self.paths
+        ]
+        self.obj.configure(configs)
+        self.obj.prepare()
+        self.assertEqual(len(self.obj.config["execution"]), 2)
+
+    def test_json_format_regression(self):
+        configs = [
+            RESOURCES_DIR + "json/json-but-not-yaml.json"
+        ]
+        self.obj.configure(configs)
+        self.obj.prepare()
+
+    def test_invalid_format(self):
+        configs = [
+            RESOURCES_DIR + "jmeter-dist-3.0.zip"
+        ]
+        self.assertRaises(TaurusConfigError, lambda: self.obj.configure(configs))
+
+    def test_included_configs(self):
+        configs = [
+            RESOURCES_DIR + "yaml/included-level1.yml",
+        ]
+        self.obj.configure(configs)
+        self.assertTrue(self.obj.config["level1"])
+        self.assertTrue(self.obj.config["level2"])
+        self.assertTrue(self.obj.config["level3"])
+        self.assertListEqual(['included-level2.yml', 'included-level3.yml'], self.obj.config["included-configs"])
+
+    def test_included_configs_cycle(self):
+        configs = [
+            RESOURCES_DIR + "yaml/included-circular1.yml",
+        ]
+        self.obj.configure(configs)
+        self.assertTrue(self.obj.config["level1"])
+        self.assertTrue(self.obj.config["level2"])
+        self.assertListEqual(['included-circular2.yml', 'included-circular1.yml', 'included-circular2.yml'],
+                             self.obj.config["included-configs"])
+
+    def test_env_eval(self):
+        configs = [
+            RESOURCES_DIR + "yaml/env-eval.yml",
+        ]
+        os.environ["BZT_ENV_TEST_UNSET"] = "set"
+        try:
+            self.obj.configure(configs)
+            self.obj.eval_env()
+            self.assertEquals("success/top", self.obj.config["toplevel"])
+            self.assertEquals("success/test/${BZT_ENV_TEST_UNSET}", self.obj.config["settings"]["artifacts-dir"])
+            self.assertEquals("http://${BZT_ENV_TEST}/", self.obj.config["scenarios"]["scen1"]["default-address"])
+            self.assertEquals("/${BZT_ENV_TEST}/", self.obj.config["scenarios"]["scen1"]["requests"][0])
+        finally:
+            if "BZT_ENV_TEST" in os.environ:
+                os.environ.pop("BZT_ENV_TEST")
+            if "BZT_ENV_TEST_UNSET" in os.environ:
+                os.environ.pop("BZT_ENV_TEST_UNSET")
+
+    def test_singletone_service(self):
+        configs = [
+            RESOURCES_DIR + "yaml/singletone-service.yml",
+        ]
+        self.obj.configure(configs)
+        self.obj.prepare()
+        self.assertEquals(0, len(self.obj.services))
 
 
 
@@ -75,12 +157,13 @@ class TestScenarioExecutor(BZTestCase):
         self.engine = EngineEmul()
         self.executor = ScenarioExecutor()
         self.executor.engine = self.engine
+        self.executor.env = self.executor.engine.env
 
     def test_scenario_extraction_script(self):
         self.engine.config.merge({
             "execution": [{
                 "scenario": {
-                    "script": "tests/selenium/python/test_blazemeter_fail.py",
+                    "script": "tests/resources/selenium/python/test_blazemeter_fail.py",
                     "param": "value"
                 }}]})
         self.executor.execution = self.engine.config.get('execution')[0]
@@ -90,8 +173,8 @@ class TestScenarioExecutor(BZTestCase):
         self.assertIn('test_blazemeter_fail.py', config['scenarios'])
 
     def test_body_files(self):
-        body_file1 = __dir__() + "/jmeter/body-file.dat"
-        body_file2 = __dir__() + "/jmeter/jmx/http.jmx"
+        body_file1 = RESOURCES_DIR + "jmeter/body-file.dat"
+        body_file2 = RESOURCES_DIR + "jmeter/jmx/http.jmx"
         self.engine.config.merge({
             'execution': [{
                 'iterations': 1,
@@ -127,7 +210,7 @@ class TestScenarioExecutor(BZTestCase):
     def test_scenario_is_script(self):
         self.engine.config.merge({
             "execution": [{
-                "scenario": "tests/selenium/python/test_blazemeter_fail.py"
+                "scenario": "tests/resources/selenium/python/test_blazemeter_fail.py"
             }]})
         self.executor.execution = self.engine.config.get('execution')[0]
         self.executor.get_scenario()
@@ -165,27 +248,26 @@ class TestScenarioExecutor(BZTestCase):
         self.executor.execution = self.engine.config.get('execution')[0]
         self.assertRaises(TaurusConfigError, self.executor.get_scenario)
 
-    def test_creates_hostaliases_file(self):
-        self.engine.config.merge({
-            "settings": {
-                "hostaliases": {
-                    "demo": "blazedemo.com"}}})
-
-        path = os.path.join(__dir__(), "data", "hostaliases" + EXE_SUFFIX)
-        process = self.executor.execute([path])
-        stdout, _ = process.communicate()
-        hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
-
-        self.assertTrue(os.path.exists(hosts_file))
-        self.assertIn(hosts_file, str(stdout))
-
-    def test_doesnt_create_hostaliases(self):
-        self.executor.execute(["echo"], shell=True)
-        hosts_file = os.path.join(self.engine.artifacts_dir, "hostaliases")
-        self.assertFalse(os.path.exists(hosts_file))
-
     def test_passes_artifacts_dir(self):
         cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
+        self.engine.prepare()
+        self.executor.env.set(self.engine.env.get())
         process = self.executor.execute(cmdline, shell=True)
-        stdout, _ = process.communicate()
-        self.assertEquals(self.engine.artifacts_dir, stdout.decode().strip())
+        stdout, _ = communicate(process)
+        self.assertEquals(self.engine.artifacts_dir, stdout.strip())
+
+    def test_case_of_variables(self):
+        env = {'aaa': 333, 'AAA': 666}
+        line_tpl = "echo %%%s%%" if is_windows() else "echo $%s"
+        cmdlines = [line_tpl % "aaa", line_tpl % "AAA"]
+        results = set()
+
+        for cmdline in cmdlines:
+            self.executor.env.set(env)
+            process = self.executor.execute(cmdline, shell=True)
+            stdout, _ = communicate(process)
+            results.add(stdout.strip())
+        if is_windows():
+            self.assertEqual(1, len(results))
+        else:
+            self.assertEqual(2, len(results))

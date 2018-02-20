@@ -1,6 +1,6 @@
 ---
 settings:
-  artifacts-dir: ./bzt-artifacts
+  #artifacts-dir: ./bzt-artifacts
   interval: 5s
 
 modules:
@@ -10,8 +10,8 @@ modules:
 reporting:
   - module: junit-xml
   - module: blazemeter
-  - module: final_stats
-    dump-csv: aggregate.csv
+  - module: final-stats
+    dump-csv: ${TAURUS_ARTIFACTS_DIR}/aggregate.csv
 
 services:
    - module: passfail

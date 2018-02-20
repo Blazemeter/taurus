@@ -1,0 +1,141 @@
+---
+# 0, 1
+execution:
+- executor: jmeter
+  scenario:
+    script: resources/jmeter/jmx/dummy.jmx
+- executor: jmeter
+  scenario:
+    script: resources/jmeter/jmx/files_paths.jmx
+
+# 2, 3
+- executor: selenium
+  testng-xml: resources/jmeter/jmx/not-jmx.xml
+  scenario:
+    script: resources/BlazeDemo.java
+    additional-classpath:
+    - resources/selenium/junit/jar/dummy.jar
+    - ~/file-in-home-05.jar
+- executor: selenium
+  testng-xml: ~/file-in-home-12.xml
+  scenario:
+    script: ~/file-in-home-03.java
+
+# 4, 5
+- executor: gatling
+  scenario:
+    script: resources/gatling/bs/BasicSimulation.scala
+- executor: gatling
+  scenario:
+    script: ~/file-in-home-04.scala
+
+# 6, 7
+- executor: grinder
+  scenario:
+    script: resources/grinder/helloworld.py
+    properties-file: resources/grinder/grinder.base.properties
+- executor: grinder
+  scenario:
+    script: ~/file-in-home-06.py
+    properties-file: ~/file-in-home-07.properties
+
+# 8, 9
+- executor: locust
+  scenario:
+    script: resources/locust/simple.py
+- executor: locust
+  scenario:
+    script: ~/file-in-home-08.py
+
+# 10
+- executor: jmeter
+  scenario:
+    data-sources:
+    - resources/jmeter/jmeter-loader.bat
+    - ~/file-in-home-11.ds
+
+# 11, 12
+- executor: siege
+  scenario:
+    script: resources/siege/url-file
+- executor: siege
+  scenario:
+    script: ~/file-in-home-09.siege
+
+# 13, 14
+- executor: tsung
+  scenario:
+    script: resources/tsung/http_simple.xml
+- executor: tsung
+  scenario:
+    script: ~/file-in-home-10.xml
+
+# 15, 16
+- executor: pbench
+  scenario:
+    script: resources/pbench/pbench.src
+- executor: pbench
+  scenario:
+    script: ~/file-in-home-13.src
+
+# 17
+- executor: jmeter
+  scenario:
+    script: ~/file-in-home-00.jmx
+
+- executor: jmeter
+  scenario:
+    script: resources/jmeter/jmx/variable_file_upload.jmx
+- executor: jmeter
+  scenario:
+    requests:
+    - url: /
+      upload-files:
+      - param: name
+        path: ${somepath}/somefile1.txt
+
+# 18, 19
+- executor: junit
+  scenario:
+    additional-classpath:
+    - ~/file-in-home-20.jar
+    script: resources/selenium/junit/java/TestBlazemeterFail.java
+- executor: junit
+  scenario:
+    script: ~/file-in-home-14.java
+
+# 20, 21
+- executor: testng
+  scenario:
+    script: resources/selenium/testng/TestNGSuite.java
+- executor: testng
+  testng-xml: ~/file-in-home-15.xml
+  scenario:
+    script: ~/file-in-home-16.java
+
+# 22, 23
+- executor: mocha
+  scenario:
+    script: resources/selenium/js-mocha/bd_scenarios.js
+- executor: mocha
+  scenario:
+    script: ~/file-in-home-17.js
+
+# 24, 25
+- executor: rspec
+  scenario:
+    script: resources/selenium/ruby/example_spec.rb
+- executor: rspec
+  scenario:
+    script: ~/file-in-home-18.rb
+
+
+provisioning: cloud
+modules:
+  cloud:
+    token: FaKEtoKeN
+    browser-open: false
+    check-interval: 1s
+  testng:
+    additional-classpath:
+    - ~/file-in-home-19.jar

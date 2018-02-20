@@ -17,7 +17,7 @@ import os
 import sys, platform
 from abc import abstractmethod
 
-VERSION = "1.7.5"
+VERSION = "1.10.5"
 
 
 class RCProvider(object):
@@ -41,12 +41,24 @@ class TaurusConfigError(TaurusException):
     pass
 
 
+class InvalidTaurusConfiguration(TaurusConfigError):
+    pass
+
+
 class TaurusInternalException(TaurusException):
     pass
 
 
 class ToolError(TaurusException):
-    pass
+    def __init__(self, message, diagnostics=None):
+        """
+        :type message: str
+        :type diagnostics: list[str]
+        """
+        if diagnostics:
+            message += "\n" + "\n".join(line for line in diagnostics)
+        super(ToolError, self).__init__(message)
+        self.diagnostics = diagnostics
 
 
 class TaurusNetworkError(TaurusException):

@@ -1,27 +1,42 @@
+# Do not build feature branch with open Pull Requests
+skip_branch_with_pr: true
+
 environment:
   matrix:
+    - PYTHON: "C:\\Python35"
+      PYTHON_VERSION: "3.5.x"
+      PYTHON_ARCH: "64"
+      NODEJS_VERSION: "6"
     - PYTHON: "C:\\Python27"
+      PYTHON_VERSION: "2.7.x"
+      PYTHON_ARCH: "64"
+      NODEJS_VERSION: "6"
+
+platform:
+  - x64
 
 install:
-  - choco install firefox -version 46.0.1
-  - "%PYTHON%\\python.exe -m pip install nose"
-  - "%PYTHON%\\python.exe -m pip install colorlog pyyaml psutil!=5.1.1 lxml==3.4.2 cssselect urwid six progressbar33 locustio pyvirtualdisplay"
-  - "%PYTHON%\\python.exe -m pip install --upgrade selenium==2.53.0"
-  - set PATH=C:\Ruby22\bin;%PATH%
+  - choco install firefox --version 57.0.4
+  - ps: Install-Product node $env:NODEJS_VERSION
+  - "%PYTHON%\\python.exe -m pip install pip --upgrade"
+  - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
+  - "%PYTHON%\\python.exe -m pip install -r tests/ci/requirements.txt"
+  - set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
+  - gem install rspec
 
 build: off
 
 before_test:
   - ruby -v
   - gem -v
-  - gem install rspec
   - rspec --version
+  - node --version
+  - ps: Start-Process python tests/resources/httpserver/start.py
 
 test_script:
-  - "%PYTHON%\\python.exe -m nose tests/ --verbosity 3"
+  - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
+      --exclude-dir=tests/ci --with-coverage --cover-inclusive"
 
 after_test:
-  - "%PYTHON%\\python.exe setup.py clean sdist"
-
-artifacts:
-  - path: dist\*
+  - "coverage report -m"
+  - "codecov"

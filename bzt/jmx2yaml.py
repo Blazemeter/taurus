@@ -16,8 +16,10 @@ limitations under the License.
 """
 import codecs
 import itertools
+import json
 import logging
 import os
+import re
 import sys
 import traceback
 from collections import namedtuple
@@ -31,6 +33,8 @@ from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
 from bzt.utils import get_full_path
+
+INLINE_JSR223_MAX_LEN = 10
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
@@ -58,10 +62,15 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "IfController",
               "LoopController",
               "WhileController",
+              "InterleaveControl",
+              "RunTime",
               "ForeachController",
               "TransactionController",
               "JSR223PreProcessor",
               "JSR223PostProcessor",
+              "BeanShellPreProcessor",
+              "BeanShellPostProcessor",
+              "JSONPostProcessor",
               ]
 
 
@@ -203,40 +212,77 @@ class JMXasDict(JMX):
                 result[opt_name] = int(prop_value)
         return result
 
-    def _get_request_body(self, element):
+    def _get_request_body(self, element, request_config):
         """
         Get body params from sampler
         :param element:
         :return: dict
         """
-
         raw_body = self._get_bool_prop(element, 'HTTPSampler.postBodyRaw')
+        query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
+        xpath = GenericTranslator().css_to_xpath(query)
         if raw_body:
-            query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
-            xpath = GenericTranslator().css_to_xpath(query)
             http_args_element = element.xpath(xpath)[0]
             body = self._get_string_prop(http_args_element, 'Argument.value')
             if body:
                 self.log.debug('Got %s for body in %s (%s)', body, element.tag, element.get("name"))
-                return {"body": body}
+                return {'body': body}
             else:
                 return {}
         else:
-            body_params = {}
-            query = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp'
-            xpath = GenericTranslator().css_to_xpath(query)
-            http_args_collection = element.xpath(xpath)
-            for element in http_args_collection:
-                val = self._get_string_prop(element, 'Argument.value')
-                if val is None and self._get_bool_prop(element, 'HTTPArgument.use_equals'):
-                    val = ''
-                body_params[element.get("name")] = val
+            url = request_config.get('url', '')
+            method = request_config.get('method', 'get')
+            return self._get_params(element, xpath, url=url, method=method)
 
-            if body_params:
-                self.log.debug('Got %s for body in %s (%s)', body_params, element.tag, element.get("name"))
-                return {"body": body_params}
-            else:
-                return {}
+    def _get_params(self, element, xpath, url='', method='get'):
+        request_params = {}
+        body_params = {}
+        http_args_collection = element.xpath(xpath)
+        additional_url = ''
+        for param in http_args_collection:
+            name = param.get("name")
+            val = self._get_string_prop(param, 'Argument.value')
+            if val is None:
+                val = ''
+            incompat = self._get_param_incompat(param, val)
+            if incompat:
+                if method.lower() == 'get':
+                    param_str = name
+                    if self._get_bool_prop(param, "HTTPArgument.use_equals"):
+                        param_str += '='
+                    param_str += val
+                    msg = "Parameter '%s'='%s' has unsupported option (%s) and added to url: '%s'"
+                    self.log.debug(msg, name, val, incompat, param_str)
+                    additional_url += '&' + param_str
+                    continue  # avoid adding this parameter to body part
+                else:
+                    msg = "Parameter '%s'='%s' isn't fully supported for %s request: %s"
+                    self.log.warning(msg, name, val, method, incompat)
+
+            body_params[name] = val
+
+        if additional_url:
+            if url:
+                url += '?'
+            url += additional_url[1:]
+
+        request_params['url'] = url
+
+        if body_params:
+            self.log.debug('Got %s for parameters in %s (%s)', body_params, element.tag, element.get("name"))
+            request_params["body"] = body_params
+
+        return request_params
+
+    def _get_param_incompat(self, param, val):
+        """
+        check if parameter can be processed by standard way (see jmx.py _add_body_from_script)
+         or it must be joined with url string
+        """
+        if not self._get_bool_prop(param, "HTTPArgument.always_encode"):
+            return 'always_encode is off'
+        if not val and self._get_bool_prop(param, "HTTPArgument.use_equals"):
+            return 'use_equals is on for empty value'
 
     def _get_upload_files(self, element):
         """
@@ -597,11 +643,17 @@ class JMXasDict(JMX):
 
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
-            property_pattern = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor"
-            extractor_elements = [element for element in hashtree.iterchildren() if element.tag == property_pattern]
+            plugins_extractor_pattern = "com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor"
+            native_extractor_pattern = "JSONPostProcessor"
+            extractor_elements = [
+                element
+                for element in hashtree.iterchildren()
+                if element.tag in (plugins_extractor_pattern, native_extractor_pattern)
+            ]
             for extractor_element in extractor_elements:
-                json_path_extractor = {}
-                if extractor_element is not None:
+                if extractor_element is None:
+                    continue
+                if extractor_element.tag == plugins_extractor_pattern:
                     varname = self._get_string_prop(extractor_element, 'VAR')
                     if varname:
                         extractor_props = {}
@@ -621,13 +673,29 @@ class JMXasDict(JMX):
                             self.log.warning("No default value found in %s", extractor_element.tag)
                             extractor_props["default"] = ""
 
-                        json_path_extractor.update({varname: extractor_props})
-
+                        json_path_extractors.update({varname: extractor_props})
                     else:
                         self.log.warning("Not found varname in %s, skipping", extractor_element.tag)
                         continue
-
-                json_path_extractors.update(json_path_extractor)
+                elif extractor_element.tag == native_extractor_pattern:
+                    self.log.warning("Found native JSONPath extractor")
+                    variables = self._get_string_prop(extractor_element, 'JSONPostProcessor.referenceNames')
+                    if not variables:
+                        self.log.warning("No vars declared for JSONPath extractor")
+                        continue
+                    queries = self._get_string_prop(extractor_element, 'JSONPostProcessor.jsonPathExprs')
+                    if not variables:
+                        self.log.warning("No queries declared for JSONPath extractor")
+                        continue
+                    def_values = self._get_string_prop(extractor_element, 'JSONPostProcessor.defaultValues')
+                    def_values_iter = iter(def_values.split(';') if def_values is not None else None)
+                    for var, query in zip(variables.split(';'), queries.split(';')):
+                        extractor = {"jsonpath": query}
+                        try:
+                            extractor["default"] = next(def_values_iter)
+                        except StopIteration:
+                            extractor["default"] = ""
+                        json_path_extractors.update({var: extractor})
 
         return json_path_extractors
 
@@ -702,16 +770,141 @@ class JMXasDict(JMX):
         self.log.debug('Got %s for assertions in %s (%s)', assertions, element.tag, element.get("testname"))
         return assertions
 
+    def _extract_test_field(self, jmx_assertion):
+        supported_subjects = {"Assertion.response_data": "body",  # "Text Response"
+                              "Assertion.response_headers": "headers",  # "Response Headers"
+                              "Assertion.response_code": "http-code"}  # "Response Code"
+        unsupported_subjects = {"Assertion.response_data_as_document": "body",  # "Document (text)"
+                                "Assertion.sample_label": "body",  # "URL Sampled"
+                                "Assertion.response_message": "body"}  # "Response Message"
+
+        test_field_prop = self._get_string_prop(jmx_assertion, 'Assertion.test_field')  # "Response Field to test"
+
+        msg = 'in %s, replaced with Assertion.response_data ("Text response")' % jmx_assertion.tag
+        msg = '%s test_field ("Response Field to test") %s ' + msg
+        if not test_field_prop:
+            self.log.warning(msg, 'Empty', 'provided')
+        elif test_field_prop in supported_subjects:
+            return supported_subjects[test_field_prop]
+        elif test_field_prop in unsupported_subjects:
+            self.log.warning(msg, 'Unsupported', test_field_prop)
+        else:
+            self.log.warning(msg, 'Unknown', test_field_prop)
+
+        return 'body'
+
+    def _extract_test_strings(self, jmx_element):
+        selector = ".//collectionProp[@name='Asserion.test_strings']"
+        assertion_collection = jmx_element.find(selector)
+
+        if assertion_collection is None:
+            self.log.warning("Strings collection not found in %s, skipping", jmx_element.tag)
+            return []  # empty list for pylint check in _get_response_assertion()
+
+        test_string_props = assertion_collection.findall(".//stringProp")
+        test_strings = []
+        for string_prop in test_string_props:
+            if string_prop is not None and string_prop.text:
+                test_strings.append(string_prop.text)
+
+        if not test_strings:
+            self.log.warning("No test strings in %s, skipping", jmx_element.tag)
+
+        return test_strings
+
+    def _extract_test_type(self, jmx_element):
+        test_types = {2,  # Contains
+                      1,  # Matches
+                      8,  # Equals
+                      16}  # Substring
+
+        test_type_element = jmx_element.find(".//*[@name='Assertion.test_type']")  # "Pattern Matching Rules"
+
+        if test_type_element is None or not test_type_element.text:
+            self.log.warning("No test subject provided in %s, skipping", jmx_element.tag)
+            return
+
+        test_type = int(test_type_element.text)
+        is_inverted = test_type not in test_types
+
+        if test_type not in test_types:
+            test_type -= 4
+
+        if test_type not in test_types:
+            self.log.warning("Unknown test type in %s, skipping", jmx_element.tag)
+            return
+
+        return is_inverted, test_type
+
+    def _extract_assume_success(self, jmx_element):
+        assume_success_element = jmx_element.find(".//*[@name='Assertion.assume_success']")  # "Ignore Status"
+        if assume_success_element is None or not assume_success_element.text:
+            self.log.warning("No assume_success element provided in %s, skipping", jmx_element.tag)
+            return
+
+        return assume_success_element.text == 'true'
+
+    def _extract_scope(self, jmx_element):
+        scope = jmx_element.find(".//*[@name='Assertion.scope']")  # "Apply to:"
+        if scope is None:
+            return "main"
+        elif scope.text in ("all", "children", "variable"):
+            self.log.warning("Unsupported scope '%s' in %s, changed to 'Main sample only", scope, jmx_element.tag)
+            return "main"
+        else:
+            self.log.warning("Unknown scope '%s' in %s", scope, jmx_element.tag)
+
+    def _get_response_assertion(self, jmx_element):
+        """
+        Convert JMeter Response Assertion to Taurus config format
+
+        """
+        assertion = {}
+
+        assertion_strings = self._extract_test_strings(jmx_element)
+        if not assertion_strings:
+            return
+        assertion["contains"] = assertion_strings
+
+        subject_name = self._extract_test_field(jmx_element)
+        if not subject_name:
+            return
+        assertion["subject"] = subject_name
+
+        test_type = self._extract_test_type(jmx_element)
+        if not test_type:
+            return
+        assertion["not"], test_type = test_type
+
+        assume_success = self._extract_assume_success(jmx_element)
+        if assume_success is None:
+            return
+        assertion["assume-success"] = assume_success
+
+        scope = self._extract_scope(jmx_element)
+        if not scope:
+            return
+
+        if test_type in (2, 16):  # contains, substring (the synonyms)
+            assertion["regexp"] = False
+        elif test_type == 1:  # matches
+            assertion["regexp"] = True
+        elif test_type == 8:  # equal
+            self.log.warning("Unsupported rule 'Equals' in %s, converted to 'Matches'", jmx_element.tag)
+            assertion["regexp"] = True
+            modified_strings = ['^' + re.escape(string) + '$' for string in assertion_strings]
+            assertion["contains"] = modified_strings
+        else:
+            raise TaurusInternalException("Wrong test_type '%s' in %s" % (test_type, jmx_element.tag))
+        return assertion
+
     def _get_response_assertions(self, element):
         """
         :param element:
         :return: list of dicts
         """
         response_assertions = []
-        subjects = {"Assertion.response_data": "body", "Assertion.response_headers": "headers",
-                    "Assertion.response_code": "http-code"}
-        test_types = {'6': (True, True), '2': (True, False), '20': (False, True),
-                      '16': (False, False)}  # (is_regexp, is_inverted)
+
         hashtree = element.getnext()
 
         if hashtree is not None and hashtree.tag == "hashTree":
@@ -719,46 +912,11 @@ class JMXasDict(JMX):
                                            element.tag == "ResponseAssertion"]
 
             for response_assertion_element in response_assertion_elements:
-                response_assertion = {}
-                selector = ".//collectionProp[@name='Asserion.test_strings']"
-                assertion_collection = response_assertion_element.find(selector)
+                response_assertion = self._get_response_assertion(response_assertion_element)
 
-                if assertion_collection is None:
-                    self.log.warning("Collection not found in %s, skipping", response_assertion_element.tag)
-                    continue
-                test_string_props = assertion_collection.findall(".//stringProp")
-                test_strings = []
-                for string_prop in test_string_props:
-                    if string_prop is not None and string_prop.text:
-                        test_strings.append(string_prop.text)
+                if response_assertion:
+                    response_assertions.append(response_assertion)
 
-                if not test_strings:
-                    self.log.warning("No test strings in %s, skipping", response_assertion_element.tag)
-                    continue
-                response_assertion["contains"] = test_strings
-                test_field_prop = self._get_string_prop(response_assertion_element, 'Assertion.test_field')
-
-                if test_field_prop:
-                    test_subject = subjects.get(test_field_prop, "body")
-                else:
-                    self.log.warning("No test subject provided in %s, skipping", response_assertion_element.tag)
-                    continue
-                response_assertion["subject"] = test_subject
-                test_type_element = response_assertion_element.find(".//*[@name='Assertion.test_type']")
-
-                if test_type_element is not None and test_type_element.text:
-                    test_type = test_types.get(test_type_element.text)
-                    if test_type:
-                        is_regexp, is_inverted = test_type
-                        response_assertion["regexp"] = is_regexp
-                        response_assertion["not"] = is_inverted
-                    else:
-                        self.log.warning("Unknown test type in %s, skipping", response_assertion_element.tag)
-                        continue
-                else:
-                    self.log.warning("No test subject provided in %s, skipping", response_assertion_element.tag)
-                    continue
-                response_assertions.append(response_assertion)
         return response_assertions
 
     def _get_jsonpath_assertions(self, element):
@@ -789,11 +947,14 @@ class JMXasDict(JMX):
                     json_path_assertion["expected-value"] = expected_value_element
 
                 validate_element = self._get_bool_prop(json_path_assertion_element, 'JSONVALIDATION')
-                json_path_assertion["validate"] = validate_element if validate_element else False
+                json_path_assertion["validate"] = False if validate_element is None else validate_element
                 expect_null_element = self._get_bool_prop(json_path_assertion_element, 'EXPECT_NULL')
-                json_path_assertion["expect-null"] = expect_null_element if expect_null_element else False
+                json_path_assertion["expect-null"] = False if expect_null_element is None else expect_null_element
                 invert_elem = self._get_bool_prop(json_path_assertion_element, 'INVERT')
-                json_path_assertion["invert"] = invert_elem if invert_elem else False
+                json_path_assertion["invert"] = False if invert_elem is None else invert_elem
+                regexp = self._get_bool_prop(json_path_assertion_element, 'ISREGEX')
+                json_path_assertion["regexp"] = True if regexp is None else regexp
+
                 json_path_assertions.append(json_path_assertion)
 
         return json_path_assertions
@@ -871,34 +1032,31 @@ class JMXasDict(JMX):
 
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
+            preprocessors = ["JSR223PreProcessor", "BeanShellPreProcessor"]
+            postprocessors = ["JSR223PostProcessor", "BeanShellPostProcessor"]
             elements = [element
                         for element in hashtree.iterchildren()
-                        if element.tag in ("JSR223PreProcessor", "JSR223PostProcessor")]
+                        if element.tag in preprocessors + postprocessors]
             for element in elements:
                 if element is not None:
-                    language = self._get_string_prop(element, 'scriptLanguage')
+                    beanshell = element.tag.lower().startswith('beanshell')
+                    language = 'beanshell' if beanshell else self._get_string_prop(element, 'scriptLanguage')
                     filename = self._get_string_prop(element, 'filename')
                     params = self._get_string_prop(element, 'parameters')
                     script = self._get_string_prop(element, 'script')
-                    execute = "before" if element.tag == "JSR223PreProcessor" else "after"
+                    execute = "before" if element.tag in preprocessors else "after"
+
+                    jsr = {"language": language, "parameters": params, "execute": execute}
                     if filename:
-                        jsr = {
-                            "language": language,
-                            "script-file": filename,
-                            "parameters": params,
-                            "execute": execute,
-                        }
+                        jsr["script-file"] = filename
                     elif script:
-                        # TODO: extract script to filename
-                        ext = extensions.get(language, '.js')
-                        filename = self._record_additional_file('script', ext, script)
-                        self.additional_files[filename] = script
-                        jsr = {
-                            "language": language,
-                            "script-file": filename,
-                            "parameters": params,
-                            "execute": execute,
-                        }
+                        if len(script.strip().split('\n')) > INLINE_JSR223_MAX_LEN:
+                            ext = extensions.get(language, '.js')
+                            filename = self._record_additional_file('script', ext, script)
+                            self.additional_files[filename] = script
+                            jsr['script-file'] = filename
+                        else:
+                            jsr['script-text'] = script
                     else:
                         tmpl = "%s element doesn't have neither script nor script-file, skipping"
                         self.log.warning(tmpl, element.tag)
@@ -908,6 +1066,15 @@ class JMXasDict(JMX):
             return {"jsr223": jsrs}
         else:
             return {}
+
+    @staticmethod
+    def _get_content_type(headers):
+        for header in headers:
+            if header.lower() == 'content-type':
+                if isinstance(headers[header], str):
+                    return headers[header].lower()
+                else:
+                    return headers[header]
 
     def process_tg(self, tg_etree_element):
         """
@@ -925,6 +1092,37 @@ class JMXasDict(JMX):
 
         if ht_element.tag == "hashTree":
             requests = self.__extract_requests(ht_element)
+
+            # convert json-body to string
+            scenario_json = False
+            if 'headers' in tg_scenario_settings:
+                scenario_json = self._get_content_type(tg_scenario_settings['headers']) == 'application/json'
+
+            for request in requests:
+                if not ('body' in request and isinstance(request['body'], str)):
+                    continue
+                request_content_header = 'headers' in request and self._get_content_type(request['headers'])
+
+                if (request_content_header and self._get_content_type(request['headers']) == 'application/json') or \
+                        (not request_content_header and scenario_json):
+
+                    # quote jmeter variables
+                    body = request['body']
+                    pattern = re.compile(r'[^"]\${[a-zA-Z0-9_]+}[^"]')
+                    search_res = pattern.search(body)
+                    while search_res:
+                        body = body[:search_res.start() + 1] + \
+                               '"%s"' % search_res.group()[1: -1] + \
+                               body[search_res.end() - 1:]
+                        search_res = pattern.search(body)
+                    if body != request['body']:
+                        self.log.debug("Body convertion: '%s' => '%s'", request['body'], body)
+
+                    try:
+                        request['body'] = json.loads(body)
+                    except (ValueError, TypeError):
+                        self.log.warning("Following body cannot be converted into JSON:\n%s", body)
+
             self.log.debug("Total requests in tg groups: %d", len(requests))
             if not requests:
                 self.log.warning("No requests in %s (%s)", tg_etree_element.tag, tg_etree_element.get("testname"))
@@ -1009,7 +1207,7 @@ class JMXasDict(JMX):
         """
         request_config = {}
         request_config.update(self._get_request_base(request_element))
-        request_config.update(self._get_request_body(request_element))
+        request_config.update(self._get_request_body(request_element, request_config))
         request_config.update(self._get_upload_files(request_element))
         request_config.update(self._get_headers(request_element))
         request_config.update(self.__get_constant_timer(request_element))
@@ -1074,7 +1272,7 @@ class JMXasDict(JMX):
         self.global_objects = []
         try:
             ht_object = self.tree.find(".//hashTree").find(".//TestPlan").getnext()
-        except:
+        except BaseException:
             raise TaurusInternalException("Bad jmx format")
         for obj in ht_object.iterchildren():
             if obj.tag != 'hashTree' and obj.tag != 'ThreadGroup':
@@ -1154,7 +1352,7 @@ class JMXasDict(JMX):
         Removes all unknown elements
         :return:
         """
-        for subelement in element.iter():
+        for subelement in element.findall('./'):
             if subelement.tag.lower().endswith("prop"):
                 continue
             if subelement.tag not in KNOWN_TAGS and not subelement.tag.endswith("Controller"):
@@ -1162,6 +1360,8 @@ class JMXasDict(JMX):
                 self._remove_element(subelement)
                 self._clean_jmx_tree(element)
                 return
+            if subelement.tag.lower() == 'hashtree':
+                self._clean_jmx_tree(subelement)
 
     def _record_additional_file(self, base_filename, extension, content):
         filename = base_filename + extension
@@ -1236,7 +1436,8 @@ class JMX2YAML(object):
         self.options = options
         self.setup_logging()
         self.converter = None
-        self.file_to_convert = file_name
+        self.src_file = file_name
+        self.dst_file = ''
 
     def setup_logging(self):
         CLI.setup_logging(self.options)
@@ -1250,28 +1451,29 @@ class JMX2YAML(object):
         """
         output_format = Configuration.JSON if self.options.json else Configuration.YAML
 
-        self.log.info('Loading jmx file %s', self.file_to_convert)
-        self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
-        if not os.path.exists(self.file_to_convert):
-            raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
+        self.log.info('Loading jmx file %s', self.src_file)
+        self.src_file = os.path.abspath(os.path.expanduser(self.src_file))
+        if not os.path.exists(self.src_file):
+            raise TaurusInternalException("File does not exist: %s" % self.src_file)
         self.converter = Converter(self.log)
         try:
-            jmx_as_dict = self.converter.convert(self.file_to_convert, self.options.dump_jmx)
+            jmx_as_dict = self.converter.convert(self.src_file, self.options.dump_jmx)
         except BaseException:
-            self.log.error("Error while processing jmx file: %s", self.file_to_convert)
+            self.log.error("Error while processing jmx file: %s", self.src_file)
             raise
 
         exporter = Configuration()
         exporter.merge(jmx_as_dict)
 
         if self.options.file_name:
-            file_name = self.options.file_name
+            self.dst_file = self.options.file_name
         else:
-            file_name = self.file_to_convert + "." + output_format.lower()
+            self.dst_file = self.src_file + "." + output_format.lower()
 
-        exporter.dump(file_name, output_format)
+        with open(self.dst_file, 'wb') as fds:
+            exporter.write(fds, output_format)
 
-        additional_files_dir = get_full_path(file_name, step_up=1)
+        additional_files_dir = get_full_path(self.dst_file, step_up=1)
         for filename in self.converter.dialect.additional_files:
             path = os.path.join(additional_files_dir, filename)
             self.log.info("Writing additional file: %s", path)
@@ -1279,7 +1481,7 @@ class JMX2YAML(object):
             with codecs.open(path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-        self.log.info("Done processing, result saved in %s", file_name)
+        self.log.info("Done processing, result saved in %s", self.dst_file)
 
 
 def main():

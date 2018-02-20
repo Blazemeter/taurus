@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import csv
+import datetime
 import json
 import math
 import os
@@ -21,25 +22,24 @@ import socket
 import string
 import struct
 import subprocess
-import sys
 import time
 from abc import abstractmethod
 from os import strerror
 from subprocess import CalledProcessError
 
-import datetime
 import psutil
 
 from bzt import resources, TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.six import string_types, urlencode, iteritems, parse, StringIO, b, viewvalues
-from bzt.utils import RequiredTool, IncrementableProgressBar
+from bzt.requests_model import HTTPRequest
+from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
+from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
 
 
-class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     :type pbench: PBenchTool
     :type widget: ExecutorWidget
@@ -67,7 +67,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def _generate_files(self):
         self.pbench.generate_payload(self.get_scenario())
         self.pbench.generate_schedule(self.get_load())
-        self.pbench.generate_config(self.get_scenario(), self.get_load(), self.get_hostaliases())
+        self.pbench.generate_config(self.get_scenario(), self.get_load())
         self.pbench.check_config()
 
     def startup(self):
@@ -78,10 +78,8 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         retcode = self.pbench.process.poll()
         if retcode is not None:
             if retcode != 0:
-                raise ToolError("Phantom-benchmark exit code: %s" % retcode)
-
+                raise ToolError("Phantom-benchmark exit code: %s" % retcode, self.get_error_diagnostics())
             return True
-
         return False
 
     def get_widget(self):
@@ -92,7 +90,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         if not self.widget:
             proto = "https" if self.pbench.use_ssl else 'http'
-            label = "Target: %s://%s:%s" % (proto, self.pbench.hostname, self.pbench.port)
+            label = "Pbench: %s://%s:%s" % (proto, self.pbench.hostname, self.pbench.port)
             self.widget = ExecutorWidget(self, label)
         return self.widget
 
@@ -113,6 +111,19 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         tool = PBench(self.log, self.pbench.path)
         if not tool.check_if_installed():
             tool.install()
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.pbench is not None:
+            if self.pbench.stdout_file is not None:
+                with open(self.pbench.stdout_file.name) as fds:
+                    contents = fds.read().strip()
+                    if contents.strip():
+                        diagnostics.append("PBench STDOUT:\n" + contents)
+            if self.pbench.stderr_file is not None:
+                with open(self.pbench.stderr_file.name) as fds:
+                    diagnostics.append("PBench STDERR:\n" + fds.read())
+        return diagnostics
 
 
 class PBenchTool(object):
@@ -141,8 +152,10 @@ class PBenchTool(object):
         self.hostname = 'localhost'
         self.port = 80
         self._target = {"scheme": None, "netloc": None}
+        self.stdout_file = None
+        self.stderr_file = None
 
-    def generate_config(self, scenario, load, hostaliases):
+    def generate_config(self, scenario, load, hostaliases=()):
         self.kpi_file = self.engine.create_artifact("pbench-kpi", ".txt")
         self.stats_file = self.engine.create_artifact("pbench-additional", ".ldjson")
         self.config_file = self.engine.create_artifact('pbench', '.conf')
@@ -153,7 +166,10 @@ class PBenchTool(object):
 
         instances = load.concurrency if load.concurrency else 1
 
-        timeout = int(dehumanize_time(scenario.get("timeout", "10s")) * 1000)
+        timeout = scenario.get("timeout", None)
+        if timeout is None:
+            timeout = '10s'
+        timeout = int(dehumanize_time(timeout) * 1000)
 
         threads = 1 if psutil.cpu_count() < 2 else (psutil.cpu_count() - 1)
         threads = int(self.execution.get("worker-threads", threads))
@@ -242,7 +258,7 @@ class PBenchTool(object):
             return upper_iteration_limit * payload_count
 
     def _estimate_schedule_size(self, load, payload_count):
-        if load.throughput:
+        if load.throughput and load.duration:
             return self._estimate_schedule_size_rps(load, payload_count)
         else:
             return self._estimate_schedule_size_conc(load, payload_count)
@@ -256,28 +272,32 @@ class PBenchTool(object):
         if self.schedule_file is None:
             self.schedule_file = self.engine.create_artifact("pbench", '.sched')
             self.log.info("Generating request schedule file: %s", self.schedule_file)
-            with open(self.payload_file, 'rb') as pfd:
-                scheduler = Scheduler(load, pfd, self.log)
-                with open(self.schedule_file, 'wb') as sfd:
-                    self._write_schedule_file(load, scheduler, sfd)
+
+            with open(self.schedule_file, 'wb') as sfd:
+                scheduler = Scheduler(load, self.payload_file, self.log)
+                self._write_schedule_file(load, scheduler, sfd)
+
             self.log.info("Done generating schedule file")
 
     def check_config(self):
         cmdline = [self.path, 'check', self.config_file]
         self.log.debug("Check pbench config with command: %s", cmdline)
+        out = open(self.engine.create_artifact('pbench_check', '.out'), 'wb')
+        err = open(self.engine.create_artifact('pbench_check', '.err'), 'wb')
         try:
-            subprocess.check_call(cmdline, stdout=subprocess.PIPE)
+            subprocess.check_call(cmdline, stdout=out, stderr=err)
         except CalledProcessError as exc:
-            raise ToolError("Config check has failed: %s" % exc)
+            raise ToolError("Config check has failed: %s\nLook at %s for details" % (exc, err.name))
+        finally:
+            out.close()
+            err.close()
 
     def start(self, config_file):
         cmdline = [self.path, 'run', config_file]
-        stdout = sys.stdout if not isinstance(sys.stdout, StringIO) else None
-        stderr = sys.stderr if not isinstance(sys.stderr, StringIO) else None
+        self.stdout_file = open(self.executor.engine.create_artifact("pbench", ".out"), 'w')
+        self.stderr_file = open(self.executor.engine.create_artifact("pbench", ".err"), 'w')
         try:
-            self.process = self.executor.execute(cmdline,
-                                                 stdout=stdout,
-                                                 stderr=stderr)
+            self.process = self.executor.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
         except OSError as exc:
             raise ToolError("Failed to start phantom-benchmark utility: %s (%s)" % (exc, cmdline))
 
@@ -286,6 +306,11 @@ class PBenchTool(object):
         num_requests = 0
         with open(self.payload_file, 'w') as fds:
             for request in requests:
+                if not isinstance(request, HTTPRequest):
+                    msg = "PBench payload generator doesn't support '%s' blocks, skipping"
+                    self.log.warning(msg, request.NAME)
+                    continue
+
                 http = self._build_request(request, scenario)
                 fds.write("%s %s\r\n%s\r\n" % (len(http), request.label.replace(' ', '_'), http))
                 num_requests += 1
@@ -313,7 +338,7 @@ class PBenchTool(object):
         if body:
             headers.merge({"Content-Length": len(body)})
 
-        headers.merge(scenario.get("headers"))
+        headers.merge(scenario.get_headers())
         headers.merge(request.headers)
         for header, value in iteritems(headers):
             http += "%s: %s\r\n" % (header, value)
@@ -339,7 +364,10 @@ class PBenchTool(object):
             if request.method == "GET" and isinstance(request.body, dict):
                 path += "?" + urlencode(request.body)
         if not parsed_url.netloc:
-            parsed_url = parse.urlparse(scenario.get("default-address", ""))
+            default_addr = scenario.get('default-address', None)
+            if default_addr is None:
+                default_addr = ''
+            parsed_url = parse.urlparse(default_addr)
         self.hostname = parsed_url.netloc.split(':')[0] if ':' in parsed_url.netloc else parsed_url.netloc
         self.use_ssl = parsed_url.scheme == 'https'
         if parsed_url.port:
@@ -460,12 +488,12 @@ class Scheduler(object):
     REC_TYPE_LOOP_START = 1
     REC_TYPE_STOP = 2
 
-    def __init__(self, load, payload_fhd, logger):
+    def __init__(self, load, payload_filename, parent_logger):
         super(Scheduler, self).__init__()
         self.need_start_loop = None
-        self.log = logger
+        self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
-        self.payload_fhd = payload_fhd
+        self.payload_file = FileReader(filename=payload_filename, parent_logger=self.log)
         if not load.duration and not load.iterations:
             self.iteration_limit = 1
         else:
@@ -489,13 +517,13 @@ class Scheduler(object):
         self.iterations = 1
         rec_type = self.REC_TYPE_SCHEDULE
         while True:
-            payload_offset = self.payload_fhd.tell()
-            line = self.payload_fhd.readline()
+            payload_offset = self.payload_file.offset
+            line = self.payload_file.get_line()
             if not line:  # rewind
-                self.payload_fhd.seek(0)
+                self.payload_file.offset = 0
                 self.iterations += 1
 
-                if self.need_start_loop is not None and self.need_start_loop and not self.iteration_limit:
+                if self.need_start_loop and not self.iteration_limit:
                     self.need_start_loop = False
                     self.iteration_limit = self.iterations
                     rec_type = self.REC_TYPE_LOOP_START
@@ -504,19 +532,16 @@ class Scheduler(object):
                     self.log.debug("Schedule iterations limit reached: %s", self.iteration_limit)
                     break
 
-                continue
-
             if not line.strip():  # we're fine to skip empty lines between records
                 continue
 
-            parts = line.split(b(' '))
+            parts = line.split(' ')
             if len(parts) < 2:
                 raise TaurusInternalException("Wrong format for meta-info line: %s" % line)
 
             payload_len, marker = parts
-            marker = marker.decode()
             payload_len = int(payload_len)
-            payload = self.payload_fhd.read(payload_len).decode()
+            payload = self.payload_file.get_bytes(payload_len)
             yield payload_len, payload_offset, payload, marker.strip(), len(line), rec_type
             rec_type = self.REC_TYPE_SCHEDULE
 
@@ -524,7 +549,7 @@ class Scheduler(object):
         for payload_len, payload_offset, payload, marker, meta_len, record_type in self._payload_reader():
             if self.load.throughput:
                 self.time_offset += self.__get_time_offset_rps()
-                if self.time_offset > self.load.duration:
+                if self.load.duration and self.time_offset > self.load.duration:
                     self.log.debug("Duration limit reached: %s", self.time_offset)
                     break
             else:  # concurrency schedule
@@ -569,14 +594,8 @@ class PBenchKPIReader(ResultsReader):
     def __init__(self, filename, parent_logger, stats_filename):
         super(PBenchKPIReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.csvreader = None
-        self.offset = 0
-        self.fds = None
-        if stats_filename:
-            self.stats_reader = PBenchStatsReader(stats_filename, parent_logger)
-        else:
-            self.stats_reader = None
+        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.stats_reader = PBenchStatsReader(stats_filename, parent_logger)
 
     def _read(self, last_pass=False):
         """
@@ -586,18 +605,22 @@ class PBenchKPIReader(ResultsReader):
         """
 
         def mcs2sec(val):
-            return int(int(val) / 1000.0) / 1000.0
+            return int(val) / 1000000.0
 
-        if self.stats_reader:
-            self.stats_reader.read_file(last_pass)
+        self.stats_reader.read_file()
 
-        if not self.csvreader and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            return
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
-        self.log.debug("Reading: %s", self.filename)
-        self.fds.seek(self.offset)  # not only Mac has this issue, DictReader on Linux also suffers from it
-        for row in self.csvreader:
+        fields = ("timeStamp", "label", "elapsed",
+                  "Connect", "Send", "Latency", "Receive",
+                  "internal",
+                  "bsent", "brecv",
+                  "opretcode", "responseCode")
+        dialect = csv.excel_tab()
+
+        rows = csv.DictReader(lines, fields, dialect=dialect)
+
+        for row in rows:
             label = row["label"]
 
             try:
@@ -605,7 +628,7 @@ class PBenchKPIReader(ResultsReader):
                 ltc = mcs2sec(row["Latency"])
                 cnn = mcs2sec(row["Connect"])
                 # NOTE: actually we have precise send and receive time here...
-            except:
+            except BaseException:
                 raise ToolError("PBench reader: failed record: %s" % row)
 
             if row["opretcode"] != "0":
@@ -620,47 +643,14 @@ class PBenchKPIReader(ResultsReader):
             concur = 0
             yield tstmp, label, concur, rtm, cnn, ltc, rcd, error, '', byte_count
 
-        self.offset = self.fds.tell()
-
     def _calculate_datapoints(self, final_pass=False):
         for point in super(PBenchKPIReader, self)._calculate_datapoints(final_pass):
-            if self.stats_reader:
-                concurrency = self.stats_reader.get_data(point[DataPoint.TIMESTAMP])
-            else:
-                concurrency = 0
+            concurrency = self.stats_reader.get_data(point[DataPoint.TIMESTAMP])
 
             for label_data in viewvalues(point[DataPoint.CURRENT]):
                 label_data[KPISet.CONCURRENCY] = concurrency
 
             yield point
-
-    def __open_fds(self):
-        """
-        Opens JTL file for reading
-        """
-        if not os.path.isfile(self.filename):
-            self.log.debug("File not appeared yet: %s", self.filename)
-            return False
-
-        fsize = os.path.getsize(self.filename)
-        if not fsize:
-            self.log.debug("File is empty: %s", self.filename)
-            return False
-
-        self.log.debug("Opening file: %s", self.filename)
-        self.fds = open(self.filename)
-        fields = ("timeStamp", "label", "elapsed",
-                  "Connect", "Send", "Latency", "Receive",
-                  "internal",
-                  "bsent", "brecv",
-                  "opretcode", "responseCode")
-        dialect = csv.excel_tab()
-        self.csvreader = csv.DictReader(self.fds, fields, dialect=dialect)
-        return True
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
 
 
 class PBenchStatsReader(object):
@@ -669,24 +659,16 @@ class PBenchStatsReader(object):
     def __init__(self, filename, parent_logger):
         super(PBenchStatsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.buffer = ''
-        self.fds = None
         self.data = {}
         self.last_data = 0
 
-    def read_file(self, last_pass=False):
-        del last_pass
+    def read_file(self):
+        _bytes = self.file.get_bytes()
+        if _bytes:
+            self.buffer += _bytes
 
-        if not os.path.isfile(self.filename):
-            self.log.debug("File not appeared yet: %s", self.filename)
-            return False
-
-        if not self.fds:
-            self.log.debug("Opening file: %s", self.filename)
-            self.fds = open(self.filename)
-
-        self.buffer += self.fds.read()
         while self.MARKER in self.buffer:
             idx = self.buffer.find(self.MARKER) + len(self.MARKER)
             chunk_str = self.buffer[:idx - 1]
@@ -718,10 +700,6 @@ class PBenchStatsReader(object):
         else:
             self.log.debug("No active instances info for %s", tstmp)
             return self.last_data
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
 
 
 class PBench(RequiredTool):

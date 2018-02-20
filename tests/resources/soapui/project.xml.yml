@@ -1,0 +1,47 @@
+---
+execution:
+- concurrency: 10
+  hold-for: 60
+  scenario: TestSuite 1-index
+scenarios:
+  TestSuite 1-index:
+    requests:
+    - assert:
+      - contains:
+        - BlazeDemo
+        not: false
+        regexp: false
+        subject: body
+      - contains:
+        - BlazeDemou
+        not: true
+        regexp: true
+        subject: body
+      headers:
+        X-Custom-Header: Value
+      label: test index
+      url: http://blazedemo.com/reserve.php
+    - body:
+        answer: '42'
+      extract-xpath:
+        something_else:
+          default: NOT_FOUND
+          xpath: //head
+      headers:
+        X-Header: X-Value
+        X-Header-2: X-Value-2
+      label: posty
+      method: POST
+      url: http://example.com/body
+    - body: ''
+      extract-jsonpath:
+        something:
+          default: NOT_FOUND
+          jsonpath: $.baz
+      label: /api/json
+      url: http://localhost:9999/api/${route_part}
+    variables:
+      route_part: json
+      something: foo
+      something_else: '2'
+

@@ -1,5 +1,7 @@
 # Taurus 
 
+[![Join the chat at https://gitter.im/Blazemeter/taurus](https://badges.gitter.im/Blazemeter/taurus.svg)](https://gitter.im/Blazemeter/taurus?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Quick links: [Taurus Documentation](http://gettaurus.org/docs/) | [Knowledge Base](http://gettaurus.org/kb/) | [Support Forum](https://groups.google.com/forum/#!forum/codename-taurus)
 
 ## Purpose

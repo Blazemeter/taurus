@@ -16,11 +16,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import copy
 import csv
 import fnmatch
 import itertools
 import json
+import locale
 import logging
 import mimetypes
 import os
@@ -28,28 +29,33 @@ import platform
 import random
 import re
 import shlex
+import shutil
 import signal
 import socket
 import stat
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 import webbrowser
 import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
+from contextlib import contextmanager
+from math import log
 from subprocess import CalledProcessError
 from subprocess import PIPE
 from webbrowser import GenericBrowser
 
+import ipaddress
 import psutil
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from psutil import Popen
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
 
 
 def get_full_path(path, step_up=0):
@@ -109,6 +115,8 @@ def dehumanize_time(str_time):
     """
     Convert value like 1d4h33m12s103ms into seconds
 
+    Also, incidentally translates strings like "inf" into float("inf")
+
     :param str_time: string to convert
     :return: float value in seconds
     :raise TaurusInternalException: in case of unsupported unit
@@ -116,7 +124,7 @@ def dehumanize_time(str_time):
     if not str_time:
         return 0
 
-    parser = re.compile(r'([\d\.]+)([a-zA-Z]*)')
+    parser = re.compile(r'([\d\.\-infa]+)([a-zA-Z]*)')
     parts = parser.findall(str(str_time).replace(' ', ''))
 
     if len(parts) == 0:
@@ -125,7 +133,10 @@ def dehumanize_time(str_time):
 
     result = 0.0
     for value, unit in parts:
-        value = float(value)
+        try:
+            value = float(value)
+        except ValueError:
+            raise TaurusInternalException("Unsupported float string: %r" % value)
         unit = unit.lower()
         if unit == 'ms':
             result += value / 1000.0
@@ -192,16 +203,19 @@ class BetterDict(defaultdict):
             raise TaurusInternalException("Loaded object is not dict [%s]: %s" % (src.__class__, src))
 
         for key, val in iteritems(src):
-            if len(key) and key[0] == '~':  # overwrite flag
-                if key[1:] in self:
-                    self.pop(key[1:])
-                key = key[1:]
-
-            if len(key) and key[0] == '^':  # eliminate flag
+            merge_list_items = False
+            if key.startswith("^"):  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
                 if key[1:] in self:
                     self.pop(key[1:])
                 continue
+            elif key.startswith("~"):  # overwrite flag
+                if key[1:] in self:
+                    self.pop(key[1:])
+                key = key[1:]
+            elif key.startswith("$"):
+                merge_list_items = True
+                key = key[1:]
 
             if isinstance(val, dict):
                 dst = self.get(key)
@@ -218,11 +232,27 @@ class BetterDict(defaultdict):
                 if key not in self:
                     self[key] = []
                 if isinstance(self[key], list):
-                    self[key].extend(val)
+                    if merge_list_items:
+                        self.__merge_list_elements(self[key], val, key)
+                    else:
+                        self[key].extend(val)
                 else:
                     self[key] = val
             else:
                 self[key] = val
+
+    def __merge_list_elements(self, left, right, key):
+        for index, righty in enumerate(right):
+            if index < len(left):
+                lefty = left[index]
+                if isinstance(lefty, BetterDict):
+                    if isinstance(righty, BetterDict):
+                        lefty.merge(righty)
+                        continue
+                logging.warning("Overwriting the value of %r when merging configs", key)
+                left[index] = righty
+            else:
+                left.insert(index, righty)
 
     def __ensure_list_type(self, values):
         """
@@ -240,22 +270,40 @@ class BetterDict(defaultdict):
     @classmethod
     def traverse(cls, obj, visitor):
         """
-        Deep traverse dict with visitor
+        Deep traverse dict with visitor. If visitor returns any value, don't traverse into
 
         :type obj: list or dict or object
         :type visitor: callable
         """
         if isinstance(obj, dict):
             for key, val in iteritems(obj):
-                visitor(val, key, obj)
-                cls.traverse(obj[key], visitor)
+                if not visitor(val, key, obj):
+                    cls.traverse(obj[key], visitor)
         elif isinstance(obj, list):
             for idx, val in enumerate(obj):
-                visitor(val, idx, obj)
-                cls.traverse(obj[idx], visitor)
+                if not visitor(val, idx, obj):
+                    cls.traverse(obj[idx], visitor)
+
+    def filter(self, rules):
+        keys = set(self.keys())
+        for key in keys:
+            ikey = "!" + key
+            if ikey in rules:
+                if isinstance(rules.get(ikey), dict) and isinstance(self.get(key), BetterDict):
+                    inverted_rules = {x: True for x in self.get(key).keys() if x not in rules[ikey]}
+                    self.get(key).filter(inverted_rules)
+                    if not self.get(key):  # clear empty
+                        del self[key]
+            elif key not in rules:
+                del self[key]
+            else:
+                if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
+                    self.get(key).filter(rules[key])
+                    if not self.get(key):  # clear empty
+                        del self[key]
 
 
-def get_uniq_name(directory, prefix, suffix, forbidden_names=()):
+def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     base = os.path.join(directory, prefix)
     diff = ""
     num = 0
@@ -287,16 +335,180 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 
     if isinstance(args, string_types) and not shell:
         args = shlex.split(args, posix=not is_windows())
-    logging.getLogger(__name__).debug("Executing shell: %s", args)
-
-    if env:
-        env = {k: str(v) for k, v in iteritems(env)}
+    logging.getLogger(__name__).debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
     if is_windows():
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env)
     else:
         return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
                      preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
+
+
+class Environment(object):
+    def __init__(self, parent_log, data=None):
+        self.data = {}
+        self.log = parent_log.getChild(self.__class__.__name__)
+        if data is not None:
+            self.set(data)
+
+    def set(self, env):
+        """
+        :type env: dict
+        """
+        for key in env:
+            key = str(key)
+            val = env[key]
+
+            if is_windows():
+                key = key.upper()
+
+            if key in self.data:
+                if val is None:
+                    self.log.debug("Remove '%s' from environment", key)
+                    self.data.pop(key)
+                else:
+                    self.log.debug("Replace '%s' in environment", key)
+                    self.data[key] = str(val)
+            else:
+                self._add({key: val}, '', finish=False)
+
+    def add_path(self, pair, finish=False):
+        self._add(pair, os.pathsep, finish)
+
+    def add_java_param(self, pair, finish=False):
+        self._add(pair, " ", finish)
+
+    def update(self, env):  # compatibility with taurus-server
+        self.set(env)
+
+    def _add(self, pair, separator, finish):
+        for key in pair:
+            val = pair[key]
+            key = str(key)
+            if is_windows():
+                key = key.upper()
+
+            if val is None:
+                self.log.debug("Skip empty variable '%s'", key)
+                return
+
+            val = str(val)
+
+            if key in self.data:
+                if finish:
+                    self.data[key] += separator + val  # add to the end
+                else:
+                    self.data[key] = val + separator + self.data[key]  # add to the beginning
+            else:
+                self.data[key] = str(val)
+
+    def get(self, key=None):
+        if key:
+            key = str(key)
+            if is_windows():
+                key = key.upper()
+
+            return self.data.get(key, None)
+        else:
+            # full environment
+            return copy.deepcopy(self.data)
+
+
+class FileReader(object):
+    SYS_ENCODING = locale.getpreferredencoding()
+
+    def __init__(self, filename="", file_opener=None, parent_logger=None):
+        self.fds = None
+        if parent_logger:
+            self.log = parent_logger.getChild(self.__class__.__name__)
+        else:
+            self.log = logging.getLogger(self.__class__.__name__)
+
+        if file_opener:
+            self.file_opener = file_opener  # external method for opening of file
+        else:
+            self.file_opener = lambda f: open(f, mode='rb')  # default mode is binary
+
+        # for non-trivial openers filename must be empty (more complicate than just open())
+        # it turns all regular file checks off, see is_ready()
+        self.name = filename
+        self.cp = 'utf-8'  # default code page is utf-8
+        self.offset = 0
+
+    def _readlines(self, hint=None):
+        # get generator instead of list (in regular readlines())
+        length = 0
+        for line in self.fds:
+            yield line
+            if hint and hint > 0:
+                length += len(line)
+                if length >= hint:
+                    return
+
+    def is_ready(self):
+        if not self.fds:
+            if self.name:
+                if not os.path.isfile(self.name):
+                    self.log.debug("File not appeared yet: %s", self.name)
+                    return False
+                if not os.path.getsize(self.name):
+                    self.log.debug("File is empty: %s", self.name)
+                    return False
+
+                self.log.debug("Opening file: %s", self.name)
+
+            # call opener regardless of the name value as it can use empty name as flag
+            self.fds = self.file_opener(self.name)
+
+        if self.fds:
+            self.name = self.fds.name
+            return True
+
+    def _decode(self, line):
+        try:
+            return line.decode(self.cp)
+        except UnicodeDecodeError:
+            self.log.warning("Content encoding of '%s' doesn't match %s", self.name, self.cp)
+            self.cp = self.SYS_ENCODING
+            self.log.warning("Proposed code page: %s", self.cp)
+            return line.decode(self.cp)
+
+    def get_lines(self, size=-1, last_pass=False):
+        if self.is_ready():
+            if last_pass:
+                size = -1
+            self.log.debug("Reading: %s", self.name)
+            self.fds.seek(self.offset)
+            for line in self._readlines(hint=size):
+                self.offset += len(line)
+                yield self._decode(line)
+
+    def get_line(self):
+        line = ""
+        if self.is_ready():
+            self.log.debug("Reading: %s", self.name)
+            self.fds.seek(self.offset)
+            line = self.fds.readline()
+            self.offset += len(line)
+
+        return self._decode(line)
+
+    def get_bytes(self, size=-1, last_pass=False, decode=True):
+        if self.is_ready():
+            if last_pass:
+                size = -1
+            self.log.debug("Reading: %s", self.name)
+            self.fds.seek(self.offset)
+            _bytes = self.fds.read(size)
+            self.offset += len(_bytes)
+            if decode:
+                return self._decode(_bytes)
+            else:
+                return _bytes
+
+    def __del__(self):
+        if self.fds:
+            self.fds.close()
 
 
 def ensure_is_dict(container, key, default_key=None):
@@ -459,7 +671,7 @@ def to_json(obj):
     :param obj:
     :return:
     """
-
+    # NOTE: you can set allow_nan=False to fail when serializing NaN/Infinity
     return json.dumps(obj, indent=True, cls=ComplexEncoder)
 
 
@@ -532,15 +744,17 @@ def humanize_time(secs):
     return '%02d:%02d:%02d' % (hours, mins, secs)
 
 
-def guess_csv_dialect(header):
+def guess_csv_dialect(header, force_doublequote=False):
     """ completely arbitrary fn to detect the delimiter
 
     :type header: str
     :rtype: csv.Dialect
     """
     possible_delims = ",;\t"
-
-    return csv.Sniffer().sniff(header, delimiters=possible_delims)
+    dialect = csv.Sniffer().sniff(header, delimiters=possible_delims)
+    if force_doublequote:
+        dialect.doublequote = True
+    return dialect
 
 
 def load_class(full_name):
@@ -587,6 +801,21 @@ def unzip(source_filename, dest_dir, rel_path=None):
             logging.debug("Writing %s%s%s", dest_dir, os.path.sep, member.filename)
 
             zfd.extract(member, dest_dir)
+
+
+def untar(source_filename, dest_dir, rel_path=None):
+    with tarfile.open(source_filename, "r|*") as tar:
+        for member in tar:
+            if member.isfile():
+                if member.name is None:
+                    continue
+                if rel_path is not None and not member.name.startswith(rel_path):
+                    continue
+
+                filename = os.path.basename(member.name)
+                destination = os.path.join(dest_dir, filename)
+                with open(destination, "wb") as output:
+                    shutil.copyfileobj(tar.extractfile(member), output, member.size)
 
 
 def make_boundary(text=None):
@@ -658,7 +887,7 @@ class ExceptionalDownloader(request.FancyURLopener, object):
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
             response = self.retrieve(url, filename, reporthook, data)
-        except:
+        except BaseException:
             if fd:
                 os.close(fd)
                 os.remove(filename)
@@ -680,12 +909,13 @@ class RequiredTool(object):
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
-        self.log = None
+        self.log = logging.getLogger('')
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
             self.already_installed = True
             return True
+        self.log.debug("File not exists: %s", self.tool_path)
         return False
 
     def install(self):
@@ -693,6 +923,7 @@ class RequiredTool(object):
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
             downloader = ExceptionalDownloader()
+            self.log.info("Downloading %s", self.download_link)
             downloader.get(self.download_link, self.tool_path, reporthook=pbar.download_callback)
 
             if self.check_if_installed():
@@ -724,18 +955,18 @@ class RequiredTool(object):
 
 
 class JavaVM(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
+    def __init__(self, parent_logger, tool_path='java', download_link=''):
         super(JavaVM, self).__init__("JavaVM", tool_path, download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
-        cmd = ["java", '-version']
+        cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (CalledProcessError, IOError) as exc:
+        except (CalledProcessError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
@@ -765,9 +996,10 @@ class ProgressBarContext(ProgressBar):
             self.finish()
 
     def download_callback(self, block_count, blocksize, totalsize):
-        self.maxval = totalsize
-        progress = block_count * blocksize
-        self.update(progress if progress <= totalsize else totalsize)
+        if totalsize > 0:
+            self.maxval = totalsize
+            progress = block_count * blocksize
+            self.update(progress if progress <= totalsize else totalsize)
 
 
 class IncrementableProgressBar(ProgressBarContext):
@@ -840,6 +1072,30 @@ class TclLibrary(RequiredTool):
             self.log.warning("No Tcl library was found")
 
 
+class Node(RequiredTool):
+    def __init__(self, parent_logger):
+        super(Node, self).__init__("Node.js", "")
+        self.log = parent_logger.getChild(self.__class__.__name__)
+        self.executable = None
+
+    def check_if_installed(self):
+        node_candidates = ["node", "nodejs"]
+        for candidate in node_candidates:
+            try:
+                self.log.debug("Trying %r", candidate)
+                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                self.log.debug("%s output: %s", candidate, output)
+                self.executable = candidate
+                return True
+            except (CalledProcessError, OSError):
+                self.log.debug("%r is not installed", candidate)
+                continue
+        return False
+
+    def install(self):
+        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
+
+
 class MirrorsManager(object):
     def __init__(self, base_link, parent_logger):
         self.base_link = base_link
@@ -863,23 +1119,65 @@ class MirrorsManager(object):
         return (mirror for mirror in mirrors)
 
 
+@contextmanager
+def log_std_streams(logger=None, stdout_level=logging.DEBUG, stderr_level=logging.DEBUG):
+    """
+    redirect standard output/error to taurus logger
+    """
+    out_descriptor = os.dup(1)
+    err_descriptor = os.dup(2)
+    stdout = tempfile.SpooledTemporaryFile(mode='w+')
+    stderr = tempfile.SpooledTemporaryFile(mode='w+')
+    sys.stdout = stdout
+    sys.stderr = stderr
+    os.dup2(stdout.fileno(), 1)
+    os.dup2(stderr.fileno(), 2)
+    try:
+        yield
+    finally:
+        stdout.seek(0)
+        stderr.seek(0)
+        stdout_str = stdout.read().strip()
+        stderr_str = stderr.read().strip()
+        stdout.close()
+        stderr.close()
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        os.dup2(out_descriptor, 1)
+        os.dup2(err_descriptor, 2)
+        os.close(out_descriptor)
+        os.close(err_descriptor)
+        if logger:
+            if stdout_str:
+                logger.log(stdout_level, "STDOUT: " + stdout_str)
+            if stderr_str:
+                logger.log(stderr_level, "STDERR: " + stderr_str)
+
+
 def open_browser(url):
     try:
         browser = webbrowser.get()
         if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-            saved_out = os.dup(1)
-            os.close(1)
-            os.open(os.devnull, os.O_RDWR)
-            try:
-                browser.open(url)
-            finally:
-                os.dup2(saved_out, 1)
+            with log_std_streams(logger=logging):
+                webbrowser.open(url)
     except BaseException as exc:
         logging.warning("Can't open link in browser: %s", exc)
 
 
 def is_windows():
     return platform.system() == 'Windows'
+
+
+def is_linux():
+    return 'linux' in sys.platform.lower()
+
+
+def is_mac():
+    return 'darwin' in sys.platform.lower()
+
+
+def platform_bitness():
+    return 64 if sys.maxsize > 2 ** 32 else 32
 
 
 EXE_SUFFIX = ".bat" if is_windows() else ".sh"
@@ -996,3 +1294,68 @@ class PythonGenerator(object):
 
     def gen_new_line(self, indent=8):
         return self.gen_statement("", indent=indent)
+
+
+def str_representer(dumper, data):
+    """ Representer for PyYAML that dumps multiline strings as | scalars """
+    if len(data.splitlines()) > 1:
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+
+def humanize_bytes(byteval):
+    # from http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size/
+    #   25613067#25613067
+    _suffixes = [' ', 'K', 'M', 'G', 'T', 'P']
+
+    # determine binary order in steps of size 10
+    # (coerce to int, // still returns a float)
+    order = int(log(byteval, 2) / 10) if byteval else 0
+    # format file size
+    # (.4g results in rounded numbers for exact matches and max 3 decimals,
+    # should never resort to exponent values)
+    return '{:.4g}{}'.format(byteval / (1 << (order * 10)), _suffixes[order])
+
+
+class LDJSONReader(object):
+    def __init__(self, filename, parent_log):
+        self.log = parent_log.getChild(self.__class__.__name__)
+        self.file = FileReader(filename=filename,
+                               file_opener=lambda f: open(f, 'rb', buffering=1),
+                               parent_logger=self.log)
+        self.partial_buffer = ""
+
+    def read(self, last_pass=False):
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
+
+        for line in lines:
+            if not line.endswith("\n"):
+                self.partial_buffer += line
+                continue
+            line = "%s%s" % (self.partial_buffer, line)
+            self.partial_buffer = ""
+            yield json.loads(line)
+
+
+def get_host_ips(filter_loopbacks=True):
+    """
+    Returns a list of all IP addresses assigned to this host.
+
+    :param filter_loopbacks: filter out loopback addresses
+    """
+    ips = []
+    for _, interfaces in iteritems(psutil.net_if_addrs()):
+        for iface in interfaces:
+            addr = text_type(iface.address)
+            try:
+                ip = ipaddress.ip_address(addr)
+                if filter_loopbacks and ip.is_loopback:
+                    continue
+            except ValueError:
+                continue
+            ips.append(iface.address)
+    return ips
+
+
+def is_url(url):
+    return parse.urlparse(url).scheme in ["https", "http"]

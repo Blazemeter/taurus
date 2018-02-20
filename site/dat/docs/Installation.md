@@ -11,7 +11,7 @@ The installation process was tried on all supported Windows versions (7, 8, 10).
 ### Installing Taurus With Prebuilt Installer
 
 Download an [installer](/msi/TaurusInstaller_TAURUS_VERSION_x64.exe) and run it on your system. It will install the following components:
-- Python 2.7
+- Python 3
 - PyLauncher, needed to launch Python programs
 - Taurus
 
@@ -69,9 +69,24 @@ To upgrade Taurus, open Command Prompt as administrator and run
  pip install --upgrade bzt
 ```
 
-## Mac OS
+----
 
-You will need python 2.7 or higher and Java Runtime installed. 
+## Mac OS
+### Install Homebrew Package
+You can use [brew](https://brew.sh/) package manager to install taurus:
+```bash
+brew install bzt
+```
+and to update it:
+```bash
+brew upgrade bzt
+```
+If your brew auto update is switched off don't forget to manage it manually.
+Keep in mind: some additional software can be required depend of test type
+([JVM/JDK](http://www.oracle.com/technJava Runtime inetwork/java/javase/downloads/jdk8-downloads-2133151.html), Grider, etc.)
+
+### Manual Installation
+You will need python 2.7 or higher and Java Runtime installed.
 
 If you're on _El Capitan_, please execute first:
 
@@ -79,16 +94,27 @@ If you're on _El Capitan_, please execute first:
 brew install python
 ```
 
-Most likely you also need to upgrade `setuptools`:
-
-```bash
-sudo pip install --upgrade setuptools
-```
-
-Then install Taurus:
+Then try to install Taurus:
 
 ```bash
 sudo pip install bzt
+```
+
+Upgrading Taurus to latest on Mac OS is suggested as:
+
+```bash
+sudo pip uninstall bzt && sudo pip install bzt
+```
+
+We suggest to avoid using `--upgrade` command with `pip` on Mac OS, since it does not work as expected for Taurus.
+
+#### In Case of Failures
+_Try the suggestions below that apply to your case, then repeat `sudo pip install bzt`._
+
+If your Mac OS is older than El Capitan, most likely you also need to upgrade `setuptools`:
+
+```bash
+sudo pip install --upgrade setuptools
 ```
 
 If you experience `libxml/xmlversion.h missing` error, try running:
@@ -97,17 +123,8 @@ If you experience `libxml/xmlversion.h missing` error, try running:
 brew install libxml2
 brew install libxslt
 ```
-then try installing Taurus again.
 
-
-Upgrading Taurus to latest on Mac OS is suggested as:
-
-```bash
-sudo pip uninstall bzt
-sudo pip install bzt
-```
-
-We suggest to avoid using `--upgrade` command with `pip` on Mac OS, since it does not work as expected for Taurus.
+----
 
 ## Linux
 
@@ -117,7 +134,7 @@ Instructions are tested on Ubuntu 14.04 (Trusty) minimal install, but should wor
 ```
 sudo apt-get update
 sudo apt-get install python default-jre-headless python-tk python-pip python-dev \
-  libxml2-dev libxslt-dev zlib1g-dev
+  libxml2-dev libxslt-dev zlib1g-dev net-tools
 sudo pip install bzt
 ```
 Upgrading to latest is as simple as this:
@@ -142,13 +159,15 @@ pip install --upgrade bzt
 
 ### CentOS
 
+Taurus requires Python 2.7 or higher.
+
 Use `uname -a` to verify the system if it's 32 bit or 64 bit machine. [http://www.tecmint.com/enable-rpmforge-repository/](http://www.tecmint.com/enable-rpmforge-repository/)
 
 Get corresponding EPEL (Extra Package for Enterprise Linux) for CentOS (Community Enterprise OS) 7, and enable it.
 
 ```bash
-wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
-sudo rpm -ivh epel-release-7-5.noarch.rpm
+wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-10.noarch.rpm
+sudo rpm -ivh epel-release-7-10.noarch.rpm
 ```
 
 [http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/](http://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/)
@@ -185,12 +204,12 @@ sudo pip install bzt
 
 ## Docker Image
 
-Taurus has [Docker image](https://hub.docker.com/r/undera/taurus/) that allows you to run tool as container.
+Taurus has [Docker image](https://hub.docker.com/r/blazemeter/taurus/) that allows you to run tool as container.
 
 To use it, create a directory, for example `/tmp/my-test`, put all configs and additional files like JMXses there, then start Docker like this:
 
 ```bash
-sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config.yml
+sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config.yml
 ```
 
 Make note that `/tmp/my-test` was passed in `-v` Docker option, it's crucial. Here's [what happens](https://github.com/Blazemeter/taurus/blob/master/Dockerfile) inside the container:
@@ -201,9 +220,9 @@ Make note that `/tmp/my-test` was passed in `-v` Docker option, it's crucial. He
 You can also specify multile config files in the `docker run` command with wildcards or as separate arguments like so:
 
 ```bash
-sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus *.yml
+sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus *.yml
 
-sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.json my-config-2.json
+sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.json my-config-2.json
 ```
 
 ### Additional Taurus Command-Line Options
@@ -211,7 +230,7 @@ sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.json
 You can still pass [command-line options](https://github.com/Blazemeter/taurus/blob/master/site/dat/docs/CommandLine.md) to Taurus through the Docker image. To do so, add the command line option at the end of the `docker run` command like so:
 
 ```bash
-sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.yml -o scenarios.sample.data-sources.0=data.csv
+sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.yml -o scenarios.sample.data-sources.0=data.csv
 ```
 
 
@@ -219,5 +238,5 @@ sudo docker run --rm -v /tmp/my-test:/bzt-configs undera/taurus my-config-1.yml 
 If you want to receive Taurus artifacts from container, just mount some directory as `/tmp/artifacts` and files will get there. Following example gives you artifacts in `/tmp/my-run-artifacts` directory.
 
 ```bash
-sudo docker run --rm -v /tmp:/bzt-configs -v /tmp/my-run-artifacts:/tmp/artifacts undera/taurus
+sudo docker run -i --rm -v /tmp:/bzt-configs -v /tmp/my-run-artifacts:/tmp/artifacts blazemeter/taurus
 ```

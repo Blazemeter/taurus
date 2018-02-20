@@ -1,7 +1,7 @@
 ---
 scenarios:
   modified-jmx:
-    script: ./converted/Blazedemo.java.jmx
+    script: ./converted/generated_Blazedemo.java.smart.jmx
     modifications:
       disable:
         - http://blazedemo.com/favicon.ico

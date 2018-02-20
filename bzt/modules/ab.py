@@ -19,17 +19,18 @@ limitations under the License.
 import logging
 import time
 from math import ceil
-from os import path
+from subprocess import CalledProcessError
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, FileReader
 
 
-class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools):
+class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
     """
     Apache Benchmark executor module
     """
@@ -38,9 +39,9 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         super(ApacheBenchmarkExecutor, self).__init__()
         self.log = logging.getLogger('')
         self.process = None
-        self.__tsv_file_name = None
-        self.__out = None
-        self.__err = None
+        self._tsv_file = None
+        self.stdout_file = None
+        self.stderr_file = None
         self.tool_path = None
         self.scenario = None
 
@@ -48,15 +49,16 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         self.scenario = self.get_scenario()
         self.tool_path = self.install_required_tools()
 
-        self.__tsv_file_name = self.engine.create_artifact("ab", ".tsv")
+        self._tsv_file = self.engine.create_artifact("ab", ".tsv")
 
-        out_file_name = self.engine.create_artifact("ab", ".out")
-        self.reader = TSVDataReader(self.__tsv_file_name, self.log)
+        out = self.engine.create_artifact("ab", ".out")
+        err = self.engine.create_artifact("ab", ".err")
+        self.stdout_file = open(out, 'w')
+        self.stderr_file = open(err, 'w')
+
+        self.reader = TSVDataReader(self._tsv_file, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
-
-        self.__out = open(out_file_name, 'w')
-        self.__err = open(self.engine.create_artifact("ab", ".err"), 'w')
 
     def get_widget(self):
         """
@@ -68,6 +70,12 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
             label = "%s" % self
             self.widget = ExecutorWidget(self, "ab: " + label.split('/')[1])
         return self.widget
+
+    def __first_http_request(self):
+        for request in self.scenario.get_requests():
+            if isinstance(request, HTTPRequest):
+                return request
+        return None
 
     def startup(self):
         args = [self.tool_path]
@@ -83,18 +91,22 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
 
         args += ['-c', str(load_concurrency)]
         args += ['-d']  # do not print 'Processed *00 requests' every 100 requests or so
-        args += ['-g', str(self.__tsv_file_name)]  # dump stats to TSV file
+        args += ['-r']  # do not crash on socket level errors
+        args += ['-l']  # accept variable-len responses
+        args += ['-g', str(self._tsv_file)]  # dump stats to TSV file
 
         # add global scenario headers
         for key, val in iteritems(self.scenario.get_headers()):
             args += ['-H', "%s: %s" % (key, val)]
 
-        requests = list(self.scenario.get_requests())
+        requests = self.scenario.get_requests()
         if not requests:
             raise TaurusConfigError("You must specify at least one request for ab")
         if len(requests) > 1:
             self.log.warning("ab doesn't support multiple requests. Only first one will be used.")
-        request = requests[0]
+        request = self.__first_http_request()
+        if request is None:
+            raise TaurusConfigError("ab supports only HTTP requests, while scenario doesn't have any")
 
         # add request-specific headers
         for header in request.headers:
@@ -104,12 +116,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         if request.method != 'GET':
             raise TaurusConfigError("ab supports only GET requests, but '%s' is found" % request.method)
 
-        keepalive = True
-        if request.config.get('keepalive') is not None:
-            keepalive = request.config.get('keepalive')
-        elif self.scenario.get('keepalive') is not None:
-            keepalive = self.scenario.get('keepalive')
-        if keepalive:
+        if request.priority_option('keepalive', default=True):
             args += ['-k']
 
         args += [request.url]
@@ -117,24 +124,24 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         self.reader.setup(load_concurrency, request.label)
 
         self.start_time = time.time()
-        self.process = self.execute(args, stdout=self.__out, stderr=self.__err)
+        self.process = self.execute(args, stdout=self.stdout_file, stderr=self.stderr_file)
 
     def check(self):
         ret_code = self.process.poll()
         if ret_code is None:
             return False
         if ret_code != 0:
-            raise ToolError("ab tool exited with non-zero code: %s" % ret_code)
+            self.log.warning("ab tool exited with non-zero code: %s", ret_code)
         return True
 
     def shutdown(self):
         shutdown_process(self.process, self.log)
 
     def post_process(self):
-        if self.__out and not self.__out.closed:
-            self.__out.close()
-        if self.__err and not self.__err.closed:
-            self.__err.close()
+        if self.stdout_file and not self.stdout_file.closed:
+            self.stdout_file.close()
+        if self.stderr_file and not self.stderr_file.closed:
+            self.stderr_file.close()
 
     def install_required_tools(self):
         tool_path = self.settings.get('path', 'ab')
@@ -143,13 +150,26 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
             ab_tool.install()
         return tool_path
 
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.stdout_file is not None:
+            with open(self.stdout_file.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("ab STDOUT:\n" + contents)
+        if self.stderr_file is not None:
+            with open(self.stderr_file.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("ab STDERR:\n" + contents)
+        return diagnostics
+
 
 class TSVDataReader(ResultsReader):
     def __init__(self, filename, parent_logger):
         super(TSVDataReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.filename = filename
-        self.fds = None
+        self.file = FileReader(filename=filename, parent_logger=self.log)
         self.skipped_header = False
         self.concurrency = None
         self.url_label = None
@@ -158,33 +178,10 @@ class TSVDataReader(ResultsReader):
         self.concurrency = concurrency
         self.url_label = url_label
 
-    def __open_fds(self):
-        if not path.isfile(self.filename):
-            self.log.debug("File not appeared yet")
-            return False
-
-        if not path.getsize(self.filename):
-            self.log.debug("File is empty: %s", self.filename)
-            return False
-
-        if not self.fds:
-            self.fds = open(self.filename)
-
         return True
 
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
-
     def _read(self, last_pass=False):
-        while not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-        if last_pass:
-            lines = self.fds.readlines()
-            self.fds.close()
-        else:
-            lines = self.fds.readlines(1024 * 1024)
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if not self.skipped_header:
@@ -216,7 +213,7 @@ class ApacheBenchmark(RequiredTool):
         self.log.debug('Checking ApacheBenchmark: %s' % self.tool_path)
         try:
             shell_exec([self.tool_path, '-h'])
-        except OSError:
+        except (CalledProcessError, OSError):
             return False
         return True
 

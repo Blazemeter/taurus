@@ -21,10 +21,11 @@ import subprocess
 import time
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools
+from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.utils import BetterDict, TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path
+from bzt.requests_model import HTTPRequest
+from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -44,6 +45,10 @@ class GatlingScriptBuilder(object):
         else:
             return addr
 
+    @staticmethod
+    def indent(text, level):
+        return "  " * level + text
+
     def _get_http(self):
         default_address = self.scenario.get('default-address', None)
         if default_address is None:
@@ -53,12 +58,18 @@ class GatlingScriptBuilder(object):
 
         scenario_headers = self.scenario.get_headers()
         for key in scenario_headers:
-            http_str += '\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': scenario_headers[key]}
+            http_str += self.indent('.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': scenario_headers[key]},
+                                    level=2)
         return http_str
 
     def _get_exec(self):
         exec_str = ''
         for req in self.scenario.get_requests():
+            if not isinstance(req, HTTPRequest):
+                msg = "Gatling simulation generator doesn't support '%s' blocks, skipping"
+                self.log.warning(msg, req.NAME)
+                continue
+
             if len(exec_str) > 0:
                 exec_str += '.'
 
@@ -68,26 +79,30 @@ class GatlingScriptBuilder(object):
             else:
                 url = self.fixed_addr(req.url)
 
-            exec_template = 'exec(\n\t\t\thttp("%(req_label)s").%(method)s("%(url)s")\n'
+            exec_template = 'exec(\n' + self.indent('http("%(req_label)s").%(method)s("%(url)s")', level=2) + '\n'
             exec_str += exec_template % {'req_label': req.label, 'method': req.method.lower(), 'url': url}
 
             for key in req.headers:
-                exec_str += '\t\t\t\t.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]}
+                exec_str += self.indent('.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]},
+                                        level=3)
 
             if req.body is not None:
                 if isinstance(req.body, str):
-                    exec_str += '\t\t\t\t.body(%(method)s(""""%(body)s"""))\n'
+                    exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
                     exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
                 else:
                     self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
 
             exec_str += self.__get_assertions(req.config.get('assert', []))
 
-            if req.think_time is None:
-                think_time = 0
-            else:
-                think_time = int(dehumanize_time(req.think_time))
-            exec_str += '\t\t).pause(%(think_time)s)' % {'think_time': think_time}
+            if not req.priority_option('follow-redirects', default=True):
+                exec_str += self.indent('.disableFollowRedirect\n', level=3)
+
+            exec_str += self.indent(')', level=1)
+
+            think_time = int(dehumanize_time(req.priority_option('think-time')))
+            if think_time:
+                exec_str += '.pause(%(think_time)s)' % {'think_time': think_time}
 
         return exec_str
 
@@ -120,7 +135,7 @@ class GatlingScriptBuilder(object):
             return ''
 
         first_check = True
-        check_result = '\t' * 4 + '.check(\n'
+        check_result = self.indent('.check(\n', level=3)
 
         for idx, assertion in enumerate(assertions):
             assertion = ensure_is_dict(assertions, idx, "contains")
@@ -139,15 +154,49 @@ class GatlingScriptBuilder(object):
             for sample in a_contains:
                 if not first_check:
                     check_result += ',\n'
-                check_result += '\t' * 5 + check_template % {'sample': sample}
+                check_result += self.indent(check_template % {'sample': sample}, level=4)
                 first_check = False
 
-        check_result += ')\n'
+        check_result += '\n' + self.indent(')', level=3) + '\n'
 
         return check_result
 
+    @staticmethod
+    def _get_feeder_name(source_filename):
+        return re.sub(r'[^A-Za-z0-9_]', '', ".".join(source_filename.split(".")[:-1])) + "Feed"
+
+    def _get_feeders(self):
+        feeder_defs = ""
+
+        for source in self.scenario.get_data_sources():
+            source_path = source["path"]
+            source_name = os.path.basename(source_path)
+            delimiter = source.get('delimiter', None)
+            loop_over = source.get("loop", True)
+            varname = self._get_feeder_name(source_name)
+            params = dict(varname=varname, filename=source_name, delimiter=delimiter)
+            if delimiter is not None:
+                tmpl = """val %(varname)s = separatedValues("%(filename)", '%(delimiter)')"""
+            else:
+                tmpl = 'val %(varname)s = csv("%(filename)s")'
+            line = self.indent(tmpl % params, level=1)
+            if loop_over:
+                line += '.circular'
+            feeder_defs += line + '\n'
+
+        return feeder_defs
+
+    def _get_scenario_feeds(self):
+        feeds = ''
+        for source in self.scenario.get_data_sources():
+            source_path = source["path"]
+            source_name = os.path.basename(source_path)
+            varname = self._get_feeder_name(source_name)
+            feeds += self.indent(".feed(%s)" % varname, level=2) + '\n'
+        return feeds
+
     def gen_test_case(self):
-        template_path = os.path.join(os.path.dirname(__file__), os.pardir, 'resources', "gatling_script.tpl")
+        template_path = os.path.join(get_full_path(__file__, step_up=2), 'resources', "gatling_script.tpl")
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -155,18 +204,20 @@ class GatlingScriptBuilder(object):
         params = {
             'class_name': self.class_name,
             'httpConf': self._get_http(),
-            '_exec': self._get_exec()
+            '_exec': self._get_exec(),
+            'feeders': self._get_feeders(),
+            'scenarioFeeds': self._get_scenario_feeds(),
         }
         return template_line % params
 
 
-class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools):
+class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     Gatling executor module
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "2.1.7"
+    VERSION = "2.3.0"
 
     def __init__(self):
         super(GatlingExecutor, self).__init__()
@@ -179,26 +230,24 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.simulation_started = False
         self.dir_prefix = ''
         self.launcher = None
-        self.jar_list = ''
 
     def __build_launcher(self):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
         origin_launcher = get_full_path(self.settings['path'])
         origin_dir = get_full_path(origin_launcher, step_up=2)
-        with open(origin_launcher) as origin:
-            origin_lines = origin.readlines()
 
         modified_lines = []
-
         mod_success = False
-        for line in origin_lines:
-            if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
-                mod_success = True
-                continue
-            if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
-                mod_success = True
-                line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
-            modified_lines.append(line)
+
+        with open(origin_launcher) as fds:
+            for line in fds.readlines():
+                if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
+                    mod_success = True
+                    continue
+                if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
+                    mod_success = True
+                    line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
+                modified_lines.append(line)
 
         if not mod_success:
             raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
@@ -217,10 +266,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         return modified_launcher
 
-    def prepare(self):
-        self.install_required_tools()
-        scenario = self.get_scenario()
-
+    def get_cp_from_files(self):
         jar_files = []
         files = self.execution.get('files', [])
         for candidate in files:
@@ -233,28 +279,45 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                     if os.path.isfile(element) and element.lower().endswith('.jar'):
                         jar_files.append(element)
 
-        self.log.debug("JAR files list for Gatling: %s", jar_files)
-        if jar_files:
-            separator = os.pathsep
-            self.jar_list = separator + separator.join(jar_files)
+        return jar_files
 
-        if is_windows() or jar_files:
+    def get_additional_classpath(self):
+        cp = self.get_scenario().get("additional-classpath", [])
+        cp.extend(self.settings.get("additional-classpath", []))
+        cp.extend(self.get_cp_from_files())  # todo: for backward compatibility, remove it later as obsolete
+        return cp
+
+    def prepare(self):
+        self.install_required_tools()
+        scenario = self.get_scenario()
+
+        jars = self.get_additional_classpath()
+
+        self.log.debug("JAR files list for Gatling: %s", jars)
+        for element in jars:
+            self.env.add_path({"JAVA_CLASSPATH": element})
+            self.env.add_path({"COMPILATION_CLASSPATH": element})
+
+        if is_windows() or jars:
             self.log.debug("Building Gatling launcher")
             self.launcher = self.__build_launcher()
         else:
             self.log.debug("Will not build Gatling launcher")
             self.launcher = self.settings["path"]
 
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            self.script = self.get_script_path()
-        elif "requests" in scenario:
-            self.get_scenario()['simulation'], self.script = self.__generate_script()
-        else:
-            msg = "There must be a script file or requests for its generation "
-            msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
-            raise TaurusConfigError(msg)
+        self.script = self.get_script_path()
+        if not self.script:
+            if "requests" in scenario:
+                self.get_scenario()['simulation'], self.script = self.__generate_script()
+                self.__copy_data_sources()
+            else:
+                msg = "There must be a script file or requests for its generation "
+                msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
+                raise TaurusConfigError(msg)
 
-        self.dir_prefix = 'gatling-%s' % id(self)
+        self.dir_prefix = self.settings.get('dir_prefix', None)
+        if self.dir_prefix is None:
+            self.dir_prefix = 'gatling-%s' % id(self)
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -268,6 +331,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         return simulation, file_name
 
+    def __copy_data_sources(self):
+        scenario = self.get_scenario()
+        for source in scenario.get_data_sources():
+            source_path = self.engine.find_file(source["path"])
+            self.engine.existing_artifact(source_path)
+
     def startup(self):
         """
         Should start the tool as fast as possible.
@@ -280,38 +349,27 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         if os.path.isfile(self.script):
             if self.script.endswith('.jar'):
-                self.jar_list += os.pathsep + self.script
+                self.env.add_path({"JAVA_CLASSPATH": self.script})
+                self.env.add_path({"COMPILATION_CLASSPATH": self.script})
                 simulation_folder = None
             else:
                 simulation_folder = get_full_path(self.script, step_up=1)
         else:
             simulation_folder = self.script
 
+        self.__set_env()
         self.process = self.execute(self.__get_cmdline(simulation_folder),
                                     stdout=self.stdout_file,
-                                    stderr=self.stderr_file,
-                                    env=self.__get_env())
+                                    stderr=self.stderr_file)
 
-    def __get_env(self):
-        env = BetterDict()
-        env.merge(dict(os.environ))
-
-        java_opts = env.get('JAVA_OPTS', '') + ' ' + self.settings.get('java-opts', '')
-        java_opts += ' ' + self.__get_params_for_scala()
-
-        env.merge({"JAVA_OPTS": java_opts, "NO_PAUSE": "TRUE"})
-
-        if self.jar_list:
-            java_classpath = env.get('JAVA_CLASSPATH', '')
-            compilation_classpath = env.get('COMPILATION_CLASSPATH', '')
-            java_classpath += self.jar_list
-            compilation_classpath += self.jar_list
-            env.merge({'JAVA_CLASSPATH': java_classpath, 'COMPILATION_CLASSPATH': compilation_classpath})
-        return env
+    def __set_env(self):
+        self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
+        self.__set_params_for_scala()
+        self.env.set({"NO_PAUSE": "TRUE"})
 
     def __get_cmdline(self, simulation_folder):
         simulation = self.get_scenario().get("simulation")
-        data_dir = os.path.realpath(self.engine.artifacts_dir)
+        data_dir = self.engine.artifacts_dir
 
         cmdline = [self.launcher]
         cmdline += ["-df", data_dir, "-rf", data_dir]
@@ -325,34 +383,42 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         return cmdline
 
-    def __get_params_for_scala(self):
-        params_for_scala = self.settings.get('properties')
+    def __set_params_for_scala(self):
+        params = self.settings.get('properties')
         load = self.get_load()
         scenario = self.get_scenario()
 
-        if scenario.get('timeout', None) is not None:
-            params_for_scala['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(scenario.get('timeout')) * 1000)
+        timeout = scenario.get('timeout', None)
+        if timeout is not None:
+            params['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
         if scenario.get('keepalive', True):
-            params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'true'
-            params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
+            # gatling <= 2.2.0
+            params['gatling.http.ahc.allowPoolingConnections'] = 'true'
+            params['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
+            # gatling > 2.2.0
+            params['gatling.http.ahc.keepAlive'] = 'true'
         else:
-            params_for_scala['gatling.http.ahc.allowPoolingConnections'] = 'false'
-            params_for_scala['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
+            # gatling <= 2.2.0
+            params['gatling.http.ahc.allowPoolingConnections'] = 'false'
+            params['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
+            # gatling > 2.2.0
+            params['gatling.http.ahc.keepAlive'] = 'false'
         if load.concurrency is not None:
-            params_for_scala['concurrency'] = load.concurrency
+            params['concurrency'] = load.concurrency
         if load.ramp_up is not None:
-            params_for_scala['ramp-up'] = int(load.ramp_up)
+            params['ramp-up'] = int(load.ramp_up)
         if load.hold is not None:
-            params_for_scala['hold-for'] = int(load.hold)
+            params['hold-for'] = int(load.hold)
         if load.iterations is not None and load.iterations != 0:
-            params_for_scala['iterations'] = int(load.iterations)
+            params['iterations'] = int(load.iterations)
         if load.throughput:
             if load.duration:
-                params_for_scala['throughput'] = load.throughput
+                params['throughput'] = load.throughput
             else:
                 self.log.warning("You should set up 'ramp-up' and/or 'hold-for' for usage of 'throughput'")
 
-        return ''.join([" -D%s=%s" % (key, params_for_scala[key]) for key in params_for_scala])
+        for key in params:
+            self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, params[key])})
 
     def check(self):
         """
@@ -380,7 +446,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         if self.retcode is not None:
             if self.retcode != 0:
-                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode)
+                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode,
+                                self.get_error_diagnostics())
 
             return True
         return False
@@ -404,16 +471,17 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         Save data log as artifact
         """
-        if self.reader and self.reader.filename:
-            self.engine.existing_artifact(self.reader.filename)
+        if self.reader and self.reader.file and self.reader.file.name:
+            self.engine.existing_artifact(self.reader.file.name)
 
     def install_required_tools(self):
-        required_tools = [TclLibrary(self.log), JavaVM("", "", self.log)]
-        gatling_path = self.settings.get("path", "~/.bzt/gatling-taurus/bin/gatling" + EXE_SUFFIX)
-        gatling_path = os.path.abspath(os.path.expanduser(gatling_path))
+        required_tools = [TclLibrary(self.log), JavaVM(self.log)]
+        gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
+        def_path = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}".format(version=gatling_version,
+                                                                                suffix=EXE_SUFFIX)
+        gatling_path = get_full_path(self.settings.get("path", def_path))
         self.settings["path"] = gatling_path
         download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
-        gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
         required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
 
         for tool in required_tools:
@@ -431,12 +499,36 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return self.widget
 
     def resource_files(self):
+        files = []
         scenario = self.get_scenario()
         script = scenario.get(Scenario.SCRIPT, None)
         if script:
-            return [script]
+            files.append(script)
         else:
-            return []
+            for source in scenario.get_data_sources():
+                source_path = self.engine.find_file(source["path"])
+                files.append(source_path)
+        files.extend(self.get_additional_classpath())
+        return files
+
+    def get_error_diagnostics(self):
+        diagnostics = []
+        if self.stdout_file is not None:
+            with open(self.stdout_file.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Gatling STDOUT:\n" + contents)
+        if self.stderr_file is not None:
+            with open(self.stderr_file.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Gatling STDERR:\n" + contents)
+        if self.reader and self.reader.file and self.reader.file.name:
+            with open(self.reader.file.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Simulation log:\n" + contents)
+        return diagnostics
 
 
 class DataLogReader(ResultsReader):
@@ -447,11 +539,9 @@ class DataLogReader(ResultsReader):
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.basedir = basedir
-        self.filename = None
-        self.fds = None
+        self.file = FileReader(file_opener=self.open_fds, parent_logger=self.log)
         self.partial_buffer = ""
         self.delimiter = "\t"
-        self.offset = 0
         self.dir_prefix = dir_prefix
         self.guessed_gatling_version = None
 
@@ -543,9 +633,9 @@ class DataLogReader(ResultsReader):
 
     def _guess_gatling_version(self, fields):
         if fields[0].strip() in ["USER", "REQUEST", "RUN"]:
-            self.log.debug("Parsing Gatling 2.2 stats")
-            return "2.2"
-        elif fields[2].strip() in ["USER", "REQUEST", "RUN"]:
+            self.log.debug("Parsing Gatling 2.2+ stats")
+            return "2.2+"
+        elif len(fields) >= 3 and fields[2].strip() in ["USER", "REQUEST", "RUN"]:
             self.log.debug("Parsing Gatling 2.1 stats")
             return "2.1"
         else:
@@ -557,7 +647,7 @@ class DataLogReader(ResultsReader):
 
         if self.guessed_gatling_version == "2.1":
             return self._extract_log_gatling_21(fields)
-        elif self.guessed_gatling_version == "2.2":
+        elif self.guessed_gatling_version == "2.2+":
             return self._extract_log_gatling_22(fields)
         else:
             return None
@@ -568,17 +658,7 @@ class DataLogReader(ResultsReader):
 
         :param last_pass:
         """
-        while not self.fds and not self.__open_fds():
-            self.log.debug("No data to start reading yet")
-            yield None
-
-        self.log.debug("Reading gatling results")
-        self.fds.seek(self.offset)  # without this we have a stuck reads on Mac
-        if last_pass:
-            lines = self.fds.readlines()  # unlimited
-        else:
-            lines = self.fds.readlines(1024 * 1024)  # 1MB limit to read
-        self.offset = self.fds.tell()
+        lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
             if not line.endswith("\n"):
@@ -599,34 +679,37 @@ class DataLogReader(ResultsReader):
             bytes_count = None
             yield t_stamp, label, self.concurrency, r_time, con_time, latency, r_code, error, '', bytes_count
 
-    def __open_fds(self):
+    def open_fds(self, filename):
         """
         open gatling simulation.log
         """
-        prog = re.compile("^%s-[0-9]+$" % self.dir_prefix)
+        if os.path.isdir(self.basedir):
+            prog = re.compile("^%s-[0-9]+$" % self.dir_prefix)
 
-        for fname in os.listdir(self.basedir):
-            if prog.match(fname):
-                self.filename = os.path.join(self.basedir, fname, "simulation.log")
-                break
+            for fname in os.listdir(self.basedir):
+                if prog.match(fname):
+                    filename = os.path.join(self.basedir, fname, "simulation.log")
+                    break
 
-        if not self.filename:
-            self.log.debug("File is empty: %s", self.filename)
-            return False
+            if not filename or not os.path.isfile(filename):
+                self.log.debug('simulation.log not found')
+                return
+        elif os.path.isfile(self.basedir):
+            filename = self.basedir
+        else:
+            self.log.debug('Path not found: %s', self.basedir)
+            return
 
-        self.fds = open(self.filename)
-        return True
-
-    def __del__(self):
-        if self.fds:
-            self.fds.close()
+        if not os.path.getsize(filename):
+            self.log.debug('simulation.log is empty')
+        else:
+            return open(filename, 'rb')
 
 
 class Gatling(RequiredTool):
     """
     Gatling tool
     """
-
     def __init__(self, tool_path, parent_logger, download_link, version):
         super(Gatling, self).__init__("Gatling", tool_path, download_link.format(version=version))
         self.log = parent_logger.getChild(self.__class__.__name__)
@@ -650,7 +733,7 @@ class Gatling(RequiredTool):
         self.log.info("Unzipping %s", gatling_dist)
         unzip(gatling_dist, dest, 'gatling-charts-highcharts-bundle-' + self.version)
         os.remove(gatling_dist)
-        os.chmod(os.path.expanduser(self.tool_path), 0o755)
+        os.chmod(get_full_path(self.tool_path), 0o755)
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)

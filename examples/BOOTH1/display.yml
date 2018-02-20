@@ -1,6 +1,3 @@
 ---
-modules:
-  selenium:
-    virtual-display:
-      width: 1024
-      height: 768
+services:
+- virtual-display

@@ -3,10 +3,13 @@ import csv
 import json
 import os
 import time
+from collections import OrderedDict
 
 from locust import main, events, runners
 from locust.exception import StopLocust
 from requests.exceptions import HTTPError
+
+from bzt.utils import guess_csv_dialect
 
 
 class LocustStarter(object):
@@ -31,23 +34,24 @@ class LocustStarter(object):
         rcode = '200' if exc is None else '500'
         rmsg = 'OK' if exc is None else '%s' % exc
         if isinstance(exc, HTTPError):
-            rcode = exc.message[:exc.message.index(' ')]
-            rmsg = exc.message[exc.message.index(':') + 2:]
+            exc_message = str(exc)
+            rcode = exc_message[:exc_message.index(' ')]
+            rmsg = exc_message[exc_message.index(':') + 2:]
 
-        return {
-            'timeStamp': "%d" % (time.time() * 1000),
-            'label': name,
-            'method': request_type,
-            'elapsed': response_time,
-            'bytes': response_length,  # NOTE: not sure if the field name is right
-            'responseCode': rcode,
-            'responseMessage': rmsg,
-            'success': 'true' if exc is None else 'false',
+        return OrderedDict([
+            ('timeStamp', "%d" % (time.time() * 1000)),
+            ('label', name),
+            ('method', request_type),
+            ('elapsed', response_time),
+            ('bytes', response_length),
+            ('responseCode', rcode),
+            ('responseMessage', rmsg),
+            ('success', 'true' if exc is None else 'false'),
 
             # NOTE: might be resource-consuming
-            "allThreads": runners.locust_runner.user_count if runners.locust_runner else 0,
-            "Latency": 0
-        }
+            ('allThreads', runners.locust_runner.user_count if runners.locust_runner else 0),
+            ('Latency', 0),
+        ])
 
     def __on_request_success(self, request_type, name, response_time, response_length):
         self.writer.writerow(self.__getrec(request_type, name, response_time, response_length))
@@ -77,7 +81,9 @@ class LocustStarter(object):
 
         with open(fname, 'wt') as self.fhd:
             if is_csv:
-                self.writer = csv.DictWriter(self.fhd, self.__getrec(None, None, None, None).keys())
+                fieldnames = list(self.__getrec(None, None, None, None).keys())
+                dialect = guess_csv_dialect(",".join(fieldnames))
+                self.writer = csv.DictWriter(self.fhd, fieldnames=fieldnames, dialect=dialect)
                 self.writer.writeheader()
                 self.fhd.flush()
             else:

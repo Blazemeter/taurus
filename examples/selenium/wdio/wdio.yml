@@ -1,0 +1,13 @@
+services:
+- module: shellexec
+  prepare:
+  - npm install
+  - node_modules/webdriver-manager/bin/webdriver-manager update
+  - command: node_modules/webdriver-manager/bin/webdriver-manager start --standalone
+    background: true
+
+execution:
+- executor: wdio
+  iterations: 2
+  scenario:
+    script: wdio.conf.js

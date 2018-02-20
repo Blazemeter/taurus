@@ -14,7 +14,6 @@ Configuration dictionary has several top-level keys:
 Example for config that touches all sections:
 
 ```yaml
----
 execution:
 - concurrency: 10
   hold-for: 5m
@@ -29,7 +28,7 @@ scenarios:
     - http://localhost/
 
 reporting:
-- module: final_stats
+- module: final-stats
 - module: console
 
 modules:
@@ -56,7 +55,8 @@ The rules for merging multiple configuration files into single are following:
  3. Loaded dictionary is merged recursively into configuration, dictionaries are merged and lists are joined.
  4. If dictionary key has `~` prefix, it will overwrite the value instead of merging
  5. If dictionary key has `^` prefix, it will delete the corresponding key/value pair
- 6. If dictionary values has different type, eg. string value vs array, the value will be overwritten and the warning message will be issued
+ 6. If dictionary key has `$` prefix and the value under that key is a list, it will perform element-wise merging of corresponding list items.
+ 7. If dictionary values has different type, eg. string value vs array, the value will be overwritten and the warning message will be issued
 
 Most of configuration elements have their default values and also have some shorthand forms to specify trivial cases. We encourage users to learn these rules to speed up configuration files creation and make them short.
 
@@ -65,22 +65,20 @@ Important to know that merging happens _before_ any default value or shorthand r
 
 ## Modules Settings
 
-Module settings section is dictionary, having module aliases as keys and setting dictionaries as values. Module settings are specific to every module, the only common option is `class`, containing full python class name as value. Module aliases are used to refer from reporting settings, tool executors and many other places. In fact, everything in Taurus is implemented through modules and engine has no dependencies to specific module implementations, everything is config-driven.
+The Module Settings section is a dictionary, having module aliases as keys and setting dictionaries as values. Module settings are specific to every module, the only common option is `class`, containing full python class name as value. Module aliases are used to refer from reporting settings, tool executors and many other places. In fact, everything in Taurus is implemented through modules and engine has no dependencies to specific module implementations, everything is config-driven.
 
 The shorthand is to specify module class string instead of settings dictionary, Taurus will expand it into dict automatically. For example,
 
 ```yaml
----
 modules:
-  final_stats: bzt.modules.reporting.FinalStatus
+  final-stats: bzt.modules.reporting.FinalStatus
 ```
 
 is equivalent to
 
 ```yaml
----
 modules:
-  final_stats:
+  final-stats:
     class: bzt.modules.reporting.FinalStatus
 ```
  
@@ -91,13 +89,13 @@ Available settings are:
  - `artifacts-dir` - path template where to save artifact files, uses [strftime template syntax](http://strftime.org/)
  - `check-interval` - polling interval that used by engine after startup and until shutdown to determine if test is need to be stopped 
  - `aggregator` - module alias for top-level [results aggregator](Reporting.md#results-reading-and-aggregating-facility) to be used for collecting results and passing it to reporters
- - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings)
+ - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings.md)
  - `proxy` - proxy settings for BZA feeding, Taurus will use proxy settings from OS environment by default.
+ - `env` - environment variables to set for Taurus, useful with [evaluating feature](EnvironmentVariableAccess). Setting environment variable to `null` makes it to delete variable, if one is set. Special `TAURUS_ARTIFACTS_DIR` variable is set by Taurus, pointing onto artifacts dir location.
  
 See default settings below:
 
 ```yaml
----
 settings:
   artifacts-dir: /tmp/%H%M%S # path where to save artifacts, default is %Y-%m-%d_%H-%M-%S.%f
   aggregator: consolidator
@@ -108,6 +106,12 @@ settings:
     username: user  # username and password used if authentication is configured on proxy server
     password: 12345
   check-updates: true  # check for newer version of Taurus on startup
+  verbose: false  # whenever you run bzt with -v option, it sets debug=true, 
+                  # some modules might use it for debug features,
+                  # setting this through config also switches CLI verbosity
+  env: # set environment variables to set
+    VARNAME1: VARVALUE1
+    VARNAME2: VARVALUE2
 ```
 
 ## Human-Readable Time Specifications
@@ -128,7 +132,7 @@ usage for YAML-JSON incompatibilities, so you can use either JSON or YAML for
 your configs. Also you can have some of configs in JSON and some in YAML, the
 engine will perfectly deal with it. For example, following JSON file:
  
-```javascript
+```json
 {
   "execution": [
     {
@@ -138,16 +142,14 @@ engine will perfectly deal with it. For example, following JSON file:
   ],
   "scenarios": {
      "sample": {
-       "script": {
-         "path": "tests/jmx/dummy.jmx"
-       }
+       "script": "tests/jmx/dummy.jmx"
      }
-  }
+  },
   "provisioning": "local",
   "aggregator": "aggregator",
   "reporting": [
     {
-      "module": "status"
+      "module": "final-stats"
     }
   ],
   "modules": {
@@ -165,7 +167,6 @@ engine will perfectly deal with it. For example, following JSON file:
 is equivalent to YAML:
 
 ```yaml
----
 aggregator: aggregator
 
 execution:
@@ -174,8 +175,7 @@ execution:
   
 scenarios:
   jmx_sample:
-    jmx:
-      path: tests/jmx/dummy.jmx
+    script: tests/jmx/dummy.jmx
       
 modules:
   jmeter:
@@ -198,7 +198,6 @@ Hint: YAML config files on Linux/MacOS allows a trick of self-executing config. 
 
 ```yaml
 #! /usr/local/bin/bzt
----
 execution:
 - hold-for: 1m
   scenario: simple
@@ -222,41 +221,16 @@ Now you are able to start this file on its own:
 
 ## Included Configs
 
-After all config files loaded, Taurus will also merge into resulting configuration any `included-configs` from the list. Example syntax piece:
+After all config files loaded, Taurus will also recursively merge into resulting configuration any `included-configs` from the list. Example syntax piece:
 
 ```yaml
----
 included-configs:  # it must be a list of string values
 - additional-local-file.yml  # to add local file just set its path
 - http://central.host/mystorage/remote.yml  # you can also download config from http/https location
 ```
 
+## Environment Variable Access
 
-## Host Aliases
+Any string value you access in configuration file is subject to environment variables evaluating. Any string pattern like `${varname}` or `$varname` will be replaced with corresponding environment variable value, if matches (see [expandvars](https://docs.python.org/2/library/os.path.html#os.path.expandvars) for reference). 
 
-It is possible to add local hostname aliases in test execution environment. Aliases are defined in pairs:
-(alias, target hostname).
-
-There are a few limitations about using `hostaliases` setting:
-1. Alias name *cannot* contain dots.
-2. You should point your HTTP requests to alias address.
-3. You should also manually set `Host` HTTP header to target address.
-
-
-Here's an example of using `hostaliases`:
-```yaml
----
-execution:
-- scenario: host_sample
-
-scenarios:
-  host_sample:
-    requests:
-      - url: http://staging-env/
-        headers:
-          Host: mytarget.server.com
-
-settings:
-  hostaliases:
-    staging-env: 192.168.1.3
-```
+Please note that evaluation is not made for strings inside `scenarios` and `scenario` blocks of config. This is to not conflict with executor's internal variable evaluation features.

@@ -1,0 +1,6 @@
+---
+execution:
+  executor: selenium
+  runner: testng
+  scenario:
+    script: testng-suite.jar

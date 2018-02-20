@@ -1,15 +1,15 @@
-import os
 import sys
 import time
+
+from tests import BZTestCase, r, rc, RESOURCES_DIR
 
 from bzt.engine import Provisioning, ScenarioExecutor
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.console import ConsoleStatusReporter
-from bzt.modules.jmeter import JMeterExecutor
 from bzt.modules.provisioning import Local
 from bzt.utils import is_windows, EXE_SUFFIX
-from tests import BZTestCase, r, rc, __dir__
 from tests.mocks import EngineEmul
+from tests.modules.jmeter import MockJMeterExecutor
 
 
 class TestConsoleStatusReporter(BZTestCase):
@@ -34,15 +34,14 @@ class TestConsoleStatusReporter(BZTestCase):
         return point
 
     def get_jmeter(self):
-        dir_name = os.path.dirname(__file__)
-        path = dir_name + "/../jmeter/jmeter-loader" + EXE_SUFFIX
-        obj = JMeterExecutor()
-        obj.settings.merge({'path': path})
-        obj.execution.merge({"scenario": {"script": __dir__() + "/../jmeter/jmx/dummy.jmx"}})
+        jmeter_path = RESOURCES_DIR + "jmeter/jmeter-loader" + EXE_SUFFIX
+        script_path = RESOURCES_DIR + "jmeter/jmx/dummy.jmx"
+        obj = MockJMeterExecutor(settings={'path': jmeter_path}, load={"scenario": {"script": script_path}})
         return obj
 
     def test_1(self):
         obj = ConsoleStatusReporter()
+        self.sniff_log(obj.log)
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
         obj.engine.provisioning.start_time = time.time()
@@ -80,9 +79,14 @@ class TestConsoleStatusReporter(BZTestCase):
             obj.check()
             self.assertTrue(obj.screen.started)
 
+        point = self.__get_datapoint(11)
+        point[DataPoint.CURRENT][''][KPISet.RESP_CODES][''] = 1
+        obj.aggregated_second(point)
+
         obj.check()
         obj.shutdown()
         obj.post_process()
+        self.assertNotIn('Failed', self.log_recorder.warn_buff.getvalue())
 
     def test_2(self):
         obj = ConsoleStatusReporter()
@@ -122,7 +126,7 @@ class TestConsoleStatusReporter(BZTestCase):
         obj.engine = EngineEmul()
         obj.engine.provisioning = Local()
         obj.engine.config[Provisioning.PROV] = ''
-        jmeter = JMeterExecutor()
+        jmeter = self.get_jmeter()
         jmeter.engine = obj.engine
         jmeter.start_time = time.time()
         jmeter.execution[ScenarioExecutor.HOLD_FOR] = 10

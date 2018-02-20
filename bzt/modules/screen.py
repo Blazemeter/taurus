@@ -17,6 +17,7 @@ limitations under the License.
 
 import logging
 import math
+import os
 
 import urwid
 from urwid import BaseScreen
@@ -24,6 +25,7 @@ from urwid import BaseScreen
 from bzt import ManualShutdown
 from bzt.six import text_type, iteritems, PY2
 from bzt.utils import is_windows
+import bzt.resources as bztr
 
 if PY2:  # we have to put import logic here to avoid requiring python-tk library on linux
     import tkFont as tkfont
@@ -40,7 +42,7 @@ class GUIScreen(BaseScreen):
 
     def __init__(self):
         super(GUIScreen, self).__init__()
-        urwid.set_encoding('utf8')
+        urwid.set_encoding('utf-8')
         self.root = None
         self.size = (180, 60)
         self.title = "Taurus Status"
@@ -74,6 +76,9 @@ class GUIScreen(BaseScreen):
         self.text.config(font=self.font)
         self.__prepare_tags()
 
+        icon = tkinter.PhotoImage(file=os.path.join(os.path.dirname(os.path.abspath(bztr.__file__)), "taurus_logo.gif"))
+        self.root.tk.call('wm', 'iconphoto', self.root._w, icon)
+
     def _stop(self):
         if self.root:
             self.root.destroy()
@@ -103,7 +108,6 @@ class GUIScreen(BaseScreen):
         :return:
         """
         (cwdth, chght) = (self.font.measure(' '), self.font.metrics("linespace"))
-        logging.debug("Font: %s", (cwdth, chght))
 
         width = int(math.floor((self.text.winfo_width() - float(cwdth) / 2) / float(cwdth)))
         height = int(math.floor(self.text.winfo_height() / float(chght)))
@@ -134,10 +138,9 @@ class GUIScreen(BaseScreen):
             pos = 0
             for part in row:
                 txt = part[2]
-                if isinstance(txt, text_type):
-                    strlen = len(txt)
-                else:
-                    strlen = len(txt.decode('utf8'))
+                if not isinstance(txt, text_type):
+                    txt = txt.decode('utf-8')
+                strlen = len(txt)
                 self.text.insert(tkinter.END, txt)
                 if part[0] is not None:
                     self.text.tag_add(part[0], "%s.%s" % (idx + 1, pos), "%s.%s" % (idx + 1, pos + strlen))

@@ -12,10 +12,10 @@ Command-line tool is named `bzt` and invoked like `bzt <options> \[configs]`. Po
 ## Configuration Files Processing
 Taurus tool consumes configuration files as input format (start learning its syntax [here](ConfigSyntax.md)), it automatically detects YAML and JSON formats. Internally, all configuration files are merged into single configuration object (see merged.config artifact), and each following config overrides/appends previous. There are some special config locations that allows having per-machine and per-user configs, that will be loaded for every tool run. In general, configs load sequence is:
 
-  1. `/etc/bzt.d` directory, contains per-machine configs, its contents are first in the configs list
+  1. `base-config.yml` file from Taurus distribution
+  1. `/etc/bzt.d` directory, contains machine-wide configs
   1. `~/.bzt-rc` file, contained in user's home directory (holds per-user preferences) is added to list after per-machine configs
   1. all command-line passed configs (like `bzt config-1.yml config-2.json`) are added to list after per-user config
-  1. any data passed to stdin (like `./generate-config.sh | bzt`) is written to temporary file and that file is added to configs list
   1. all JMX shorthand configs generated and added to list (to support `bzt my-existing.jmx` launching)
   1. files list is loaded according to the [merge rules](ConfigSyntax.md#multiple-files-merging-rules)
   1. [included configs](ConfigSyntax.md#Included-Configs) loaded and merged
@@ -39,7 +39,6 @@ Rule for composing the override path is simple: it is built from dictionary keys
 
 Consider the following Taurus configuration:
 ```yaml
----
 execution:
 - concurrency: 100
   hold-for: 60s
@@ -49,6 +48,8 @@ scenarios:
   sample:
     timeout: 500ms
     keepalive: true
+    requests:
+    - http://blazedemo.com/
 ```
 The following override example creates the `data-sources` list (as it isn't specified in config) and sets the first element to `data.csv`:
 ```
@@ -81,7 +82,6 @@ There is a way to create some config chunks and apply them from command-line lik
 Those aliases then searched in the config, in the section `cli-aliases` and applied over the configuration. Example:
 
 ```yaml
----
 cli-aliases:
   gui-mode:
     modules:
@@ -92,6 +92,18 @@ cli-aliases:
       my-scen:
         script: jmx2.jmx
 ```
+
+## URL Shorthands
+
+There is a way to run a quick test on an URL (or a number of URLs) with a default load generator simply by using the
+target URL as a command-line argument.
+
+```bash
+bzt http://blazedemo.com/
+```
+
+This command will launch a quick test targetting [http://blazedemo.com/](http://blazedemo.com/). You can combine
+it with other CLI options and aliases, such as `-report`, `-cloud` and others.
 
 ## Artifacts
 

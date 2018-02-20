@@ -15,7 +15,7 @@ Another option is [final statistics reporting](/docs/Reporting/#Final-Stats-Repo
 ```yaml
 reporting:
 - module: console
-- module: final_stats
+- module: final-stats
   summary: true  # overall samples count and percent of failures
   percentiles: true  # display average times and percentiles
   failed-labels: false  # provides list of sample labels with failures
@@ -32,7 +32,7 @@ Since Taurus also covers functional tests with Selenium, we recommend you provid
 ```yaml
 reporting:
 - module: console
-- module: final_stats
+- module: final-stats
   summary: true
   percentiles: true
   failed-labels: false   
@@ -48,7 +48,6 @@ The last and most convenient and detailed reporting option is by integrating wit
 There are two ways to specify this BlazeMeter API key for your reporting. You can either do it in YAML script, which is not secured, or create a ‘.bzt-rc’ file in your home folder and put the config in it:
 
 ```yaml
----
 modules:
   blazemeter:
     token: <Put your token here>
@@ -59,7 +58,7 @@ After that, add an additional module under the reporting section with appropriat
 ```yaml
 reporting:
 - module: console
-- module: final_stats
+- module: final-stats
   summary: true
   percentiles: true 
   failed-labels: false

@@ -131,7 +131,7 @@ table.wiki tbody tr td:first-child {
 }
 
 table.wiki pre, table.wiki tt {
-    background-color: #DDD;
+    background-color: #eaeaea;
     font-size: 1em;
     padding: 0 0.25em;
     border-radius: 0.25em;
@@ -299,4 +299,49 @@ table.wiki img {
 
 #sample_chooser a {
     cursor: pointer;
+}
+
+.gitter-button {
+    z-index: 100;
+    position: fixed;
+    bottom: 0;
+    right: 10px;
+    padding: 0.5em 2em;
+    background-color: #dd7474;
+    border: 0;
+    border-top-left-radius: .5em;
+    border-top-right-radius: .5em;
+    font-family: sans-serif;
+    font-size: 14px;
+    text-transform: uppercase;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    cursor: hand;
+}
+
+.gitter-button, .gitter-button:visited {
+    box-sizing: border-box;
+    color: #fff
+}
+
+.gitter-button:focus, .gitter-button:hover {
+    box-sizing: border-box;
+    background-color: #b43636;
+    color: #fff
+}
+
+.gitter-button:focus {
+    box-sizing: border-box;
+    box-shadow: 0 0 8px rgba(180, 54, 54, .6);
+    outline: none
+}
+
+.gitter-button:active {
+    box-sizing: border-box;
+    color: #eee
+}
+
+.gitter-button i {
+    font-size: 1.2em;
 }

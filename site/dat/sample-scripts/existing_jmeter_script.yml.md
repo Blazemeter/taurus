@@ -1,5 +1,4 @@
 ```yaml
----
 execution:
 - iterations: 50
   concurrency: 10

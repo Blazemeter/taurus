@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite errors="1" failures="1" name="TestAll" skipped="0" tests="4" time="0.002">
+    <testcase classname="TestAll" name="test_erroring" time="0.001">
+      <error type="Ima broke">Traceback (most recent call last):
+  File "/usr/lib/python2.7/unittest/case.py", line 329, in run
+    testMethod()
+  File "/home/dmand/src/taurus/test_all.py", line 9, in test_erroring
+    raise Exception("Ima broke")
+Exception: Ima broke</error>
+    </testcase>
+    <testcase classname="TestAll" name="test_failing" time="0.0">
+      <failure message="6 != 8">Traceback (most recent call last):
+  File "/usr/lib/python2.7/unittest/case.py", line 329, in run
+    testMethod()
+  File "/home/dmand/src/taurus/test_all.py", line 12, in test_failing
+    self.assertEquals(2 + 2 * 2, 8)
+  File "/usr/lib/python2.7/unittest/case.py", line 513, in assertEqual
+    assertion_func(first, second, msg=msg)
+  File "/usr/lib/python2.7/unittest/case.py", line 506, in _baseAssertEqual
+    raise self.failureException(msg)
+AssertionError: 6 != 8</failure>
+    </testcase>
+    <testcase classname="TestAll" name="test_passing" time="0.0"/>
+    <testcase classname="TestAll" name="test_skipped" time="0.0"/>
+  </testsuite>
+</testsuites>
