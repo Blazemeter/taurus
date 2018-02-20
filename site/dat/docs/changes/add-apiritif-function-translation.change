@@ -1,1 +1,1 @@
-Add function translaction for new Apiritif: `__base64Encode`, `__base64Decode` and `__urlencode`
+Add function translation for Apiritif executor: `__base64Encode`, `__base64Decode`, `__UUID` and `__urlencode`
