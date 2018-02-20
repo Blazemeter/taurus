@@ -87,7 +87,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.runner.parameters = self.parameters
         self.runner.provisioning = self.provisioning
         self.runner.execution = copy.deepcopy(self.execution)
-        self.runner.execution['files'] = self.execution.get('files', [])
+        self.runner.execution['files'] = self.execution.get('files', [], force_set=True)
         self.runner.execution['executor'] = runner_type
         self.runner.register_reader = self.register_reader
 
