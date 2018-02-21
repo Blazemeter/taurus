@@ -57,22 +57,25 @@ class KPISet(BetterDict):
         self.sum_cn = 0
         self.perc_levels = perc_levels
         self.rtimes_len = rt_dist_maxlen
-        # scalars
-        self.get(self.SAMPLE_COUNT, 0, force_set=True)
-        self.get(self.CONCURRENCY, 0, force_set=True)
-        self.get(self.SUCCESSES, 0, force_set=True)
-        self.get(self.FAILURES, 0, force_set=True)
-        self.get(self.AVG_RESP_TIME, 0, force_set=True)
-        self.get(self.STDEV_RESP_TIME, 0, force_set=True)
-        self.get(self.AVG_LATENCY, 0, force_set=True)
-        self.get(self.AVG_CONN_TIME, 0, force_set=True)
-        self.get(self.BYTE_COUNT, 0, force_set=True)
-        # vectors
-        self.get(self.ERRORS, [], force_set=True)
-        self.get(self.RESP_TIMES, Counter(), force_set=True)
-        self.get(self.RESP_CODES, Counter(), force_set=True)
-        self.get(self.PERCENTILES, force_set=True)
+
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
+
+        self.merge({
+            # scalars
+            self.SAMPLE_COUNT: 0,
+            self.CONCURRENCY: 0,
+            self.SUCCESSES: 0,
+            self.FAILURES: 0,
+            self.AVG_RESP_TIME: 0,
+            self.STDEV_RESP_TIME: 0,
+            self.AVG_LATENCY: 0,
+            self.AVG_CONN_TIME: 0,
+            self.self.BYTE_COUNT: 0,
+            # vectors
+            self.ERRORS: [],
+            self.RESP_TIMES: Counter(),
+            self.RESP_CODES: Counter(),
+            self.PERCENTILES: BetterDict()})
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels)
@@ -614,11 +617,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         super(ConsolidatingAggregator, self).prepare()
 
         # make unique & sort
-        percentiles = self.settings.get("percentiles", self.track_percentiles)
-        percentiles = list(set(percentiles))
-        percentiles.sort()
-        self.track_percentiles = percentiles
-        self.settings['percentiles'] = percentiles
+        self.track_percentiles = self.settings.get("percentiles", self.track_percentiles)
+        self.track_percentiles = list(set(self.track_percentiles))
+        self.track_percentiles.sort()
+        self.settings["percentiles"] = self.track_percentiles
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
@@ -634,11 +636,11 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 
-        percentile = self.settings.get("buffer-scale-choice", 0.5)
         count = len(self.track_percentiles)
         if count == 1:
             self.buffer_scale_idx = str(float(self.track_percentiles[0]))
         if count > 1:
+            percentile = self.settings.get("buffer-scale-choice", 0.5)
             percentiles = [i / (count - 1.0) for i in range(count)]
             distances = [abs(percentile - percentiles[i]) for i in range(count)]
             index_position = distances.index(min(distances))
