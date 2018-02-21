@@ -1222,7 +1222,7 @@ class CloudTaurusTest(BaseCloudTest):
                 else:
                     name = "N/A"
 
-                ex_item[name][location] = count
+                ex_item.get(name, force_set=True)[location] = count
             except KeyError:
                 self._sessions = None
 
