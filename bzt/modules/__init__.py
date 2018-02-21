@@ -38,16 +38,15 @@ class ReportableExecutor(ScenarioExecutor):
             self.log.debug("Skipping reporting setup for executor %s", self)
             return
 
-        if "report-file" in self.execution:
-            self.report_file = self.execution.get("report-file")
-        else:
+        report_file = self.execution.get("report-file")
+        if not report_file:
             if not prefix:
                 prefix = self.__class__.__name__
             if suffix is None:
                 suffix = '.dat'
-            self.report_file = self.engine.create_artifact(prefix, suffix)
+            report_file = self.engine.create_artifact(prefix, suffix)
 
-        self.report_file = self.report_file.replace(os.path.sep, '/')
+        self.report_file = report_file.replace(os.path.sep, '/')
 
         if self.engine.is_functional_mode():
             self.reader = FuncSamplesReader(self.report_file, self.engine, self.log)
@@ -78,7 +77,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
         self.widget = None
 
     def _start_subprocess(self, cmdline, **kwargs):
-        prefix = self.execution.get("executor", None) or "executor"
+        prefix = self.execution.get("executor") or "executor"
         self.stdout_file = self.engine.create_artifact(prefix, ".out")
         std_out = open(self.stdout_file, "wt")
         self.opened_descriptors.append(std_out)
@@ -90,7 +89,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
 
     def resource_files(self):
         scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
+        script = scenario.get(Scenario.SCRIPT)
         if script:
             return [script]
         else:
