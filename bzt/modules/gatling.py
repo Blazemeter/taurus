@@ -313,8 +313,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
                 raise TaurusConfigError(msg)
 
-        self.dir_prefix = self.settings.get('dir_prefix', None)
-        if self.dir_prefix is None:
+        self.dir_prefix = self.settings.get('dir_prefix')
+        if not self.dir_prefix:
             self.dir_prefix = 'gatling-%s' % id(self)
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
