@@ -62,20 +62,20 @@ class KPISet(BetterDict):
 
         self.merge({
             # scalars
-            self.SAMPLE_COUNT: 0,
-            self.CONCURRENCY: 0,
-            self.SUCCESSES: 0,
-            self.FAILURES: 0,
-            self.AVG_RESP_TIME: 0,
-            self.STDEV_RESP_TIME: 0,
-            self.AVG_LATENCY: 0,
-            self.AVG_CONN_TIME: 0,
-            self.self.BYTE_COUNT: 0,
+            KPISet.SAMPLE_COUNT: 0,
+            KPISet.CONCURRENCY: 0,
+            KPISet.SUCCESSES: 0,
+            KPISet.FAILURES: 0,
+            KPISet.AVG_RESP_TIME: 0,
+            KPISet.STDEV_RESP_TIME: 0,
+            KPISet.AVG_LATENCY: 0,
+            KPISet.AVG_CONN_TIME: 0,
+            KPISet.BYTE_COUNT: 0,
             # vectors
-            self.ERRORS: [],
-            self.RESP_TIMES: Counter(),
-            self.RESP_CODES: Counter(),
-            self.PERCENTILES: BetterDict()})
+            KPISet.ERRORS: [],
+            KPISet.RESP_TIMES: Counter(),
+            KPISet.RESP_CODES: Counter(),
+            KPISet.PERCENTILES: BetterDict()})
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels)
