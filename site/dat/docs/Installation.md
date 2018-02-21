@@ -209,7 +209,7 @@ Taurus has [Docker image](https://hub.docker.com/r/blazemeter/taurus/) that allo
 To use it, create a directory, for example `/tmp/my-test`, put all configs and additional files like JMXses there, then start Docker like this:
 
 ```bash
-sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config.yml
+sudo docker run -it --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config.yml
 ```
 
 Make note that `/tmp/my-test` was passed in `-v` Docker option, it's crucial. Here's [what happens](https://github.com/Blazemeter/taurus/blob/master/Dockerfile) inside the container:
@@ -220,9 +220,9 @@ Make note that `/tmp/my-test` was passed in `-v` Docker option, it's crucial. He
 You can also specify multile config files in the `docker run` command with wildcards or as separate arguments like so:
 
 ```bash
-sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus *.yml
+sudo docker run -it --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus *.yml
 
-sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.json my-config-2.json
+sudo docker run -it --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.json my-config-2.json
 ```
 
 ### Additional Taurus Command-Line Options
@@ -230,7 +230,7 @@ sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config
 You can still pass [command-line options](https://github.com/Blazemeter/taurus/blob/master/site/dat/docs/CommandLine.md) to Taurus through the Docker image. To do so, add the command line option at the end of the `docker run` command like so:
 
 ```bash
-sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.yml -o scenarios.sample.data-sources.0=data.csv
+sudo docker run -it --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config-1.yml -o scenarios.sample.data-sources.0=data.csv
 ```
 
 
@@ -238,5 +238,5 @@ sudo docker run -i --rm -v /tmp/my-test:/bzt-configs blazemeter/taurus my-config
 If you want to receive Taurus artifacts from container, just mount some directory as `/tmp/artifacts` and files will get there. Following example gives you artifacts in `/tmp/my-run-artifacts` directory.
 
 ```bash
-sudo docker run -i --rm -v /tmp:/bzt-configs -v /tmp/my-run-artifacts:/tmp/artifacts blazemeter/taurus
+sudo docker run -it --rm -v /tmp:/bzt-configs -v /tmp/my-run-artifacts:/tmp/artifacts blazemeter/taurus
 ```
