@@ -43,7 +43,7 @@ IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 class ApiritifNoseExecutor(SubprocessedExecutor):
     """
-    :type _readers: list[JTLReader]
+    :type _tailer: FileReader
     """
 
     def __init__(self):
@@ -1094,6 +1094,48 @@ class RandomStringFunction(JMeterFunction):
         )
 
 
+class Base64DecodeFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(Base64DecodeFunction, self).__init__(["text"], compiler)
+
+    def _compile(self, args):
+        if args.get("text") is None:
+            return None
+
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='base64_decode',
+                ctx=ast.Load(),
+            ),
+            args=[self.compiler.gen_expr(args["text"])],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+class Base64EncodeFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(Base64EncodeFunction, self).__init__(["text"], compiler)
+
+    def _compile(self, args):
+        if args.get("text") is None:
+            return None
+
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='base64_encode',
+                ctx=ast.Load(),
+            ),
+            args=[self.compiler.gen_expr(args["text"])],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
 class TimeFunction(JMeterFunction):
     def __init__(self, compiler):
         super(TimeFunction, self).__init__(["format", "varname"], compiler)
@@ -1110,6 +1152,44 @@ class TimeFunction(JMeterFunction):
                 ctx=ast.Load(),
             ),
             args=arguments,
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+class UrlEncodeFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(UrlEncodeFunction, self).__init__(["chars"], compiler)
+
+    def _compile(self, args):
+        if "chars" not in args:
+            return None
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='encode_url',
+                ctx=ast.Load(),
+            ),
+            args=[self.compiler.gen_expr(args["chars"])],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+class UuidFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(UuidFunction, self).__init__([], compiler)
+
+    def _compile(self, args):
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='uuid',
+                ctx=ast.Load(),
+            ),
+            args=[],
             keywords=[],
             starargs=None,
             kwargs=None
@@ -1178,6 +1258,10 @@ class JMeterExprCompiler(object):
             '__time': TimeFunction,
             '__Random': RandomFunction,
             '__RandomString': RandomStringFunction,
+            '__base64Encode': Base64EncodeFunction,
+            '__base64Decode': Base64DecodeFunction,
+            '__urlencode': UrlEncodeFunction,
+            '__UUID': UuidFunction,
         }
         regexp = r"(\w+)\((.*?)\)"
         args_re = r'(?<!\\),'
