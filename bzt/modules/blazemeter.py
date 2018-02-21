@@ -1162,7 +1162,7 @@ class CloudTaurusTest(BaseCloudTest):
             return
 
         if self._test is not None:
-            test_type = self._test.get('configuration', {}).get('type')
+            test_type = self._test.get("configuration").get("type")
             if test_type != TAURUS_TEST_TYPE:
                 self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
                 self._test = None
@@ -1355,8 +1355,8 @@ class CloudCollectionTest(BaseCloudTest):
                 else:
                     scenario = "N/A"
                 scenario_item = mapping.get(scenario, force_set=True)
-                if location not in scenario_item:
-                    scenario_item[location] = 0
+                scenario_item.get(location, 0, force_set=True)
+
                 scenario_item[location] += servers_count
             except (KeyError, TypeError):
                 self._sessions = None
