@@ -60,8 +60,7 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        tools = []
-        tools.append(TclLibrary(self.log))
+        tools = [TclLibrary(self.log)]
         self.node_tool = Node(self.log)
         self.npm_tool = NPM(self.log)
         self.mocha_tool = Mocha(self.tools_dir, self.node_tool, self.npm_tool, self.log)
