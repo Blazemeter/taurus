@@ -64,7 +64,7 @@ class InstallChecker(Service, Singletone):
     def prepare(self):
         modules = self.engine.config.get("modules")
         problems = []
-        for mod_name in modules.keys():
+        for mod_name in modules:
             try:
                 self._check_module(mod_name)
             except KeyboardInterrupt:
