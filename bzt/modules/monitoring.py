@@ -48,7 +48,7 @@ class Monitoring(Service, WidgetProvider, Singletone):
             else:
                 self.log.warning('Unknown monitoring found: %s', client_name)
                 continue
-            for config in self.parameters.get(client_name):
+            for config in self.parameters.get(client_name, []):
                 label = config.get('label', None)
 
                 if client_name == 'local':
@@ -56,10 +56,10 @@ class Monitoring(Service, WidgetProvider, Singletone):
                             if isinstance(client, self.client_classes[client_name])]):
                         break  # skip the second and following local monitoring clients
                     else:
-                        if len(self.parameters.get(client_name)) > 1:
+                        if len(self.parameters.get(client_name, [])) > 1:
                             self.log.warning('LocalMonitoring client found twice, configs will be joined')
                         config = BetterDict()
-                        for cfg in self.parameters.get(client_name):
+                        for cfg in self.parameters.get(client_name, []):
                             config.merge(cfg)
 
                 client = client_class(self.log, label, config, self.engine)
@@ -180,13 +180,11 @@ class LocalClient(MonitoringClient):
         good_list = set(metric_names) & set(self.AVAILABLE_METRICS)
         if not good_list:
             raise exc
+
         self.metrics = list(set(good_list))
 
         self.monitor = LocalMonitor(self.log, self.metrics, self.engine)
-
-        self.interval = dehumanize_time(self.config.get('interval', None))
-        if not self.interval:
-            self.interval = self.engine.check_interval
+        self.interval = dehumanize_time(self.config.get("interval", self.engine.check_interval))
 
     def get_data(self):
         now = time.time()
@@ -319,20 +317,15 @@ class GraphiteClient(MonitoringClient):
         self.config = config
         exc = TaurusConfigError('Graphite client requires address parameter')
         self.address = self.config.get("address", exc)
-
-        # interval for client
-        interval = self.config.get('interval', None)
-        if not interval:
-            interval = '5s'
-        self.interval = int(dehumanize_time(interval))
-
+        self.timeout = int(dehumanize_time(self.config.get("timeout", "5s")))
+        self.interval = int(dehumanize_time(self.config.get("interval", "5s")))     # interval for client
+        self._cached_data = None
         self.url = self._get_url()
+
         if label:
             self.host_label = label
         else:
             self.host_label = self.address
-        self.timeout = int(dehumanize_time(self.config.get('timeout', '5s')))
-        self._cached_data = None
 
     def _get_url(self):
         exc = TaurusConfigError('Graphite client requires metrics list')
@@ -416,10 +409,7 @@ class ServerAgentClient(MonitoringClient):
         self.select = select.select
 
         # interval for server (ServerAgent)
-        interval = config.get("interval", None)
-        if not interval:
-            interval = 1
-        self.interval = int(dehumanize_time(interval))
+        self.interval = int(dehumanize_time(config.get("interval", "1s")))
 
     def connect(self):
         try:
