@@ -815,11 +815,12 @@ class LabelStatsTable(Columns):
         overall = data.get(self.key)
 
         for label in overall:
-            hits = overall.get(label).get(KPISet.SAMPLE_COUNT)
-            failed = float(overall.get(label).get(KPISet.FAILURES)) / hits * 100 if hits else 0.0
-            avg_rt = overall.get(label).get(KPISet.AVG_RESP_TIME)
-            self.labels.add_data(label)
-            self.stats_table.add_data(hits, failed, avg_rt)
+            if label != "":
+                hits = overall.get(label).get(KPISet.SAMPLE_COUNT)
+                failed = float(overall.get(label).get(KPISet.FAILURES)) / hits * 100 if hits else 0.0
+                avg_rt = overall.get(label).get(KPISet.AVG_RESP_TIME)
+                self.labels.add_data(label)
+                self.stats_table.add_data(hits, failed, avg_rt)
 
     def render(self, size, focus=False):
         """
