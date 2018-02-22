@@ -38,19 +38,15 @@ class Proxy2JMX(Service, Singletone):
 
     def prepare(self):
         super(Proxy2JMX, self).prepare()
-        token = self.settings.get('token')
-        if not token:
-            token = self.engine.config.get('modules').get('blazemeter').get('token')
+        blazemeter_cfg = self.engine.config.get("modules").get("blazemeter")
 
-        if not token:
+        self.proxy.token = self.settings.get("token", blazemeter_cfg.get("token"))
+        if not self.proxy.token:
             msg = "You must provide your API token in settings of " \
                   "'proxy2jmx' or 'blazemeter' modules to use Proxy Recorder"
             raise TaurusConfigError(msg)
-        self.proxy.token = token
 
-        bm_api_addr = self.engine.config.get('modules').get('blazemeter').get('address', self.proxy.address)
-        api_addr = self.settings.get('address', bm_api_addr)
-        self.proxy.address = api_addr
+        self.proxy.address = self.settings.get("address", blazemeter_cfg.get("address", self.proxy.address))
 
         # todo: handle network exceptions (ssl, ...) in next call
         self.proxy_addr = self.proxy.get_addr()
