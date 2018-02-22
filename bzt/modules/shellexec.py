@@ -17,6 +17,7 @@ import os
 import subprocess
 from subprocess import CalledProcessError
 
+from bzt import TaurusConfigError
 from bzt.engine import Service
 from bzt.six import iteritems
 from bzt.utils import ensure_is_dict
@@ -113,12 +114,12 @@ class Task(object):
     """
     :type process: subprocess.Popen
     """
-
     def __init__(self, config, parent_log, working_dir, env):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.working_dir = working_dir
         self.env = env
-        self.command = config.get("command", ValueError("Parameter is required: command"))
+
+        self.command = config.get("command", TaurusConfigError("Parameter is required: command"))
         self.is_background = config.get("background", False)
         self.ignore_failure = config.get("ignore-failure", False)
         self.err = config.get("err", subprocess.PIPE)
