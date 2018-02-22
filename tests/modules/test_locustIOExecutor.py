@@ -14,7 +14,7 @@ from bzt import six, ToolError
 from bzt.modules.jmeter import JTLReader
 from bzt.six import PY2
 from bzt.utils import dehumanize_time
-from tests import BZTestCase, __dir__, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader

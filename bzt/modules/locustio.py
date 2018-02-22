@@ -32,17 +32,15 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader
-from bzt.utils import shutdown_process, RequiredTool, BetterDict, dehumanize_time
+from bzt.utils import shutdown_process, RequiredTool, dehumanize_time
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
-        self.kpi_jtl = None
         self.process = None
         self.__out = None
         self.is_master = False
-        self.slaves_ldjson = None
         self.expected_slaves = 0
         self.scenario = None
         self.script = None
@@ -52,21 +50,20 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.install_required_tools()
         self.scenario = self.get_scenario()
         self.__setup_script()
-
-        self.is_master = self.execution.get("master", self.is_master)
-        if self.is_master:
-            count_error = TaurusConfigError("Slaves count required when starting in master mode")
-            slaves = self.execution.get("slaves", count_error)
-            self.expected_slaves = int(slaves)
-
         self.engine.existing_artifact(self.script)
 
+        self.is_master = self.execution.get("master", self.is_master)
+
         if self.is_master:
-            self.slaves_ldjson = self.engine.create_artifact("locust-slaves", ".ldjson")
-            self.reader = SlavesReader(self.slaves_ldjson, self.expected_slaves, self.log)
+            count_error = TaurusConfigError("Slaves count required when starting in master mode")
+            self.expected_slaves = int(self.execution.get("slaves", count_error))
+            slaves_ldjson = self.engine.create_artifact("locust-slaves", ".ldjson")
+            self.reader = SlavesReader(slaves_ldjson, self.expected_slaves, self.log)
+            self.env.set({"SLAVES_LDJSON": slaves_ldjson})
         else:
-            self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-            self.reader = JTLReader(self.kpi_jtl, self.log, None)
+            kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
+            self.reader = JTLReader(kpi_jtl, self.log)
+            self.env.set({"JTL": kpi_jtl})
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -101,12 +98,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
         if self.is_master:
             args.extend(["--master", '--expect-slaves=%s' % self.expected_slaves])
-            self.env.set({"SLAVES_LDJSON": self.slaves_ldjson})
-        else:
-            self.env.set({"JTL": self.kpi_jtl})
 
-        host = self.get_scenario().get("default-address", None)
-        if host is not None:
+        host = self.get_scenario().get("default-address")
+        if host:
             args.append('--host=%s' % host)
 
         self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
@@ -135,7 +129,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
     def resource_files(self):
         self.scenario = self.get_scenario()
-        script = self.scenario.get(Scenario.SCRIPT, None)
+        script = self.scenario.get(Scenario.SCRIPT)
         if script:
             return [script]
         else:
@@ -321,9 +315,7 @@ from locust import HttpLocust, TaskSet, task
 
         swarm_class.append(self.gen_statement('task_set = UserBehaviour', indent=4))
 
-        default_address = self.scenario.get("default-address", None)
-        if default_address is None:
-            default_address = ''
+        default_address = self.scenario.get("default-address", "")
         swarm_class.append(self.gen_statement('host = "%s"' % default_address, indent=4))
 
         swarm_class.append(self.gen_statement('min_wait = %s' % 0, indent=4))
@@ -338,7 +330,7 @@ from locust import HttpLocust, TaskSet, task
     def __gen_task(self):
         task = self.gen_method_definition("generated_task", ['self'])
 
-        think_time = dehumanize_time(self.scenario.get('think-time', None))
+        think_time = dehumanize_time(self.scenario.get("think-time"))
         global_headers = self.scenario.get_headers()
         if not self.scenario.get("keepalive", True):
             global_headers['Connection'] = 'close'
