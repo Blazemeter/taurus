@@ -1142,6 +1142,21 @@ class TestApiritifScriptGenerator(BZTestCase):
         items = list(reader.read())
         self.assertEqual(len(items), 12)
 
+    def test_codegen_requests(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": [{
+                        "url": "http://localhost:8000/",
+                        "label": "apiritif",
+                    }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "/apiritif/test_codegen_requests.py")
+
 
 class TestPyTestExecutor(BZTestCase):
     def setUp(self):
