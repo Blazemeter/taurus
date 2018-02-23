@@ -1,5 +1,6 @@
 from random import random
 
+from bzt.utils import to_json
 from tests import BZTestCase, r
 
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
@@ -129,6 +130,14 @@ class TestConsolidatingAggregator(BZTestCase):
         obj.settings['max-buffer-len'] = "inf"
         obj.prepare()
         self.assertEqual(obj.max_buffer_len, float("inf"))
+
+    def test_datapoint_to_json(self):
+        obj = ConsolidatingAggregator()
+        obj.track_percentiles = [0.0, 50.0, 95.0, 99.0, 100.0]
+        obj.prepare()
+        obj.add_underling(self.get_success_reader())
+        for point in obj.datapoints():
+            obj.log.info(to_json(point))
 
 
 class MockListener(AggregatorListener):
