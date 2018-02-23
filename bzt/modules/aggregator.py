@@ -38,6 +38,12 @@ class RespTimesCounter(JSONConvertable):
         self.sign_figures = sign_figures
         self.histogram = HdrHistogram(low, high, sign_figures)
 
+    def __bool__(self):
+        return len(self) > 0
+
+    def __len__(self):
+        return self.histogram.total_count
+
     def add(self, item, count=1):
         self.histogram.record_value(item, count)
 
