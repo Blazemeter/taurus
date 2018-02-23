@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
+import json
 import logging
 import re
 from abc import abstractmethod
@@ -26,10 +27,10 @@ from hdrpy import HdrHistogram
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems
-from bzt.utils import BetterDict, dehumanize_time
+from bzt.utils import BetterDict, dehumanize_time, JSONConvertable
 
 
-class RespTimesCounter(object):
+class RespTimesCounter(JSONConvertable):
     def __init__(self, low, high, sign_figures):
         super(RespTimesCounter, self).__init__()
         self.low = low
@@ -46,14 +47,12 @@ class RespTimesCounter(object):
     def get_percentiles_dict(self, percentiles):
         return self.histogram.get_percentile_to_value_dict(percentiles)
 
-    def __deepcopy__(self, memo):
-        item = RespTimesCounter(self.low, self.high, self.sign_figures)
-        item.histogram.add(self.histogram)
-        memo[id(self)] = item
-        return item
-
     def get_counts(self):
         return self.histogram.get_value_counts()
+
+    def __json__(self):
+        counts = self.get_counts()
+        return counts
 
 
 class KPISet(BetterDict):
@@ -159,8 +158,7 @@ class KPISet(BetterDict):
         else:
             self[self.SUCCESSES] += 1
 
-        rtime_s = round(r_time, 3)
-        logging.warning("Recording rtime: %.3f", rtime_s)
+        rtime_s = round(r_time * 1000, 3)
         self[self.RESP_TIMES].add(rtime_s, 1)
 
         if byte_count is not None:
@@ -211,6 +209,7 @@ class KPISet(BetterDict):
                 str(float(perc)): value / 1000.0
                 for perc, value in iteritems(resp_times.get_percentiles_dict(self.perc_levels))
             }
+            logging.info("Recalculated percentiles: %s", self[self.PERCENTILES])
 
         return self
 
@@ -708,8 +707,5 @@ class AggregatorListener(object):
 
 if __name__ == '__main__':
     counter = RespTimesCounter(1, 1000, 3)
-    counter.add(100, 1)
-    counter.add(100, 2)
-    counter.add(100, 3)
-    print(counter.items())
-    print(counter.dump())
+    counter.add(100, 42)
+    print(json.dumps(counter))
