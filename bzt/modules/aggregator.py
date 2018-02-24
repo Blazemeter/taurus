@@ -709,9 +709,3 @@ class AggregatorListener(object):
         to close open file descriptors etc.
         """
         pass
-
-
-if __name__ == '__main__':
-    counter = RespTimesCounter(1, 1000, 3)
-    counter.add(100, 42)
-    print(json.dumps(counter))
