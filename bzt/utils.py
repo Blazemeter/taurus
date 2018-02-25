@@ -664,15 +664,16 @@ class MultiPartForm(object):
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
 
-def to_json(obj):
+def to_json(obj, indent=True):
     """
     Convert object into indented json
 
-    :param obj:
+    :param indent: whether to generate indented JSON
+    :param obj: object to convert
     :return:
     """
     # NOTE: you can set allow_nan=False to fail when serializing NaN/Infinity
-    return json.dumps(obj, indent=True, cls=ComplexEncoder)
+    return json.dumps(obj, indent=indent, cls=ComplexEncoder)
 
 
 class JSONDumpable(object):
@@ -680,6 +681,13 @@ class JSONDumpable(object):
     Marker class for json dumpable classes
     """
     pass
+
+
+class JSONConvertable(object):
+    @abstractmethod
+    def __json__(self):
+        "Convert class instance into JSON-dumpable structure (e.g. dict)"
+        pass
 
 
 class ComplexEncoder(json.JSONEncoder):
@@ -708,6 +716,8 @@ class ComplexEncoder(json.JSONEncoder):
                 else:
                     res[key] = val
             return res
+        elif self.__convertable(obj):
+            return obj.__json__()
         else:
             return None
 
@@ -720,6 +730,9 @@ class ComplexEncoder(json.JSONEncoder):
         """
         dumpable_types = tuple(self.TYPES + (JSONDumpable,))
         return isinstance(obj, dumpable_types)
+
+    def __convertable(self, obj):
+        return isinstance(obj, JSONConvertable)
 
     @classmethod
     def of_basic_type(cls, val):

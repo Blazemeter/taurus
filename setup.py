@@ -50,6 +50,7 @@ setup(
             'bzt=bzt.cli:main',
             'jmx2yaml=bzt.jmx2yaml:main',
             'soapui2yaml=bzt.soapui2yaml:main',
+            'swagger2yaml=bzt.swagger2yaml:main',
         ],
     },
     include_package_data=True,
