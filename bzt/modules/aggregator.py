@@ -214,7 +214,6 @@ class KPISet(BetterDict):
                 str(float(perc)): value / 1000.0
                 for perc, value in iteritems(resp_times.get_percentiles_dict(self.perc_levels))
             }
-            logging.info("Recalculated percentiles: %s", self[self.PERCENTILES])
 
         return self
 
@@ -226,7 +225,7 @@ class KPISet(BetterDict):
         :type src: KPISet
         :return:
         """
-        src.recalculate() # TODO: could be not resource efficient strat
+        src.recalculate()  # TODO: could be not resource efficient strat
 
         self.sum_cn += src.sum_cn
         self.sum_lt += src.sum_lt
