@@ -136,7 +136,7 @@ class BZTestCase(TestCase):
 
     def assertFilesEqual(self, expected, actual):
         with open(expected) as exp, open(actual) as act:
-            diff = list(difflib.unified_diff(exp.readlines(), act.readlines()))
+            diff = list(difflib.unified_diff(act.readlines(), exp.readlines()))
             if diff:
                 msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
                 raise AssertionError(msg + "".join(diff))
