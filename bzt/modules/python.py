@@ -673,11 +673,11 @@ log.setLevel(logging.DEBUG)
         ))
 
     def gen_init(self):
-        keepalive = self.scenario.get("keepalive", None)
+        keepalive = self.scenario.get("keepalive", True)
         default_address = self.scenario.get("default-address", None)
         base_path = self.scenario.get("base-path", None)
         auto_assert_ok = self.scenario.get("auto-assert-ok", True)
-        store_cookie = self.scenario.get("store-cookie", None)
+        store_cookie = self.scenario.get("store-cookie", True)
         timeout = self.scenario.get("timeout", None)
         follow_redirects = self.scenario.get("follow-redirects", True)
 

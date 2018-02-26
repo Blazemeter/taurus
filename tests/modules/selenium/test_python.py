@@ -347,7 +347,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         {"label": "empty"}
                     ]
                 }
-                }
+            }
         })
 
         self.obj.prepare()
@@ -472,7 +472,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         {"label": "empty"}
                     ]
                 }
-                }
+            }
         })
 
         self.obj.prepare()
@@ -519,7 +519,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                         {"label": "empty"}
                     ]
                 }
-                }
+            }
         })
 
         self.obj.prepare()
@@ -534,6 +534,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         sample_contents = [line.rstrip() for line in sample_contents]
 
         self.assertEqual(gen_contents, sample_contents)
+
 
 class TestApiritifScriptGenerator(BZTestCase):
     def setUp(self):
