@@ -209,7 +209,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __get_xml_summary(self, label, kpiset):
         elem = etree.Element("Group", label=label)
         for kpi_name, kpi_val in iteritems(kpiset):
-            if kpi_name in ('errors', 'rt'):
+            if kpi_name in (KPISet.ERRORS, KPISet.RESP_TIMES):
                 continue
 
             if isinstance(kpi_val, dict):

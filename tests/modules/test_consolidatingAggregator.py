@@ -1,5 +1,11 @@
 from random import random
 
+<<<<<<< HEAD
+=======
+from bzt.utils import to_json
+from tests import BZTestCase, r
+
+>>>>>>> cba72f5388bd3647b636c773e6893428e37da306
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from tests import BZTestCase, r
 from tests.mocks import MockReader
@@ -123,22 +129,19 @@ class TestConsolidatingAggregator(BZTestCase):
             for kpiset in dp['current'].values():
                 self.assertNotEqual(42, kpiset.rtimes_len)
 
-    def test_kpiset_merge_many_rtimes(self):
-        vals = {round(random() * 20 + 0.1, int(random() * 3) + 2): int(random() * 3 + 1) for _ in range(1000)}
-        src = KPISet()
-        src[KPISet.RESP_TIMES].update(vals)
-        dst = KPISet()
-        dst.rtimes_len = 100
-        for _ in range(100):
-            dst.merge_kpis(src)
-            dst.compact_times()
-            self.assertEqual(100, len(dst[KPISet.RESP_TIMES]))
-
     def test_inf_values(self):
         obj = ConsolidatingAggregator()
         obj.settings['max-buffer-len'] = "inf"
         obj.prepare()
         self.assertEqual(obj.max_buffer_len, float("inf"))
+
+    def test_datapoint_to_json(self):
+        obj = ConsolidatingAggregator()
+        obj.track_percentiles = [0.0, 50.0, 95.0, 99.0, 100.0]
+        obj.prepare()
+        obj.add_underling(self.get_success_reader())
+        for point in obj.datapoints():
+            obj.log.info(to_json(point))
 
 
 class MockListener(AggregatorListener):

@@ -18,7 +18,7 @@ platform:
 install:
   - choco install firefox --version 57.0.4
   - ps: Install-Product node $env:NODEJS_VERSION
-  - "%PYTHON%\\python.exe -m pip install pip --upgrade"
+  - "%PYTHON%\\python.exe -m pip install pip wheel --upgrade"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
   - "%PYTHON%\\python.exe -m pip install -r tests/ci/requirements.txt"
   - set PATH=C:\Ruby22\bin;%PYTHON%\Scripts\;%PATH%
