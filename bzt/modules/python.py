@@ -673,11 +673,11 @@ log.setLevel(logging.DEBUG)
         ))
 
     def gen_init(self):
-        keepalive = self.scenario.get("keepalive", True)
+        keepalive = self.scenario.get("keepalive", None)
         default_address = self.scenario.get("default-address", None)
         base_path = self.scenario.get("base-path", None)
         auto_assert_ok = self.scenario.get("auto-assert-ok", True)
-        store_cookie = self.scenario.get("store-cookie", True)
+        store_cookie = self.scenario.get("store-cookie", None)
         timeout = self.scenario.get("timeout", None)
         follow_redirects = self.scenario.get("follow-redirects", True)
 
@@ -685,6 +685,11 @@ log.setLevel(logging.DEBUG)
             self.__access_method = "target"
         else:
             self.__access_method = "plain"
+
+        if keepalive is None:
+            keepalive = True
+        if store_cookie is None:
+            store_cookie = True
 
         lines = []
         if self.__access_method == "target":
@@ -709,7 +714,7 @@ log.setLevel(logging.DEBUG)
             ]
             if base_path:
                 lines.append(self._gen_target_setup('base_path', base_path))
-            if timeout:
+            if timeout is not None:
                 lines.append(self._gen_target_setup('timeout', dehumanize_time(timeout)))
         return lines
 
