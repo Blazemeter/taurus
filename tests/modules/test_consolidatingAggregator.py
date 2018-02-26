@@ -1,12 +1,5 @@
-from random import random
-
-<<<<<<< HEAD
-=======
-from bzt.utils import to_json
-from tests import BZTestCase, r
-
->>>>>>> cba72f5388bd3647b636c773e6893428e37da306
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
+from bzt.utils import to_json
 from tests import BZTestCase, r
 from tests.mocks import MockReader
 
