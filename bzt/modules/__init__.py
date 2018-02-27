@@ -77,7 +77,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
         self.widget = None
 
     def _start_subprocess(self, cmdline, **kwargs):
-        prefix = self.execution.get("executor") or "executor"
+        prefix = self.execution.get("executor", "executor")
         self.stdout_file = self.engine.create_artifact(prefix, ".out")
         std_out = open(self.stdout_file, "wt")
         self.opened_descriptors.append(std_out)

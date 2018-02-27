@@ -78,7 +78,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
-        test_mode = self.execution.get("test-mode") or "apiritif"
+        test_mode = self.execution.get("test-mode", "apiritif")
         if test_mode == "apiritif":
             builder = ApiritifScriptGenerator(self.get_scenario(), self.log)
             builder.verbose = self.__is_verbose()
@@ -726,11 +726,9 @@ log.setLevel(logging.DEBUG)
             named_args['allow_redirects'] = req.priority_option('follow-redirects', default=True)
 
         headers = {}
-        scenario_headers = self.scenario.get("headers")
-        if scenario_headers:
-            headers.update(scenario_headers)
-        if req.headers:
-            headers.update(req.headers)
+        headers.update(self.scenario.get("headers"))
+        headers.update(req.headers)
+
         if headers:
             named_args['headers'] = self.gen_expr(headers)
 
