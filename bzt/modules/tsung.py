@@ -52,9 +52,9 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         scenario = self.get_scenario()
         self.tool_path = self.install_required_tools()
 
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            script = self.get_script_path()
-            if not script or not os.path.exists(script):
+        script = self.get_script_path()
+        if script:
+            if not os.path.exists(script):
                 raise TaurusConfigError("Tsung: script '%s' doesn't exist" % script)
             self.tsung_config = self.__modify_user_tsung_config(script)
         elif scenario.get("requests"):
@@ -323,7 +323,7 @@ class TsungConfig(object):
         return None
 
     def __gen_servers(self, scenario):
-        default_address = scenario.get("default-address", None)
+        default_address = scenario.get("default-address")
         if default_address:
             base_addr = parse.urlparse(default_address)
         else:
@@ -377,17 +377,17 @@ class TsungConfig(object):
     def __gen_options(self, scenario):
         options = etree.Element("options")
 
-        global_think_time = scenario.get('think-time', None)
+        global_think_time = scenario.get("think-time")
         if global_think_time:
             think_time = int(dehumanize_time(global_think_time))
             options.append(etree.Element("option", name="thinktime", value=str(think_time), random="false"))
 
-        global_tcp_timeout = scenario.get('timeout', None)
+        global_tcp_timeout = scenario.get("timeout")
         if global_tcp_timeout:
             timeout = int(dehumanize_time(global_tcp_timeout) * 1000)
             options.append(etree.Element("option", name="connect_timeout", value=str(timeout)))
 
-        global_max_retries = scenario.get('max-retries', 1)
+        global_max_retries = scenario.get("max-retries", 1)
         options.append(etree.Element("option", name="max_retries", value=str(global_max_retries)))
         return options
 

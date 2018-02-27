@@ -58,17 +58,17 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.target_java = "1.8"
         self.props_file = None
         self.base_class_path = []
+        self.hamcrest_path = "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar"
+        self.json_jar_path = "~/.bzt/selenium-taurus/tools/junit/json.jar"
+        self.selenium_server_path = "~/.bzt/selenium-taurus/selenium-server.jar"
 
     def path_lambda(self, x):
         return os.path.abspath(self.engine.find_file(x))
 
     def install_required_tools(self):
-        self.hamcrest_path = self.path_lambda(self.settings.get("hamcrest-core",
-                                                                "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar"))
-        self.json_jar_path = self.path_lambda(
-            self.settings.get("json-jar", "~/.bzt/selenium-taurus/tools/junit/json.jar"))
-        self.selenium_server_jar_path = self.path_lambda(self.settings.get("selenium-server",
-                                                                           "~/.bzt/selenium-taurus/selenium-server.jar"))
+        self.hamcrest_path = self.path_lambda(self.settings.get("hamcrest-core", self.hamcrest_path))
+        self.json_jar_path = self.path_lambda(self.settings.get("json-jar", self.json_jar_path))
+        self.selenium_server_path = self.path_lambda(self.settings.get("selenium-server", self.selenium_server_path))
 
     def prepare(self):
         """
@@ -84,7 +84,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
         self.base_class_path.extend(self.settings.get("additional-classpath", []))
         self.base_class_path.extend(self.get_scenario().get("additional-classpath", []))
-        self.base_class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_jar_path])
+        self.base_class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_path])
 
         self.props_file = self.engine.create_artifact("runner", ".properties")
 
@@ -97,8 +97,10 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         resources = super(JavaTestRunner, self).resource_files()
         resources.extend(self.get_scenario().get("additional-classpath", []))
         global_additional_classpath = self.settings.get("additional-classpath", [])
-        execution_files = self.execution.get('files', [])  # later we need to fix path for sending into cloud
-        execution_files.extend(global_additional_classpath)
+
+        execution_files = self.execution.get('files', [], force_set=True)
+        execution_files.extend(global_additional_classpath)     # later we need to fix path for sending into cloud
+
         return resources
 
     def _collect_script_files(self, extensions):
@@ -220,7 +222,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         tools.append(TclLibrary(self.log))
         tools.append(JavaVM(self.log))
         link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
-        tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
+        tools.append(SeleniumServerJar(self.selenium_server_path, link, self.log))
         tools.append(JUnitJar(self.junit_path, self.log, JUNIT_VERSION))
         tools.append(HamcrestJar(self.hamcrest_path, HAMCREST_DOWNLOAD_LINK))
         tools.append(JsonJar(self.json_jar_path, JSON_JAR_DOWNLOAD_LINK))
@@ -285,7 +287,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
     def resource_files(self):
         resources = super(TestNGTester, self).resource_files()
-        testng_xml = self.execution.get('testng-xml', None)
+        testng_xml = self.execution.get('testng-xml')
         if not testng_xml:
             testng_xml = self.detected_testng_xml()
             if testng_xml:
@@ -308,7 +310,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         tools.append(TclLibrary(self.log))
         tools.append(JavaVM(self.log))
         link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
-        tools.append(SeleniumServerJar(self.selenium_server_jar_path, link, self.log))
+        tools.append(SeleniumServerJar(self.selenium_server_path, link, self.log))
         tools.append(TestNGJar(self.testng_path, TESTNG_DOWNLOAD_LINK))
         tools.append(HamcrestJar(self.hamcrest_path, HAMCREST_DOWNLOAD_LINK))
         tools.append(JsonJar(self.json_jar_path, JSON_JAR_DOWNLOAD_LINK))
@@ -338,7 +340,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
             for index, item in enumerate(jar_list):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
-            testng_xml = self.execution.get('testng-xml', None) or self.detected_testng_xml()
+            testng_xml = self.execution.get('testng-xml') or self.detected_testng_xml()
             if testng_xml:
                 props.write('testng_config=%s\n' % testng_xml.replace(os.path.sep, '/'))
 

@@ -158,11 +158,9 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister, HavingIns
 
     def resource_files(self):
         """
-
-
         :return:
         """
-        self.execution.get('files', []).append(__file__)
+        self.execution.get('files', [], force_set=True).append(__file__)
         return [__file__]
 
     def has_results(self):

@@ -36,7 +36,7 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
 from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader
-from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time
+from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time, get_full_path
 
 
 class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -99,7 +99,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def resource_files(self):
         scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
+        script = scenario.get(Scenario.SCRIPT)
         if script:
             return [script]
         else:
@@ -140,8 +140,8 @@ class PBenchTool(object):
         self.engine = executor.engine
         self.settings = executor.settings
         self.execution = executor.execution
-        self.path = os.path.expanduser(self.settings.get('path', 'phantom'))
-        self.modules_path = os.path.expanduser(self.settings.get("modules-path", "/usr/lib/phantom"))
+        self.path = get_full_path(self.settings.get('path', 'phantom'))
+        self.modules_path = get_full_path(self.settings.get("modules-path", "/usr/lib/phantom"))
         self.kpi_file = None
         self.stats_file = None
         self.config_file = None
@@ -160,15 +160,13 @@ class PBenchTool(object):
         self.stats_file = self.engine.create_artifact("pbench-additional", ".ldjson")
         self.config_file = self.engine.create_artifact('pbench', '.conf')
 
-        conf_path = os.path.join(os.path.abspath(os.path.dirname(resources.__file__)), 'pbench.conf')
+        conf_path = os.path.join(get_full_path(resources.__file__, step_up=1), 'pbench.conf')
         with open(conf_path) as _fhd:
             tpl = _fhd.read()
 
         instances = load.concurrency if load.concurrency else 1
 
-        timeout = scenario.get("timeout", None)
-        if timeout is None:
-            timeout = '10s'
+        timeout = scenario.get("timeout", "10s")
         timeout = int(dehumanize_time(timeout) * 1000)
 
         threads = 1 if psutil.cpu_count() < 2 else (psutil.cpu_count() - 1)
@@ -201,8 +199,8 @@ class PBenchTool(object):
             _fhd.write(substituter.substitute(params))
 
     def generate_payload(self, scenario):
-        script_path = scenario.get(Scenario.SCRIPT, None)
-        if script_path is not None:
+        script_path = scenario.get(Scenario.SCRIPT)
+        if script_path:
             self.payload_file = self.engine.find_file(script_path)
         else:
             self.payload_file = self.engine.create_artifact("pbench", '.src')
@@ -268,8 +266,8 @@ class PBenchTool(object):
         pass
 
     def generate_schedule(self, load):
-        self.schedule_file = self.execution.get("schedule-file", None)
-        if self.schedule_file is None:
+        self.schedule_file = self.execution.get("schedule-file")
+        if not self.schedule_file:
             self.schedule_file = self.engine.create_artifact("pbench", '.sched')
             self.log.info("Generating request schedule file: %s", self.schedule_file)
 
@@ -364,10 +362,8 @@ class PBenchTool(object):
             if request.method == "GET" and isinstance(request.body, dict):
                 path += "?" + urlencode(request.body)
         if not parsed_url.netloc:
-            default_addr = scenario.get('default-address', None)
-            if default_addr is None:
-                default_addr = ''
-            parsed_url = parse.urlparse(default_addr)
+            parsed_url = parse.urlparse(scenario.get("default-address", ""))
+
         self.hostname = parsed_url.netloc.split(':')[0] if ':' in parsed_url.netloc else parsed_url.netloc
         self.use_ssl = parsed_url.scheme == 'https'
         if parsed_url.port:

@@ -34,8 +34,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     """
     Grinder executor module
     """
-    # OLD_DOWNLOAD_LINK = "http://switch.dl.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
-    # "/grinder-{version}-binary.zip"
     DOWNLOAD_LINK = "http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}" \
                     "/grinder-{version}-binary.zip/download"
     VERSION = "3.11"
@@ -61,7 +59,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         :param fds: fds
         :return:
         """
-        base_props_file = self.settings.get("properties-file", None)
+        base_props_file = self.settings.get("properties-file")
         if base_props_file:
             fds.write("# Base Properies File Start: %s\n" % base_props_file)
             with open(base_props_file) as bpf:
@@ -83,7 +81,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         :param scenario: dict
         :return:
         """
-        script_props_file = scenario.get("properties-file", None)
+        script_props_file = scenario.get("properties-file")
         if script_props_file:
             fds.write("# Script Properies File Start: %s\n" % script_props_file)
             with open(script_props_file) as spf:
@@ -256,11 +254,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def resource_files(self):
         resource_files = []
-        script_file_path = self.get_scenario().get(Scenario.SCRIPT, None)
+        script_file_path = self.get_scenario().get(Scenario.SCRIPT)
         if script_file_path:
             resource_files.append(script_file_path)
 
-        prop_file = self.get_scenario().get("properties-file", None)
+        prop_file = self.get_scenario().get("properties-file")
         if prop_file:
             resource_files.append(prop_file)
 
@@ -497,7 +495,7 @@ from HTTPClient import NVPair
 
         self.root.append(self.gen_new_line(indent=0))
 
-        default_address = self.scenario.get("default-address", None)
+        default_address = self.scenario.get("default-address")
         url_arg = "url=%r" % default_address if default_address else ""
         self.root.append(self.gen_statement('request = HTTPRequest(%s)' % url_arg, indent=0))
         self.root.append(self.gen_statement('test = Test(1, "%s")' % self.label, indent=0))

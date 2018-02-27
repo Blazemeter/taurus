@@ -43,9 +43,8 @@ from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
-from bzt.utils import open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes, \
-    ExceptionalDownloader, ProgressBarContext
-from bzt.utils import to_json, dehumanize_time, BetterDict, ensure_is_dict
+from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
+from bzt.utils import dehumanize_time, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
 
 TAURUS_TEST_TYPE = "taurus"
 CLOUD_CONFIG_FILTER_RULES = {
@@ -219,7 +218,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self._user.timeout = dehumanize_time(self.settings.get("timeout", self._user.timeout))
 
         # direct data feeding case
-        sess_id = self.parameters.get("session-id", None)
+        sess_id = self.parameters.get("session-id")
         if sess_id:
             self._session = Session(self._user, {'id': sess_id})
             self._session['userId'] = self.parameters.get("user-id", None)
@@ -335,7 +334,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         if not self._session.token:
             return
 
-        worker_index = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL', '')
+        worker_index = self.engine.config.get('modules').get('shellexec').get('env').get('TAURUS_INDEX_ALL')
         if worker_index:
             suffix = '-%s' % worker_index
         else:
@@ -392,7 +391,9 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         except (IOError, TaurusNetworkError):
             self.log.warning("Failed artifact upload: %s", traceback.format_exc())
         finally:
-            self.set_last_status_check(self.parameters.get('forced-last-check', self._last_status_check))
+            self._last_status_check = self.parameters.get('forced-last-check', self._last_status_check)
+            self.log.debug("Set last check time to: %s", self._last_status_check)
+
             tries = self.send_interval  # NOTE: you dirty one...
             while not self._last_status_check and tries > 0:
                 self.log.info("Waiting for ping...")
@@ -481,10 +482,6 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         """
         if self.send_data:
             self.kpi_buffer.append(data)
-
-    def set_last_status_check(self, value):
-        self._last_status_check = value
-        self.log.debug("Set last check time to: %s", self._last_status_check)
 
     def monitoring_data(self, data):
         if self.send_monitoring:
@@ -968,7 +965,7 @@ class ProjectFinder(object):
         else:
             if launch_existing_test:
                 raise TaurusConfigError("Can't find test for launching: %r" % test_name)
-            if use_deprecated or self.settings.get("cloud-mode", None) == 'taurusCloud':
+            if use_deprecated or self.settings.get("cloud-mode") == 'taurusCloud':
                 self.log.debug("Will create standard test")
                 test_class = CloudTaurusTest
             else:
@@ -1165,7 +1162,7 @@ class CloudTaurusTest(BaseCloudTest):
             return
 
         if self._test is not None:
-            test_type = self._test.get('configuration', {}).get('type')
+            test_type = self._test.get("configuration").get("type")
             if test_type != TAURUS_TEST_TYPE:
                 self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
                 self._test = None
@@ -1218,12 +1215,14 @@ class CloudTaurusTest(BaseCloudTest):
                 name_split = [part.strip() for part in session['name'].split('/')]
                 location = session['configuration']['location']
                 count = session['configuration']['serversCount']
-                ex_item = mapping.get(name_split[0])
+                ex_item = mapping.get(name_split[0], force_set=True)
+
                 if len(name_split) > 1:
-                    script_item = ex_item.get(name_split[1])
+                    name = name_split[1]
                 else:
-                    script_item = ex_item.get("N/A", {})
-                script_item[location] = count
+                    name = "N/A"
+
+                ex_item.get(name, force_set=True)[location] = count
             except KeyError:
                 self._sessions = None
 
@@ -1244,7 +1243,7 @@ class CloudCollectionTest(BaseCloudTest):
         for loc in self._workspaces.locations(include_private=True):
             available_locations[loc['id']] = loc
 
-        global_locations = engine_config.get(CloudProvisioning.LOC, BetterDict())
+        global_locations = engine_config.get(CloudProvisioning.LOC)
         self._check_locations(global_locations, available_locations)
 
         for executor in executors:
@@ -1305,7 +1304,7 @@ class CloudCollectionTest(BaseCloudTest):
             return
         if self._last_status is None:
             return
-        sessions = self._last_status.get("sessions", [])
+        sessions = self._last_status.get("sessions")
         if sessions and all(session["status"] == "JMETER_CONSOLE_INIT" for session in sessions):
             self.log.info("All servers are ready, starting cloud test")
             self.master.force_start()
@@ -1355,9 +1354,9 @@ class CloudCollectionTest(BaseCloudTest):
                     scenario = name_split[1]
                 else:
                     scenario = "N/A"
-                scenario_item = mapping.get(scenario)
-                if location not in scenario_item:
-                    scenario_item[location] = 0
+                scenario_item = mapping.get(scenario, force_set=True)
+                scenario_item.get(location, 0, force_set=True)
+
                 scenario_item[location] += servers_count
             except (KeyError, TypeError):
                 self._sessions = None
@@ -1434,7 +1433,7 @@ class MasterProvisioning(Provisioning):
                 packed_list.append(base_dir_name + '.zip')
 
         if packed_list:
-            services = self.engine.config.get(Service.SERV, [])
+            services = self.engine.config.get(Service.SERV, [], force_set=True)
             services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list, 'run-at': 'local'})
 
         return result_list
@@ -1494,8 +1493,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.detach = self.settings.get("detach", self.detach)
         self.check_interval = dehumanize_time(self.settings.get("check-interval", self.check_interval))
         self.public_report = self.settings.get("public-report", self.public_report)
-        is_execution_empty = "execution" not in self.engine.config or not bool(self.engine.config.get("execution", []))
-        self.launch_existing_test = self.settings.get("launch-existing-test", is_execution_empty)
+        is_execution_empty = not self.engine.config.get("execution")
+        self.launch_existing_test = self.settings.get("launch-existing-test", is_execution_empty, force_set=True)
 
         if not self.launch_existing_test:
             self._filter_reporting()
@@ -1644,7 +1643,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                     raise TaurusException(to_json(error))
 
             # if we have captured HARs, let's download them
-            for service in self.engine.config.get(Service.SERV):
+            for service in self.engine.config.get(Service.SERV, []):
                 # not good to reproduce what is done inside engine
                 # but no good way to get knowledge of the service in config
                 if not isinstance(service, dict):
@@ -1770,7 +1769,7 @@ class ResultsFromBZA(ResultsProvider):
                 if err_diff:
                     for label in err_diff:
                         point_label = '' if label == 'ALL' else label
-                        kpiset = point[DataPoint.CURRENT].get(point_label, KPISet())
+                        kpiset = point[DataPoint.CURRENT].get(point_label, KPISet(), force_set=True)
                         kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
                     self.prev_errors = self.cur_errors
 

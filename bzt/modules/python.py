@@ -78,7 +78,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
-        test_mode = self.execution.get("test-mode", None) or "apiritif"
+        test_mode = self.execution.get("test-mode", "apiritif")
         if test_mode == "apiritif":
             builder = ApiritifScriptGenerator(self.get_scenario(), self.log)
             builder.verbose = self.__is_verbose()
@@ -256,7 +256,7 @@ import apiritif
         test_class.append(self.gen_teardown_method())
 
         requests = self.scenario.get_requests(require_url=False)
-        default_address = self.scenario.get("default-address", None)
+        default_address = self.scenario.get("default-address")
         test_method = self.gen_test_method('test_requests')
         self.gen_setup(test_method)
 
@@ -273,7 +273,7 @@ import apiritif
 
             if req.url is not None:
                 parsed_url = parse.urlparse(req.url)
-                if default_address is not None and not parsed_url.netloc:
+                if default_address and not parsed_url.netloc:
                     url = default_address + req.url
                 else:
                     url = req.url
@@ -333,9 +333,7 @@ import apiritif
         test_method.append(self.gen_statement("self.driver.get('%s')" % url))
 
     def gen_setup(self, test_method):
-        timeout = self.scenario.get("timeout", None)
-        if timeout is None:
-            timeout = '30s'
+        timeout = self.scenario.get("timeout", "30s")
         scenario_timeout = dehumanize_time(timeout)
         test_method.append(self.gen_impl_wait(scenario_timeout))
         test_method.append(self.gen_new_line(indent=0))
@@ -443,9 +441,7 @@ import apiritif
                 self.log.warning("Browser %r doesn't support headless mode")
             setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
 
-        scenario_timeout = self.scenario.get("timeout", None)
-        if scenario_timeout is None:
-            scenario_timeout = '30s'
+        scenario_timeout = self.scenario.get("timeout", "30s")
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
         if self.window_size:  # FIXME: unused in fact
             statement = self.gen_statement("self.driver.set_window_position(0, 0)")
@@ -730,16 +726,14 @@ log.setLevel(logging.DEBUG)
             named_args['allow_redirects'] = req.priority_option('follow-redirects', default=True)
 
         headers = {}
-        scenario_headers = self.scenario.get("headers", None)
-        if scenario_headers:
-            headers.update(scenario_headers)
-        if req.headers:
-            headers.update(req.headers)
+        headers.update(self.scenario.get("headers"))
+        headers.update(req.headers)
+
         if headers:
             named_args['headers'] = self.gen_expr(headers)
 
         merged_headers = dict([(key.lower(), value) for key, value in iteritems(headers)])
-        content_type = merged_headers.get('content-type', None)
+        content_type = merged_headers.get("content-type")
 
         if content_type == 'application/json' and isinstance(req.body, (dict, list)):  # json request body
             named_args['json'] = self.gen_expr(req.body)
@@ -876,7 +870,7 @@ log.setLevel(logging.DEBUG)
             assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
             exc = TaurusConfigError('JSON Path not found in assertion: %s' % assertion)
             query = assertion.get('jsonpath', exc)
-            expected = assertion.get('expected-value', '') or None
+            expected = assertion.get('expected-value', None)
             method = "assert_not_jsonpath" if assertion.get('invert', False) else "assert_jsonpath"
             stmts.append(ast.Expr(
                 ast.Call(
@@ -923,7 +917,7 @@ log.setLevel(logging.DEBUG)
 
     def _gen_extractors(self, request):
         stmts = []
-        jextractors = request.config.get("extract-jsonpath", BetterDict())
+        jextractors = request.config.get("extract-jsonpath")
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
             stmts.append(ast.Assign(
@@ -941,7 +935,7 @@ log.setLevel(logging.DEBUG)
                 )
             ))
 
-        extractors = request.config.get("extract-regexp", BetterDict())
+        extractors = request.config.get("extract-regexp")
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
             # TODO: support non-'body' value of 'subject'
@@ -962,7 +956,7 @@ log.setLevel(logging.DEBUG)
 
         # TODO: css/jquery extractor?
 
-        xpath_extractors = request.config.get("extract-xpath", BetterDict())
+        xpath_extractors = request.config.get("extract-xpath")
         for varname in xpath_extractors:
             cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
             parser_type = 'html' if cfg.get('use-tolerant-parser', True) else 'xml'

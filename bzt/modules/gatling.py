@@ -50,9 +50,7 @@ class GatlingScriptBuilder(object):
         return "  " * level + text
 
     def _get_http(self):
-        default_address = self.scenario.get('default-address', None)
-        if default_address is None:
-            default_address = ''
+        default_address = self.scenario.get("default-address", "")
 
         http_str = 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
 
@@ -73,7 +71,7 @@ class GatlingScriptBuilder(object):
             if len(exec_str) > 0:
                 exec_str += '.'
 
-            default_address = self.scenario.get("default-address", None)
+            default_address = self.scenario.get("default-address")
             if default_address:
                 url = req.url
             else:
@@ -228,7 +226,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.stdout_file = None
         self.stderr_file = None
         self.simulation_started = False
-        self.dir_prefix = ''
+        self.dir_prefix = "gatling-%s" % id(self)
         self.launcher = None
 
     def __build_launcher(self):
@@ -315,9 +313,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
                 raise TaurusConfigError(msg)
 
-        self.dir_prefix = self.settings.get('dir_prefix', None)
-        if self.dir_prefix is None:
-            self.dir_prefix = 'gatling-%s' % id(self)
+        self.dir_prefix = self.settings.get("dir_prefix", self.dir_prefix)
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)

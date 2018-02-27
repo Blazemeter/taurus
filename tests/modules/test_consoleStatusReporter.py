@@ -15,7 +15,7 @@ from tests.modules.jmeter import MockJMeterExecutor
 class TestConsoleStatusReporter(BZTestCase):
     def __get_datapoint(self, n):
         point = DataPoint(n)
-        overall = point[DataPoint.CURRENT].get('', KPISet())
+        overall = point[DataPoint.CURRENT].get('', KPISet(), force_set=True)
         overall[KPISet.CONCURRENCY] = r(100)
         overall[KPISet.SAMPLE_COUNT] = int(100 * r(1000))
         overall[KPISet.FAILURES] = overall[KPISet.SAMPLE_COUNT] / 2.0

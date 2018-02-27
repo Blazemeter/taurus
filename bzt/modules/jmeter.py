@@ -273,7 +273,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         is_jmx_generated = False
 
         self.original_jmx = self.get_script_path()
-        if self.settings.get("version", self.JMETER_VER) == "auto":
+        if self.settings.get("version", self.JMETER_VER, force_set=True) == "auto":
             self.settings["version"] = self._get_tool_version(self.original_jmx)
         self.install_required_tools()
 
@@ -732,7 +732,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             jmx = JMX(self.original_jmx)
             resource_files_from_jmx = JMeterExecutor.__get_resource_files_from_jmx(jmx)
             if resource_files_from_jmx:
-                execution_files = self.execution.get('files', [])
+                execution_files = self.execution.get('files', [], force_set=True)
                 execution_files.extend(self._resolve_jmx_relpaths(resource_files_from_jmx))
                 self.__modify_resources_paths_in_jmx(jmx.tree, resource_files_from_jmx)
                 script_name, script_ext = os.path.splitext(os.path.basename(self.original_jmx))
@@ -848,8 +848,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if not tool.check_if_installed():
                 tool.install()
 
-        jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER)
-        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
+        jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER, force_set=True)
+        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/{version}/", force_set=True)
         jmeter_path = get_full_path(jmeter_path)
         download_link = self.settings.get("download-link", None)
         plugins = self.settings.get("plugins", [])
@@ -1326,7 +1326,7 @@ class JTLErrorsReader(object):
                 break
             labels = self.buffer.pop(t_stamp)
             for label, label_data in iteritems(labels):
-                res = result.get(label, [])
+                res = result.get(label, [], force_set=True)
                 for err_item in label_data:
                     KPISet.inc_list(res, ('msg', err_item['msg']), err_item)
 
@@ -1351,8 +1351,9 @@ class JTLErrorsReader(object):
         if message is None:
             message = elem.get('rm')
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
-        KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
-        KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
+        buffer = self.buffer.get(t_stamp, force_set=True)
+        KPISet.inc_list(buffer.get(label, [], force_set=True), ("msg", message), err_item)
+        KPISet.inc_list(buffer.get('', [], force_set=True), ("msg", message), err_item)
 
     def _extract_nonstandard(self, elem):
         t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
@@ -1371,14 +1372,14 @@ class JTLErrorsReader(object):
             errtype = KPISet.ERRTYPE_ASSERT
             message = massert[0].text
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
-        KPISet.inc_list(self.buffer.get(t_stamp).get(label, []), ("msg", message), err_item)
-        KPISet.inc_list(self.buffer.get(t_stamp).get('', []), ("msg", message), err_item)
+        buffer = self.buffer.get(t_stamp, force_set=True)
+        KPISet.inc_list(buffer.get(label, [], force_set=True), ("msg", message), err_item)
+        KPISet.inc_list(buffer.get('', [], force_set=True), ("msg", message), err_item)
 
     def get_failure_message(self, element):
         """
         Returns failure message
         """
-
         failed_assertion = self.__get_failed_assertion(element)
         if failed_assertion is not None:
             assertion_message = self.__get_assertion_message(failed_assertion)

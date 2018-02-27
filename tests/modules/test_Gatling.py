@@ -205,7 +205,6 @@ class TestGatlingExecutor(BZTestCase):
             "throughput": 33,
             "ramp-up": 30,
             "scenario": {
-                'default-address': None,
                 'keepalive': False,
                 'timeout': '100ms',
                 'requests': ['http://blazedemo.com', 'google.com']

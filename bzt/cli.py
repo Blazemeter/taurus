@@ -344,7 +344,8 @@ class CLI(object):
             config = Configuration()
 
             for jmx_file in jmxes:
-                config.get(ScenarioExecutor.EXEC, []).append({"executor": "jmeter", "scenario": {"script": jmx_file}})
+                piece = {"executor": "jmeter", "scenario": {"script": jmx_file}}
+                config.get(ScenarioExecutor.EXEC, [], force_set=True).append(piece)  # Does it brake single execution?
 
             config.dump(fname, Configuration.JSON)
 
@@ -439,7 +440,7 @@ class ConfigOverrider(object):
             value = option[option.index('=') + 1:]
             try:
                 self.__apply_single_override(dest, name, value)
-            except:
+            except BaseException:
                 self.log.debug("Failed override: %s", traceback.format_exc())
                 self.log.error("Failed to apply override %s=%s", name, value)
                 raise
@@ -468,9 +469,9 @@ class ConfigOverrider(object):
                 else:
                     pointer = pointer[part]
             elif isinstance(parts[index + 1], int) and isinstance(pointer, dict):
-                pointer = pointer.get(part, [])
+                pointer = pointer.get(part, [], force_set=True)
             else:
-                pointer = pointer.get(part)
+                pointer = pointer.get(part, force_set=True)
         self.__ensure_list_capacity(pointer, parts[-1])
         self.log.debug("Applying: [%s]=%s", parts[-1], value)
         if isinstance(parts[-1], string_types) and parts[-1][0] == '^':
