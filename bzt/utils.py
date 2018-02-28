@@ -58,15 +58,19 @@ from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
 
 
-def get_full_path(path, step_up=0):
+def get_full_path(path, default=None, step_up=0):
     """
     Function expands '~' and adds cwd to path if it's not absolute (relative)
     Target doesn't have to exist
 
     :param path:
+    :param default:
     :param step_up:
     :return:
     """
+    if not path:
+        return default
+
     res = os.path.abspath(os.path.expanduser(path))
     for _ in range(step_up):
         res = os.path.dirname(res)
