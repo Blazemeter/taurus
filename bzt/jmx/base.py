@@ -186,11 +186,14 @@ class JMX(object):
             "responseHeaders": False,
             "requestHeaders": False,
             "responseDataOnError": False,
-            "saveAssertionResultsFailureMessage": False,
+            "saveAssertionResultsFailureMessage": True,
             "bytes": True,
             "hostname": True,
             "threadCounts": True,
-            "url": False
+            "url": False,
+            "sentBytes": True,
+            "connectTime": True,
+            "idleTime": True,
         }
 
         return JMX.__jtl_writer(filename, "KPI Writer", flags)
