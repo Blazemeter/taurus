@@ -61,7 +61,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                                 "geckodriver-v{version}-{arch}.{ext}"
     GECKODRIVER_VERSION = "0.19.0"
 
-    SELENIUM_TOOLS_DIR = get_full_path("~/.bzt/selenium-taurus/tools")
+    SELENIUM_TOOLS_DIR = "~/.bzt/selenium-taurus/tools"
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
