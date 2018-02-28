@@ -281,7 +281,7 @@ class BZMock(object):
                 "result": [{'id': 1, 'enabled': True}]},
             'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {"result": []},
             'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": []},
             'https://a.blazemeter.com/api/v4/web/elfinder/1?target=s1_Lw&cmd=open': {"files": []},
             'https://a.blazemeter.com/api/v4/workspaces/1': {"result": {"locations": locs}},
