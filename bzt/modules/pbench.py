@@ -140,8 +140,8 @@ class PBenchTool(object):
         self.engine = executor.engine
         self.settings = executor.settings
         self.execution = executor.execution
-        self.path = get_full_path(self.settings.get('path', 'phantom'))
-        self.modules_path = get_full_path(self.settings.get("modules-path", "/usr/lib/phantom"))
+        self.path = get_full_path(self.settings.get("path"), default="phantom")
+        self.modules_path = get_full_path(self.settings.get("modules-path"), default="/usr/lib/phantom")
         self.kpi_file = None
         self.stats_file = None
         self.config_file = None

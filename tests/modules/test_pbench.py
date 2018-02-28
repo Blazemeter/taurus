@@ -143,6 +143,16 @@ class TestPBenchExecutor(TestPBench):
         self.obj.execution = self.obj.engine.config['execution'][0]
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
+    def test_default_path(self):
+        del self.obj.settings["path"]
+        try:
+            self.obj.prepare()
+        except:
+            pass
+
+        self.assertEquals("phantom", self.obj.pbench.path)
+        self.assertEquals("/usr/lib/phantom", self.obj.pbench.modules_path)
+
     def test_install_pbench(self):
         self.obj.settings.merge({"path": "/notexistent"})
         # self.obj.execution = self.obj.engine.config['execution'][0]
