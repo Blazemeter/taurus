@@ -443,7 +443,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
         self.assertEquals('https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test',
-                          self.mock.requests[5]['url'])
+                          self.mock.requests[6]['url'])
 
     def test_reuse_project_id(self):
         self.obj.user.token = object()
