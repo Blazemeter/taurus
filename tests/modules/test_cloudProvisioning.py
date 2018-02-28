@@ -297,7 +297,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
-                'https://a.blazemeter.com/api/v4/projects?projectId=1&limit=99999': {'result': [{'id': 1,
+                'https://a.blazemeter.com/api/v4/projects?projectId=1': {'result': [{'id': 1,
                                                                                                  'workspaceId': 1}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
@@ -324,7 +324,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': {'result': [{'id': 1,
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {'result': [{'id': 1,
                                                                                                    'workspaceId': 1}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
@@ -401,7 +401,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': [
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
@@ -422,7 +422,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
-                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999": {
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1": {
                     "result": [{"id": 1, "name": "myproject"}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
@@ -451,7 +451,7 @@ class TestCloudProvisioning(BZTestCase):
             add_settings=False,
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
-                "https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999": {
+                "https://a.blazemeter.com/api/v4/projects?workspaceId=1": {
                     "result": [{"id": 1, "name": "myproject"}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {
                     "result": [{"id": 1, "name": "Taurus Cloud Test"}]
@@ -1127,7 +1127,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': [
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
@@ -1155,7 +1155,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': [
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
@@ -1281,7 +1281,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=99999': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1323,7 +1323,7 @@ class TestCloudProvisioning(BZTestCase):
                     "result": {"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1,
                                "locations": [{"id": "eu-west-1"}]}
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=99999': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1354,7 +1354,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=99999': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&name=Test+name': {"result": []},
@@ -1386,7 +1386,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1}]
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=99999': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&id=4': {"result": []},
@@ -1431,7 +1431,7 @@ class TestCloudProvisioning(BZTestCase):
                     "result": {"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1,
                                "locations": [{"id": "eu-west-1"}]}
                 },
-                'https://a.blazemeter.com/api/v4/projects?workspaceId=2&limit=99999': {
+                'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
                     "result": [{"id": 3, "name": "Project name", "workspaceId": 2}]
                 },
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&name=ExternalTest': {"result": []},
@@ -1456,7 +1456,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': [
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
@@ -1480,7 +1480,7 @@ class TestCloudProvisioning(BZTestCase):
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": [
                 {"id": 1, 'projectId': 1, 'name': 'Taurus Cloud Test', 'configuration': {'type': 'taurus'}}
             ]},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': [
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': [
                 {'result': []},
                 {'result': [{'id': 1}]}
             ],
