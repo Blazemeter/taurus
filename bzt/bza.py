@@ -267,7 +267,8 @@ class Workspace(BZAObject):
         """
         params = OrderedDict()
         params.update({"workspaceId": self['id']})
-        params.update({"limit": 99999})
+        if name:
+            params.update({"name": name})
         res = self._request(self.address + '/api/v4/projects?' + urlencode(params))
 
         projects = BZAObjectsList()
