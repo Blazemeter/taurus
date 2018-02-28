@@ -29,8 +29,8 @@ RUN apt-get -y update \
     libgconf-2-4 \
     libexif12 \
     udev \
-    python-dev \
-    python-pip \
+    python3-dev python3-pip \
+    python-dev python-pip \
     default-jdk \
     xvfb \
     libyaml-dev \
@@ -47,10 +47,9 @@ RUN apt-get -y update \
     ruby ruby-dev \
     nodejs \
     mono-complete nuget \
-    python3-dev python3-pip \
     net-tools \
-  && pip install --upgrade setuptools pip wheel \
-  && pip install locustio robotframework robotframework-seleniumlibrary \
+  && pip2 install --upgrade setuptools pip wheel \
+  && pip2 install locustio robotframework robotframework-seleniumlibrary \
   && pip3 install --upgrade setuptools pip wheel \
   && pip3 install molotov \
   && npm install -g mocha \
