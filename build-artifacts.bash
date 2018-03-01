@@ -1,6 +1,6 @@
 #!/bin/bash -xe
 apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis
-pip install pynsist
+pip install "pynsist<2"
 
 # build source distribution
 ./build-sdist.sh
