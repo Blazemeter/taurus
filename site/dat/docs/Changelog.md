@@ -17,6 +17,7 @@
  - add function translation for Apiritif executor: `__base64Encode`, `__base64Decode`, `__UUID` and `__urlencode`
  - add `swagger2yaml` converter
  - support `additional-classpath` for Gatling
+ - don't force applying defaults into effective configuration (huge internal impact)
 
 
 ## 1.10.5 <sup>8 feb 2018</sup>

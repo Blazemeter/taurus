@@ -22,6 +22,7 @@ class TestBlazeMeterUploader(BZTestCase):
         mock = BZMock()
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name': {"result": []},
             'https://a.blazemeter.com/api/v4/sessions/1': {"result": {'id': 1, "note": "somenote"}},
             'https://a.blazemeter.com/api/v4/masters/1': {"result": {'id': 1, "note": "somenote"}},
         })
@@ -37,7 +38,8 @@ class TestBlazeMeterUploader(BZTestCase):
             'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1' +
             '&pq=0&target=labels_bulk&update=1': {},
             'https://a.blazemeter.com/api/v4/sessions/1/stop': {"result": True},
-            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1': {'result': {'session': {}}}
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1': {
+                'result': {'session': {}}}
         })
 
         mock.mock_patch.update({
@@ -125,7 +127,8 @@ class TestBlazeMeterUploader(BZTestCase):
         mock = BZMock()
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Test': {"result": []},
-            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test': {"result": []}
+            'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Test': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name': {"result": []},
         })
         mock.mock_post.update({
             'https://a.blazemeter.com/api/v4/projects': {"result": {
@@ -214,7 +217,8 @@ class TestBlazeMeterUploader(BZTestCase):
             'https://data.blazemeter.com/submit.php?session_id=direct&signature=sign&test_id=None&user_id=None&pq=0&target=labels_bulk&update=1': {},
             'https://data.blazemeter.com/api/v4/image/direct/files?signature=sign': {"result": True},
             'https://a.blazemeter.com/api/v4/sessions/direct/stop': {"result": True},
-            'https://data.blazemeter.com/submit.php?session_id=direct&signature=sign&test_id=None&user_id=None&pq=0&target=engine_health&update=1': {'result': {'session': {}}}
+            'https://data.blazemeter.com/submit.php?session_id=direct&signature=sign&test_id=None&user_id=None&pq=0&target=engine_health&update=1': {
+                'result': {'session': {}}}
         })
         mock.mock_get.update({
             'https://a.blazemeter.com/api/v4/sessions/direct': {"result": {}}
@@ -249,7 +253,8 @@ class TestBlazeMeterUploader(BZTestCase):
             }},
             'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=labels_bulk&update=1': {},
             'https://data.blazemeter.com/api/v4/image/1/files?signature=sign': {"result": True},
-            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1': {'result': {'session': {}}},
+            'https://data.blazemeter.com/submit.php?session_id=1&signature=sign&test_id=1&user_id=1&pq=0&target=engine_health&update=1': {
+                'result': {'session': {}}},
         })
         obj.prepare()
         obj.startup()
@@ -445,7 +450,7 @@ class TestResultsFromBZA(BZTestCase):
         result = []
         if not assertions:
             assertions = {}
-        for _id in list(set(list(errors.keys()) + list(assertions.keys()))):    # unique keys from both dictionaries
+        for _id in list(set(list(errors.keys()) + list(assertions.keys()))):  # unique keys from both dictionaries
 
             errors_list = []
             if errors.get(_id):
@@ -547,8 +552,8 @@ class TestResultsFromBZA(BZTestCase):
         self.assertEqual(1, len(cumul.keys()))
         self.assertEqual(1, len(cur.keys()))
         errors_1 = {'Not found': {'count': 10, 'rc': u'404'}}
-        self.assertEqual(self.convert_kpi_errors(cumul[""]["errors"]), errors_1)     # all error data is written
-        self.assertEqual(self.convert_kpi_errors(cur[""]["errors"]), errors_1)       # to 'current' and 'cumulative'
+        self.assertEqual(self.convert_kpi_errors(cumul[""]["errors"]), errors_1)  # all error data is written
+        self.assertEqual(self.convert_kpi_errors(cur[""]["errors"]), errors_1)  # to 'current' and 'cumulative'
 
         # frame [1464248744, 1464248745)
         res2 = list(obj.datapoints(False))
@@ -557,21 +562,21 @@ class TestResultsFromBZA(BZTestCase):
         cur = res2[0][DataPoint.CURRENT]
         self.assertEqual(1, len(cumul.keys()))
         self.assertEqual(1, len(cur.keys()))
-        self.assertEqual(self.convert_kpi_errors(cumul[""]["errors"]), errors_1)    # the same errors,
-        self.assertEqual(cur[""]["errors"], [])                                     # new errors not found
+        self.assertEqual(self.convert_kpi_errors(cumul[""]["errors"]), errors_1)  # the same errors,
+        self.assertEqual(cur[""]["errors"], [])  # new errors not found
 
         mock.mock_get.update(self.get_errors_mock({
             "ALL": {
                 "Not found": {
-                    "count": 11, "rc": "404"},          # one more error
+                    "count": 11, "rc": "404"},  # one more error
                 "Found": {
-                    "count": 2, "rc": "200"}},          # new error message (error ID)
+                    "count": 2, "rc": "200"}},  # new error message (error ID)
             "label1": {
                 "Strange behaviour": {
-                    "count": 666, "rc": "666"}}}, {     # new error label
+                    "count": 666, "rc": "666"}}}, {  # new error label
             "ALL": {"assertion_example": {"count": 33}}}))
 
-        res3 = list(obj.datapoints(True))    # let's add the last timestamp [1464248745]
+        res3 = list(obj.datapoints(True))  # let's add the last timestamp [1464248745]
         self.assertEqual(1, len(res3))
         cumul = res3[0][DataPoint.CUMULATIVE]
         cur = res3[0][DataPoint.CURRENT]
