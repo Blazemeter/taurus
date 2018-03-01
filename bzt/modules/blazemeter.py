@@ -43,8 +43,8 @@ from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
-from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 from bzt.utils import dehumanize_time, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
+from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 
 TAURUS_TEST_TYPE = "taurus"
 CLOUD_CONFIG_FILTER_RULES = {
@@ -121,6 +121,7 @@ CLOUD_CONFIG_FILTER_RULES = {
 }
 
 CLOUD_CONFIG_FILTER_RULES['modules']['!cloud'] = CLOUD_CONFIG_FILTER_RULES['modules']['!blazemeter']
+NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
 
 
 def send_with_retry(method):
@@ -138,9 +139,26 @@ def send_with_retry(method):
                 time.sleep(self._user.timeout)
                 method(self, *args, **kwargs)
                 self.log.info("Succeeded with retry")
-            except (IOError, TaurusNetworkError):
+            except NETWORK_PROBLEMS:
                 self.log.error("Fatal error sending data: %s", traceback.format_exc())
                 self.log.warning("Will skip failed data and continue running")
+
+    return _impl
+
+
+def get_with_retry(method):
+    @wraps(method)
+    def _impl(self, *args, **kwargs):
+        if not isinstance(self, CloudProvisioning):
+            raise TaurusInternalException("get_with_retry should only be applied to CloudProvisioning class methods")
+
+        while True:
+            try:
+                return method(self, *args, **kwargs)
+            except NETWORK_PROBLEMS:
+                self.log.debug("Error making request: %s", traceback.format_exc())
+                self.log.warning("Failed to make request, will retry in %s sec...", self.user.timeout)
+                time.sleep(self.user.timeout)
 
     return _impl
 
@@ -1599,14 +1617,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         self._last_check_time = time.time()
 
-        try:
-            master = self.router.get_master_status()
-        except (URLError, SSLError, ReadTimeout, TaurusNetworkError):
-            self.log.warning("Failed to get test status, will retry in %s seconds...", self.user.timeout)
-            self.log.debug("Full exception: %s", traceback.format_exc())
-            time.sleep(self.user.timeout)
-            master = self.router.get_master_status()
-            self.log.info("Succeeded with retry")
+        master = self._check_master_status()
 
         if "status" in master and master['status'] != self.__last_master_status:
             self.__last_master_status = master['status']
@@ -1624,6 +1635,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         self.widget.update()
         return super(CloudProvisioning, self).check()
+
+    @get_with_retry
+    def _check_master_status(self):
+        return self.router.get_master_status()
 
     def post_process(self):
         if not self.detach and self.router and not self.test_ended:
