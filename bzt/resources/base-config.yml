@@ -206,3 +206,6 @@ modules: # TODO: cleanup as much as possible from defaults
       jmeterengine.force.system.exit: 'true'
       summariser.name: ''
 
+settings:
+  env:
+    OBJC_DISABLE_INITIALIZE_FORK_SAFETY: YES # for Mac to not crash Apiritif

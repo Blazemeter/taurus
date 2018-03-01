@@ -18,7 +18,7 @@
  - add `swagger2yaml` converter
  - support `additional-classpath` for Gatling
  - don't force applying defaults into effective configuration (huge internal impact)
-
+ - set `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` env variable to fight MacOS problems
 
 ## 1.10.5 <sup>8 feb 2018</sup>
  - add `-lint functionality for checking Taurus configs for errors/typos
