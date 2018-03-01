@@ -1236,6 +1236,8 @@ class JMeterExprCompiler(object):
                             values=[self.gen_expr(v) for _, v in items])
         elif isinstance(value, list):
             return ast.List(elts=[self.gen_expr(val) for val in value], ctx=ast.Load())
+        elif isinstance(value, tuple):
+            return ast.Tuple(elts=[self.gen_expr(val) for val in value], ctx=ast.Load())
         elif isinstance(value, ast.AST):
             return value
         else:
