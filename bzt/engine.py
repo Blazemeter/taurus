@@ -641,7 +641,7 @@ class Engine(object):
                 if varname in os.environ:
                     os.environ.pop(varname)
             else:
-                os.environ[varname] = envs[varname]
+                os.environ[varname] = str(envs[varname])
 
         def apply_env(value, key, container):
             if key in ("scenario", "scenarios"):  # might stop undesired branches
