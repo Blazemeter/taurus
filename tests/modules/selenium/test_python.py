@@ -1158,6 +1158,30 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.prepare()
         self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "/apiritif/test_codegen_requests.py")
 
+    def test_generator_crash(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "variables": {
+                      "product_id": "5b6c",
+                    },
+                    "requests": [{
+                        "url": "/",
+                        "method": "POST",
+                        "body": {
+                            "product": "${product_id}"  # notice the space
+                        }
+                    }]
+                }
+            }]
+        })
+        self.obj.prepare()  # Unparser shouldn't crash with AttributeError because of malformed AST
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("data=[('product', product_id)]", test_script)
 
 class TestPyTestExecutor(BZTestCase):
     def setUp(self):
