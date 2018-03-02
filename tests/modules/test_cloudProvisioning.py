@@ -148,9 +148,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["detach"] = True
 
         self.obj.prepare()
-        self.assertEqual(14, len(self.mock.requests))
-        self.obj.startup()
         self.assertEqual(15, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(16, len(self.mock.requests))
         self.obj.check()
         self.obj.shutdown()
         self.obj.post_process()
@@ -264,7 +264,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.obj.log.info("Made requests: %s", self.mock.requests)
         self.assertEquals('https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1',
-                          self.mock.requests[12]['url'])
+                          self.mock.requests[13]['url'])
 
     def test_cloud_config_cleanup(self):
         self.configure(
@@ -393,8 +393,8 @@ class TestCloudProvisioning(BZTestCase):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
         self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
-        self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[5]['url'])
-        self.assertEquals('POST', self.mock.requests[5]['method'])
+        self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[6]['url'])
+        self.assertEquals('POST', self.mock.requests[6]['method'])
 
     def test_create_project_test_exists(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
@@ -410,11 +410,10 @@ class TestCloudProvisioning(BZTestCase):
         })
         self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
-        self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[5]['url'])
-        self.assertEquals('POST', self.mock.requests[5]['method'])
-        self.assertEquals('https://a.blazemeter.com/api/v4/tests',
-                          self.mock.requests[9]['url'])
-        self.assertEquals('POST', self.mock.requests[9]['method'])
+        self.assertEquals('https://a.blazemeter.com/api/v4/projects', self.mock.requests[6]['url'])
+        self.assertEquals('POST', self.mock.requests[6]['method'])
+        self.assertEquals('https://a.blazemeter.com/api/v4/tests', self.mock.requests[10]['url'])
+        self.assertEquals('POST', self.mock.requests[10]['method'])
 
     def test_reuse_project(self):
         self.obj.user.token = object()
@@ -443,7 +442,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings.merge({"delete-test-files": False, "project": "myproject"})
         self.obj.prepare()
         self.assertEquals('https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test',
-                          self.mock.requests[6]['url'])
+                          self.mock.requests[7]['url'])
 
     def test_reuse_project_id(self):
         self.obj.user.token = object()
@@ -755,7 +754,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertTrue(self.obj.check())
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertEqual(21, len(self.mock.requests))
+        self.assertEqual(22, len(self.mock.requests))
         self.assertIn("Cloud test has probably failed with message: msg", self.log_recorder.warn_buff.getvalue())
 
     def test_cloud_paths(self):
@@ -1017,7 +1016,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.results_reader.min_ts = 0  # to make it request same URL
         self.obj.engine.aggregator.check()
 
-        self.assertEqual(27, len(self.mock.requests))
+        self.assertEqual(28, len(self.mock.requests))
 
     def test_dump_locations(self):
         self.configure()
@@ -1086,7 +1085,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEqual(self.obj.browser_open, "both")
         self.assertEqual(self.obj.user.token, "bmtoken")
         self.assertEqual(self.obj.check_interval, 20.0)
-        self.assertEqual(14, len(self.mock.requests))
+        self.assertEqual(15, len(self.mock.requests))
 
     def test_public_report(self):
         self.configure(
@@ -1140,9 +1139,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.obj.startup()
         reqs = self.mock.requests
-        self.assertEqual(reqs[12]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
-        self.assertEqual(reqs[12]['method'], 'PATCH')
-        data = json.loads(reqs[12]['data'])
+        self.assertEqual(reqs[13]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
+        self.assertEqual(reqs[13]['method'], 'PATCH')
+        data = json.loads(reqs[13]['data'])
         plugins = data['configuration']['plugins']
         self.assertEqual(plugins["functionalExecution"], {"enabled": True})
         start_req = reqs[-1]
@@ -1189,9 +1188,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["launch-existing-test"] = True
 
         self.obj.prepare()
-        self.assertEqual(9, len(self.mock.requests))
-        self.obj.startup()
         self.assertEqual(10, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(11, len(self.mock.requests))
 
     def test_launch_existing_test_by_id(self):
         self.configure(
@@ -1207,9 +1206,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["launch-existing-test"] = True
 
         self.obj.prepare()
-        self.assertEqual(9, len(self.mock.requests))
-        self.obj.startup()
         self.assertEqual(10, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(11, len(self.mock.requests))
 
     def test_launch_existing_test_not_found_by_id(self):
         self.configure(
@@ -1253,9 +1252,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["launch-existing-test"] = True
 
         self.obj.prepare()
-        self.assertEqual(8, len(self.mock.requests))
-        self.obj.startup()
         self.assertEqual(9, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(10, len(self.mock.requests))
 
     def test_launch_existing_test_non_taurus(self):
         self.configure(
@@ -1270,9 +1269,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.settings["test"] = "foo"
 
         self.obj.prepare()
-        self.assertEqual(9, len(self.mock.requests))
-        self.obj.startup()
         self.assertEqual(10, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(11, len(self.mock.requests))
 
     def test_launch_test_by_link(self):
         self.configure(
@@ -1375,9 +1374,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
-        self.assertEqual(7, len(self.mock.requests))
-        self.obj.startup()
         self.assertEqual(8, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(9, len(self.mock.requests))
 
     def test_lookup_test_ids(self):
         self.configure(
@@ -1407,9 +1406,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
-        self.assertEqual(7, len(self.mock.requests))
-        self.obj.startup()
         self.assertEqual(8, len(self.mock.requests))
+        self.obj.startup()
+        self.assertEqual(9, len(self.mock.requests))
 
     def test_lookup_test_different_type(self):
         self.configure(
@@ -1422,7 +1421,8 @@ class TestCloudProvisioning(BZTestCase):
                 ]
             },
             get={
-                'https://a.blazemeter.com/api/v4/accounts': {"result": [{"id": 1, "name": "Acc name"}]},
+                'https://a.blazemeter.com/api/v4/accounts': {
+                    "result": [{"id": 1, "name": "Acc name", "owner": {"id": 1}}]},
                 'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                     "result": [{"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1,
                                 "locations": [{"id": "eu-west-1"}]}]
@@ -1449,7 +1449,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.settings["test"] = "ExternalTest"
         self.obj.prepare()
-        self.assertEqual(13, len(self.mock.requests))
+        self.assertEqual(14, len(self.mock.requests))
 
     def test_send_report_email_default(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
@@ -1469,9 +1469,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.obj.startup()
         reqs = self.mock.requests
-        self.assertEqual(reqs[12]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
-        self.assertEqual(reqs[12]['method'], 'PATCH')
-        data = json.loads(reqs[12]['data'])
+        self.assertEqual(reqs[13]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
+        self.assertEqual(reqs[13]['method'], 'PATCH')
+        data = json.loads(reqs[13]['data'])
         plugins = data['configuration']['plugins']
         self.assertEqual(plugins["reportEmail"], {"enabled": False})
 
@@ -1493,9 +1493,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.obj.startup()
         reqs = self.mock.requests
-        self.assertEqual(reqs[12]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
-        self.assertEqual(reqs[12]['method'], 'PATCH')
-        data = json.loads(reqs[12]['data'])
+        self.assertEqual(reqs[13]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
+        self.assertEqual(reqs[13]['method'], 'PATCH')
+        data = json.loads(reqs[13]['data'])
         plugins = data['configuration']['plugins']
         self.assertEqual(plugins["reportEmail"], {"enabled": True})
 
