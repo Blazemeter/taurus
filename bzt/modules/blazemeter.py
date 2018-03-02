@@ -1195,7 +1195,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         if self._test is None:
             test_config = {
-                "type": TAURUS_TEST_TYPE if not self.is_functional else FUNC_TEST_TYPE,
+                "type": FUNC_TEST_TYPE if self.is_functional else TAURUS_TEST_TYPE,
                 "plugins": {
                     "taurus": {
                         "filename": ""  # without this line it does not work
