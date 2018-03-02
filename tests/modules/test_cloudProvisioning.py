@@ -298,7 +298,7 @@ class TestCloudProvisioning(BZTestCase):
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
                 'https://a.blazemeter.com/api/v4/projects?projectId=1': {'result': [{'id': 1,
-                                                                                                 'workspaceId': 1}]},
+                                                                                     'workspaceId': 1}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
                     "projectId": 1,
@@ -325,7 +325,7 @@ class TestCloudProvisioning(BZTestCase):
             engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
             get={
                 'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {'result': [{'id': 1,
-                                                                                                   'workspaceId': 1}]},
+                                                                                       'workspaceId': 1}]},
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {"result": [{
                     "id": 1,
                     "projectId": 1,
@@ -1498,6 +1498,23 @@ class TestCloudProvisioning(BZTestCase):
         data = json.loads(reqs[12]['data'])
         plugins = data['configuration']['plugins']
         self.assertEqual(plugins["reportEmail"], {"enabled": True})
+
+    def test_multi_account_choice(self):
+        with open(RESOURCES_DIR + "json/blazemeter-api-accounts.json") as fhd:
+            accs = json.loads(fhd.read())
+
+        self.configure(
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            get={
+                'https://a.blazemeter.com/api/v4/accounts': accs,
+            },
+        )
+
+        self.obj.settings['launch-existing-test'] = False
+        self.obj.prepare()
+        exp = "https://a.blazemeter.com/api/v4/workspaces?accountId=2&enabled=true&limit=100"
+        self.assertEqual(exp, self.mock.requests[6]['url'])
+        self.assertEqual(17, len(self.mock.requests))
 
 
 class TestCloudTaurusTest(BZTestCase):

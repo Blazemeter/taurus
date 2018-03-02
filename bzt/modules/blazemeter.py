@@ -883,9 +883,18 @@ class ProjectFinder(object):
             if not account:
                 raise TaurusConfigError("BlazeMeter account not found by ID: %s" % account_name)
 
+        all_accounts = self.user.accounts()
         if account is None:
-            account = self.user.accounts().first()
-            self.log.debug("Using first account: %s" % account)
+            self.user.fetch()
+            for acc in all_accounts:
+                if acc["owner"]["id"] == self.user['id']:
+                    self.log.debug("Using userID matched account: %s", acc)
+                    account = acc
+                    break
+
+        if account is None:
+            account = all_accounts.first()
+            self.log.debug("Using first account: %s", account)
 
         return account
 
@@ -1779,7 +1788,7 @@ class ResultsFromBZA(ResultsProvider):
 
             if self.handle_errors:
                 self.handle_errors = False
-                self.cur_errors = self.__get_errors_from_BZA()
+                self.cur_errors = self.__get_errors_from_bza()
                 err_diff = self._get_err_diff()
                 if err_diff:
                     for label in err_diff:
@@ -1793,7 +1802,7 @@ class ResultsFromBZA(ResultsProvider):
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
 
-    def __get_errors_from_BZA(self):
+    def __get_errors_from_bza(self):
         #
         # This method reads error report from BZA
         #
