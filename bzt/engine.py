@@ -256,6 +256,7 @@ class Engine(object):
         :return:
         """
         self.log.info("Shutting down...")
+        self.log.debug("Current stop reason: %s", self.stopping_reason)
         exc_info = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
@@ -354,7 +355,7 @@ class Engine(object):
         Create directory for artifacts, directory name based on datetime.now()
         """
         if not self.artifacts_dir:
-            artifacts_dir = self.config.get(SETTINGS).get("artifacts-dir", self.ARTIFACTS_DIR)
+            artifacts_dir = self.config.get(SETTINGS, force_set=True).get("artifacts-dir", self.ARTIFACTS_DIR)
             self.artifacts_dir = datetime.datetime.now().strftime(artifacts_dir)
 
         self.artifacts_dir = get_full_path(self.artifacts_dir)
@@ -402,9 +403,8 @@ class Engine(object):
         BetterDict.traverse(acopy, Configuration.masq_sensitive)
         self.log.debug("Module config: %s %s", alias, acopy)
 
-        clsname = settings.get('class', None)
-        if clsname is None:
-            raise TaurusConfigError("Class name for alias '%s' is not found in module settings: %s" % (alias, settings))
+        err = TaurusConfigError("Class name for alias '%s' is not found in module settings: %s" % (alias, settings))
+        clsname = settings.get('class', err)
 
         self.modules[alias] = load_class(clsname)
         if not issubclass(self.modules[alias], EngineModule):
@@ -505,10 +505,8 @@ class Engine(object):
         """
         Instantiate provisioning class
         """
-        cls = self.config.get(Provisioning.PROV, None)
-        if not cls:
-            msg = "Please check global config availability or configure provisioning settings"
-            raise TaurusConfigError(msg)
+        err = TaurusConfigError("Please check global config availability or configure provisioning settings")
+        cls = self.config.get(Provisioning.PROV, err)
         self.provisioning = self.instantiate_module(cls)
         self.prepared.append(self.provisioning)
         self.provisioning.prepare()
@@ -643,7 +641,7 @@ class Engine(object):
                 if varname in os.environ:
                     os.environ.pop(varname)
             else:
-                os.environ[varname] = envs[varname]
+                os.environ[varname] = str(envs[varname])
 
         def apply_env(value, key, container):
             if key in ("scenario", "scenarios"):  # might stop undesired branches
@@ -979,10 +977,8 @@ class ScenarioExecutor(EngineModule):
         """
         if scenario is None:
             scenario = self.get_scenario()
-        if Scenario.SCRIPT in scenario and scenario[Scenario.SCRIPT]:
-            return self.engine.find_file(scenario.get(Scenario.SCRIPT))
-        else:
-            return None
+        script = scenario.get(Scenario.SCRIPT, None)
+        return self.engine.find_file(script)
 
     def get_scenario(self, name=None, cache_scenario=True):
         """
@@ -993,7 +989,7 @@ class ScenarioExecutor(EngineModule):
         if name is None and self.__scenario is not None:
             return self.__scenario
 
-        scenarios = self.engine.config.get("scenarios")
+        scenarios = self.engine.config.get("scenarios", force_set=True)
 
         if name is None:  # get current scenario
             exc = TaurusConfigError("Scenario is not found in execution: %s" % self.execution)

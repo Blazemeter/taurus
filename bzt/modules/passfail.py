@@ -29,7 +29,7 @@ from bzt.engine import Reporter, Service
 from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.six import string_types, viewvalues, iteritems
-from bzt.utils import load_class, dehumanize_time
+from bzt.utils import load_class, dehumanize_time, BetterDict
 
 
 class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):  # TODO: remove Service
@@ -128,7 +128,7 @@ class FailCriterion(object):
         self.get_value = self._get_field_functor(config['subject'], self.percentage)
         self.window_logic = config.get('logic', 'for')
         self.agg_logic = self._get_aggregator_functor(self.window_logic, config['subject'])
-        self.condition = self._get_condition_functor(config.get('condition', '>'))
+        self.condition = self._get_condition_functor(config.get('condition', '>', force_set=True))
         self.threshold = dehumanize_time(config['threshold'])
         self.stop = config.get('stop', True)
         self.fail = config.get('fail', True)
@@ -356,7 +356,8 @@ class DataCriterion(FailCriterion):
         :type crit_config: str
         :rtype: dict
         """
-        res = {
+        res = BetterDict()
+        res.merge({
             "subject": None,
             "condition": None,
             "threshold": None,
@@ -366,7 +367,7 @@ class DataCriterion(FailCriterion):
             "stop": True,
             "fail": True,
             "message": None,
-        }
+        })
 
         if ':' in crit_config:
             res['message'] = crit_config[:crit_config.index(':')].strip()

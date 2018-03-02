@@ -105,7 +105,7 @@ class HierarchicHTTPRequest(HTTPRequest):
             file_dict["path"] = path
 
             mime = mimetypes.guess_type(file_dict["path"])[0] or "application/octet-stream"
-            file_dict.get('mime-type', mime)
+            file_dict.get("mime-type", mime, force_set=True)
         self.content_encoding = self.config.get('content-encoding', None)
 
 

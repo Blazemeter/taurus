@@ -17,16 +17,47 @@ limitations under the License.
 """
 import copy
 import logging
-import math
-import operator
 import re
 from abc import abstractmethod
 from collections import Counter
 
+from hdrpy import HdrHistogram
+
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems
-from bzt.utils import BetterDict, dehumanize_time
+from bzt.utils import BetterDict, dehumanize_time, JSONConvertable
+
+
+class RespTimesCounter(JSONConvertable):
+    def __init__(self, low, high, sign_figures):
+        super(RespTimesCounter, self).__init__()
+        self.low = low
+        self.high = high
+        self.sign_figures = sign_figures
+        self.histogram = HdrHistogram(low, high, sign_figures)
+
+    def __bool__(self):
+        return len(self) > 0
+
+    def __len__(self):
+        return self.histogram.total_count
+
+    def add(self, item, count=1):
+        self.histogram.record_value(item, count)
+
+    def merge(self, other):
+        self.histogram.add(other.histogram)
+
+    def get_percentiles_dict(self, percentiles):
+        return self.histogram.get_percentile_to_value_dict(percentiles)
+
+    def get_counts(self):
+        return self.histogram.get_value_counts()
+
+    def __json__(self):
+        counts = self.get_counts()
+        return counts
 
 
 class KPISet(BetterDict):
@@ -57,22 +88,22 @@ class KPISet(BetterDict):
         self.sum_cn = 0
         self.perc_levels = perc_levels
         self.rtimes_len = rt_dist_maxlen
-        # scalars
-        self.get(self.SAMPLE_COUNT, 0)
-        self.get(self.CONCURRENCY, 0)
-        self.get(self.SUCCESSES, 0)
-        self.get(self.FAILURES, 0)
-        self.get(self.AVG_RESP_TIME, 0)
-        self.get(self.STDEV_RESP_TIME, 0)
-        self.get(self.AVG_LATENCY, 0)
-        self.get(self.AVG_CONN_TIME, 0)
-        self.get(self.BYTE_COUNT, 0)
-        # vectors
-        self.get(self.ERRORS, [])
-        self.get(self.RESP_TIMES, Counter())
-        self.get(self.RESP_CODES, Counter())
-        self.get(self.PERCENTILES)
         self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
+        # scalars
+        self[KPISet.SAMPLE_COUNT] = 0
+        self[KPISet.CONCURRENCY] = 0
+        self[KPISet.SUCCESSES] = 0
+        self[KPISet.FAILURES] = 0
+        self[KPISet.AVG_RESP_TIME] = 0
+        self[KPISet.STDEV_RESP_TIME] = 0
+        self[KPISet.AVG_LATENCY] = 0
+        self[KPISet.AVG_CONN_TIME] = 0
+        self[KPISet.BYTE_COUNT] = 0
+        # vectors
+        self[KPISet.ERRORS] = []
+        self[KPISet.RESP_TIMES] = RespTimesCounter(1, 60 * 30 * 1000, 3)  # is maximum value of 30 minutes enough?
+        self[KPISet.RESP_CODES] = Counter()
+        self[KPISet.PERCENTILES] = BetterDict()
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels)
@@ -132,7 +163,8 @@ class KPISet(BetterDict):
         else:
             self[self.SUCCESSES] += 1
 
-        self[self.RESP_TIMES][r_time] += 1
+        rtime_s = round(r_time * 1000, 3)
+        self[self.RESP_TIMES].add(rtime_s, 1)
 
         if byte_count is not None:
             self[self.BYTE_COUNT] += byte_count
@@ -176,49 +208,14 @@ class KPISet(BetterDict):
         if len(self._concurrencies):
             self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
-        perc, stdev = self.__perc_and_stdev(self[self.RESP_TIMES], self.perc_levels, self[self.AVG_RESP_TIME])
-        for level, val in perc:
-            self[self.PERCENTILES][str(float(level))] = val
-
-        self[self.STDEV_RESP_TIME] = stdev
+        resp_times = self[self.RESP_TIMES]
+        if resp_times:
+            self[self.PERCENTILES] = {
+                str(float(perc)): value / 1000.0
+                for perc, value in iteritems(resp_times.get_percentiles_dict(self.perc_levels))
+            }
 
         return self
-
-    def compact_times(self):
-        if not self.rtimes_len:
-            return
-
-        times = self[KPISet.RESP_TIMES]
-        redundant_cnt = len(times) - self.rtimes_len
-        if redundant_cnt > 0:
-            logging.debug("Compacting %s response timing into %s", len(times), self.rtimes_len)
-
-        while redundant_cnt > 0:
-            keys = sorted(times.keys())
-            distances = [(lidx, keys[lidx + 1] - keys[lidx]) for lidx in range(len(keys) - 1)]
-            distances.sort(key=operator.itemgetter(1))  # sort by distance
-
-            # cast candidates for consolidation
-            lkeys_indexes = [lidx for lidx, _ in distances[:redundant_cnt]]
-
-            while lkeys_indexes:
-                lidx = lkeys_indexes.pop(0)
-                lkey = keys[lidx]
-                rkey = keys[lidx + 1]
-                if lkey in times and rkey in times:  # neighbours aren't changed
-                    lval = times.pop(lkey)
-                    rval = times.pop(rkey)
-
-                    # shift key proportionally to values
-                    idx_new = lkey + (rkey - lkey) * float(rval) / (lval + rval)
-
-                    # keep precision the same
-                    lprec = len(str(math.modf(lkey)[0])) - 2
-                    rprec = len(str(math.modf(rkey)[0])) - 2
-                    idx_new = round(idx_new, max(lprec, rprec))
-
-                    times[idx_new] = lval + rval
-                    redundant_cnt -= 1
 
     def merge_kpis(self, src, sid=None):
         """
@@ -228,7 +225,7 @@ class KPISet(BetterDict):
         :type src: KPISet
         :return:
         """
-        src.recalculate() # TODO: could be not resource efficient strat
+        src.recalculate()  # TODO: could be not resource efficient strat
 
         self.sum_cn += src.sum_cn
         self.sum_lt += src.sum_lt
@@ -243,9 +240,7 @@ class KPISet(BetterDict):
             self._concurrencies[sid] = src[self.CONCURRENCY]
 
         if src[self.RESP_TIMES]:
-            # using raw times to calculate percentiles
-            self[self.RESP_TIMES].update(src[self.RESP_TIMES])
-            self.compact_times()
+            self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
         elif not self[self.PERCENTILES]:
             # using existing percentiles
             # FIXME: it's not valid to overwrite, better take average
@@ -264,65 +259,25 @@ class KPISet(BetterDict):
         """
         inst = KPISet()
         for key, val in iteritems(obj):
-            inst[key] = val
+            if key == inst.RESP_TIMES:
+                if isinstance(val, dict):
+                    for value, count in iteritems(val):
+                        inst[inst.RESP_TIMES].add(value, count)
+            else:
+                inst[key] = val
+
         inst.sum_cn = obj[inst.AVG_CONN_TIME] * obj[inst.SAMPLE_COUNT]
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
         inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
-        inst[inst.RESP_TIMES] = {float(level): inst[inst.RESP_TIMES][level] for level in inst[inst.RESP_TIMES].keys()}
         for error in inst[KPISet.ERRORS]:
             error['urls'] = Counter(error['urls'])
         return inst
 
-    @staticmethod
-    def __perc_and_stdev(cnts_dict, percentiles_to_calc=(), avg=0):
-        """
-        from http://stackoverflow.com/questions/25070086/percentiles-from-counts-of-values
-        Returns [(percentile, value)] with nearest rank percentiles.
-        Percentile 0: <min_value>, 100: <max_value>.
-        cnts_dict: { <value>: <count> }
-        percentiles_to_calc: iterable for percentiles to calculate; 0 <= ~ <= 100
-
-        upd: added stdev calc to have it in single-pass for mans of efficiency
-
-        :type percentiles_to_calc: list(float)
-        :type cnts_dict: collections.Counter
-        """
-        assert all(0 <= percentile <= 100 for percentile in percentiles_to_calc)
-        percentiles = []
-        if not cnts_dict:
-            return percentiles, 0
-
-        num = sum(cnts_dict.values())
-        cnts = sorted(cnts_dict.items())
-        curr_cnts_pos = 0  # current position in cnts
-        curr_pos = cnts[0][1]  # sum of freqs up to current_cnts_pos
-
-        sqr_diffs = 0
-        for percentile in sorted(percentiles_to_calc):
-            if percentile < 100:
-                percentile_pos = percentile / 100.0 * num
-                while curr_pos <= percentile_pos and curr_cnts_pos < len(cnts):
-                    sqr_diffs += cnts[curr_cnts_pos][1] * math.pow(cnts[curr_cnts_pos][0] - avg, 2)
-
-                    curr_cnts_pos += 1
-                    curr_pos += cnts[curr_cnts_pos][1]
-
-                percentiles.append((percentile, cnts[curr_cnts_pos][0]))
-            else:
-                percentiles.append((percentile, cnts[-1][0]))  # we could add a small value
-
-        while curr_cnts_pos < len(cnts):
-            sqr_diffs += cnts[curr_cnts_pos][1] * math.pow(cnts[curr_cnts_pos][0] - avg, 2)
-            curr_cnts_pos += 1
-
-        stdev = math.sqrt(sqr_diffs / len(cnts))
-        return percentiles, stdev
-
 
 class DataPoint(BetterDict):
     """
-    Represents an aggregate data poing
+    Represents an aggregate data point
 
     :param ts: timestamp of this point
     """
@@ -361,7 +316,7 @@ class DataPoint(BetterDict):
         :return:
         """
         for label, val in iteritems(src):
-            dest = dst.get(label, KPISet(self.perc_levels))
+            dest = dst.get(label, KPISet(self.perc_levels), force_set=True)
             if not isinstance(val, KPISet):
                 val = KPISet.from_dict(val)
                 val.perc_levels = self.perc_levels
@@ -426,9 +381,8 @@ class ResultsProvider(object):
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.get(label, KPISet(self.track_percentiles, self.rtimes_len))
+            cumul = self.cumulative.get(label, KPISet(self.track_percentiles, self.rtimes_len), force_set=True)
             cumul.merge_kpis(data)
-            cumul.compact_times()
             cumul.recalculate()
 
     def datapoints(self, final_pass=False):
@@ -519,7 +473,7 @@ class ResultsReader(ResultsProvider):
             if label in current:
                 label = current[label]
             else:
-                label = current.get(label, KPISet(self.track_percentiles))
+                label = current.get(label, KPISet(self.track_percentiles), force_set=True)
 
             # empty means overall
             label.add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
@@ -614,11 +568,10 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         super(ConsolidatingAggregator, self).prepare()
 
         # make unique & sort
-        percentiles = self.settings.get("percentiles", self.track_percentiles)
-        percentiles = list(set(percentiles))
-        percentiles.sort()
-        self.track_percentiles = percentiles
-        self.settings['percentiles'] = percentiles
+        self.track_percentiles = self.settings.get("percentiles", self.track_percentiles)
+        self.track_percentiles = list(set(self.track_percentiles))
+        self.track_percentiles.sort()
+        self.settings["percentiles"] = self.track_percentiles
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
@@ -634,11 +587,11 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         self.buffer_multiplier = self.settings.get("buffer-multiplier", self.buffer_multiplier)
 
-        percentile = self.settings.get("buffer-scale-choice", 0.5)
         count = len(self.track_percentiles)
         if count == 1:
             self.buffer_scale_idx = str(float(self.track_percentiles[0]))
         if count > 1:
+            percentile = self.settings.get("buffer-scale-choice", 0.5)
             percentiles = [i / (count - 1.0) for i in range(count)]
             distances = [abs(percentile - percentiles[i]) for i in range(count)]
             index_position = distances.index(min(distances))
@@ -694,7 +647,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                         self.log.debug("Putting datapoint %s into %s", tstamp, mints)
                         data[DataPoint.TIMESTAMP] = mints
                         tstamp = mints
-                self.buffer.get(tstamp, []).append(data)
+                self.buffer.get(tstamp, [], force_set=True).append(data)
 
     def _calculate_datapoints(self, final_pass=False):
         """

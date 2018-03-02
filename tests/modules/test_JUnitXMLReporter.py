@@ -251,24 +251,34 @@ class TestJUnitXML(BZTestCase):
 
         pass_fail1 = PassFailStatus()
 
-        fc1_triggered = DataCriterion({'stop': True, 'label': 'Sample 1 Triggered', 'fail': True,
-                                       'timeframe': -1, 'threshold': '150ms', 'condition': '<', 'subject': 'avg-rt'},
-                                      pass_fail1)
+        crit_cfg1 = BetterDict()
+        crit_cfg2 = BetterDict()
+        crit_cfg3 = BetterDict()
+        crit_cfg4 = BetterDict()
 
-        fc1_not_triggered = DataCriterion({'stop': True, 'label': 'Sample 1 Not Triggered', 'fail': True,
-                                           'timeframe': -1, 'threshold': '300ms', 'condition': '>',
-                                           'subject': 'avg-rt'},
-                                          pass_fail1)
+        crit_cfg1.merge({
+            'stop': True, 'label': 'Sample 1 Triggered', 'fail': True,
+            'timeframe': -1, 'threshold': '150ms', 'condition': '<', 'subject': 'avg-rt'})
+
+        crit_cfg2.merge({
+            'stop': True, 'label': 'Sample 1 Not Triggered', 'fail': True,
+            'timeframe': -1, 'threshold': '300ms', 'condition': '>', 'subject': 'avg-rt'})
+
+        crit_cfg3.merge({
+            'stop': True, 'label': 'Sample 2 Triggered', 'fail': True, 'timeframe': -1,
+            'threshold': '150ms', 'condition': '<=', 'subject': 'avg-rt'})
+
+        crit_cfg4.merge({
+            'stop': True, 'label': 'Sample 2 Not Triggered', 'fail': True,
+            'timeframe': -1, 'threshold': '300ms', 'condition': '=', 'subject': 'avg-rt'})
+
+        fc1_triggered = DataCriterion(crit_cfg1, pass_fail1)
+        fc1_not_triggered = DataCriterion(crit_cfg2, pass_fail1)
 
         pass_fail2 = PassFailStatus()
 
-        fc2_triggered = DataCriterion({'stop': True, 'label': 'Sample 2 Triggered', 'fail': True, 'timeframe': -1,
-                                       'threshold': '150ms', 'condition': '<=', 'subject': 'avg-rt'}, pass_fail1)
-
-        fc2_not_triggered = DataCriterion({'stop': True, 'label': 'Sample 2 Not Triggered', 'fail': True,
-                                           'timeframe': -1, 'threshold': '300ms', 'condition': '=',
-                                           'subject': 'avg-rt'},
-                                          pass_fail1)
+        fc2_triggered = DataCriterion(crit_cfg3, pass_fail1)
+        fc2_not_triggered = DataCriterion(crit_cfg4, pass_fail1)
 
         pass_fail1.criteria.append(fc1_triggered)
         pass_fail1.criteria.append(fc1_not_triggered)
@@ -314,9 +324,10 @@ class TestJUnitXML(BZTestCase):
 
         pass_fail = PassFailStatus()
 
-        criteria = DataCriterion({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
-                                  'condition': '<', 'subject': 'avg-rt'},
-                                 pass_fail)
+        crit_cfg = BetterDict()
+        crit_cfg.merge({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
+                                  'condition': '<', 'subject': 'avg-rt'})
+        criteria = DataCriterion(crit_cfg, pass_fail)
         pass_fail.criteria.append(criteria)
         criteria.is_triggered = True
 

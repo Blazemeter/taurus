@@ -40,6 +40,7 @@ Note that when converting SoapUI project, Taurus uses the following rules:
 2. If test case has a load test - it's converted to an `execution` element.
 3. Only REST and HTTP requests are supported.
 4. The following HTTP request features are supported: HTTP headers, request body, parameters, assertions.
-5. Properties are converted to JMeter variables.
-6. Property transfer is translated to JMeter extractors (XPath and JSONPath).
+5. Only "Contains" and "Not Contains" assertions are supported at the moment
+6. Properties are converted to JMeter variables.
+7. Property transfer is translated to JMeter extractors (XPath and JSONPath).
 

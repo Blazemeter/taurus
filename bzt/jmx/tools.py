@@ -458,7 +458,7 @@ class JMeterScenarioBuilder(JMX):
         self.__add_xpath_ext(children, req)
 
     def __add_regexp_ext(self, children, req):
-        extractors = req.config.get("extract-regexp", BetterDict())
+        extractors = req.config.get("extract-regexp")
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
             extractor = JMX._get_extractor(varname, cfg.get('subject', 'body'), cfg['regexp'], cfg.get('template', 1),
@@ -467,10 +467,10 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __add_json_ext(self, children, req):
-        jextractors = req.config.get("extract-jsonpath", BetterDict())
+        jextractors = req.config.get("extract-jsonpath")
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
-            if LooseVersion(str(self.executor.settings["version"])) < LooseVersion("3.0"):
+            if LooseVersion(str(self.executor.settings.get("version"))) < LooseVersion("3.0"):
                 extractor = JMX._get_json_extractor(varname,
                                                     cfg["jsonpath"],
                                                     cfg.get("default", "NOT_FOUND"),
@@ -488,16 +488,19 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __add_jquery_ext(self, children, req):
-        css_jquery_extors = req.config.get("extract-css-jquery", BetterDict())
+        css_jquery_extors = req.config.get("extract-css-jquery")
         for varname in css_jquery_extors:
             cfg = ensure_is_dict(css_jquery_extors, varname, "expression")
-            extractor = self._get_jquerycss_extractor(varname, cfg['expression'], cfg.get('attribute', ""),
-                                                      cfg.get('match-no', 0), cfg.get('default', 'NOT_FOUND'))
+            extractor = self._get_jquerycss_extractor(varname,
+                                                      cfg['expression'],
+                                                      cfg.get('attribute', ""),
+                                                      cfg.get('match-no', 0),
+                                                      cfg.get('default', 'NOT_FOUND'))
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
     def __add_xpath_ext(self, children, req):
-        xpath_extractors = req.config.get("extract-xpath", BetterDict())
+        xpath_extractors = req.config.get("extract-xpath")
         for varname in xpath_extractors:
             cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
             children.append(JMX._get_xpath_extractor(varname,
@@ -801,7 +804,7 @@ class JMeterScenarioBuilder(JMX):
         super(JMeterScenarioBuilder, self).save(filename)
 
     def __gen_datasources(self, scenario):
-        sources = scenario.get("data-sources", [])
+        sources = scenario.get("data-sources")
         if not sources:
             return []
         if not isinstance(sources, list):
@@ -811,7 +814,7 @@ class JMeterScenarioBuilder(JMX):
             source = ensure_is_dict(sources, idx, "path")
             source_path = source["path"]
 
-            delimiter = source.get('delimiter', None)
+            delimiter = source.get("delimiter")
 
             if has_variable_pattern(source_path):
                 msg = "Path to CSV contains JMeter variable/function, can't check for file existence: %s"

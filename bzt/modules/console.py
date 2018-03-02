@@ -794,7 +794,6 @@ class LabelStatsTable(Columns):
 
     :type key: str
     """
-
     def __init__(self, key):
         self.labels = SampleLabelsNames()
         self.stats_table = StatsTable()
@@ -815,7 +814,7 @@ class LabelStatsTable(Columns):
 
         overall = data.get(self.key)
 
-        for label in overall.keys():
+        for label in overall:
             if label != "":
                 hits = overall.get(label).get(KPISet.SAMPLE_COUNT)
                 failed = float(overall.get(label).get(KPISet.FAILURES)) / hits * 100 if hits else 0.0

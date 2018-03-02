@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.10.6<sup>next</sup>
+ - use HDR histograms from `hdrpy` package for storing response times
+ - add environment variable evaluation in strings
+ - bump up default JMeter to 4.0 and Plugins Manager to 0.19
+ - remote webdriver support added: selenium grid, appium, local or remote browsers or thirdparty compatible services
+ - add capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
+ - new browsers: Chrome-Android and Safari-iOS with local appium or remote webdriver support
+ - keysBy* - Special keys are allowed using the prefix KEY_ List: http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys
+ - new Selenium actions were added: selectBy*, doubleClickBy*, mouseDownBy*, mouseUpBy*, assertTextBy*, assertTitle
+ - add `headless` switch for selenium-based tests (Chrome and Firefox)
+ - provide icon for Taurus status screen
+ - fix singletone service parameters merging
+ - fix Python2 + Robot issue with test durations rounded to seconds
+ - move assertions inside transactions in Apiritif codegen
+ - add function translation for Apiritif executor: `__base64Encode`, `__base64Decode`, `__UUID` and `__urlencode`
+ - add `swagger2yaml` converter
+ - support `additional-classpath` for Gatling
+ - don't force applying defaults into effective configuration (huge internal impact)
+ - set `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` env variable to fight MacOS problems
+
 ## 1.10.5 <sup>8 feb 2018</sup>
  - add `-lint functionality for checking Taurus configs for errors/typos
  - support recursive `included-configs`

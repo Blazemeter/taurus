@@ -3,6 +3,7 @@ astunparse
 colorama; sys_platform == 'windows'
 colorlog
 cssselect
+hdrpy>=0.3.1
 ipaddress; python_version < '3.0'
 lxml>=3.8.0
 nose
@@ -13,4 +14,5 @@ pyvirtualdisplay; sys_platform != 'windows'
 pyyaml
 requests>=2.11.1
 selenium
+Appium-Python-Client
 urwid

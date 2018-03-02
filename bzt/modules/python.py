@@ -25,6 +25,7 @@ from subprocess import CalledProcessError
 
 import astunparse
 import yaml
+import json
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
@@ -42,7 +43,7 @@ IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
 
 class ApiritifNoseExecutor(SubprocessedExecutor):
     """
-    :type _readers: list[JTLReader]
+    :type _tailer: FileReader
     """
 
     def __init__(self):
@@ -77,13 +78,14 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("test_requests", ".py")
-        test_mode = self.execution.get("test-mode", None) or "apiritif"
+        test_mode = self.execution.get("test-mode", "apiritif")
         if test_mode == "apiritif":
             builder = ApiritifScriptGenerator(self.get_scenario(), self.log)
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
+
         builder.build_source_code()
         builder.save(filename)
         return filename
@@ -207,35 +209,54 @@ class SeleniumScriptBuilder(PythonGenerator):
     """
     :type window_size: tuple[int,int]
     """
-    IMPORTS = """import unittest
+
+    IMPORTS_SELENIUM = """import unittest
 import re
 from time import sleep
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as econd
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
 
 import apiritif
 """
+
+    IMPORTS_APPIUM = """import unittest
+import re
+from time import sleep
+from appium import webdriver
+from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoAlertPresentException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support import expected_conditions as econd
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
+
+import apiritif
+    """
 
     def __init__(self, scenario, parent_logger, wdlog):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
         self.wdlog = wdlog
+        self.appium = False
 
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
-        imports = self.add_imports()
-        self.root.append(imports)
+
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
-        self.root.append(test_class)
         test_class.append(self.gen_setup_method())
         test_class.append(self.gen_teardown_method())
 
         requests = self.scenario.get_requests(require_url=False)
-        default_address = self.scenario.get("default-address", None)
+        default_address = self.scenario.get("default-address")
         test_method = self.gen_test_method('test_requests')
         self.gen_setup(test_method)
 
@@ -252,7 +273,7 @@ import apiritif
 
             if req.url is not None:
                 parsed_url = parse.urlparse(req.url)
-                if default_address is not None and not parsed_url.netloc:
+                if default_address and not parsed_url.netloc:
                     url = default_address + req.url
                 else:
                     url = req.url
@@ -288,6 +309,19 @@ import apiritif
 
         test_class.append(test_method)
 
+        imports = self.add_imports()
+
+        self.root.append(imports)
+        self.root.append(test_class)
+
+    def add_imports(self):
+        imports = super(SeleniumScriptBuilder, self).add_imports()
+        if self.appium:
+            imports.text = self.IMPORTS_APPIUM
+        else:
+            imports.text = self.IMPORTS_SELENIUM
+        return imports
+
     def _add_url_request(self, default_address, req, test_method):
         parsed_url = parse.urlparse(req.url)
         if default_address is not None and not parsed_url.netloc:
@@ -299,37 +333,115 @@ import apiritif
         test_method.append(self.gen_statement("self.driver.get('%s')" % url))
 
     def gen_setup(self, test_method):
-        timeout = self.scenario.get("timeout", None)
-        if timeout is None:
-            timeout = '30s'
+        timeout = self.scenario.get("timeout", "30s")
         scenario_timeout = dehumanize_time(timeout)
         test_method.append(self.gen_impl_wait(scenario_timeout))
         test_method.append(self.gen_new_line(indent=0))
 
     def gen_setup_method(self):
+        desire_capabilities = {}
+        inherited_capabilities = []
+
         self.log.debug("Generating setUp test method")
-        browsers = ["Firefox", "Chrome", "Ie", "Opera"]
-        browser = self.scenario.get("browser", "Firefox")
-        if browser not in browsers:
+        browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
+        mobile_browsers = ["Chrome", "Safari"]
+        mobile_platforms = ["Android", "iOS"]
+
+        browser = dict(self.scenario).get("browser", None)
+        # Split platform: Browser
+        browser_platform = None
+        if browser:
+            browser_split = browser.split("-")
+            browser = browser_split[0]
+            if len(browser_split) > 1:
+                browser_platform = browser_split[1]
+        if browser and (browser not in browsers):
             raise TaurusConfigError("Unsupported browser name: %s" % browser)
+        headless = False
+        if "headless" in self.scenario:
+            headless = self.scenario.get("headless")
+
+        if headless:
+            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
 
         setup_method_def = self.gen_method_definition("setUp", ["self"])
 
+        remote_executor = dict(self.scenario).get("remote", None)
+
+        if not browser and remote_executor:
+            browser = "Remote"
+        elif browser in mobile_browsers and browser_platform in mobile_platforms:
+            self.appium = True
+            inherited_capabilities.append({"platform": browser_platform})
+            inherited_capabilities.append({"browser": browser})
+            browser = "Remote"  # Force to use remote web driver
+        elif not browser:
+            browser = "Firefox"
+
+        if not self.appium and browser == "Remote" and not remote_executor:
+            remote_executor = "http://localhost:4444/wd/hub"
+        elif self.appium and not remote_executor:
+            remote_executor = "http://localhost:4723/wd/hub"
+
         if browser == 'Firefox':
+            setup_method_def.append(self.gen_statement("options = webdriver.FirefoxOptions()"))
+            if headless:
+                setup_method_def.append(self.gen_statement("options.set_headless()"))
             setup_method_def.append(self.gen_statement("profile = webdriver.FirefoxProfile()"))
             statement = "profile.set_preference('webdriver.log.file', %s)" % repr(self.wdlog)
             log_set = self.gen_statement(statement)
             setup_method_def.append(log_set)
-            setup_method_def.append(self.gen_statement("self.driver = webdriver.Firefox(profile)"))
+            tmpl = "self.driver = webdriver.Firefox(profile, firefox_options=options)"
+            setup_method_def.append(self.gen_statement(tmpl))
         elif browser == 'Chrome':
-            statement = "self.driver = webdriver.Chrome(service_log_path=%s)"
+            setup_method_def.append(self.gen_statement("options = webdriver.ChromeOptions()"))
+            if headless:
+                setup_method_def.append(self.gen_statement("options.set_headless()"))
+            statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
+        elif browser == 'Remote':
+
+            remote_capabilities = dict(self.scenario).get("capabilities", [])
+            if not isinstance(remote_capabilities, list): remote_capabilities = [remote_capabilities]
+            remote_capabilities = remote_capabilities + inherited_capabilities
+
+            supported_capabilities = ["browser", "version", "javascript", "platform", "os_version",
+                                      "selenium", "device", "app"]
+            for capability in remote_capabilities:
+                for cap_key in capability.keys():
+                    if cap_key not in supported_capabilities:
+                        raise TaurusConfigError("Unsupported capability name: %s" % cap_key)
+                    else:
+                        if cap_key == "browser":
+                            desire_capabilities["browserName"] = capability[cap_key]
+                        elif cap_key == "version":
+                            desire_capabilities["version"] = str(capability[cap_key])
+                        elif cap_key == "selenium":
+                            desire_capabilities["seleniumVersion"] = str(capability[cap_key])
+                        elif cap_key == "javascript":
+                            desire_capabilities["javascriptEnabled"] = capability[cap_key]
+                        elif cap_key == "platform":
+                            desire_capabilities["platformName"] = str(capability[cap_key])
+                        elif cap_key == "os_version":
+                            desire_capabilities["platformVersion"] = str(capability[cap_key])
+                        elif cap_key == "device":
+                            desire_capabilities["deviceName"] = str(capability[cap_key])
+                        else:
+                            desire_capabilities[cap_key] = capability[cap_key]
+
+            statement = "self.driver = webdriver.Remote(" \
+                        "command_executor={command_executor} " \
+                        ", desired_capabilities={desired_capabilities})"
+
+            setup_method_def.append(self.gen_statement(
+                statement.format(command_executor=repr(remote_executor),
+                                 desired_capabilities=json.dumps(desire_capabilities, sort_keys=True))))
         else:
+            if headless:
+                self.log.warning("Browser %r doesn't support headless mode")
             setup_method_def.append(self.gen_statement("self.driver = webdriver.%s()" % browser))
 
-        scenario_timeout = self.scenario.get("timeout", None)
-        if scenario_timeout is None:
-            scenario_timeout = '30s'
+        scenario_timeout = self.scenario.get("timeout", "30s")
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
         if self.window_size:  # FIXME: unused in fact
             statement = self.gen_statement("self.driver.set_window_position(0, 0)")
@@ -402,13 +514,38 @@ import apiritif
             'byid': "ID",
             'bylinktext': "LINK_TEXT"
         }
-        if atype in ('click', 'keys'):
+        action_chains = {
+            'doubleclick': "double_click",
+            'mousedown': "click_and_hold",
+            'mouseup': "release",
+            'mousemove': "move_to_element"
+        }
+
+        if atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys', 'asserttext', 'select'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
+            action = None
             if atype == 'click':
                 action = "click()"
-            else:
+            elif atype == 'keys':
                 action = "send_keys(%r)" % param
-
+                if isinstance(param, str) and param.startswith("KEY_"):
+                    action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
+            elif atype in action_chains:
+                tpl = "self.driver.find_element(By.%s, %r)"
+                action = action_chains[atype]
+                return self.gen_statement(
+                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[aby], selector))),
+                    indent=indent)
+            elif atype == 'select':
+                tpl = "self.driver.find_element(By.%s, %r)"
+                action = "select_by_visible_text(%r)" % param
+                return self.gen_statement("Select(%s).%s" % (tpl % (bys[aby], selector), action),
+                                          indent=indent)
+            elif atype == 'asserttext':
+                # TODO: Why .text doesn't works ? 'value' is the only possible attribute for the type of element?
+                action = "get_attribute('value')"
+                return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[aby], selector, action), param),
+                                          indent=indent)
             return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
@@ -422,6 +559,8 @@ import apiritif
             return self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent)
         elif atype == 'clear' and aby == 'cookies':
             return self.gen_statement("self.driver.delete_all_cookies()", indent=indent)
+        elif atype == 'assert' and aby == 'title':
+            return self.gen_statement("self.assertEqual(self.driver.title,%r)" % selector, indent=indent)
 
         raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
@@ -434,8 +573,8 @@ import apiritif
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        actions = "click|wait|keys|pause|clear"
-        bys = "byName|byID|byCSS|byXPath|byLinkText|For|Cookies"
+        actions = "click|doubleClick|mouseDown|mouseUp|mouseMove|select|wait|keys|pause|clear|assert|assertText"
+        bys = "byName|byID|byCSS|byXPath|byLinkText|For|Cookies|Title"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, bys), re.IGNORECASE)
         res = expr.match(name)
         if not res:
@@ -587,16 +726,14 @@ log.setLevel(logging.DEBUG)
             named_args['allow_redirects'] = req.priority_option('follow-redirects', default=True)
 
         headers = {}
-        scenario_headers = self.scenario.get("headers", None)
-        if scenario_headers:
-            headers.update(scenario_headers)
-        if req.headers:
-            headers.update(req.headers)
+        headers.update(self.scenario.get("headers"))
+        headers.update(req.headers)
+
         if headers:
             named_args['headers'] = self.gen_expr(headers)
 
         merged_headers = dict([(key.lower(), value) for key, value in iteritems(headers)])
-        content_type = merged_headers.get('content-type', None)
+        content_type = merged_headers.get("content-type")
 
         if content_type == 'application/json' and isinstance(req.body, (dict, list)):  # json request body
             named_args['json'] = self.gen_expr(req.body)
@@ -733,7 +870,7 @@ log.setLevel(logging.DEBUG)
             assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
             exc = TaurusConfigError('JSON Path not found in assertion: %s' % assertion)
             query = assertion.get('jsonpath', exc)
-            expected = assertion.get('expected-value', '') or None
+            expected = assertion.get('expected-value', None)
             method = "assert_not_jsonpath" if assertion.get('invert', False) else "assert_jsonpath"
             stmts.append(ast.Expr(
                 ast.Call(
@@ -780,7 +917,7 @@ log.setLevel(logging.DEBUG)
 
     def _gen_extractors(self, request):
         stmts = []
-        jextractors = request.config.get("extract-jsonpath", BetterDict())
+        jextractors = request.config.get("extract-jsonpath")
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
             stmts.append(ast.Assign(
@@ -798,7 +935,7 @@ log.setLevel(logging.DEBUG)
                 )
             ))
 
-        extractors = request.config.get("extract-regexp", BetterDict())
+        extractors = request.config.get("extract-regexp")
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
             # TODO: support non-'body' value of 'subject'
@@ -819,7 +956,7 @@ log.setLevel(logging.DEBUG)
 
         # TODO: css/jquery extractor?
 
-        xpath_extractors = request.config.get("extract-xpath", BetterDict())
+        xpath_extractors = request.config.get("extract-xpath")
         for varname in xpath_extractors:
             cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
             parser_type = 'html' if cfg.get('use-tolerant-parser', True) else 'xml'
@@ -951,6 +1088,48 @@ class RandomStringFunction(JMeterFunction):
         )
 
 
+class Base64DecodeFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(Base64DecodeFunction, self).__init__(["text"], compiler)
+
+    def _compile(self, args):
+        if args.get("text") is None:
+            return None
+
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='base64_decode',
+                ctx=ast.Load(),
+            ),
+            args=[self.compiler.gen_expr(args["text"])],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+class Base64EncodeFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(Base64EncodeFunction, self).__init__(["text"], compiler)
+
+    def _compile(self, args):
+        if args.get("text") is None:
+            return None
+
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='base64_encode',
+                ctx=ast.Load(),
+            ),
+            args=[self.compiler.gen_expr(args["text"])],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
 class TimeFunction(JMeterFunction):
     def __init__(self, compiler):
         super(TimeFunction, self).__init__(["format", "varname"], compiler)
@@ -967,6 +1146,44 @@ class TimeFunction(JMeterFunction):
                 ctx=ast.Load(),
             ),
             args=arguments,
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+class UrlEncodeFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(UrlEncodeFunction, self).__init__(["chars"], compiler)
+
+    def _compile(self, args):
+        if "chars" not in args:
+            return None
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='encode_url',
+                ctx=ast.Load(),
+            ),
+            args=[self.compiler.gen_expr(args["chars"])],
+            keywords=[],
+            starargs=None,
+            kwargs=None
+        )
+
+
+class UuidFunction(JMeterFunction):
+    def __init__(self, compiler):
+        super(UuidFunction, self).__init__([], compiler)
+
+    def _compile(self, args):
+        return ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id="apiritif", ctx=ast.Load()),
+                attr='uuid',
+                ctx=ast.Load(),
+            ),
+            args=[],
             keywords=[],
             starargs=None,
             kwargs=None
@@ -1019,6 +1236,8 @@ class JMeterExprCompiler(object):
                             values=[self.gen_expr(v) for _, v in items])
         elif isinstance(value, list):
             return ast.List(elts=[self.gen_expr(val) for val in value], ctx=ast.Load())
+        elif isinstance(value, tuple):
+            return ast.Tuple(elts=[self.gen_expr(val) for val in value], ctx=ast.Load())
         elif isinstance(value, ast.AST):
             return value
         else:
@@ -1035,6 +1254,10 @@ class JMeterExprCompiler(object):
             '__time': TimeFunction,
             '__Random': RandomFunction,
             '__RandomString': RandomStringFunction,
+            '__base64Encode': Base64EncodeFunction,
+            '__base64Decode': Base64DecodeFunction,
+            '__urlencode': UrlEncodeFunction,
+            '__UUID': UuidFunction,
         }
         regexp = r"(\w+)\((.*?)\)"
         args_re = r'(?<!\\),'
@@ -1192,7 +1415,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.add_path({"PYTHONPATH":  get_full_path(__file__, step_up=3)})
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
 

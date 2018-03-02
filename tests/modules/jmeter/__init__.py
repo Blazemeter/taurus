@@ -6,8 +6,7 @@ from bzt.utils import get_full_path
 
 
 class MockJMeter(JMeter):
-    def __init__(self, has_ctg=None, reaction=None):
-        jmeter_version = JMeterExecutor.JMETER_VER
+    def __init__(self, jmeter_version=JMeterExecutor.JMETER_VER, has_ctg=None, reaction=None):
         jmeter_path = "~/.bzt/jmeter-taurus/{version}/"
         jmeter_path = get_full_path(jmeter_path)
 
@@ -32,7 +31,6 @@ class MockJMeterExecutor(JMeterExecutor):
     def __init__(self, load=None, settings=None, has_ctg=None):
         super(MockJMeterExecutor, self).__init__()
         self.mock_install = True
-        self.version = None
 
         if load is None: load = {}
         if settings is None: settings = {}
@@ -43,11 +41,10 @@ class MockJMeterExecutor(JMeterExecutor):
         self.execution.merge(load)
         self.settings.merge({"detect-plugins": False})
         self.settings.merge(settings)
-        self.tool = MockJMeter(has_ctg)
+        self.tool = MockJMeter(has_ctg=has_ctg)
 
     def install_required_tools(self):
         if self.mock_install:
-            self.version = self.settings.get('version')
-            self.tool = MockJMeter()
+            self.tool = MockJMeter(jmeter_version=self.settings.get('version'))
         else:
             super(MockJMeterExecutor, self).install_required_tools()

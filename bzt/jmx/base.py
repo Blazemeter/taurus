@@ -679,7 +679,7 @@ class JMX(object):
                                     "org.apache.jmeter.protocol.http.control.HC4CookieHandler"))
 
         if scenario:
-            cookies = scenario.get(Scenario.COOKIES, [])
+            cookies = scenario.get(Scenario.COOKIES)
             if cookies:
                 cookies_coll = JMX._collection_prop("CookieManager.cookies")
                 mgr.append(cookies_coll)

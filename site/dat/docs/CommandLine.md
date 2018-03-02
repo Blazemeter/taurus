@@ -48,6 +48,8 @@ scenarios:
   sample:
     timeout: 500ms
     keepalive: true
+    requests:
+    - http://blazedemo.com/
 ```
 The following override example creates the `data-sources` list (as it isn't specified in config) and sets the first element to `data.csv`:
 ```

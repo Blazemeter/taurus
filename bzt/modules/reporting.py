@@ -95,16 +95,17 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             if self.parameters.get("percentiles", True):
                 self.__report_percentiles(summary_kpi)
 
-            if self.parameters.get("failed-labels", False):
+            if self.parameters.get("failed-labels"):
                 self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
 
-            if self.parameters.get("dump-xml", None):
+            if self.parameters.get("dump-xml"):
                 self.__dump_xml(self.parameters.get("dump-xml"))
 
-            if self.parameters.get("dump-csv", None):
+            if self.parameters.get("dump-csv"):
                 self.__dump_csv(self.parameters.get("dump-csv"))
         elif self.cumulative_results:
             self.__report_summary()
+
             report_mode = self.parameters.get("report-tests", "failed")
             if report_mode == "failed":
                 self.__report_failed_tests()
@@ -139,8 +140,9 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             for case in self.cumulative_results.test_cases(test_suite):
                 status_counter[case.status] += 1
 
+        # FIXME: it's actually not tests, but test cases
         total = sum(count for _, count in iteritems(status_counter))
-        self.log.info("Total: %s %s", total, self.__plural(total, 'test')) # FIXME: it's actually not tests, but test cases
+        self.log.info("Total: %s %s", total, self.__plural(total, 'test'))
 
     def __report_samples_count(self, summary_kpi_set):
         """
@@ -154,7 +156,6 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         """
         reports percentiles
         """
-
         fmt = "Average times: total %.3f, latency %.3f, connect %.3f"
         self.log.info(fmt, summary_kpi_set[KPISet.AVG_RESP_TIME], summary_kpi_set[KPISet.AVG_LATENCY],
                       summary_kpi_set[KPISet.AVG_CONN_TIME])
@@ -178,7 +179,6 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         """
         asks executors start_time and end_time, provides time delta
         """
-
         date_start = datetime.fromtimestamp(int(self.start_time))
         date_end = datetime.fromtimestamp(int(self.end_time))
         self.log.info("Test duration: %s", date_end - date_start)
@@ -209,7 +209,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __get_xml_summary(self, label, kpiset):
         elem = etree.Element("Group", label=label)
         for kpi_name, kpi_val in iteritems(kpiset):
-            if kpi_name in ('errors', 'rt'):
+            if kpi_name in (KPISet.ERRORS, KPISet.RESP_TIMES):
                 continue
 
             if isinstance(kpi_val, dict):
@@ -321,9 +321,9 @@ class JUnitXMLReporter(Reporter, AggregatorListener, FunctionalAggregatorListene
             filename = self.engine.create_artifact(XUnitFileWriter.REPORT_FILE_NAME, XUnitFileWriter.REPORT_FILE_EXT)
         self.parameters["filename"] = filename  # reflect it in effective config
 
-        test_data_source = self.parameters.get("data-source", "sample-labels")
-
         if self.cumulative_results is None:
+            test_data_source = self.parameters.get("data-source", "sample-labels")
+
             if test_data_source == "sample-labels":
                 if not self.last_second:
                     self.log.warning("No last second data to generate XUnit.xml")
@@ -448,16 +448,16 @@ def get_bza_report_info(engine, log):
     result = []
     if isinstance(engine.provisioning, CloudProvisioning):
         cloud_prov = engine.provisioning
-        test_name = cloud_prov.settings.get('test', None)
+        test_name = cloud_prov.settings.get("test")
         report_url = cloud_prov.results_url
-        result.append((report_url, test_name if test_name is not None else report_url))
+        result.append((report_url, test_name if test_name else report_url))
     else:
         bza_reporters = [_x for _x in engine.reporters if isinstance(_x, BlazeMeterUploader)]
         for bza_reporter in bza_reporters:
             if bza_reporter.results_url:
-                test_name = bza_reporter.parameters.get("test", None)
+                test_name = bza_reporter.parameters.get("test")
                 report_url = bza_reporter.results_url
-                result.append((report_url, test_name if test_name is not None else report_url))
+                result.append((report_url, test_name if test_name else report_url))
 
         if len(result) > 1:
             log.warning("More than one blazemeter reporter found")

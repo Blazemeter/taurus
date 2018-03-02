@@ -29,8 +29,6 @@ RUN apt-get -y update \
     libgconf-2-4 \
     libexif12 \
     udev \
-    python-dev \
-    python-pip \
     default-jdk \
     xvfb \
     libyaml-dev \
@@ -47,12 +45,12 @@ RUN apt-get -y update \
     ruby ruby-dev \
     nodejs \
     mono-complete nuget \
-    python3-dev python3-pip \
     net-tools \
-  && pip install --upgrade setuptools pip \
-  && pip install locustio bzt && pip uninstall -y bzt \
-  && pip install robotframework robotframework-seleniumlibrary \
-  && pip3 install --upgrade setuptools wheel \
+  && apt-get -y install --no-install-recommends python-dev python-pip \
+  && pip install --upgrade pip setuptools wheel \
+  && apt-get -y install --no-install-recommends python3-dev python3-pip \
+  && pip3 install --upgrade setuptools pip wheel \
+  && pip2 install locustio robotframework robotframework-seleniumlibrary \
   && pip3 install molotov \
   && npm install -g mocha \
   && gem install rspec \
@@ -71,7 +69,7 @@ COPY . /tmp/bzt-src
 WORKDIR /tmp/bzt-src
 RUN google-chrome-stable --version && firefox --version && mono --version && nuget | head -1 \
   && ./build-sdist.sh \
-  && pip install dist/bzt-*.tar.gz \
+  && pip2 install dist/bzt-*.tar.gz \
   && echo '{"install-id": "Docker"}' > /etc/bzt.d/99-zinstallID.json \
   && echo '{"settings": {"artifacts-dir": "/tmp/artifacts"}}' > /etc/bzt.d/90-artifacts-dir.json \
   && bzt -install-tools -v && ls -la /tmp && cat /tmp/jpgc-*.log && ls -la ~/.bzt/jmeter-taurus/*/lib/ext && ls -la ~/.bzt/jmeter-taurus/*/lib/ext/jmeter-plugins-tst-*.jar

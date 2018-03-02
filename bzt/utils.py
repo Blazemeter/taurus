@@ -58,15 +58,19 @@ from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
 
 
-def get_full_path(path, step_up=0):
+def get_full_path(path, default=None, step_up=0):
     """
     Function expands '~' and adds cwd to path if it's not absolute (relative)
     Target doesn't have to exist
 
     :param path:
+    :param default:
     :param step_up:
     :return:
     """
+    if not path:
+        return default
+
     res = os.path.abspath(os.path.expanduser(path))
     for _ in range(step_up):
         res = os.path.dirname(res)
@@ -162,17 +166,12 @@ def dehumanize_time(str_time):
 class BetterDict(defaultdict):
     """
     Wrapper for defaultdict that able to deep merge other dicts into itself
-
-    :param kwargs:
     """
-
-    def __init__(self, **kwargs):
-        super(BetterDict, self).__init__(**kwargs)
-
-    def get(self, key, default=defaultdict):
+    def get(self, key, default=defaultdict, force_set=False):
         """
         Change get with setdefault
 
+        :param force_set:
         :type key: object
         :type default: object
         """
@@ -182,7 +181,10 @@ class BetterDict(defaultdict):
         if isinstance(default, BaseException) and key not in self:
             raise default
 
-        value = self.setdefault(key, default)
+        if force_set:
+            value = self.setdefault(key, default)
+        else:
+            value = defaultdict.get(self, key, default)
 
         if isinstance(value, string_types):
             if isinstance(value, str):  # this is a trick for python v2/v3 compatibility
@@ -218,7 +220,7 @@ class BetterDict(defaultdict):
                 key = key[1:]
 
             if isinstance(val, dict):
-                dst = self.get(key)
+                dst = self.get(key, force_set=True)
                 if isinstance(dst, BetterDict):
                     dst.merge(val)
                 elif isinstance(dst, Counter):
@@ -664,15 +666,16 @@ class MultiPartForm(object):
         # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
 
-def to_json(obj):
+def to_json(obj, indent=True):
     """
     Convert object into indented json
 
-    :param obj:
+    :param indent: whether to generate indented JSON
+    :param obj: object to convert
     :return:
     """
     # NOTE: you can set allow_nan=False to fail when serializing NaN/Infinity
-    return json.dumps(obj, indent=True, cls=ComplexEncoder)
+    return json.dumps(obj, indent=indent, cls=ComplexEncoder)
 
 
 class JSONDumpable(object):
@@ -680,6 +683,13 @@ class JSONDumpable(object):
     Marker class for json dumpable classes
     """
     pass
+
+
+class JSONConvertable(object):
+    @abstractmethod
+    def __json__(self):
+        "Convert class instance into JSON-dumpable structure (e.g. dict)"
+        pass
 
 
 class ComplexEncoder(json.JSONEncoder):
@@ -708,6 +718,8 @@ class ComplexEncoder(json.JSONEncoder):
                 else:
                     res[key] = val
             return res
+        elif self.__convertable(obj):
+            return obj.__json__()
         else:
             return None
 
@@ -720,6 +732,9 @@ class ComplexEncoder(json.JSONEncoder):
         """
         dumpable_types = tuple(self.TYPES + (JSONDumpable,))
         return isinstance(obj, dumpable_types)
+
+    def __convertable(self, obj):
+        return isinstance(obj, JSONConvertable)
 
     @classmethod
     def of_basic_type(cls, val):

@@ -294,6 +294,15 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "not": True
                         }],
                         "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)",
+                            "mouseMoveByXPath(/html/body/div[2]/div/p[2]/a)",
+                            "doubleClickByXPath(/html/body/div[3]/h2)",
+                            "mouseDownByXPath(/html/body/div[3]/form/select[1])",
+                            "mouseUpByXPath(/html/body/div[3]/form/select[1]/option[6])",
+                            {"selectByName(toPort)": "London"},
+                            {"keysByCSS(body input.btn.btn-primary)": "KEY_ENTER"},
+                            {"assertTextByID(address)": "123 Beautiful st."},
                             {"waitByName('toPort')": "visible"},
                             {"keysByName(\"toPort\")": "B"},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
@@ -302,10 +311,44 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "pauseFor(3s)",
                             "clearCookies()",
                             "clickByLinkText(destination of the week! The Beach!)"
-                        ],
 
-                    }, {
-                        "label": "empty"}]}}})
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                },
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": [
+                        {
+                            "browser": "firefox",
+                            "version": "54.0",
+                            "platform": "linux",
+                            "javascript": "True",
+                            "os_version": "",
+                            "selenium": "",
+                            "device": "",
+                            "app": ""
+                        }
+                    ],
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+            }
+        })
 
         self.obj.prepare()
         with open(self.obj.script) as generated:
@@ -317,6 +360,178 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         # strip line terminator and exclude specific build path
         gen_contents = [line.rstrip() for line in gen_contents if 'webdriver' not in line]
         sample_contents = [line.rstrip() for line in sample_contents if 'webdriver' not in line]
+
+        self.assertEqual(gen_contents, sample_contents)
+
+    def test_headless_default(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertNotIn("options.set_headless()", gen_contents)
+
+    def test_headless_chrome(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Chrome",
+                    "headless": True,
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertIn("options.set_headless()", gen_contents)
+
+    def test_headless_firefox(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Firefox",
+                    "headless": True,
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertIn("options.set_headless()", gen_contents)
+
+    def test_headless_safari(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "browser": "Opera",
+                    "headless": True,
+                    "requests": ["http://blazedemo.com/"]
+                }}})
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.read()
+
+        self.assertNotIn("options.set_headless()", gen_contents)
+
+    def test_build_script_remote(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc_remote"}],
+            "scenarios": {
+                "loc_sc_remote": {
+                    "remote": "http://user:key@remote_web_driver_host:port/wd/hub",
+                    "capabilities": [
+                        {
+                            "browser": "firefox",
+                            "version": "54.0",
+                            "platform": "linux",
+                            "javascript": "True",
+                            "os_version": "",
+                            "selenium": "",
+                            "device": "",
+                            "app": ""
+                        }
+                    ],
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+            }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.readlines()
+
+        with open(RESOURCES_DIR + "selenium/generated_from_requests_remote.py") as sample:
+            sample_contents = sample.readlines()
+
+        # strip line terminator
+        gen_contents = [line.rstrip() for line in gen_contents]
+        sample_contents = [line.rstrip() for line in sample_contents]
+
+        self.assertEqual(gen_contents, sample_contents)
+
+    def test_build_script_appium_browser(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc_appium"}],
+            "scenarios": {
+                "loc_sc_appium": {
+                    "browser": "Chrome-Android",
+                    "capabilities": [
+                        {
+                            "device": "",
+                        }
+                    ],
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+            }
+        })
+
+        self.obj.prepare()
+        with open(self.obj.script) as generated:
+            gen_contents = generated.readlines()
+
+        with open(RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py") as sample:
+            sample_contents = sample.readlines()
+
+        # strip line terminator
+        gen_contents = [line.rstrip() for line in gen_contents]
+        sample_contents = [line.rstrip() for line in sample_contents]
 
         self.assertEqual(gen_contents, sample_contents)
 
@@ -829,6 +1044,84 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.assertIn("'/?rs={}'.format(apiritif.random_string(3))", test_script)
         self.assertIn("'/?rs={}'.format(apiritif.random_string(4, 'abcdef'))", test_script)
 
+    def test_jmeter_functions_base64_encode(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "headers": {
+                        "Authorization": "Basic ${__base64Encode(user:pass)}",
+                    },
+                    "requests": [
+                        "/",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("base64_encode('user:pass')", test_script)
+
+    def test_jmeter_functions_base64_decode(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "headers": {
+                        "Additional": "${__base64Decode(dGVzdCBzdHJpbmc=)}",
+                    },
+                    "requests": [
+                        "/",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("base64_decode('dGVzdCBzdHJpbmc=')", test_script)
+
+    def test_jmeter_functions_urlencode(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "requests": [
+                        "/${__urlencode(Foo Bar Baz)}",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("encode_url('Foo Bar Baz')", test_script)
+
+    def test_jmeter_functions_uuid(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "requests": [
+                        "/${__UUID()}",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("uuid()", test_script)
+
     def test_load_reader(self):
         reader = ApiritifLoadReader(self.obj.log)
         items = list(reader._read())
@@ -850,6 +1143,45 @@ class TestApiritifScriptGenerator(BZTestCase):
         items = list(reader.read())
         self.assertEqual(len(items), 12)
 
+    def test_codegen_requests(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "requests": [{
+                        "url": "http://localhost:8000/",
+                        "label": "apiritif",
+                    }]
+                }
+            }]
+        })
+        self.obj.prepare()
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "/apiritif/test_codegen_requests.py")
+
+    def test_generator_crash(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "default-address": "http://blazedemo.com",
+                    "variables": {
+                      "product_id": "5b6c",
+                    },
+                    "requests": [{
+                        "url": "/",
+                        "method": "POST",
+                        "body": {
+                            "product": "${product_id}"  # notice the space
+                        }
+                    }]
+                }
+            }]
+        })
+        self.obj.prepare()  # Unparser shouldn't crash with AttributeError because of malformed AST
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.obj.log.info(test_script)
+        self.assertIn("data=[('product', product_id)]", test_script)
 
 class TestPyTestExecutor(BZTestCase):
     def setUp(self):
@@ -978,10 +1310,10 @@ class TestPyTestExecutor(BZTestCase):
         self.assertEqual(7, len(report))
 
     def test_additional_args(self):
-        ADDITIONAL_ARGS = "--foo --bar"
+        additional_args = "--foo --bar"
         self.obj.execution.merge({
             "scenario": {
-                "additional-args": ADDITIONAL_ARGS,
+                "additional-args": additional_args,
                 "script": RESOURCES_DIR + "selenium/pytest/test_single.py"
             }
         })
@@ -995,7 +1327,7 @@ class TestPyTestExecutor(BZTestCase):
             self.obj.shutdown()
         with open(self.obj.stdout_file) as fds:
             stdout = fds.read()
-            self.assertIn(ADDITIONAL_ARGS, stdout)
+            self.assertIn(additional_args, stdout)
 
 
 class TestRobotExecutor(BZTestCase):

@@ -189,7 +189,8 @@ class TestJMeterExecutor(BZTestCase):
         body_fields = [req.get('body') for req in scenario.get('requests')]
         self.assertIn(body_file1, res_files)
         self.assertIn(body_file2, res_files)
-        self.assertEqual(body_fields, [None, 'body2'])
+        self.assertFalse(body_fields[0])
+        self.assertEqual(body_fields[1], 'body2')
         self.assertEqual(body_files, [body_file1, body_file2])
 
     def test_datasources_with_delimiter(self):
@@ -2051,7 +2052,7 @@ class TestJMeterExecutor(BZTestCase):
                     "http://example.com/"]}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
 
     def test_detect_ver_wrong(self):
         self.obj.execution.merge({
@@ -2059,7 +2060,7 @@ class TestJMeterExecutor(BZTestCase):
                 "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
 
     def test_detect_ver_2_13(self):
         self.obj.execution.merge({
@@ -2067,14 +2068,14 @@ class TestJMeterExecutor(BZTestCase):
                 "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
-        self.assertEqual("2.13", self.obj.version)
+        self.assertEqual("2.13", self.obj.tool.version)
 
     def test_no_detect_2_13(self):
         self.obj.execution.merge({
             'scenario': {
                 "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.version)
+        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
 
     def test_jsr223_block(self):
         script = RESOURCES_DIR + "/jmeter/jsr223_script.js"

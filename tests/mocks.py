@@ -158,11 +158,9 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister, HavingIns
 
     def resource_files(self):
         """
-
-
         :return:
         """
-        self.execution.get('files', []).append(__file__)
+        self.execution.get('files', [], force_set=True).append(__file__)
         return [__file__]
 
     def has_results(self):
@@ -283,7 +281,9 @@ class BZMock(object):
                 "result": [{'id': 1, 'enabled': True}]},
             'https://a.blazemeter.com/api/v4/multi-tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
-            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&limit=99999': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=myproject': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name': {"result": []},
             'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": []},
             'https://a.blazemeter.com/api/v4/web/elfinder/1?target=s1_Lw&cmd=open': {"files": []},
             'https://a.blazemeter.com/api/v4/workspaces/1': {"result": {"locations": locs}},

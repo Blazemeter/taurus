@@ -61,7 +61,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                                 "geckodriver-v{version}-{arch}.{ext}"
     GECKODRIVER_VERSION = "0.19.0"
 
-    SELENIUM_TOOLS_DIR = get_full_path("~/.bzt/selenium-taurus/tools")
+    SELENIUM_TOOLS_DIR = "~/.bzt/selenium-taurus/tools"
 
     def __init__(self):
         super(SeleniumExecutor, self).__init__()
@@ -87,7 +87,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.runner.parameters = self.parameters
         self.runner.provisioning = self.provisioning
         self.runner.execution = copy.deepcopy(self.execution)
-        self.runner.execution['files'] = self.execution.get('files', [])
+        self.runner.execution['files'] = self.execution.get('files', [], force_set=True)
         self.runner.execution['executor'] = runner_type
         self.runner.register_reader = self.register_reader
 
@@ -207,7 +207,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         if '.java' in file_types or '.jar' in file_types:
             # todo: next detection logic is duplicated in TestNGTester - can we avoid it?
             script_dir = get_full_path(self.get_script_path(), step_up=1)
-            if os.path.exists(os.path.join(script_dir, 'testng.xml')) or self.execution.get('testng-xml', None):
+            if os.path.exists(os.path.join(script_dir, 'testng.xml')) or self.execution.get('testng-xml'):
                 script_type = 'testng'
             else:
                 script_type = 'junit'
