@@ -114,3 +114,7 @@ class TestFileReader(BZTestCase):
                 self.obj.fds.close()
 
             os.remove(gen_file_name)
+
+    def test_decode_crash(self):
+        self.configure(join(RESOURCES_DIR, 'jmeter', 'jtl', 'unicode.jtl'))
+        self.obj.get_bytes(size=180)  # shouldn't crash with UnicodeDecodeError
