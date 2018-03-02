@@ -47,6 +47,7 @@ from bzt.utils import dehumanize_time, BetterDict, ensure_is_dict, ExceptionalDo
 from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 
 TAURUS_TEST_TYPE = "taurus"
+FUNC_TEST_TYPE = "functionalApi"
 CLOUD_CONFIG_FILTER_RULES = {
     "execution": True,
     "scenarios": True,
@@ -931,7 +932,12 @@ class ProjectFinder(object):
 
         is_int = isinstance(test_name, (int, float))
         is_digit = isinstance(test_name, (string_types, text_type)) and test_name.isdigit()
-        test_type = TAURUS_TEST_TYPE if taurus_only else None
+        if self.is_functional:
+            test_type = FUNC_TEST_TYPE
+        elif taurus_only:
+            test_type = TAURUS_TEST_TYPE
+        else:
+            test_type = None
         if is_int or is_digit:
             test_id = int(test_name)
             self.log.debug("Treating project name as ID: %s", test_id)
@@ -1181,13 +1187,15 @@ class CloudTaurusTest(BaseCloudTest):
 
         if self._test is not None:
             test_type = self._test.get("configuration").get("type")
-            if test_type != TAURUS_TEST_TYPE:
+            should_be_func = (self.is_functional and test_type != FUNC_TEST_TYPE)
+            should_be_taurus = (not self.is_functional and test_type != TAURUS_TEST_TYPE)
+            if should_be_func or should_be_taurus:
                 self.log.debug("Can't reuse test type %r as Taurus test, will create new one", test_type)
                 self._test = None
 
         if self._test is None:
             test_config = {
-                "type": TAURUS_TEST_TYPE,
+                "type": TAURUS_TEST_TYPE if not self.is_functional else FUNC_TEST_TYPE,
                 "plugins": {
                     "taurus": {
                         "filename": ""  # without this line it does not work
@@ -1204,8 +1212,7 @@ class CloudTaurusTest(BaseCloudTest):
         self._test.upload_files(taurus_config, rfiles)
         self._test.update_props({'configuration': {'executionType': self.cloud_mode}})
         self._test.update_props({
-            'configuration': {'plugins': {'functionalExecution': {'enabled': self.is_functional},
-                                          'reportEmail': {"enabled": self.send_report_email}}}
+            'configuration': {'plugins': {'reportEmail': {"enabled": self.send_report_email}}}
         })
 
     def launch_test(self):
