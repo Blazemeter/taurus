@@ -513,6 +513,10 @@ class MultiTest(BZAObject):
         url = self.address + "/api/v4/multi-tests/%s" % self['id']
         self._request(url, data=coll, method="PATCH")
 
+    def delete(self):
+        url = self.address + "/api/v4/multi-tests/%s" % self['id']
+        self._request(url, method="DELETE")
+
 
 class Master(BZAObject):
     def __init__(self, proto=None, data=None):

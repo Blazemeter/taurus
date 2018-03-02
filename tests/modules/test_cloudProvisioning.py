@@ -12,7 +12,8 @@ from bzt.bza import Master, Test, MultiTest
 from bzt.engine import ScenarioExecutor, Service
 from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
+from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader, \
+    FUNC_TEST_TYPE
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
 from bzt.utils import get_full_path
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG
@@ -1140,13 +1141,10 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         self.obj.startup()
         reqs = self.mock.requests
-        self.assertEqual(reqs[12]['url'], 'https://a.blazemeter.com/api/v4/tests/1')
-        self.assertEqual(reqs[12]['method'], 'PATCH')
-        data = json.loads(reqs[12]['data'])
-        plugins = data['configuration']['plugins']
-        self.assertEqual(plugins["functionalExecution"], {"enabled": True})
-        start_req = reqs[-1]
-        self.assertTrue(start_req['url'].endswith('?functionalExecution=true'))
+        self.assertEqual(reqs[9]['url'], 'https://a.blazemeter.com/api/v4/tests')
+        self.assertEqual(reqs[9]['method'], 'POST')
+        data = json.loads(reqs[9]['data'])
+        self.assertEqual(data['configuration']['type'], FUNC_TEST_TYPE)
 
     def test_functional_cloud_failed_shutdown(self):
         self.obj.engine.aggregator = FunctionalAggregator()
