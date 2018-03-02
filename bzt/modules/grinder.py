@@ -532,9 +532,9 @@ from HTTPClient import NVPair
         return "[" + ",".join("NVPair(%r, %r)" % (header, value) for header, value in items) + "]"
 
     def gen_runner_class(self):
-        runner_classdef = self.gen_class_definition("TestRunner", ["object"], indent=0)
+        runner_classdef = self.gen_class_definition("TestRunner", ["object"])
 
-        sleep_method = self.gen_method_definition("rampUpSleeper", ["self"], indent=4)
+        sleep_method = self.gen_method_definition("rampUpSleeper", ["self"])
         sleep_method.append(self.gen_statement("if grinder.runNumber != 0: return"))
         sleep_method.append(self.gen_statement("tprops = grinder.properties.getPropertySubset('taurus.')"))
         sleep_method.append(self.gen_statement("inc = tprops.getDouble('ramp_up', 0)/tprops.getInt('concurrency', 1)"))
@@ -545,7 +545,7 @@ from HTTPClient import NVPair
         sleep_method.append(self.gen_new_line(indent=0))
         runner_classdef.append(sleep_method)
 
-        main_method = self.gen_method_definition("__call__", ["self"], indent=4)
+        main_method = self.gen_method_definition("__call__", ["self"])
         main_method.append(self.gen_statement("self.rampUpSleeper()"))
 
         for req in self.scenario.get_requests():
@@ -561,11 +561,11 @@ from HTTPClient import NVPair
             params = "[]"
             headers = self.__list_to_nvpair_list(iteritems(local_headers))
 
-            main_method.append(self.gen_statement("request.%s(%r, %s, %s)" % (method, url, params, headers), indent=8))
+            main_method.append(self.gen_statement("request.%s(%r, %s, %s)" % (method, url, params, headers)))
 
             think_time = dehumanize_time(req.priority_option('think-time'))
             if think_time:
-                main_method.append(self.gen_statement("grinder.sleep(%s)" % int(think_time * 1000), indent=8))
+                main_method.append(self.gen_statement("grinder.sleep(%s)" % int(think_time * 1000)))
 
         runner_classdef.append(main_method)
 
