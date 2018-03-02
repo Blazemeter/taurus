@@ -1,0 +1,1 @@
+Properly recover if JMeter has written non-UTF8 chars into JTL

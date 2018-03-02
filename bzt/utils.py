@@ -16,6 +16,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import codecs
 import copy
 import csv
 import fnmatch
@@ -435,6 +436,8 @@ class FileReader(object):
         # it turns all regular file checks off, see is_ready()
         self.name = filename
         self.cp = 'utf-8'  # default code page is utf-8
+        self.decoder = codecs.lookup(self.cp).incrementaldecoder()
+        self.fallback_decoder = codecs.lookup(self.SYS_ENCODING).incrementaldecoder(errors='ignore')
         self.offset = 0
 
     def _readlines(self, hint=None):
@@ -466,14 +469,16 @@ class FileReader(object):
             self.name = self.fds.name
             return True
 
-    def _decode(self, line):
+    def _decode(self, line, last_pass=False):
         try:
-            return line.decode(self.cp)
+            return self.decoder.decode(line, final=last_pass)
         except UnicodeDecodeError:
             self.log.warning("Content encoding of '%s' doesn't match %s", self.name, self.cp)
             self.cp = self.SYS_ENCODING
+            self.decoder = self.fallback_decoder
+            self.decoder.reset()
             self.log.warning("Proposed code page: %s", self.cp)
-            return line.decode(self.cp)
+            return self.decoder.decode(line, final=last_pass)
 
     def get_lines(self, size=-1, last_pass=False):
         if self.is_ready():
@@ -483,7 +488,7 @@ class FileReader(object):
             self.fds.seek(self.offset)
             for line in self._readlines(hint=size):
                 self.offset += len(line)
-                yield self._decode(line)
+                yield self._decode(line, last_pass)
 
     def get_line(self):
         line = ""
@@ -504,7 +509,7 @@ class FileReader(object):
             _bytes = self.fds.read(size)
             self.offset += len(_bytes)
             if decode:
-                return self._decode(_bytes)
+                return self._decode(_bytes, last_pass)
             else:
                 return _bytes
 
