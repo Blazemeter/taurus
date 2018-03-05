@@ -615,6 +615,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             ast.Import(names=[ast.alias(name='string', asname=None)]),
             ast.Import(names=[ast.alias(name='sys', asname=None)]),
             ast.Import(names=[ast.alias(name='time', asname=None)]),
+            ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             self.gen_empty_line_stmt(),
 
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
@@ -635,7 +636,7 @@ log.setLevel(logging.DEBUG)
     def gen_classdef(self):
         return ast.ClassDef(
             name='TestAPIRequests',
-            bases=[],
+            bases=[ast.Attribute(value=ast.Name(id='unittest', ctx=ast.Load()), attr='TestCase', ctx=ast.Load())],
             body=[self.gen_test_method()],
             keywords=[],
             starargs=None,
@@ -1017,8 +1018,9 @@ log.setLevel(logging.DEBUG)
     def save(self, filename):
         with open(filename, 'wt') as fds:
             source = astunparse.unparse(self.tree)
-            # because astunparse on Python 2 adds empty parens
-            source = source.replace('class TestAPIRequests()', 'class TestAPIRequests')
+            # because astunparse on Python 2 adds extra comma+space
+            source = source.replace('class TestAPIRequests(unittest.TestCase, )',
+                                    'class TestAPIRequests(unittest.TestCase)')
             fds.write(source)
 
 
