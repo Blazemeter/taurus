@@ -59,6 +59,10 @@ from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
 
 
+def get_output(args, env=None):
+    return subprocess.check_output(args, env=env, stderr=subprocess.STDOUT)
+
+
 def get_full_path(path, default=None, step_up=0):
     """
     Function expands '~' and adds cwd to path if it's not absolute (relative)
