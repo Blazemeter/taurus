@@ -1018,8 +1018,9 @@ log.setLevel(logging.DEBUG)
     def save(self, filename):
         with open(filename, 'wt') as fds:
             source = astunparse.unparse(self.tree)
-            # because astunparse on Python 2 adds empty parens
-            source = source.replace('class TestAPIRequests()', 'class TestAPIRequests')
+            # because astunparse on Python 2 adds extra comma+space
+            source = source.replace('class TestAPIRequests(unittest.TestCase, )',
+                                    'class TestAPIRequests(unittest.TestCase)')
             fds.write(source)
 
 
