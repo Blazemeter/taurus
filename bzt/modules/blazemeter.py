@@ -879,25 +879,23 @@ class ProjectFinder(object):
             account = self.user.accounts(ident=acc_id).first()
             if not account:
                 raise TaurusConfigError("BlazeMeter account not found by ID: %s" % acc_id)
-        elif account_name is not None:
+        elif account_name:
             account = self.user.accounts(name=account_name).first()
             if not account:
-                raise TaurusConfigError("BlazeMeter account not found by ID: %s" % account_name)
+                raise TaurusConfigError("BlazeMeter account not found by name: %s" % account_name)
 
+        if account:
+            return account
+
+        self.user.fetch()
         all_accounts = self.user.accounts()
-        if account is None:
-            self.user.fetch()
-            for acc in all_accounts:
-                if acc["owner"]["id"] == self.user['id']:
-                    self.log.debug("Using userID matched account: %s", acc)
-                    account = acc
-                    break
+        for acc in all_accounts:
+            if acc["owner"]["id"] == self.user['id']:
+                self.log.debug("Using userID matched account: %s", acc)
+                return acc
 
-        if account is None:
-            account = all_accounts.first()
-            self.log.debug("Using first account: %s", account)
-
-        return account
+        self.log.debug("Using first account: %s", account)
+        return all_accounts.first()
 
     def resolve_workspace(self, account, workspace_name):
         workspace = None
