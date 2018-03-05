@@ -615,6 +615,7 @@ class ApiritifScriptGenerator(PythonGenerator):
             ast.Import(names=[ast.alias(name='string', asname=None)]),
             ast.Import(names=[ast.alias(name='sys', asname=None)]),
             ast.Import(names=[ast.alias(name='time', asname=None)]),
+            ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             self.gen_empty_line_stmt(),
 
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
@@ -635,7 +636,7 @@ log.setLevel(logging.DEBUG)
     def gen_classdef(self):
         return ast.ClassDef(
             name='TestAPIRequests',
-            bases=[],
+            bases=[ast.Attribute(value=ast.Name(id='unittest', ctx=ast.Load()), attr='TestCase', ctx=ast.Load())],
             body=[self.gen_test_method()],
             keywords=[],
             starargs=None,
