@@ -3,6 +3,7 @@ import shutil
 import time
 from os.path import join, exists, dirname
 
+import bzt
 from bzt.modules import javascript
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.javascript import WebdriverIOExecutor, NewmanExecutor
@@ -18,6 +19,19 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
         }})
         self.obj.prepare()
+
+    def test_selenium_mocha_check_install(self):
+        self.cmd_lines = []
+        self.obj.execution.merge({"scenario": {
+            "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
+        }})
+        get_output_back = bzt.utils.get_output
+        bzt.modules.javascript.get_output = self.args_collector
+        try:
+            self.obj.prepare()
+        finally:
+            bzt.modules.javascript.get_output = get_output_back
+        self.assertEqual(2, len(self.args_collection))
 
     def test_mocha_full(self):
         self.obj.engine.config.merge({

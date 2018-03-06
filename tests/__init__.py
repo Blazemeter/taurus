@@ -113,6 +113,10 @@ class BZTestCase(TestCase):
     def setUp(self):
         self.captured_logger = None
         self.log_recorder = None
+        self.args_collection = []
+
+    def args_collector(self, *popenargs, **kwargs):
+        self.args_collection.append({'args': popenargs, 'kargs': kwargs})
 
     def sniff_log(self, log):
         self.log_recorder = RecordingHandler()
