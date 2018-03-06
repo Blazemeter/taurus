@@ -22,7 +22,7 @@ from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.six import string_types, iteritems
-from bzt.utils import get_output, get_full_path, is_windows
+from bzt.utils import get_output, get_full_path, is_windows, to_json
 from bzt.utils import TclLibrary, RequiredTool, Node, dehumanize_time, Environment
 
 MOCHA_NPM_PACKAGE_NAME = "mocha@4.0.1"
