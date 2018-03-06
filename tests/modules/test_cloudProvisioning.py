@@ -1402,9 +1402,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
-        self.assertEqual(8, len(self.mock.requests))
+        self.assertEqual(7, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(9, len(self.mock.requests))
+        self.assertEqual(8, len(self.mock.requests))
 
     def test_lookup_test_different_type(self):
         self.configure(
