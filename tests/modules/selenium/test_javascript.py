@@ -20,29 +20,36 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         }})
         self.obj.prepare()
 
-    def test_selenium_mocha_check_install_success(self):
+    def test_mocha_not_found(self):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
         }})
         get_output_back = bzt.utils.get_output
+        self.func_results = "not found"
         bzt.modules.javascript.get_output = self.func_mock
         try:
             self.obj.prepare()
         finally:
             bzt.modules.javascript.get_output = get_output_back
-        self.assertEqual(1, len(self.func_args))
 
-    def test_selenium_mocha_check_install_fail(self):
+        self.assertEqual(4, len(self.func_args))
+        runner = self.obj.runner
+        npm_check = [runner.node_tool.executable, "-e", "require('mocha'); console.log('mocha is installed');"]
+        self.assertEqual(npm_check, self.func_args[0]["args"][0])
+
+    def test_mocha_installed(self):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
         }})
         get_output_back = bzt.utils.get_output
+        self.func_results = "mocha is installed"
         bzt.modules.javascript.get_output = self.func_mock
         try:
             self.obj.prepare()
         finally:
             bzt.modules.javascript.get_output = get_output_back
-        self.assertEqual(2, len(self.func_args))
+
+        self.assertEqual(3, len(self.func_args))
 
     def test_mocha_full(self):
         self.obj.engine.config.merge({

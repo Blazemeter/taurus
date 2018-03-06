@@ -21,7 +21,7 @@ from subprocess import CalledProcessError
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
-from bzt.six import string_types, iteritems
+from bzt.six import string_types, iteritems, stream_decode
 from bzt.utils import get_output, get_full_path, is_windows, to_json
 from bzt.utils import TclLibrary, RequiredTool, Node, dehumanize_time, Environment
 
@@ -296,7 +296,13 @@ class NPM(RequiredTool):
 class NPMPackage(RequiredTool):
     def __init__(self, tool_name, package_name, tools_dir, node_tool, npm_tool, parent_logger):
         super(NPMPackage, self).__init__(tool_name, "")
-        self.package_name = package_name
+
+        if "@" in package_name:
+            self.package_name, self.version = package_name.split("@")
+        else:
+            self.package_name = package_name
+            self.version = None
+
         self.tools_dir = tools_dir
         self.node_tool = node_tool
         self.npm_tool = npm_tool
@@ -306,22 +312,26 @@ class NPMPackage(RequiredTool):
 
     def check_if_installed(self):
         try:
-            node_binary = self.node_tool.executable
-            package = self.package_name
-            cmdline = [node_binary, '-e', "require('%s'); console.log('%s is installed');" % (package, package)]
-            self.log.debug("%s check cmdline: %s", package, cmdline)
+            cmdline = [self.node_tool.executable, "-e"]
+            ok_msg = "%s is installed" % self.package_name
+            cmdline.append("require('%s'); console.log('%s');" % (self.package_name, ok_msg))
+            self.log.debug("%s check cmdline: %s", self.package_name, cmdline)
+
             self.log.debug("NODE_PATH for check: %s", self.env.get("NODE_PATH"))
             output = get_output(cmdline, env=self.env.get())
-            self.log.debug("%s check output: %s", self.package_name, output)
-            return True
+            output = stream_decode(output).rstrip()
+            return ok_msg in output
         except (CalledProcessError, OSError):
             self.log.debug("%s check failed: %s", self.package_name, traceback.format_exc())
             return False
 
     def install(self):
         try:
-            cmdline = [self.npm_tool.executable, 'install', self.package_name, '--prefix', self.tools_dir]
-            output = get_output(cmdline, env=self.env.get())
+            package_name = self.package_name
+            if self.version:
+                package_name += "@" + self.version
+            cmdline = [self.npm_tool.executable, 'install', package_name, '--prefix', self.tools_dir]
+            output = get_output(cmdline)
             self.log.debug("%s install output: %s", self.tool_name, output)
             return True
         except (CalledProcessError, OSError):
