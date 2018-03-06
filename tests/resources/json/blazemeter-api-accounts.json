@@ -1,0 +1,82 @@
+{
+  "limit": 10,
+  "skip": 0,
+  "total": 3,
+  "hidden": 0,
+  "api_version": 4,
+  "error": null,
+  "result": [
+    {
+      "id": 1,
+      "name": "BlazeMeter Demo",
+      "thumbnailUrl": "https://www.blazemeter.com/sites/all/themes/blazemeter/images/blazemeter-logo-small.jpg",
+      "salesforceId": null,
+      "totangoId": null,
+      "apiKeyExpiration": -1,
+      "inviteContactEmail": null,
+      "inviteContactName": null,
+      "legacyApiKeysDisabled": false,
+      "appUrl": "https://a.blazemeter.com",
+      "inviteUrl": "https://a.blazemeter.com/app/sign-up",
+      "disclaimerMessage": null,
+      "sessionDelayedStart": 180,
+      "created": 1498856673,
+      "updated": 1517347611,
+      "owner": {
+        "id": 2,
+        "email": "user1@blazemeter.com",
+        "displayName": "User 1"
+      },
+      "membersCount": 9,
+      "workspacesCount": 2
+    },
+    {
+      "id": 2,
+      "name": "Default Account",
+      "thumbnailUrl": null,
+      "salesforceId": null,
+      "totangoId": null,
+      "apiKeyExpiration": 3650,
+      "inviteContactEmail": null,
+      "inviteContactName": null,
+      "legacyApiKeysDisabled": null,
+      "appUrl": "https://a.blazemeter.com",
+      "inviteUrl": "https://a.blazemeter.com/app/sign-up",
+      "disclaimerMessage": null,
+      "sessionDelayedStart": 180,
+      "created": 1486702692,
+      "updated": 1513714985,
+      "owner": {
+        "id": 1,
+        "email": "user2@blazemeter.com",
+        "displayName": "User 2"
+      },
+      "membersCount": 1,
+      "workspacesCount": 7
+    },
+    {
+      "id": 3,
+      "name": "Martin Kowalewski",
+      "thumbnailUrl": "",
+      "salesforceId": null,
+      "totangoId": null,
+      "apiKeyExpiration": 3650,
+      "inviteContactEmail": null,
+      "inviteContactName": null,
+      "legacyApiKeysDisabled": false,
+      "appUrl": "https://a.blazemeter.com",
+      "inviteUrl": "https://a.blazemeter.com/app/sign-up",
+      "disclaimerMessage": null,
+      "sessionDelayedStart": 180,
+      "created": 1479655243,
+      "updated": 1519156625,
+      "owner": {
+        "id": 3,
+        "email": "user3@ca.com",
+        "displayName": "User 3"
+      },
+      "membersCount": 7,
+      "workspacesCount": 3
+    }
+  ]
+}

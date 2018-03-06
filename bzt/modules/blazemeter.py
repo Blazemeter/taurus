@@ -879,16 +879,23 @@ class ProjectFinder(object):
             account = self.user.accounts(ident=acc_id).first()
             if not account:
                 raise TaurusConfigError("BlazeMeter account not found by ID: %s" % acc_id)
-        elif account_name is not None:
+        elif account_name:
             account = self.user.accounts(name=account_name).first()
             if not account:
-                raise TaurusConfigError("BlazeMeter account not found by ID: %s" % account_name)
+                raise TaurusConfigError("BlazeMeter account not found by name: %s" % account_name)
 
-        if account is None:
-            account = self.user.accounts().first()
-            self.log.debug("Using first account: %s" % account)
+        if account:
+            return account
 
-        return account
+        self.user.fetch()
+        all_accounts = self.user.accounts()
+        for acc in all_accounts:
+            if acc["owner"]["id"] == self.user['id']:
+                self.log.debug("Using userID matched account: %s", acc)
+                return acc
+
+        self.log.debug("Using first account: %s", account)
+        return all_accounts.first()
 
     def resolve_workspace(self, account, workspace_name):
         workspace = None
@@ -1786,7 +1793,7 @@ class ResultsFromBZA(ResultsProvider):
 
             if self.handle_errors:
                 self.handle_errors = False
-                self.cur_errors = self.__get_errors_from_BZA()
+                self.cur_errors = self.__get_errors_from_bza()
                 err_diff = self._get_err_diff()
                 if err_diff:
                     for label in err_diff:
@@ -1800,7 +1807,7 @@ class ResultsFromBZA(ResultsProvider):
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
 
-    def __get_errors_from_BZA(self):
+    def __get_errors_from_bza(self):
         #
         # This method reads error report from BZA
         #
