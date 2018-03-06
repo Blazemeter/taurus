@@ -1357,12 +1357,10 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/multi-tests?projectId=3&name=Test+name': {"result": []},
                 'https://a.blazemeter.com/api/v4/tests?projectId=3&name=Test+name': {"result": [
                     {"id": 4, "name": "Test name", "configuration": {"type": "taurus"}}
-                ]},
-            },
+                ]}},
             post={
                 'https://a.blazemeter.com/api/v4/tests/4/start': {"result": {"id": 5}},
-            }
-        )
+            })
 
         self.obj.settings["account"] = "Acc name"
         self.obj.settings["workspace"] = "Wksp name"
@@ -1372,9 +1370,9 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.prepare()
         self.assertIsInstance(self.obj.router, CloudTaurusTest)
-        self.assertEqual(8, len(self.mock.requests))
+        self.assertEqual(7, len(self.mock.requests))
         self.obj.startup()
-        self.assertEqual(9, len(self.mock.requests))
+        self.assertEqual(8, len(self.mock.requests))
 
     def test_lookup_test_ids(self):
         self.configure(
