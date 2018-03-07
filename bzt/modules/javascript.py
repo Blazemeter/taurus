@@ -21,9 +21,9 @@ from subprocess import CalledProcessError
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
-from bzt.six import string_types, iteritems, stream_decode
-from bzt.utils import get_output, get_full_path, is_windows, to_json
-from bzt.utils import TclLibrary, RequiredTool, Node, dehumanize_time, Environment
+from bzt.six import string_types, iteritems
+from bzt.utils import TclLibrary, RequiredTool, Node, Environment
+from bzt.utils import sync_run, get_full_path, is_windows, to_json, dehumanize_time
 
 MOCHA_NPM_PACKAGE_NAME = "mocha@4.0.1"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver@3.6.0"
@@ -318,8 +318,7 @@ class NPMPackage(RequiredTool):
             self.log.debug("%s check cmdline: %s", self.package_name, cmdline)
 
             self.log.debug("NODE_PATH for check: %s", self.env.get("NODE_PATH"))
-            output = get_output(cmdline, env=self.env.get())
-            output = stream_decode(output).rstrip()
+            output = sync_run(cmdline, env=self.env.get())
             return ok_msg in output
         except (CalledProcessError, OSError):
             self.log.debug("%s check failed: %s", self.package_name, traceback.format_exc())
@@ -331,7 +330,7 @@ class NPMPackage(RequiredTool):
             if self.version:
                 package_name += "@" + self.version
             cmdline = [self.npm_tool.executable, 'install', package_name, '--prefix', self.tools_dir]
-            output = get_output(cmdline)
+            output = sync_run(cmdline)
             self.log.debug("%s install output: %s", self.tool_name, output)
             return True
         except (CalledProcessError, OSError):

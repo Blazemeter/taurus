@@ -24,13 +24,13 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
         }})
-        get_output_back = bzt.utils.get_output
         self.func_results = "not found"
-        bzt.modules.javascript.get_output = self.func_mock
+        sync_run_back = bzt.modules.javascript.sync_run
+        bzt.modules.javascript.sync_run = self.func_mock
         try:
             self.obj.prepare()
         finally:
-            bzt.modules.javascript.get_output = get_output_back
+            bzt.modules.javascript.sync_run = sync_run_back
 
         self.assertEqual(4, len(self.func_args))
         runner = self.obj.runner
@@ -41,13 +41,13 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
         }})
-        get_output_back = bzt.utils.get_output
         self.func_results = "mocha is installed"
-        bzt.modules.javascript.get_output = self.func_mock
+        sync_run_back = bzt.utils.sync_run
+        bzt.modules.javascript.sync_run = self.func_mock
         try:
             self.obj.prepare()
         finally:
-            bzt.modules.javascript.get_output = get_output_back
+            bzt.modules.javascript.get_output = sync_run_back
 
         self.assertEqual(3, len(self.func_args))
 

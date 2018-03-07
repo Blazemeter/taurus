@@ -56,11 +56,13 @@ from psutil import Popen
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
+from bzt.six import stream_decode, file_type, etree, parse
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request
 
 
-def get_output(args, env=None):
-    return subprocess.check_output(args, env=env, stderr=subprocess.STDOUT)
+def sync_run(args, env=None):
+    output = subprocess.check_output(args, env=env, stderr=subprocess.STDOUT)
+    return stream_decode(output).rstrip()
 
 
 def get_full_path(path, default=None, step_up=0):
