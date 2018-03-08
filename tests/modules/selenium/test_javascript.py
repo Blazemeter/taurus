@@ -47,7 +47,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         try:
             self.obj.prepare()
         finally:
-            bzt.modules.javascript.get_output = sync_run_back
+            bzt.modules.javascript.sync_run = sync_run_back
 
         self.assertEqual(3, len(self.func_args))
 
