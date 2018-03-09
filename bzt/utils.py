@@ -990,7 +990,7 @@ class JavaVM(RequiredTool):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
-            output = check_output(cmd, stderr=STDOUT)
+            output = sync_run(cmd)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except (CalledProcessError, OSError) as exc:
@@ -1110,7 +1110,7 @@ class Node(RequiredTool):
         for candidate in node_candidates:
             try:
                 self.log.debug("Trying %r", candidate)
-                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                output = sync_run([candidate, '--version'])
                 self.log.debug("%s output: %s", candidate, output)
                 self.executable = candidate
                 return True
