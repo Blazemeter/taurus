@@ -43,14 +43,14 @@ import zipfile
 import ipaddress
 import psutil
 
-from math import log
-from urwid import BaseScreen
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
-from subprocess import CalledProcessError, PIPE, check_output, STDOUT
-from webbrowser import GenericBrowser
+from math import log
 from progressbar import ProgressBar, Percentage, Bar, ETA
+from subprocess import CalledProcessError, PIPE, check_output, STDOUT
+from urwid import BaseScreen
+from webbrowser import GenericBrowser
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import stream_decode, file_type, etree, parse
