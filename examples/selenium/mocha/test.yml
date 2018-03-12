@@ -4,3 +4,9 @@ execution:
   iterations: 5
   scenario:
     script: test/  # will run all .js files from test/ folder
+
+
+services:
+- module: shellexec
+  prepare:
+  - npm install
