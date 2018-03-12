@@ -3,6 +3,7 @@ import shutil
 import time
 from os.path import join, exists, dirname
 
+import bzt
 from bzt.modules import javascript
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.javascript import WebdriverIOExecutor, NewmanExecutor
@@ -18,6 +19,58 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
         }})
         self.obj.prepare()
+
+    @staticmethod
+    def check_mocha_cmd(runner):
+        check_mocha = [runner.node_tool.executable, "-e", "require('mocha'); console.log('mocha is installed');"]
+        return check_mocha
+
+    @staticmethod
+    def install_mocha_cmd(runner):
+        package_name = runner.mocha_tool.package_name
+        if runner.mocha_tool.version:
+            package_name += "@" + runner.mocha_tool.version
+        install_mocha = [runner.npm_tool.executable, "install", package_name, "--prefix", runner.mocha_tool.tools_dir]
+        return install_mocha
+
+    def test_mocha_not_found(self):
+        self.obj.execution.merge({"scenario": {
+            "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
+        }})
+        self.func_results = "not found"
+        sync_run_back = bzt.modules.javascript.sync_run
+        bzt.modules.javascript.sync_run = self.func_mock
+        try:
+            self.obj.prepare()
+        finally:
+            bzt.modules.javascript.sync_run = sync_run_back
+
+        self.assertEqual(5, len(self.func_args))
+
+        runner = self.obj.runner
+        args = [args["args"][0] for args in self.func_args]
+
+        self.assertIn(self.check_mocha_cmd(runner), args)
+        self.assertIn(self.install_mocha_cmd(runner), args)
+
+    def test_mocha_installed(self):
+        self.obj.execution.merge({"scenario": {
+            "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
+        }})
+        self.func_results = "mocha is installed"
+        sync_run_back = bzt.utils.sync_run
+        bzt.modules.javascript.sync_run = self.func_mock
+        try:
+            self.obj.prepare()
+        finally:
+            bzt.modules.javascript.sync_run = sync_run_back
+
+        self.assertEqual(4, len(self.func_args))
+        runner = self.obj.runner
+        args = [args["args"][0] for args in self.func_args]
+
+        self.assertIn(self.check_mocha_cmd(runner), args)
+        self.assertNotIn(self.install_mocha_cmd(runner), args)
 
     def test_mocha_full(self):
         self.obj.engine.config.merge({

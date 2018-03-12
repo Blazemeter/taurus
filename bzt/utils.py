@@ -34,29 +34,34 @@ import shutil
 import signal
 import socket
 import stat
-import subprocess
 import sys
 import tarfile
 import tempfile
 import time
 import webbrowser
 import zipfile
+import ipaddress
+import psutil
+
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
 from math import log
-from subprocess import CalledProcessError
-from subprocess import PIPE
+from progressbar import ProgressBar, Percentage, Bar, ETA
+from subprocess import CalledProcessError, PIPE, check_output, STDOUT
+from urwid import BaseScreen
 from webbrowser import GenericBrowser
 
-import ipaddress
-import psutil
-from progressbar import ProgressBar, Percentage, Bar, ETA
-from psutil import Popen
-from urwid import BaseScreen
-
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request, file_type, etree, parse
+from bzt.six import stream_decode, file_type, etree, parse
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request
+
+CALL_PROBLEMS = (CalledProcessError, OSError)
+
+
+def sync_run(args, env=None):
+    output = check_output(args, env=env, stderr=STDOUT)
+    return stream_decode(output).rstrip()
 
 
 def get_full_path(path, default=None, step_up=0):
@@ -168,6 +173,7 @@ class BetterDict(defaultdict):
     """
     Wrapper for defaultdict that able to deep merge other dicts into itself
     """
+
     def get(self, key, default=defaultdict, force_set=False):
         """
         Change get with setdefault
@@ -341,10 +347,11 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     logging.getLogger(__name__).debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
     if is_windows():
-        return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env)
+        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
+                            bufsize=0, cwd=cwd, shell=shell, env=env)
     else:
-        return Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0,
-                     preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
+        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
+                            bufsize=0, preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
 
 
 class Environment(object):
@@ -983,7 +990,7 @@ class JavaVM(RequiredTool):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
-            output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+            output = sync_run(cmd)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except (CalledProcessError, OSError) as exc:
@@ -1103,7 +1110,7 @@ class Node(RequiredTool):
         for candidate in node_candidates:
             try:
                 self.log.debug("Trying %r", candidate)
-                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                output = sync_run([candidate, '--version'])
                 self.log.debug("%s output: %s", candidate, output)
                 self.executable = candidate
                 return True

@@ -113,6 +113,15 @@ class BZTestCase(TestCase):
     def setUp(self):
         self.captured_logger = None
         self.log_recorder = None
+        self.func_args = []
+        self.func_results = None
+
+    def func_mock(self, *args, **kwargs):
+        self.func_args.append({'args': args, 'kargs': kwargs})
+        if isinstance(self.func_results, list):
+            return self.func_results.pop(0)
+        else:
+            return self.func_results
 
     def sniff_log(self, log):
         self.log_recorder = RecordingHandler()

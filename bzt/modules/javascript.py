@@ -14,15 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-import subprocess
 import traceback
-from subprocess import CalledProcessError
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.six import string_types, iteritems
-from bzt.utils import get_full_path, TclLibrary, RequiredTool, is_windows, Node, dehumanize_time, to_json, Environment
+from bzt.utils import TclLibrary, RequiredTool, Node, Environment, CALL_PROBLEMS
+from bzt.utils import sync_run, get_full_path, is_windows, to_json, dehumanize_time
 
 MOCHA_NPM_PACKAGE_NAME = "mocha@4.0.1"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver@3.6.0"
@@ -189,15 +188,17 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        tools = []
-        tools.append(TclLibrary(self.log))
         self.node_tool = Node(self.log)
         self.npm_tool = NPM(self.log)
         self.newman_tool = Newman(self.tools_dir, self.node_tool, self.npm_tool, self.log)
-        tools.append(self.node_tool)
-        tools.append(self.npm_tool)
-        tools.append(self.newman_tool)
-        tools.append(TaurusNewmanPlugin(self.plugin_path, ""))
+
+        tools = [
+            self.node_tool,
+            self.npm_tool,
+            self.newman_tool,
+            TclLibrary(self.log),
+            TaurusNewmanPlugin(self.plugin_path, "")
+        ]
 
         self._check_tools(tools)
 
@@ -279,11 +280,11 @@ class NPM(RequiredTool):
         for candidate in candidates:
             try:
                 self.log.debug("Trying %r", candidate)
-                output = subprocess.check_output([candidate, '--version'], stderr=subprocess.STDOUT)
+                output = sync_run([candidate, '--version'])
                 self.log.debug("%s output: %s", candidate, output)
                 self.executable = candidate
                 return True
-            except (CalledProcessError, OSError):
+            except CALL_PROBLEMS:
                 self.log.debug("%r is not installed", candidate)
                 continue
         return False
@@ -295,7 +296,13 @@ class NPM(RequiredTool):
 class NPMPackage(RequiredTool):
     def __init__(self, tool_name, package_name, tools_dir, node_tool, npm_tool, parent_logger):
         super(NPMPackage, self).__init__(tool_name, "")
-        self.package_name = package_name
+
+        if "@" in package_name:
+            self.package_name, self.version = package_name.split("@")
+        else:
+            self.package_name = package_name
+            self.version = None
+
         self.tools_dir = tools_dir
         self.node_tool = node_tool
         self.npm_tool = npm_tool
@@ -305,25 +312,30 @@ class NPMPackage(RequiredTool):
 
     def check_if_installed(self):
         try:
-            node_binary = self.node_tool.executable
-            package = self.package_name
-            cmdline = [node_binary, '-e', "require('%s'); console.log('%s is installed');" % (package, package)]
-            self.log.debug("%s check cmdline: %s", package, cmdline)
+            cmdline = [self.node_tool.executable, "-e"]
+            ok_msg = "%s is installed" % self.package_name
+            cmdline.append("require('%s'); console.log('%s');" % (self.package_name, ok_msg))
+            self.log.debug("%s check cmdline: %s", self.package_name, cmdline)
+
             self.log.debug("NODE_PATH for check: %s", self.env.get("NODE_PATH"))
-            output = subprocess.check_output(cmdline, env=self.env.get(), stderr=subprocess.STDOUT)
-            self.log.debug("%s check output: %s", self.package_name, output)
-            return True
-        except (CalledProcessError, OSError):
+            output = sync_run(cmdline, env=self.env.get())
+            return ok_msg in output
+
+        except CALL_PROBLEMS:
             self.log.debug("%s check failed: %s", self.package_name, traceback.format_exc())
             return False
 
     def install(self):
         try:
-            cmdline = [self.npm_tool.executable, 'install', self.package_name, '--prefix', self.tools_dir]
-            output = subprocess.check_output(cmdline, stderr=subprocess.STDOUT)
+            package_name = self.package_name
+            if self.version:
+                package_name += "@" + self.version
+            cmdline = [self.npm_tool.executable, 'install', package_name, '--prefix', self.tools_dir]
+            output = sync_run(cmdline)
             self.log.debug("%s install output: %s", self.tool_name, output)
             return True
-        except (CalledProcessError, OSError):
+
+        except CALL_PROBLEMS:
             self.log.debug("%s install failed: %s", self.package_name, traceback.format_exc())
             return False
 
