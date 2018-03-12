@@ -575,7 +575,7 @@ class JMeterScenarioBuilder(JMX):
 
     def _get_merged_ci_headers(self, req, header):
         def dic_lower(dic):
-            return {k.lower(): dic[k].lower() for k in dic}
+            return {str(k).lower(): str(dic[k]).lower() for k in dic}
 
         ci_scenario_headers = dic_lower(self.scenario.get_headers())
         ci_request_headers = dic_lower(req.headers)

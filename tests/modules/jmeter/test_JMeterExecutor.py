@@ -1391,7 +1391,8 @@ class TestJMeterExecutor(BZTestCase):
                         "url": "http://blazedemo.com/",
                         "headers": {
                             "str": "string_value",
-                            "bool": True}}]}}})
+                            "bool": True,
+                            "num": 3}}]}}})
         self.obj.prepare()
 
     def test_body_file_in_artifacts(self):
