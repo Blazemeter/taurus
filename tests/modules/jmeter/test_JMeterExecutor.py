@@ -1383,6 +1383,17 @@ class TestJMeterExecutor(BZTestCase):
         shutil.copy2(csv_source, self.obj.engine.artifacts_dir)
         self.obj.prepare()
 
+    def test_headers(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "url": "http://blazedemo.com/",
+                        "headers": {
+                            "str": "string_value",
+                            "bool": True}}]}}})
+        self.obj.prepare()
+
     def test_body_file_in_artifacts(self):
         self.configure({
             'execution': {
