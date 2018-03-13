@@ -146,8 +146,11 @@ def run_pytest(argv, report_path, iteration_limit, duration_limit):
     iteration = 0
     try:
         while True:
-            pytest.main(['-s'] + argv, plugins=[plugin])
+            retcode = pytest.main(['-s'] + argv, plugins=[plugin])
             iteration += 1
+
+            if retcode == 2:  # interrupted by user, aka --exitfirst
+                break
             if 0 < duration_limit < int(time.time()) - start_time:
                 break
             if iteration >= iteration_limit:
@@ -165,7 +168,7 @@ class SkippingUnknownOptionParser(OptionParser):
     def _process_args(self, largs, rargs, values):
         while rargs:
             try:
-                OptionParser._process_args(self,largs,rargs,values)
+                OptionParser._process_args(self, largs, rargs, values)
             except (BadOptionError, AmbiguousOptionError) as e:
                 largs.append(e.opt_str)
 

@@ -1342,7 +1342,6 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
-        cmdline += self._additional_args
 
         load = self.get_load()
         if load.iterations:
@@ -1351,7 +1350,9 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         if load.hold:
             cmdline += ['-d', str(load.hold)]
 
+        cmdline += self._additional_args
         cmdline += [self.script]
+
         self._start_subprocess(cmdline)
 
         if self.__is_verbose():
