@@ -72,7 +72,7 @@ class Swagger(object):
             raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_path, exc))
 
     def _validate_swagger_version(self):
-        swagger_version = self.swagger.get("swagger")
+        swagger_version = self.swagger.get("swagger", self.swagger.get("openapi"))
         if swagger_version != "2.0":
             raise ValueError("Only Swagger 2.0 specs are supported, got %s" % swagger_version)
 
@@ -92,10 +92,24 @@ class Swagger(object):
                                           type=param.get("type"), format=param.get("format"))
             self.parameters[name] = parameter
 
-    @staticmethod
-    def _extract_operation(operation):
+    def _lookup_reference(self, reference):
+        if not reference.startswith("#/"):
+            return
+        path = reference[2:].split('/')
+        pointer = self.swagger
+        for component in path:
+            if component not in pointer:
+                raise IndexError("Can't find location by reference %r at part %r" % (reference, component))
+            pointer = pointer[component]
+        self.log.info("Found by reference %r: %r", reference, pointer)
+        return pointer
+
+    def _extract_operation(self, operation):
         parameters = OrderedDict()
         for param in operation.get("parameters", []):
+            self.log.info(param)
+            if "$ref" in param:
+                param = self._lookup_reference(param["$ref"])
             param_name = param["name"]
             parameter = Swagger.Parameter(name=param_name, location=param.get("in"),
                                           description=param.get("description"), required=param.get("required"),
@@ -123,6 +137,8 @@ class Swagger(object):
                     path[method] = self._extract_operation(operation)
 
             for param in path_item.get("parameters", []):
+                if "$ref" in param:
+                    param = self._lookup_reference(param["$ref"])
                 param_name = param["name"]
                 parameter = Swagger.Parameter(name=param_name, location=param.get("in"),
                                               description=param.get("description"), required=param.get("required"),
@@ -383,14 +399,16 @@ def main():
     parser.add_option('-q', '--quiet', action='store_true', default=False, dest='quiet',
                       help="Do not display any log messages")
     parser.add_option('-j', '--json', action='store_true', default=False, dest='json',
-                      help="Use JSON format")
+                      help="Use JSON format for results")
     parser.add_option('-l', '--log', action='store', default=False, help="Log file location")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
         try:
             process(parsed_options, args)
         except BaseException as exc:
-            logging.error("Exception: %s", exc)
+            logging.error("Exception during conversion: %s: %s", type(exc).__name__, str(exc))
+            if not parsed_options.verbose:
+                logging.error("Rerun with --verbose to see the stack trace")
             logging.debug("Exception: %s", traceback.format_exc())
             sys.exit(1)
         sys.exit(0)

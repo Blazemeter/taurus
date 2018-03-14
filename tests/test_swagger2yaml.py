@@ -99,3 +99,7 @@ class TestSwaggerConverter(BZTestCase):
         request = requests[5]
         self.assertIn("body", request)
         self.assertEqual(request["body"].get("name"), "some_string")
+
+    def test_referenced_parameters(self):
+        obj = SwaggerConverter(logging.getLogger(''))
+        config = obj.convert(RESOURCES_DIR + "/swagger/bzm-api.json")
