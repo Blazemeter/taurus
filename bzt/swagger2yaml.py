@@ -72,7 +72,7 @@ class Swagger(object):
             raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_path, exc))
 
     def _validate_swagger_version(self):
-        swagger_version = self.swagger.get("swagger")
+        swagger_version = self.swagger.get("swagger", self.swagger.get("openapi"))
         if swagger_version != "2.0":
             raise ValueError("Only Swagger 2.0 specs are supported, got %s" % swagger_version)
 
@@ -92,10 +92,23 @@ class Swagger(object):
                                           type=param.get("type"), format=param.get("format"))
             self.parameters[name] = parameter
 
-    @staticmethod
-    def _extract_operation(operation):
+    def _lookup_reference(self, reference):
+        if not reference.startswith("#/"):
+            return
+        path = reference[2:].split('/')
+        pointer = self.swagger
+        for component in path:
+            if component not in pointer:
+                raise IndexError("Can't find location by reference %r at part %r" % (reference, component))
+            pointer = pointer[component]
+        self.log.debug("Found by reference %r: %r", reference, pointer)
+        return pointer
+
+    def _extract_operation(self, operation):
         parameters = OrderedDict()
         for param in operation.get("parameters", []):
+            if "$ref" in param:
+                param = self._lookup_reference(param["$ref"])
             param_name = param["name"]
             parameter = Swagger.Parameter(name=param_name, location=param.get("in"),
                                           description=param.get("description"), required=param.get("required"),
@@ -123,6 +136,8 @@ class Swagger(object):
                     path[method] = self._extract_operation(operation)
 
             for param in path_item.get("parameters", []):
+                if "$ref" in param:
+                    param = self._lookup_reference(param["$ref"])
                 param_name = param["name"]
                 parameter = Swagger.Parameter(name=param_name, location=param.get("in"),
                                               description=param.get("description"), required=param.get("required"),
@@ -205,7 +220,8 @@ class Swagger(object):
 
 
 class SwaggerConverter(object):
-    def __init__(self, parent_log):
+    def __init__(self, config, parent_log):
+        self.config = config
         self.log = parent_log.getChild(self.__class__.__name__)
         self.swagger = Swagger(self.log)
 
@@ -297,6 +313,29 @@ class SwaggerConverter(object):
 
         return requests
 
+    def _extract_scenarios_from_paths(self, paths):
+        base_path = self.swagger.get_base_path()
+        scenarios = OrderedDict()
+        for path, path_obj in iteritems(paths):
+            scenario_name = path
+            self.log.debug("Handling path %s", path)
+            requests = []
+            for method in Swagger.METHODS:
+                operation = getattr(path_obj, method)
+                if operation is not None:
+                    self.log.debug("Handling method %s", method.upper())
+                    request = self._extract_request(path, path_obj, method, operation)
+                    requests.append(request)
+                    # TODO: Swagger responses -> assertions?
+
+            if requests:
+                scenarios[scenario_name] = {
+                    "default-address": base_path,
+                    "requests": requests,
+                }
+
+        return scenarios
+
     def convert(self, swagger_path):
         if not os.path.exists(swagger_path):
             raise ValueError("Swagger file %s doesn't exist" % swagger_path)
@@ -311,21 +350,31 @@ class SwaggerConverter(object):
         scheme = schemes[0]
         default_address = scheme + "://" + host
         scenario_name = title.replace(' ', '-')
-        requests = self._extract_requests_from_paths(paths)
-
-        return {
-            "scenarios": {
-                scenario_name: {
-                    "default-address": default_address,
-                    "requests": requests
-                }
-            },
-            "execution": [{
-                "concurrency": 1,
-                "scenario": scenario_name,
-                "hold-for": "1m",
-            }]
-        }
+        if self.config.scenarios_from_paths:
+            scenarios = self._extract_scenarios_from_paths(paths)
+            return {
+                "scenarios": scenarios,
+                "execution": [{
+                    "concurrency": 1,
+                    "scenario": scenario_name,
+                    "hold-for": "1m",
+                } for scenario_name, scenario in iteritems(scenarios)]
+            }
+        else:
+            requests = self._extract_requests_from_paths(paths)
+            return {
+                "scenarios": {
+                    scenario_name: {
+                        "default-address": default_address,
+                        "requests": requests
+                    }
+                },
+                "execution": [{
+                    "concurrency": 1,
+                    "scenario": scenario_name,
+                    "hold-for": "1m",
+                }]
+            }
 
 
 class Swagger2YAML(object):
@@ -348,7 +397,7 @@ class Swagger2YAML(object):
         self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
         if not os.path.exists(self.file_to_convert):
             raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
-        self.converter = SwaggerConverter(self.log)
+        self.converter = SwaggerConverter(self.options, self.log)
         try:
             converted_config = self.converter.convert(self.file_to_convert)
         except BaseException:
@@ -383,14 +432,18 @@ def main():
     parser.add_option('-q', '--quiet', action='store_true', default=False, dest='quiet',
                       help="Do not display any log messages")
     parser.add_option('-j', '--json', action='store_true', default=False, dest='json',
-                      help="Use JSON format")
+                      help="Use JSON format for results")
     parser.add_option('-l', '--log', action='store', default=False, help="Log file location")
+    parser.add_option('--scenarios-from-paths', action='store_true', default=False,
+                      help="Generate one scenario per path (disabled by default)")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
         try:
             process(parsed_options, args)
         except BaseException as exc:
-            logging.error("Exception: %s", exc)
+            logging.error("Exception during conversion: %s: %s", type(exc).__name__, str(exc))
+            if not parsed_options.verbose:
+                logging.error("Rerun with --verbose to see the stack trace")
             logging.debug("Exception: %s", traceback.format_exc())
             sys.exit(1)
         sys.exit(0)

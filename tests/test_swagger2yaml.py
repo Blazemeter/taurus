@@ -2,18 +2,20 @@ import logging
 
 import yaml
 
+from bzt.six import iteritems
 from bzt.swagger2yaml import SwaggerConverter, Swagger, Swagger2YAML, process
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 
 class FakeOptions(object):
-    def __init__(self, verbose=True, file_name=None, quiet=False, json=False, log=False):
+    def __init__(self, verbose=True, file_name=None, quiet=False, json=False, log=False, scenarios_from_paths=False):
         self.verbose = verbose
         self.file_name = file_name
         self.quiet = quiet
         self.json = json
         self.log = log
+        self.scenarios_from_paths = scenarios_from_paths
 
 
 class TestSwagger2YAML(BZTestCase):
@@ -40,7 +42,7 @@ class TestSwagger2YAML(BZTestCase):
 
 class TestSwaggerConverter(BZTestCase):
     def test_minimal_json(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
         config = obj.convert(RESOURCES_DIR + "/swagger/petstore.json")
         self.assertIsNotNone(config)
         self.assertIsNotNone(config.get("execution"))
@@ -51,7 +53,7 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(20, len(scenario["requests"]))
 
     def test_minimal_yaml(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
         config = obj.convert(RESOURCES_DIR + "/swagger/petstore.yaml")
         self.assertIsNotNone(config)
         self.assertIsNotNone(config.get("execution"))
@@ -70,7 +72,7 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(inter_paths, ["/pets", "/pets/some_string", "/owners"])
 
     def test_query(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
         config = obj.convert(RESOURCES_DIR + "/swagger/petstore.yaml")
 
         scenario = config["scenarios"].get("Swagger-Petstore")
@@ -82,7 +84,7 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(requests[3]["url"], "/v1/owners?limit=1")
 
     def test_headers(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
         config = obj.convert(RESOURCES_DIR + "/swagger/petstore.yaml")
 
         scenario = config["scenarios"].get("Swagger-Petstore")
@@ -92,10 +94,30 @@ class TestSwaggerConverter(BZTestCase):
             self.assertIn("some_string", request["headers"].get("token"))
 
     def test_form_data(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
         config = obj.convert(RESOURCES_DIR + "/swagger/petstore.yaml")
 
         requests = config["scenarios"]["Swagger-Petstore"]["requests"]
         request = requests[5]
         self.assertIn("body", request)
         self.assertEqual(request["body"].get("name"), "some_string")
+
+    def test_referenced_parameters(self):
+        obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
+        config = obj.convert(RESOURCES_DIR + "/swagger/bzm-api.json")
+
+    def test_scenarios_from_paths(self):
+        obj = SwaggerConverter(FakeOptions(scenarios_from_paths=True), logging.getLogger(''))
+        config = obj.convert(RESOURCES_DIR + "/swagger/bzm-api.json")
+        self.assertEqual(len(config["scenarios"]), 5)
+
+        scenario_names = set(key for key, _ in iteritems(config["scenarios"]))
+        self.assertEqual({"/reports", "/reports/1", "/tests", "/tests/1", "/tests/1/start"}, scenario_names)
+
+        self.assertEqual(len(config["execution"]), 5)
+
+        self.assertEqual(len(config["scenarios"]["/reports"]["requests"]), 1)
+        self.assertEqual(len(config["scenarios"]["/reports/1"]["requests"]), 1)
+        self.assertEqual(len(config["scenarios"]["/tests"]["requests"]), 2)
+        self.assertEqual(len(config["scenarios"]["/tests/1"]["requests"]), 4)
+        self.assertEqual(len(config["scenarios"]["/tests/1/start"]["requests"]), 1)
