@@ -1,23 +1,22 @@
 var assert = require('assert'),
-    webdriver = require('selenium-webdriver'),
-    test = require('selenium-webdriver/testing');
+    webdriver = require('selenium-webdriver');
 
 var driver;
 
-test.describe('Blazedemo verification', function() {
+describe('Blazedemo verification', function() {
     this.timeout(30000);
 
-    test.before(function () {
+    before(function () {
         driver = new webdriver.Builder().
             withCapabilities(webdriver.Capabilities.chrome()).
             build();
     });
 
-    test.after(function () {
+    after(function () {
         driver.quit();
     });
 
-    test.it('selenium-mocha', function () {
+    it('selenium-mocha', function () {
         driver.get('http://blazedemo.com/');
         driver.getTitle().then(function (title) {
             assert.equal(title, 'BlazeDemo');
