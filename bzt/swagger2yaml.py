@@ -220,7 +220,8 @@ class Swagger(object):
 
 
 class SwaggerConverter(object):
-    def __init__(self, parent_log):
+    def __init__(self, config, parent_log):
+        self.config = config
         self.log = parent_log.getChild(self.__class__.__name__)
         self.swagger = Swagger(self.log)
 
@@ -312,6 +313,29 @@ class SwaggerConverter(object):
 
         return requests
 
+    def _extract_scenarios_from_paths(self, paths):
+        base_path = self.swagger.get_base_path()
+        scenarios = OrderedDict()
+        for path, path_obj in iteritems(paths):
+            scenario_name = path
+            self.log.debug("Handling path %s", path)
+            requests = []
+            for method in Swagger.METHODS:
+                operation = getattr(path_obj, method)
+                if operation is not None:
+                    self.log.debug("Handling method %s", method.upper())
+                    request = self._extract_request(path, path_obj, method, operation)
+                    requests.append(request)
+                    # TODO: Swagger responses -> assertions?
+
+            if requests:
+                scenarios[scenario_name] = {
+                    "default-address": base_path,
+                    "requests": requests,
+                }
+
+        return scenarios
+
     def convert(self, swagger_path):
         if not os.path.exists(swagger_path):
             raise ValueError("Swagger file %s doesn't exist" % swagger_path)
@@ -326,21 +350,31 @@ class SwaggerConverter(object):
         scheme = schemes[0]
         default_address = scheme + "://" + host
         scenario_name = title.replace(' ', '-')
-        requests = self._extract_requests_from_paths(paths)
-
-        return {
-            "scenarios": {
-                scenario_name: {
-                    "default-address": default_address,
-                    "requests": requests
-                }
-            },
-            "execution": [{
-                "concurrency": 1,
-                "scenario": scenario_name,
-                "hold-for": "1m",
-            }]
-        }
+        if self.config.scenarios_from_paths:
+            scenarios = self._extract_scenarios_from_paths(paths)
+            return {
+                "scenarios": scenarios,
+                "execution": [{
+                    "concurrency": 1,
+                    "scenario": scenario_name,
+                    "hold-for": "1m",
+                } for scenario_name, scenario in iteritems(scenarios)]
+            }
+        else:
+            requests = self._extract_requests_from_paths(paths)
+            return {
+                "scenarios": {
+                    scenario_name: {
+                        "default-address": default_address,
+                        "requests": requests
+                    }
+                },
+                "execution": [{
+                    "concurrency": 1,
+                    "scenario": scenario_name,
+                    "hold-for": "1m",
+                }]
+            }
 
 
 class Swagger2YAML(object):
@@ -363,7 +397,7 @@ class Swagger2YAML(object):
         self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
         if not os.path.exists(self.file_to_convert):
             raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
-        self.converter = SwaggerConverter(self.log)
+        self.converter = SwaggerConverter(self.options, self.log)
         try:
             converted_config = self.converter.convert(self.file_to_convert)
         except BaseException:
@@ -400,6 +434,8 @@ def main():
     parser.add_option('-j', '--json', action='store_true', default=False, dest='json',
                       help="Use JSON format for results")
     parser.add_option('-l', '--log', action='store', default=False, help="Log file location")
+    parser.add_option('--scenarios-from-paths', action='store_true', default=False,
+                      help="Generate one scenario per path (disabled by default)")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
         try:
