@@ -25,7 +25,7 @@ After installation is finished, you can run Taurus with `bzt` from command promp
 
 ####  Install Taurus System Dependencies
 
-1. Get Python 2.7 from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
+1. Get Python 2.7 or 3.5+ from [http://www.python.org/downloads](http://www.python.org/downloads) and install it, don't forget to enable "Add python.exe to Path" checkbox.
 1. Get latest Java from [https://www.java.com/download/](https://www.java.com/download/) and install it.
 
 #### Install Taurus Python Dependencies
@@ -33,40 +33,23 @@ After installation is finished, you can run Taurus with `bzt` from command promp
 Open Command Prompt with administrative privileges (find `Command Prompt` in main menu and chose `Run as administrator`
 from context menu). Then run the following command to update Python package manager to the latest version:
 ```
-pip install --upgrade pip
+pip install --upgrade pip wheel
 ```
 
-##### Install `lxml` Package
-
-```
-pip install lxml
-```
-
-If this command fails, you can install `lxml` with Windows installer provided at project's
-[PyPI page](https://pypi.python.org/pypi/lxml/3.6.0). Just download `lxml-3.6.0.win32-py2.7.exe` installer (or
-`lxml-3.6.0.win-amd64-py2.7.exe`, if you've installed 64-bit Python) and run it.
-
-##### Install `psutil` Package
-
-```
-pip install psutil
-```
-
-If this command fails, you can install `psutil` with Windows installer provided at project's
-[PyPI page](https://pypi.python.org/pypi/psutil). Download `psutil-4.2.0.win32-py2.7.exe` file (or
-`psutil-4.2.0.win-amd64-py2.7.exe` for 64-bit Python) and install it.
-
-##### Install Taurus
+#### Install Taurus
 
 ```
 pip install bzt
 ```
 
+This should install all Taurus dependencies and Taurus itself. You may have to execute this command as an administrator,
+if that's how your Python installation handles Python packages.
+
 ### Upgrading Taurus
 
 To upgrade Taurus, open Command Prompt as administrator and run
 ``` 
- pip install --upgrade bzt
+pip install --upgrade bzt
 ```
 
 ----
