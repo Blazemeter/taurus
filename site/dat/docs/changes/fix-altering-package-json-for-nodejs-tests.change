@@ -1,0 +1,1 @@
+Make npm not touch `package.json` and `package-lock.json` for Node.js tests
