@@ -4,7 +4,7 @@ ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 WORKDIR /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
-ADD https://deb.nodesource.com/setup_6.x /tmp
+ADD https://deb.nodesource.com/setup_8.x /tmp
 RUN apt-get -y update \
   && apt-get -y install --no-install-recommends software-properties-common \
   && apt-add-repository multiverse \
@@ -14,7 +14,7 @@ RUN apt-get -y update \
   && apt-add-repository ppa:nilarimogard/webupd8 \
   && cat /tmp/linux_signing_key.pub | apt-key add - \
   && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
-  && bash /tmp/setup_6.x \
+  && bash /tmp/setup_8.x \
   && apt-get -y update \
   && apt-get -y install --no-install-recommends \
     mc \
@@ -52,7 +52,6 @@ RUN apt-get -y update \
   && pip3 install --upgrade setuptools pip wheel \
   && pip2 install locustio robotframework robotframework-seleniumlibrary \
   && pip3 install molotov \
-  && npm install -g mocha \
   && gem install rspec \
   && gem install selenium-webdriver \
   && wget https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
