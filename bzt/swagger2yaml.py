@@ -101,13 +101,12 @@ class Swagger(object):
             if component not in pointer:
                 raise IndexError("Can't find location by reference %r at part %r" % (reference, component))
             pointer = pointer[component]
-        self.log.info("Found by reference %r: %r", reference, pointer)
+        self.log.debug("Found by reference %r: %r", reference, pointer)
         return pointer
 
     def _extract_operation(self, operation):
         parameters = OrderedDict()
         for param in operation.get("parameters", []):
-            self.log.info(param)
             if "$ref" in param:
                 param = self._lookup_reference(param["$ref"])
             param_name = param["name"]
