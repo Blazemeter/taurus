@@ -330,7 +330,7 @@ class NPMPackage(RequiredTool):
             package_name = self.package_name
             if self.version:
                 package_name += "@" + self.version
-            cmdline = [self.npm_tool.executable, 'install', package_name, '--prefix', self.tools_dir]
+            cmdline = [self.npm_tool.executable, 'install', package_name, '--prefix', self.tools_dir, '--no-save']
             output = sync_run(cmdline)
             self.log.debug("%s install output: %s", self.tool_name, output)
             return True
