@@ -30,7 +30,8 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         package_name = runner.mocha_tool.package_name
         if runner.mocha_tool.version:
             package_name += "@" + runner.mocha_tool.version
-        install_mocha = [runner.npm_tool.executable, "install", package_name, "--prefix", runner.mocha_tool.tools_dir]
+        install_mocha = [runner.npm_tool.executable, "install", package_name, "--prefix", runner.mocha_tool.tools_dir,
+                         '--no-save']
         return install_mocha
 
     def test_mocha_not_found(self):
