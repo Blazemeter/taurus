@@ -75,9 +75,7 @@ RUN google-chrome-stable --version && firefox --version && mono --version && nug
 
 RUN bzt /tmp/bzt-src/examples/all-executors.yml -o settings.artifacts-dir=/tmp/all-executors-artifacts -sequential || (\
   ls -lh /tmp/all-executors-artifacts; \
-  cat /tmp/all-executors-artifacts/nose-0.err; \
-  cat /tmp/all-executors-artifacts/geckodriver.log; \
-  cat /tmp/all-executors-artifacts/processlist.txt; \
+  (ls /tmp/all-executors-artifacts/{geckodriver.log,*.out,*.err,processlist.txt} | sort | xargs tail -vn +1); \
   exit 1)
 
 RUN mkdir /bzt-configs \
