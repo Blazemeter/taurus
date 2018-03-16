@@ -112,6 +112,13 @@ Each tool start creates _artifacts directory_ under base dir (see `settings.arti
  - `merged.yml` and `merged.json` - configuration how it looks after merging all user's configuration files into one, saved in two formats
  - `effective.yml` and `effective.json` - configuration how it looks after applying defaults, shorthand rules and any othe modifications during execution, saved in two formats. This is how Taurus sees its configuration instructions and how YAML maps to JSON
 
+## Exit codes
+
+Taurus exit code signifies the way Taurus was ended.
+*0* — No problems occured.
+*1* — Taurus finished with a generic error (networking, internal Taurus errors)
+*2* — Taurus was manually shut down (Ctrl-C by user, process received SIGKILL, etc)
+*3* — Taurus was shut down automatically (e.g. Pass/Fail criteria, cloud tests failed, etc)
 
 ## Some Ways to Shoot Your Leg
 __Advice 1__: Don't interrupt graceful shutdown after hitting `Ctrl+C` once, let the tool finish its cleanup. The tool is made to be obedient, so if you will insist on interrupting by pressing `Ctrl+C` for the second time, it will exit immediately, leaving background processes unterminated, remote APIs will not be informed of the interrupt and, with little chance, some puppies or kitten might start crying in the world. So let the tool shutdown gracefully, _just be patient, please_.
