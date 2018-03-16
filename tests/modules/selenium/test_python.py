@@ -622,6 +622,23 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.assertNotIn("get('/?tag=1', timeout=10.0", test_script)
         self.assertIn("get('/?tag=2', timeout=2.0", test_script)
 
+    def test_timeout_notarget(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "timeout": "10s",
+                    "requests": [
+                        "http://blazedemo.com/",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        with open(self.obj.script) as fds:
+            test_script = fds.read()
+        self.assertIn("get('http://blazedemo.com/', timeout=10.0", test_script)
+
     def test_think_time(self):
         self.configure({
             "execution": [{

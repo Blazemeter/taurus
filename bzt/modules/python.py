@@ -730,10 +730,16 @@ log.setLevel(logging.DEBUG)
 
     def _extract_named_args(self, req):
         named_args = OrderedDict()
+
+        no_target = self.__access_method != "target"
         if req.timeout is not None:
             named_args['timeout'] = dehumanize_time(req.timeout)
-        if req.follow_redirects is not None:
-            named_args['allow_redirects'] = req.priority_option('follow-redirects', default=True)
+        elif "timeout" in self.scenario and no_target:
+            named_args['timeout'] = dehumanize_time(self.scenario.get("timeout"))
+
+        follow_redirects = req.priority_option('follow-redirects', None)
+        if follow_redirects is not None:
+            named_args['allow_redirects'] = follow_redirects
 
         headers = {}
         headers.update(self.scenario.get("headers"))
