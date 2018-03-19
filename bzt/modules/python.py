@@ -523,7 +523,8 @@ import apiritif
             'mousemove': "move_to_element"
         }
 
-        if atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys', 'asserttext', 'select'):
+        if atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
+                     'asserttext', 'assertvalue', 'select'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
             action = None
             if atype == 'click':
@@ -543,8 +544,11 @@ import apiritif
                 action = "select_by_visible_text(%r)" % param
                 return self.gen_statement("Select(%s).%s" % (tpl % (bys[aby], selector), action),
                                           indent=indent)
-            elif atype == 'asserttext':
-                action = "get_attribute('innerText')"
+            elif atype.startswith('assert'):
+                if atype == 'asserttext':
+                    action = "get_attribute('innerText')"
+                elif atype == 'assertvalue':
+                    action = "get_attribute('value')"
                 return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[aby], selector, action), param),
                                           indent=indent)
             return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
@@ -574,7 +578,8 @@ import apiritif
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        actions = "click|doubleClick|mouseDown|mouseUp|mouseMove|select|wait|keys|pause|clear|assert|assertText"
+        actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
+                            'pause', 'clear', 'assert', 'assertText', 'assertValue'])
         bys = "byName|byID|byCSS|byXPath|byLinkText|For|Cookies|Title"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, bys), re.IGNORECASE)
         res = expr.match(name)
