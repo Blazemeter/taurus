@@ -36,7 +36,7 @@ Supported features:
   - local webdriver, local remote webdriver or remote webdriver (selenium grid or others)
   - capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
   - set timeout/think-time on both scenario and request levels
-  - assertions (requested page source inspected use the new assertTitle or assertTextBy* for item level)
+  - assertions (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
   - pauseFor (pause for n seconds) 
   - request method GET (only)
   - selenium commands:
