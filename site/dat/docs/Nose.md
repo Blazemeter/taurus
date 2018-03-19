@@ -47,6 +47,7 @@ Supported features:
     - mouseDownBy* 
     - mouseUpBy* 
     - assertTextBy* Assert text on element
+    - assertValueBy* Assert value attribute
     - selectBy* Select value in drop down list
     - assertTitle
 
