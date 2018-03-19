@@ -8,7 +8,7 @@
  - add capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
  - new browsers: Chrome-Android and Safari-iOS with local appium or remote webdriver support
  - keysBy* - Special keys are allowed using the prefix KEY_ List: http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys
- - new Selenium actions were added: selectBy*, doubleClickBy*, mouseDownBy*, mouseUpBy*, assertTextBy*, assertTitle
+ - new Selenium actions were added: selectBy*, doubleClickBy*, mouseDownBy*, mouseUpBy*, assertTextBy*, assertValueBy*, assertTitle
  - add `headless` switch for selenium-based tests (Chrome and Firefox)
  - provide icon for Taurus status screen
  - fix singletone service parameters merging

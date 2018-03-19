@@ -38,6 +38,7 @@ class TestRequests(unittest.TestCase):
             Select(self.driver.find_element(By.NAME, 'toPort')).select_by_visible_text('London')
             self.driver.find_element(By.CSS_SELECTOR, 'body input.btn.btn-primary').send_keys(Keys.ENTER)
             self.assertEqual(self.driver.find_element(By.ID, 'address').get_attribute('value'),'123 Beautiful st.')
+            self.assertEqual(self.driver.find_element(By.XPATH, '/html/body/div[2]/form/div[1]/label').get_attribute('innerText'),'Name')
             WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, 'toPort')), "Element 'toPort' failed to appear within 3.5s")
             self.driver.find_element(By.NAME, 'toPort').send_keys('B')
             self.driver.find_element(By.XPATH, '//div[3]/form/select[1]//option[3]').click()
