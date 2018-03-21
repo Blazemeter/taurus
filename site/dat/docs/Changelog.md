@@ -3,7 +3,7 @@
 ## 1.10.6<sup>next</sup>
  - use HDR histograms from `hdrpy` package for storing response times
  - add environment variable evaluation in strings
- - bump up default JMeter to 4.0 and Plugins Manager to 0.19
+ - bump up default JMeter to 4.0 and Plugins Manager to 0.20
  - remote webdriver support added: selenium grid, appium, local or remote browsers or thirdparty compatible services
  - add capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
  - new browsers: Chrome-Android and Safari-iOS with local appium or remote webdriver support
