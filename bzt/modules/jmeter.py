@@ -1284,11 +1284,12 @@ class JTLErrorsReader(object):
         Read the next part of the file
         """
         while not self.failed_processing:
-            read = self.file.get_bytes(size=1024 * 1024)
+            read = self.file.get_bytes(size=1024 * 1024)  # we need to feed bytes, not a unicode string, into the parser
             if not read or not read.strip():
                 break
 
             try:
+                self.log.debug("Feeding the parser with %s", type(read))
                 self.parser.feed(read)  # "Huge input lookup" error without capping :)
             except etree.XMLSyntaxError as exc:
                 self.failed_processing = True
