@@ -17,6 +17,7 @@ python:
 env:
   global:
   - DISPLAY=:99.0
+  - PYTHON="python"
   - PIP_INSTALL="pip install"
   - GENERAL_EXCLUDE="--exclude-dir=tests/resources --exclude-dir=tests/ci"
 
@@ -25,7 +26,16 @@ matrix:
   - os: osx
     language: generic
     env:
+    - PYTHON="python2"
     - PIP_INSTALL="sudo pip2 install"
+    - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
+    - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
+  include:
+  - os: osx
+    language: generic
+    env:
+    - PYTHON="python3"
+    - PIP_INSTALL="sudo pip3 install"
     - RVM_KEY="409B6B1796C275462A1703113804BB82D39DC0E3"
     - OSX_EXCLUDE="--exclude-test=tests.modules.selenium.test_csharp"
 
