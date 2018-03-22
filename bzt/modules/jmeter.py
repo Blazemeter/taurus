@@ -1290,7 +1290,6 @@ class JTLErrorsReader(object):
                 break
 
             try:
-                self.log.debug("Feeding the parser with %s", type(read))
                 self.parser.feed(read)  # "Huge input lookup" error without capping :)
             except etree.XMLSyntaxError as exc:
                 self.failed_processing = True
