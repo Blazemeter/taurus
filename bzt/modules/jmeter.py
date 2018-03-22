@@ -1028,7 +1028,7 @@ class FuncJTLReader(FunctionalResultsReader):
 
     def __read_next_chunk(self, last_pass):
         while not self.failed_processing:
-            read = self.file.get_bytes(size=1024 * 1024)
+            read = self.file.get_bytes(size=1024 * 1024, decode=False)
             if not read or not read.strip():
                 break
 
@@ -1284,7 +1284,8 @@ class JTLErrorsReader(object):
         Read the next part of the file
         """
         while not self.failed_processing:
-            read = self.file.get_bytes(size=1024 * 1024)
+            # we need to feed bytes, not a unicode string, into the parser
+            read = self.file.get_bytes(size=1024 * 1024, decode=False)
             if not read or not read.strip():
                 break
 

@@ -1,8 +1,8 @@
 # coding=utf-8
+import logging
 import os
 import sys
-
-import logging
+import unittest
 
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
 from tests import BZTestCase, RESOURCES_DIR, close_reader_file
@@ -147,6 +147,11 @@ class TestJTLErrorsReader(BZTestCase):
         self.obj.read_file(final_pass=True)
         values = self.obj.get_data(sys.maxsize)
         self.assertEquals(3, len(values))
+
+    @unittest.skipUnless(sys.platform == "darwin" and sys.version_info >= (3, 0), "MacOS- and Python3-only")
+    def test_macos_unicode_parsing_is_not_supported(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/standard-errors.jtl")
+        self.obj.read_file(final_pass=True)  # shouldn't fail with "ParserError: Unicode parsing is not supported"
 
 
 class TestJTLReader(BZTestCase):
