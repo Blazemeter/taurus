@@ -1,24 +1,41 @@
 # Changelog
 
-## 1.10.6<sup>next</sup>
+## 1.11.0<sup>next</sup>
+ - don't force applying defaults into effective configuration (huge internal impact)
  - use HDR histograms from `hdrpy` package for storing response times
  - add environment variable evaluation in strings
+ 
  - bump up default JMeter to 4.0 and Plugins Manager to 0.20
+ - handle non-string JMeter headers
+ - Properly recover if JMeter has written non-UTF8 chars into JTL
+ 
  - remote webdriver support added: selenium grid, appium, local or remote browsers or thirdparty compatible services
  - add capabilities for remote webdriver - browser, version, javascript, platform, os_version, selenium, device, app
  - new browsers: Chrome-Android and Safari-iOS with local appium or remote webdriver support
  - keysBy* - Special keys are allowed using the prefix KEY_ List: http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.common.keys
  - new Selenium actions were added: selectBy*, doubleClickBy*, mouseDownBy*, mouseUpBy*, assertTextBy*, assertValueBy*, assertTitle
  - add `headless` switch for selenium-based tests (Chrome and Firefox)
- - provide icon for Taurus status screen
- - fix singletone service parameters merging
- - fix Python2 + Robot issue with test durations rounded to seconds
+ 
  - move assertions inside transactions in Apiritif codegen
  - add function translation for Apiritif executor: `__base64Encode`, `__base64Decode`, `__UUID` and `__urlencode`
- - add `swagger2yaml` converter
+ - set `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` env variable to fight MacOS problems with Apiritif
+ - Fix `scenario`-level timeout setting for Apiritif
+ - Fix POST requests with form data generation for Apiritif
+ - Inherit from `unittest.TestCase` when generating Apiritif script
+
  - support `additional-classpath` for Gatling
- - don't force applying defaults into effective configuration (huge internal impact)
- - set `OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES` env variable to fight MacOS problems
+ - add `swagger2yaml` converter
+ - Bump chromedriver version to 2.35
+ - fix Python2 + Robot issue with test durations rounded to seconds
+ - Make npm not touch `package.json` and `package-lock.json` for Node.js tests
+ - provide icon for Taurus status screen
+ - fix singletone service parameters merging
+
+ - Make it to pick BZA user's account by default when possible
+ - Use own test type for functional test in BZA
+ - Use `name` filter in BZA /projects call
+ - Retry requests to BZA test status in case of network failure
+
 
 ## 1.10.5 <sup>8 feb 2018</sup>
  - add `-lint functionality for checking Taurus configs for errors/typos
