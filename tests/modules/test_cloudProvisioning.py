@@ -1035,7 +1035,7 @@ class TestCloudProvisioning(BZTestCase):
         info = self.log_recorder.info_buff.getvalue()
         self.assertIn("Location: us-west\tDallas (Rackspace)", info)
         self.assertIn("Location: us-east-1\tEast", info)
-        self.assertNotIn("Location: harbor-sandbox\tSandbox", info)
+        self.assertIn("Location: harbor-sandbox\tSandbox", info)
         self.obj.post_process()
 
     def test_dump_locations_new_style(self):

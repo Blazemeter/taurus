@@ -1563,10 +1563,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
     def __dump_locations_if_needed(self):
         if self.settings.get("dump-locations", False):
             self.log.warning("Dumping available locations instead of running the test")
-            use_deprecated = self.settings.get("use-deprecated-api", True)
-            is_taurus3 = self.settings.get("cloud-mode", None) == 'taurusCloud'
             locations = {}
-            for loc in self._workspaces.locations(include_private=not use_deprecated or is_taurus3):
+            for loc in self._workspaces.locations(include_private=True):
                 locations[loc['id']] = loc
 
             for location_id in sorted(locations):
