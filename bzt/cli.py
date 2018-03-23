@@ -214,7 +214,7 @@ class CLI(object):
         self.log.debug("Leveling down log file verbosity, use -v option to have DEBUG messages enabled")
         for handler in self.log.handlers:
             if issubclass(handler.__class__, logging.FileHandler):
-                handler.setLevel(logging.INFO)
+                handler.setLevel(logging.DEBUG if self.options.verbose else logging.INFO)
 
     def _level_up_logging(self):
         for handler in self.log.handlers:

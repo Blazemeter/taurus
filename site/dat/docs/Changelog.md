@@ -30,6 +30,7 @@
  - Make npm not touch `package.json` and `package-lock.json` for Node.js tests
  - provide icon for Taurus status screen
  - fix singletone service parameters merging
+ - write debug messages to log file in case `-v` used
 
  - Make it to pick BZA user's account by default when possible
  - Use own test type for functional test in BZA
