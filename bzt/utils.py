@@ -54,7 +54,7 @@ from webbrowser import GenericBrowser
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import stream_decode, file_type, etree, parse
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, HTTPError, URLError, urlopen, request
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
 
@@ -924,6 +924,22 @@ class ExceptionalDownloader(request.FancyURLopener, object):
             os.close(fd)
         return response
 
+
+class ExceptionalGet:
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def get(url):
+        try:
+            response = urlopen(url, timeout=10)
+            resp = response.read()
+            if not isinstance(resp, str):
+                resp = resp.decode()
+            return {"url": response.geturl(), "text": resp}
+        except (HTTPError, URLError, Exception) as e:
+            return None
 
 class RequiredTool(object):
     """
