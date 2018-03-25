@@ -54,13 +54,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
 
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot"]
 
-    CHROMEDRIVER_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-    CHROMEDRIVER_VERSION = "2.35"
-
-    GECKODRIVER_DOWNLOAD_LINK = "https://github.com/mozilla/geckodriver/releases/download/v{version}/" \
-                                "geckodriver-v{version}-{arch}.{ext}"
-    GECKODRIVER_VERSION = "0.19.0"
-
     SELENIUM_TOOLS_DIR = "~/.bzt/selenium-taurus/tools"
 
     def __init__(self):
@@ -99,8 +92,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
 
     def _get_chromedriver_link(self):
         settings = self.settings.get('chromedriver')
-        link = settings.get('download-link', SeleniumExecutor.CHROMEDRIVER_DOWNLOAD_LINK)
-        version = settings.get('version', SeleniumExecutor.CHROMEDRIVER_VERSION)
+        link = settings.get('download-link')
+        version = settings.get('version')
         if is_windows():
             arch = 'win32'  # no 64-bit windows builds, :(
         elif is_mac():
@@ -112,14 +105,14 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     def _get_chromedriver_path(self):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         settings = self.settings.get('chromedriver')
-        version = settings.get('version', SeleniumExecutor.CHROMEDRIVER_VERSION)
+        version = settings.get('version')
         filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
         return os.path.join(base_dir, 'chromedriver', version, filename)
 
     def _get_geckodriver_link(self):
         settings = self.settings.get('geckodriver')
-        link = settings.get('download-link', SeleniumExecutor.GECKODRIVER_DOWNLOAD_LINK)
-        version = settings.get('version', SeleniumExecutor.GECKODRIVER_VERSION)
+        link = settings.get('download-link')
+        version = settings.get('version')
         if is_windows():
             arch = 'win64'  # no 32-bit windows builds, :(
             ext = 'zip'
@@ -134,7 +127,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     def _get_geckodriver_path(self):
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         settings = self.settings.get('geckodriver')
-        version = settings.get('version', SeleniumExecutor.GECKODRIVER_VERSION)
+        version = settings.get('version')
         filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
         return os.path.join(base_dir, 'geckodriver', version, filename)
 

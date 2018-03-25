@@ -207,3 +207,11 @@ modules: # TODO: cleanup as much as possible from defaults
       jmeter.save.saveservice.connect_time: 'true'
       jmeterengine.force.system.exit: 'true'
       summariser.name: ''
+      
+  selenium:
+    chromedriver:
+      version: "2.37"
+      download-link: https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip
+    geckodriver:
+      version: "0.20.0"
+      download-link: https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}
