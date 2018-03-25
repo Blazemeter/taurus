@@ -131,10 +131,10 @@ scenarios:
 modules:
   selenium:
     chromedriver:
-      version: 2.30
+      version: "2.37"
       download-link: https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip
     geckodriver:
-      version: 0.17.0
+      version: "0.20.0"
       download-link: https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}
 ```
 
