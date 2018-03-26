@@ -888,14 +888,9 @@ class ProjectFinder(object):
             return account
 
         self.user.fetch()
-        all_accounts = self.user.accounts()
-        for acc in all_accounts:
-            if acc["owner"]["id"] == self.user['id']:
-                self.log.debug("Using userID matched account: %s", acc)
-                return acc
-
-        self.log.debug("Using first account: %s", account)
-        return all_accounts.first()
+        account = self.user.accounts(ident=self.user['defaultProject']['accountId']).first()
+        self.log.debug("Using default account: %s", account)
+        return account
 
     def resolve_workspace(self, account, workspace_name):
         workspace = None
@@ -912,7 +907,7 @@ class ProjectFinder(object):
                 raise TaurusConfigError("BlazeMeter workspace not found: %s" % workspace_name)
 
         if workspace is None:
-            workspace = account.workspaces().first()
+            workspace = account.workspaces(ident=self.user['defaultProject']['workspaceId']).first()
             self.log.debug("Using first workspace: %s" % workspace)
 
         return workspace
@@ -1018,7 +1013,8 @@ class ProjectFinder(object):
             return workspace.create_project(proj_name)
         else:
             info = self.user.fetch()
-            project = workspace.projects(ident=info['defaultProject']['id']).first()
+            self.log.debug("Looking for default project: %s", info['defaultProject']['id'])
+            project = self.workspaces.projects(ident=info['defaultProject']['id']).first()
             if not project:
                 project = workspace.create_project("Taurus Tests Project")
             return project
