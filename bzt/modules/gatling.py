@@ -289,14 +289,14 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.install_required_tools()
         scenario = self.get_scenario()
 
-        jars = self.get_additional_classpath()
+        cpath = self.get_additional_classpath()
 
-        self.log.debug("JAR files list for Gatling: %s", jars)
-        for element in jars:
+        self.log.debug("Classpath for Gatling: %s", cpath)
+        for element in cpath:
             self.env.add_path({"JAVA_CLASSPATH": element})
             self.env.add_path({"COMPILATION_CLASSPATH": element})
 
-        if is_windows() or jars:
+        if is_windows() or cpath:
             self.log.debug("Building Gatling launcher")
             self.launcher = self.__build_launcher()
         else:
