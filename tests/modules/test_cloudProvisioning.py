@@ -1447,7 +1447,7 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.settings["test"] = "ExternalTest"
         self.obj.prepare()
-        self.assertEqual(14, len(self.mock.requests))
+        self.assertEqual(16, len(self.mock.requests))
 
     def test_send_report_email_default(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, get={
@@ -1512,7 +1512,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.prepare()
         exp = "https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100"
         self.assertEqual(exp, self.mock.requests[6]['url'])
-        self.assertEqual(17, len(self.mock.requests))
+        self.assertEqual(19, len(self.mock.requests))
 
 
 class TestCloudTaurusTest(BZTestCase):
