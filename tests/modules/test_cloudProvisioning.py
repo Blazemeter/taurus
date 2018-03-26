@@ -1425,8 +1425,8 @@ class TestCloudProvisioning(BZTestCase):
                                {"id": 1, "name": "Dflt name", "enabled": True, "accountId": 1,
                                 "locations": [{"id": "eu-west-1"}]}]
                 },
-                'https://a.blazemeter.com/api/v4/workspaces/2': {
-                    "result": {"id": 2, "name": "Wksp name", "enabled": True, "accountId": 1,
+                'https://a.blazemeter.com/api/v4/workspaces/1': {
+                    "result": {"id": 1, "name": "Wksp name", "enabled": True, "accountId": 1,
                                "locations": [{"id": "eu-west-1"}]}
                 },
                 'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {
