@@ -55,11 +55,11 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot"]
 
     CHROMEDRIVER_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-    CHROMEDRIVER_VERSION = "2.35"
+    CHROMEDRIVER_VERSION = "2.37"
 
     GECKODRIVER_DOWNLOAD_LINK = "https://github.com/mozilla/geckodriver/releases/download/v{version}/" \
                                 "geckodriver-v{version}-{arch}.{ext}"
-    GECKODRIVER_VERSION = "0.19.0"
+    GECKODRIVER_VERSION = "0.20.0"
 
     SELENIUM_TOOLS_DIR = "~/.bzt/selenium-taurus/tools"
 
