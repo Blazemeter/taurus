@@ -275,7 +275,7 @@ class BZMock(object):
                 {'id': 'non-harbor-sandbox', 'sandbox': True, 'title': 'Sandbox Neverexisting'}, ]
         self.mock_get = {
             'https://a.blazemeter.com/api/v4/web/version': {},
-            'https://a.blazemeter.com/api/v4/user': {'id': 1, 'defaultProject': {'id': None}},
+            'https://a.blazemeter.com/api/v4/user': {'id': 1, 'defaultProject': {'id': 1, 'accountId': 1, 'workspaceId': 1}},
             'https://a.blazemeter.com/api/v4/accounts': {"result": [{'id': 1, 'owner':{'id': 1}}]},
             'https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100': {
                 "result": [{'id': 1, 'enabled': True}]},
@@ -287,6 +287,7 @@ class BZMock(object):
             'https://a.blazemeter.com/api/v4/tests?workspaceId=1&name=Taurus+Cloud+Test': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=2': {"result": []},
+            'https://a.blazemeter.com/api/v4/projects?workspaceId=3': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=myproject': {"result": []},
             'https://a.blazemeter.com/api/v4/projects?workspaceId=1&name=Proj+name': {"result": []},
             'https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=open&target=s1_Lw': {"files": []},
