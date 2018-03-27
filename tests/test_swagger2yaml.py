@@ -43,7 +43,7 @@ class TestSwagger2YAML(BZTestCase):
 class TestSwaggerConverter(BZTestCase):
     def test_minimal_json(self):
         obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
-        config = obj.convert(RESOURCES_DIR + "/swagger/petstore.json")
+        config = obj.convert_path(RESOURCES_DIR + "/swagger/petstore.json")
         self.assertIsNotNone(config)
         self.assertIsNotNone(config.get("execution"))
         self.assertIsNotNone(config.get("scenarios"))
@@ -54,7 +54,7 @@ class TestSwaggerConverter(BZTestCase):
 
     def test_minimal_yaml(self):
         obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
-        config = obj.convert(RESOURCES_DIR + "/swagger/petstore.yaml")
+        config = obj.convert_path(RESOURCES_DIR + "/swagger/petstore.yaml")
         self.assertIsNotNone(config)
         self.assertIsNotNone(config.get("execution"))
         self.assertIsNotNone(config.get("scenarios"))
@@ -65,7 +65,7 @@ class TestSwaggerConverter(BZTestCase):
 
     def test_interpolated_paths(self):
         swagger = Swagger()
-        swagger.parse(RESOURCES_DIR + "/swagger/petstore.yaml")
+        swagger.parse(open(RESOURCES_DIR + "/swagger/petstore.yaml"))
         paths = list(swagger.get_paths().keys())
         self.assertEqual(paths, ["/pets", "/pets/{petId}", "/owners"])
         inter_paths = list(swagger.get_interpolated_paths().keys())
@@ -73,7 +73,7 @@ class TestSwaggerConverter(BZTestCase):
 
     def test_query(self):
         obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
-        config = obj.convert(RESOURCES_DIR + "/swagger/petstore.yaml")
+        config = obj.convert_path(RESOURCES_DIR + "/swagger/petstore.yaml")
 
         scenario = config["scenarios"].get("Swagger-Petstore")
         self.assertEqual(6, len(scenario["requests"]))
@@ -85,7 +85,7 @@ class TestSwaggerConverter(BZTestCase):
 
     def test_headers(self):
         obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
-        config = obj.convert(RESOURCES_DIR + "/swagger/petstore.yaml")
+        config = obj.convert_path(RESOURCES_DIR + "/swagger/petstore.yaml")
 
         scenario = config["scenarios"].get("Swagger-Petstore")
         requests = scenario["requests"]
@@ -95,7 +95,7 @@ class TestSwaggerConverter(BZTestCase):
 
     def test_form_data(self):
         obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
-        config = obj.convert(RESOURCES_DIR + "/swagger/petstore.yaml")
+        config = obj.convert_path(RESOURCES_DIR + "/swagger/petstore.yaml")
 
         requests = config["scenarios"]["Swagger-Petstore"]["requests"]
         request = requests[5]
@@ -104,11 +104,11 @@ class TestSwaggerConverter(BZTestCase):
 
     def test_referenced_parameters(self):
         obj = SwaggerConverter(FakeOptions(), logging.getLogger(''))
-        config = obj.convert(RESOURCES_DIR + "/swagger/bzm-api.json")
+        config = obj.convert_path(RESOURCES_DIR + "/swagger/bzm-api.json")
 
     def test_scenarios_from_paths(self):
         obj = SwaggerConverter(FakeOptions(scenarios_from_paths=True), logging.getLogger(''))
-        config = obj.convert(RESOURCES_DIR + "/swagger/bzm-api.json")
+        config = obj.convert_path(RESOURCES_DIR + "/swagger/bzm-api.json")
         self.assertEqual(len(config["scenarios"]), 5)
 
         scenario_names = set(key for key, _ in iteritems(config["scenarios"]))

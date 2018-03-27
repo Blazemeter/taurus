@@ -62,14 +62,13 @@ class Swagger(object):
         self.responses = {}
         self.paths = OrderedDict()
 
-    def _load(self, swagger_spec_path):
-        with open(swagger_spec_path) as fds:
-            swagger_content = fds.read()
+    def _load(self, swagger_spec_fd):
+        swagger_content = swagger_spec_fd.read()
         try:
             self.swagger = yaml_ordered_load(swagger_content, yaml.SafeLoader)
-            self.log.info("Loaded Swagger spec %s", swagger_spec_path)
+            self.log.info("Loaded Swagger spec %s", swagger_spec_fd)
         except IOError as exc:
-            raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_path, exc))
+            raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_fd, exc))
 
     def _validate_swagger_version(self):
         swagger_version = self.swagger.get("swagger", self.swagger.get("openapi"))
@@ -146,8 +145,8 @@ class Swagger(object):
                 path["parameters"][param_name] = parameter
             self.paths[name] = Swagger.Path(**path)
 
-    def parse(self, swagger_spec_path):
-        self._load(swagger_spec_path)
+    def parse(self, swagger_spec_fd):
+        self._load(swagger_spec_fd)
         self._validate_swagger_version()
         self._extract_toplevel_definitions()
         self._extract_paths()
@@ -336,11 +335,12 @@ class SwaggerConverter(object):
 
         return scenarios
 
-    def convert(self, swagger_path):
-        if not os.path.exists(swagger_path):
-            raise ValueError("Swagger file %s doesn't exist" % swagger_path)
+    def convert_path(self, swagger_path):
+        with open(swagger_path) as swagger_fd:
+            return self.convert(swagger_fd)
 
-        self.swagger.parse(swagger_path)
+    def convert(self, swagger_fd):
+        self.swagger.parse(swagger_fd)
 
         info = self.swagger.get_info()
         title = info.get("title", "Swagger")
@@ -399,7 +399,7 @@ class Swagger2YAML(object):
             raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
         self.converter = SwaggerConverter(self.options, self.log)
         try:
-            converted_config = self.converter.convert(self.file_to_convert)
+            converted_config = self.converter.convert_path(self.file_to_convert)
         except BaseException:
             self.log.error("Error while processing Swagger spec: %s", self.file_to_convert)
             raise
