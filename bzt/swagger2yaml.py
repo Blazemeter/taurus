@@ -219,8 +219,12 @@ class Swagger(object):
 
 
 class SwaggerConverter(object):
-    def __init__(self, config, parent_log):
-        self.config = config
+    def __init__(
+            self,
+            parent_log,
+            scenarios_from_paths=False
+    ):
+        self.scenarios_from_paths = scenarios_from_paths
         self.log = parent_log.getChild(self.__class__.__name__)
         self.swagger = Swagger(self.log)
 
@@ -350,7 +354,7 @@ class SwaggerConverter(object):
         scheme = schemes[0]
         default_address = scheme + "://" + host
         scenario_name = title.replace(' ', '-')
-        if self.config.scenarios_from_paths:
+        if self.scenarios_from_paths:
             scenarios = self._extract_scenarios_from_paths(paths)
             return {
                 "scenarios": scenarios,
@@ -397,7 +401,10 @@ class Swagger2YAML(object):
         self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
         if not os.path.exists(self.file_to_convert):
             raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
-        self.converter = SwaggerConverter(self.options, self.log)
+        self.converter = SwaggerConverter(
+            self.log,
+            scenarios_from_paths=self.options.scenarios_from_paths
+        )
         try:
             converted_config = self.converter.convert_path(self.file_to_convert)
         except BaseException:
