@@ -142,6 +142,7 @@ class AbstractThreadGroup(object):
 class ThreadGroup(AbstractThreadGroup):
     XPATH = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
     CONCURRENCY_SEL = ".//*[@name='ThreadGroup.num_threads']"
+    RAMP_UP_SEL = ".//*[@name='ThreadGroup.ramp_time']"
 
     def get_duration(self):
         sched_sel = ".//*[@name='ThreadGroup.scheduler']"
@@ -151,8 +152,7 @@ class ThreadGroup(AbstractThreadGroup):
             duration_sel = ".//*[@name='ThreadGroup.duration']"
             return self._get_val(duration_sel, "duration")
         elif scheduler == 'false':
-            ramp_sel = ".//*[@name='ThreadGroup.ramp_time']"
-            return self._get_val(ramp_sel, "ramp-up")
+            return self._get_val(self.RAMP_UP_SEL, "ramp-up")
         else:
             msg = 'Getting of ramp-up for %s is impossible due to scheduler: %s'
             self.log.warning(msg, (self.gtype, scheduler))
