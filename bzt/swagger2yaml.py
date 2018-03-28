@@ -63,9 +63,8 @@ class Swagger(object):
         self.paths = OrderedDict()
 
     def _load(self, swagger_spec_fd):
-        swagger_content = swagger_spec_fd.read()
         try:
-            self.swagger = yaml_ordered_load(swagger_content, yaml.SafeLoader)
+            self.swagger = yaml_ordered_load(swagger_spec_fd, yaml.SafeLoader)
             self.log.info("Loaded Swagger spec %s", swagger_spec_fd)
         except IOError as exc:
             raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_fd, exc))
@@ -340,6 +339,8 @@ class SwaggerConverter(object):
         return scenarios
 
     def convert_path(self, swagger_path):
+        if not os.path.exists(swagger_path):
+            raise ValueError("Swagger file %s doesn't exist" % swagger_path)
         with open(swagger_path) as swagger_fd:
             return self.convert(swagger_fd)
 
