@@ -184,7 +184,7 @@ class Proxy2JMX(Service, Singletone):
         # log of chrome-loader not found under windows
         if is_windows() and not os.path.isfile(join(self.engine.artifacts_dir, 'chrome-loader.log')):
             msg = "Problems with chrome tuning are encountered, "
-            msg += "take look at http://http://gettaurus.org/docs/Proxy2JMX/ for help"
+            msg += "take look at http://gettaurus.org/docs/Proxy2JMX/ for help"
             self.log.warning(msg)
 
 
