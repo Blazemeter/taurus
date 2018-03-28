@@ -1,0 +1,2 @@
+* SwaggerConverter.convert accepts fd
+* remove `options` object from SwaggerConverter
