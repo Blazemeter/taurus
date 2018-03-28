@@ -62,14 +62,12 @@ class Swagger(object):
         self.responses = {}
         self.paths = OrderedDict()
 
-    def _load(self, swagger_spec_path):
-        with open(swagger_spec_path) as fds:
-            swagger_content = fds.read()
+    def _load(self, swagger_spec_fd):
         try:
-            self.swagger = yaml_ordered_load(swagger_content, yaml.SafeLoader)
-            self.log.info("Loaded Swagger spec %s", swagger_spec_path)
+            self.swagger = yaml_ordered_load(swagger_spec_fd, yaml.SafeLoader)
+            self.log.info("Loaded Swagger spec %s", swagger_spec_fd)
         except IOError as exc:
-            raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_path, exc))
+            raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_fd, exc))
 
     def _validate_swagger_version(self):
         swagger_version = self.swagger.get("swagger", self.swagger.get("openapi"))
@@ -146,8 +144,8 @@ class Swagger(object):
                 path["parameters"][param_name] = parameter
             self.paths[name] = Swagger.Path(**path)
 
-    def parse(self, swagger_spec_path):
-        self._load(swagger_spec_path)
+    def parse(self, swagger_spec_fd):
+        self._load(swagger_spec_fd)
         self._validate_swagger_version()
         self._extract_toplevel_definitions()
         self._extract_paths()
@@ -220,8 +218,12 @@ class Swagger(object):
 
 
 class SwaggerConverter(object):
-    def __init__(self, config, parent_log):
-        self.config = config
+    def __init__(
+            self,
+            parent_log,
+            scenarios_from_paths=False
+    ):
+        self.scenarios_from_paths = scenarios_from_paths
         self.log = parent_log.getChild(self.__class__.__name__)
         self.swagger = Swagger(self.log)
 
@@ -336,11 +338,14 @@ class SwaggerConverter(object):
 
         return scenarios
 
-    def convert(self, swagger_path):
+    def convert_path(self, swagger_path):
         if not os.path.exists(swagger_path):
             raise ValueError("Swagger file %s doesn't exist" % swagger_path)
+        with open(swagger_path) as swagger_fd:
+            return self.convert(swagger_fd)
 
-        self.swagger.parse(swagger_path)
+    def convert(self, swagger_fd):
+        self.swagger.parse(swagger_fd)
 
         info = self.swagger.get_info()
         title = info.get("title", "Swagger")
@@ -350,7 +355,7 @@ class SwaggerConverter(object):
         scheme = schemes[0]
         default_address = scheme + "://" + host
         scenario_name = title.replace(' ', '-')
-        if self.config.scenarios_from_paths:
+        if self.scenarios_from_paths:
             scenarios = self._extract_scenarios_from_paths(paths)
             return {
                 "scenarios": scenarios,
@@ -397,9 +402,12 @@ class Swagger2YAML(object):
         self.file_to_convert = os.path.abspath(os.path.expanduser(self.file_to_convert))
         if not os.path.exists(self.file_to_convert):
             raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
-        self.converter = SwaggerConverter(self.options, self.log)
+        self.converter = SwaggerConverter(
+            self.log,
+            scenarios_from_paths=self.options.scenarios_from_paths
+        )
         try:
-            converted_config = self.converter.convert(self.file_to_convert)
+            converted_config = self.converter.convert_path(self.file_to_convert)
         except BaseException:
             self.log.error("Error while processing Swagger spec: %s", self.file_to_convert)
             raise
