@@ -3,6 +3,7 @@ import os
 import shutil
 import time
 
+from bzt.modules.aggregator import DataPoint
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.six import u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
@@ -476,6 +477,7 @@ class TestDataLogReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 23)
         self.assertEqual(obj.guessed_gatling_version, "2.1")
+        self.assertIn('request_1', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
     def test_read_asserts(self):
         log_path = RESOURCES_DIR + "gatling/"
@@ -483,6 +485,7 @@ class TestDataLogReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 3)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")
+        self.assertIn('ping request', list_of_values[-1][DataPoint.CUMULATIVE].keys())
 
     def test_read_220_format(self):
         log_path = RESOURCES_DIR + "gatling/"
@@ -490,3 +493,20 @@ class TestDataLogReader(BZTestCase):
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 4)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")
+        self.assertIn('/', list_of_values[-1][DataPoint.CUMULATIVE].keys())
+
+    def test_read_labels_problematic(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-2')  # problematic one
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 5)
+        self.assertEqual(obj.guessed_gatling_version, "2.2+")
+        self.assertIn('User-Login,Auth-POST', list_of_values[-1][DataPoint.CUMULATIVE].keys())
+
+    def test_read_labels_regular(self):
+        log_path = RESOURCES_DIR + "gatling/"
+        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-3') # regular one
+        list_of_values = list(obj.datapoints(True))
+        self.assertEqual(len(list_of_values), 10)
+        self.assertEqual(obj.guessed_gatling_version, "2.2+")
+        self.assertIn('http://blazedemo.com/', list_of_values[-1][DataPoint.CUMULATIVE].keys())
