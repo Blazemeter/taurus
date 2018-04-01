@@ -608,7 +608,11 @@ class DataLogReader(ResultsReader):
         if fields[0].strip() != "REQUEST":
             return None
 
-        label = fields[4]
+        # see LogFileDataWriter.ResponseMessageSerializer in gatling-core
+        req_name = fields[4]
+        req_hierarchy = fields[3]
+
+        label = req_hierarchy if req_hierarchy else req_name
         t_stamp = int(fields[6]) / 1000.0
 
         r_time = (int(fields[6]) - int(fields[5])) / 1000.0
@@ -706,6 +710,7 @@ class Gatling(RequiredTool):
     """
     Gatling tool
     """
+
     def __init__(self, tool_path, parent_logger, download_link, version):
         super(Gatling, self).__init__("Gatling", tool_path, download_link.format(version=version))
         self.log = parent_logger.getChild(self.__class__.__name__)
