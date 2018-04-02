@@ -123,18 +123,20 @@ class TestProxy2JMX(BZTestCase):
             ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
             ResponseEmul(200, '1'),  # stopRecording
             ResponseEmul(200, '2'),  # clearRecording
-            ResponseEmul(200, ''),
+            ResponseEmul(200, 'regular jmx contents'),
             ResponseEmul(200, '{"result" : {"smartjmx": "available"}}'),
             ResponseEmul(200, 'only one string')
         ]
 
         self.obj.engine.config.merge({'modules': {'recorder': {'token': '123'}}})
         self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
-        self.obj.parameters['output-file'] = BUILD_DIR + '/predefined.jmx'
+        self.obj.parameters['simple-output'] = self.obj.engine.artifacts_dir + '/simple.jmx'
+        self.obj.parameters['smart-output'] = self.obj.engine.artifacts_dir + '/smart.jmx'
 
         self.obj.prepare()
         self.obj.post_process()
-        self.assertEqual(BUILD_DIR + "predefined.jmx", self.obj.output_simple)
+        self.assertTrue(os.path.exists(self.obj.engine.artifacts_dir + "/smart.jmx"))
+        self.assertTrue(os.path.exists(self.obj.engine.artifacts_dir + "/simple.jmx"))
 
     def _check_linux(self):
         required_env = {
