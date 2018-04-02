@@ -1,6 +1,8 @@
+import json
 import logging
 import time
 
+from bzt.utils import to_json
 from tests import BZTestCase, r, rc, err
 
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
@@ -120,3 +122,31 @@ class TestDefaultAggregator(BZTestCase):
         points = list(mock.datapoints())
         points = list(mock.datapoints())
         self.assertTrue(mock.buffer_len < buffer_len)
+
+    def test_json(self):
+        obj = self.obj
+
+        mock = MockReader()
+        mock.buffer_scale_idx = '100.0'
+        mock.data.append((1, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((2, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((2, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((3, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((3, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((4, "", 1, r(), r(), r(), 200, None, '', 0))
+        mock.data.append((4, "", 1, r(), r(), r(), 200, None, '', 0))
+
+        obj.add_listener(mock)
+
+        for point in mock.datapoints(True):
+            pass
+
+        for point in mock.results:
+            serialized = json.loads(to_json(point))
+            rt_keys = serialized["current"][""]["rt"].keys()
+            for key in rt_keys:
+                rt = float(key)
+                self.assertGreaterEqual(rt, 1.0)
+                self.assertLessEqual(rt, 2.0)
+
+
