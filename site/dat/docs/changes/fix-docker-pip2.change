@@ -1,0 +1,1 @@
+fix default pip inside docker to be pip2

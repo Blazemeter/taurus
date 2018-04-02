@@ -50,7 +50,8 @@ RUN apt-get -y update \
   && pip install --upgrade pip setuptools wheel \
   && apt-get -y install --no-install-recommends python3-dev python3-pip \
   && pip3 install --upgrade setuptools pip wheel \
-  && pip2 install locustio robotframework robotframework-seleniumlibrary \
+  && ln -sf /usr/bin/pip2 /usr/local/bin/pip \
+  && pip install locustio robotframework robotframework-seleniumlibrary \
   && pip3 install molotov \
   && gem install rspec \
   && gem install selenium-webdriver \
