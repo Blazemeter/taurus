@@ -56,8 +56,10 @@ class RespTimesCounter(JSONConvertable):
         return self.histogram.get_value_counts()
 
     def __json__(self):
-        counts = self.get_counts()
-        return counts
+        return {
+            float(rt) / 1000: count
+            for rt, count in iteritems(self.histogram.get_value_counts())
+        }
 
 
 class KPISet(BetterDict):

@@ -1,0 +1,1 @@
+Fix `rt` field when exporting datapoints to JSON (convert msecs to secs)
