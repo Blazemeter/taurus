@@ -35,9 +35,13 @@ class Proxy2JMX(Service, Singletone):
         self.proxy = BZAProxy()
         self.headers = {}
         self.label = 'generated'
+        self.output_simple = None
+        self.output_smart = None
 
     def prepare(self):
         super(Proxy2JMX, self).prepare()
+        self.output_simple = self.parameters.get("simple-output", self.settings.get("simple-output", None))
+        self.output_smart = self.parameters.get("smart-output", self.settings.get("smart-output", None))
         blazemeter_cfg = self.engine.config.get("modules").get("blazemeter")
 
         self.proxy.token = self.settings.get("token", blazemeter_cfg.get("token"))
@@ -166,17 +170,19 @@ class Proxy2JMX(Service, Singletone):
 
         self.log.info("Downloading simple JMX...")
         jmx_text = self.proxy.get_jmx()
-        jmx_file = self.engine.create_artifact(self.label, '.simple.jmx')
-        with open(jmx_file, 'w') as _file:
+        if not self.output_simple:
+            self.output_simple = self.engine.create_artifact(self.label, '.simple.jmx')
+        with open(self.output_simple, 'w') as _file:
             _file.writelines(jmx_text)
-        self.log.info("Simple JMX saved into %s", jmx_file)
+        self.log.info("Simple JMX saved into %s", self.output_simple)
 
         self.log.info("Waiting for proxy to generate SmartJMX...")
         jmx_text = self.proxy.get_smart_jmx()
-        jmx_file = self.engine.create_artifact(self.label, '.smart.jmx')
-        with open(jmx_file, 'w') as _file:
+        if not self.output_smart:
+            self.output_smart = self.engine.create_artifact(self.label, '.smart.jmx')
+        with open(self.output_smart, 'w') as _file:
             _file.writelines(jmx_text)
-        self.log.info("Smart JMX saved into %s", jmx_file)
+        self.log.info("Smart JMX saved into %s", self.output_smart)
 
         if 'HTTPSampler' not in jmx_text:
             self.log.warning("There aren't requests recorded by proxy2jmx, check your proxy configuration")

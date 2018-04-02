@@ -1,14 +1,14 @@
-import os
 import json
+import os
 import shutil
+from os.path import join
 
 from bzt import TaurusConfigError
 from bzt.modules.proxy2jmx import Proxy2JMX, BZAProxy
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import is_windows, is_linux, get_full_path
-from tests import BZTestCase
+from tests import BZTestCase, BUILD_DIR
 from tests.mocks import EngineEmul
-from os.path import join
 
 
 class BZAProxyEmul(BZAProxy):
@@ -17,8 +17,10 @@ class BZAProxyEmul(BZAProxy):
         self.service = service
 
     def _request(self, url, data=None, headers=None, method=None, raw_result=False):
+        self.log.debug("Emulating: %s", url)
         response = self.service.responses.pop(0)
         resp = response.text
+        self.log.debug("Result: %s", resp)
         if raw_result:
             return resp
         else:
@@ -115,6 +117,25 @@ class TestProxy2JMX(BZTestCase):
         self.obj.prepare()
         self.assertEqual(self.obj.proxy_addr, 'http://host1:port1')
 
+    def test_filename(self):
+        self.obj.api_delay = 1
+        self.obj.responses = [
+            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
+            ResponseEmul(200, '1'),  # stopRecording
+            ResponseEmul(200, '2'),  # clearRecording
+            ResponseEmul(200, ''),
+            ResponseEmul(200, '{"result" : {"smartjmx": "available"}}'),
+            ResponseEmul(200, 'only one string')
+        ]
+
+        self.obj.engine.config.merge({'modules': {'recorder': {'token': '123'}}})
+        self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
+        self.obj.parameters['output-file'] = BUILD_DIR + '/predefined.jmx'
+
+        self.obj.prepare()
+        self.obj.post_process()
+        self.assertEqual(BUILD_DIR + "predefined.jmx", self.obj.output_simple)
+
     def _check_linux(self):
         required_env = {
             'DESKTOP_SESSION': None, 'HTTP_PROXY': 'http://host1:port1', 'https_proxy': 'http://host1:port1',
@@ -201,7 +222,7 @@ class TestProxy2JMX(BZTestCase):
             self._check_linux()
         elif is_windows():
             self._check_windows()
-        else:   # MacOS
+        else:  # MacOS
             self._check_mac()
 
         self.obj.shutdown()
