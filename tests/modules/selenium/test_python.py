@@ -1199,7 +1199,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
-        self.assertIn("data=[('product', product_id)]", test_script)
+        self.assertIn("data=[('product', Vars.product_id)]", test_script)
 
     def test_inherit_test_case(self):
         self.configure({
@@ -1216,7 +1216,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
-        self.assertIn("class TestAPIRequests(unittest.TestCase)", test_script)
+        self.assertIn("class TestAPI(unittest.TestCase)", test_script)
 
 
 class TestPyTestExecutor(BZTestCase):
