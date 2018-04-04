@@ -282,7 +282,7 @@ class SlavesReader(ResultsProvider):
             for err in data['errors'].values():
                 if err['name'] == item['name']:
                     new_err = KPISet.error_item_skel(err['error'], None, err['occurences'], KPISet.ERRTYPE_ERROR,
-                                                     Counter())
+                                                     Counter(), None)
                     KPISet.inc_list(kpiset[KPISet.ERRORS], ("msg", err['error']), new_err)
                     kpiset[KPISet.FAILURES] += err['occurences']
 

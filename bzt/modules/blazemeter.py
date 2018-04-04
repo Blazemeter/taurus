@@ -723,7 +723,7 @@ class DatapointSerializer(object):
             else:
                 report_item['assertions'].append({
                     'failureMessage': error['msg'],
-                    'name': 'All Assertions',
+                    'name': error['tag'] if error['tag'] else 'All Assertions',
                     'failures': error['cnt']
                     # TODO: "count", "errors" = ? (according do Udi's format description)
                 })

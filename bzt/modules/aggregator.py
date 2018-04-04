@@ -120,11 +120,12 @@ class KPISet(BetterDict):
         return mycopy
 
     @staticmethod
-    def error_item_skel(error, ret_c, cnt, errtype, urls):
+    def error_item_skel(error, ret_c, cnt, errtype, urls, tag):
         """
 
         :type error: str
         :type ret_c: str
+        :type tag: str
         :type cnt: int
         :type errtype: int
         :type urls: collections.Counter
@@ -134,9 +135,10 @@ class KPISet(BetterDict):
         return {
             "cnt": cnt,
             "msg": error,
+            "tag": tag, # just one more string qualifier
             "rc": ret_c,
             "type": errtype,
-            "urls": urls
+            "urls": urls,
         }
 
     def add_sample(self, sample):
@@ -163,7 +165,7 @@ class KPISet(BetterDict):
         if error is not None:
             self[self.FAILURES] += 1
 
-            item = self.error_item_skel(error, r_code, 1, KPISet.ERRTYPE_ERROR, Counter())
+            item = self.error_item_skel(error, r_code, 1, KPISet.ERRTYPE_ERROR, Counter(), None)
             self.inc_list(self[self.ERRORS], ("msg", error), item)
         else:
             self[self.SUCCESSES] += 1

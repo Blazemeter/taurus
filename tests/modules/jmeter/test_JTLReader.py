@@ -147,6 +147,8 @@ class TestJTLErrorsReader(BZTestCase):
         self.obj.read_file(final_pass=True)
         values = self.obj.get_data(sys.maxsize)
         self.assertEquals(3, len(values))
+        self.assertEquals(KPISet.ERRTYPE_ASSERT, values[''][0]['type'])
+        self.assertEquals('Timeout Check', values[''][0]['tag'])
 
     def test_embedded_errors(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/resource-error-embedded.jtl")
