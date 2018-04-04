@@ -638,12 +638,13 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG)
 """).body)
         stmts.append(self.gen_empty_line_stmt())
+        stmts.extend(self.gen_global_vars())
+        stmts.append(self.gen_empty_line_stmt())
         stmts.append(self.gen_classdef())
         return ast.Module(body=stmts)
 
     def gen_classdef(self):
         class_body = []
-        class_body.append(self.gen_constructor_method())
         class_body.append(self.gen_empty_line_stmt())
         class_body.extend(self.gen_test_methods())
 
@@ -714,8 +715,7 @@ log.setLevel(logging.DEBUG)
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(value=ast.Call(
-            func=ast.Attribute(value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()),
-                                                   attr='target', ctx=ast.Load()), attr=key, ctx=ast.Load()),
+            func=ast.Attribute(value=ast.Name(id='target', ctx=ast.Load()), attr=key, ctx=ast.Load()),
             args=[self.gen_expr(value)],
             keywords=[],
             starargs=None,
@@ -753,7 +753,7 @@ log.setLevel(logging.DEBUG)
             stmts = [
                 ast.Assign(
                     targets=[
-                        ast.Attribute(value=ast.Name(id="self", ctx=ast.Load()), attr="target", ctx=ast.Store())
+                        ast.Name(id="target", ctx=ast.Store()),
                     ],
                     value=ast.Call(
                         func=ast.Attribute(value=http, attr='target', ctx=ast.Load()),
@@ -814,7 +814,7 @@ log.setLevel(logging.DEBUG)
     def gen_request_lines(self, req):
         apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()),
                                       attr='http', ctx=ast.Load())
-        target = ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='target', ctx=ast.Load())
+        target = ast.Name(id='target', ctx=ast.Load())
         requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
 
         method = req.method.lower()
@@ -872,15 +872,12 @@ log.setLevel(logging.DEBUG)
 
         return lines
 
-    def gen_constructor_method(self):
+    def gen_global_vars(self):
         variables = self.scenario.get("variables")
         stmts = [
-            ast.parse('super(TestAPI, self).__init__(methodName)'),
             ast.Assign(
                 targets=[
-                    ast.Attribute(
-                        value=ast.Name(id='self', ctx=ast.Load()), attr='vars', ctx=ast.Store()
-                    )
+                    ast.Name(id='vars', ctx=ast.Store()),
                 ],
                 value=ast.Dict(
                     keys=[self.expr_compiler.gen_expr(key) for key, _ in iteritems(variables)],
@@ -889,21 +886,7 @@ log.setLevel(logging.DEBUG)
             )
         ]
         stmts.extend(self.gen_target())
-
-        return ast.FunctionDef(
-            name='__init__',
-            args=ast.arguments(
-                args=[ast.Name(id='self', ctx=ast.Param()), ast.Name(id='methodName', ctx=ast.Param())],
-                defaults=[ast.Str(s='runTest')],
-                vararg=None,
-                kwonlyargs=[],
-                kw_defaults=[],
-                kwarg=None,
-                returns=None,
-            ),
-            body=stmts,
-            decorator_list=[],
-        )
+        return stmts
 
     def _gen_assertions(self, request):
         stmts = []
@@ -1269,10 +1252,7 @@ class JMeterExprCompiler(object):
         if ctx is None:
             ctx = ast.Load()
         return ast.Subscript(
-            value=ast.Attribute(
-                value=ast.Name(id='self', ctx=ast.Load()),
-                attr='vars', ctx=ast.Load()
-            ),
+            value=ast.Name(id='vars', ctx=ast.Load()),
             slice=ast.Index(value=ast.Str(s=varname)),
             ctx=ctx
         )

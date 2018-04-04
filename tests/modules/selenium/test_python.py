@@ -562,7 +562,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("self.target.keep_alive(True)", test_script)
+        self.assertIn("target.keep_alive(True)", test_script)
 
     def test_keepalive(self):
         self.configure({
@@ -580,7 +580,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("self.target.keep_alive(False)", test_script)
+        self.assertIn("target.keep_alive(False)", test_script)
 
     def test_timeout_default(self):
         self.configure({
@@ -619,7 +619,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("self.target.timeout(10.0)", test_script)
+        self.assertIn("target.timeout(10.0)", test_script)
         self.assertNotIn("get('/?tag=1', timeout=10.0", test_script)
         self.assertIn("get('/?tag=2', timeout=2.0", test_script)
 
@@ -710,7 +710,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.assertIn("target('https://a.blazemeter.com')", test_script)
-        self.assertIn("self.target.base_path('/api/latest')", test_script)
+        self.assertIn("target.base_path('/api/latest')", test_script)
 
     def test_headers(self):
         self.configure({
@@ -747,7 +747,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("self.target.allow_redirects(True)", test_script)
+        self.assertIn("target.allow_redirects(True)", test_script)
         self.assertNotIn("allow_redirects=True", test_script)
 
     def test_follow_redirects(self):
@@ -1199,7 +1199,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
-        self.assertIn("data=[('product', self.vars['product_id'])]", test_script)
+        self.assertIn("data=[('product', vars['product_id'])]", test_script)
 
     def test_inherit_test_case(self):
         self.configure({
