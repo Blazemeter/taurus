@@ -706,10 +706,6 @@ log.setLevel(logging.DEBUG)
 
         return stmts
 
-    def gen_test_method(self, method_name, request):
-        stmts = []
-        return stmts
-
     def gen_expr(self, value):
         return self.expr_compiler.gen_expr(value)
 
