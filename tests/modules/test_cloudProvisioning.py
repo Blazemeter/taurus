@@ -79,7 +79,7 @@ class TestCloudProvisioning(BZTestCase):
                         "us-west": 2}}},
 
             get={
-                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1, "progress": 100}},
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
                 'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
             },
@@ -107,7 +107,7 @@ class TestCloudProvisioning(BZTestCase):
                         "us-west": 2}}},
 
             get={
-                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1}},
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1, "progress": 90}},
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
                 'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": [{
                     "errors": [
@@ -120,6 +120,7 @@ class TestCloudProvisioning(BZTestCase):
                 }]}},
             },
             post={
+                'https://a.blazemeter.com/api/v4/masters/1/terminate': {"result": []},
             }
         )  # terminate
 
@@ -1101,7 +1102,7 @@ class TestCloudProvisioning(BZTestCase):
                 'https://a.blazemeter.com/api/v4/masters/1/public-token': {"result": {"publicToken": "publicToken"}}
             },
             get={
-                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED"}},
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"status": "CREATED", "progress": 100}},
                 'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
                 'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {}},
             }
@@ -1158,7 +1159,7 @@ class TestCloudProvisioning(BZTestCase):
             ],
             'https://a.blazemeter.com/api/v4/multi-tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
             'https://a.blazemeter.com/api/v4/tests?projectId=1&name=Taurus+Cloud+Test': {'result': []},
-            'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1}},
+            'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1, "progress": 100}},
             'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
             'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"functionalSummary": func_summary}},
         }, post={
