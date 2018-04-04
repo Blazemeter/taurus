@@ -16,6 +16,8 @@ from bzt.six import text_type
 from bzt.six import urlencode
 from bzt.utils import to_json, MultiPartForm
 
+BZA_TEST_DATA_RECEIVED = 100
+
 
 class BZAObject(dict):
     def __init__(self, proto=None, data=None):

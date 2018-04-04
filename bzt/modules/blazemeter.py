@@ -1638,10 +1638,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.__last_master_status = master['status']
             self.log.info("Cloud test status: %s", self.__last_master_status)
 
-        if self.results_reader is not None and 'progress' in master and master['progress'] >= 100:
+        if self.results_reader is not None and 'progress' in master and master['progress'] >= BZA_TEST_DATA_RECEIVED:
             self.results_reader.master = self.router.master
 
-        if 'progress' in master and master['progress'] > 100:
+        if 'progress' in master and master['progress'] > BZA_TEST_DATA_RECEIVED:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
             self.test_ended = True
             return True
