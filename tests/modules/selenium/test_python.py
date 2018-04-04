@@ -1002,7 +1002,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.prepare()
         exp_file = RESOURCES_DIR + 'apiritif/test_codegen.py'
         # import shutil; shutil.copy2(self.obj.script, exp_file)  # keep this comment to ease updates
-        self.assertFilesEqual(exp_file, self.obj.script)
+        self.assertFilesEqual(self.obj.script, exp_file)
 
     def test_jmeter_functions_time(self):
         self.configure({
@@ -1199,7 +1199,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         with open(self.obj.script) as fds:
             test_script = fds.read()
         self.obj.log.info(test_script)
-        self.assertIn("data=[('product', self.product_id)]", test_script)
+        self.assertIn("data=[('product', self.vars['product_id'])]", test_script)
 
     def test_inherit_test_case(self):
         self.configure({

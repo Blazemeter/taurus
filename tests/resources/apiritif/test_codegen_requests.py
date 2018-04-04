@@ -13,6 +13,7 @@ class TestAPI(unittest.TestCase):
 
     def __init__(self, methodName='runTest'):
         super(TestAPI, self).__init__(methodName)
+        self.vars = {}
     
 
     def test_1_apiritif(self):

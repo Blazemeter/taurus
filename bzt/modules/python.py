@@ -873,17 +873,22 @@ log.setLevel(logging.DEBUG)
         return lines
 
     def gen_constructor_method(self):
+        variables = self.scenario.get("variables")
         stmts = [
-            ast.parse('super(TestAPI, self).__init__(methodName)')
+            ast.parse('super(TestAPI, self).__init__(methodName)'),
+            ast.Assign(
+                targets=[
+                    ast.Attribute(
+                        value=ast.Name(id='self', ctx=ast.Load()), attr='vars', ctx=ast.Store()
+                    )
+                ],
+                value=ast.Dict(
+                    keys=[self.expr_compiler.gen_expr(key) for key, _ in iteritems(variables)],
+                    values=[self.expr_compiler.gen_expr(value) for _, value in iteritems(variables)]
+                )
+            )
         ]
-        for var, init in iteritems(self.scenario.get("variables")):
-            stmts.append(ast.Assign(targets=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()),
-                                                          attr=var,
-                                                          ctx=ast.Store())],
-                                   value=self.gen_expr(init)))
-
         stmts.extend(self.gen_target())
-
 
         return ast.FunctionDef(
             name='__init__',
@@ -1263,7 +1268,14 @@ class JMeterExprCompiler(object):
     def gen_var_accessor(self, varname, ctx=None):
         if ctx is None:
             ctx = ast.Load()
-        return ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=varname, ctx=ctx)
+        return ast.Subscript(
+            value=ast.Attribute(
+                value=ast.Name(id='self', ctx=ast.Load()),
+                attr='vars', ctx=ast.Load()
+            ),
+            slice=ast.Index(value=ast.Str(s=varname)),
+            ctx=ctx
+        )
 
     def gen_expr(self, value):
         if isinstance(value, bool):
