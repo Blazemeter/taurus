@@ -1339,9 +1339,9 @@ class JTLErrorsReader(object):
         r_code = elem.get("rc")
         urls = elem.xpath(self.url_xpath)
         if urls:
-            url = Counter({urls[0].text: 1})
+            url_counts = Counter({urls[0].text: 1})
         else:
-            url = Counter()
+            url_counts = Counter()
         errtype = KPISet.ERRTYPE_ERROR
 
         failed_assertion = self.__get_failed_assertion(elem)
@@ -1354,9 +1354,9 @@ class JTLErrorsReader(object):
 
         if is_embedded:
             errtype = KPISet.ERRTYPE_SUBSAMPLE
-            url = embedded_url
+            url_counts=Counter({embedded_url: 1})
 
-        err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
+        err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url_counts)
         buf = self.buffer.get(t_stamp, force_set=True)
         KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", message), err_item)
         KPISet.inc_list(buf.get('', [], force_set=True), ("msg", message), err_item)
