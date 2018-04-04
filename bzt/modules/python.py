@@ -613,8 +613,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.tree = None
         self.verbose = False
-        self.var_storage_name = 'Vars'
-        self.expr_compiler = JMeterExprCompiler(self.var_storage_name, self.log)
+        self.expr_compiler = JMeterExprCompiler(self.log)
 
     def gen_empty_line_stmt(self):
         return ast.Expr(value=ast.Name(id=""))  # hacky, but works
@@ -628,7 +627,6 @@ class ApiritifScriptGenerator(PythonGenerator):
             ast.Import(names=[ast.alias(name='time', asname=None)]),
             ast.Import(names=[ast.alias(name='unittest', asname=None)]),
             self.gen_empty_line_stmt(),
-
             ast.Import(names=[ast.alias(name='apiritif', asname=None)]),  # or "from apiritif import http, utils"?
         ]
 
@@ -640,18 +638,19 @@ log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG)
 """).body)
         stmts.append(self.gen_empty_line_stmt())
-        stmts.append(self.gen_var_storage())
-        stmts.append(self.gen_empty_line_stmt())
-        stmts.extend(self.gen_target())
-        stmts.append(self.gen_empty_line_stmt())
         stmts.append(self.gen_classdef())
         return ast.Module(body=stmts)
 
     def gen_classdef(self):
+        class_body = []
+        class_body.append(self.gen_constructor_method())
+        class_body.append(self.gen_empty_line_stmt())
+        class_body.extend(self.gen_test_methods())
+
         return ast.ClassDef(
             name='TestAPI',
             bases=[ast.Attribute(value=ast.Name(id='unittest', ctx=ast.Load()), attr='TestCase', ctx=ast.Load())],
-            body=self.gen_test_methods(),
+            body=class_body,
             keywords=[],
             starargs=None,
             kwargs=None,
@@ -715,8 +714,8 @@ log.setLevel(logging.DEBUG)
 
     def _gen_target_setup(self, key, value):
         return ast.Expr(value=ast.Call(
-            func=ast.Attribute(value=ast.Name(id='target', ctx=ast.Load()),
-                               attr=key, ctx=ast.Load()),
+            func=ast.Attribute(value=ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()),
+                                                   attr='target', ctx=ast.Load()), attr=key, ctx=ast.Load()),
             args=[self.gen_expr(value)],
             keywords=[],
             starargs=None,
@@ -754,7 +753,7 @@ log.setLevel(logging.DEBUG)
             stmts = [
                 ast.Assign(
                     targets=[
-                        ast.Name(id="target", ctx=ast.Store())
+                        ast.Attribute(value=ast.Name(id="self", ctx=ast.Load()), attr="target", ctx=ast.Store())
                     ],
                     value=ast.Call(
                         func=ast.Attribute(value=http, attr='target', ctx=ast.Load()),
@@ -815,7 +814,7 @@ log.setLevel(logging.DEBUG)
     def gen_request_lines(self, req):
         apiritif_http = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()),
                                       attr='http', ctx=ast.Load())
-        target = ast.Name(id='target', ctx=ast.Load())
+        target = ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr='target', ctx=ast.Load())
         requestor = target if self._access_method() == ApiritifScriptGenerator.ACCESS_TARGET else apiritif_http
 
         method = req.method.lower()
@@ -829,8 +828,7 @@ log.setLevel(logging.DEBUG)
 
         lines = []
 
-        tran = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()),
-                             attr="transaction", ctx=ast.Load())
+        tran = ast.Attribute(value=ast.Name(id='apiritif', ctx=ast.Load()), attr="transaction", ctx=ast.Load())
         transaction = ast.With(
             context_expr=ast.Call(
                 func=tran,
@@ -874,15 +872,32 @@ log.setLevel(logging.DEBUG)
 
         return lines
 
-    def gen_var_storage(self):
-        vars = []
+    def gen_constructor_method(self):
+        stmts = [
+            ast.parse('super(TestAPI, self).__init__(methodName)')
+        ]
         for var, init in iteritems(self.scenario.get("variables")):
-            vars.append(ast.Assign(targets=[ast.Name(id=var, ctx=ast.Store())], value=self.gen_expr(init)))
-        if not vars:
-            vars = [ast.Pass()]
+            stmts.append(ast.Assign(targets=[ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()),
+                                                          attr=var,
+                                                          ctx=ast.Store())],
+                                   value=self.gen_expr(init)))
 
-        return ast.ClassDef(
-            name=self.var_storage_name, bases=[], keywords=[], starargs=[], body=vars, decorator_list=[]
+        stmts.extend(self.gen_target())
+
+
+        return ast.FunctionDef(
+            name='__init__',
+            args=ast.arguments(
+                args=[ast.Name(id='self', ctx=ast.Param()), ast.Name(id='methodName', ctx=ast.Param())],
+                defaults=[ast.Str(s='runTest')],
+                vararg=None,
+                kwonlyargs=[],
+                kw_defaults=[],
+                kwarg=None,
+                returns=None,
+            ),
+            body=stmts,
+            decorator_list=[],
         )
 
     def _gen_assertions(self, request):
@@ -1242,14 +1257,13 @@ class UuidFunction(JMeterFunction):
 
 
 class JMeterExprCompiler(object):
-    def __init__(self, var_storage_name, parent_log):
-        self.var_storage_name = var_storage_name
+    def __init__(self, parent_log):
         self.log = parent_log.getChild(self.__class__.__name__)
 
     def gen_var_accessor(self, varname, ctx=None):
         if ctx is None:
             ctx = ast.Load()
-        return ast.Attribute(value=ast.Name(id=self.var_storage_name, ctx=ast.Load()), attr=varname, ctx=ctx)
+        return ast.Attribute(value=ast.Name(id='self', ctx=ast.Load()), attr=varname, ctx=ctx)
 
     def gen_expr(self, value):
         if isinstance(value, bool):

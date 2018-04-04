@@ -9,12 +9,11 @@ import unittest
 import apiritif
 
 
-class Vars():
-    pass
-
-
-
 class TestAPI(unittest.TestCase):
+
+    def __init__(self, methodName='runTest'):
+        super(TestAPI, self).__init__(methodName)
+    
 
     def test_1_apiritif(self):
         with apiritif.transaction('apiritif'):
