@@ -1229,7 +1229,13 @@ class CloudTaurusTest(BaseCloudTest):
     def stop_test(self):
         if self.master:
             self.log.info("Ending cloud test...")
-            self.master.stop()
+            if not self._last_status:
+                self.get_master_status()
+
+            if self._last_status["progress"] >= 100:
+                self.master.stop()
+            else:
+                self.master.terminate()
 
     def get_test_status_text(self):
         if not self._sessions:
@@ -1356,7 +1362,6 @@ class CloudCollectionTest(BaseCloudTest):
             self._test.stop()
             self.await_test_end()
         elif self.master:
-
             self.log.info("Shutting down cloud test...")
             self.master.stop()
 
