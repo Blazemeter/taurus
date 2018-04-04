@@ -481,7 +481,7 @@ class JMeterScenarioBuilder(JMX):
                                                              cfg.get("default", "NOT_FOUND"),
                                                              cfg.get("scope", None),
                                                              cfg.get("from-variable", None),
-                                                             cfg.get("match-no", "-1"),
+                                                             cfg.get("match-no", "0"),
                                                              cfg.get("concat", False))
 
             children.append(extractor)
