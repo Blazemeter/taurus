@@ -1,0 +1,11 @@
+timeStamp,elapsed,label,responseCode,responseMessage,threadName,success,bytes,grpThreads,allThreads,Latency,Hostname,"SessionName","SessionCount","PageCount"
+1522835021733,2137,http://blazedemo.com/,200,OK,sko-desktop 1-1,true,290473,1,1,579,vaio,null,null,null
+1522835023876,460,http://blazedemo.com/,200,OK,sko-desktop 1-1,true,290473,1,1,62,vaio,null,null,null
+1522835024344,886,http://blazedemo.com/,200,OK,sko-desktop 1-1,true,290473,1,1,60,vaio,null,null,null
+1522835025233,355,http://blazedemo.com/,200,OK,sko-desktop 1-1,true,290473,1,1,55,vaio,null,null,null
+1522835025590,302,http://blazedemo.com/,200,OK,sko-desktop 1-1,true,290473,1,1,59,vaio,null,null,null
+1522835025894,284,http://blazedemo.com/,200,OK,sko-desktop 1-1,true,290473,1,1,66,vaio,null,null,null
+1522835026180,330,http://blazedemo.com/,200,OK,sko-desktop 1-1,true,290473,1,1,58,vaio,null,null,null
+1522835026512,1009,http://blazedemo.com/,200,OK,sko-desktop 1-1,true,290473,1,1,58,vaio,null,null,null
+1522835027522,459,http://blazedemo.com/,200,OK,sko-desktop 1-1,true,290473,1,1,61,vaio,null,null,null
+1522835027983,347,http://blazedemo.com/,200,OK,sko-desktop 1-1,true,290473,1,1,55,vaio,null,null,null

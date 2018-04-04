@@ -53,7 +53,7 @@ from urwid import BaseScreen
 from webbrowser import GenericBrowser
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import stream_decode, file_type, etree, parse
+from bzt.six import stream_decode, file_type, etree, parse, deunicode
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
@@ -779,6 +779,12 @@ def guess_csv_dialect(header, force_doublequote=False):
     """
     possible_delims = ",;\t"
     dialect = csv.Sniffer().sniff(header, delimiters=possible_delims)
+
+    # We have to do that for py2, as the sniffer can possibly return unicode values
+    # in delimiter and quotechar. And py2's csv.reader is unable to handle unicode delimiters/quotechars.
+    dialect.delimiter = deunicode(dialect.delimiter)
+    dialect.quotechar = deunicode(dialect.quotechar)
+
     if force_doublequote:
         dialect.doublequote = True
     return dialect

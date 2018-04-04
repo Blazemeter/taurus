@@ -1,0 +1,1 @@
+Fix crash on Python 2 when adding custom fields to kpi.jtl
