@@ -52,7 +52,7 @@ RUN apt-get -y update \
   && pip3 install --upgrade setuptools pip wheel \
   && ln -sf /usr/bin/pip2 /usr/local/bin/pip \
   && pip install locustio robotframework robotframework-seleniumlibrary \
-  && pip3 install molotov<1.5 \
+  && pip3 install "molotov<1.5" \
   && gem install rspec \
   && gem install selenium-webdriver \
   && wget https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb \
