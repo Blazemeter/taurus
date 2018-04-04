@@ -154,6 +154,7 @@ class TestJTLErrorsReader(BZTestCase):
         values = self.obj.get_data(sys.maxsize)
         self.assertEquals(2, len(values))
         self.assertEquals(KPISet.ERRTYPE_SUBSAMPLE, values[''][0]['type'])
+        self.assertEquals('404', values[''][0]['rc'])
 
     @unittest.skipUnless(sys.platform == "darwin" and sys.version_info >= (3, 0), "MacOS- and Python3-only")
     def test_macos_unicode_parsing_is_not_supported(self):

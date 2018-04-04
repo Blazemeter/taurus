@@ -1348,13 +1348,14 @@ class JTLErrorsReader(object):
         if failed_assertion is not None:
             errtype = KPISet.ERRTYPE_ASSERT
 
-        message, is_embedded, embedded_url = self.get_failure_message(elem)
+        message, is_embedded, embedded_url, embedded_rc = self.get_failure_message(elem)
         if message is None:
             message = elem.get('rm')
 
         if is_embedded:
             errtype = KPISet.ERRTYPE_SUBSAMPLE
-            url_counts=Counter({embedded_url: 1})
+            url_counts = Counter({embedded_url: 1})
+            r_code=embedded_rc
 
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url_counts)
         buf = self.buffer.get(t_stamp, force_set=True)
@@ -1387,26 +1388,26 @@ class JTLErrorsReader(object):
         Returns failure message and flag of subsample originating error
         """
         failed_assertion = self.__get_failed_assertion(element)
+        r_code = element.get('rc')
         if failed_assertion is not None:
             assertion_message = self.__get_assertion_message(failed_assertion)
             if assertion_message:
-                return assertion_message, False, None
+                return assertion_message, False, None, r_code
             else:
-                return element.get('rm'), False, None
-        r_code = element.get('rc')
+                return element.get('rm'), False, None, r_code
         if r_code and r_code.startswith("2"):
             if element.get('s') == "false":
                 # FIXME: would work with HTTP only...
                 children = [elem for elem in element.iterchildren() if elem.tag == "httpSample"]
                 for child in children:
-                    child_message, is_sub, url = self.get_failure_message(child)
+                    child_message, is_sub, url, r_code = self.get_failure_message(child)
                     if child_message:
-                        return child_message, True, url
+                        return child_message, True, url, r_code
             else:
-                return None, False, None
+                return None, False, None, None
         else:
             url = element.find('java.net.URL')
-            return element.get('rm'), False, url.text if url else element.get("lb")
+            return element.get('rm'), False, url.text if url else element.get("lb"), r_code
 
     def __get_assertion_message(self, assertion_element):
         """
