@@ -713,6 +713,12 @@ class DatapointSerializer(object):
                     "rc": error['rc'],
                     "count": error['cnt'],
                 })
+            elif error["type"] == KPISet.ERRTYPE_SUBSAMPLE:
+                report_item['failedEmbeddedResources'].append({
+                    "count": error['cnt'],
+                    "rm": error['msg'],
+                    "rc": error['rc'],
+                })
             else:
                 report_item['assertions'].append({
                     'failureMessage': error['msg'],

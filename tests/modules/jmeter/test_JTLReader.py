@@ -4,10 +4,10 @@ import os
 import sys
 import unittest
 
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
 from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul
-from bzt.modules.aggregator import DataPoint
 
 
 class TestFuncJTLReader(BZTestCase):
@@ -25,7 +25,7 @@ class TestFuncJTLReader(BZTestCase):
 
     def test_functional_reader_pass(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/resource-errors-no-fail.jtl")
-        samples = list(self.obj.read(last_pass=True))
+        samples = list(self.obj.read())
         self.assertEqual(2, len(samples))
         first = samples[0]
         self.assertEqual(first.test_case, "HTTP Request")
@@ -38,7 +38,7 @@ class TestFuncJTLReader(BZTestCase):
 
     def test_functional_reader_failed(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/standard-errors.jtl")
-        samples = list(self.obj.read(last_pass=True))
+        samples = list(self.obj.read())
         self.assertEqual(185, len(samples))
         first = samples[0]
         self.assertEqual(first.test_case, "http://blazedemo.com/some-more-or-less-long-label")
@@ -50,7 +50,7 @@ class TestFuncJTLReader(BZTestCase):
 
     def test_functional_reader_broken(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/standard-errors.jtl")
-        samples = list(self.obj.read(last_pass=True))
+        samples = list(self.obj.read())
         self.assertEqual(185, len(samples))
         sample = samples[8]
         self.assertEqual(sample.test_case, "http://blazedemo.com/some-more-or-less-long-label")
@@ -63,7 +63,7 @@ class TestFuncJTLReader(BZTestCase):
 
     def test_functional_reader_extras(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/trace.jtl")
-        samples = list(self.obj.read(last_pass=True))
+        samples = list(self.obj.read())
         self.assertEqual(1, len(samples))
         sample = samples[0]
         self.assertIsNotNone(sample.extras)
@@ -81,14 +81,14 @@ class TestFuncJTLReader(BZTestCase):
 
     def test_functional_reader_artifact_files(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/trace.jtl")
-        samples = list(self.obj.read(last_pass=True))
+        samples = list(self.obj.read())
         self.assertEqual(1, len(samples))
         sample_path = os.path.join(self.obj.engine.artifacts_dir, "sample-responseBody.bin")
         self.assertTrue(os.path.exists(sample_path))
 
     def test_functional_reader_extras_assertions(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/trace.jtl")
-        samples = list(self.obj.read(last_pass=True))
+        samples = list(self.obj.read())
         self.assertEqual(1, len(samples))
         sample = samples[0]
         self.assertIsNotNone(sample.extras)
@@ -103,7 +103,7 @@ class TestFuncJTLReader(BZTestCase):
 
     def test_functional_reader_extras_empty_body(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/cookies.jtl")
-        samples = list(self.obj.read(last_pass=True))
+        samples = list(self.obj.read())
         self.assertEqual(2, len(samples))
         sample = samples[1]
         self.assertIsNotNone(sample.extras)
@@ -111,12 +111,12 @@ class TestFuncJTLReader(BZTestCase):
 
     def test_functional_reader_extract(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/crash_trace.jtl")
-        samples = list(self.obj.read(last_pass=True))
+        samples = list(self.obj.read())
         self.assertNotEqual(len(samples), 0)
 
     def test_unicode_errors(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/unicode-reqs.jtl")
-        samples = list(self.obj.read(last_pass=True))
+        samples = list(self.obj.read())
 
         origin_string = u'чсмтчомтчжом'
         for sample in samples:
@@ -147,6 +147,13 @@ class TestJTLErrorsReader(BZTestCase):
         self.obj.read_file(final_pass=True)
         values = self.obj.get_data(sys.maxsize)
         self.assertEquals(3, len(values))
+
+    def test_embedded_errors(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/resource-error-embedded.jtl")
+        self.obj.read_file(final_pass=True)
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEquals(2, len(values))
+        self.assertEquals(KPISet.ERRTYPE_SUBSAMPLE, values[''][0]['type'])
 
     @unittest.skipUnless(sys.platform == "darwin" and sys.version_info >= (3, 0), "MacOS- and Python3-only")
     def test_macos_unicode_parsing_is_not_supported(self):

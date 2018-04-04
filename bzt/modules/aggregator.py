@@ -82,6 +82,7 @@ class KPISet(BetterDict):
     RESP_CODES = "rc"
     ERRTYPE_ERROR = 0
     ERRTYPE_ASSERT = 1
+    ERRTYPE_SUBSAMPLE = 2
 
     def __init__(self, perc_levels=(), rt_dist_maxlen=None):
         super(KPISet, self).__init__()

@@ -888,7 +888,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     @staticmethod
     def __trim_jmeter_log(log_contents):
         lines = [line for line in log_contents.split("\n") if line]
-        relevant_lines = list(dropwhile(lambda line: "ERROR" not in line, lines))
+        relevant_lines = list(dropwhile(lambda lin: "ERROR" not in lin, lines))
         if relevant_lines:
             return "\n".join(relevant_lines)
         else:
@@ -1348,13 +1348,18 @@ class JTLErrorsReader(object):
         if failed_assertion is not None:
             errtype = KPISet.ERRTYPE_ASSERT
 
-        message = self.get_failure_message(elem)
+        message, is_embedded, embedded_url = self.get_failure_message(elem)
         if message is None:
             message = elem.get('rm')
+
+        if is_embedded:
+            errtype = KPISet.ERRTYPE_SUBSAMPLE
+            url = embedded_url
+
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
-        buffer = self.buffer.get(t_stamp, force_set=True)
-        KPISet.inc_list(buffer.get(label, [], force_set=True), ("msg", message), err_item)
-        KPISet.inc_list(buffer.get('', [], force_set=True), ("msg", message), err_item)
+        buf = self.buffer.get(t_stamp, force_set=True)
+        KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", message), err_item)
+        KPISet.inc_list(buf.get('', [], force_set=True), ("msg", message), err_item)
 
     def _extract_nonstandard(self, elem):
         t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
@@ -1373,31 +1378,35 @@ class JTLErrorsReader(object):
             errtype = KPISet.ERRTYPE_ASSERT
             message = massert[0].text
         err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url)
-        buffer = self.buffer.get(t_stamp, force_set=True)
-        KPISet.inc_list(buffer.get(label, [], force_set=True), ("msg", message), err_item)
-        KPISet.inc_list(buffer.get('', [], force_set=True), ("msg", message), err_item)
+        buf = self.buffer.get(t_stamp, force_set=True)
+        KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", message), err_item)
+        KPISet.inc_list(buf.get('', [], force_set=True), ("msg", message), err_item)
 
     def get_failure_message(self, element):
         """
-        Returns failure message
+        Returns failure message and flag of subsample originating error
         """
         failed_assertion = self.__get_failed_assertion(element)
         if failed_assertion is not None:
             assertion_message = self.__get_assertion_message(failed_assertion)
             if assertion_message:
-                return assertion_message
+                return assertion_message, False, None
             else:
-                return element.get('rm')
+                return element.get('rm'), False, None
         r_code = element.get('rc')
         if r_code and r_code.startswith("2"):
             if element.get('s') == "false":
+                # FIXME: would work with HTTP only...
                 children = [elem for elem in element.iterchildren() if elem.tag == "httpSample"]
                 for child in children:
-                    child_message = self.get_failure_message(child)
+                    child_message, is_sub, url = self.get_failure_message(child)
                     if child_message:
-                        return child_message
+                        return child_message, True, url
+            else:
+                return None, False, None
         else:
-            return element.get('rm')
+            url = element.find('java.net.URL')
+            return element.get('rm'), False, url.text if url else element.get("lb")
 
     def __get_assertion_message(self, assertion_element):
         """
