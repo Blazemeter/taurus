@@ -101,3 +101,11 @@ def communicate(proc):
         stderr = str(stderr, sys.stderr.encoding or sys.getfilesystemencoding())
     stdout = str(stdout, sys.stdout.encoding or sys.getfilesystemencoding())
     return stdout, stderr
+
+
+def deunicode(string):
+    """
+    If string is unicode - convert it to basic string. Otherwise - leave it.
+    Does nothing on py3 as there're no basic strings there.
+    """
+    return string

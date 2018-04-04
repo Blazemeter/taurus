@@ -99,3 +99,14 @@ def unicode_decode(string):
 
 def communicate(proc):
     return proc.communicate()
+
+
+def deunicode(string):
+    """
+    If string is unicode - convert it to basic string. Otherwise - leave it.
+    Does nothing on py3 as there're no basic strings there.
+    """
+    if isinstance(string, unicode):
+        return string.encode()
+    else:
+        return string
