@@ -1847,7 +1847,7 @@ class ResultsFromBZA(ResultsProvider):
                 ret_c=errors[msg]['rc'],
                 cnt=errors[msg]['count'],
                 errtype=KPISet.ERRTYPE_ERROR,  # TODO: what about asserts?
-                urls=Counter())
+                urls=Counter(), tag=None)
             result.append(kpi_error)
         return result
 
