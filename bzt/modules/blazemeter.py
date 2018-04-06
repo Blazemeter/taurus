@@ -35,7 +35,7 @@ from urwid import Pile, Text
 
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
-from bzt.bza import User, Session, Test, Workspace, MultiTest
+from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
@@ -713,10 +713,17 @@ class DatapointSerializer(object):
                     "rc": error['rc'],
                     "count": error['cnt'],
                 })
+            elif error["type"] == KPISet.ERRTYPE_SUBSAMPLE:
+                report_item['failedEmbeddedResources'].append({
+                    "count": error['cnt'],
+                    "rm": error['msg'],
+                    "rc": error['rc'],
+                    "url": error['urls'].keys()[0] if error['urls'] else None,
+                })
             else:
                 report_item['assertions'].append({
                     'failureMessage': error['msg'],
-                    'name': 'All Assertions',
+                    'name': error['tag'] if error['tag'] else 'All Assertions',
                     'failures': error['cnt']
                     # TODO: "count", "errors" = ? (according do Udi's format description)
                 })
@@ -1636,10 +1643,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.__last_master_status = master['status']
             self.log.info("Cloud test status: %s", self.__last_master_status)
 
-        if self.results_reader is not None and 'progress' in master and master['progress'] >= 100:
+        if self.results_reader is not None and 'progress' in master and master['progress'] >= BZA_TEST_DATA_RECEIVED:
             self.results_reader.master = self.router.master
 
-        if 'progress' in master and master['progress'] > 100:
+        if 'progress' in master and master['progress'] > BZA_TEST_DATA_RECEIVED:
             self.log.info("Test was stopped in the cloud: %s", master['status'])
             self.test_ended = True
             return True
@@ -1845,7 +1852,7 @@ class ResultsFromBZA(ResultsProvider):
                 ret_c=errors[msg]['rc'],
                 cnt=errors[msg]['count'],
                 errtype=KPISet.ERRTYPE_ERROR,  # TODO: what about asserts?
-                urls=Counter())
+                urls=Counter(), tag=None)
             result.append(kpi_error)
         return result
 

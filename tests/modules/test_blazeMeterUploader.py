@@ -58,7 +58,7 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.stopping_reason = ValueError('wrong value')
         obj.aggregated_second(random_datapoint(10))
         obj.kpi_buffer[-1][DataPoint.CUMULATIVE][''][KPISet.ERRORS] = [
-            {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111'},
+            {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111', 'tag': None},
             {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
         obj.post_process()
         obj.log.info("Requests: %s", mock.requests)
@@ -105,7 +105,8 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.stopping_reason = ValueError('wrong value')
         obj.aggregated_second(random_datapoint(10))
         obj.kpi_buffer[-1][DataPoint.CUMULATIVE][''][KPISet.ERRORS] = [
-            {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111'},
+            {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111',
+             'tag': ""},
             {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
         obj.send_monitoring = False
         obj.post_process()

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<httpSample t="459" lt="213" ts="1522851677051" s="false" lb="get echo embedded" rc="200" rm="Embedded resource download error:http://demo.blazemeter.com/themes/bluemarine/logo.png code:404 message:Not Found, http://demo.blazemeter.com/themes/bluemarine/logo12.png code:404 message:Not Found, " tn="embedded 1-1" dt="text" de="" by="6334" ng="1" na="1">
+  <httpSample t="213" lt="213" ts="1522851677051" s="true" lb="http://demo.blazemeter.com/echo.php?embedded" rc="200" rm="OK" tn="embedded 1-1" dt="text" de="" by="5235" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Wed, 04 Apr 2018 14:21:17 GMT
+Server: Apache/2.2.22 (Ubuntu)
+X-Powered-By: PHP/5.4.9-4ubuntu2.4
+Vary: Accept-Encoding
+Content-Length: 4985
+Keep-Alive: timeout=5, max=100
+Connection: Keep-Alive
+Content-Type: text/html
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo.blazemeter.com
+User-Agent: Apache-HttpClient/4.5.3 (Java/1.8.0_151)
+</requestHeader>
+    <java.net.URL>http://demo.blazemeter.com/echo.php?embedded</java.net.URL>
+  </httpSample>
+  <httpSample t="29" lt="29" ts="1522851677451" s="false" lb="http://demo.blazemeter.com/themes/bluemarine/logo.png" rc="404" rm="Not Found" tn="embedded 1-1" dt="text" de="iso-8859-1" by="548" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 404 Not Found
+Date: Wed, 04 Apr 2018 14:21:17 GMT
+Server: Apache/2.2.22 (Ubuntu)
+Vary: Accept-Encoding
+Content-Length: 309
+Keep-Alive: timeout=5, max=99
+Connection: Keep-Alive
+Content-Type: text/html; charset=iso-8859-1
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo.blazemeter.com
+User-Agent: Apache-HttpClient/4.5.3 (Java/1.8.0_151)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;!DOCTYPE HTML PUBLIC &quot;-//IETF//DTD HTML 2.0//EN&quot;&gt;
+&lt;html&gt;&lt;head&gt;
+&lt;title&gt;404 Not Found&lt;/title&gt;
+&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;Not Found&lt;/h1&gt;
+&lt;p&gt;The requested URL /themes/bluemarine/logo.png was not found on this server.&lt;/p&gt;
+&lt;hr&gt;
+&lt;address&gt;Apache/2.2.22 (Ubuntu) Server at demo.blazemeter.com Port 80&lt;/address&gt;
+&lt;/body&gt;&lt;/html&gt;
+</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://demo.blazemeter.com/themes/bluemarine/logo.png</java.net.URL>
+  </httpSample>
+  <httpSample t="58" lt="58" ts="1522851677452" s="false" lb="http://demo.blazemeter.com/themes/bluemarine/logo12.png" rc="404" rm="Not Found" tn="embedded 1-1" dt="text" de="iso-8859-1" by="551" ng="1" na="1">
+    <responseHeader class="java.lang.String">HTTP/1.1 404 Not Found
+Date: Wed, 04 Apr 2018 14:21:17 GMT
+Server: Apache/2.2.22 (Ubuntu)
+Vary: Accept-Encoding
+Content-Length: 311
+Keep-Alive: timeout=5, max=100
+Connection: Keep-Alive
+Content-Type: text/html; charset=iso-8859-1
+</responseHeader>
+    <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo.blazemeter.com
+User-Agent: Apache-HttpClient/4.5.3 (Java/1.8.0_151)
+</requestHeader>
+    <responseData class="java.lang.String">&lt;!DOCTYPE HTML PUBLIC &quot;-//IETF//DTD HTML 2.0//EN&quot;&gt;
+&lt;html&gt;&lt;head&gt;
+&lt;title&gt;404 Not Found&lt;/title&gt;
+&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;Not Found&lt;/h1&gt;
+&lt;p&gt;The requested URL /themes/bluemarine/logo12.png was not found on this server.&lt;/p&gt;
+&lt;hr&gt;
+&lt;address&gt;Apache/2.2.22 (Ubuntu) Server at demo.blazemeter.com Port 80&lt;/address&gt;
+&lt;/body&gt;&lt;/html&gt;
+</responseData>
+    <cookies class="java.lang.String"></cookies>
+    <method class="java.lang.String">GET</method>
+    <queryString class="java.lang.String"></queryString>
+    <java.net.URL>http://demo.blazemeter.com/themes/bluemarine/logo12.png</java.net.URL>
+  </httpSample>
+  <responseHeader class="java.lang.String">HTTP/1.1 200 OK
+Date: Wed, 04 Apr 2018 14:21:17 GMT
+Server: Apache/2.2.22 (Ubuntu)
+X-Powered-By: PHP/5.4.9-4ubuntu2.4
+Vary: Accept-Encoding
+Content-Length: 4985
+Keep-Alive: timeout=5, max=100
+Connection: Keep-Alive
+Content-Type: text/html
+</responseHeader>
+  <requestHeader class="java.lang.String">Connection: keep-alive
+Host: demo.blazemeter.com
+User-Agent: Apache-HttpClient/4.5.3 (Java/1.8.0_151)
+</requestHeader>
+  <responseData class="java.lang.String">&lt;html&gt;
+&lt;head&gt;&lt;script type=&quot;text/javascript&quot;&gt;window.NREUM||(NREUM={}),__nr_require=function(e,t,n){function r(n){if(!t[n]){var o=t[n]={exports:{}};e[n][0].call(o.exports,function(t){var o=e[n][1][t];return r(o||t)},o,o.exports)}return t[n].exports}if(&quot;function&quot;==typeof __nr_require)return __nr_require;for(var o=0;o&lt;n.length;o++)r(n[o]);return r}({1:[function(e,t,n){function r(){}function o(e,t,n){return function(){return i(e,[f.now()].concat(u(arguments)),t?null:this,n),t?void 0:this}}var i=e(&quot;handle&quot;),a=e(2),u=e(3),c=e(&quot;ee&quot;).get(&quot;tracer&quot;),f=e(&quot;loader&quot;),s=NREUM;&quot;undefined&quot;==typeof window.newrelic&amp;&amp;(newrelic=s);var p=[&quot;setPageViewName&quot;,&quot;setCustomAttribute&quot;,&quot;setErrorHandler&quot;,&quot;finished&quot;,&quot;addToTrace&quot;,&quot;inlineHit&quot;,&quot;addRelease&quot;],d=&quot;api-&quot;,l=d+&quot;ixn-&quot;;a(p,function(e,t){s[t]=o(d+t,!0,&quot;api&quot;)}),s.addPageAction=o(d+&quot;addPageAction&quot;,!0),s.setCurrentRouteName=o(d+&quot;routeName&quot;,!0),t.exports=newrelic,s.interaction=function(){return(new r).get()};var m=r.prototype={createTracer:function(e,t){var n={},r=this,o=&quot;function&quot;==typeof t;return i(l+&quot;tracer&quot;,[f.now(),e,n],r),function(){if(c.emit((o?&quot;&quot;:&quot;no-&quot;)+&quot;fn-start&quot;,[f.now(),r,o],n),o)try{return t.apply(this,arguments)}catch(e){throw c.emit(&quot;fn-err&quot;,[arguments,this,e],n),e}finally{c.emit(&quot;fn-end&quot;,[f.now()],n)}}}};a(&quot;setName,setAttribute,save,ignore,onEnd,getContext,end,get&quot;.split(&quot;,&quot;),function(e,t){m[t]=o(l+t)}),newrelic.noticeError=function(e){&quot;string&quot;==typeof e&amp;&amp;(e=new Error(e)),i(&quot;err&quot;,[e,f.now()])}},{}],2:[function(e,t,n){function r(e,t){var n=[],r=&quot;&quot;,i=0;for(r in e)o.call(e,r)&amp;&amp;(n[i]=t(r,e[r]),i+=1);return n}var o=Object.prototype.hasOwnProperty;t.exports=r},{}],3:[function(e,t,n){function r(e,t,n){t||(t=0),&quot;undefined&quot;==typeof n&amp;&amp;(n=e?e.length:0);for(var r=-1,o=n-t||0,i=Array(o&lt;0?0:o);++r&lt;o;)i[r]=e[t+r];return i}t.exports=r},{}],4:[function(e,t,n){t.exports={exists:&quot;undefined&quot;!=typeof window.performance&amp;&amp;window.performance.timing&amp;&amp;&quot;undefined&quot;!=typeof window.performance.timing.navigationStart}},{}],ee:[function(e,t,n){function r(){}function o(e){function t(e){return e&amp;&amp;e instanceof r?e:e?c(e,u,i):i()}function n(n,r,o,i){if(!d.aborted||i){e&amp;&amp;e(n,r,o);for(var a=t(o),u=m(n),c=u.length,f=0;f&lt;c;f++)u[f].apply(a,r);var p=s[y[n]];return p&amp;&amp;p.push([b,n,r,a]),a}}function l(e,t){v[e]=m(e).concat(t)}function m(e){return v[e]||[]}function w(e){return p[e]=p[e]||o(n)}function g(e,t){f(e,function(e,n){t=t||&quot;feature&quot;,y[n]=t,t in s||(s[t]=[])})}var v={},y={},b={on:l,emit:n,get:w,listeners:m,context:t,buffer:g,abort:a,aborted:!1};return b}function i(){return new r}function a(){(s.api||s.feature)&amp;&amp;(d.aborted=!0,s=d.backlog={})}var u=&quot;nr@context&quot;,c=e(&quot;gos&quot;),f=e(2),s={},p={},d=t.exports=o();d.backlog=s},{}],gos:[function(e,t,n){function r(e,t,n){if(o.call(e,t))return e[t];var r=n();if(Object.defineProperty&amp;&amp;Object.keys)try{return Object.defineProperty(e,t,{value:r,writable:!0,enumerable:!1}),r}catch(i){}return e[t]=r,r}var o=Object.prototype.hasOwnProperty;t.exports=r},{}],handle:[function(e,t,n){function r(e,t,n,r){o.buffer([e],r),o.emit(e,t,n)}var o=e(&quot;ee&quot;).get(&quot;handle&quot;);t.exports=r,r.ee=o},{}],id:[function(e,t,n){function r(e){var t=typeof e;return!e||&quot;object&quot;!==t&amp;&amp;&quot;function&quot;!==t?-1:e===window?0:a(e,i,function(){return o++})}var o=1,i=&quot;nr@id&quot;,a=e(&quot;gos&quot;);t.exports=r},{}],loader:[function(e,t,n){function r(){if(!x++){var e=h.info=NREUM.info,t=d.getElementsByTagName(&quot;script&quot;)[0];if(setTimeout(s.abort,3e4),!(e&amp;&amp;e.licenseKey&amp;&amp;e.applicationID&amp;&amp;t))return s.abort();f(y,function(t,n){e[t]||(e[t]=n)}),c(&quot;mark&quot;,[&quot;onload&quot;,a()+h.offset],null,&quot;api&quot;);var n=d.createElement(&quot;script&quot;);n.src=&quot;https://&quot;+e.agent,t.parentNode.insertBefore(n,t)}}function o(){&quot;complete&quot;===d.readyState&amp;&amp;i()}function i(){c(&quot;mark&quot;,[&quot;domContent&quot;,a()+h.offset],null,&quot;api&quot;)}function a(){return E.exists&amp;&amp;performance.now?Math.round(performance.now()):(u=Math.max((new Date).getTime(),u))-h.offset}var u=(new Date).getTime(),c=e(&quot;handle&quot;),f=e(2),s=e(&quot;ee&quot;),p=window,d=p.document,l=&quot;addEventListener&quot;,m=&quot;attachEvent&quot;,w=p.XMLHttpRequest,g=w&amp;&amp;w.prototype;NREUM.o={ST:setTimeout,SI:p.setImmediate,CT:clearTimeout,XHR:w,REQ:p.Request,EV:p.Event,PR:p.Promise,MO:p.MutationObserver};var v=&quot;&quot;+location,y={beacon:&quot;bam.nr-data.net&quot;,errorBeacon:&quot;bam.nr-data.net&quot;,agent:&quot;js-agent.newrelic.com/nr-1071.min.js&quot;},b=w&amp;&amp;g&amp;&amp;g[l]&amp;&amp;!/CriOS/.test(navigator.userAgent),h=t.exports={offset:u,now:a,origin:v,features:{},xhrWrappable:b};e(1),d[l]?(d[l](&quot;DOMContentLoaded&quot;,i,!1),p[l](&quot;load&quot;,r,!1)):(d[m](&quot;onreadystatechange&quot;,o),p[m](&quot;onload&quot;,r)),c(&quot;mark&quot;,[&quot;firstbyte&quot;,u],null,&quot;api&quot;);var x=0,E=e(4)},{}]},{},[&quot;loader&quot;]);&lt;/script&gt;
+    &lt;title&gt;echo&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;img src=&apos;/themes/bluemarine/logo.png&apos;&gt;
+&lt;img src=&apos;/themes/bluemarine/logo12.png&apos;&gt;
+&lt;/br&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;window.NREUM||(NREUM={});NREUM.info={&quot;beacon&quot;:&quot;bam.nr-data.net&quot;,&quot;licenseKey&quot;:&quot;338cffe5d3&quot;,&quot;applicationID&quot;:&quot;5126265&quot;,&quot;transactionName&quot;:&quot;YVxSYxACCxcEVRFfWlgWZUULTAAHDVlLRl1G&quot;,&quot;queueTime&quot;:0,&quot;applicationTime&quot;:3,&quot;atts&quot;:&quot;TRtRFVgYGBk=&quot;,&quot;errorBeacon&quot;:&quot;bam.nr-data.net&quot;,&quot;agent&quot;:&quot;&quot;}&lt;/script&gt;&lt;/body&gt;
+&lt;/html&gt;</responseData>
+  <cookies class="java.lang.String"></cookies>
+  <method class="java.lang.String">GET</method>
+  <queryString class="java.lang.String"></queryString>
+  <java.net.URL>http://demo.blazemeter.com/echo.php?embedded</java.net.URL>
+</httpSample>
+
+</testResults>

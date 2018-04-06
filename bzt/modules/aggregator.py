@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import collections
 import copy
 import logging
 import re
@@ -82,6 +83,7 @@ class KPISet(BetterDict):
     RESP_CODES = "rc"
     ERRTYPE_ERROR = 0
     ERRTYPE_ASSERT = 1
+    ERRTYPE_SUBSAMPLE = 2
 
     def __init__(self, perc_levels=(), rt_dist_maxlen=None):
         super(KPISet, self).__init__()
@@ -118,22 +120,25 @@ class KPISet(BetterDict):
         return mycopy
 
     @staticmethod
-    def error_item_skel(error, ret_c, cnt, errtype, urls):
+    def error_item_skel(error, ret_c, cnt, errtype, urls, tag):
         """
 
         :type error: str
         :type ret_c: str
+        :type tag: str
         :type cnt: int
         :type errtype: int
         :type urls: collections.Counter
         :rtype: dict
         """
+        assert isinstance(urls, collections.Counter)
         return {
             "cnt": cnt,
             "msg": error,
+            "tag": tag, # just one more string qualifier
             "rc": ret_c,
             "type": errtype,
-            "urls": urls
+            "urls": urls,
         }
 
     def add_sample(self, sample):
@@ -160,7 +165,7 @@ class KPISet(BetterDict):
         if error is not None:
             self[self.FAILURES] += 1
 
-            item = self.error_item_skel(error, r_code, 1, KPISet.ERRTYPE_ERROR, Counter())
+            item = self.error_item_skel(error, r_code, 1, KPISet.ERRTYPE_ERROR, Counter(), None)
             self.inc_list(self[self.ERRORS], ("msg", error), item)
         else:
             self[self.SUCCESSES] += 1
