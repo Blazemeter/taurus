@@ -1391,7 +1391,7 @@ class JTLErrorsReader(object):
                 # FIXME: would work with HTTP only...
                 children = [elem for elem in element.iterchildren() if elem.tag == "httpSample"]
                 for child in children:
-                    child_message, is_sub, url, r_code, tag = self.get_failure_message(child)
+                    child_message, _, url, r_code, tag = self.get_failure_message(child)
                     if child_message:
                         return child_message, True, url, r_code, tag
             else:
