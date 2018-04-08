@@ -157,7 +157,7 @@ scenarios:
  -  `version`: "2.3.0"
     Gatling version, 2.3.0 by default
 
- -  `dir_prefix`: "gatling-%s"
+ -  `dir_prefix`: "gatling-\%s"
     Gatling report prefix. Used by taurus to find gatling reports.
     If you use gatling property "gatling.core.outputDirectoryBaseName", you may use also this setting.
 
@@ -177,6 +177,17 @@ You can read values of variables in Scala code similar to `[Load Configuration](
 class BasicSimulation extends Simulation {
   val your_scala_variable = Integer.getInteger("your_variable", 0).toInt
 }
+```
+
+You can also specify properties per-scenario, which will add to module-level properties:
+```yaml
+scenarios:
+  my-scenario:
+    properties:
+      propname: value
+      your_variable: 256
+      
+    # ...
 ```
 
 ## External Java Libraries Usage

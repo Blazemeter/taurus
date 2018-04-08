@@ -380,9 +380,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return cmdline
 
     def __set_params_for_scala(self):
-        params = self.settings.get('properties')
-        load = self.get_load()
         scenario = self.get_scenario()
+        params = self.settings.get('properties')
+        params.merge(scenario.get("properties"))
+        load = self.get_load()
 
         timeout = scenario.get('timeout', None)
         if timeout is not None:
