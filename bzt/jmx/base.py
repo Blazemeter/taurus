@@ -172,6 +172,7 @@ class JMX(object):
             "time": True,
             "timestamp": True,
             "latency": True,
+            "connectTime": True,
             "success": True,
             "label": True,
             "code": True,
