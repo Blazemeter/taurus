@@ -1,1 +1,2 @@
 support specifying properties for Gatling on scenario level
+rename Gatling's `dir_prefix` option into `dir-prefix`

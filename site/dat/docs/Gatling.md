@@ -142,25 +142,12 @@ scenarios:
 ## Configuration Options
 
  Similar to other modules there is possibility of global configuration Gatling Executor by write some lines in
- `gatling` branch of modules setting. Next options can be set:
- - `path`: "/somepath/folder/bin/gatling_executable"
-    Path to Gatling executable.
-    If no Gatling executable found, it will be automatically downloaded and installed in "path".
-    By default "~/.bzt/gatling-taurus/{version}/bin/gatling.sh".
-
+ `gatling` section of modules setting. Next options can be set:
+ - `path`: Path to Gatling executable. In case no Gatling executable found, it will be automatically downloaded and installed into `path` location. By default `~/.bzt/gatling-taurus/{version}/bin/gatling.sh`.
  - `java-opts`: string with some java options for Gatling
-
- - `download-link`:"http://somehost/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    Link to download Gatling.
-    By default: "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-
- -  `version`: "2.3.0"
-    Gatling version, 2.3.0 by default
-
- -  `dir_prefix`: "gatling-\%s"
-    Gatling report prefix. Used by taurus to find gatling reports.
-    If you use gatling property "gatling.core.outputDirectoryBaseName", you may use also this setting.
-
+ - `download-link`: Link to download Gatling from. By default: `https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip`
+ -  `version`: Gatling version, `2.3.0` by default
+ -  `dir-prefix`: Gatling report prefix, `gatling-%s` by default. Used by taurus to find gatling reports. If you use Gatling property `gatling.core.outputDirectoryBaseName`, you may use also this setting.
  - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling
  documentation) and sending your own variables into Scala program:
 
@@ -171,7 +158,7 @@ modules:
       gatling.data.file.bufferSize: 512 # output buffer size, 256 bytes by default
       your_variable: 1024               # user variable
 ```
-You can read values of variables in Scala code similar to `[Load Configuration](#Load-Configuration)` style:
+You can then read values of properties in Scala code similar to `[Load Configuration](#Load-Configuration)` style:
 
 ```scala
 class BasicSimulation extends Simulation {
