@@ -461,13 +461,37 @@ class TestGatlingExecutor(BZTestCase):
         self.obj.execution.merge({
             "scenario": {
                 "keepalive": True,
-                "requests": ["http://blazedemo.com/"]}})
+                "requests": ["http://blazedemo.com/"]}
+        })
 
         self.obj.execute = lambda *args, **kwargs: None
         self.obj.prepare()
         self.obj.startup()
         self.assertIn("gatling.http.ahc.allowPoolingConnections=true", self.obj.env.get("JAVA_OPTS"))
         self.assertIn("gatling.http.ahc.keepAlive=true", self.obj.env.get("JAVA_OPTS"))
+
+    def test_properties_2levels(self):
+        self.obj.settings.merge({
+            "properties": {
+                "settlevel": "settval",
+                "override": 1,
+            },
+        })
+        self.obj.execution.merge({
+            "scenario": {
+                "properties": {
+                    "scenlevel": "scenval",
+                    "override": 2,
+                },
+                "requests": ["http://blazedemo.com/"]}
+        })
+
+        self.obj.execute = lambda *args, **kwargs: None
+        self.obj.prepare()
+        self.obj.startup()
+        self.assertIn("-Dscenlevel=scenval", self.obj.env.get("JAVA_OPTS"))
+        self.assertIn("-Dsettlevel=settval", self.obj.env.get("JAVA_OPTS"))
+        self.assertIn("-Doverride=2", self.obj.env.get("JAVA_OPTS"))
 
 
 class TestDataLogReader(BZTestCase):
