@@ -786,6 +786,7 @@ modules:
       time: true
       timestamp: true
       latency: true
+      connectTime: true
       success: true
       label: true
       code: true
