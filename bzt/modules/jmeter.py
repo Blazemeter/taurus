@@ -392,9 +392,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         jmeter_ver = str(self.settings.get("version", self.JMETER_VER))
         if is_windows() and jmeter_ver == "4.0":
             tool_path = self.tool.tool_path
-            if not os.path.isdir(tool_path):
+            if os.path.exists(tool_path) and not os.path.isdir(tool_path):
                 tool_path = get_full_path(tool_path, step_up=2)
-            self.env.set({"JMETER_HOME": tool_path})
+            if not self.env.get("JMETER_HOME"):
+                self.env.set({"JMETER_HOME": tool_path})
 
         self.start_time = time.time()
         try:
