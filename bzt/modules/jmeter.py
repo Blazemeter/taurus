@@ -43,7 +43,7 @@ from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern
 from bzt.six import communicate, PY2
 from bzt.six import iteritems, string_types, StringIO, etree, unicode_decode, numeric_types
-from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name
+from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
@@ -387,6 +387,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
         if self.distributed_servers and not self.settings.get("gui", False):
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
+
+        # fix for JMeter 4.0 bug where jmeter.bat requires JMETER_HOME to be set
+        jmeter_ver = str(self.settings.get("version", self.JMETER_VER))
+        if is_windows() and jmeter_ver == "4.0":
+            tool_path = self.tool.tool_path
+            if not os.path.isdir(tool_path):
+                tool_path = get_full_path(tool_path, step_up=2)
+            self.env.set({"JMETER_HOME": tool_path})
 
         self.start_time = time.time()
         try:
