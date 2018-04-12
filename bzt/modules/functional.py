@@ -117,8 +117,22 @@ class FunctionalAggregatorListener(object):
 
 
 class TestReportReader(object):
-    REPORT_ITEM_KEYS = ["test_case", "test_suite", "status", "start_time", "duration",
-                        "error_msg", "error_trace", "extras", "subsamples"]
+    SAMPLE_KEYS = [
+        "test_case",  # str
+        "test_suite",  # str
+        "status",  # str
+        "start_time",  # float, epoch
+        "duration",  # float, in seconds
+        "error_msg",  # short string
+        "error_trace",  # multiline string
+        "extras",  # dict
+        "subsamples",  # list of samples
+        "assertions",  # list of dicts, {"name": str, "failed": bool, "error_msg": str, "error_trace": str}
+        "path"  # list of components, [{"value": "tests.modules.test_Something", "type": "package"},
+                #                      {"value": "TestAPI", "type": "test_suite"},
+                #                      {"value": "test_heartbeat", "type": "test_case"}
+                #                      {"value": "index page": "type": "transaction"}
+    ]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
@@ -127,15 +141,27 @@ class TestReportReader(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.json_reader = LDJSONReader(filename, self.log)
 
-    def process_label(self, label):
+    @staticmethod
+    def process_label(label):
         if isinstance(label, string_types):
-            if label.startswith('test_') and label[5:10].isdigit():
-                return label[11:]
-
+            parts = label.split('_', 2)  # 'test_01_feeling_good'
+            if len(parts) == 3 and parts[0] == 'test' and parts[1].isdigit():
+                return parts[2]
         return label
+
+    def process_path(self, path):
+        if isinstance(path, dict):
+            test_suite = ".".join(part["value"] for part in path[:-1])
+            test_case = path[-1]["value"]
+            return test_suite, test_case
+        return None
 
     def read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
+            if "path" in row:
+                processed_path = self.process_path(row["path"])
+                if processed_path is not None:
+                   row["test_suite"], row["test_case"] = processed_path
             row["test_case"] = self.process_label(row["test_case"])
             yield row
 
