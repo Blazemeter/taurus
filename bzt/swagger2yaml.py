@@ -256,7 +256,7 @@ class SwaggerConverter(object):
         return query_params, form_data, request_body, headers
 
     def _embed_query_in_path(self, path, query_dict):
-        self.log.info(query_dict)
+        self.log.debug("Query dict: %s", query_dict)
         parts = parse.urlparse(path)
         query = urlencode(query_dict)
         replaced = parts._replace(query=query)
@@ -315,12 +315,14 @@ class SwaggerConverter(object):
 
         return requests
 
-    def _extract_scenarios_from_paths(self, paths):
+    def _extract_scenarios_from_paths(self, paths, default_address):
         base_path = self.swagger.get_base_path()
+        if base_path:
+            default_address += base_path
         scenarios = OrderedDict()
         for path, path_obj in iteritems(paths):
             scenario_name = path
-            self.log.debug("Handling path %s", path)
+            self.log.info("Handling path %s", path)
             requests = []
             for method in Swagger.METHODS:
                 operation = getattr(path_obj, method)
@@ -332,7 +334,7 @@ class SwaggerConverter(object):
 
             if requests:
                 scenarios[scenario_name] = {
-                    "default-address": base_path,
+                    "default-address": default_address,
                     "requests": requests,
                 }
 
@@ -356,7 +358,7 @@ class SwaggerConverter(object):
         default_address = scheme + "://" + host
         scenario_name = title.replace(' ', '-')
         if self.scenarios_from_paths:
-            scenarios = self._extract_scenarios_from_paths(paths)
+            scenarios = self._extract_scenarios_from_paths(paths, default_address)
             return {
                 "scenarios": scenarios,
                 "execution": [{
