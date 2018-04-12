@@ -39,6 +39,16 @@ class TestSwagger2YAML(BZTestCase):
         expected = yaml.load(open(RESOURCES_DIR + "/swagger/petstore-converted.yaml").read())
         self.assertEqual(actual, expected)
 
+    def test_convert_scenarios_from_paths(self):
+        self.maxDiff = None
+        source = RESOURCES_DIR + "/swagger/bzm-api.json"
+        result = self._get_tmp()
+        options = FakeOptions(file_name=result, scenarios_from_paths=True)
+        process(options, [source])
+        actual = yaml.load(open(result).read())
+        expected = yaml.load(open(RESOURCES_DIR + "/swagger/bzm-api-converted.yaml").read())
+        self.assertEqual(actual, expected)
+
 
 class TestSwaggerConverter(BZTestCase):
     def test_minimal_json(self):
@@ -124,3 +134,4 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(len(config["scenarios"]["/tests"]["requests"]), 2)
         self.assertEqual(len(config["scenarios"]["/tests/1"]["requests"]), 4)
         self.assertEqual(len(config["scenarios"]["/tests/1/start"]["requests"]), 1)
+

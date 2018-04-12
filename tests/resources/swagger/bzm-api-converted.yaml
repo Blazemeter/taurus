@@ -1,0 +1,48 @@
+---
+execution:
+- concurrency: 1
+  hold-for: 1m
+  scenario: /tests
+- concurrency: 1
+  hold-for: 1m
+  scenario: /tests/1
+- concurrency: 1
+  hold-for: 1m
+  scenario: /tests/1/start
+- concurrency: 1
+  hold-for: 1m
+  scenario: /reports
+- concurrency: 1
+  hold-for: 1m
+  scenario: /reports/1
+scenarios:
+  /reports:
+    default-address: https://a.blazemeter.com/api/v4
+    requests:
+    - url: /reports
+  /reports/1:
+    default-address: https://a.blazemeter.com/api/v4
+    requests:
+    - url: /reports/1
+  /tests:
+    default-address: https://a.blazemeter.com/api/v4
+    requests:
+    - url: /tests
+    - method: POST
+      url: /tests
+  /tests/1:
+    default-address: https://a.blazemeter.com/api/v4
+    requests:
+    - url: /tests/1
+    - method: PUT
+      url: /tests/1
+    - method: DELETE
+      url: /tests/1
+    - method: PATCH
+      url: /tests/1
+  /tests/1/start:
+    default-address: https://a.blazemeter.com/api/v4
+    requests:
+    - method: POST
+      url: /tests/1/start
+
