@@ -1,0 +1,1 @@
+Fix JMeter 4.0 crash on Windows when JMETER_HOME var is unset
