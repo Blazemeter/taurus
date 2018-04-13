@@ -651,7 +651,8 @@ scenarios:
   transaction_example:
     requests:
     - transaction: Customer Session
-      force-parent-sample: False  # True by default
+      force-parent-sample: false  # True by default
+      include-timers: true  # add timers and pre-/post-processors execution time to samples
       do:
       - http://example.com/shop
       - http://example.com/shop/items/1

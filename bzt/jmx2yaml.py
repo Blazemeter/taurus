@@ -1197,7 +1197,10 @@ class JMXasDict(JMX):
     def __extract_trans_controller(self, controller, ht_element):
         name = controller.get('testname')
         requests = self.__extract_requests(ht_element)
-        return {'transaction': name, 'do': requests}
+        include_timers = self._get_bool_prop(controller, "TransactionController.includeTimers")
+        if include_timers is None:
+            include_timers = True  # weird, but true
+        return {'transaction': name, 'do': requests, 'include-timers': include_timers}
 
     def _get_request_settings(self, request_element):
         """

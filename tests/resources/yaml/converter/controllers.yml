@@ -41,6 +41,7 @@ scenarios:
         label: example.com/2
         method: GET
         url: http://example.com/2
+      include-timers: false
       transaction: My Transaction
     - do:
       - follow-redirects: true
@@ -48,6 +49,9 @@ scenarios:
         method: GET
         url: http://google.com/
       while: condition
+    - do: []
+      transaction: Transaction-Include
+      include-timers: true
     store-cache: false
     store-cookie: false
     use-dns-cache-mgr: false
