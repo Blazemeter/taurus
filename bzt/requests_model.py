@@ -168,15 +168,16 @@ class ForEachBlock(Request):
 class TransactionBlock(Request):
     NAME = "transaction"
 
-    def __init__(self, name, requests, config, scenario):
+    def __init__(self, name, requests, include_timers, config, scenario):
         super(TransactionBlock, self).__init__(config, scenario)
         self.name = name
         self.requests = requests
+        self.include_timers = include_timers
 
     def __repr__(self):
         requests = [repr(req) for req in self.requests]
-        fmt = "TransactionBlock(name=%s, requests=%s)"
-        return fmt % (self.name, requests)
+        fmt = "TransactionBlock(name=%s, requests=%s, include-timers=%r)"
+        return fmt % (self.name, requests, self.include_timers)
 
 
 class IncludeScenarioBlock(Request):
@@ -229,7 +230,8 @@ class RequestsParser(object):
             name = req.get('transaction')
             do_block = req.get('do', TaurusConfigError("'do' field is mandatory for transaction blocks"))
             do_requests = self.__parse_requests(do_block)
-            return TransactionBlock(name, do_requests, req, self.scenario)
+            include_timers = req.get('include-timers')
+            return TransactionBlock(name, do_requests, include_timers, req, self.scenario)
         elif 'include-scenario' in req:
             name = req.get('include-scenario')
             return IncludeScenarioBlock(name, req)

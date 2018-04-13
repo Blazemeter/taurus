@@ -437,9 +437,9 @@ class TestConverter(BZTestCase):
     def test_controllers_to_requests(self):
         self.configure(RESOURCES_DIR + "yaml/converter/controllers.jmx")
         self.obj.process()
-        yml1 = RESOURCES_DIR + "yaml/converter/controllers.yml"
-        yml2 = self.obj.dst_file
-        self.assertTrue(self.same_yaml(yml1, yml2))
+        yml1 = yaml.load(open(RESOURCES_DIR + "yaml/converter/controllers.yml").read())
+        yml2 = yaml.load(open(self.obj.dst_file).read())
+        self.assertEqual(yml1, yml2)
 
     def test_jsr223(self):
         self.configure(RESOURCES_DIR + "jmeter/jmx/jsr223.jmx")
