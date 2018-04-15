@@ -341,8 +341,8 @@ class SwaggerConverter(object):
         return scenarios
 
     @staticmethod
-    def join_relative_url(base_path, path):
-        return '/'.join(s.strip('/') for s in ['', base_path, path])
+    def join_relative_url(*path):
+        return '/'.join(s.strip('/') for s in (('',) + path))
 
     def convert_path(self, swagger_path):
         if not os.path.exists(swagger_path):
