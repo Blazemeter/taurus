@@ -1,0 +1,5 @@
+execution:
+- executor: pytest
+  iterations: 10
+  scenario:
+    script: pytest-blazedemo.py

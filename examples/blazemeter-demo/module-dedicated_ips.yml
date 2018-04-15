@@ -1,0 +1,6 @@
+---
+modules:
+  blazemeter:
+    cloud-mode: taurusCloud
+    dedicated-ips: true
+    delayed-start: true

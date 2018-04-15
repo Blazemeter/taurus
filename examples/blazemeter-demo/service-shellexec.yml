@@ -1,0 +1,13 @@
+---
+services:
+- module: shellexec
+  prepare:  
+  - mkdir /tmp/test
+  startup:
+  - echo 1 > /tmp/test
+  - echo 2 > /tmp/test
+  shutdown:
+  - cat /tmp/test2 
+  post-process:
+  - rm /tmp/test1
+  - rm /tmp/test2
