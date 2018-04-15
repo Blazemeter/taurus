@@ -320,13 +320,13 @@ class SwaggerConverter(object):
         scenarios = OrderedDict()
         for path, path_obj in iteritems(paths):
             scenario_name = path
+            if base_path:
+                path = self.join_relative_url(base_path, path)
             self.log.info("Handling path %s", path)
             requests = []
             for method in Swagger.METHODS:
                 operation = getattr(path_obj, method)
                 if operation is not None:
-                    if base_path:
-                        path = self.join_relative_url(base_path, path)
                     self.log.debug("Handling method %s", method.upper())
                     request = self._extract_request(path, path_obj, method, operation)
                     requests.append(request)
