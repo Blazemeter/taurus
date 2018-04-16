@@ -1,0 +1,57 @@
+execution:
+- executor: jmeter
+  scenario: backend-load
+  concurrency:
+    local: 10
+    cloud: 1000
+  locations:
+    us-east-1: 1
+    us-west-1: 1
+
+- executor: selenium
+  scenario: frontend-measure
+  concurrency:
+    local: 1
+    cloud: 4
+  # default location would be used for this execution
+
+
+scenarios:
+  backend-load:
+    think-time: 500ms
+    requests:
+    - http://blazedemo.com
+
+  frontend-measure:
+    browser: Chrome
+    timeout: 60s
+    requests:
+    - label: open home and choose flights
+      url: http://blazedemo.com/
+      actions:
+      - waitByXPath(//input[@type='submit'])
+
+    - label: choose directions
+      actions:
+      - clickByXPath(//div[3]/form/select[1]//option[3])
+      - clickByXPath(//div[3]/form/select[2]//option[6])
+      - clickByXPath(//input[@type='submit'])
+      - waitByXPath(//input[@value='Choose This Flight'])
+
+    - label: choose flight
+      actions:
+      - clickByXPath(//input[@value='Choose This Flight'][1])
+
+    - label: fill form
+      actions:
+      - keysByID(inputName): FirstName LastName
+      - keysByID(address): 123 Beautiful st.
+      - keysByID(city): Santa Clara
+      - keysByName(state): CA
+      - keysByID(zipCode): 12345
+      - keysByID(creditCardNumber): 1234 5678 8765 4321
+      - keysByID(nameOnCard): FirstName LastName
+      - clickByCSS(body input.btn.btn-primary)
+      - waitByCSS(.hero-unit h1): visible
+      assert: # looks a bit unaligned
+      - Thank you for your purchase today!

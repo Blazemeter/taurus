@@ -1,0 +1,15 @@
+---
+modules:
+  cloud:
+    # token: ******:**************  # API id and API secret divided by :
+    timeout: 10s  # BlazeMeter API client timeout
+    browser-open: start  # auto-open browser on test start/end/both/none
+    check-interval: 5s  # interval which Taurus uses to query test status from BlazeMeter
+    public-report: false  # make test report public, disabled by default
+    send-report-email: false  # send report email once test is finished, disabled by default
+    # account: My Account  # numeric identifier can also be specified
+    workspace: Demo
+    project: Taurus tests
+    test: Example test
+    # report-name: full report    # name of report
+    # detach: true  # launch cloud test and immediately exit

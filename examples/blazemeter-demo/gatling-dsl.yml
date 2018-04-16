@@ -1,0 +1,39 @@
+---
+execution:
+- executor: gatling
+  scenario: simple
+  concurrency: 100
+  ramp-up: 1m
+  steps: 5 
+  hold-for: 5m
+  # iterations: 100
+  # throughput: 1000
+
+scenarios:
+  simple:
+    requests:
+    - http://blazedemo.com/
+  blazedemo:
+    default-address: blazedemo.com
+    headers:
+      X-Tracking: false
+      Accept: "*/*"
+    requests:
+    - url: /
+      headers:
+        Accept: text/html
+      assert:
+      - contains:
+        - ".+sometext.+"
+        subject: body
+        regexp: true
+        not: true
+    - url: /reserve.php
+      method: POST
+      body: 'Some Body Data'
+      think-time: 2s
+      assert:
+      - contains:
+        - 200
+        subject: http-code
+        not: false
