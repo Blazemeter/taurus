@@ -17,32 +17,32 @@ execution:
   scenario: /reports/1
 scenarios:
   /reports:
-    default-address: https://a.blazemeter.com/api/v4
+    default-address: https://a.blazemeter.com
     requests:
-    - url: /reports
+    - url: /api/v4/reports
   /reports/1:
-    default-address: https://a.blazemeter.com/api/v4
+    default-address: https://a.blazemeter.com
     requests:
-    - url: /reports/1
+    - url: /api/v4/reports/1
   /tests:
-    default-address: https://a.blazemeter.com/api/v4
+    default-address: https://a.blazemeter.com
     requests:
-    - url: /tests
+    - url: /api/v4/tests
     - method: POST
-      url: /tests
+      url: /api/v4/tests
   /tests/1:
-    default-address: https://a.blazemeter.com/api/v4
+    default-address: https://a.blazemeter.com
     requests:
-    - url: /tests/1
+    - url: /api/v4/tests/1
     - method: PUT
-      url: /tests/1
+      url: /api/v4/tests/1
     - method: DELETE
-      url: /tests/1
+      url: /api/v4/tests/1
     - method: PATCH
-      url: /tests/1
+      url: /api/v4/tests/1
   /tests/1/start:
-    default-address: https://a.blazemeter.com/api/v4
+    default-address: https://a.blazemeter.com
     requests:
     - method: POST
-      url: /tests/1/start
+      url: /api/v4/tests/1/start
 
