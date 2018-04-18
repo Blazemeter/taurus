@@ -127,7 +127,11 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(len(config["execution"]), 5)
 
         for scenario_name, scenario in iteritems(config["scenarios"]):
-            self.assertEqual(scenario["default-address"], "https://a.blazemeter.com/api/v4")
+            self.assertEqual(scenario["default-address"], "https://a.blazemeter.com")
+            scenario_requests = scenario["requests"]
+            self.assertGreater(len(scenario_requests), 0)
+            for scenario_request in scenario_requests:
+                self.assertRegexpMatches(scenario_request["url"], "\/api\/v4\/.*")
 
         self.assertEqual(len(config["scenarios"]["/reports"]["requests"]), 1)
         self.assertEqual(len(config["scenarios"]["/reports/1"]["requests"]), 1)

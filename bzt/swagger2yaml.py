@@ -317,11 +317,11 @@ class SwaggerConverter(object):
 
     def _extract_scenarios_from_paths(self, paths, default_address):
         base_path = self.swagger.get_base_path()
-        if base_path:
-            default_address += base_path
         scenarios = OrderedDict()
         for path, path_obj in iteritems(paths):
             scenario_name = path
+            if base_path:
+                path = self.join_base_with_endpoint_url(base_path, path)
             self.log.info("Handling path %s", path)
             requests = []
             for method in Swagger.METHODS:
@@ -339,6 +339,10 @@ class SwaggerConverter(object):
                 }
 
         return scenarios
+
+    @staticmethod
+    def join_base_with_endpoint_url(*path):
+        return '/'.join(s.strip('/') for s in (('',) + path))
 
     def convert_path(self, swagger_path):
         if not os.path.exists(swagger_path):
