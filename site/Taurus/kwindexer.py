@@ -58,8 +58,6 @@ for fname in os.listdir(docs_dir):
             keys[kwrd] = set()
         keys[kwrd].add(fname)
 
-print keys
-
 with open(sys.argv[2]) as fhr:
     items = []
     for kwrd in sorted(keys.keys()):
