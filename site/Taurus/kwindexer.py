@@ -6,8 +6,9 @@ import traceback
 
 import yaml
 
-IGNORED_KEYS = ('variables', 'headers', 'properties', 'locations')
-IGNORED_FIRST_LEVEL = ('scenarios', 'criteria')
+IGNORED_KEYS = (
+'variables', 'headers', 'properties', 'locations', 'set-prop', 'env', 'body', 'globals', 'set-variables', 'system-properties')
+IGNORED_FIRST_LEVEL = ('scenarios', 'criteria', 'cli-aliases', 'extract-regexp', 'extract-xpath', 'extract-jsonpath', 'extract-css-jquery')
 
 
 def get_keys(struct, ignore_first_level=False):
@@ -38,7 +39,7 @@ def index_file(fname):
                 keys.update(get_keys(struct))
         except BaseException:
             logging.warning("Failed to parse block: %s", traceback.format_exc())
-            logging.warning("The block was: %s", block)
+            logging.warning("The block was: %s\n%s", fname, block)
 
     logging.debug("%s: %s", fname, keys)
     return keys
@@ -46,18 +47,25 @@ def index_file(fname):
 
 logging.basicConfig(level=logging.DEBUG)
 docs_dir = sys.argv[1]
-keys = set()
+keys = {}
 for fname in os.listdir(docs_dir):
-    if not fname.endswith('.md'):
+    if not fname.endswith('.md') or fname == 'YAMLTutorial.md':
         logging.warning("Ignored path: %s", fname)
         continue
-    keys.update(index_file(os.path.join(docs_dir, fname)))
+    keywords = index_file(os.path.join(docs_dir, fname))
+    for kwrd in keywords:
+        if kwrd not in keys:
+            keys[kwrd] = set()
+        keys[kwrd].add(fname)
 
-print sorted(keys)
+print keys
 
 with open(sys.argv[2]) as fhr:
-    table = "\n".join(['* `%s` - %s' % (kwrd, '') for kwrd in sorted(keys)])
-    text = fhr.read() + table
+    items = []
+    for kwrd in sorted(keys.keys()):
+        pages = ', '.join(['[%s](%s)' % (x.replace('.md', ''), x.replace('.md', '')) for x in sorted(keys[kwrd])])
+        items.append('* `%s`: %s' % (kwrd, pages))
+    text = fhr.read() + "\n".join(items)
 
 with open(sys.argv[2], 'wt') as fhw:
     fhw.write(text)

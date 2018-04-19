@@ -12,7 +12,7 @@ To access BlazeMeter cloud, Taurus would require to have API key and secret set 
 ```yaml
 modules:
   cloud:
-    token: ******:**************  # API id and API secret divided by :
+    token: '******:**************'  # API id and API secret divided by :
     timeout: 10s  # BlazeMeter API client timeout
     browser-open: start  # auto-open browser on test start/end/both/none
     check-interval: 5s  # interval which Taurus uses to query test status from BlazeMeter
@@ -138,7 +138,7 @@ You can start Cloud test and stop Taurus without awaiting test results with the 
 ```yaml
 modules:
   cloud:
-    token: ******    
+    token: '******'    
     detach: true  # launch cloud test and immediately exit    
 ```
 or use appropriate alias for this: `bzt config.yml -cloud -detach`

@@ -121,7 +121,7 @@ scenarios:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
       - waitByCSS(body)
-    ...
+    # ...
 ```
 It is possible to use only the `remote` property, and in this way declare the intention to use the `browser: Remote`, allowing a more compact yaml
 
@@ -137,7 +137,7 @@ scenarios:
     - url: http://demo.blazemeter.com  # url to open, only get method is supported
       actions:  # holds list of actions to perform
       - waitByCSS(body)
-    ...
+    # ...
 ```
 
 ## Mobile Browsers
