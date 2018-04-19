@@ -682,12 +682,12 @@ scenarios:
     requests:
     - url: http://example.com/logout
       method: POST
-   shop-session:
-     requests:
-     - include-scenario: login
-     - http://example.com/shop/items/1
-     - http://example.com/checkout
-     - include-scenario: logout
+  shop-session:
+    requests:
+    - include-scenario: login
+    - http://example.com/shop/items/1
+    - http://example.com/checkout
+    - include-scenario: logout
 ```
 
 Taurus translates each `include-scenario` block to a JMeter's `Simple Controller` and puts all scenario-level

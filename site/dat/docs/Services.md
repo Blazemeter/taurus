@@ -8,8 +8,8 @@ Services are configured with `services` toplevel section. `services` section con
 services to run:
 ```yaml
 services:
-- module: shellexec:
-  post-process: ...
+- module: shellexec
+  post-process: ls /tmp
 - module: monitoring
   server-agent:
   - address: 127.0.0.1:4444

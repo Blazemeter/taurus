@@ -59,8 +59,8 @@ scenarios:
     keepalive: false
     requests:
     - url: http://blazedemo.com/
-        headers:
-          X-Answer: 42
+      headers:
+        X-Answer: 42
 ```
 
 
