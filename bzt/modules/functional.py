@@ -67,8 +67,10 @@ class FunctionalAggregator(Aggregator):
         self.process_readers(last_pass=True)
 
 
-FunctionalSample = namedtuple('Sample',
-                              'test_case,test_suite,status,start_time,duration,error_msg,error_trace,extras,subsamples')
+FunctionalSample = namedtuple(
+    'Sample',
+    'test_case,test_suite,status,start_time,duration,error_msg,error_trace,extras,subsamples,path'
+)
 # test_case: str - name of test case (method)
 # test_suite: str - name of test suite (class)
 # status: str - test status (PASSED / FAILED / BROKEN / SKIPPED)
@@ -78,6 +80,7 @@ FunctionalSample = namedtuple('Sample',
 # error_trace: str - error stacktrace
 # extras: dict - additional test info (description, file, full_name)
 # subsamples: list - list of subsamples
+# path: list - list of path components: [{"type": str, "value": str}]
 
 
 class ResultsTree(BetterDict):
@@ -226,7 +229,7 @@ class FuncSamplesReader(FunctionalResultsReader):
         return FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
                                 status=row["status"], start_time=row["start_time"], duration=row["duration"],
                                 error_msg=row["error_msg"], error_trace=row["error_trace"],
-                                extras=row.get("extras", {}), subsamples=subsamples)
+                                extras=row.get("extras", {}), subsamples=subsamples, path=row.get("path", []))
 
     def read(self, last_pass=False):
         for row in self.report_reader.read(last_pass):
