@@ -650,8 +650,10 @@ log.setLevel(logging.DEBUG)
         class_body.append(self.gen_empty_line_stmt())
         class_body.extend(self.gen_test_methods())
 
+        allowed_chars = string.digits + string.ascii_letters + '_'
+        class_name = 'Test' + ''.join(c for c in self.label.replace('-', '_') if c in allowed_chars)
         return ast.ClassDef(
-            name='TestAPI',
+            name=class_name,
             bases=[ast.Attribute(value=ast.Name(id='unittest', ctx=ast.Load()), attr='TestCase', ctx=ast.Load())],
             body=class_body,
             keywords=[],
