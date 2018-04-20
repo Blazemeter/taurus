@@ -1165,7 +1165,7 @@ class FuncJTLReader(FunctionalResultsReader):
         return FunctionalSample(test_case=label, test_suite=self.executor_label, status=status,
                                 start_time=tstmp, duration=duration,
                                 error_msg=error_msg, error_trace=error_trace,
-                                extras=sample_extras)
+                                extras=sample_extras, subsamples=[])
 
     def get_failure(self, element):
         """

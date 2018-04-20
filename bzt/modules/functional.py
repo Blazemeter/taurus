@@ -147,10 +147,11 @@ class TestReportReader(object):
         "extras",  # dict
         "subsamples",  # list of samples
         "assertions",  # list of dicts, {"name": str, "failed": bool, "error_msg": str, "error_trace": str}
-        "path"  # list of components, [{"value": "tests.modules.test_Something", "type": "package"},
-                #                      {"value": "TestAPI", "type": "test_suite"},
-                #                      {"value": "test_heartbeat", "type": "test_case"}
+        "path"  # list of components, [{"value": "test_Something", "type": "module"},
+                #                      {"value": "TestAPI", "type": "class"},
+                #                      {"value": "test_heartbeat", "type": "method"}
                 #                      {"value": "index page": "type": "transaction"}
+                #                      {"value": "http://blazedemo.com/": "type": "request"}
     ]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
