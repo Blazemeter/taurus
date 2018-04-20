@@ -1,0 +1,61 @@
+---
+execution:
+  scenario: Demo
+  concurrency: 50
+  ramp-up: 1m
+  hold-for: 5m
+scenarios:
+  Demo:
+    headers:
+      User-Agent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'
+      Upgrade-Insecure-Requests: '1'
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
+      Accept-Encoding: 'gzip, deflate'
+      Accept-Language: 'en-US,en;q=0.9,he;q=0.8'
+    requests:
+      - url: 'http://blazedemo.com/'
+        method: GET
+        label: 'Home'
+        headers: {}
+      - url: 'http://blazedemo.com/reserve.php'
+        method: POST
+        label: 'Reserve'
+        headers:
+          Origin: 'http://blazedemo.com'
+          Content-Type: application/x-www-form-urlencoded
+          Referer: 'http://blazedemo.com/'
+        body:
+          fromPort: Boston
+          toPort: London
+      - url: 'http://blazedemo.com/purchase.php'
+        method: POST
+        label: 'Purchase'
+        headers:
+          Origin: 'http://blazedemo.com'
+          Content-Type: application/x-www-form-urlencoded
+          Referer: 'http://blazedemo.com/reserve.php'
+        body:
+          airline: Virgin America
+          flight: '43'
+          fromPort: Boston
+          price: '472.56'
+          toPort: London
+      - url: 'http://blazedemo.com/confirmation.php'
+        method: POST
+        label: 'Confirmation'
+        headers:
+          Origin: 'http://blazedemo.com'
+          Content-Type: application/x-www-form-urlencoded
+          Referer: 'http://blazedemo.com/purchase.php'
+        body:
+          _token: ''
+          address: 3965 Freedom Cir
+          cardType: visa
+          city: Santa Clara
+          creditCardMonth: '11'
+          creditCardNumber: ''
+          creditCardYear: '2018'
+          inputName: Blaze
+          nameOnCard: ''
+          state: '2342'
+          zipCode: '2321'

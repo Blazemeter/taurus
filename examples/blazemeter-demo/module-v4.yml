@@ -1,0 +1,4 @@
+---
+modules:
+  blazemeter:
+    cloud-mode: taurusCloud

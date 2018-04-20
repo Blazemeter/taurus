@@ -307,8 +307,10 @@ import apiritif
 
             think_time = req.priority_option('think-time')
             if think_time is not None:
-                test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
-                test_method.append(self.gen_new_line(indent=0))
+                delay = dehumanize_time(think_time)
+                if delay > 0:
+                    test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
+                    test_method.append(self.gen_new_line(indent=0))
 
         test_class.append(test_method)
 

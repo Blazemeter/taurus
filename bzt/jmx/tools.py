@@ -710,7 +710,9 @@ class JMeterScenarioBuilder(JMX):
 
     def compile_transaction_block(self, block):
         elements = []
-        controller = JMX._get_transaction_controller(block.name, block.priority_option('force-parent-sample', True))
+        controller = JMX._get_transaction_controller(block.name,
+                                                     block.priority_option('force-parent-sample', True),
+                                                     block.include_timers)
         children = etree.Element("hashTree")
         for compiled in self.compile_requests(block.requests):
             for element in compiled:

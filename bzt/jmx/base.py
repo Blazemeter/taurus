@@ -172,6 +172,7 @@ class JMX(object):
             "time": True,
             "timestamp": True,
             "latency": True,
+            "connectTime": True,
             "success": True,
             "label": True,
             "code": True,
@@ -1127,10 +1128,11 @@ class JMX(object):
         return controller
 
     @staticmethod
-    def _get_transaction_controller(transaction_name, force_parent_sample=False):
+    def _get_transaction_controller(transaction_name, force_parent_sample=False, include_timers=False):
         controller = etree.Element("TransactionController", guiclass="TransactionControllerGui",
                                    testclass="TransactionController", testname=transaction_name)
         controller.append(JMX._bool_prop("TransactionController.parent", force_parent_sample))
+        controller.append(JMX._bool_prop("TransactionController.includeTimers", include_timers))
         return controller
 
     @staticmethod

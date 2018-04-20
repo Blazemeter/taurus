@@ -1,0 +1,6 @@
+---
+services:
+- module: passfail
+  criteria:
+  - avg-rt>10ms for 7s, stop as failed
+  - hits of reserve >10 for 13s, continue as failed

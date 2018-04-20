@@ -4,10 +4,8 @@
 
 [Configuration Syntax](ConfigSyntax)
 
+[Keywords Index](KeywordIndex.md)
+
 [Execution Settings](ExecutionSettings)
 
-[Reporting](Reporting)
-
 [Cloud Scaling](Cloud)
-
-[Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)

@@ -5,6 +5,7 @@ import os
 import shutil
 import sys
 import time
+from unittest import skipUnless
 
 import yaml
 
@@ -17,7 +18,7 @@ from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
 from tests.modules.jmeter import MockJMeterExecutor
 
@@ -2453,3 +2454,20 @@ class TestJMeterExecutor(BZTestCase):
         })
         load = self.obj.get_load()
         self.assertEqual(load.throughput, 0.0)
+
+    @skipUnless(is_windows(), "Windows-only")
+    def test_jmeter_4_windows_jmeter_home_var(self):
+        self.configure({
+            "execution": {
+                "iterations": 1,
+                "scenario": {
+                    "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"
+                }
+            }
+        })
+        self.obj.settings.merge({"version": "4.0"})
+        self.obj.prepare()
+        self.obj.execute = lambda *args, **kwargs: None
+        self.obj.startup()
+        jmeter_home = self.obj.env.get("JMETER_HOME")
+        self.assertEqual(jmeter_home, get_full_path("~/.bzt/jmeter-taurus/4.0"))

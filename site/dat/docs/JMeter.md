@@ -651,7 +651,8 @@ scenarios:
   transaction_example:
     requests:
     - transaction: Customer Session
-      force-parent-sample: False  # True by default
+      force-parent-sample: false  # True by default
+      include-timers: true  # add timers and pre-/post-processors execution time to samples
       do:
       - http://example.com/shop
       - http://example.com/shop/items/1
@@ -681,12 +682,12 @@ scenarios:
     requests:
     - url: http://example.com/logout
       method: POST
-   shop-session:
-     requests:
-     - include-scenario: login
-     - http://example.com/shop/items/1
-     - http://example.com/checkout
-     - include-scenario: logout
+  shop-session:
+    requests:
+    - include-scenario: login
+    - http://example.com/shop/items/1
+    - http://example.com/checkout
+    - include-scenario: logout
 ```
 
 Taurus translates each `include-scenario` block to a JMeter's `Simple Controller` and puts all scenario-level
@@ -786,6 +787,7 @@ modules:
       time: true
       timestamp: true
       latency: true
+      connectTime: true
       success: true
       label: true
       code: true

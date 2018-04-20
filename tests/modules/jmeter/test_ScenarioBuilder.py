@@ -139,3 +139,15 @@ class TestScenarioBuilder(BZTestCase):
                           'jsonpath': '$.num', 'scope': 'variable', 'concat': None}}
 
         self.assertEqual(target, cfg)
+
+    def test_transaction_include_timers(self):
+        self.configure(scenario={"requests": [{
+            "transaction": "tran",
+            "include-timers": True,
+            "do": ["http://blazedemo.com/"]}]
+        })
+        self.obj.save(self.jmx)
+        xml_tree = etree.fromstring(open(self.jmx, "rb").read())
+        include = xml_tree.find(".//TransactionController/boolProp[@name='TransactionController.includeTimers']")
+        self.assertIsNotNone(include)
+        self.assertEqual(include.text, 'true')

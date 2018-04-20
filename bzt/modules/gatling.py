@@ -313,7 +313,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 msg += "to run Gatling tool (%s)" % self.execution.get('scenario')
                 raise TaurusConfigError(msg)
 
-        self.dir_prefix = self.settings.get("dir_prefix", self.dir_prefix)
+        self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -380,9 +380,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return cmdline
 
     def __set_params_for_scala(self):
-        params = self.settings.get('properties')
-        load = self.get_load()
         scenario = self.get_scenario()
+        params = self.settings.get('properties')
+        params.merge(scenario.get("properties"))
+        load = self.get_load()
 
         timeout = scenario.get('timeout', None)
         if timeout is not None:

@@ -1,0 +1,26 @@
+---
+scenarios:
+  bdm:
+    script: JUnitTaurusDemo.java
+
+execution:
+  - executor: selenium
+    scenario: bdm
+    iterations: 10
+    locations:
+      eu-west-1: 1
+    locations-weighted: false
+
+services:
+- module: virtual-display
+  run-at: cloud
+  width: 1920
+  height: 1080
+- module: screenshoter
+  run-at: cloud
+
+modules:
+  selenium:
+    selenium-tools:
+      junit: 
+        compile-target-java: 1.8

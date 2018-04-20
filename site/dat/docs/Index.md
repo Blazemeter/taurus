@@ -41,6 +41,7 @@
  1. [JMX to YAML converter](JMX2YAML.md)
  1. [Swagger to YAML converter](Swagger.md)
  1. [SoapUI support](SoapUI.md)
+ 1. [Keywords Index](KeywordIndex.md)
  1. [Troubleshooting, Support and Feedback](https://groups.google.com/forum/#!forum/codename-taurus)
 
 ## Developer Documentation

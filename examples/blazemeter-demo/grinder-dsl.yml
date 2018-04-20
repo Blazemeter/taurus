@@ -1,0 +1,28 @@
+---
+execution:
+- executor: grinder
+  concurrency: 100
+  ramp-up: 1m
+  hold-for: 5m
+  # iterations: 5
+  scenario: simple
+
+scenarios:
+  simple:
+    default-address: http://blazedemo.com
+    think-time: 250ms
+    timeout: 30s
+    headers:
+      X-Api-Key: my-fresh-token
+    store-cookie: false
+    keepalive: true
+    requests:
+    - /
+    - url: /reserve.php
+      method: POST
+      think-time: 150ms
+    - url: /payment.php
+      method: POST
+      headers:
+        Content-Type: application/json
+      think-time: 50ms

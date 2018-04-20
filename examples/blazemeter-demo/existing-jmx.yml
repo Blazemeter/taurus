@@ -1,0 +1,16 @@
+execution:
+- concurrency: 100
+  ramp-up: 1m
+  hold-for: 5m
+  scenario: simple
+
+scenarios:
+  simple:
+    script: existing-BlazeDemo.jmx
+    properties:  
+      log_level.jmeter: DEBUG # add JMeter property
+    variables:
+      home_label_name: BlazeDemo.com
+    modifications:
+      disable:
+      - Constant Timer
