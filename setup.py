@@ -36,6 +36,8 @@ setup(
     name="bzt",
     version=bzt.VERSION,
     description='Taurus Tool for Continuous Testing',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     author='Andrey Pokhilko',
     author_email='andrey@blazemeter.com',
     url='http://gettaurus.org/',
