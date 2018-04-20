@@ -67,20 +67,36 @@ class FunctionalAggregator(Aggregator):
         self.process_readers(last_pass=True)
 
 
-FunctionalSample = namedtuple(
-    'Sample',
-    'test_case,test_suite,status,start_time,duration,error_msg,error_trace,extras,subsamples,path'
-)
-# test_case: str - name of test case (method)
-# test_suite: str - name of test suite (class)
-# status: str - test status (PASSED / FAILED / BROKEN / SKIPPED)
-# start_time: float - epoch
-# duration: float - test duration (in seconds)
-# error_msg: str - one-line error message
-# error_trace: str - error stacktrace
-# extras: dict - additional test info (description, file, full_name)
-# subsamples: list - list of subsamples
-# path: list - list of path components: [{"type": str, "value": str}]
+class FunctionalSample(object):
+    def __init__(
+        self, test_case, test_suite, status, start_time, duration, error_msg, error_trace,
+        extras=None, subsamples=None, path=None,
+    ):
+        # test_case: str - name of test case (method)
+        # test_suite: str - name of test suite (class)
+        # status: str - test status (PASSED / FAILED / BROKEN / SKIPPED)
+        # start_time: float - epoch
+        # duration: float - test duration (in seconds)
+        # error_msg: str - one-line error message
+        # error_trace: str - error stacktrace
+        # extras: dict - additional test info (description, file, full_name)
+        # subsamples: list - list of subsamples
+        # path: list - list of path components: [{"type": str, "value": str}]
+        self.test_case = test_case
+        self.test_suite = test_suite
+        self.status = status
+        self.start_time = start_time
+        self.duration = duration
+        self.error_msg = error_msg
+        self.error_trace = error_trace
+        self.extras = extras or {}
+        self.subsamples = subsamples or []
+        self.path = path or []
+
+    def get_type(self):
+        if self.path:
+            return self.path[-1]["type"]
+        return None
 
 
 class ResultsTree(BetterDict):
@@ -164,7 +180,7 @@ class TestReportReader(object):
             if "path" in row:
                 processed_path = self.process_path(row["path"])
                 if processed_path is not None:
-                   row["test_suite"], row["test_case"] = processed_path
+                    row["test_suite"], row["test_case"] = processed_path
             row["test_case"] = self.process_label(row["test_case"])
             yield row
 
