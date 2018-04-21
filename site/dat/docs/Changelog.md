@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.11.1<sup>next</sup>
+ - fix JMeter 4.0 crash on Windows when `JMETER_HOME` var is unset
+ - add `include-timers` block to JMeter transactions
+ - add `match-no` and `use-namespaces` support into `extract-xpath` for JMeter
+ - fix crash on Python 2 when adding custom fields to kpi.jtl
+ - write connect time to kpi.jtl by default in JMeter
+ - use `match-no=0` by default for JMeter JSONPath Extractor
+ 
+ - do not generate `sleep` when `think-time` is zero for Nose executor
+ - redo Apiritif code generation to split requests into separate methods
+ 
+ - use master terminate API to shutdown not yet started BlazeMeter tests
+ - fix the way default project is located for `cloud` tests
+ 
+ - fix default pip inside Docker image to be pip2
+ - fix `rt` field when exporting datapoints to JSON (convert msecs to secs)
+ - add [doc page](KeywordIndex.md) with all config keywords we can find across doc pages.
+ - support more error details internally, available for reporting services
+ - add `simple-output` and `smart-output` option for `Proxy2JMX` service
+
+ - fix lost `basePath` when using `--scenarios-from-paths` in swagger2yaml
+ - fix `swagger2yaml`: `default-address` should not contain endpoint path
+ - swaggerConverter.convert accepts fd
+ - remove `options` object from SwaggerConverter
+
+ - fix Gatling label groups read from simulation.log
+ - support specifying properties for Gatling on scenario level
+ - rename Gatling's `dir_prefix` option into `dir-prefix`
+
+
 ## 1.11.0<sup>26 mar 2018</sup>
  - don't force applying defaults into effective configuration (huge internal impact)
  - use HDR histograms from `hdrpy` package for storing response times

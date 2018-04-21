@@ -1,1 +1,0 @@
-Fix lost `basePath` when using `--scenarios-from-paths` in swagger2yaml
