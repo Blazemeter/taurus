@@ -508,6 +508,8 @@ class JMeterScenarioBuilder(JMX):
                                                      cfg.get('default', 'NOT_FOUND'),
                                                      cfg.get('validate-xml', False),
                                                      cfg.get('ignore-whitespace', True),
+                                                     cfg.get("match-no", "-1"),
+                                                     cfg.get('use-namespaces', False),
                                                      cfg.get('use-tolerant-parser', False)))
             children.append(etree.Element("hashTree"))
 
