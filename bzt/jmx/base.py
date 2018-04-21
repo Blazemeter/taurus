@@ -911,7 +911,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_xpath_extractor(varname, xpath, default, validate_xml, ignore_whitespace, use_tolerant_parser):
+    def _get_xpath_extractor(varname, xpath, default, validate_xml, ignore_whitespace, match_no, use_namespaces, use_tolerant_parser):
         """
         :type varname: str
         :type xpath: str
@@ -930,6 +930,8 @@ class JMX(object):
         element.append(JMX._string_prop("XPathExtractor.default", default))
         element.append(JMX._bool_prop("XPathExtractor.validate", validate_xml))
         element.append(JMX._bool_prop("XPathExtractor.whitespace", ignore_whitespace))
+        element.append(JMX._string_prop("XPathExtractor.matchNumber", match_no))
+        element.append(JMX._bool_prop("XPathExtractor.namespace", use_namespaces))
         element.append(JMX._bool_prop("XPathExtractor.tolerant", use_tolerant_parser))
         return element
 
