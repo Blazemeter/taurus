@@ -347,6 +347,8 @@ scenarios:
           default: NOT_FOUND
           validate-xml: false
           ignore-whitespace: true
+          match-no: -1
+          use-namespaces: false
           use-tolerant-parser: false
 ```
 
