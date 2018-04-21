@@ -23,7 +23,11 @@ import bzt
 
 
 # thanks to pip there are two :incompatible ways to parse requirements.txt
-if hasattr(pip, '__version__') and LooseVersion(str(pip.__version__)) >= LooseVersion('7.0'):
+if hasattr(pip, '__version__') and LooseVersion(str(pip.__version__)) >= LooseVersion('10.0.0'):
+    # new versions of pip require a session
+    from pip._internal import req, download
+    requirements = req.parse_requirements('requirements.txt', session=download.PipSession())
+elif hasattr(pip, '__version__') and LooseVersion(str(pip.__version__)) >= LooseVersion('7.0'):
     # new versions of pip require a session
     requirements = pip.req.parse_requirements('requirements.txt', session=pip.download.PipSession())
 else:
@@ -36,6 +40,8 @@ setup(
     name="bzt",
     version=bzt.VERSION,
     description='Taurus Tool for Continuous Testing',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     author='Andrey Pokhilko',
     author_email='andrey@blazemeter.com',
     url='http://gettaurus.org/',
