@@ -93,6 +93,18 @@ class FunctionalSample(object):
         self.subsamples = subsamples or []
         self.path = path or []
 
+    def get_fqn(self):
+        if self.path:
+            return '.'.join(comp["value"] for comp in self.path)
+        else:
+            return self.test_suite + '.' + self.test_case
+
+    def get_short_name(self):
+        if self.path:
+            return '.'.join(comp["value"] for comp in self.path[-2:])
+        else:
+            return self.test_suite + '.' + self.test_case
+
     def get_type(self):
         if self.path:
             return self.path[-1]["type"]
@@ -241,16 +253,23 @@ class FuncSamplesReader(FunctionalResultsReader):
                     fds.write(contents.encode('utf-8'))
                 sample_extras[file_field] = artifact
 
-    def _sample_from_row(self, row):
-        subsamples = [self._sample_from_row(item) for item in row.get("subsamples", [])]
-        return FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
-                                status=row["status"], start_time=row["start_time"], duration=row["duration"],
-                                error_msg=row["error_msg"], error_trace=row["error_trace"],
-                                extras=row.get("extras", {}), subsamples=subsamples, path=row.get("path", []))
+    def _samples_from_row(self, row):
+        result = []
+        subsamples = [sample for item in row.get("subsamples", []) for sample in self._samples_from_row(item)]
+        if any(subsample.get_type() == 'transaction' for subsample in subsamples):
+            result.extend([sub for sub in subsamples if sub.get_type() == 'transaction'])
+        else:
+            sample = FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
+                                      status=row["status"], start_time=row["start_time"], duration=row["duration"],
+                                      error_msg=row["error_msg"], error_trace=row["error_trace"],
+                                      extras=row.get("extras", {}), subsamples=subsamples, path=row.get("path", []))
+            result.append(sample)
+        return result
 
     def read(self, last_pass=False):
         for row in self.report_reader.read(last_pass):
             self.read_records += 1
-            sample = self._sample_from_row(row)
-            self._write_sample_data_to_artifacts(sample.extras)
-            yield sample
+            samples = self._samples_from_row(row)
+            for sample in samples:
+                self._write_sample_data_to_artifacts(sample.extras)
+                yield sample

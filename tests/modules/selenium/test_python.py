@@ -212,13 +212,16 @@ class TestNoseRunner(BZTestCase):
     def test_report_reading(self):
         reader = FuncSamplesReader(RESOURCES_DIR + "apiritif/transactions.ldjson", self.obj.engine, self.obj.log)
         items = list(reader.read(last_pass=True))
-        self.assertEqual(len(items), 6)
-        self.assertEqual(items[0].test_case, "test_1_single_request")
-        self.assertEqual(items[1].test_case, "test_2_multiple_requests")
-        self.assertEqual(items[2].test_case, "Transaction")
-        self.assertEqual(items[3].test_case, "Transaction")
-        self.assertEqual(items[4].test_case, "Transaction 1")
-        self.assertEqual(items[5].test_case, "Transaction 2")
+        self.assertEqual(9, len(items))
+        self.assertEqual(items[0].get_short_name(), 'TestRequests.test_1_single_request')
+        self.assertEqual(items[1].get_short_name(), 'TestRequests.test_2_multiple_requests')
+        self.assertEqual(items[2].get_short_name(), 'test_3_toplevel_transaction.Transaction')
+        self.assertEqual(items[3].get_short_name(), 'test_4_mixed_transaction.Transaction')
+        self.assertEqual(items[4].get_short_name(), 'test_5_multiple_transactions.Transaction 1')
+        self.assertEqual(items[5].get_short_name(), 'test_5_multiple_transactions.Transaction 2')
+        self.assertEqual(items[6].get_short_name(), 'test_6_transaction_obj.Label')
+        self.assertEqual(items[7].get_short_name(), 'test_7_transaction_fail.Label')
+        self.assertEqual(items[8].get_short_name(), 'test_8_transaction_attach.Label')
 
     def test_report_transactions_as_failed(self):
         self.configure({
@@ -1159,7 +1162,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         reader.register_file(RESOURCES_DIR + "apiritif/transactions.ldjson")
         reader.register_file(RESOURCES_DIR + "apiritif/transactions.ldjson")
         items = list(reader.read())
-        self.assertEqual(len(items), 12)
+        self.assertEqual(len(items), 18)
 
     def test_codegen_requests(self):
         self.configure({
