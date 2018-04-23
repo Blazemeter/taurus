@@ -67,17 +67,48 @@ class FunctionalAggregator(Aggregator):
         self.process_readers(last_pass=True)
 
 
-FunctionalSample = namedtuple('Sample',
-                              'test_case,test_suite,status,start_time,duration,error_msg,error_trace,extras,subsamples')
-# test_case: str - name of test case (method)
-# test_suite: str - name of test suite (class)
-# status: str - test status (PASSED / FAILED / BROKEN / SKIPPED)
-# start_time: float - epoch
-# duration: float - test duration (in seconds)
-# error_msg: str - one-line error message
-# error_trace: str - error stacktrace
-# extras: dict - additional test info (description, file, full_name)
-# subsamples: list - list of subsamples
+class FunctionalSample(object):
+    def __init__(
+        self, test_case, test_suite, status, start_time, duration, error_msg, error_trace,
+        extras=None, subsamples=None, path=None,
+    ):
+        # test_case: str - name of test case (method)
+        # test_suite: str - name of test suite (class)
+        # status: str - test status (PASSED / FAILED / BROKEN / SKIPPED)
+        # start_time: float - epoch
+        # duration: float - test duration (in seconds)
+        # error_msg: str - one-line error message
+        # error_trace: str - error stacktrace
+        # extras: dict - additional test info (description, file, full_name)
+        # subsamples: list - list of subsamples
+        # path: list - list of path components: [{"type": str, "value": str}]
+        self.test_case = test_case
+        self.test_suite = test_suite
+        self.status = status
+        self.start_time = start_time
+        self.duration = duration
+        self.error_msg = error_msg
+        self.error_trace = error_trace
+        self.extras = extras or {}
+        self.subsamples = subsamples or []
+        self.path = path or []
+
+    def get_fqn(self):
+        if self.path:
+            return '.'.join(comp["value"] for comp in self.path)
+        else:
+            return self.test_suite + '.' + self.test_case
+
+    def get_short_name(self):
+        if self.path:
+            return '.'.join(comp["value"] for comp in self.path[-2:])
+        else:
+            return self.test_suite + '.' + self.test_case
+
+    def get_type(self):
+        if self.path:
+            return self.path[-1]["type"]
+        return None
 
 
 class ResultsTree(BetterDict):
@@ -117,8 +148,23 @@ class FunctionalAggregatorListener(object):
 
 
 class TestReportReader(object):
-    REPORT_ITEM_KEYS = ["test_case", "test_suite", "status", "start_time", "duration",
-                        "error_msg", "error_trace", "extras", "subsamples"]
+    SAMPLE_KEYS = [
+        "test_case",  # str
+        "test_suite",  # str
+        "status",  # str
+        "start_time",  # float, epoch
+        "duration",  # float, in seconds
+        "error_msg",  # short string
+        "error_trace",  # multiline string
+        "extras",  # dict
+        "subsamples",  # list of samples
+        "assertions",  # list of dicts, {"name": str, "failed": bool, "error_msg": str, "error_trace": str}
+        "path"  # list of components, [{"value": "test_Something", "type": "module"},
+                #                      {"value": "TestAPI", "type": "class"},
+                #                      {"value": "test_heartbeat", "type": "method"}
+                #                      {"value": "index page": "type": "transaction"}
+                #                      {"value": "http://blazedemo.com/": "type": "request"}
+    ]
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
@@ -127,15 +173,27 @@ class TestReportReader(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.json_reader = LDJSONReader(filename, self.log)
 
-    def process_label(self, label):
+    @staticmethod
+    def process_label(label):
         if isinstance(label, string_types):
-            if label.startswith('test_') and label[5:10].isdigit():
-                return label[11:]
-
+            parts = label.split('_', 2)  # 'test_01_feeling_good'
+            if len(parts) == 3 and parts[0] == 'test' and parts[1].isdigit():
+                return parts[2]
         return label
+
+    def process_path(self, path):
+        if isinstance(path, dict):
+            test_suite = ".".join(part["value"] for part in path[:-1])
+            test_case = path[-1]["value"]
+            return test_suite, test_case
+        return None
 
     def read(self, last_pass=False):
         for row in self.json_reader.read(last_pass):
+            if "path" in row:
+                processed_path = self.process_path(row["path"])
+                if processed_path is not None:
+                    row["test_suite"], row["test_case"] = processed_path
             row["test_case"] = self.process_label(row["test_case"])
             yield row
 
@@ -195,16 +253,23 @@ class FuncSamplesReader(FunctionalResultsReader):
                     fds.write(contents.encode('utf-8'))
                 sample_extras[file_field] = artifact
 
-    def _sample_from_row(self, row):
-        subsamples = [self._sample_from_row(item) for item in row.get("subsamples", [])]
-        return FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
-                                status=row["status"], start_time=row["start_time"], duration=row["duration"],
-                                error_msg=row["error_msg"], error_trace=row["error_trace"],
-                                extras=row.get("extras", {}), subsamples=subsamples)
+    def _samples_from_row(self, row):
+        result = []
+        subsamples = [sample for item in row.get("subsamples", []) for sample in self._samples_from_row(item)]
+        if any(subsample.get_type() == 'transaction' for subsample in subsamples):
+            result.extend([sub for sub in subsamples if sub.get_type() == 'transaction'])
+        else:
+            sample = FunctionalSample(test_case=row["test_case"], test_suite=row["test_suite"],
+                                      status=row["status"], start_time=row["start_time"], duration=row["duration"],
+                                      error_msg=row["error_msg"], error_trace=row["error_trace"],
+                                      extras=row.get("extras", {}), subsamples=subsamples, path=row.get("path", []))
+            result.append(sample)
+        return result
 
     def read(self, last_pass=False):
         for row in self.report_reader.read(last_pass):
             self.read_records += 1
-            sample = self._sample_from_row(row)
-            self._write_sample_data_to_artifacts(sample.extras)
-            yield sample
+            samples = self._samples_from_row(row)
+            for sample in samples:
+                self._write_sample_data_to_artifacts(sample.extras)
+                yield sample

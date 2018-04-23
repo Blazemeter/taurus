@@ -21,7 +21,7 @@ target.allow_redirects(True)
 target.timeout(5.0)
 
 
-class TestAPI(unittest.TestCase):
+class TestWithExtractors(unittest.TestCase):
     
 
     def test_1_just_get(self):
