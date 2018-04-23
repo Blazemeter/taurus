@@ -49,6 +49,26 @@ class TestSwagger2YAML(BZTestCase):
         expected = yaml.load(open(RESOURCES_DIR + "/swagger/bzm-api-converted.yaml").read())
         self.assertEqual(actual, expected)
 
+    def test_convert_security_apikey(self):
+        self.maxDiff = None
+        source = RESOURCES_DIR + "/swagger/auth-key.json"
+        result = self._get_tmp()
+        options = FakeOptions(file_name=result)
+        process(options, [source])
+        actual = yaml.load(open(result).read())
+        expected = yaml.load(open(RESOURCES_DIR + "/swagger/auth-key-converted.yaml").read())
+        self.assertEqual(actual, expected)
+
+    def test_convert_security_basic(self):
+        self.maxDiff = None
+        source = RESOURCES_DIR + "/swagger/auth-basic.json"
+        result = self._get_tmp()
+        options = FakeOptions(file_name=result)
+        process(options, [source])
+        actual = yaml.load(open(result).read())
+        expected = yaml.load(open(RESOURCES_DIR + "/swagger/auth-basic-converted.yaml").read())
+        self.assertEqual(actual, expected)
+
 
 class TestSwaggerConverter(BZTestCase):
     def test_minimal_json(self):
@@ -138,4 +158,3 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(len(config["scenarios"]["/tests"]["requests"]), 2)
         self.assertEqual(len(config["scenarios"]["/tests/1"]["requests"]), 4)
         self.assertEqual(len(config["scenarios"]["/tests/1/start"]["requests"]), 1)
-

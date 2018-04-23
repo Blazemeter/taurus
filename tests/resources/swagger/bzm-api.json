@@ -16,9 +16,6 @@
   "consumes": [
     "application/json"
   ],
-  "security": [
-    {"myApiKey": []}
-  ],
   "paths": {
     "/tests": {
       "get": {

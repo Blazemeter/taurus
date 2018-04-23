@@ -51,7 +51,9 @@ class Swagger(object):
     Parameter = namedtuple("Parameter", "name, location, description, required, schema, type, format")
     Response = namedtuple("Response", "name, description, schema, headers")
     Path = namedtuple("Path", "ref, get, put, post, delete, options, head, patch, parameters")
-    Operation = namedtuple("Operation", "summary, description, operation_id, consumes, produces, parameters, responses")
+    Operation = namedtuple("Operation",
+                           "summary, description, operation_id, consumes, produces, parameters, responses, security")
+    SecurityDef = namedtuple("SecurityDef", "type, description, name, location")
 
     def __init__(self, parent_log=None):
         self.log = (parent_log or logging.getLogger('')).getChild(self.__class__.__name__)
@@ -61,6 +63,8 @@ class Swagger(object):
         self.parameters = {}
         self.responses = {}
         self.paths = OrderedDict()
+        self.security_defs = {}
+        self.default_security = []
 
     def _load(self, swagger_spec_fd):
         try:
@@ -89,6 +93,12 @@ class Swagger(object):
                                           required=param.get("required"), schema=param.get("schema"),
                                           type=param.get("type"), format=param.get("format"))
             self.parameters[name] = parameter
+
+        for name, secdef in iteritems(self.swagger.get("securityDefinitions", {})):
+            self.security_defs[name] = Swagger.SecurityDef(type=secdef.get('type'),
+                                                           description=secdef.get('description'),
+                                                           name=secdef.get('name'),
+                                                           location=secdef.get('in'))
 
     def _lookup_reference(self, reference):
         if not reference.startswith("#/"):
@@ -122,7 +132,8 @@ class Swagger(object):
 
         return Swagger.Operation(summary=operation.get("summary"), description=operation.get("description"),
                                  operation_id=operation.get("operationId"), consumes=operation.get("consumes"),
-                                 produces=operation.get("produces"), parameters=parameters, responses=responses)
+                                 produces=operation.get("produces"), parameters=parameters, responses=responses,
+                                 security=operation.get("security"))
 
     def _extract_paths(self):
         for name, path_item in iteritems(self.swagger["paths"]):
@@ -276,6 +287,7 @@ class SwaggerConverter(object):
             parameters.merge(path_obj.parameters)
         if operation.parameters:
             parameters.merge(operation.parameters)
+
         query_params, form_data, request_body, headers = self._handle_parameters(parameters)
 
         if headers:
@@ -340,6 +352,61 @@ class SwaggerConverter(object):
 
         return scenarios
 
+    def _insert_basic_auth(self, scenario):
+        headers = scenario.get('headers', {})
+        variables = scenario.get('variables', {})
+
+        headers['Authorization'] = 'Basic ${__base64Encode(${auth})}'
+        variables['auth'] = 'USER:PASSWORD'
+
+        scenario['headers'] = headers
+        scenario['variables'] = variables
+
+    def _insert_apikey_auth(self, scenario, sec_name, param_name, location):
+        if location == 'header':
+            header_name = sec_name
+            var_name = param_name
+
+            headers = scenario.get('headers', {})
+            variables = scenario.get('variables', {})
+
+            headers[header_name] = '${' + var_name + '}'
+            variables[var_name] = 'TOKEN'
+
+            scenario['headers'] = headers
+            scenario['variables'] = variables
+        elif location == 'query':
+            self.log.warning("`in: query` isn't yet supported for API key auth")  # TODO: fixme
+
+    def _add_toplevel_security(self, config, securities):
+        if not securities:
+            return
+
+        for security in securities:
+            for sec_name, params in iteritems(security):
+                secdef = self.swagger.security_defs.get(sec_name)
+                if not secdef:
+                    self.log.warning("Security definition %r not found, skipping" % sec_name)
+                    continue
+
+                if secdef.type == 'basic':
+                    for _, scenario in iteritems(config['scenarios']):
+                        self._insert_basic_auth(scenario)
+                elif secdef.type == 'apiKey':
+                    if secdef.name is None:
+                        self.log.warning("apiKey security definition has no header name, skipping")
+                        continue
+                    if secdef.location is None:
+                        self.log.warning("apiKey location (`in`) is not given, assuming header")
+                        secdef.location = 'header'
+
+                    for _, scenario in iteritems(config['scenarios']):
+                        self._insert_apikey_auth(scenario, secdef.name, sec_name, secdef.location)
+
+                elif secdef.type == 'oauth2':
+                    self.log.warning("OAuth2 security is not yet supported, skipping")
+                    continue
+
     @staticmethod
     def join_base_with_endpoint_url(*path):
         return '/'.join(s.strip('/') for s in (('',) + path))
@@ -359,11 +426,12 @@ class SwaggerConverter(object):
         paths = self.swagger.get_interpolated_paths()
         schemes = self.swagger.swagger.get("schemes", ["http"])
         scheme = schemes[0]
+        security = self.swagger.swagger.get("security", [])
         default_address = scheme + "://" + host
         scenario_name = title.replace(' ', '-')
         if self.scenarios_from_paths:
             scenarios = self._extract_scenarios_from_paths(paths, default_address)
-            return {
+            config = {
                 "scenarios": scenarios,
                 "execution": [{
                     "concurrency": 1,
@@ -373,7 +441,7 @@ class SwaggerConverter(object):
             }
         else:
             requests = self._extract_requests_from_paths(paths)
-            return {
+            config = {
                 "scenarios": {
                     scenario_name: {
                         "default-address": default_address,
@@ -386,6 +454,10 @@ class SwaggerConverter(object):
                     "hold-for": "1m",
                 }]
             }
+
+        self._add_toplevel_security(config, security)
+
+        return config
 
 
 class Swagger2YAML(object):
