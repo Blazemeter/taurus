@@ -46,6 +46,8 @@ from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, ge
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import str_representer, Environment
 
+TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
+
 SETTINGS = "settings"
 
 
@@ -361,6 +363,8 @@ class Engine(object):
         self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
+        self.env.set({TAURUS_ARTIFACTS_DIR: self.artifacts_dir})
+        os.environ[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
@@ -633,7 +637,7 @@ class Engine(object):
         Should be done after `configure`
         """
         envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
-        envs['TAURUS_ARTIFACTS_DIR'] = self.artifacts_dir
+        envs[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
 
         for varname in envs:
             if envs[varname]:
