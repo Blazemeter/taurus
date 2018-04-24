@@ -634,7 +634,11 @@ class Engine(object):
         """
         Should be done after `configure`
         """
-        envs = self.config.get(SETTINGS).get("env")
+        envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
+
+        for varname in envs:
+            envs[varname] = os.path.expandvars(envs[varname])
+
         for varname in envs:
             self.env.set({varname: envs[varname]})
             if envs[varname] is None:
@@ -644,10 +648,8 @@ class Engine(object):
                 os.environ[varname] = str(envs[varname])
 
         def apply_env(value, key, container):
-            if key in ("scenario", "scenarios"):  # might stop undesired branches
-                return True  # don't traverse into
             if isinstance(value, string_types):
-                container[key] = os.path.expandvars(value)
+                container[key] = custom_expandvars(value, envs)
 
         BetterDict.traverse(self.config, apply_env)
 
