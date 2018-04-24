@@ -231,4 +231,4 @@ included-configs:  # it must be a list of string values
 
 ## Environment Variable Access
 
-Any string value you access in configuration file is subject to environment variables evaluating. Any string pattern like `${varname}` or `$varname` will be replaced with corresponding environment variable value, if matches (see [expandvars](https://docs.python.org/2/library/os.path.html#os.path.expandvars) for reference). 
+Any string value you access in configuration file is subject to environment variables evaluating. Any string pattern like `${varname}` replaced with corresponding environment variable value. Only variables that are listed under `settings.env` are processed. 
