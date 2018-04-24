@@ -3,11 +3,14 @@ settings:
   env:
     BZT_ENV_TEST: success
     BZT_ENV_TEST_UNSET: null
+    PATH: ${PATH}
 
 scenarios:
   scen1:
     default-address: http://${BZT_ENV_TEST}/
     requests:
     - /${BZT_ENV_TEST}/
+    - /${PATH}/
+    - /${TEMP}/
 
 toplevel: ${BZT_ENV_TEST}/top

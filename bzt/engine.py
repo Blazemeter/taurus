@@ -637,7 +637,8 @@ class Engine(object):
         envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
 
         for varname in envs:
-            envs[varname] = os.path.expandvars(envs[varname])
+            if envs[varname]:
+                envs[varname] = os.path.expandvars(envs[varname])
 
         for varname in envs:
             self.env.set({varname: envs[varname]})
@@ -646,6 +647,18 @@ class Engine(object):
                     os.environ.pop(varname)
             else:
                 os.environ[varname] = str(envs[varname])
+
+        def custom_expandvars(value, mapping):
+            parts = re.split(r'(\$\{.*?\})', value)
+            value = ''
+            for item in parts:
+                if item and item.startswith("${") and item.endswith("}"):
+                    key = item[2:-1]
+                    if key in mapping:
+                        item = mapping[key]
+                if item is not None:
+                    value += str(item)
+            return value
 
         def apply_env(value, key, container):
             if isinstance(value, string_types):

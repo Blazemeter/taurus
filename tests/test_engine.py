@@ -132,9 +132,11 @@ class TestEngine(BZTestCase):
             self.obj.configure(configs)
             self.obj.eval_env()
             self.assertEquals("success/top", self.obj.config["toplevel"])
-            self.assertEquals("success/test/${BZT_ENV_TEST_UNSET}", self.obj.config["settings"]["artifacts-dir"])
-            self.assertEquals("http://${BZT_ENV_TEST}/", self.obj.config["scenarios"]["scen1"]["default-address"])
-            self.assertEquals("/${BZT_ENV_TEST}/", self.obj.config["scenarios"]["scen1"]["requests"][0])
+            self.assertEquals("success/test/", self.obj.config["settings"]["artifacts-dir"])
+            self.assertEquals("http://success/", self.obj.config["scenarios"]["scen1"]["default-address"])
+            self.assertEquals("/success/", self.obj.config["scenarios"]["scen1"]["requests"][0])
+            self.assertNotEquals("/${PATH}/", self.obj.config["scenarios"]["scen1"]["requests"][1])
+            self.assertEquals("/${TEMP}/", self.obj.config["scenarios"]["scen1"]["requests"][2])
         finally:
             if "BZT_ENV_TEST" in os.environ:
                 os.environ.pop("BZT_ENV_TEST")
