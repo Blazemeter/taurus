@@ -137,6 +137,7 @@ class TestEngine(BZTestCase):
             self.assertEquals("/success/", self.obj.config["scenarios"]["scen1"]["requests"][0])
             self.assertNotEquals("/${PATH}/", self.obj.config["scenarios"]["scen1"]["requests"][1])
             self.assertEquals("/${TEMP}/", self.obj.config["scenarios"]["scen1"]["requests"][2])
+            self.assertEquals("/" + self.obj.artifacts_dir + "/", self.obj.config["scenarios"]["scen1"]["requests"][3])
         finally:
             if "BZT_ENV_TEST" in os.environ:
                 os.environ.pop("BZT_ENV_TEST")
@@ -150,7 +151,6 @@ class TestEngine(BZTestCase):
         self.obj.configure(configs)
         self.obj.prepare()
         self.assertEquals(0, len(self.obj.services))
-
 
 
 class TestScenarioExecutor(BZTestCase):

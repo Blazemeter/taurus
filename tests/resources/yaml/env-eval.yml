@@ -12,5 +12,6 @@ scenarios:
     - /${BZT_ENV_TEST}/
     - /${PATH}/
     - /${TEMP}/
+    - /${TAURUS_ARTIFACTS_DIR}/
 
 toplevel: ${BZT_ENV_TEST}/top
