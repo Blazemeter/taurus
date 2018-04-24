@@ -252,6 +252,7 @@ class TestScenarioExecutor(BZTestCase):
 
     def test_passes_artifacts_dir(self):
         cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
+        self.engine.eval_env()
         self.engine.prepare()
         self.executor.env.set(self.engine.env.get())
         process = self.executor.execute(cmdline, shell=True)
