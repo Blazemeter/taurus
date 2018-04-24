@@ -361,8 +361,6 @@ class Engine(object):
         self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
-        self.env.set({"TAURUS_ARTIFACTS_DIR": self.artifacts_dir})
-        os.environ["TAURUS_ARTIFACTS_DIR"] = self.artifacts_dir
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
@@ -635,6 +633,7 @@ class Engine(object):
         Should be done after `configure`
         """
         envs = self.config.get(SETTINGS, force_set=True).get("env", force_set=True)
+        envs['TAURUS_ARTIFACTS_DIR'] = self.artifacts_dir
 
         for varname in envs:
             if envs[varname]:
@@ -648,21 +647,21 @@ class Engine(object):
             else:
                 os.environ[varname] = str(envs[varname])
 
-        def custom_expandvars(value, mapping):
+        def custom_expandvars(value):
             parts = re.split(r'(\$\{.*?\})', value)
             value = ''
             for item in parts:
                 if item and item.startswith("${") and item.endswith("}"):
                     key = item[2:-1]
-                    if key in mapping:
-                        item = mapping[key]
+                    if key in envs:
+                        item = envs[key]
                 if item is not None:
                     value += str(item)
             return value
 
         def apply_env(value, key, container):
             if isinstance(value, string_types):
-                container[key] = custom_expandvars(value, envs)
+                container[key] = custom_expandvars(value)
 
         BetterDict.traverse(self.config, apply_env)
 
