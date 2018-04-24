@@ -173,7 +173,7 @@ class Swagger(object):
     def get_paths(self):
         return self.paths
 
-    def get_interpolated_paths(self):
+    def get_interpolated_paths(self, interpolate_params=True):
         paths = OrderedDict()
         for path, path_obj in iteritems(self.paths):
             new_path = path
@@ -183,13 +183,19 @@ class Swagger(object):
                     for _, param in iteritems(operation.parameters):
                         if param.location == "path":
                             name = param.name
-                            value = str(Swagger.get_data_for_type(param.type, param.format))
+                            if interpolate_params:
+                                value = str(Swagger.get_data_for_type(param.type, param.format))
+                            else:
+                                value = "${" + param.name + "}"
                             pattern = "{" + name + "}"
                             new_path = new_path.replace(pattern, value)
             for _, param in iteritems(path_obj.parameters):
                 if param.location == "path":
                     name = param.name
-                    value = str(Swagger.get_data_for_type(param.type, param.format))
+                    if interpolate_params:
+                        value = str(Swagger.get_data_for_type(param.type, param.format))
+                    else:
+                        value = "${" + param.name + "}"
                     pattern = "{" + name + "}"
                     new_path = path.replace(pattern, value)
             path_obj = copy.deepcopy(path_obj)
@@ -232,11 +238,25 @@ class SwaggerConverter(object):
     def __init__(
             self,
             parent_log,
-            scenarios_from_paths=False
+            scenarios_from_paths=False,
+            interpolate_parameters=True,
     ):
         self.scenarios_from_paths = scenarios_from_paths
+        self.interpolate_parameters = interpolate_parameters
         self.log = parent_log.getChild(self.__class__.__name__)
         self.swagger = Swagger(self.log)
+
+    def _interpolate_parameter(self, param):
+        if self.interpolate_parameters:
+            return Swagger.get_data_for_type(param.type, param.format)
+        else:
+            return '${' + param.name + '}'
+
+    def _interpolate_body(self, param):
+        if self.interpolate_parameters:
+            return Swagger.get_data_for_schema(param.schema)
+        else:
+            return '${body}'
 
     def _handle_parameters(self, parameters):
         query_params = OrderedDict()
@@ -248,18 +268,18 @@ class SwaggerConverter(object):
                 continue
             if param.location == "header":
                 name = param.name
-                value = Swagger.get_data_for_type(param.type, param.format)
+                value = self._interpolate_parameter(param)
                 headers[name] = value
             elif param.location == "query":
                 name = param.name
-                value = Swagger.get_data_for_type(param.type, param.format)
+                value = self._interpolate_parameter(param)
                 query_params[name] = value
             elif param.location == "formData":
                 name = param.name
-                value = Swagger.get_data_for_type(param.type, param.format)
+                value = self._interpolate_parameter(param)
                 form_data[name] = value
             elif param.location == "body":
-                request_body = Swagger.get_data_for_schema(param.schema)
+                request_body = self._interpolate_body(param)
             elif param.location == "path":
                 pass  # path parameters are resolved at a different level
             else:
@@ -503,7 +523,7 @@ class SwaggerConverter(object):
         info = self.swagger.get_info()
         title = info.get("title", "Swagger")
         host = self.swagger.get_host()
-        paths = self.swagger.get_interpolated_paths()
+        paths = self.swagger.get_interpolated_paths(self.interpolate_parameters)
         schemes = self.swagger.swagger.get("schemes", ["http"])
         scheme = schemes[0]
         security = self.swagger.swagger.get("security", [])
@@ -555,7 +575,8 @@ class Swagger2YAML(object):
             raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
         self.converter = SwaggerConverter(
             self.log,
-            scenarios_from_paths=self.options.scenarios_from_paths
+            scenarios_from_paths=self.options.scenarios_from_paths,
+            interpolate_parameters=not self.options.disable_param_interpolation,
         )
         try:
             converted_config = self.converter.convert_path(self.file_to_convert)
@@ -595,6 +616,8 @@ def main():
     parser.add_option('-l', '--log', action='store', default=False, help="Log file location")
     parser.add_option('--scenarios-from-paths', action='store_true', default=False,
                       help="Generate one scenario per path (disabled by default)")
+    parser.add_option('--disable-param-interpolation', action='store_true', default=False,
+                      help="Do not plug concrete values for parameters")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
         try:
