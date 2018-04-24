@@ -49,7 +49,7 @@ class TestSwagger2YAML(BZTestCase):
         expected = yaml.load(open(RESOURCES_DIR + "/swagger/bzm-api-converted.yaml").read())
         self.assertEqual(actual, expected)
 
-    def test_convert_security_apikey(self):
+    def test_convert_security_apikey_header(self):
         self.maxDiff = None
         source = RESOURCES_DIR + "/swagger/auth-key.json"
         result = self._get_tmp()
@@ -67,6 +67,16 @@ class TestSwagger2YAML(BZTestCase):
         process(options, [source])
         actual = yaml.load(open(result).read())
         expected = yaml.load(open(RESOURCES_DIR + "/swagger/auth-basic-converted.yaml").read())
+        self.assertEqual(actual, expected)
+
+    def test_convert_security_apikey_query(self):
+        self.maxDiff = None
+        source = RESOURCES_DIR + "/swagger/auth-key-as-param.json"
+        result = self._get_tmp()
+        options = FakeOptions(file_name=result)
+        process(options, [source])
+        actual = yaml.load(open(result).read())
+        expected = yaml.load(open(RESOURCES_DIR + "/swagger/auth-key-as-param-converted.yaml").read())
         self.assertEqual(actual, expected)
 
 

@@ -310,9 +310,16 @@ class SwaggerConverter(object):
 
         return request
 
-    def _extract_requests_from_paths(self, paths):
+    def _extract_requests_from_paths(self, paths, scenario_name, default_address, global_security):
         base_path = self.swagger.get_base_path()
         requests = []
+        scenario = {
+            "default-address": default_address,
+        }
+
+        if global_security:
+            self._add_global_security(scenario, global_security)
+
         for path, path_obj in iteritems(paths):
             self.log.debug("Handling path %s", path)
             for method in Swagger.METHODS:
@@ -323,15 +330,28 @@ class SwaggerConverter(object):
                     # TODO: Swagger responses -> JMeter assertions?
 
                     if request is not None:
+                        if operation.security:
+                            self._add_local_security(request, operation.security, scenario)
+                        elif global_security:
+                            self._add_local_security(request, global_security, scenario, disable_basic=True)
+
                         requests.append(request)
 
-        return requests
+        scenario["requests"] = requests
 
-    def _extract_scenarios_from_paths(self, paths, default_address):
+        return {
+            scenario_name: scenario
+        }
+
+    def _extract_scenarios_from_paths(self, paths, default_address, global_security):
         base_path = self.swagger.get_base_path()
         scenarios = OrderedDict()
         for path, path_obj in iteritems(paths):
             scenario_name = path
+            scenario = {
+                "default-address": default_address,
+            }
+
             if base_path:
                 path = self.join_base_with_endpoint_url(base_path, path)
             self.log.info("Handling path %s", path)
@@ -341,18 +361,28 @@ class SwaggerConverter(object):
                 if operation is not None:
                     self.log.debug("Handling method %s", method.upper())
                     request = self._extract_request(path, path_obj, method, operation)
+
+                    if operation.security:
+                        self._add_local_security(request, operation.security, scenario)
+                    elif global_security:
+                        self._add_local_security(request, global_security, scenario)
+
                     requests.append(request)
                     # TODO: Swagger responses -> assertions?
 
-            if requests:
-                scenarios[scenario_name] = {
-                    "default-address": default_address,
-                    "requests": requests,
-                }
+            if not requests:
+                continue
+
+            scenario["requests"] = requests
+
+            if global_security:
+                self._add_global_security(scenario, global_security)
+
+            scenarios[scenario_name] = scenario
 
         return scenarios
 
-    def _insert_basic_auth(self, scenario):
+    def _insert_basic_auth_into_scenario(self, scenario):
         headers = scenario.get('headers', {})
         variables = scenario.get('variables', {})
 
@@ -362,7 +392,18 @@ class SwaggerConverter(object):
         scenario['headers'] = headers
         scenario['variables'] = variables
 
-    def _insert_apikey_auth(self, scenario, sec_name, param_name, location):
+    def _insert_basic_auth_into_request(self, request, scenario):
+        headers = request.get('headers', {})
+        variables = scenario.get('variables', {})
+
+        headers['Authorization'] = 'Basic ${__base64Encode(${auth})}'
+        variables['auth'] = 'USER:PASSWORD'
+
+        request['headers'] = headers
+        scenario['variables'] = variables
+
+    def _insert_apikey_auth_into_scenario(self, scenario, sec_name, param_name, location):
+        # location == 'query' is deliberately ignored
         if location == 'header':
             header_name = sec_name
             var_name = param_name
@@ -375,37 +416,76 @@ class SwaggerConverter(object):
 
             scenario['headers'] = headers
             scenario['variables'] = variables
-        elif location == 'query':
-            self.log.warning("`in: query` isn't yet supported for API key auth")  # TODO: fixme
 
-    def _add_toplevel_security(self, config, securities):
-        if not securities:
+    def _insert_apikey_auth_into_request(self, request, scenario, sec_name, param_name, location):
+        # location == 'header' is deliberately ignored
+        if location == 'query':
+            query_name = sec_name
+            var_name = param_name
+
+            body = request.get('body', {})
+            variables = scenario.get('variables', {})
+
+            body[query_name] = '${' + var_name + '}'
+            variables[var_name] = 'TOKEN'
+
+            request['body'] = body
+            scenario['variables'] = variables
+
+    def _add_global_security(self, scenario, global_security):
+        if not global_security:
             return
 
-        for security in securities:
-            for sec_name, params in iteritems(security):
-                secdef = self.swagger.security_defs.get(sec_name)
-                if not secdef:
-                    self.log.warning("Security definition %r not found, skipping" % sec_name)
+        security = global_security[0]
+        for sec_name, _ in iteritems(security):
+            secdef = self.swagger.security_defs.get(sec_name)
+            if not secdef:
+                self.log.warning("Security definition %r not found, skipping" % sec_name)
+                continue
+
+            if secdef.type == 'basic':
+                self._insert_basic_auth_into_scenario(scenario)
+            elif secdef.type == 'apiKey':
+                if secdef.name is None:
+                    self.log.warning("apiKey security definition has no header name, skipping")
                     continue
+                if secdef.location is None:
+                    self.log.warning("apiKey location (`in`) is not given, assuming header")
+                    secdef.location = 'header'
 
-                if secdef.type == 'basic':
-                    for _, scenario in iteritems(config['scenarios']):
-                        self._insert_basic_auth(scenario)
-                elif secdef.type == 'apiKey':
-                    if secdef.name is None:
-                        self.log.warning("apiKey security definition has no header name, skipping")
-                        continue
-                    if secdef.location is None:
-                        self.log.warning("apiKey location (`in`) is not given, assuming header")
-                        secdef.location = 'header'
+                self._insert_apikey_auth_into_scenario(scenario, secdef.name, sec_name, secdef.location)
 
-                    for _, scenario in iteritems(config['scenarios']):
-                        self._insert_apikey_auth(scenario, secdef.name, sec_name, secdef.location)
+            elif secdef.type == 'oauth2':
+                self.log.warning("OAuth2 security is not yet supported, skipping")
+                continue
 
-                elif secdef.type == 'oauth2':
-                    self.log.warning("OAuth2 security is not yet supported, skipping")
+    def _add_local_security(self, request, securities, scenario, disable_basic=False):
+        if not securities:
+            return  # TODO: disable global security for request
+
+        security = securities[0]
+        for sec_name, _ in iteritems(security):
+            secdef = self.swagger.security_defs.get(sec_name)
+            if not secdef:
+                self.log.warning("Security definition %r not found, skipping" % sec_name)
+                continue
+
+            if secdef.type == 'basic':
+                if not disable_basic:
+                    self._insert_basic_auth_into_request(request, scenario)
+            elif secdef.type == 'apiKey':
+                if secdef.name is None:
+                    self.log.warning("apiKey security definition has no header name, skipping")
                     continue
+                if secdef.location is None:
+                    self.log.warning("apiKey location (`in`) is not given, assuming header")
+                    secdef.location = 'header'
+
+                self._insert_apikey_auth_into_request(request, scenario, secdef.name, sec_name, secdef.location)
+
+            elif secdef.type == 'oauth2':
+                self.log.warning("OAuth2 security is not yet supported, skipping")
+                continue
 
     @staticmethod
     def join_base_with_endpoint_url(*path):
@@ -430,7 +510,7 @@ class SwaggerConverter(object):
         default_address = scheme + "://" + host
         scenario_name = title.replace(' ', '-')
         if self.scenarios_from_paths:
-            scenarios = self._extract_scenarios_from_paths(paths, default_address)
+            scenarios = self._extract_scenarios_from_paths(paths, default_address, security)
             config = {
                 "scenarios": scenarios,
                 "execution": [{
@@ -440,22 +520,15 @@ class SwaggerConverter(object):
                 } for scenario_name, scenario in iteritems(scenarios)]
             }
         else:
-            requests = self._extract_requests_from_paths(paths)
+            scenarios = self._extract_requests_from_paths(paths, scenario_name, default_address, security)
             config = {
-                "scenarios": {
-                    scenario_name: {
-                        "default-address": default_address,
-                        "requests": requests
-                    }
-                },
+                "scenarios": scenarios,
                 "execution": [{
                     "concurrency": 1,
                     "scenario": scenario_name,
                     "hold-for": "1m",
                 }]
             }
-
-        self._add_toplevel_security(config, security)
 
         return config
 

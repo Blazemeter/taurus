@@ -1,0 +1,550 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "BZM API",
+    "description": "BZM API",
+    "version": "0.0.1"
+  },
+  "host": "a.blazemeter.com",
+  "schemes": [
+    "https"
+  ],
+  "basePath": "/api/v4",
+  "produces": [
+    "application/json"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "security": [
+    {"myApiKey": []}
+  ],
+  "paths": {
+    "/tests": {
+      "get": {
+        "tags": [
+          "test"
+        ],
+        "summary": "list Tests",
+        "parameters": [
+          {
+            "$ref": "#/parameters/querySkip"
+          },
+          {
+            "$ref": "#/parameters/queryLimit"
+          },
+          {
+            "$ref": "#/parameters/querySort"
+          },
+          {
+            "$ref": "#/parameters/filterByProjectId"
+          },
+          {
+            "$ref": "#/parameters/filterByWorkspaceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/ApiResponseResultPaginated"
+                },
+                {
+                  "properties": {
+                    "result": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/definitions/Test"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "schema": {
+              "$ref": "#/definitions/ApiResponseError"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "TestPlugins": {
+      "type": "object",
+      "properties": {
+        "modStatus": {
+          "type": "string"
+        }
+      }
+    },
+    "Configuration": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "string"
+        },
+        "consoleSize": {
+          "type": "string"
+        },
+        "enginesSize": {
+          "type": "string"
+        },
+        "calculatedDuration": {
+          "type": "integer"
+        },
+        "indexOffset": {
+          "type": "integer"
+        },
+        "collectionIndexOffset": {
+          "type": "integer"
+        },
+        "serversCount": {
+          "type": "integer"
+        },
+        "concurrency": {
+          "type": "integer"
+        },
+        "delayedStart": {
+          "type": "boolean"
+        },
+        "dedicatedIpsEnabled": {
+          "type": "boolean"
+        },
+        "javaVersion": {
+          "type": "string"
+        },
+        "canControlRampup": {
+          "type": "boolean"
+        },
+        "targetThreads": {
+          "type": "integer"
+        },
+        "overrideLocationId": {
+          "type": "string"
+        },
+        "isSandbox": {
+          "type": "boolean"
+        },
+        "execution": {
+          "type": "string"
+        },
+        "enableJMeterProperties": {
+          "type": "boolean"
+        },
+        "plugins": {
+          "$ref": "#/definitions/TestPlugins"
+        }
+      }
+    },
+    "Test": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "draftId": {
+          "type": "string"
+        },
+        "isNewTest": {
+          "type": "boolean"
+        },
+        "lastRunTime": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "oldVersionId": {
+          "type": "integer"
+        },
+        "userId": {
+          "type": "integer"
+        },
+        "createdUsing": {
+          "type": "string"
+        },
+        "project": {
+          "$ref": "#/definitions/Project"
+        },
+        "lastUpdatedBy": {
+          "$ref": "#/definitions/UserInternal"
+        },
+        "configuration": {
+          "$ref": "#/definitions/Configuration"
+        }
+      }
+    },
+    "UserInternal": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "email": {
+          "type": "string"
+        },
+        "access": {
+          "type": "integer"
+        },
+        "login": {
+          "type": "integer"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "company": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "integer"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "apiKey": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "herokuAppName": {
+          "type": "string"
+        },
+        "maxApiKeyExpiry": {
+          "type": "integer"
+        },
+        "personalWorkspace": {
+          "$ref": "#/definitions/Workspace"
+        },
+        "defaultProject": {
+          "$ref": "#/definitions/Project"
+        }
+      }
+    },
+    "Project": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "workspace": {
+          "$ref": "#/definitions/Workspace"
+        }
+      }
+    },
+    "Workspace": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "integer"
+        },
+        "description": {
+          "type": "string"
+        },
+        "salesForceId": {
+          "type": "string"
+        },
+        "dedicatedIpsEnabled": {
+          "type": "boolean"
+        },
+        "privateLocationsEnabled": {
+          "type": "boolean"
+        },
+        "performanceLabsEnabled": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Member"
+          }
+        },
+        "accountId": {
+          "type": "string"
+        },
+        "accountName": {
+          "type": "string"
+        }
+      }
+    },
+    "Member": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "user": {
+          "$ref": "#/definitions/UserInternal"
+        }
+      }
+    },
+    "ApiResponse": {
+      "type": "object",
+      "required": [
+        "api_version"
+      ],
+      "properties": {
+        "api_version": {
+          "type": "integer"
+        }
+      }
+    },
+    "ApiResponseResult": {
+      "type": "object",
+      "required": [
+        "result"
+      ],
+      "allOf": [
+        {
+          "$ref": "#/definitions/ApiResponse"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "result": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "ApiResponseResultPaginated": {
+      "type": "object",
+      "required": [
+        "total",
+        "limit",
+        "skip"
+      ],
+      "allOf": [
+        {
+          "$ref": "#/definitions/ApiResponseResult"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "total": {
+              "type": "integer"
+            },
+            "limit": {
+              "type": "integer"
+            },
+            "skip": {
+              "type": "integer"
+            }
+          }
+        }
+      ]
+    },
+    "ApiResponseError": {
+      "type": "object",
+      "required": [
+        "error"
+      ],
+      "allOf": [
+        {
+          "$ref": "#/definitions/ApiResponse"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "integer"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Report": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "integer"
+        },
+        "publicToken": {
+          "type": "string"
+        },
+        "ended": {
+          "type": "integer"
+        },
+        "lastUpdate": {
+          "type": "integer"
+        },
+        "delayedStartReady": {
+          "type": "boolean"
+        },
+        "runnerUserId": {
+          "type": "integer"
+        },
+        "passed": {
+          "type": "boolean"
+        },
+        "canControlRampup": {
+          "type": "boolean"
+        },
+        "targetThreads": {
+          "type": "integer"
+        },
+        "parallelTestsInWorkspace": {
+          "type": "integer"
+        },
+        "parallelTestsInAccount": {
+          "type": "integer"
+        },
+        "isSandbox": {
+          "type": "boolean"
+        },
+        "isPrivateData": {
+          "type": "boolean"
+        },
+        "executionMode": {
+          "type": "string"
+        },
+        "test": {
+          "$ref": "#/definitions/Test"
+        },
+        "project": {
+          "$ref": "#/definitions/Project"
+        }
+      }
+    }
+  },
+  "parameters": {
+    "querySkip": {
+      "name": "skip",
+      "in": "query",
+      "description": "number of items to skip",
+      "required": false,
+      "type": "integer",
+      "format": "int32"
+    },
+    "queryLimit": {
+      "name": "limit",
+      "in": "query",
+      "description": "limit quota of items",
+      "required": false,
+      "type": "integer",
+      "format": "int32"
+    },
+    "querySort": {
+      "name": "sort",
+      "in": "query",
+      "description": "sort items by fields (array of fields)",
+      "required": false,
+      "type": "string"
+    },
+    "querySearch": {
+      "name": "search",
+      "in": "query",
+      "description": "items to show by fields (array of fields)",
+      "required": false,
+      "type": "string"
+    },
+    "filterByProjectId": {
+      "name": "projectId",
+      "description": "filter by Project ID",
+      "in": "query",
+      "required": false,
+      "type": "integer",
+      "format": "int32"
+    },
+    "filterByWorkspaceId": {
+      "name": "workspaceId",
+      "description": "filter by Workspace ID",
+      "in": "query",
+      "required": false,
+      "type": "integer",
+      "format": "int32"
+    },
+    "pathTestId": {
+      "name": "testId",
+      "in": "path",
+      "required": true,
+      "type": "integer",
+      "format": "int32"
+    },
+    "pathReportId": {
+      "name": "reportId",
+      "in": "path",
+      "required": true,
+      "type": "integer",
+      "format": "int32"
+    },
+    "queryDelayedStart": {
+      "name": "delayedStart",
+      "description": "start new report with delay",
+      "in": "query",
+      "required": false,
+      "type": "boolean"
+    },
+    "queryFunctionalExecution": {
+      "name": "functionalExecution",
+      "description": "start new report as functional",
+      "in": "query",
+      "required": false,
+      "type": "boolean",
+      "default": true
+    },
+    "filterByTestId": {
+      "name": "testId",
+      "description": "filter by test ID",
+      "in": "query",
+      "required": false,
+      "type": "integer",
+      "format": "int32"
+    }
+  },
+  "securityDefinitions": {
+    "myApiKey": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "api_key"
+    }
+  }
+}
