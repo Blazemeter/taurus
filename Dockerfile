@@ -47,7 +47,7 @@ RUN apt-get -y update \
     mono-complete nuget \
     net-tools \
   && apt-get -y install --no-install-recommends python-dev python-pip \
-  && pip install --upgrade pip setuptools wheel \
+  && python2 -m pip install --upgrade pip setuptools wheel \
   && apt-get -y install --no-install-recommends python3-dev python3-pip \
   && python3 -m pip install --upgrade setuptools pip wheel \
   && ln -sf /usr/bin/pip2 /usr/local/bin/pip \
