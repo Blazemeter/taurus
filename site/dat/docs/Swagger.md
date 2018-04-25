@@ -16,7 +16,7 @@ Supported command-line options:
   
 Usage:
   - `swagger2yaml swagger.json` - convert Swagger spec
-  - `swagger2yaml swagger.json -o swagger-converted.yml --scenarios-from-paths` - convert Swagger spec, extracting all HTTP requests, and save it to a specific file
+  - `swagger2yaml swagger.json -o swagger-converted.yml --scenarios-from-paths` - convert Swagger spec, creating a scenario per path, and save it to a specific file
 
 Notes about Swagger to YAML translation process:
 1. The whole spec is converted into single scenario

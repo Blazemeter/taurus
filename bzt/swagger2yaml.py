@@ -416,14 +416,16 @@ class SwaggerConverter(object):
             }
 
             if base_path:
-                path = self.join_base_with_endpoint_url("${basePath}", path)
+                route = self.join_base_with_endpoint_url("${basePath}", path)
+            else:
+                route = path
 
             requests = []
             for method in Swagger.METHODS:
                 operation = getattr(path_obj, method)
                 if operation is not None:
                     self.log.debug("Handling method %s", method.upper())
-                    request = self._extract_request(path, path_obj, method, operation)
+                    request = self._extract_request(route, path_obj, method, operation)
 
                     if operation.security:
                         self._add_local_security(request, operation.security, scenario)
