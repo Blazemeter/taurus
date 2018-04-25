@@ -1,4 +1,4 @@
-apiritif>=0.6.1
+apiritif>=0.6.2
 astunparse
 colorama; sys_platform == 'windows'
 colorlog
