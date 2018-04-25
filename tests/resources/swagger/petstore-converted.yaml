@@ -9,54 +9,55 @@ scenarios:
     requests:
     - label: updatePet
       method: PUT
-      url: /v2/pet
+      url: /${basePath}/pet
     - label: addPet
       method: POST
-      url: /v2/pet
+      url: /${basePath}/pet
     - label: findPetsByStatus
-      url: /v2/pet/findByStatus?status=%5B1%2C+2%2C+3%5D
+      url: /${basePath}/pet/findByStatus?status=%5B1%2C+2%2C+3%5D
     - label: findPetsByTags
-      url: /v2/pet/findByTags?tags=%5B1%2C+2%2C+3%5D
+      url: /${basePath}/pet/findByTags?tags=%5B1%2C+2%2C+3%5D
     - label: getPetById
-      url: /v2/pet/1
+      url: /${basePath}/pet/1
     - label: updatePetWithForm
       method: POST
-      url: /v2/pet/1
+      url: /${basePath}/pet/1
     - label: deletePet
       method: DELETE
-      url: /v2/pet/1
+      url: /${basePath}/pet/1
     - label: uploadFile
       method: POST
-      url: /v2/pet/1/uploadImage
+      url: /${basePath}/pet/1/uploadImage
     - label: getInventory
-      url: /v2/store/inventory
+      url: /${basePath}/store/inventory
     - label: placeOrder
       method: POST
-      url: /v2/store/order
+      url: /${basePath}/store/order
     - label: getOrderById
-      url: /v2/store/order/1
+      url: /${basePath}/store/order/1
     - label: deleteOrder
       method: DELETE
-      url: /v2/store/order/1
+      url: /${basePath}/store/order/1
     - label: createUser
       method: POST
-      url: /v2/user
+      url: /${basePath}/user
     - label: createUsersWithArrayInput
       method: POST
-      url: /v2/user/createWithArray
+      url: /${basePath}/user/createWithArray
     - label: createUsersWithListInput
       method: POST
-      url: /v2/user/createWithList
+      url: /${basePath}/user/createWithList
     - label: loginUser
-      url: /v2/user/login?username=some_string
+      url: /${basePath}/user/login?username=some_string
     - label: logoutUser
-      url: /v2/user/logout
+      url: /${basePath}/user/logout
     - label: getUserByName
-      url: /v2/user/some_string
+      url: /${basePath}/user/some_string
     - label: updateUser
       method: PUT
-      url: /v2/user/some_string
+      url: /${basePath}/user/some_string
     - label: deleteUser
       method: DELETE
-      url: /v2/user/some_string
-
+      url: /${basePath}/user/some_string
+    variables:
+      basePath: /v2

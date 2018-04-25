@@ -143,10 +143,10 @@ class TestSwaggerConverter(BZTestCase):
         scenario = config["scenarios"].get("Swagger-Petstore")
         self.assertEqual(6, len(scenario["requests"]))
         requests = scenario["requests"]
-        self.assertEqual(requests[0]["url"], "/v1/pets")
-        self.assertEqual(requests[1]["url"], "/v1/pets")
-        self.assertEqual(requests[2]["url"], "/v1/pets/some_string")
-        self.assertEqual(requests[3]["url"], "/v1/owners?limit=1")
+        self.assertEqual(requests[0]["url"], "/${basePath}/pets")
+        self.assertEqual(requests[1]["url"], "/${basePath}/pets")
+        self.assertEqual(requests[2]["url"], "/${basePath}/pets/some_string")
+        self.assertEqual(requests[3]["url"], "/${basePath}/owners?limit=1")
 
     def test_headers(self):
         obj = SwaggerConverter(logging.getLogger(''))
@@ -186,7 +186,7 @@ class TestSwaggerConverter(BZTestCase):
             scenario_requests = scenario["requests"]
             self.assertGreater(len(scenario_requests), 0)
             for scenario_request in scenario_requests:
-                self.assertRegexpMatches(scenario_request["url"], "\/api\/v4\/.*")
+                self.assertTrue(scenario_request["url"].startswith("/${basePath}/"))
 
         self.assertEqual(len(config["scenarios"]["/reports"]["requests"]), 1)
         self.assertEqual(len(config["scenarios"]["/reports/1"]["requests"]), 1)

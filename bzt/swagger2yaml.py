@@ -349,7 +349,10 @@ class SwaggerConverter(object):
         requests = []
         scenario = {
             "default-address": default_address,
+            "variables": {},
         }
+        if base_path:
+            scenario["variables"]["basePath"] = base_path
 
         if global_security:
             self._add_global_security(scenario, global_security)
@@ -360,7 +363,11 @@ class SwaggerConverter(object):
                 operation = getattr(path_obj, method)
                 if operation is not None:
                     self.log.debug("Handling method %s", method.upper())
-                    request = self._extract_request(base_path + path, path_obj, method, operation)
+                    if base_path:
+                        route = self.join_base_with_endpoint_url("${basePath}", path)
+                    else:
+                        route = path
+                    request = self._extract_request(route, path_obj, method, operation)
                     # TODO: Swagger responses -> JMeter assertions?
 
                     if request is not None:
@@ -371,6 +378,8 @@ class SwaggerConverter(object):
 
                         requests.append(request)
 
+        if not scenario["variables"]:
+            scenario.pop("variables")
         scenario["requests"] = requests
 
         return {
@@ -381,14 +390,18 @@ class SwaggerConverter(object):
         base_path = self.swagger.get_base_path()
         scenarios = OrderedDict()
         for path, path_obj in iteritems(paths):
+            self.log.info("Handling path %s", path)
+
             scenario_name = path
             scenario = {
                 "default-address": default_address,
+                "variables": {},
             }
 
             if base_path:
-                path = self.join_base_with_endpoint_url(base_path, path)
-            self.log.info("Handling path %s", path)
+                scenario["variables"]["basePath"] = base_path
+                path = self.join_base_with_endpoint_url("${basePath}", path)
+
             requests = []
             for method in Swagger.METHODS:
                 operation = getattr(path_obj, method)
@@ -411,6 +424,9 @@ class SwaggerConverter(object):
 
             if global_security:
                 self._add_global_security(scenario, global_security)
+
+            if not scenario["variables"]:
+                scenario.pop("variables")
 
             scenarios[scenario_name] = scenario
 

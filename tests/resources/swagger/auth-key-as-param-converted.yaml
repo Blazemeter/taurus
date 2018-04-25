@@ -7,9 +7,10 @@ scenarios:
   BZM-API:
     default-address: https://a.blazemeter.com
     variables:
+      basePath: /api/v4
       myApiKey: TOKEN
     requests:
-    - url: /api/v4/tests
-      body:
+    - body:
         api_key: ${myApiKey}
+      url: /${basePath}/tests
 

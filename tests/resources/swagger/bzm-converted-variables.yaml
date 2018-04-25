@@ -7,21 +7,23 @@ scenarios:
   BZM-API:
     default-address: https://a.blazemeter.com
     requests:
-    - url: /api/v4/tests
+    - url: /${basePath}/tests
     - body: ${body}
       method: POST
-      url: /api/v4/tests
-    - url: /api/v4/tests/${testId}
+      url: /${basePath}/tests
+    - url: /${basePath}/tests/${testId}
     - body: ${body}
       method: PUT
-      url: /api/v4/tests/${testId}
+      url: /${basePath}/tests/${testId}
     - method: DELETE
-      url: /api/v4/tests/${testId}
+      url: /${basePath}/tests/${testId}
     - body: ${body}
       method: PATCH
-      url: /api/v4/tests/${testId}
+      url: /${basePath}/tests/${testId}
     - method: POST
-      url: /api/v4/tests/${testId}/start
-    - url: /api/v4/reports
-    - url: /api/v4/reports/${reportId}
+      url: /${basePath}/tests/${testId}/start
+    - url: /${basePath}/reports
+    - url: /${basePath}/reports/${reportId}
+    variables:
+      basePath: /api/v4
 

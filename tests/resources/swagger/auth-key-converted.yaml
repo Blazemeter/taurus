@@ -9,7 +9,8 @@ scenarios:
     headers:
       api_key: ${myApiKey}
     variables:
+      basePath: /api/v4
       myApiKey: TOKEN
     requests:
-    - url: /api/v4/tests
+    - url: /${basePath}/tests
 

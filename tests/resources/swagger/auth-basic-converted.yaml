@@ -7,9 +7,9 @@ scenarios:
   BZM-API:
     default-address: https://a.blazemeter.com
     headers:
-      Authorization: 'Basic ${__base64Encode(${auth})}'
+      Authorization: Basic ${__base64Encode(${auth})}
     variables:
       auth: USER:PASSWORD
+      basePath: /api/v4
     requests:
-    - url: /api/v4/tests
-
+    - url: /${basePath}/tests
