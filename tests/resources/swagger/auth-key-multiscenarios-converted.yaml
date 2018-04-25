@@ -9,9 +9,10 @@ scenarios:
     headers:
       api_key: ${myApiKey}
     requests:
-    - url: ${basePath}/tests
+    - url: ${default-path}/tests
 settings:
   env:
-    basePath: /api/v4
+    default-path: /api/v4
     defaultAddress: https://a.blazemeter.com
     myApiKey: TOKEN
+

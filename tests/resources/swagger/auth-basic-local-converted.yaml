@@ -5,14 +5,15 @@ execution:
   scenario: BZM-API
 scenarios:
   BZM-API:
-    default-address: https://a.blazemeter.com
+    default-address: ${default-address}
     requests:
     - headers:
         Authorization: Basic ${__base64Encode(${auth})}
-      url: ${basePath}/tests
+      url: ${default-path}/tests
     variables:
       auth: USER:PASSWORD
 settings:
   env:
-    basePath: /api/v4
+    default-address: https://a.blazemeter.com
+    default-path: /api/v4
 

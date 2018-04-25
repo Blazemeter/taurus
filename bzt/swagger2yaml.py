@@ -348,12 +348,14 @@ class SwaggerConverter(object):
         base_path = self.swagger.get_base_path()
         requests = []
         scenario = {
-            "default-address": default_address,
+            "default-address": "${default-address}",
             "variables": {},
         }
-        global_vars = {}
+        global_vars = {
+            "default-address": default_address,
+        }
         if base_path:
-            global_vars["basePath"] = base_path
+            global_vars["default-path"] = base_path
 
         if global_security:
             self._add_global_security(scenario, global_security, global_vars)
@@ -365,7 +367,7 @@ class SwaggerConverter(object):
                 if operation is not None:
                     self.log.debug("Handling method %s", method.upper())
                     if base_path:
-                        route = "${basePath}" + path
+                        route = "${default-path}" + path
                     else:
                         route = path
                     request = self._extract_request(route, path_obj, method, operation)
@@ -404,7 +406,7 @@ class SwaggerConverter(object):
             "defaultAddress": default_address
         }
         if base_path:
-            global_vars["basePath"] = base_path
+            global_vars["default-path"] = base_path
 
         for path, path_obj in iteritems(paths):
             self.log.info("Handling path %s", path)
@@ -416,7 +418,7 @@ class SwaggerConverter(object):
             }
 
             if base_path:
-                route = "${basePath}" + path
+                route = "${default-path}" + path
             else:
                 route = path
 

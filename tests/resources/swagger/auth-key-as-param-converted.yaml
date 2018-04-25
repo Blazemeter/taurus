@@ -5,14 +5,15 @@ execution:
   scenario: BZM-API
 scenarios:
   BZM-API:
-    default-address: https://a.blazemeter.com
+    default-address: ${default-address}
     requests:
     - body:
         api_key: ${myApiKey}
-      url: ${basePath}/tests
+      url: ${default-path}/tests
     variables:
       myApiKey: TOKEN
 settings:
   env:
-    basePath: /api/v4
+    default-address: https://a.blazemeter.com
+    default-path: /api/v4
 

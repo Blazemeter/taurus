@@ -5,61 +5,62 @@ execution:
   scenario: Swagger-Petstore
 scenarios:
   Swagger-Petstore:
-    default-address: http://petstore.swagger.io
+    default-address: ${default-address}
     requests:
     - label: updatePet
       method: PUT
-      url: ${basePath}/pet
+      url: ${default-path}/pet
     - label: addPet
       method: POST
-      url: ${basePath}/pet
+      url: ${default-path}/pet
     - label: findPetsByStatus
-      url: ${basePath}/pet/findByStatus?status=%5B1%2C+2%2C+3%5D
+      url: ${default-path}/pet/findByStatus?status=%5B1%2C+2%2C+3%5D
     - label: findPetsByTags
-      url: ${basePath}/pet/findByTags?tags=%5B1%2C+2%2C+3%5D
+      url: ${default-path}/pet/findByTags?tags=%5B1%2C+2%2C+3%5D
     - label: getPetById
-      url: ${basePath}/pet/1
+      url: ${default-path}/pet/1
     - label: updatePetWithForm
       method: POST
-      url: ${basePath}/pet/1
+      url: ${default-path}/pet/1
     - label: deletePet
       method: DELETE
-      url: ${basePath}/pet/1
+      url: ${default-path}/pet/1
     - label: uploadFile
       method: POST
-      url: ${basePath}/pet/1/uploadImage
+      url: ${default-path}/pet/1/uploadImage
     - label: getInventory
-      url: ${basePath}/store/inventory
+      url: ${default-path}/store/inventory
     - label: placeOrder
       method: POST
-      url: ${basePath}/store/order
+      url: ${default-path}/store/order
     - label: getOrderById
-      url: ${basePath}/store/order/1
+      url: ${default-path}/store/order/1
     - label: deleteOrder
       method: DELETE
-      url: ${basePath}/store/order/1
+      url: ${default-path}/store/order/1
     - label: createUser
       method: POST
-      url: ${basePath}/user
+      url: ${default-path}/user
     - label: createUsersWithArrayInput
       method: POST
-      url: ${basePath}/user/createWithArray
+      url: ${default-path}/user/createWithArray
     - label: createUsersWithListInput
       method: POST
-      url: ${basePath}/user/createWithList
+      url: ${default-path}/user/createWithList
     - label: loginUser
-      url: ${basePath}/user/login?username=some_string
+      url: ${default-path}/user/login?username=some_string
     - label: logoutUser
-      url: ${basePath}/user/logout
+      url: ${default-path}/user/logout
     - label: getUserByName
-      url: ${basePath}/user/some_string
+      url: ${default-path}/user/some_string
     - label: updateUser
       method: PUT
-      url: ${basePath}/user/some_string
+      url: ${default-path}/user/some_string
     - label: deleteUser
       method: DELETE
-      url: ${basePath}/user/some_string
+      url: ${default-path}/user/some_string
 settings:
   env:
-    basePath: /v2
+    default-address: http://petstore.swagger.io
+    default-path: /v2
 

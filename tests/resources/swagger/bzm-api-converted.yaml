@@ -19,34 +19,34 @@ scenarios:
   /reports:
     default-address: ${defaultAddress}
     requests:
-    - url: ${basePath}/reports
+    - url: ${default-path}/reports
   /reports/1:
     default-address: ${defaultAddress}
     requests:
-    - url: ${basePath}/reports/1
+    - url: ${default-path}/reports/1
   /tests:
     default-address: ${defaultAddress}
     requests:
-    - url: ${basePath}/tests
+    - url: ${default-path}/tests
     - method: POST
-      url: ${basePath}/tests
+      url: ${default-path}/tests
   /tests/1:
     default-address: ${defaultAddress}
     requests:
-    - url: ${basePath}/tests/1
+    - url: ${default-path}/tests/1
     - method: PUT
-      url: ${basePath}/tests/1
+      url: ${default-path}/tests/1
     - method: DELETE
-      url: ${basePath}/tests/1
+      url: ${default-path}/tests/1
     - method: PATCH
-      url: ${basePath}/tests/1
+      url: ${default-path}/tests/1
   /tests/1/start:
     default-address: ${defaultAddress}
     requests:
     - method: POST
-      url: ${basePath}/tests/1/start
+      url: ${default-path}/tests/1/start
 settings:
   env:
-    basePath: /api/v4
+    default-path: /api/v4
     defaultAddress: https://a.blazemeter.com
 
