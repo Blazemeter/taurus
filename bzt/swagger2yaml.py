@@ -18,6 +18,7 @@ limitations under the License.
 import copy
 import logging
 import os
+import re
 import sys
 import traceback
 from collections import namedtuple, OrderedDict
@@ -46,6 +47,10 @@ def yaml_ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict)
 
 class Swagger(object):
     METHODS = ["get", "put", "post", "delete", "options", "head", "patch"]
+
+    INTERPOLATE_WITH_VALUES = 'values'
+    INTERPOLATE_WITH_JMETER_VARS = 'variables'
+    INTERPOLATE_DISABLE = 'none'
 
     Definition = namedtuple("Definition", "name, schema")
     Parameter = namedtuple("Parameter", "name, location, description, required, schema, type, format")
@@ -173,8 +178,9 @@ class Swagger(object):
     def get_paths(self):
         return self.paths
 
-    def get_interpolated_paths(self, interpolate_params=True):
+    def get_interpolated_paths(self, parameter_interpolation=INTERPOLATE_WITH_VALUES):
         paths = OrderedDict()
+        replacer_regex = lambda name: r'(?<!\$)(\{' + name + r'\})'  # replace '{name}', but skip '${name}'
         for path, path_obj in iteritems(self.paths):
             new_path = path
             for method in Swagger.METHODS:
@@ -183,21 +189,25 @@ class Swagger(object):
                     for _, param in iteritems(operation.parameters):
                         if param.location == "path":
                             name = param.name
-                            if interpolate_params:
+                            if parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
                                 value = str(Swagger.get_data_for_type(param.type, param.format))
-                            else:
+                            elif parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
                                 value = "${" + param.name + "}"
-                            pattern = "{" + name + "}"
-                            new_path = new_path.replace(pattern, value)
+                            else:
+                                value = None
+                            if value is not None:
+                                new_path = re.sub(replacer_regex(name), value, new_path)
             for _, param in iteritems(path_obj.parameters):
                 if param.location == "path":
                     name = param.name
-                    if interpolate_params:
+                    if parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
                         value = str(Swagger.get_data_for_type(param.type, param.format))
-                    else:
+                    elif parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
                         value = "${" + param.name + "}"
-                    pattern = "{" + name + "}"
-                    new_path = path.replace(pattern, value)
+                    else:
+                        value = None
+                    if value is not None:
+                        new_path = re.sub(replacer_regex(name), value, new_path)
             path_obj = copy.deepcopy(path_obj)
             paths[new_path] = path_obj
         return paths
@@ -239,24 +249,28 @@ class SwaggerConverter(object):
             self,
             parent_log,
             scenarios_from_paths=False,
-            interpolate_parameters=True,
+            parameter_interpolation=Swagger.INTERPOLATE_WITH_VALUES,
     ):
         self.scenarios_from_paths = scenarios_from_paths
-        self.interpolate_parameters = interpolate_parameters
+        self.parameter_interpolation = parameter_interpolation
         self.log = parent_log.getChild(self.__class__.__name__)
         self.swagger = Swagger(self.log)
 
     def _interpolate_parameter(self, param):
-        if self.interpolate_parameters:
+        if self.parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
             return Swagger.get_data_for_type(param.type, param.format)
-        else:
+        elif self.parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
             return '${' + param.name + '}'
+        else:
+            return None
 
     def _interpolate_body(self, param):
-        if self.interpolate_parameters:
+        if self.parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
             return Swagger.get_data_for_schema(param.schema)
-        else:
+        elif self.parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
             return '${body}'
+        else:
+            return None
 
     def _handle_parameters(self, parameters):
         query_params = OrderedDict()
@@ -523,7 +537,7 @@ class SwaggerConverter(object):
         info = self.swagger.get_info()
         title = info.get("title", "Swagger")
         host = self.swagger.get_host()
-        paths = self.swagger.get_interpolated_paths(self.interpolate_parameters)
+        paths = self.swagger.get_interpolated_paths(self.parameter_interpolation)
         schemes = self.swagger.swagger.get("schemes", ["http"])
         scheme = schemes[0]
         security = self.swagger.swagger.get("security", [])
@@ -576,7 +590,7 @@ class Swagger2YAML(object):
         self.converter = SwaggerConverter(
             self.log,
             scenarios_from_paths=self.options.scenarios_from_paths,
-            interpolate_parameters=not self.options.disable_param_interpolation,
+            parameter_interpolation=self.options.parameter_interpolation,
         )
         try:
             converted_config = self.converter.convert_path(self.file_to_convert)
@@ -616,8 +630,8 @@ def main():
     parser.add_option('-l', '--log', action='store', default=False, help="Log file location")
     parser.add_option('--scenarios-from-paths', action='store_true', default=False,
                       help="Generate one scenario per path (disabled by default)")
-    parser.add_option('--disable-param-interpolation', action='store_true', default=False,
-                      help="Do not plug concrete values for parameters")
+    parser.add_option('--parameter-interpolation', action='store', default='values',
+                      help="Templated parameters interpolation. Valid values are 'variables', 'values', 'none'")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
         try:

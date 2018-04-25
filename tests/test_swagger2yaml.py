@@ -9,19 +9,22 @@ from tests.mocks import EngineEmul
 
 
 class FakeOptions(object):
-    def __init__(self, verbose=True, file_name=None, quiet=False, json=False, log=False, scenarios_from_paths=False):
+    def __init__(self, verbose=True, file_name=None, quiet=False, json=False, log=False,
+                 scenarios_from_paths=False, parameter_interpolation='values'):
         self.verbose = verbose
         self.file_name = file_name
         self.quiet = quiet
         self.json = json
         self.log = log
         self.scenarios_from_paths = scenarios_from_paths
+        self.parameter_interpolation = parameter_interpolation
 
 
 class TestSwagger2YAML(BZTestCase):
     def setUp(self):
         super(TestSwagger2YAML, self).setUp()
         self.engine = EngineEmul()
+        self.maxDiff = None
 
     def _get_swagger2yaml(self, path, file_name=None):
         return Swagger2YAML(FakeOptions(file_name=file_name), RESOURCES_DIR + path)
@@ -30,7 +33,6 @@ class TestSwagger2YAML(BZTestCase):
         return self.engine.create_artifact(prefix, suffix)
 
     def test_convert(self):
-        self.maxDiff = None
         source = RESOURCES_DIR + "/swagger/petstore.json"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
@@ -40,7 +42,6 @@ class TestSwagger2YAML(BZTestCase):
         self.assertEqual(actual, expected)
 
     def test_convert_scenarios_from_paths(self):
-        self.maxDiff = None
         source = RESOURCES_DIR + "/swagger/bzm-api.json"
         result = self._get_tmp()
         options = FakeOptions(file_name=result, scenarios_from_paths=True)
@@ -50,7 +51,6 @@ class TestSwagger2YAML(BZTestCase):
         self.assertEqual(actual, expected)
 
     def test_convert_security_apikey_header(self):
-        self.maxDiff = None
         source = RESOURCES_DIR + "/swagger/auth-key.json"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
@@ -60,7 +60,6 @@ class TestSwagger2YAML(BZTestCase):
         self.assertEqual(actual, expected)
 
     def test_convert_security_basic(self):
-        self.maxDiff = None
         source = RESOURCES_DIR + "/swagger/auth-basic.json"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
@@ -70,13 +69,39 @@ class TestSwagger2YAML(BZTestCase):
         self.assertEqual(actual, expected)
 
     def test_convert_security_apikey_query(self):
-        self.maxDiff = None
         source = RESOURCES_DIR + "/swagger/auth-key-as-param.json"
         result = self._get_tmp()
         options = FakeOptions(file_name=result)
         process(options, [source])
         actual = yaml.load(open(result).read())
         expected = yaml.load(open(RESOURCES_DIR + "/swagger/auth-key-as-param-converted.yaml").read())
+        self.assertEqual(actual, expected)
+
+    def test_convert_interpolation_values(self):
+        source = RESOURCES_DIR + "/swagger/bzm-api.json"
+        result = self._get_tmp()
+        options = FakeOptions(file_name=result)
+        process(options, [source])
+        actual = yaml.load(open(result).read())
+        expected = yaml.load(open(RESOURCES_DIR + "/swagger/bzm-converted-values.yaml").read())
+        self.assertEqual(actual, expected)
+
+    def test_convert_interpolation_variables(self):
+        source = RESOURCES_DIR + "/swagger/bzm-api.json"
+        result = self._get_tmp()
+        options = FakeOptions(file_name=result, parameter_interpolation=Swagger.INTERPOLATE_WITH_JMETER_VARS)
+        process(options, [source])
+        actual = yaml.load(open(result).read())
+        expected = yaml.load(open(RESOURCES_DIR + "/swagger/bzm-converted-variables.yaml").read())
+        self.assertEqual(actual, expected)
+
+    def test_convert_interpolation_none(self):
+        source = RESOURCES_DIR + "/swagger/bzm-api.json"
+        result = self._get_tmp()
+        options = FakeOptions(file_name=result, parameter_interpolation=Swagger.INTERPOLATE_DISABLE)
+        process(options, [source])
+        actual = yaml.load(open(result).read())
+        expected = yaml.load(open(RESOURCES_DIR + "/swagger/bzm-converted-none.yaml").read())
         self.assertEqual(actual, expected)
 
 
