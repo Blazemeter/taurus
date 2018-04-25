@@ -18,6 +18,7 @@ limitations under the License.
 import copy
 import logging
 import os
+import re
 import sys
 import traceback
 from collections import namedtuple, OrderedDict
@@ -47,11 +48,17 @@ def yaml_ordered_load(stream, Loader=yaml.Loader, object_pairs_hook=OrderedDict)
 class Swagger(object):
     METHODS = ["get", "put", "post", "delete", "options", "head", "patch"]
 
+    INTERPOLATE_WITH_VALUES = 'values'
+    INTERPOLATE_WITH_JMETER_VARS = 'variables'
+    INTERPOLATE_DISABLE = 'none'
+
     Definition = namedtuple("Definition", "name, schema")
     Parameter = namedtuple("Parameter", "name, location, description, required, schema, type, format")
     Response = namedtuple("Response", "name, description, schema, headers")
     Path = namedtuple("Path", "ref, get, put, post, delete, options, head, patch, parameters")
-    Operation = namedtuple("Operation", "summary, description, operation_id, consumes, produces, parameters, responses")
+    Operation = namedtuple("Operation",
+                           "summary, description, operation_id, consumes, produces, parameters, responses, security")
+    SecurityDef = namedtuple("SecurityDef", "type, description, name, location")
 
     def __init__(self, parent_log=None):
         self.log = (parent_log or logging.getLogger('')).getChild(self.__class__.__name__)
@@ -61,6 +68,8 @@ class Swagger(object):
         self.parameters = {}
         self.responses = {}
         self.paths = OrderedDict()
+        self.security_defs = {}
+        self.default_security = []
 
     def _load(self, swagger_spec_fd):
         try:
@@ -89,6 +98,12 @@ class Swagger(object):
                                           required=param.get("required"), schema=param.get("schema"),
                                           type=param.get("type"), format=param.get("format"))
             self.parameters[name] = parameter
+
+        for name, secdef in iteritems(self.swagger.get("securityDefinitions", {})):
+            self.security_defs[name] = Swagger.SecurityDef(type=secdef.get('type'),
+                                                           description=secdef.get('description'),
+                                                           name=secdef.get('name'),
+                                                           location=secdef.get('in'))
 
     def _lookup_reference(self, reference):
         if not reference.startswith("#/"):
@@ -122,7 +137,8 @@ class Swagger(object):
 
         return Swagger.Operation(summary=operation.get("summary"), description=operation.get("description"),
                                  operation_id=operation.get("operationId"), consumes=operation.get("consumes"),
-                                 produces=operation.get("produces"), parameters=parameters, responses=responses)
+                                 produces=operation.get("produces"), parameters=parameters, responses=responses,
+                                 security=operation.get("security"))
 
     def _extract_paths(self):
         for name, path_item in iteritems(self.swagger["paths"]):
@@ -162,8 +178,9 @@ class Swagger(object):
     def get_paths(self):
         return self.paths
 
-    def get_interpolated_paths(self):
+    def get_interpolated_paths(self, parameter_interpolation=INTERPOLATE_WITH_VALUES):
         paths = OrderedDict()
+        replacer_regex = lambda name: r'(?<!\$)(\{' + name + r'\})'  # replace '{name}', but skip '${name}'
         for path, path_obj in iteritems(self.paths):
             new_path = path
             for method in Swagger.METHODS:
@@ -172,15 +189,25 @@ class Swagger(object):
                     for _, param in iteritems(operation.parameters):
                         if param.location == "path":
                             name = param.name
-                            value = str(Swagger.get_data_for_type(param.type, param.format))
-                            pattern = "{" + name + "}"
-                            new_path = new_path.replace(pattern, value)
+                            if parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
+                                value = str(Swagger.get_data_for_type(param.type, param.format))
+                            elif parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
+                                value = "${" + param.name + "}"
+                            else:
+                                value = None
+                            if value is not None:
+                                new_path = re.sub(replacer_regex(name), value, new_path)
             for _, param in iteritems(path_obj.parameters):
                 if param.location == "path":
                     name = param.name
-                    value = str(Swagger.get_data_for_type(param.type, param.format))
-                    pattern = "{" + name + "}"
-                    new_path = path.replace(pattern, value)
+                    if parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
+                        value = str(Swagger.get_data_for_type(param.type, param.format))
+                    elif parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
+                        value = "${" + param.name + "}"
+                    else:
+                        value = None
+                    if value is not None:
+                        new_path = re.sub(replacer_regex(name), value, new_path)
             path_obj = copy.deepcopy(path_obj)
             paths[new_path] = path_obj
         return paths
@@ -221,11 +248,29 @@ class SwaggerConverter(object):
     def __init__(
             self,
             parent_log,
-            scenarios_from_paths=False
+            scenarios_from_paths=False,
+            parameter_interpolation=Swagger.INTERPOLATE_WITH_VALUES,
     ):
         self.scenarios_from_paths = scenarios_from_paths
+        self.parameter_interpolation = parameter_interpolation
         self.log = parent_log.getChild(self.__class__.__name__)
         self.swagger = Swagger(self.log)
+
+    def _interpolate_parameter(self, param):
+        if self.parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
+            return Swagger.get_data_for_type(param.type, param.format)
+        elif self.parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
+            return '${' + param.name + '}'
+        else:
+            return None
+
+    def _interpolate_body(self, param):
+        if self.parameter_interpolation == Swagger.INTERPOLATE_WITH_VALUES:
+            return Swagger.get_data_for_schema(param.schema)
+        elif self.parameter_interpolation == Swagger.INTERPOLATE_WITH_JMETER_VARS:
+            return '${body}'
+        else:
+            return None
 
     def _handle_parameters(self, parameters):
         query_params = OrderedDict()
@@ -237,18 +282,18 @@ class SwaggerConverter(object):
                 continue
             if param.location == "header":
                 name = param.name
-                value = Swagger.get_data_for_type(param.type, param.format)
+                value = self._interpolate_parameter(param)
                 headers[name] = value
             elif param.location == "query":
                 name = param.name
-                value = Swagger.get_data_for_type(param.type, param.format)
+                value = self._interpolate_parameter(param)
                 query_params[name] = value
             elif param.location == "formData":
                 name = param.name
-                value = Swagger.get_data_for_type(param.type, param.format)
+                value = self._interpolate_parameter(param)
                 form_data[name] = value
             elif param.location == "body":
-                request_body = Swagger.get_data_for_schema(param.schema)
+                request_body = self._interpolate_body(param)
             elif param.location == "path":
                 pass  # path parameters are resolved at a different level
             else:
@@ -276,6 +321,7 @@ class SwaggerConverter(object):
             parameters.merge(path_obj.parameters)
         if operation.parameters:
             parameters.merge(operation.parameters)
+
         query_params, form_data, request_body, headers = self._handle_parameters(parameters)
 
         if headers:
@@ -298,47 +344,224 @@ class SwaggerConverter(object):
 
         return request
 
-    def _extract_requests_from_paths(self, paths):
+    def _extract_requests_from_paths(self, paths, scenario_name, default_address, global_security):
         base_path = self.swagger.get_base_path()
         requests = []
+        scenario = {
+            "default-address": "${default-address}",
+            "variables": {},
+        }
+        global_vars = {
+            "default-address": default_address,
+        }
+        if base_path:
+            global_vars["default-path"] = base_path
+
+        if global_security:
+            self._add_global_security(scenario, global_security, global_vars)
+
         for path, path_obj in iteritems(paths):
             self.log.debug("Handling path %s", path)
             for method in Swagger.METHODS:
                 operation = getattr(path_obj, method)
                 if operation is not None:
                     self.log.debug("Handling method %s", method.upper())
-                    request = self._extract_request(base_path + path, path_obj, method, operation)
+                    if base_path:
+                        route = "${default-path}" + path
+                    else:
+                        route = path
+                    request = self._extract_request(route, path_obj, method, operation)
                     # TODO: Swagger responses -> JMeter assertions?
 
                     if request is not None:
+                        if operation.security:
+                            self._add_local_security(request, operation.security, scenario)
+                        elif global_security:
+                            self._add_local_security(request, global_security, scenario, disable_basic=True)
+
                         requests.append(request)
 
-        return requests
+        if not scenario["variables"]:
+            scenario.pop("variables")
+        scenario["requests"] = requests
 
-    def _extract_scenarios_from_paths(self, paths, default_address):
+        config = {
+            "scenarios": {
+                scenario_name: scenario
+            },
+            "execution": [{
+                "concurrency": 1,
+                "scenario": scenario_name,
+                "hold-for": "1m",
+            }]
+        }
+        if global_vars:
+            config["settings"] = {"env": global_vars}
+        return config
+
+    def _extract_scenarios_from_paths(self, paths, default_address, global_security):
         base_path = self.swagger.get_base_path()
         scenarios = OrderedDict()
+        global_vars = {
+            "default-address": default_address
+        }
+        if base_path:
+            global_vars["default-path"] = base_path
+
         for path, path_obj in iteritems(paths):
-            scenario_name = path
-            if base_path:
-                path = self.join_base_with_endpoint_url(base_path, path)
             self.log.info("Handling path %s", path)
+
+            scenario_name = path
+            scenario = {
+                "default-address": "${default-address}",
+                "variables": {},
+            }
+
+            if base_path:
+                route = "${default-path}" + path
+            else:
+                route = path
+
             requests = []
             for method in Swagger.METHODS:
                 operation = getattr(path_obj, method)
                 if operation is not None:
                     self.log.debug("Handling method %s", method.upper())
-                    request = self._extract_request(path, path_obj, method, operation)
+                    request = self._extract_request(route, path_obj, method, operation)
+
+                    if operation.security:
+                        self._add_local_security(request, operation.security, scenario)
+                    elif global_security:
+                        self._add_local_security(request, global_security, scenario)
+
                     requests.append(request)
                     # TODO: Swagger responses -> assertions?
 
-            if requests:
-                scenarios[scenario_name] = {
-                    "default-address": default_address,
-                    "requests": requests,
-                }
+            if not requests:
+                continue
 
-        return scenarios
+            scenario["requests"] = requests
+
+            if global_security:
+                self._add_global_security(scenario, global_security, global_vars)
+
+            if not scenario["variables"]:
+                scenario.pop("variables")
+
+            scenarios[scenario_name] = scenario
+
+        config = {
+            "scenarios": scenarios,
+            "execution": [{
+                "concurrency": 1,
+                "scenario": scenario_name,
+                "hold-for": "1m",
+            } for scenario_name, scenario in iteritems(scenarios)]
+        }
+        if global_vars:
+            config["settings"] = {"env": global_vars}
+        return config
+
+    def _insert_global_basic_auth(self, scenario, global_vars):
+        headers = scenario.get('headers', {})
+
+        headers['Authorization'] = 'Basic ${__base64Encode(${auth})}'
+        global_vars['auth'] = 'USER:PASSWORD'
+
+        scenario['headers'] = headers
+
+    def _insert_local_basic_auth(self, request, scenario):
+        headers = request.get('headers', {})
+        variables = scenario.get('variables', {})
+
+        headers['Authorization'] = 'Basic ${__base64Encode(${auth})}'
+        variables['auth'] = 'USER:PASSWORD'
+
+        request['headers'] = headers
+        scenario['variables'] = variables
+
+    def _insert_global_apikey_auth(self, scenario, sec_name, param_name, location, global_vars):
+        # location == 'query' is deliberately ignored
+        if location == 'header':
+            header_name = sec_name
+            var_name = param_name
+
+            headers = scenario.get('headers', {})
+
+            headers[header_name] = '${' + var_name + '}'
+            global_vars[var_name] = 'TOKEN'
+
+            scenario['headers'] = headers
+
+    def _insert_local_apikey_auth(self, request, scenario, sec_name, param_name, location):
+        # location == 'header' is deliberately ignored
+        if location == 'query':
+            query_name = sec_name
+            var_name = param_name
+
+            body = request.get('body', {})
+            variables = scenario.get('variables', {})
+
+            body[query_name] = '${' + var_name + '}'
+            variables[var_name] = 'TOKEN'
+
+            request['body'] = body
+            scenario['variables'] = variables
+
+    def _add_global_security(self, scenario, global_security, global_vars):
+        if not global_security:
+            return
+
+        security = global_security[0]
+        for sec_name, _ in iteritems(security):
+            secdef = self.swagger.security_defs.get(sec_name)
+            if not secdef:
+                self.log.warning("Security definition %r not found, skipping" % sec_name)
+                continue
+
+            if secdef.type == 'basic':
+                self._insert_global_basic_auth(scenario, global_vars)
+            elif secdef.type == 'apiKey':
+                if secdef.name is None:
+                    self.log.warning("apiKey security definition has no header name, skipping")
+                    continue
+                if secdef.location is None:
+                    self.log.warning("apiKey location (`in`) is not given, assuming header")
+                    secdef.location = 'header'
+
+                self._insert_global_apikey_auth(scenario, secdef.name, sec_name, secdef.location, global_vars)
+
+            elif secdef.type == 'oauth2':
+                self.log.warning("OAuth2 security is not yet supported, skipping")
+                continue
+
+    def _add_local_security(self, request, securities, scenario, disable_basic=False):
+        if not securities:
+            return  # TODO: disable global security for request
+
+        security = securities[0]
+        for sec_name, _ in iteritems(security):
+            secdef = self.swagger.security_defs.get(sec_name)
+            if not secdef:
+                self.log.warning("Security definition %r not found, skipping" % sec_name)
+                continue
+
+            if secdef.type == 'basic':
+                if not disable_basic:
+                    self._insert_local_basic_auth(request, scenario)
+            elif secdef.type == 'apiKey':
+                if secdef.name is None:
+                    self.log.warning("apiKey security definition has no header name, skipping")
+                    continue
+                if secdef.location is None:
+                    self.log.warning("apiKey location (`in`) is not given, assuming header")
+                    secdef.location = 'header'
+
+                self._insert_local_apikey_auth(request, scenario, secdef.name, sec_name, secdef.location)
+
+            elif secdef.type == 'oauth2':
+                self.log.warning("OAuth2 security is not yet supported, skipping")
+                continue
 
     @staticmethod
     def join_base_with_endpoint_url(*path):
@@ -352,40 +575,20 @@ class SwaggerConverter(object):
 
     def convert(self, swagger_fd):
         self.swagger.parse(swagger_fd)
-
         info = self.swagger.get_info()
         title = info.get("title", "Swagger")
         host = self.swagger.get_host()
-        paths = self.swagger.get_interpolated_paths()
+        paths = self.swagger.get_interpolated_paths(self.parameter_interpolation)
         schemes = self.swagger.swagger.get("schemes", ["http"])
         scheme = schemes[0]
+        security = self.swagger.swagger.get("security", [])
         default_address = scheme + "://" + host
         scenario_name = title.replace(' ', '-')
         if self.scenarios_from_paths:
-            scenarios = self._extract_scenarios_from_paths(paths, default_address)
-            return {
-                "scenarios": scenarios,
-                "execution": [{
-                    "concurrency": 1,
-                    "scenario": scenario_name,
-                    "hold-for": "1m",
-                } for scenario_name, scenario in iteritems(scenarios)]
-            }
+            config = self._extract_scenarios_from_paths(paths, default_address, security)
         else:
-            requests = self._extract_requests_from_paths(paths)
-            return {
-                "scenarios": {
-                    scenario_name: {
-                        "default-address": default_address,
-                        "requests": requests
-                    }
-                },
-                "execution": [{
-                    "concurrency": 1,
-                    "scenario": scenario_name,
-                    "hold-for": "1m",
-                }]
-            }
+            config = self._extract_requests_from_paths(paths, scenario_name, default_address, security)
+        return config
 
 
 class Swagger2YAML(object):
@@ -410,7 +613,8 @@ class Swagger2YAML(object):
             raise TaurusInternalException("File does not exist: %s" % self.file_to_convert)
         self.converter = SwaggerConverter(
             self.log,
-            scenarios_from_paths=self.options.scenarios_from_paths
+            scenarios_from_paths=self.options.scenarios_from_paths,
+            parameter_interpolation=self.options.parameter_interpolation,
         )
         try:
             converted_config = self.converter.convert_path(self.file_to_convert)
@@ -450,6 +654,8 @@ def main():
     parser.add_option('-l', '--log', action='store', default=False, help="Log file location")
     parser.add_option('--scenarios-from-paths', action='store_true', default=False,
                       help="Generate one scenario per path (disabled by default)")
+    parser.add_option('--parameter-interpolation', action='store', default='values',
+                      help="Templated parameters interpolation. Valid values are 'variables', 'values', 'none'")
     parsed_options, args = parser.parse_args()
     if len(args) > 0:
         try:

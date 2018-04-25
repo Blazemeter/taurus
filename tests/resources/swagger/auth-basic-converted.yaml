@@ -1,0 +1,18 @@
+---
+execution:
+- concurrency: 1
+  hold-for: 1m
+  scenario: BZM-API
+scenarios:
+  BZM-API:
+    default-address: ${default-address}
+    headers:
+      Authorization: Basic ${__base64Encode(${auth})}
+    requests:
+    - url: ${default-path}/tests
+settings:
+  env:
+    auth: USER:PASSWORD
+    default-address: https://a.blazemeter.com
+    default-path: /api/v4
+
