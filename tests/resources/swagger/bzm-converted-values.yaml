@@ -21,6 +21,7 @@ scenarios:
       url: /${basePath}/tests/1/start
     - url: /${basePath}/reports
     - url: /${basePath}/reports/1
-    variables:
-      basePath: /api/v4
+settings:
+  env:
+    basePath: /api/v4
 

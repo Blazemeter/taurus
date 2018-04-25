@@ -2,10 +2,10 @@
 execution:
 - concurrency: 1
   hold-for: 1m
-  scenario: BZM-API
+  scenario: /tests
 scenarios:
-  BZM-API:
-    default-address: https://a.blazemeter.com
+  /tests:
+    default-address: ${defaultAddress}
     headers:
       api_key: ${myApiKey}
     requests:
@@ -13,5 +13,5 @@ scenarios:
 settings:
   env:
     basePath: /api/v4
+    defaultAddress: https://a.blazemeter.com
     myApiKey: TOKEN
-

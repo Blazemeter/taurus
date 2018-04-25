@@ -351,11 +351,12 @@ class SwaggerConverter(object):
             "default-address": default_address,
             "variables": {},
         }
+        global_vars = {}
         if base_path:
-            scenario["variables"]["basePath"] = base_path
+            global_vars["basePath"] = base_path
 
         if global_security:
-            self._add_global_security(scenario, global_security)
+            self._add_global_security(scenario, global_security, global_vars)
 
         for path, path_obj in iteritems(paths):
             self.log.debug("Handling path %s", path)
@@ -382,24 +383,39 @@ class SwaggerConverter(object):
             scenario.pop("variables")
         scenario["requests"] = requests
 
-        return {
-            scenario_name: scenario
+        config = {
+            "scenarios": {
+                scenario_name: scenario
+            },
+            "execution": [{
+                "concurrency": 1,
+                "scenario": scenario_name,
+                "hold-for": "1m",
+            }]
         }
+        if global_vars:
+            config["settings"] = {"env": global_vars}
+        return config
 
     def _extract_scenarios_from_paths(self, paths, default_address, global_security):
         base_path = self.swagger.get_base_path()
         scenarios = OrderedDict()
+        global_vars = {
+            "defaultAddress": default_address
+        }
+        if base_path:
+            global_vars["basePath"] = base_path
+
         for path, path_obj in iteritems(paths):
             self.log.info("Handling path %s", path)
 
             scenario_name = path
             scenario = {
-                "default-address": default_address,
+                "default-address": "${defaultAddress}",
                 "variables": {},
             }
 
             if base_path:
-                scenario["variables"]["basePath"] = base_path
                 path = self.join_base_with_endpoint_url("${basePath}", path)
 
             requests = []
@@ -423,26 +439,34 @@ class SwaggerConverter(object):
             scenario["requests"] = requests
 
             if global_security:
-                self._add_global_security(scenario, global_security)
+                self._add_global_security(scenario, global_security, global_vars)
 
             if not scenario["variables"]:
                 scenario.pop("variables")
 
             scenarios[scenario_name] = scenario
 
-        return scenarios
+        config = {
+            "scenarios": scenarios,
+            "execution": [{
+                "concurrency": 1,
+                "scenario": scenario_name,
+                "hold-for": "1m",
+            } for scenario_name, scenario in iteritems(scenarios)]
+        }
+        if global_vars:
+            config["settings"] = {"env": global_vars}
+        return config
 
-    def _insert_basic_auth_into_scenario(self, scenario):
+    def _insert_global_basic_auth(self, scenario, global_vars):
         headers = scenario.get('headers', {})
-        variables = scenario.get('variables', {})
 
         headers['Authorization'] = 'Basic ${__base64Encode(${auth})}'
-        variables['auth'] = 'USER:PASSWORD'
+        global_vars['auth'] = 'USER:PASSWORD'
 
         scenario['headers'] = headers
-        scenario['variables'] = variables
 
-    def _insert_basic_auth_into_request(self, request, scenario):
+    def _insert_local_basic_auth(self, request, scenario):
         headers = request.get('headers', {})
         variables = scenario.get('variables', {})
 
@@ -452,22 +476,20 @@ class SwaggerConverter(object):
         request['headers'] = headers
         scenario['variables'] = variables
 
-    def _insert_apikey_auth_into_scenario(self, scenario, sec_name, param_name, location):
+    def _insert_global_apikey_auth(self, scenario, sec_name, param_name, location, global_vars):
         # location == 'query' is deliberately ignored
         if location == 'header':
             header_name = sec_name
             var_name = param_name
 
             headers = scenario.get('headers', {})
-            variables = scenario.get('variables', {})
 
             headers[header_name] = '${' + var_name + '}'
-            variables[var_name] = 'TOKEN'
+            global_vars[var_name] = 'TOKEN'
 
             scenario['headers'] = headers
-            scenario['variables'] = variables
 
-    def _insert_apikey_auth_into_request(self, request, scenario, sec_name, param_name, location):
+    def _insert_local_apikey_auth(self, request, scenario, sec_name, param_name, location):
         # location == 'header' is deliberately ignored
         if location == 'query':
             query_name = sec_name
@@ -482,7 +504,7 @@ class SwaggerConverter(object):
             request['body'] = body
             scenario['variables'] = variables
 
-    def _add_global_security(self, scenario, global_security):
+    def _add_global_security(self, scenario, global_security, global_vars):
         if not global_security:
             return
 
@@ -494,7 +516,7 @@ class SwaggerConverter(object):
                 continue
 
             if secdef.type == 'basic':
-                self._insert_basic_auth_into_scenario(scenario)
+                self._insert_global_basic_auth(scenario, global_vars)
             elif secdef.type == 'apiKey':
                 if secdef.name is None:
                     self.log.warning("apiKey security definition has no header name, skipping")
@@ -503,7 +525,7 @@ class SwaggerConverter(object):
                     self.log.warning("apiKey location (`in`) is not given, assuming header")
                     secdef.location = 'header'
 
-                self._insert_apikey_auth_into_scenario(scenario, secdef.name, sec_name, secdef.location)
+                self._insert_global_apikey_auth(scenario, secdef.name, sec_name, secdef.location, global_vars)
 
             elif secdef.type == 'oauth2':
                 self.log.warning("OAuth2 security is not yet supported, skipping")
@@ -522,7 +544,7 @@ class SwaggerConverter(object):
 
             if secdef.type == 'basic':
                 if not disable_basic:
-                    self._insert_basic_auth_into_request(request, scenario)
+                    self._insert_local_basic_auth(request, scenario)
             elif secdef.type == 'apiKey':
                 if secdef.name is None:
                     self.log.warning("apiKey security definition has no header name, skipping")
@@ -531,7 +553,7 @@ class SwaggerConverter(object):
                     self.log.warning("apiKey location (`in`) is not given, assuming header")
                     secdef.location = 'header'
 
-                self._insert_apikey_auth_into_request(request, scenario, secdef.name, sec_name, secdef.location)
+                self._insert_local_apikey_auth(request, scenario, secdef.name, sec_name, secdef.location)
 
             elif secdef.type == 'oauth2':
                 self.log.warning("OAuth2 security is not yet supported, skipping")
@@ -549,7 +571,6 @@ class SwaggerConverter(object):
 
     def convert(self, swagger_fd):
         self.swagger.parse(swagger_fd)
-
         info = self.swagger.get_info()
         title = info.get("title", "Swagger")
         host = self.swagger.get_host()
@@ -560,26 +581,9 @@ class SwaggerConverter(object):
         default_address = scheme + "://" + host
         scenario_name = title.replace(' ', '-')
         if self.scenarios_from_paths:
-            scenarios = self._extract_scenarios_from_paths(paths, default_address, security)
-            config = {
-                "scenarios": scenarios,
-                "execution": [{
-                    "concurrency": 1,
-                    "scenario": scenario_name,
-                    "hold-for": "1m",
-                } for scenario_name, scenario in iteritems(scenarios)]
-            }
+            config = self._extract_scenarios_from_paths(paths, default_address, security)
         else:
-            scenarios = self._extract_requests_from_paths(paths, scenario_name, default_address, security)
-            config = {
-                "scenarios": scenarios,
-                "execution": [{
-                    "concurrency": 1,
-                    "scenario": scenario_name,
-                    "hold-for": "1m",
-                }]
-            }
-
+            config = self._extract_requests_from_paths(paths, scenario_name, default_address, security)
         return config
 
 

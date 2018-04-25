@@ -59,5 +59,7 @@ scenarios:
     - label: deleteUser
       method: DELETE
       url: /${basePath}/user/some_string
-    variables:
-      basePath: /v2
+settings:
+  env:
+    basePath: /v2
+
