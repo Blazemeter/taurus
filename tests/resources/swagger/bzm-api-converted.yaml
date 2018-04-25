@@ -19,32 +19,32 @@ scenarios:
   /reports:
     default-address: ${defaultAddress}
     requests:
-    - url: /${basePath}/reports
+    - url: ${basePath}/reports
   /reports/1:
     default-address: ${defaultAddress}
     requests:
-    - url: /${basePath}/reports/1
+    - url: ${basePath}/reports/1
   /tests:
     default-address: ${defaultAddress}
     requests:
-    - url: /${basePath}/tests
+    - url: ${basePath}/tests
     - method: POST
-      url: /${basePath}/tests
+      url: ${basePath}/tests
   /tests/1:
     default-address: ${defaultAddress}
     requests:
-    - url: /${basePath}/tests/1
+    - url: ${basePath}/tests/1
     - method: PUT
-      url: /${basePath}/tests/1
+      url: ${basePath}/tests/1
     - method: DELETE
-      url: /${basePath}/tests/1
+      url: ${basePath}/tests/1
     - method: PATCH
-      url: /${basePath}/tests/1
+      url: ${basePath}/tests/1
   /tests/1/start:
     default-address: ${defaultAddress}
     requests:
     - method: POST
-      url: /${basePath}/tests/1/start
+      url: ${basePath}/tests/1/start
 settings:
   env:
     basePath: /api/v4

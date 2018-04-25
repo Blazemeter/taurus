@@ -9,7 +9,7 @@ scenarios:
     headers:
       Authorization: Basic ${__base64Encode(${auth})}
     requests:
-    - url: /${basePath}/tests
+    - url: ${basePath}/tests
 settings:
   env:
     auth: USER:PASSWORD

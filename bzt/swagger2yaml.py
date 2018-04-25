@@ -365,7 +365,7 @@ class SwaggerConverter(object):
                 if operation is not None:
                     self.log.debug("Handling method %s", method.upper())
                     if base_path:
-                        route = self.join_base_with_endpoint_url("${basePath}", path)
+                        route = "${basePath}" + path
                     else:
                         route = path
                     request = self._extract_request(route, path_obj, method, operation)
@@ -416,7 +416,7 @@ class SwaggerConverter(object):
             }
 
             if base_path:
-                route = self.join_base_with_endpoint_url("${basePath}", path)
+                route = "${basePath}" + path
             else:
                 route = path
 

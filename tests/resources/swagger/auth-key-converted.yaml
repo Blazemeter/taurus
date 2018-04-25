@@ -9,7 +9,7 @@ scenarios:
     headers:
       api_key: ${myApiKey}
     requests:
-    - url: /${basePath}/tests
+    - url: ${basePath}/tests
 settings:
   env:
     basePath: /api/v4

@@ -9,7 +9,7 @@ scenarios:
     requests:
     - body:
         api_key: ${myApiKey}
-      url: /${basePath}/tests
+      url: ${basePath}/tests
     variables:
       myApiKey: TOKEN
 settings:
