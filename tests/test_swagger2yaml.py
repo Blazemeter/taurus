@@ -222,9 +222,9 @@ class TestSwaggerConverter(BZTestCase):
 
         self.assertEqual(len(config["execution"]), 5)
 
-        self.assertEqual(config["settings"]["env"]["defaultAddress"], "https://a.blazemeter.com")
+        self.assertEqual(config["settings"]["env"]["default-address"], "https://a.blazemeter.com")
         for scenario_name, scenario in iteritems(config["scenarios"]):
-            self.assertEqual(scenario["default-address"], "${defaultAddress}")
+            self.assertEqual(scenario["default-address"], "${default-address}")
             scenario_requests = scenario["requests"]
             self.assertGreater(len(scenario_requests), 0)
             for scenario_request in scenario_requests:

@@ -5,14 +5,14 @@ execution:
   scenario: /tests
 scenarios:
   /tests:
-    default-address: ${defaultAddress}
+    default-address: ${default-address}
     headers:
       api_key: ${myApiKey}
     requests:
     - url: ${default-path}/tests
 settings:
   env:
+    default-address: https://a.blazemeter.com
     default-path: /api/v4
-    defaultAddress: https://a.blazemeter.com
     myApiKey: TOKEN
 

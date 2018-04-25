@@ -403,7 +403,7 @@ class SwaggerConverter(object):
         base_path = self.swagger.get_base_path()
         scenarios = OrderedDict()
         global_vars = {
-            "defaultAddress": default_address
+            "default-address": default_address
         }
         if base_path:
             global_vars["default-path"] = base_path
@@ -413,7 +413,7 @@ class SwaggerConverter(object):
 
             scenario_name = path
             scenario = {
-                "default-address": "${defaultAddress}",
+                "default-address": "${default-address}",
                 "variables": {},
             }
 

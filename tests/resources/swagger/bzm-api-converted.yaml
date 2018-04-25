@@ -17,21 +17,21 @@ execution:
   scenario: /reports/1
 scenarios:
   /reports:
-    default-address: ${defaultAddress}
+    default-address: ${default-address}
     requests:
     - url: ${default-path}/reports
   /reports/1:
-    default-address: ${defaultAddress}
+    default-address: ${default-address}
     requests:
     - url: ${default-path}/reports/1
   /tests:
-    default-address: ${defaultAddress}
+    default-address: ${default-address}
     requests:
     - url: ${default-path}/tests
     - method: POST
       url: ${default-path}/tests
   /tests/1:
-    default-address: ${defaultAddress}
+    default-address: ${default-address}
     requests:
     - url: ${default-path}/tests/1
     - method: PUT
@@ -41,12 +41,12 @@ scenarios:
     - method: PATCH
       url: ${default-path}/tests/1
   /tests/1/start:
-    default-address: ${defaultAddress}
+    default-address: ${default-address}
     requests:
     - method: POST
       url: ${default-path}/tests/1/start
 settings:
   env:
+    default-address: https://a.blazemeter.com
     default-path: /api/v4
-    defaultAddress: https://a.blazemeter.com
 
