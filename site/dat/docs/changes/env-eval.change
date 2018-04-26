@@ -1,2 +1,0 @@
-Don't limit env vars evaluating in scenarios.
-Evaluate only explicitly declared env variables across config.
