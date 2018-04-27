@@ -32,7 +32,7 @@ from bzt.six import string_types, viewvalues, iteritems
 from bzt.utils import load_class, dehumanize_time, BetterDict
 
 
-class PassFailStatus(Reporter, Service, AggregatorListener, WidgetProvider):  # TODO: remove Service
+class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
     """
     :type criteria: list[FailCriterion]
     """
