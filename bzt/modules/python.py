@@ -245,6 +245,8 @@ from selenium.webdriver.common.keys import Keys
 import apiritif
     """
 
+    LOCATORS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
+
     def __init__(self, scenario, parent_logger, wdlog):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
@@ -527,11 +529,13 @@ import apiritif
         }
 
         if atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
-                     'asserttext', 'assertvalue', 'select'):
+                     'asserttext', 'assertvalue', 'select', 'submit'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
             action = None
             if atype == 'click':
                 action = "click()"
+            elif atype == 'submit':
+                action = "submit()"
             elif atype == 'keys':
                 action = "send_keys(%r)" % param
                 if isinstance(param, str) and param.startswith("KEY_"):
@@ -555,6 +559,11 @@ import apiritif
                 return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[aby], selector, action), param),
                                           indent=indent)
             return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
+        elif atype.endswith('window'):
+            if atype.startswith('open'):
+                return self.gen_statement('self.driver.execute_script("window.open();");', indent=indent)
+        elif atype == 'executeScript':
+            return self.gen_statement('self.driver.execute_script("%s");' % selector, indent=indent)
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
@@ -582,8 +591,9 @@ import apiritif
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
-                            'pause', 'clear', 'assert', 'assertText', 'assertValue'])
-        bys = "byName|byID|byCSS|byXPath|byLinkText|For|Cookies|Title"
+                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit',
+                            'openWindow', 'selectWindow', 'close', 'execute'])
+        bys = "|".join(self.LOCATORS) + "|For|Cookies|Title|Window|Script"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, bys), re.IGNORECASE)
         res = expr.match(name)
         if not res:
