@@ -11,14 +11,12 @@ Supported command-line options:
   - `-v, --verbose` - prints all logging messages to console
   - `-j, --json` - use json format instead of yaml
   - `-o FILE\_NAME, --out=FILE\_NAME` - change output file name, by default is input file name + `.yml` in current directory
-  - `-a, --all-http-methods` - extract all combinations of paths and HTTP methods.
+  - `--scenarios-from-paths` - generate a scenario per path (instead of generating a single scenario). disabled by default.
+  - `--parameter-interpolation` - setup interpolation for templated parameters. Valid values are 'values', 'variables', 'none'. Default is 'values'.
   
-By default Taurus will extract only GET requests. `--all-http-methods` switch can be used to extract all kinds of requests
-from Swagger spec.
-
 Usage:
   - `swagger2yaml swagger.json` - convert Swagger spec
-  - `swagger2yaml swagger.json -a -o swagger-converted.yml` - convert Swagger spec, extracting all HTTP requests, and save it to a specific file
+  - `swagger2yaml swagger.json -o swagger-converted.yml --scenarios-from-paths` - convert Swagger spec, creating a scenario per path, and save it to a specific file
 
 Notes about Swagger to YAML translation process:
 1. The whole spec is converted into single scenario
