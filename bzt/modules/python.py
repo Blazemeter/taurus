@@ -228,7 +228,6 @@ from selenium.webdriver.common.keys import Keys
 
 import apiritif
 """
-
     IMPORTS_APPIUM = """import unittest
 import re
 from time import sleep
@@ -245,7 +244,7 @@ from selenium.webdriver.common.keys import Keys
 import apiritif
     """
 
-    LOCATORS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
+    TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
     def __init__(self, scenario, parent_logger, wdlog):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
@@ -512,7 +511,7 @@ import apiritif
         return assertion_elements
 
     def gen_action(self, action_config, indent=8):
-        aby, atype, param, selector = self._parse_action(action_config)
+        atype, tag, param, selector = self._parse_action(action_config)
 
         bys = {
             'byxpath': "XPATH",
@@ -528,7 +527,17 @@ import apiritif
             'mousemove': "move_to_element"
         }
 
-        if atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
+        if tag == "window":
+            if atype == "select":
+                cmd = 'self.driver.switch_to_window(self.driver.window_handles[%s]); ' % selector
+                return self.gen_statement(cmd, indent=indent)
+            if atype == "close":
+                cmd = 'current_window = self.driver.current_window_handle; ' + \
+                    'self.driver.switch_to_window(self.driver.window_handles[%s]); ' % selector + \
+                      'self.driver.close(); self.driver.switch_to_window(current_window)'
+                return self.gen_statement(cmd, indent=indent)
+
+        elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
                      'asserttext', 'assertvalue', 'select', 'submit'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
             action = None
@@ -544,25 +553,22 @@ import apiritif
                 tpl = "self.driver.find_element(By.%s, %r)"
                 action = action_chains[atype]
                 return self.gen_statement(
-                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[aby], selector))),
+                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
                     indent=indent)
             elif atype == 'select':
                 tpl = "self.driver.find_element(By.%s, %r)"
                 action = "select_by_visible_text(%r)" % param
-                return self.gen_statement("Select(%s).%s" % (tpl % (bys[aby], selector), action),
+                return self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
                                           indent=indent)
             elif atype.startswith('assert'):
                 if atype == 'asserttext':
                     action = "get_attribute('innerText')"
                 elif atype == 'assertvalue':
                     action = "get_attribute('value')"
-                return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[aby], selector, action), param),
+                return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[tag], selector, action), param),
                                           indent=indent)
-            return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
-        elif atype.endswith('window'):
-            if atype.startswith('open'):
-                return self.gen_statement('self.driver.execute_script("window.open();");', indent=indent)
-        elif atype == 'executeScript':
+            return self.gen_statement(tpl % (bys[tag], selector, action), indent=indent)
+        elif atype == "execute" and tag == "script":
             return self.gen_statement('self.driver.execute_script("%s");' % selector, indent=indent)
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
@@ -570,13 +576,13 @@ import apiritif
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
-            return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg), indent=indent)
-        elif atype == 'pause' and aby == 'for':
+            return self.gen_statement(tpl % (timeout, mode, bys[tag], selector, errmsg), indent=indent)
+        elif atype == 'pause' and tag == 'for':
             tpl = "sleep(%.f)"
             return self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent)
-        elif atype == 'clear' and aby == 'cookies':
+        elif atype == 'clear' and tag == 'cookies':
             return self.gen_statement("self.driver.delete_all_cookies()", indent=indent)
-        elif atype == 'assert' and aby == 'title':
+        elif atype == 'assert' and tag == 'title':
             return self.gen_statement("self.assertEqual(self.driver.title,%r)" % selector, indent=indent)
 
         raise TaurusInternalException("Could not build code for action: %s" % action_config)
@@ -591,16 +597,15 @@ import apiritif
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
-                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit',
-                            'openWindow', 'selectWindow', 'close', 'execute'])
-        bys = "|".join(self.LOCATORS) + "|For|Cookies|Title|Window|Script"
-        expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, bys), re.IGNORECASE)
+                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'execute'])
+        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script"
+        expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
             raise TaurusConfigError("Unsupported action: %s" % name)
 
         atype = res.group(1).lower()
-        aby = res.group(2).lower()
+        tag = res.group(2).lower()
         selector = res.group(3)
 
         # hello, reviewer!
@@ -609,7 +614,7 @@ import apiritif
         elif selector.startswith("'") and selector.endswith("'"):
             selector = selector[1:-1]
 
-        return aby, atype, param, selector
+        return atype, tag, param, selector
 
 
 def capitalize(str):
