@@ -578,10 +578,7 @@ import apiritif
             element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
             tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); {element}.send_keys('{keys}')"
             vals = {"element": element, "keys": param}
-            cmd = tpl.format(**vals)
-            #cmd += "else raise SeleniumError('The value of contentEditable attribute of this element is not true.')"
-
-            return self.gen_statement(cmd, indent=indent)
+            return self.gen_statement(tpl.format(**vals), indent=indent)
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
