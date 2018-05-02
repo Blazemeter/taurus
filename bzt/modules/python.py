@@ -574,11 +574,14 @@ import apiritif
             return self.gen_statement(tpl % (bys[tag], selector, action), indent=indent)
         elif atype == "run" and tag == "script":
             return self.gen_statement('self.driver.execute_script("%s");' % selector, indent=indent)
-        elif atype == "edit" and tag == "content":
-            line = "element = self.driver.find_element(By.%s, %r); " % (bys[tag], selector)
-            line += "if element.editable: element.innerHTML=escapeHTML(%s); else: " % param
-            line += "raise SeleniumError('The value of contentEditable attribute of this element is not true.')"
-            return self.gen_statement(line % selector, indent=indent)
+        elif atype == "editcontent":
+            element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
+            tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); {element}.send_keys('{keys}')"
+            vals = {"element": element, "keys": param}
+            cmd = tpl.format(**vals)
+            #cmd += "else raise SeleniumError('The value of contentEditable attribute of this element is not true.')"
+
+            return self.gen_statement(cmd, indent=indent)
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
@@ -607,8 +610,8 @@ import apiritif
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'edit', 'selectFrame'])
-        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|Content"
+                            'editcontent', 'selectFrame'])
+        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
