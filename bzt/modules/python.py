@@ -529,7 +529,7 @@ import apiritif
 
         if tag == "window":
             if atype == "select":
-                cmd = 'self.driver.switch_to_window(self.driver.window_handles[%s]); ' % selector
+                cmd = 'self.driver.switch_to_window(self.driver.window_handles[%s])' % selector
                 return self.gen_statement(cmd, indent=indent)
             if atype == "close":
                 cmd = 'current_window = self.driver.current_window_handle; ' + \
@@ -573,7 +573,7 @@ import apiritif
                                           indent=indent)
             return self.gen_statement(tpl % (bys[tag], selector, action), indent=indent)
         elif atype == "run" and tag == "script":
-            return self.gen_statement('self.driver.execute_script("%s");' % selector, indent=indent)
+            return self.gen_statement('self.driver.execute_script("%s")' % selector, indent=indent)
         elif atype == "editcontent":
             element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
             tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); {element}.send_keys('{keys}')"

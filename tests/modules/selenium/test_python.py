@@ -311,7 +311,12 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"keysByName(\"toPort\")": "B"},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
                             "clickByXPath(//div[3]/form/select[2]//option[6])",
+                            "selectWindow(0)",
+                            "closeWindow(1)",
                             "submitByName(\"toPort\")",
+                            "runScript(\"alert('This is Sparta');\")",
+                            "selectFrameByName('my_frame')",
+                            {"editContentById(editor)": "lo-la-lu"},
                             "pauseFor(3s)",
                             "clearCookies()",
                             "clickByLinkText(destination of the week! The Beach!)"
