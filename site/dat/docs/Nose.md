@@ -43,7 +43,7 @@ Supported features:
     - window control (selectWindow, closeWindow)
     - selectFrameBy* Switch to frame
     - keysBy* Send keys to element
-    - editContent Change text in editable field (messenger history, etc.)
+    - editContent Change text in editable field (checks contenteditable prop)
     - submitBy* Send data of form by any its element
     - runScript Execute JS command
     - waitBy* 
