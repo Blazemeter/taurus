@@ -232,8 +232,8 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
         # usual fields
         self._user.logger_limit = self.settings.get("request-logging-limit", self._user.logger_limit)
-        self._user.address = self.settings.get("address", self._user.address)
-        self._user.data_address = self.settings.get("data-address", self._user.data_address)
+        self._user.address = self.settings.get("address", self._user.address).rstrip("/")
+        self._user.data_address = self.settings.get("data-address", self._user.data_address).rstrip("/")
         self._user.timeout = dehumanize_time(self.settings.get("timeout", self._user.timeout))
 
         # direct data feeding case
