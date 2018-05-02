@@ -537,8 +537,7 @@ import apiritif
                       'self.driver.close(); self.driver.switch_to_window(current_window)'
                 return self.gen_statement(cmd, indent=indent)
 
-        elif tag == "frame":
-            if atype == "select":
+        elif atype == "selectframe":
                 cmd = "self.driver.switch_to_frame(self.driver.find_element(By.%s, %r))"
                 return self.gen_statement(cmd % (bys[tag], selector), indent=indent)
 
@@ -570,7 +569,7 @@ import apiritif
                     action = "get_attribute('innerText')"
                 elif atype == 'assertvalue':
                     action = "get_attribute('value')"
-                return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[tag], selector, action), param),
+                return self.gen_statement("self.assertEqual(%s, %r)" % (tpl % (bys[tag], selector, action), param),
                                           indent=indent)
             return self.gen_statement(tpl % (bys[tag], selector, action), indent=indent)
         elif atype == "run" and tag == "script":
@@ -608,7 +607,7 @@ import apiritif
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'edit'])
+                            'edit', 'selectFrame'])
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|Content"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
