@@ -537,6 +537,11 @@ import apiritif
                       'self.driver.close(); self.driver.switch_to_window(current_window)'
                 return self.gen_statement(cmd, indent=indent)
 
+        elif tag == "frame":
+            if atype == "select":
+                cmd = "self.driver.switch_to_frame(self.driver.find_element(By.%s, %r))"
+                return self.gen_statement(cmd % (bys[tag], selector), indent=indent)
+
         elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
                      'asserttext', 'assertvalue', 'select', 'submit'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
@@ -570,6 +575,11 @@ import apiritif
             return self.gen_statement(tpl % (bys[tag], selector, action), indent=indent)
         elif atype == "execute" and tag == "script":
             return self.gen_statement('self.driver.execute_script("%s");' % selector, indent=indent)
+        elif atype == "edit" and tag == "content":
+            line = "element = self.driver.find_element(By.%s, %r); " % (bys[tag], selector)
+            line += "if element.editable: element.innerHTML=escapeHTML(%s); else: " % param
+            line += "raise SeleniumError('The value of contentEditable attribute of this element is not true.')"
+            return self.gen_statement(line % selector, indent=indent)
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
@@ -597,8 +607,9 @@ import apiritif
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
-                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'execute'])
-        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script"
+                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'execute',
+                            'edit'])
+        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|Content"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
