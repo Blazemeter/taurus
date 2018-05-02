@@ -527,3 +527,13 @@ class TestConverter(BZTestCase):
         requests = yml.get("scenarios").get("Thread Group").get("requests")
         self.assertEqual(len(requests), 14)
 
+    def test_loop_controllers(self):
+        self.configure(RESOURCES_DIR + "yaml/converter/loop-controllers.jmx")
+        self.obj.process()
+        yml = yaml.load(open(self.obj.dst_file).read())
+        requests = yml.get("scenarios").get("Thread Group").get("requests")
+        self.assertEqual(len(requests), 2)
+        first, second = requests
+        self.assertEqual('forever', first['loop'])
+        self.assertEqual(10, second['loop'])
+

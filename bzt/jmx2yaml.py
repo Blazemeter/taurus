@@ -1174,12 +1174,22 @@ class JMXasDict(JMX):
         return {'if': condition, 'then': requests}
 
     def __extract_loop_controller(self, controller, ht_element):
-        iterations = self._get_string_prop(controller, "LoopController.loops")
-        if iterations.isdigit():
-            iterations = int(iterations)
-        forever = self._get_bool_prop(controller, "LoopController.continue_forever")
+        # NOTE: we can't rely on LoopController.continue_forever , as it's for some reason always `true` on 4.0
+        # NOTE: LoopController.loops may be either stringProp or intProp, depending on version
+
+        strprop = controller.find(".//stringProp[@name='LoopController.loops']")
+        if strprop is not None and strprop.text:
+            iterations = int(strprop.text)
+        else:
+            intprop = controller.find(".//intProp[@name='LoopController.loops']")
+            if intprop is not None and intprop.text:
+                iterations = int(intprop.text)
+            else:
+                self.log.warning("LoopController.loops has non-numeric value, resetting to 1")
+                iterations = 1
+
+        loops = 'forever' if iterations == -1 else iterations
         requests = self.__extract_requests(ht_element)
-        loops = 'forever' if forever else iterations
         return {'loop': loops, 'do': requests}
 
     def __extract_while_controller(self, controller, ht_element):

@@ -981,6 +981,46 @@
                     "user"
                 ]
             }
+        },
+        "/user/{username}/gravatar": {
+            "put": {
+                "description": "This can only be done by the logged in user.",
+                "operationId": "updateUserGravatar",
+                "parameters": [
+                    {
+                        "description": "name that need to be updated",
+                        "in": "path",
+                        "name": "username",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "description": "Updated user gravatar",
+                        "in": "body",
+                        "name": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "file"
+                        }
+                    }
+                ],
+                "produces": [
+                    "application/xml",
+                    "application/json"
+                ],
+                "responses": {
+                    "400": {
+                        "description": "Invalid user supplied"
+                    },
+                    "404": {
+                        "description": "User not found"
+                    }
+                },
+                "summary": "Updated user",
+                "tags": [
+                    "user"
+                ]
+            }
         }
     },
     "schemes": [
