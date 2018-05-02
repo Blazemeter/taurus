@@ -40,7 +40,12 @@ Supported features:
   - pauseFor (pause for n seconds) 
   - request method GET (only)
   - selenium commands:
-    - keysBy*   
+    - window control (selectWindow, closeWindow)
+    - selectFrameBy* Switch to frame
+    - keysBy* Send keys to element
+    - editContent Change text in editable field (messenger history, etc.)
+    - submitBy* Send data of form by any its element
+    - runScript Execute JS command
     - waitBy* 
     - clickBy* 
     - doubleClickBy* 
@@ -76,11 +81,15 @@ scenarios:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
       - waitByCSS(body)
-      - clickByID(mySubmitButton)
+      - clickByID(mySubmitButton)   # link is open in new window (#1)
+      - selectWindow(0)     # switch to the first window (#0)
+      - closeWindow(1)      # close the second window (#1)
       - pauseFor(5s)
       - clearCookies()
       - keysByName(myInputName): keys_to_type
+      - submitByName(myInputName)
       - waitByID(myObjectToAppear): visible
+      - runScript('console.log(window.ourNameSpace.engine);')
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
