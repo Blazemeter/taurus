@@ -59,6 +59,9 @@ scenarios:
     - label: deleteUser
       method: DELETE
       url: ${default-path}/user/some_string
+    - label: updateUserGravatar
+      method: PUT
+      url: ${default-path}/user/some_string/gravatar
 settings:
   env:
     default-address: http://petstore.swagger.io
