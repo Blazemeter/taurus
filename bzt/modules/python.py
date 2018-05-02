@@ -573,7 +573,7 @@ import apiritif
                 return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[tag], selector, action), param),
                                           indent=indent)
             return self.gen_statement(tpl % (bys[tag], selector, action), indent=indent)
-        elif atype == "execute" and tag == "script":
+        elif atype == "run" and tag == "script":
             return self.gen_statement('self.driver.execute_script("%s");' % selector, indent=indent)
         elif atype == "edit" and tag == "content":
             line = "element = self.driver.find_element(By.%s, %r); " % (bys[tag], selector)
@@ -607,7 +607,7 @@ import apiritif
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
-                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'execute',
+                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
                             'edit'])
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|Content"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)

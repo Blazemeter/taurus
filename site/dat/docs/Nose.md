@@ -89,7 +89,7 @@ scenarios:
       - keysByName(myInputName): keys_to_type
       - submitByName(myInputName)
       - waitByID(myObjectToAppear): visible
-      - runScript('console.log(window.ourNameSpace.engine);')
+      - runScript("alert('This is Sparta');")
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
