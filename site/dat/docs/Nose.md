@@ -40,7 +40,7 @@ Supported features:
   - pauseFor (pause for n seconds) 
   - request method GET (only)
   - selenium commands:
-    - window control (selectWindow, closeWindow)
+    - window controls (selectWindow, closeWindow)
     - selectFrameBy* Switch to frame
     - keysBy* Send keys to element
     - editContent Change text in editable field (checks contenteditable prop)
