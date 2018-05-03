@@ -290,8 +290,8 @@ import apiritif
             action_append = False
             for action_config in req.config.get("actions", []):
                 action = self.gen_action(action_config, indent=12)
-                if action is not None:
-                    transaction_contents.append(action)
+                if action:
+                    transaction_contents.extend(action)
                     action_append = True
             if action_append:
                 transaction_contents.append(self.gen_new_line(indent=0))
@@ -521,6 +521,8 @@ import apiritif
         else:
             return
 
+        action_elements = []
+
         bys = {
             'byxpath': "XPATH",
             'bycss': "CSS_SELECTOR",
@@ -538,16 +540,16 @@ import apiritif
         if tag == "window":
             if atype == "select":
                 cmd = 'self.driver.switch_to_window(self.driver.window_handles[%s])' % selector
-                return self.gen_statement(cmd, indent=indent)
-            if atype == "close":
+                action_elements.append(self.gen_statement(cmd, indent=indent))
+            elif atype == "close":
                 cmd = 'current_window = self.driver.current_window_handle; ' + \
                     'self.driver.switch_to_window(self.driver.window_handles[%s]); ' % selector + \
                       'self.driver.close(); self.driver.switch_to_window(current_window)'
-                return self.gen_statement(cmd, indent=indent)
+                action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype == "selectframe":
                 cmd = "self.driver.switch_to_frame(self.driver.find_element(By.%s, %r))"
-                return self.gen_statement(cmd % (bys[tag], selector), indent=indent)
+                action_elements.append(self.gen_statement(cmd % (bys[tag], selector), indent=indent))
 
         elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
                      'asserttext', 'assertvalue', 'select', 'submit'):
@@ -564,45 +566,48 @@ import apiritif
             elif atype in action_chains:
                 tpl = "self.driver.find_element(By.%s, %r)"
                 action = action_chains[atype]
-                return self.gen_statement(
+                action_elements.append(self.gen_statement(
                     "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
-                    indent=indent)
+                    indent=indent))
             elif atype == 'select':
                 tpl = "self.driver.find_element(By.%s, %r)"
                 action = "select_by_visible_text(%r)" % param
-                return self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
-                                          indent=indent)
+                action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
+                                          indent=indent))
             elif atype.startswith('assert'):
                 if atype == 'asserttext':
                     action = "get_attribute('innerText')"
                 elif atype == 'assertvalue':
                     action = "get_attribute('value')"
-                return self.gen_statement("self.assertEqual(%s, %r)" % (tpl % (bys[tag], selector, action), param),
-                                          indent=indent)
-            return self.gen_statement(tpl % (bys[tag], selector, action), indent=indent)
+                action_elements.append(self.gen_statement("self.assertEqual(%s, %r)" % (tpl % (bys[tag], selector, action), param),
+                                          indent=indent))
+            action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
         elif atype == "run" and tag == "script":
-            return self.gen_statement('self.driver.execute_script("%s")' % selector, indent=indent)
+            action_elements.append(self.gen_statement('self.driver.execute_script("%s")' % selector, indent=indent))
         elif atype == "editcontent":
             element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
             tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); {element}.send_keys('{keys}')"
             vals = {"element": element, "keys": param}
-            return self.gen_statement(tpl.format(**vals), indent=indent)
+            action_elements.append(self.gen_statement(tpl.format(**vals), indent=indent))
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
-            return self.gen_statement(tpl % (timeout, mode, bys[tag], selector, errmsg), indent=indent)
+            action_elements.append(self.gen_statement(tpl % (timeout, mode, bys[tag], selector, errmsg), indent=indent))
         elif atype == 'pause' and tag == 'for':
             tpl = "sleep(%.f)"
-            return self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent)
+            action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
         elif atype == 'clear' and tag == 'cookies':
-            return self.gen_statement("self.driver.delete_all_cookies()", indent=indent)
+            action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
         elif atype == 'assert' and tag == 'title':
-            return self.gen_statement("self.assertEqual(self.driver.title,%r)" % selector, indent=indent)
+            action_elements.append(self.gen_statement("self.assertEqual(self.driver.title,%r)" % selector, indent=indent))
 
-        raise TaurusInternalException("Could not build code for action: %s" % action_config)
+        if not action_elements:
+            raise TaurusInternalException("Could not build code for action: %s" % action_config)
+
+        return action_elements
 
     def _parse_action(self, action_config):
         if isinstance(action_config, string_types):
@@ -638,7 +643,6 @@ import apiritif
             selector = selector[1:-1]
 
         return atype, tag, param, selector
-
 
 def capitalize(str):
     if str and str[0] in string.ascii_lowercase:
