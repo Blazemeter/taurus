@@ -273,7 +273,7 @@ import apiritif
             else:
                 raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
 
-            test_method.append(self.gen_statement('with apiritif.transaction(%r):' % label, indent=8))
+            test_method.append(self.gen_statement('with apiritif.transaction(%r):' % label))
             transaction_contents = []
 
             if req.url is not None:
@@ -283,39 +283,39 @@ import apiritif
                 else:
                     url = req.url
                 if req.timeout is not None:
-                    test_method.append(self.gen_impl_wait(req.timeout, indent=12))
-                transaction_contents.append(self.gen_statement("self.driver.get(%r)" % url, indent=12))
-                transaction_contents.append(self.gen_new_line(indent=0))
+                    test_method.append(self.gen_impl_wait(req.timeout, indent=self.INDENT_STEP*3))
+                transaction_contents.append(self.gen_statement("self.driver.get(%r)" % url, indent=self.INDENT_STEP*3))
+                transaction_contents.append(self.gen_new_line())
 
             action_append = False
             for action_config in req.config.get("actions", []):
-                action = self.gen_action(action_config, indent=12)
+                action = self.gen_action(action_config, indent=self.INDENT_STEP*3)
                 if action:
                     transaction_contents.extend(action)
                     action_append = True
             if action_append:
-                transaction_contents.append(self.gen_new_line(indent=0))
+                transaction_contents.append(self.gen_new_line())
 
             if transaction_contents:
                 for line in transaction_contents:
                     test_method.append(line)
             else:
-                test_method.append(self.gen_statement('pass', indent=12))
-            test_method.append(self.gen_new_line(indent=0))
+                test_method.append(self.gen_statement('pass', indent=self.INDENT_STEP*3))
+            test_method.append(self.gen_new_line())
 
             if "assert" in req.config:
                 test_method.append(self.gen_statement("body = self.driver.page_source"))
                 for assert_config in req.config.get("assert"):
                     for elm in self.gen_assertion(assert_config):
                         test_method.append(elm)
-                test_method.append(self.gen_new_line(indent=0))
+                test_method.append(self.gen_new_line())
 
             think_time = req.priority_option('think-time')
             if think_time is not None:
                 delay = dehumanize_time(think_time)
                 if delay > 0:
                     test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
-                    test_method.append(self.gen_new_line(indent=0))
+                    test_method.append(self.gen_new_line())
 
         test_class.append(test_method)
 
@@ -346,7 +346,7 @@ import apiritif
         timeout = self.scenario.get("timeout", "30s")
         scenario_timeout = dehumanize_time(timeout)
         test_method.append(self.gen_impl_wait(scenario_timeout))
-        test_method.append(self.gen_new_line(indent=0))
+        test_method.append(self.gen_new_line())
 
     def gen_setup_method(self):
         desire_capabilities = {}
@@ -463,10 +463,10 @@ import apiritif
         else:
             pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.fullscreen()"))
 
-        setup_method_def.append(self.gen_new_line(indent=0))
+        setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
-    def gen_impl_wait(self, timeout, indent=8):
+    def gen_impl_wait(self, timeout, indent=None):
         return self.gen_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout), indent=indent)
 
     def gen_test_method(self, name):
@@ -478,7 +478,7 @@ import apiritif
         self.log.debug("Generating tearDown test method")
         tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
         tear_down_method_def.append(self.gen_statement("self.driver.quit()"))
-        tear_down_method_def.append(self.gen_new_line(indent=0))
+        tear_down_method_def.append(self.gen_new_line())
         return tear_down_method_def
 
     def gen_assertion(self, assertion_config):
@@ -514,7 +514,7 @@ import apiritif
                 assertion_elements.append(self.gen_statement(method))
         return assertion_elements
 
-    def gen_action(self, action_config, indent=8):
+    def gen_action(self, action_config, indent=None):
         action = self._parse_action(action_config)
         if action:
             atype, tag, param, selector = action
