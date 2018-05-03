@@ -581,7 +581,8 @@ import apiritif
                     action = "get_attribute('value')"
                 action_elements.append(self.gen_statement("self.assertEqual(%s, %r)" % (tpl % (bys[tag], selector, action), param),
                                           indent=indent))
-            action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
+            if not action_elements:
+                action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
         elif atype == "run" and tag == "script":
             action_elements.append(self.gen_statement('self.driver.execute_script("%s")' % selector, indent=indent))
         elif atype == "editcontent":
