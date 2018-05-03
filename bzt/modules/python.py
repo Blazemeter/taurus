@@ -349,33 +349,23 @@ import apiritif
         test_method.append(self.gen_impl_wait(scenario_timeout))
         test_method.append(self.gen_new_line())
 
-    def gen_setup_method(self):
-        desire_capabilities = {}
+    def _check_platform(self):
         inherited_capabilities = []
-
-        self.log.debug("Generating setUp test method")
-        browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
         mobile_browsers = ["Chrome", "Safari"]
         mobile_platforms = ["Android", "iOS"]
+        browser = self.scenario.get("browser", None)
 
-        browser = dict(self.scenario).get("browser", None)
-        # Split platform: Browser
         browser_platform = None
         if browser:
             browser_split = browser.split("-")
             browser = browser_split[0]
+            browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
+            if browser not in browsers:
+                raise TaurusConfigError("Unsupported browser name: %s" % browser)
             if len(browser_split) > 1:
                 browser_platform = browser_split[1]
-        if browser and (browser not in browsers):
-            raise TaurusConfigError("Unsupported browser name: %s" % browser)
 
-        headless = self.scenario.get("headless", False)
-        if headless:
-            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
-
-        setup_method_def = self.gen_method_definition("setUp", ["self"])
-
-        remote_executor = dict(self.scenario).get("remote", None)
+        remote_executor = dict(self.scenario).get("remote")
 
         if not browser and remote_executor:
             browser = "Remote"
@@ -386,6 +376,18 @@ import apiritif
             browser = "Remote"  # Force to use remote web driver
         elif not browser:
             browser = "Firefox"
+
+        return browser, inherited_capabilities, remote_executor
+
+    def gen_setup_method(self):
+        self.log.debug("Generating setUp test method")
+        browser, inherited_capabilities, remote_executor = self._check_platform()
+
+        headless = self.scenario.get("headless", False)
+        if headless:
+            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
+
+        setup_method_def = self.gen_method_definition("setUp", ["self"])
 
         if browser == 'Firefox':
             setup_method_def.append(self.gen_statement("options = webdriver.FirefoxOptions()"))
@@ -404,8 +406,7 @@ import apiritif
             statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'Remote':
-            setup_method_def.append(
-                self._gen_remote_driver(inherited_capabilities, desire_capabilities, remote_executor))
+            setup_method_def.append(self._gen_remote_driver(inherited_capabilities, remote_executor))
         else:
             if headless:
                 self.log.warning("Browser %r doesn't support headless mode")
@@ -426,33 +427,32 @@ import apiritif
         setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
-    def _gen_remote_driver(self, inherited_caps, desired_caps, remote_executor):
+    def _gen_remote_driver(self, inherited_caps, remote_executor):
+        desired_caps = {}
         remote_caps = dict(self.scenario).get("capabilities", [])
         if not isinstance(remote_caps, list): remote_caps = [remote_caps]
         capabilities = remote_caps + inherited_caps
-        supported_caps = ["browser", "version", "javascript", "platform", "os_version", "selenium", "device", "app"]
 
         for capability in capabilities:
             for cap_key in capability.keys():
-                if cap_key not in supported_caps:
-                    raise TaurusConfigError("Unsupported capability name: %s" % cap_key)
+                if cap_key == "browser":
+                    desired_caps["browserName"] = capability[cap_key]
+                elif cap_key == "version":
+                    desired_caps["version"] = str(capability[cap_key])
+                elif cap_key == "selenium":
+                    desired_caps["seleniumVersion"] = str(capability[cap_key])
+                elif cap_key == "javascript":
+                    desired_caps["javascriptEnabled"] = capability[cap_key]
+                elif cap_key == "platform":
+                    desired_caps["platformName"] = str(capability[cap_key])
+                elif cap_key == "os_version":
+                    desired_caps["platformVersion"] = str(capability[cap_key])
+                elif cap_key == "device":
+                    desired_caps["deviceName"] = str(capability[cap_key])
+                elif cap_key == "app":
+                    desired_caps[cap_key] = capability[cap_key]
                 else:
-                    if cap_key == "browser":
-                        desired_caps["browserName"] = capability[cap_key]
-                    elif cap_key == "version":
-                        desired_caps["version"] = str(capability[cap_key])
-                    elif cap_key == "selenium":
-                        desired_caps["seleniumVersion"] = str(capability[cap_key])
-                    elif cap_key == "javascript":
-                        desired_caps["javascriptEnabled"] = capability[cap_key]
-                    elif cap_key == "platform":
-                        desired_caps["platformName"] = str(capability[cap_key])
-                    elif cap_key == "os_version":
-                        desired_caps["platformVersion"] = str(capability[cap_key])
-                    elif cap_key == "device":
-                        desired_caps["deviceName"] = str(capability[cap_key])
-                    else:
-                        desired_caps[cap_key] = capability[cap_key]
+                    raise TaurusConfigError("Unsupported capability name: %s" % cap_key)
 
         tpl = "self.driver = webdriver.Remote(command_executor={command_executor}, desired_capabilities={des_caps})"
 
@@ -462,8 +462,7 @@ import apiritif
             else:
                 remote_executor = "http://localhost:4444/wd/hub"
 
-        str_des_caps = json.dumps(desired_caps, sort_keys=True)
-        cmd = tpl.format(command_executor=repr(remote_executor), des_caps=str_des_caps)
+        cmd = tpl.format(command_executor=repr(remote_executor), des_caps=json.dumps(desired_caps, sort_keys=True))
 
         return self.gen_statement(cmd)
 
