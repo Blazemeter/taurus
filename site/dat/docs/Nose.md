@@ -98,6 +98,7 @@ scenarios:
         regexp: false  # treat string as regular expression
         not: false  # inverse assertion condition
 ```
+All action names are case insensitive. Despite it misprint in action names or usage of unsupported actions break your scenario execution. To avoid it you can use 'safe-mode' scenario param and taurus will show warning when unknown action occurs.
 
 ## Remote WebDriver
 
