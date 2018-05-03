@@ -251,6 +251,7 @@ import apiritif
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
+        self.safe_mode = scenario.get("safe-mode", False)
 
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
@@ -286,10 +287,13 @@ import apiritif
                 transaction_contents.append(self.gen_statement("self.driver.get(%r)" % url, indent=12))
                 transaction_contents.append(self.gen_new_line(indent=0))
 
-            actions = req.config.get("actions", [])
-            for action_config in actions:
-                transaction_contents.append(self.gen_action(action_config, indent=12))
-            if actions:
+            action_append = False
+            for action_config in req.config.get("actions", []):
+                action = self.gen_action(action_config, indent=12)
+                if action is not None:
+                    transaction_contents.append(action)
+                    action_append = True
+            if action_append:
                 transaction_contents.append(self.gen_new_line(indent=0))
 
             if transaction_contents:
@@ -511,7 +515,11 @@ import apiritif
         return assertion_elements
 
     def gen_action(self, action_config, indent=8):
-        atype, tag, param, selector = self._parse_action(action_config)
+        action = self._parse_action(action_config)
+        if action:
+            atype, tag, param, selector = action
+        else:
+            return
 
         bys = {
             'byxpath': "XPATH",
@@ -612,7 +620,12 @@ import apiritif
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
-            raise TaurusConfigError("Unsupported action: %s" % name)
+            msg = "Unsupported action: %s" % name
+            if self.safe_mode:
+                self.log.warning(msg)
+                return
+            else:
+                raise TaurusConfigError(msg)
 
         atype = res.group(1).lower()
         tag = res.group(2).lower()
