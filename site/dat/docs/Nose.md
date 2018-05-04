@@ -98,7 +98,20 @@ scenarios:
         regexp: false  # treat string as regular expression
         not: false  # inverse assertion condition
 ```
-All action names are case insensitive. Despite it misprint in action names or usage of unsupported actions break your scenario execution. To avoid it you can use 'safe-mode' scenario param and taurus will show warning when unknown action occurs.
+All action names are case insensitive. Despite it misprint in action names or usage of unsupported actions break your scenario execution. 
+To avoid it you can use `ignore-unknown-actions` Nose flag and taurus will show warning when unknown action occurs.
+```yaml
+scenario:
+  sample:
+    requests:
+    - url: http://blazedemo.com
+      actions:
+      - definitelyUnknownAction(unknownSelector) 
+modules:
+  nose:
+    ignore-unknown-action: True   # 
+
+```
 
 ## Remote WebDriver
 
