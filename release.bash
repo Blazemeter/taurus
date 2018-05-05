@@ -3,21 +3,21 @@
 echo "Building Grinder plugin"
 pushd $(dirname $0)/java/grinder_logger
 mvn clean package
-cp target/*.jar ../../bzt/resources/
+cp target/*.jar $(dirname $0)/../../bzt/resources/
 popd
 
 echo "Building JUnit plugin"
 pushd $(dirname $0)/java/JUnit_plugin
 mvn clean package
-cp target/*.jar ../../bzt/resources/
+cp target/*.jar $(dirname $0)/../../bzt/resources/
 popd
 
 echo "Building TestNG plugin"
 pushd $(dirname $0)/java/TestNG_plugin
 mvn clean package
-cp target/*.jar ../../bzt/resources/
+cp target/*.jar $(dirname $0)/../../bzt/resources/
 popd
 
-./build-sdist.sh
+$(dirname $0)/build-sdist.sh
 
 python $(dirname $0)/setup.py sdist bdist_wheel upload
