@@ -544,7 +544,8 @@ import apiritif
                 cmd = 'self.driver.switch_to.window(self.driver.window_handles[%s])' % selector
                 action_elements.append(self.gen_statement(cmd, indent=indent))
             elif atype == "close":
-                cmd = 'print(" _d_: %s" % type(self.driver.window_handles[1])); self.driver.close()'
+                #cmd = 'print(" _d_: %s" % type(self.driver.window_handles[1])); self.driver.close()'
+                cmd = 'self.driver.close()'
                 action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype == "selectframe":
