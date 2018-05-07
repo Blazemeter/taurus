@@ -353,6 +353,8 @@ import apiritif
         inherited_capabilities = []
         mobile_browsers = ["Chrome", "Safari"]
         mobile_platforms = ["Android", "iOS"]
+        remote_executor = self.scenario.get("remote")
+
         browser = self.scenario.get("browser", None)
 
         browser_platform = None
@@ -364,8 +366,6 @@ import apiritif
                 raise TaurusConfigError("Unsupported browser name: %s" % browser)
             if len(browser_split) > 1:
                 browser_platform = browser_split[1]
-
-        remote_executor = dict(self.scenario).get("remote")
 
         if not browser and remote_executor:
             browser = "Remote"
@@ -429,8 +429,9 @@ import apiritif
 
     def _gen_remote_driver(self, inherited_caps, remote_executor):
         desired_caps = {}
-        remote_caps = dict(self.scenario).get("capabilities", [])
-        if not isinstance(remote_caps, list): remote_caps = [remote_caps]
+        remote_caps = self.scenario.get("capabilities", [])
+        if not isinstance(remote_caps, list):
+            remote_caps = [remote_caps]
         capabilities = remote_caps + inherited_caps
 
         for capability in capabilities:
@@ -548,8 +549,13 @@ import apiritif
                 action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype == "selectframe":
-            cmd = "self.driver.switch_to_frame(self.driver.find_element(By.%s, %r))"
-            action_elements.append(self.gen_statement(cmd % (bys[tag], selector), indent=indent))
+            if tag == "byidx":
+                frame = str(selector)
+            else:
+                frame = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
+
+            cmd = "self.driver.switch_to.frame(%s)" % frame
+            action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
                        'asserttext', 'assertvalue', 'select', 'submit'):
@@ -624,7 +630,7 @@ import apiritif
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
                             'editcontent', 'selectFrame'])
-        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script"
+        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:

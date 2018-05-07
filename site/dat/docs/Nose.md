@@ -56,7 +56,7 @@ Supported features:
     - selectBy* Select value in drop down list
     - assertTitle
 
-Note: * selected by ID/Name/CSS/XPath 
+Note: * selected by ID/Name/CSS/XPath. You can select frames by index (ByIdx) additionally.
    
 Action names are built as `<action>By<selector type>(<selector>)`. Sometimes actions can have value. Options are:
   - `waitByID`, `waitByName`, `waitByLinkText`, `waitByCSS` and `waitByXPath` - to wait until desired option becomes present on page.
