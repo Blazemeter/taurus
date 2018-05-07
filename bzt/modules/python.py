@@ -635,7 +635,7 @@ import apiritif
         res = expr.match(name)
         if not res:
             msg = "Unsupported action: %s" % name
-            if self.safe_mode:
+            if self.ignore_unknown_actions:
                 self.log.warning(msg)
                 return
             else:
