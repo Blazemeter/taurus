@@ -45,7 +45,7 @@ class TestRequests(unittest.TestCase):
             self.driver.find_element(By.XPATH, '//div[3]/form/select[1]//option[3]').click()
             self.driver.find_element(By.XPATH, '//div[3]/form/select[2]//option[6]').click()
             self.driver.switch_to.window(self.driver.window_handles[0])
-            current_window = self.driver.current_window_handle; self.driver.switch_to.window(self.driver.window_handles[1]); self.driver.close(); self.driver.switch_to.window(current_window)
+            self.driver.close()
             self.driver.find_element(By.NAME, 'toPort').submit()
             self.driver.execute_script("alert('This is Sparta');")
             self.driver.switch_to.frame(self.driver.find_element(By.NAME, 'my_frame'))
