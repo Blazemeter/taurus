@@ -37,7 +37,7 @@ from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems, text_type
-from bzt.utils import BetterDict, ensure_is_dict, shell_exec, FileReader
+from bzt.utils import ensure_is_dict, shell_exec, FileReader
 from bzt.utils import get_full_path, RequiredTool, PythonGenerator, dehumanize_time
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -87,7 +87,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
-            builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
+            ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
+            builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
 
         builder.build_source_code()
         builder.save(filename)
@@ -246,12 +247,12 @@ import apiritif
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
-    def __init__(self, scenario, parent_logger, wdlog):
+    def __init__(self, scenario, parent_logger, wdlog, ignore_unknown_actions=False):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
-        self.safe_mode = scenario.get("safe-mode", False)
+        self.ignore_unknown_actions = ignore_unknown_actions
 
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")

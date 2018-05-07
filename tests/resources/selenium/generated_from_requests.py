@@ -17,7 +17,7 @@ class TestRequests(unittest.TestCase):
     def setUp(self):
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', '/home/taras/Projects/taurus/build/test/2018-05-02_16-22-36.990010/webdriver.log')
+        profile.set_preference('webdriver.log.file', '<somewhere>/webdriver.log')
         self.driver = webdriver.Firefox(profile, firefox_options=options)
         self.driver.implicitly_wait(3.5)
 
