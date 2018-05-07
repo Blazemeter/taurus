@@ -37,7 +37,7 @@ from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import parse, string_types, iteritems, text_type
-from bzt.utils import BetterDict, ensure_is_dict, shell_exec, FileReader
+from bzt.utils import ensure_is_dict, shell_exec, FileReader
 from bzt.utils import get_full_path, RequiredTool, PythonGenerator, dehumanize_time
 
 IGNORED_LINE = re.compile(r"[^,]+,Total:\d+ Passed:\d+ Failed:\d+")
@@ -87,7 +87,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
-            builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog)
+            ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
+            builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
 
         builder.build_source_code()
         builder.save(filename)
@@ -228,7 +229,6 @@ from selenium.webdriver.common.keys import Keys
 
 import apiritif
 """
-
     IMPORTS_APPIUM = """import unittest
 import re
 from time import sleep
@@ -245,11 +245,14 @@ from selenium.webdriver.common.keys import Keys
 import apiritif
     """
 
-    def __init__(self, scenario, parent_logger, wdlog):
+    TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
+
+    def __init__(self, scenario, parent_logger, wdlog, ignore_unknown_actions=False):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
+        self.ignore_unknown_actions = ignore_unknown_actions
 
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
@@ -271,7 +274,7 @@ import apiritif
             else:
                 raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
 
-            test_method.append(self.gen_statement('with apiritif.transaction(%r):' % label, indent=8))
+            test_method.append(self.gen_statement('with apiritif.transaction(%r):' % label))
             transaction_contents = []
 
             if req.url is not None:
@@ -281,36 +284,40 @@ import apiritif
                 else:
                     url = req.url
                 if req.timeout is not None:
-                    test_method.append(self.gen_impl_wait(req.timeout, indent=12))
-                transaction_contents.append(self.gen_statement("self.driver.get(%r)" % url, indent=12))
-                transaction_contents.append(self.gen_new_line(indent=0))
+                    test_method.append(self.gen_impl_wait(req.timeout, indent=self.INDENT_STEP * 3))
+                transaction_contents.append(
+                    self.gen_statement("self.driver.get(%r)" % url, indent=self.INDENT_STEP * 3))
+                transaction_contents.append(self.gen_new_line())
 
-            actions = req.config.get("actions", [])
-            for action_config in actions:
-                transaction_contents.append(self.gen_action(action_config, indent=12))
-            if actions:
-                transaction_contents.append(self.gen_new_line(indent=0))
+            action_append = False
+            for action_config in req.config.get("actions", []):
+                action = self.gen_action(action_config, indent=self.INDENT_STEP * 3)
+                if action:
+                    transaction_contents.extend(action)
+                    action_append = True
+            if action_append:
+                transaction_contents.append(self.gen_new_line())
 
             if transaction_contents:
                 for line in transaction_contents:
                     test_method.append(line)
             else:
-                test_method.append(self.gen_statement('pass', indent=12))
-            test_method.append(self.gen_new_line(indent=0))
+                test_method.append(self.gen_statement('pass', indent=self.INDENT_STEP * 3))
+            test_method.append(self.gen_new_line())
 
             if "assert" in req.config:
                 test_method.append(self.gen_statement("body = self.driver.page_source"))
                 for assert_config in req.config.get("assert"):
                     for elm in self.gen_assertion(assert_config):
                         test_method.append(elm)
-                test_method.append(self.gen_new_line(indent=0))
+                test_method.append(self.gen_new_line())
 
             think_time = req.priority_option('think-time')
             if think_time is not None:
                 delay = dehumanize_time(think_time)
                 if delay > 0:
                     test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
-                    test_method.append(self.gen_new_line(indent=0))
+                    test_method.append(self.gen_new_line())
 
         test_class.append(test_method)
 
@@ -341,37 +348,25 @@ import apiritif
         timeout = self.scenario.get("timeout", "30s")
         scenario_timeout = dehumanize_time(timeout)
         test_method.append(self.gen_impl_wait(scenario_timeout))
-        test_method.append(self.gen_new_line(indent=0))
+        test_method.append(self.gen_new_line())
 
-    def gen_setup_method(self):
-        desire_capabilities = {}
+    def _check_platform(self):
         inherited_capabilities = []
-
-        self.log.debug("Generating setUp test method")
-        browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
         mobile_browsers = ["Chrome", "Safari"]
         mobile_platforms = ["Android", "iOS"]
+        remote_executor = self.scenario.get("remote")
 
-        browser = dict(self.scenario).get("browser", None)
-        # Split platform: Browser
+        browser = self.scenario.get("browser", None)
+
         browser_platform = None
         if browser:
             browser_split = browser.split("-")
             browser = browser_split[0]
+            browsers = ["Firefox", "Chrome", "Ie", "Opera", "Remote"]
+            if browser not in browsers:
+                raise TaurusConfigError("Unsupported browser name: %s" % browser)
             if len(browser_split) > 1:
                 browser_platform = browser_split[1]
-        if browser and (browser not in browsers):
-            raise TaurusConfigError("Unsupported browser name: %s" % browser)
-        headless = False
-        if "headless" in self.scenario:
-            headless = self.scenario.get("headless")
-
-        if headless:
-            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
-
-        setup_method_def = self.gen_method_definition("setUp", ["self"])
-
-        remote_executor = dict(self.scenario).get("remote", None)
 
         if not browser and remote_executor:
             browser = "Remote"
@@ -383,10 +378,17 @@ import apiritif
         elif not browser:
             browser = "Firefox"
 
-        if not self.appium and browser == "Remote" and not remote_executor:
-            remote_executor = "http://localhost:4444/wd/hub"
-        elif self.appium and not remote_executor:
-            remote_executor = "http://localhost:4723/wd/hub"
+        return browser, inherited_capabilities, remote_executor
+
+    def gen_setup_method(self):
+        self.log.debug("Generating setUp test method")
+        browser, inherited_capabilities, remote_executor = self._check_platform()
+
+        headless = self.scenario.get("headless", False)
+        if headless:
+            self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
+
+        setup_method_def = self.gen_method_definition("setUp", ["self"])
 
         if browser == 'Firefox':
             setup_method_def.append(self.gen_statement("options = webdriver.FirefoxOptions()"))
@@ -405,42 +407,7 @@ import apiritif
             statement = "self.driver = webdriver.Chrome(service_log_path=%s, chrome_options=options)"
             setup_method_def.append(self.gen_statement(statement % repr(self.wdlog)))
         elif browser == 'Remote':
-
-            remote_capabilities = dict(self.scenario).get("capabilities", [])
-            if not isinstance(remote_capabilities, list): remote_capabilities = [remote_capabilities]
-            remote_capabilities = remote_capabilities + inherited_capabilities
-
-            supported_capabilities = ["browser", "version", "javascript", "platform", "os_version",
-                                      "selenium", "device", "app"]
-            for capability in remote_capabilities:
-                for cap_key in capability.keys():
-                    if cap_key not in supported_capabilities:
-                        raise TaurusConfigError("Unsupported capability name: %s" % cap_key)
-                    else:
-                        if cap_key == "browser":
-                            desire_capabilities["browserName"] = capability[cap_key]
-                        elif cap_key == "version":
-                            desire_capabilities["version"] = str(capability[cap_key])
-                        elif cap_key == "selenium":
-                            desire_capabilities["seleniumVersion"] = str(capability[cap_key])
-                        elif cap_key == "javascript":
-                            desire_capabilities["javascriptEnabled"] = capability[cap_key]
-                        elif cap_key == "platform":
-                            desire_capabilities["platformName"] = str(capability[cap_key])
-                        elif cap_key == "os_version":
-                            desire_capabilities["platformVersion"] = str(capability[cap_key])
-                        elif cap_key == "device":
-                            desire_capabilities["deviceName"] = str(capability[cap_key])
-                        else:
-                            desire_capabilities[cap_key] = capability[cap_key]
-
-            statement = "self.driver = webdriver.Remote(" \
-                        "command_executor={command_executor} " \
-                        ", desired_capabilities={desired_capabilities})"
-
-            setup_method_def.append(self.gen_statement(
-                statement.format(command_executor=repr(remote_executor),
-                                 desired_capabilities=json.dumps(desire_capabilities, sort_keys=True))))
+            setup_method_def.append(self._gen_remote_driver(inherited_capabilities, remote_executor))
         else:
             if headless:
                 self.log.warning("Browser %r doesn't support headless mode")
@@ -458,10 +425,50 @@ import apiritif
         else:
             pass  # TODO: setup_method_def.append(self.gen_statement("self.driver.fullscreen()"))
 
-        setup_method_def.append(self.gen_new_line(indent=0))
+        setup_method_def.append(self.gen_new_line())
         return setup_method_def
 
-    def gen_impl_wait(self, timeout, indent=8):
+    def _gen_remote_driver(self, inherited_caps, remote_executor):
+        desired_caps = {}
+        remote_caps = self.scenario.get("capabilities", [])
+        if not isinstance(remote_caps, list):
+            remote_caps = [remote_caps]
+        capabilities = remote_caps + inherited_caps
+
+        for capability in capabilities:
+            for cap_key in capability.keys():
+                if cap_key == "browser":
+                    desired_caps["browserName"] = capability[cap_key]
+                elif cap_key == "version":
+                    desired_caps["version"] = str(capability[cap_key])
+                elif cap_key == "selenium":
+                    desired_caps["seleniumVersion"] = str(capability[cap_key])
+                elif cap_key == "javascript":
+                    desired_caps["javascriptEnabled"] = capability[cap_key]
+                elif cap_key == "platform":
+                    desired_caps["platformName"] = str(capability[cap_key])
+                elif cap_key == "os_version":
+                    desired_caps["platformVersion"] = str(capability[cap_key])
+                elif cap_key == "device":
+                    desired_caps["deviceName"] = str(capability[cap_key])
+                elif cap_key == "app":
+                    desired_caps[cap_key] = capability[cap_key]
+                else:
+                    raise TaurusConfigError("Unsupported capability name: %s" % cap_key)
+
+        tpl = "self.driver = webdriver.Remote(command_executor={command_executor}, desired_capabilities={des_caps})"
+
+        if not remote_executor:
+            if self.appium:
+                remote_executor = "http://localhost:4723/wd/hub"
+            else:
+                remote_executor = "http://localhost:4444/wd/hub"
+
+        cmd = tpl.format(command_executor=repr(remote_executor), des_caps=json.dumps(desired_caps, sort_keys=True))
+
+        return self.gen_statement(cmd)
+
+    def gen_impl_wait(self, timeout, indent=None):
         return self.gen_statement("self.driver.implicitly_wait(%s)" % dehumanize_time(timeout), indent=indent)
 
     def gen_test_method(self, name):
@@ -473,7 +480,7 @@ import apiritif
         self.log.debug("Generating tearDown test method")
         tear_down_method_def = self.gen_method_definition("tearDown", ["self"])
         tear_down_method_def.append(self.gen_statement("self.driver.quit()"))
-        tear_down_method_def.append(self.gen_new_line(indent=0))
+        tear_down_method_def.append(self.gen_new_line())
         return tear_down_method_def
 
     def gen_assertion(self, assertion_config):
@@ -509,8 +516,14 @@ import apiritif
                 assertion_elements.append(self.gen_statement(method))
         return assertion_elements
 
-    def gen_action(self, action_config, indent=8):
-        aby, atype, param, selector = self._parse_action(action_config)
+    def gen_action(self, action_config, indent=None):
+        action = self._parse_action(action_config)
+        if action:
+            atype, tag, param, selector = action
+        else:
+            return
+
+        action_elements = []
 
         bys = {
             'byxpath': "XPATH",
@@ -526,12 +539,32 @@ import apiritif
             'mousemove': "move_to_element"
         }
 
-        if atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
-                     'asserttext', 'assertvalue', 'select'):
+        if tag == "window":
+            if atype == "select":
+                cmd = 'self.driver.switch_to.window(self.driver.window_handles[%s])' % selector
+                action_elements.append(self.gen_statement(cmd, indent=indent))
+            elif atype == "close":
+                #cmd = 'print(" _d_: %s" % type(self.driver.window_handles[1])); self.driver.close()'
+                cmd = 'self.driver.close()'
+                action_elements.append(self.gen_statement(cmd, indent=indent))
+
+        elif atype == "selectframe":
+            if tag == "byidx":
+                frame = str(selector)
+            else:
+                frame = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
+
+            cmd = "self.driver.switch_to.frame(%s)" % frame
+            action_elements.append(self.gen_statement(cmd, indent=indent))
+
+        elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
+                       'asserttext', 'assertvalue', 'select', 'submit'):
             tpl = "self.driver.find_element(By.%s, %r).%s"
             action = None
             if atype == 'click':
                 action = "click()"
+            elif atype == 'submit':
+                action = "submit()"
             elif atype == 'keys':
                 action = "send_keys(%r)" % param
                 if isinstance(param, str) and param.startswith("KEY_"):
@@ -539,38 +572,51 @@ import apiritif
             elif atype in action_chains:
                 tpl = "self.driver.find_element(By.%s, %r)"
                 action = action_chains[atype]
-                return self.gen_statement(
-                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[aby], selector))),
-                    indent=indent)
+                action_elements.append(self.gen_statement(
+                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
+                    indent=indent))
             elif atype == 'select':
                 tpl = "self.driver.find_element(By.%s, %r)"
                 action = "select_by_visible_text(%r)" % param
-                return self.gen_statement("Select(%s).%s" % (tpl % (bys[aby], selector), action),
-                                          indent=indent)
+                action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
+                                                          indent=indent))
             elif atype.startswith('assert'):
                 if atype == 'asserttext':
                     action = "get_attribute('innerText')"
                 elif atype == 'assertvalue':
                     action = "get_attribute('value')"
-                return self.gen_statement("self.assertEqual(%s,%r)" % (tpl % (bys[aby], selector, action), param),
-                                          indent=indent)
-            return self.gen_statement(tpl % (bys[aby], selector, action), indent=indent)
+                action_elements.append(
+                    self.gen_statement("self.assertEqual(%s, %r)" % (tpl % (bys[tag], selector, action), param),
+                                       indent=indent))
+            if not action_elements:
+                action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
+        elif atype == "run" and tag == "script":
+            action_elements.append(self.gen_statement('self.driver.execute_script("%s")' % selector, indent=indent))
+        elif atype == "editcontent":
+            element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
+            tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); {element}.send_keys('{keys}')"
+            vals = {"element": element, "keys": param}
+            action_elements.append(self.gen_statement(tpl.format(**vals), indent=indent))
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
-            return self.gen_statement(tpl % (timeout, mode, bys[aby], selector, errmsg), indent=indent)
-        elif atype == 'pause' and aby == 'for':
+            action_elements.append(self.gen_statement(tpl % (timeout, mode, bys[tag], selector, errmsg), indent=indent))
+        elif atype == 'pause' and tag == 'for':
             tpl = "sleep(%.f)"
-            return self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent)
-        elif atype == 'clear' and aby == 'cookies':
-            return self.gen_statement("self.driver.delete_all_cookies()", indent=indent)
-        elif atype == 'assert' and aby == 'title':
-            return self.gen_statement("self.assertEqual(self.driver.title,%r)" % selector, indent=indent)
+            action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
+        elif atype == 'clear' and tag == 'cookies':
+            action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
+        elif atype == 'assert' and tag == 'title':
+            action_elements.append(
+                self.gen_statement("self.assertEqual(self.driver.title,%r)" % selector, indent=indent))
 
-        raise TaurusInternalException("Could not build code for action: %s" % action_config)
+        if not action_elements:
+            raise TaurusInternalException("Could not build code for action: %s" % action_config)
+
+        return action_elements
 
     def _parse_action(self, action_config):
         if isinstance(action_config, string_types):
@@ -582,15 +628,21 @@ import apiritif
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
-                            'pause', 'clear', 'assert', 'assertText', 'assertValue'])
-        bys = "byName|byID|byCSS|byXPath|byLinkText|For|Cookies|Title"
-        expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, bys), re.IGNORECASE)
+                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
+                            'editcontent', 'selectFrame'])
+        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx"
+        expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
-            raise TaurusConfigError("Unsupported action: %s" % name)
+            msg = "Unsupported action: %s" % name
+            if self.safe_mode:
+                self.log.warning(msg)
+                return
+            else:
+                raise TaurusConfigError(msg)
 
         atype = res.group(1).lower()
-        aby = res.group(2).lower()
+        tag = res.group(2).lower()
         selector = res.group(3)
 
         # hello, reviewer!
@@ -599,7 +651,7 @@ import apiritif
         elif selector.startswith("'") and selector.endswith("'"):
             selector = selector[1:-1]
 
-        return aby, atype, param, selector
+        return atype, tag, param, selector
 
 
 def capitalize(str):
@@ -758,7 +810,6 @@ log.setLevel(logging.DEBUG)
         store_cookie = self.scenario.get("store-cookie", None)
         timeout = self.scenario.get("timeout", None)
         follow_redirects = self.scenario.get("follow-redirects", True)
-
 
         if keepalive is None:
             keepalive = True

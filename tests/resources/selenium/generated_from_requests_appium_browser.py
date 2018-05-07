@@ -15,7 +15,7 @@ import apiritif
 
 class TestRequests(unittest.TestCase):
     def setUp(self):
-        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub' , desired_capabilities={"browserName": "Chrome", "deviceName": "", "platformName": "Android"})
+        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={"browserName": "Chrome", "deviceName": "", "platformName": "Android"})
         self.driver.implicitly_wait(3.5)
 
     def tearDown(self):
