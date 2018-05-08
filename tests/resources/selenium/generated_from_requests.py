@@ -16,6 +16,7 @@ import selenium_taurus_extras
 
 _vars = {}
 _tpl = selenium_taurus_extras.Template(_vars)
+_vars['red_pill'] = 'take_it'
 
 class TestRequests(unittest.TestCase):
     def setUp(self):

@@ -289,6 +289,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "scenarios": {
                 "loc_sc": {
                     "default-address": "http://blazedemo.com",
+                    "variables": {
+                        "red_pill": "take_it"
+                    },
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "/",
