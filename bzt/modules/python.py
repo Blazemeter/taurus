@@ -350,7 +350,7 @@ import selenium_taurus_extras
         ]
 
         for key, value in iteritems(variables):
-            stmts.append("vars['%s']=%r" % (key, value))
+            stmts.append("_vars['%s']=%r" % (key, value))
         stmts.append("")
         return self.gen_statement("\n".join(stmts), indent=0)
 
