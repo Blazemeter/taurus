@@ -290,7 +290,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                 "loc_sc": {
                     "default-address": "http://blazedemo.com",
                     "variables": {
-                        "red_pill": "take_it"
+                        "red_pill": "take_it",
+                        "name": "Name"
                     },
                     "timeout": "3.5s",
                     "requests": [{
@@ -309,7 +310,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"selectByName(toPort)": "London"},
                             {"keysByCSS(body input.btn.btn-primary)": "KEY_ENTER"},
                             {"assertValueByID(address)": "123 Beautiful st."},
-                            {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "Name"},
+                            {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "${name}"},
                             {"waitByName('toPort')": "visible"},
                             {"keysByName(\"toPort\")": "B"},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",

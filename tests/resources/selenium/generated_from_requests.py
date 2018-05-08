@@ -16,6 +16,7 @@ import selenium_taurus_extras
 
 _vars = {}
 _tpl = selenium_taurus_extras.Template(_vars)
+_vars['name'] = 'Name'
 _vars['red_pill'] = 'take_it'
 
 class TestRequests(unittest.TestCase):
@@ -43,8 +44,8 @@ class TestRequests(unittest.TestCase):
             ActionChains(self.driver).release(self.driver.find_element(By.XPATH, '/html/body/div[3]/form/select[1]/option[6]')).perform()
             Select(self.driver.find_element(By.NAME, 'toPort')).select_by_visible_text('London')
             self.driver.find_element(By.CSS_SELECTOR, 'body input.btn.btn-primary').send_keys(Keys.ENTER)
-            self.assertEqual(self.driver.find_element(By.ID, 'address').get_attribute('value'), '123 Beautiful st.')
-            self.assertEqual(self.driver.find_element(By.XPATH, '/html/body/div[2]/form/div[1]/label').get_attribute('innerText'), 'Name')
+            self.assertEqual(self.driver.find_element(By.ID, 'address').get_attribute('value'), _tpl.apply('123 Beautiful st.'))
+            self.assertEqual(self.driver.find_element(By.XPATH, '/html/body/div[2]/form/div[1]/label').get_attribute('innerText'), _tpl.apply('${name}'))
             WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, 'toPort')), "Element 'toPort' failed to appear within 3.5s")
             self.driver.find_element(By.NAME, 'toPort').send_keys('B')
             self.driver.find_element(By.XPATH, '//div[3]/form/select[1]//option[3]').click()
