@@ -349,8 +349,8 @@ import selenium_taurus_extras
             "_tpl = selenium_taurus_extras.Template(_vars)"
         ]
 
-        for key, value in iteritems(variables):
-            stmts.append("_vars['%s'] = %r" % (key, value))
+        for key in sorted(variables.keys()):
+            stmts.append("_vars['%s'] = %r" % (key, variables[key]))
         stmts.append("")
         return self.gen_statement("\n".join(stmts), indent=0)
 
@@ -606,7 +606,8 @@ import selenium_taurus_extras
                 elif atype == 'assertvalue':
                     action = "get_attribute('value')"
                 action_elements.append(
-                    self.gen_statement("self.assertEqual(%s, %r)" % (tpl % (bys[tag], selector, action), param),
+                    self.gen_statement("self.assertEqual(%s, _tpl.apply(%r))" %
+                                       (tpl % (bys[tag], selector, action), param),
                                        indent=indent))
             if not action_elements:
                 action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
