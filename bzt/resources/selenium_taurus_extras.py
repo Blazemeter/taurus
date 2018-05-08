@@ -32,11 +32,8 @@ class Apply(StrTemplate):
 
 class Template:
 
-    def __init__(self, variables=None):
-        if dict:
-            self.variables = variables
-        else:
-            self.variables = {}
+    def __init__(self, variables):
+        self.variables = variables
         self.tmpl = Apply("")
 
     def apply(self, template):
