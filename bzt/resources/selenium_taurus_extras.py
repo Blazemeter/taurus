@@ -38,7 +38,7 @@ class Template:
         else:
             self.variables = {}
         self.tmpl = Apply("")
-    
+
     def apply(self, template):
         self.tmpl.template = template
         self.tmpl.variables = self.variables
