@@ -21,6 +21,7 @@ import shlex
 import string
 import sys
 import time
+import shutil
 from abc import abstractmethod
 from collections import OrderedDict
 from subprocess import CalledProcessError
@@ -86,6 +87,10 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             builder = ApiritifScriptGenerator(scenario, self.label, self.log)
             builder.verbose = self.__is_verbose()
         else:
+            selenium_extras = os.path.join(get_full_path(__file__, step_up=2), "resources", "selenium_taurus_extras.py")
+            selenium_extras_artifacts = os.path.join(self.engine.artifacts_dir, os.path.basename(selenium_extras))
+            if not os.path.isfile(selenium_extras_artifacts):
+                shutil.copyfile(selenium_extras, selenium_extras_artifacts)
             wdlog = self.engine.create_artifact('webdriver', '.log')
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
@@ -228,6 +233,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
+import selenium_taurus_extras
 """
     IMPORTS_APPIUM = """import unittest
 import re
@@ -243,6 +249,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
+import selenium_taurus_extras
     """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
@@ -324,6 +331,7 @@ import apiritif
         imports = self.add_imports()
 
         self.root.append(imports)
+        self.root.extend(self.gen_global_vars())
         self.root.append(test_class)
 
     def add_imports(self):
@@ -333,6 +341,18 @@ import apiritif
         else:
             imports.text = self.IMPORTS_SELENIUM
         return imports
+
+    def gen_global_vars(self):
+        variables = self.scenario.get("variables")
+        stmts = [
+            "_vars = {}",
+            "_tpl = selenium_taurus_extras.Template(_vars)"
+        ]
+
+        for key in sorted(variables.keys()):
+            stmts.append("_vars['%s'] = %r" % (key, variables[key]))
+        stmts.append("")
+        return [self.gen_statement(stmt, indent=0) for stmt in stmts]
 
     def _add_url_request(self, default_address, req, test_method):
         parsed_url = parse.urlparse(req.url)
@@ -586,7 +606,8 @@ import apiritif
                 elif atype == 'assertvalue':
                     action = "get_attribute('value')"
                 action_elements.append(
-                    self.gen_statement("self.assertEqual(%s, %r)" % (tpl % (bys[tag], selector, action), param),
+                    self.gen_statement("self.assertEqual(%s, _tpl.apply(%r))" %
+                                       (tpl % (bys[tag], selector, action), param),
                                        indent=indent))
             if not action_elements:
                 action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))

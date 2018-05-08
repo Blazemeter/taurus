@@ -113,6 +113,26 @@ modules:
 
 ```
 
+## Variables
+
+It is possible to define variables to be used in the script, declaring them at the scenario level.
+
+To use it, simply in any reference to a text in the script you must declare the insertion of the variable by using ```${name}```
+
+Sample:
+```yaml
+scenario:
+  sample:
+    variables:
+        sample: The is a sample site you can test with BlazeMeter!
+    requests:
+    - url: http://blazedemo.com/
+      actions:
+      - assertTextByCSS(body > div.jumbotron > div > p:nth-child(2)): ${sample}
+
+```
+
+
 ## Remote WebDriver
 
 It is possible to use the browser remotely using Remote WebDriver. It must be indicated as the browser name `Remote` and indicate in the `remote` property the URL in which the webdriver service is located to control the browser.
