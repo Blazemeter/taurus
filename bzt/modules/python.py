@@ -331,7 +331,7 @@ import selenium_taurus_extras
         imports = self.add_imports()
 
         self.root.append(imports)
-        self.root.append(self.gen_global_vars())
+        self.root.extend(self.gen_global_vars())
         self.root.append(test_class)
 
     def add_imports(self):
@@ -352,7 +352,7 @@ import selenium_taurus_extras
         for key in sorted(variables.keys()):
             stmts.append("_vars['%s'] = %r" % (key, variables[key]))
         stmts.append("")
-        return self.gen_statement("\n".join(stmts), indent=0)
+        return [self.gen_statement(stmt, indent=0) for stmt in stmts]
 
     def _add_url_request(self, default_address, req, test_method):
         parsed_url = parse.urlparse(req.url)
