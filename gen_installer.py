@@ -10,23 +10,6 @@ def run_cmd(label, cmdline, **kwargs):
     subprocess.run(cmdline, check=True, **kwargs)
 
 
-# ["apiritif==0.6.3",
-#  "astunparse==1.5.0",
-#  "colorama==0.3.9",
-#   "colorlog==3.1.4",
-#      "hdrpy==0.3.1",
-#   "lxml==4.2.1",
-#                                   "nose==1.3.7",
-#                                   "progressbar33==2.4",
-#                                   "psutil==5.4.5",
-#                                   "pytest==3.5.1",
-#                                   "PyVirtualDisplay==0.2.1",
-#                                   "pyyaml==3.12",
-#                                   "requests==2.18.4",
-#                                   "selenium==3.11.0",
-#                                   "Appium-Python-Client==0.26",
-#                                   "urwid==2.0.1"]
-
 def generate_pynsist_config(dependencies, wheel_dir, cfg_location):
     print("Generating pynsist config")
     cfg = configparser.ConfigParser()
