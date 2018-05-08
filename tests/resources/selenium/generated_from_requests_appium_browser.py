@@ -14,6 +14,9 @@ from selenium.webdriver.common.keys import Keys
 import apiritif
 import selenium_taurus_extras
 
+vars = {}
+tpl = selenium_taurus_extras.Template(vars)
+
 class TestRequests(unittest.TestCase):
     def setUp(self):
         self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={"browserName": "Chrome", "deviceName": "", "platformName": "Android"})

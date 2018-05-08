@@ -14,6 +14,9 @@ from selenium.webdriver.common.keys import Keys
 import apiritif
 import selenium_taurus_extras
 
+vars = {}
+tpl = selenium_taurus_extras.Template(vars)
+
 class TestRequests(unittest.TestCase):
     def setUp(self):
         self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub', desired_capabilities={"app": "", "browserName": "firefox", "deviceName": "", "javascriptEnabled": "True", "platformName": "linux", "platformVersion": "", "seleniumVersion": "", "version": "54.0"})

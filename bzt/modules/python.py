@@ -331,6 +331,7 @@ import selenium_taurus_extras
         imports = self.add_imports()
 
         self.root.append(imports)
+        self.root.append(self.gen_global_vars())
         self.root.append(test_class)
 
     def add_imports(self):
@@ -340,6 +341,18 @@ import selenium_taurus_extras
         else:
             imports.text = self.IMPORTS_SELENIUM
         return imports
+
+    def gen_global_vars(self):
+        variables = self.scenario.get("variables")
+        stmts = [
+            "vars = {}",
+            "tpl = selenium_taurus_extras.Template(vars)"
+        ]
+
+        for key, value in iteritems(variables):
+            stmts.append("vars['%s']=%r" % (key, value))
+        stmts.append("")
+        return self.gen_statement("\n".join(stmts), indent=0)
 
     def _add_url_request(self, default_address, req, test_method):
         parsed_url = parse.urlparse(req.url)
