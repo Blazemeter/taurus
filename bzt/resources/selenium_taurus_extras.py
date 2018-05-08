@@ -22,7 +22,7 @@ class Apply(StrTemplate):
     def __init__(self, template):
         super(Apply, self).__init__(template)
         self.variables = {}
-    
+
     def __repr__(self):
         return repr(self.safe_substitute(self.variables))
 
