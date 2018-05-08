@@ -43,4 +43,3 @@ class Template:
         self.tmpl.template = template
         self.tmpl.variables = self.variables
         return str(self.tmpl)
-
