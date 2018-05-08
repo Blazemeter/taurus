@@ -12,6 +12,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
+import selenium_taurus_extras
 
 class TestRequests(unittest.TestCase):
     def setUp(self):
