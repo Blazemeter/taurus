@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from string import Template
-from selenium.common.exceptions import NoSuchWindowException
+from string import Template as StrTemplate
 
-class Apply(Template):
-    
+
+class Apply(StrTemplate):
+
     def __init__(self, template):
         super(Apply, self).__init__(template)
         self.variables = {}
@@ -28,8 +28,9 @@ class Apply(Template):
 
     def __str__(self):
         return self.safe_substitute(self.variables)
-    
-class Template():
+
+
+class Template:
 
     def __init__(self, variables=None):
         if dict:
