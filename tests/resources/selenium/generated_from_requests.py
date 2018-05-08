@@ -14,8 +14,8 @@ from selenium.webdriver.common.keys import Keys
 import apiritif
 import selenium_taurus_extras
 
-vars = {}
-tpl = selenium_taurus_extras.Template(vars)
+_vars = {}
+_tpl = selenium_taurus_extras.Template(_vars)
 
 class TestRequests(unittest.TestCase):
     def setUp(self):

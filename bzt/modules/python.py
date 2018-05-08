@@ -345,8 +345,8 @@ import selenium_taurus_extras
     def gen_global_vars(self):
         variables = self.scenario.get("variables")
         stmts = [
-            "vars = {}",
-            "tpl = selenium_taurus_extras.Template(vars)"
+            "_vars = {}",
+            "_tpl = selenium_taurus_extras.Template(_vars)"
         ]
 
         for key, value in iteritems(variables):
