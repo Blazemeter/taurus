@@ -17,14 +17,14 @@ class UserBehaviour(TaskSet):
             else:
                 response.success()
         sleep(5.0)
-        
+
         with self.client.post(data={"var1": "val1"}, headers={"Connection": "close", "Keep-Alive": "timeout=15, max=100"}, timeout=1.5, url="/page", catch_response=True) as response:
             if not all(findall(compile(str(val)), response.content) for val in ['\\w+l1e']):
                 response.failure("['\\w+l1e'] not found in body")
             else:
                 response.success()
         sleep(1.0)
-        
+
 
 class GeneratedSwarm(HttpLocust):
     task_set = UserBehaviour

@@ -40,7 +40,12 @@ Supported features:
   - pauseFor (pause for n seconds) 
   - request method GET (only)
   - selenium commands:
-    - keysBy*   
+    - window controls (selectWindow, closeWindow)
+    - selectFrameBy* Switch to frame
+    - keysBy* Send keys to element
+    - editContent Change text in editable field (checks contenteditable prop)
+    - submitBy* Send data of form by any its element
+    - runScript Execute JS command
     - waitBy* 
     - clickBy* 
     - doubleClickBy* 
@@ -51,7 +56,7 @@ Supported features:
     - selectBy* Select value in drop down list
     - assertTitle
 
-Note: * selected by ID/Name/CSS/XPath 
+Note: * selected by ID/Name/CSS/XPath. You can select frames by index (*ByIdx) additionally.
    
 Action names are built as `<action>By<selector type>(<selector>)`. Sometimes actions can have value. Options are:
   - `waitByID`, `waitByName`, `waitByLinkText`, `waitByCSS` and `waitByXPath` - to wait until desired option becomes present on page.
@@ -76,11 +81,15 @@ scenarios:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
       - waitByCSS(body)
-      - clickByID(mySubmitButton)
+      - clickByID(mySubmitButton)   # link is open in new window (#1)
+      - selectWindow(1)     # switch to the second window (#0)
+      - closeWindow()      # close the second window (#1)
       - pauseFor(5s)
       - clearCookies()
       - keysByName(myInputName): keys_to_type
+      - submitByName(myInputName)
       - waitByID(myObjectToAppear): visible
+      - runScript("alert('This is Sparta');")
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
@@ -89,6 +98,40 @@ scenarios:
         regexp: false  # treat string as regular expression
         not: false  # inverse assertion condition
 ```
+All action names are case insensitive. Despite it misprint in action names or usage of unsupported actions break your scenario execution. 
+To avoid it you can use `ignore-unknown-actions` Nose flag and taurus will show warning when unknown action occurs.
+```yaml
+scenario:
+  sample:
+    requests:
+    - url: http://blazedemo.com
+      actions:
+      - definitelyUnknownAction(unknownSelector) 
+modules:
+  nose:
+    ignore-unknown-action: True   # 
+
+```
+
+## Variables
+
+It is possible to define variables to be used in the script, declaring them at the scenario level.
+
+To use it, simply in any reference to a text in the script you must declare the insertion of the variable by using ```${name}```
+
+Sample:
+```yaml
+scenario:
+  sample:
+    variables:
+        sample: The is a sample site you can test with BlazeMeter!
+    requests:
+    - url: http://blazedemo.com/
+      actions:
+      - assertTextByCSS(body > div.jumbotron > div > p:nth-child(2)): ${sample}
+
+```
+
 
 ## Remote WebDriver
 

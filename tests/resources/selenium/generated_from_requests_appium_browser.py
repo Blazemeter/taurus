@@ -12,10 +12,14 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
+import selenium_taurus_extras
+
+_vars = {}
+_tpl = selenium_taurus_extras.Template(_vars)
 
 class TestRequests(unittest.TestCase):
     def setUp(self):
-        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub' , desired_capabilities={"browserName": "Chrome", "deviceName": "", "platformName": "Android"})
+        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={"browserName": "Chrome", "deviceName": "", "platformName": "Android"})
         self.driver.implicitly_wait(3.5)
 
     def tearDown(self):
