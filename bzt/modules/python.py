@@ -564,11 +564,11 @@ import selenium_taurus_extras
 
         if tag == "window":
             if atype == "select":
-                cmd = 'self.wnd_mng.switch(%r)' % selector
+                cmd = 'self.wnd_mng.switch(_tpl.apply(%r))' % selector
                 action_elements.append(self.gen_statement(cmd, indent=indent))
             elif atype == "close":
                 if selector:
-                    cmd = 'self.wnd_mng.close(%r)' % selector
+                    cmd = 'self.wnd_mng.close(_tpl.apply(%r))' % selector
                 else:
                     cmd = 'self.wnd_mng.close()'
                 action_elements.append(self.gen_statement(cmd, indent=indent))
