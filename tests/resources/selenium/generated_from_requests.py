@@ -26,6 +26,7 @@ class TestRequests(unittest.TestCase):
         profile.set_preference('webdriver.log.file', '<somewhere>/webdriver.log')
         self.driver = webdriver.Firefox(profile, firefox_options=options)
         self.driver.implicitly_wait(3.5)
+        self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
 
     def tearDown(self):
         self.driver.quit()
@@ -50,8 +51,8 @@ class TestRequests(unittest.TestCase):
             self.driver.find_element(By.NAME, 'toPort').send_keys('B')
             self.driver.find_element(By.XPATH, '//div[3]/form/select[1]//option[3]').click()
             self.driver.find_element(By.XPATH, '//div[3]/form/select[2]//option[6]').click()
-            self.driver.switch_to.window(self.driver.window_handles[0])
-            self.driver.close()
+            self.wnd_mng.switch('0')
+            self.wnd_mng.close('1')
             self.driver.find_element(By.NAME, 'toPort').submit()
             self.driver.execute_script("alert('This is Sparta');")
             self.driver.switch_to.frame(self.driver.find_element(By.NAME, 'my_frame'))
