@@ -49,30 +49,34 @@ class WindowManager:
         self.driver = driver
         self.windows = {}
 
-    def switch(self, window_name):
-        if window_name.isdigit():
-            wnd_handlers = self.driver.window_handles
-            if len(wnd_handlers) <= int(window_name) and int(window_name) >= 0:
-                self.driver.switch_to.window(wnd_handlers[int(window_name)])
-            else:
-                raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
+    def switch(self, window_name=None):
+        if not window_name:  # Switch to last window created
+            self.driver.switch_to.window(self.driver.window_handles[-1])
         else:
-            if window_name.startswith("win_ser_"):
-                if window_name == "win_ser_local":
-                    wnd_handlers = self.driver.window_handles
-                    if len(wnd_handlers) > 0:
-                        self.driver.switch_to.window(wnd_handlers[0])
-                    else:
-                        raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
+            if window_name.isdigit():  # Switch to window handler index
+                wnd_handlers = self.driver.window_handles
+                if len(wnd_handlers) <= int(window_name) and int(window_name) >= 0:
+                    self.driver.switch_to.window(wnd_handlers[int(window_name)])
                 else:
-                    if window_name not in self.windows:
-                        self.windows[window_name] = self.driver.window_handles[-1]
-                        self.driver.switch_to.window(self.windows[window_name])
-                    else:
-                        self.driver.switch_to.window(self.windows[window_name])
+                    raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
             else:
-                self.driver.switch_to.window(window_name)
+                if window_name.startswith("win_ser_"):  # Switch using window sequential mode
+                    if window_name == "win_ser_local":
+                        wnd_handlers = self.driver.window_handles
+                        if len(wnd_handlers) > 0:
+                            self.driver.switch_to.window(wnd_handlers[0])
+                        else:
+                            raise NoSuchWindowException("Invalid Window ID: %s" % window_name)
+                    else:
+                        if window_name not in self.windows:
+                            self.windows[window_name] = self.driver.window_handles[-1]
+                            self.driver.switch_to.window(self.windows[window_name])
+                        else:
+                            self.driver.switch_to.window(self.windows[window_name])
+                else:  # Switch using window name
+                    self.driver.switch_to.window(window_name)
 
-    def close(self, window_name):
-        self.switch(window_name)
+    def close(self, window_name=None):
+        if window_name:
+            self.switch(window_name)
         self.driver.close()
