@@ -435,6 +435,9 @@ import selenium_taurus_extras
 
         scenario_timeout = self.scenario.get("timeout", "30s")
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+
+        setup_method_def.append(self.gen_statement("self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)"))
+
         if self.window_size:  # FIXME: unused in fact
             statement = self.gen_statement("self.driver.set_window_position(0, 0)")
             setup_method_def.append(statement)
@@ -561,11 +564,13 @@ import selenium_taurus_extras
 
         if tag == "window":
             if atype == "select":
-                cmd = 'self.driver.switch_to.window(self.driver.window_handles[%s])' % selector
+                cmd = 'self.wnd_mng.switch(_tpl.apply(%r))' % selector
                 action_elements.append(self.gen_statement(cmd, indent=indent))
             elif atype == "close":
-                #cmd = 'print(" _d_: %s" % type(self.driver.window_handles[1])); self.driver.close()'
-                cmd = 'self.driver.close()'
+                if selector:
+                    cmd = 'self.wnd_mng.close(_tpl.apply(%r))' % selector
+                else:
+                    cmd = 'self.wnd_mng.close()'
                 action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype == "selectframe":
