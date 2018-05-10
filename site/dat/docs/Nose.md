@@ -75,7 +75,7 @@ To manage windows or tabs, the `selectWindow(<value>)` and `closeWindow(<value>)
 
 These actions require a value parameter, the possible values are:
   - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage. 
-  - `name`: The name of the window (reference to the name used in the target attribute in a link).
+  - `name`: The name of the window (reference to the name used in the target window attribute in a link).
   - `win_ser_name`: In the `name` part, assign a name to the focused opened window, the next time when reference to the same window name, returns with focus to the named window selected. 
   - `win_ser_local`: Go to the initial window.
   - `no value`: When no value is assigned, it means that the selection action is assigned over the last created window, and if the close action is used, it will also be over the last one created.
