@@ -41,7 +41,7 @@ Supported features:
   - request method GET (only)
   - selenium commands:
     - window controls (selectWindow, closeWindow)
-    - selectFrameBy* Switch to frame
+    - selectFrameBy*<sup>1</sup> Switch to frame
     - keysBy* Send keys to element
     - editContent Change text in editable field (checks contenteditable prop)
     - submitBy* Send data of form by any its element
@@ -56,7 +56,9 @@ Supported features:
     - selectBy* Select value in drop down list
     - assertTitle
 
-Note: * selected by ID/Name/CSS/XPath. You can select frames by index (*ByIdx) additionally.
+**Notes**:
+  - \* selected by ID/Name/CSS/XPath.
+  - \*<sup>1</sup> In addition you can use *ByIdx selector.
    
 Action names are built as `<action>By<selector type>(<selector>)`. Sometimes actions can have value. Options are:
   - `waitByID`, `waitByName`, `waitByLinkText`, `waitByCSS` and `waitByXPath` - to wait until desired option becomes present on page.
@@ -68,7 +70,20 @@ Action names are built as `<action>By<selector type>(<selector>)`. Sometimes act
 
 There is special action `pauseFor(<time>)` which makes script to sleep for specified amount of time. Also, calling action `clearCookies()` will force `delete\_all\_cookies` method to be called on WebDriver object.
 
-Sample request scenario:
+#### Window managment
+To manage windows or tabs, the `selectWindow(<value>)` and `closeWindow(<value>)` commands will allow you to manage them. 
+
+These actions require a value parameter, the possible values are:
+  - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage. 
+  - `name`: The name of the window (reference to the name used in the target window attribute in a link).
+  - `win_ser_name`: In the `name` part, assign a name to the focused opened window, the next time when reference to the same window name, returns with focus to the named window selected. 
+  - `win_ser_local`: Go to the initial window.
+  - `no value`: When no value is assigned, it means that the selection action is assigned over the last created window, and if the close action is used, it will also be over the last one created.
+
+**Note**: When any action command opens a new window (like click over a link with target window assigned), the action of selecting the window must always be declared, otherwise the actions executed by the execution were performed on the default window or the last one used with selectWindow command.
+
+
+#### Sample request scenario:
 ```yaml
 scenarios:
   request_example:
@@ -113,13 +128,13 @@ modules:
 
 ```
 
-## Variables
+### Variables
 
 It is possible to define variables to be used in the script, declaring them at the scenario level.
 
 To use it, simply in any reference to a text in the script you must declare the insertion of the variable by using ```${name}```
 
-Sample:
+#### Sample:
 ```yaml
 scenario:
   sample:
@@ -133,15 +148,15 @@ scenario:
 ```
 
 
-## Remote WebDriver
+### Remote WebDriver
 
 It is possible to use the browser remotely using Remote WebDriver. It must be indicated as the browser name `Remote` and indicate in the `remote` property the URL in which the webdriver service is located to control the browser.
 
 To specify the capabilities of the Remote WebDriver, it is necessary to be able to configure properties necessary for remote instantiation. You must use the `capabilities` structure where you can specify the main properties required by the remote webdriver.
 
-Note: The capabilities are a way in which the remote service filters and selects the device or browser to be selected for the test, depending on its configuration according to the configured specifications. It is recommended to read the documentation of who provides the service
+**Note**: The capabilities are a way in which the remote service filters and selects the device or browser to be selected for the test, depending on its configuration according to the configured specifications. It is recommended to read the documentation of who provides the service
 
-### Capabilities commonly used 
+#### Capabilities commonly used 
 
   - browser
   - version
@@ -149,9 +164,9 @@ Note: The capabilities are a way in which the remote service filters and selects
   - device # Id of the device (Mobile browser)
   - os_version # commonly used only for mobile
 
-Note: Currently it is possible to perform basic tests in mobile browsers using the available actions commands, in the future more commands related to mobile will be incorporated to allow a better interactivity.
+**Note**: Currently it is possible to perform basic tests in mobile browsers using the available actions commands, in the future more commands related to mobile will be incorporated to allow a better interactivity.
 
-Sample Remote Webdriver scenario:
+#### Sample Remote Webdriver scenario:
 ```yaml
 scenarios:
   request_example:
@@ -168,7 +183,7 @@ scenarios:
 ```
 It is possible to use only the `remote` property, and in this way declare the intention to use the `browser: Remote`, allowing a more compact yaml
 
-Sample usage of `remote` without `browser: Remote` clausule declaration:
+**Sample usage of `remote` without `browser: Remote` clausule declaration:**
 ```yaml
 scenarios:
   request_example:
@@ -183,14 +198,14 @@ scenarios:
     # ...
 ```
 
-## Mobile Browsers
+### Mobile Browsers
 
 It is also possible to perform tests on mobile browsers. Currently the browsers supported are `Chrome-Android` and `Safari-iOS`.
 Mobile test services are provided by Appium, and it is possible to use Appium locally or some remote Appium service through the Remote WebDriver capability.
 
-Note: Taurus provides the ability to provide Appium provisioning support, it is recommended to read the documentation related to [Selenium Executor / Appium](Selenium.md#appium)
+**Note**: Taurus provides the ability to provide Appium provisioning support, it is recommended to read the documentation related to [Selenium Executor / Appium](Selenium.md#appium)
 
-Sample Mobile Browser scenario:
+#### Sample Mobile Browser scenario:
 ```yaml
 scenarios:
   request_example:
@@ -226,4 +241,3 @@ modules:
   android-emulator:
     avd: android10_arm128
 ```
-
