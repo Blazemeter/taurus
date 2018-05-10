@@ -78,9 +78,10 @@ These actions require a value parameter, the possible values are:
   - `name`: The name of the window (reference to the name used in the target attribute in a link).
   - `win_ser_name`: In the `name` part, assign a name to the focused opened window, the next time when reference to the same window name, returns with focus to the named window selected. 
   - `win_ser_local`: Go to the initial window.
-Note: When any command opens a new window (like click in a link with target assigned), the action of selecting the window must always be executed, otherwise the actions executed by the execution are performed on the default window or the last one which selectWindow action was executed.
   - `no value`: When no value is assigned, it means that the selection action is assigned over the last created window, and if the close action is used, it will also be over the last one created.
-  
+
+**Note**: When any command opens a new window (like click in a link with target assigned), the action of selecting the window must always be executed, otherwise the actions executed by the execution are performed on the default window or the last one which selectWindow action was executed.
+
 
 #### Sample request scenario:
 ```yaml
@@ -182,7 +183,7 @@ scenarios:
 ```
 It is possible to use only the `remote` property, and in this way declare the intention to use the `browser: Remote`, allowing a more compact yaml
 
-#### Sample usage of `remote` without `browser: Remote` clausule declaration:
+**Sample usage of `remote` without `browser: Remote` clausule declaration:**
 ```yaml
 scenarios:
   request_example:
