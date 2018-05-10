@@ -40,12 +40,12 @@ for chromedriver (don't place your chromedriver inside Windows directory). We st
 1. create directory (e.g. "c:\chromedriver")
 2. put chromedriver.exe into created directory and remove all another copies of chromedriver
 3. add directory to path:
-3.1 go to `Control Panel` -> `System and Security` -> `System`
-3.2 `Advanced system settings` -> `Environment Variables`
-3.3 in the `System Variables` area locate the `Path` variable, highlight it and click `Edit`
-3.4 add your path ("c:\chromedriver") to previous value (and don't forget about path separator `;`)
-3.5 save changes.
-4. don't run taurus from Admin account or Admin terminal
+   1. go to `Control Panel` -> `System and Security` -> `System`
+   2. `Advanced system settings` -> `Environment Variables`
+   3. in the `System Variables` area locate the `Path` variable, highlight it and click `Edit`
+   4. add your path (`c:\chromedriver`) to previous value (and don't forget about path separator `;`)
+   5. save changes.
+4. don't run Taurus from Admin account or Admin terminal
 5. don't hardcode the path to chromedriver.exe in your scripts
 Take note: as proxy2jmx uses own proxy it doesn't support top level [proxy option](ConfigSyntax.md#Top-Level-Settings). 
 
