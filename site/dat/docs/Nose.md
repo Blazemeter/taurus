@@ -80,7 +80,7 @@ These actions require a value parameter, the possible values are:
   - `win_ser_local`: Go to the initial window.
   - `no value`: When no value is assigned, it means that the selection action is assigned over the last created window, and if the close action is used, it will also be over the last one created.
 
-**Note**: When any command opens a new window (like click in a link with target assigned), the action of selecting the window must always be executed, otherwise the actions executed by the execution are performed on the default window or the last one which selectWindow action was executed.
+**Note**: When any action command opens a new window (like click over a link with target window assigned), the action of selecting the window must always be declared, otherwise the actions executed by the execution were performed on the default window or the last one used with selectWindow command.
 
 
 #### Sample request scenario:
