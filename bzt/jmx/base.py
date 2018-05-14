@@ -159,14 +159,15 @@ class JMX(object):
         return listener
 
     @staticmethod
-    def new_kpi_listener(filename):
+    def new_kpi_listener(filename, flag_overrides=None):
         """
         Generates listener for writing basic KPI data in CSV format
 
         :param filename:
         :return:
         """
-        flags = {
+
+        defaults = {
             "xml": False,
             "fieldNames": True,
             "time": True,
@@ -194,6 +195,12 @@ class JMX(object):
             "url": False
         }
 
+        flags=BetterDict()
+        flags.merge(defaults)
+        if flag_overrides:
+            flags.merge(flag_overrides)
+
+        logging.warning("%s", flags)
         return JMX.__jtl_writer(filename, "KPI Writer", flags)
 
     @staticmethod
