@@ -325,6 +325,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "closeWindow('that_window')",
                             "submitByName(\"toPort\")",
                             "runScript(\"alert('This is Sparta');\")",
+                            {"dragByID(address)": "elemByName(toPort)"},
                             "selectFrameByName('my_frame')",
                             "selectFrameByIdx(1)",
                             {"editContentById(editor)": "lo-la-lu"},
