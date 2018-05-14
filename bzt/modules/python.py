@@ -435,6 +435,9 @@ import selenium_taurus_extras
 
         scenario_timeout = self.scenario.get("timeout", "30s")
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
+
+        setup_method_def.append(self.gen_statement("self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)"))
+
         if self.window_size:  # FIXME: unused in fact
             statement = self.gen_statement("self.driver.set_window_position(0, 0)")
             setup_method_def.append(statement)
@@ -561,43 +564,45 @@ import selenium_taurus_extras
 
         if tag == "window":
             if atype == "select":
-                cmd = 'self.driver.switch_to.window(self.driver.window_handles[%s])' % selector
+                cmd = 'self.wnd_mng.switch(_tpl.apply(%r))' % selector
                 action_elements.append(self.gen_statement(cmd, indent=indent))
             elif atype == "close":
-                #cmd = 'print(" _d_: %s" % type(self.driver.window_handles[1])); self.driver.close()'
-                cmd = 'self.driver.close()'
+                if selector:
+                    cmd = 'self.wnd_mng.close(_tpl.apply(%r))' % selector
+                else:
+                    cmd = 'self.wnd_mng.close()'
                 action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype == "selectframe":
             if tag == "byidx":
                 frame = str(selector)
             else:
-                frame = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
+                frame = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
 
             cmd = "self.driver.switch_to.frame(%s)" % frame
             action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
                        'asserttext', 'assertvalue', 'select', 'submit'):
-            tpl = "self.driver.find_element(By.%s, %r).%s"
+            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
             action = None
             if atype == 'click':
                 action = "click()"
             elif atype == 'submit':
                 action = "submit()"
             elif atype == 'keys':
-                action = "send_keys(%r)" % param
+                action = "send_keys(_tpl.apply(%r))" % param
                 if isinstance(param, str) and param.startswith("KEY_"):
                     action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
             elif atype in action_chains:
-                tpl = "self.driver.find_element(By.%s, %r)"
+                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
                 action = action_chains[atype]
                 action_elements.append(self.gen_statement(
                     "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
                     indent=indent))
             elif atype == 'select':
-                tpl = "self.driver.find_element(By.%s, %r)"
-                action = "select_by_visible_text(%r)" % param
+                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+                action = "select_by_visible_text(_tpl.apply(%r))" % param
                 action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
                                                           indent=indent))
             elif atype.startswith('assert'):
@@ -612,14 +617,16 @@ import selenium_taurus_extras
             if not action_elements:
                 action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
         elif atype == "run" and tag == "script":
-            action_elements.append(self.gen_statement('self.driver.execute_script("%s")' % selector, indent=indent))
+            action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply("%s"))' %
+                                                      selector, indent=indent))
         elif atype == "editcontent":
-            element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
-            tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); {element}.send_keys('{keys}')"
+            element = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
+            tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); " \
+                  "{element}.send_keys(_tpl.apply('{keys}'))"
             vals = {"element": element, "keys": param}
             action_elements.append(self.gen_statement(tpl.format(**vals), indent=indent))
         elif atype == 'wait':
-            tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, %r)), %r)"
+            tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, _tpl.apply(%r))), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
@@ -632,7 +639,7 @@ import selenium_taurus_extras
             action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
         elif atype == 'assert' and tag == 'title':
             action_elements.append(
-                self.gen_statement("self.assertEqual(self.driver.title,%r)" % selector, indent=indent))
+                self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))" % selector, indent=indent))
 
         if not action_elements:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
@@ -675,31 +682,31 @@ import selenium_taurus_extras
         return atype, tag, param, selector
 
 
-def capitalize(str):
-    if str and str[0] in string.ascii_lowercase:
-        return str[0].upper() + str[1:]
-    else:
-        return str
+def normalize_class_name(text):
+    allowed_chars = "%s%s%s" % (string.digits, string.ascii_letters, '_')
+    split_separator = re.split(r'[\-_]', text)
+    return ''.join([capitalize_class_name(part, allowed_chars) for part in split_separator])
+
+
+def capitalize_class_name(text, allowed_chars):
+    return filter_string(text, allowed_chars).capitalize()
+
+
+def filter_string(text, allowed_chars):
+    return ''.join(c for c in text if c in allowed_chars)
+
+
+def normalize_method_name(text):
+    allowed_chars = "%s%s%s" % (string.digits, string.ascii_letters, '- ')
+    return filter_string(text, allowed_chars).replace(' ', '_').replace('-', '_')
 
 
 def create_class_name(label):
-    if label.startswith('autogenerated'):
-        class_name = 'TestAPI'
-    else:
-        allowed_chars = string.digits + string.ascii_letters + '_'
-        parts = re.split(r'[\-_]', label)
-        parts = [''.join(c for c in part if c in allowed_chars) for part in parts]
-        class_name = 'Test' + ''.join(capitalize(part) for part in parts)
-    return class_name
+    return 'TestAPI' if label.startswith('autogenerated') else 'Test%s' % normalize_class_name(label)
 
 
 def create_method_name(label):
-    if label.startswith('autogenerated'):
-        clean = 'test_requests'
-    else:
-        allowed = string.digits + string.ascii_letters + '- '
-        clean = ''.join(c for c in label if c in allowed).replace(' ', '_').replace('-', '_')
-    return clean
+    return 'test_requests' if label.startswith('autogenerated') else normalize_method_name(label)
 
 
 class ApiritifScriptGenerator(PythonGenerator):
