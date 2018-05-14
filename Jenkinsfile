@@ -3,6 +3,7 @@
 node() {
 
     stage('Checkout') {
+        cleanWs
         scmVars = checkout scm
         commitHash = scmVars.GIT_COMMIT
     }
