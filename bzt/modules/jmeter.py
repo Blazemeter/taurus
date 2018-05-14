@@ -568,8 +568,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_listener(log_lst, jmx)
 
     def __add_result_writers(self, jmx):
+        version = LooseVersion(str(self.settings.get('version', self.JMETER_VER)))
+        flags = {}
+        if version < LooseVersion("2.13"):
+            flags['^connectTime'] = False
+
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl)
+        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl, flags)
         self.__add_listener(kpi_lst, jmx)
 
         verbose = self.engine.config.get(SETTINGS).get("verbose", False)
