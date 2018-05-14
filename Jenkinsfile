@@ -2,6 +2,12 @@
 
 node() {
 
+    stage('Checkout') {
+        sh """ 
+            ls -la
+            """
+    }
+
     stage("Docker Image Build") {
         sh """ 
             docker build -t ${JOB_NAME} .
