@@ -34,10 +34,9 @@ node() {
             mkdir -p site/dat
             mv ./kb site/dat/
                         
-            cd site
-            zip -r site.zip *
-            cd ..
             """
+
+        zip archive: true, dir: 'site', glob: '*', zipFile: 'site.zip'
     }
 
     stage('Update Website') {
