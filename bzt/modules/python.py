@@ -582,7 +582,7 @@ import selenium_taurus_extras
             cmd = "self.driver.switch_to.frame(%s)" % frame
             action_elements.append(self.gen_statement(cmd, indent=indent))
 
-        elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
+        elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'drag', 'mousemove', 'keys',
                        'asserttext', 'assertvalue', 'select', 'submit'):
             tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
             action = None
@@ -600,6 +600,20 @@ import selenium_taurus_extras
                 action_elements.append(self.gen_statement(
                     "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
                     indent=indent))
+            elif atype == 'drag':
+                drop_action = self._parse_action(param)
+                if drop_action:
+                    drop_atype, drop_tag, drop_param, drop_selector = drop_action
+                else:
+                    return
+                if drop_atype == "elem":
+                    tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+                    action = "drag_and_drop"
+                    drag_element = tpl % (bys[tag], selector)
+                    drop_element = tpl % (bys[drop_tag], drop_selector)
+                    action_elements.append(self.gen_statement(
+                            "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
+                            indent=indent))
             elif atype == 'select':
                 tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
                 action = "select_by_visible_text(_tpl.apply(%r))" % param
@@ -657,7 +671,7 @@ import selenium_taurus_extras
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'editcontent', 'selectFrame'])
+                            'elem', 'drag', 'editcontent', 'selectFrame'])
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
