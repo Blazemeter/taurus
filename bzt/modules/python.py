@@ -642,8 +642,8 @@ import selenium_taurus_extras
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
         elif atype == 'assert' and tag == 'title':
-            action_elements.append(
-                self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))" % selector, indent=indent))
+            tpl = "self.assertEqual(self.driver.title, _tpl.apply(%r))"
+            action_elements.append(self.gen_statement(tpl % selector, indent=indent))
 
         if not action_elements:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
