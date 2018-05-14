@@ -252,6 +252,10 @@ import apiritif
 import selenium_taurus_extras
     """
 
+    ACTION_TYPES = ("click", "doubleClick", "mouseDown", "mouseUp", "mouseMove", "switch",
+                    "wait", "keys", "pause", "clear", "assert", "assertText", "assertValue",
+                    "submit", "close", "run", "editContent", "selectFrame")
+
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
     def __init__(self, scenario, parent_logger, wdlog, ignore_unknown_actions=False):
@@ -542,7 +546,7 @@ import selenium_taurus_extras
     def gen_action(self, action_config, indent=None):
         action = self._parse_action(action_config)
         if action:
-            atype, tag, param, selector = action
+            atype, tag, selector, param = action
         else:
             return
 
@@ -563,7 +567,7 @@ import selenium_taurus_extras
         }
 
         if tag == "window":
-            if atype == "select":
+            if atype == "switch":
                 cmd = 'self.wnd_mng.switch(_tpl.apply(%r))' % selector
                 action_elements.append(self.gen_statement(cmd, indent=indent))
             elif atype == "close":
@@ -655,9 +659,7 @@ import selenium_taurus_extras
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        actions = "|".join(['go', 'click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
-                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'editcontent', 'selectFrame'])
+        actions = "|".join(self.ACTION_TYPES)
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx"
         expr = re.compile("^(%s)(%s)?(\(.*\))?$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
@@ -692,7 +694,7 @@ import selenium_taurus_extras
             selector = param
             param = ""
 
-        return atype, tag, param, selector
+        return atype, tag, selector, param
 
 
 def normalize_class_name(text):
