@@ -3,9 +3,8 @@
 node() {
 
     stage('Checkout') {
-        sh """ 
-            ls -la
-            """
+        scmVars = checkout scm
+        commitHash = scmVars.GIT_COMMIT
     }
 
     stage("Docker Image Build") {
@@ -15,10 +14,9 @@ node() {
     }
 
     stage("Create Artifacts") {
-        shortCommit = sh(returnStdout: true, script: "git log -n 1 --pretty=format:'%h'").trim()
         sh """ 
             sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
-            sed -ri "s/OS: /Rev: ${shortCommit}; OS: /" bzt/cli.py           
+            sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py           
             docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME} 
             """
     }
