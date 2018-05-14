@@ -36,7 +36,7 @@ node() {
                         
             """
 
-        zip archive: true, dir: 'site', glob: '*', zipFile: 'site.zip'
+        zip archive: true, dir: 'site', glob: '*', zipFile: 'site/site.zip'
     }
 
     stage('Update Website') {
