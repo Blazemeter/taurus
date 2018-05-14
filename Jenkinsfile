@@ -4,7 +4,6 @@ node() {
 
     stage('Checkout') {
         cleanWs()
-        checkout([$class: 'GitSCM', branches: [[name: '*/master']], userRemoteConfigs: [[url: 'https://github.com/Blazemeter/taurus.git']]])
     }
 
     stage("Docker Image Build") {
