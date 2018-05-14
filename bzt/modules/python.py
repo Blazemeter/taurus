@@ -655,11 +655,11 @@ import selenium_taurus_extras
         else:
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
-        actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
+        actions = "|".join(['go', 'click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
                             'editcontent', 'selectFrame'])
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx"
-        expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
+        expr = re.compile("^(%s)(%s)?(\(.*\))?$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
             msg = "Unsupported action: %s" % name
@@ -669,15 +669,28 @@ import selenium_taurus_extras
             else:
                 raise TaurusConfigError(msg)
 
+        # mandatory action type
         atype = res.group(1).lower()
-        tag = res.group(2).lower()
-        selector = res.group(3)
 
-        # hello, reviewer!
-        if selector.startswith('"') and selector.endswith('"'):
-            selector = selector[1:-1]
-        elif selector.startswith("'") and selector.endswith("'"):
-            selector = selector[1:-1]
+        tag = res.group(2)
+        if tag:
+            tag = tag.lower()
+        else:
+            tag = ""
+
+        selector = res.group(3)
+        if selector:
+            selector = selector[1: -1]  # remove parenthesis
+            if (selector.startswith('"') and selector.endswith('"')) or \
+                    (selector.startswith("'") and selector.endswith("'")):
+                selector = selector[1:-1]   # remove quotations
+        else:
+            selector = ""
+
+        # send single parameter as selector
+        if not selector and param:
+            selector = param
+            param = ""
 
         return atype, tag, param, selector
 
