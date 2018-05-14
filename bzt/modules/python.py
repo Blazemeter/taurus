@@ -606,7 +606,7 @@ import selenium_taurus_extras
                     drop_atype, drop_tag, drop_param, drop_selector = drop_action
                 else:
                     return
-                if drop_atype == "elem":
+                if drop_atype == "element":
                     tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
                     action = "drag_and_drop"
                     drag_element = tpl % (bys[tag], selector)
@@ -671,7 +671,7 @@ import selenium_taurus_extras
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'elem', 'drag', 'editcontent', 'selectFrame'])
+                            'element', 'drag', 'editcontent', 'selectFrame'])
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
