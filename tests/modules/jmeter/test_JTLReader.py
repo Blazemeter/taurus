@@ -158,6 +158,14 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEquals(KPISet.ERRTYPE_SUBSAMPLE, values[''][0]['type'])
         self.assertEquals('404', values[''][0]['rc'])
 
+    def test_error_parsing(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-parsing.jtl")
+        self.obj.read_file(final_pass=True)
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEquals(2, len(values))
+        self.assertEquals(KPISet.ERRTYPE_ERROR, values[''][0]['type'])
+        self.assertEquals('200', values[''][0]['rc'])
+
     @unittest.skipUnless(sys.platform == "darwin" and sys.version_info >= (3, 0), "MacOS- and Python3-only")
     def test_macos_unicode_parsing_is_not_supported(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/standard-errors.jtl")
