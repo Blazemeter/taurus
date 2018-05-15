@@ -52,6 +52,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def __init__(self):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
+        self._iteration_start = None
+        self._iteration_end = None
 
     def reporting_setup(self, prefix=None, suffix=None):
         if not self.reported:
@@ -137,7 +139,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             return False
         return self.reader.read_records > 0
 
-    def check(self):
+    def _check_stdout(self):
         for line in self._tailer.get_lines():
             if "Adding worker" in line:
                 marker = "results="
@@ -145,7 +147,20 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 fname = line[pos + len(marker):].strip()
                 self.log.debug("Adding result reader for %s", fname)
                 self.reader.register_file(fname)
+            elif "Starting iteration" in line:
+                marker = "start_time="
+                pos = line.index(marker)
+                self._iteration_start = float(line[pos + len(marker):].strip())
+            elif "Finishing iteration" in line:
+                marker = "end_time="
+                pos = line.index(marker)
+                self._iteration_end = float(line[pos + len(marker):].strip())
+                self.iterations.append((self._iteration_start, self._iteration_end))
+                self._iteration_start = self._iteration_end = None
+                pass
 
+    def check(self):
+        self._check_stdout()
         return super(ApiritifNoseExecutor, self).check()
 
     def __log_lines(self):
@@ -159,6 +174,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def post_process(self):
         super(ApiritifNoseExecutor, self).post_process()
+        self._check_stdout()
         self.__log_lines()
 
     def __is_verbose(self):

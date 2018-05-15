@@ -45,6 +45,14 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         """
         pass
 
+    @abstractmethod
+    def get_iteration_times(self):
+        """
+        Return times for all iterations
+        :rtype: list[(int, int)]
+        """
+        pass
+
 
 class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
@@ -72,7 +80,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.register_reader = True
         self.webdrivers = []
 
-    def add_env(self, env):     # compatibility with taurus-server
+    def add_env(self, env):     # compatibility with taurus-cloud
         self.env.set(env)
 
     def get_runner_working_dir(self):
@@ -285,6 +293,12 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                 with open(possible_log) as fds:
                     diagnostics.append("Geckodriver log:\n" + fds.read())
         return diagnostics
+
+    def get_iteration_times(self):
+        if self.runner and self.runner.iterations:
+            return self.runner.iterations
+        else:
+            return [(self.start_time, self.end_time)]
 
 
 class SeleniumWidget(Pile, PrioritizedWidget):
