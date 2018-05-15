@@ -47,6 +47,7 @@ Supported features:
     - editContent Change text in editable field (checks contenteditable prop)
     - submitBy* Send data of form by any its element
     - runScript Execute JS command
+    - echoString(text) Print text string on the Nose output execution
     - waitBy* 
     - clickBy* 
     - doubleClickBy* 
