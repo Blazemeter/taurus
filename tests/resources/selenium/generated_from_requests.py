@@ -49,6 +49,8 @@ class TestRequests(unittest.TestCase):
             self.assertEqual(self.driver.find_element(By.XPATH, _tpl.apply('/html/body/div[2]/form/div[1]/label')).get_attribute('innerText'), _tpl.apply('${name}'))
             WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, _tpl.apply('toPort'))), "Element 'toPort' failed to appear within 3.5s")
             self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(_tpl.apply('B'))
+            self.driver.find_element(By.NAME, _tpl.apply('toPort')).clear()
+            self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(_tpl.apply('B'))
             self.driver.find_element(By.XPATH, _tpl.apply('//div[3]/form/select[1]//option[3]')).click()
             self.driver.find_element(By.XPATH, _tpl.apply('//div[3]/form/select[2]//option[6]')).click()
             self.wnd_mng.switch(_tpl.apply('0'))
