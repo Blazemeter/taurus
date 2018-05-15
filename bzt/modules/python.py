@@ -620,7 +620,7 @@ import selenium_taurus_extras
             action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply("%s"))' %
                                                       selector, indent=indent))
         elif atype == 'go':
-            if len(selector) > 0 and not param or len(param) == 0:
+            if selector and not param:
                 action_elements.append(self.gen_statement(
                     "self.driver.get(_tpl.apply(%r))" % selector.strip(), indent=indent
                 ))
