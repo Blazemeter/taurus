@@ -67,6 +67,7 @@ class TestRequests(unittest.TestCase):
             sleep(3)
             self.driver.delete_all_cookies()
             self.driver.find_element(By.LINK_TEXT, _tpl.apply('destination of the week! The Beach!')).click()
+            self.driver.get(_tpl.apply('http:\\blazemeter.com'))
 
 
         body = self.driver.page_source

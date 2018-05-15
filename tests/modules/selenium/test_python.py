@@ -330,8 +330,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"editContentById(editor)": "lo-la-lu"},
                             "pauseFor(3s)",
                             "clearCookies()",
-                            "clickByLinkText(destination of the week! The Beach!)"
-
+                            "clickByLinkText(destination of the week! The Beach!)",
+                            "go(http:\\blazemeter.com)"
                         ],
                     },
                         {"label": "empty"}
