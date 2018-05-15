@@ -71,8 +71,9 @@ class TestRequests(unittest.TestCase):
             _vars['Basic'] = _tpl.apply(self.driver.find_element(By.XPATH, _tpl.apply("//*[@id='basics']/h2")).get_attribute('innerText').strip())
             _vars['World'] = _tpl.apply(self.driver.find_element(By.XPATH, _tpl.apply("//*[@id='basics']/h1")).get_attribute('value').strip())
             _vars['Final'] = _tpl.apply('${Title} ${Basic} by ${By}')
+            print(_tpl.apply('${red_pill}'))
             
-
+            
         body = self.driver.page_source
         re_pattern = re.compile(r'contained_text')
         self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")

@@ -335,6 +335,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"storeTextByXPath(//*[@id='basics']/h2)": "Basic"},
                             {"storeValueByXPath(//*[@id='basics']/h1)": "World"},
                             {"storeString(${Title} ${Basic} by ${By})": "Final"}
+                            "echoString(${red_pill})"
 
                         ],
                     },

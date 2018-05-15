@@ -47,6 +47,7 @@ Supported features:
     - selectBy* Select value in drop down list
     - submitBy* Send data of form by any its element
     - runScript Execute JS command
+    - echoString(text) Print text string on the Nose output execution
     - waitBy* 
     - clickBy* 
     - doubleClickBy* 

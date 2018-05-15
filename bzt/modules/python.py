@@ -632,6 +632,10 @@ import selenium_taurus_extras
                   "{element}.send_keys(_tpl.apply('{keys}'))"
             vals = {"element": element, "keys": param}
             action_elements.append(self.gen_statement(tpl.format(**vals), indent=indent))
+        elif atype == 'echo' and tag == 'string':
+            if len(selector) > 0 and not param:
+                action_elements.append(
+                    self.gen_statement("print(_tpl.apply(%r))" % selector.strip(), indent=indent))
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, _tpl.apply(%r))), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
@@ -671,7 +675,7 @@ import selenium_taurus_extras
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'editcontent', 'selectFrame', 'storeText', 'storeValue', 'store'])
+                            'editcontent', 'selectFrame', 'storeText', 'storeValue', 'store', 'echo'])
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx|String"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
