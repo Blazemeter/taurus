@@ -583,7 +583,7 @@ import selenium_taurus_extras
             action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
-                       'asserttext', 'assertvalue', 'select', 'submit'):
+                       'asserttext', 'assertvalue', 'select', 'submit', 'storetext', 'storevalue'):
             tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
             action = None
             if atype == 'click':
@@ -617,14 +617,14 @@ import selenium_taurus_extras
                                            indent=indent))
                 elif atype.startswith('store'):
                     action_elements.append(
-                        self.gen_statement("vars['%s'] = _tpl.apply(%s)" % 
+                        self.gen_statement("_vars['%s'] = _tpl.apply(%s)" %
                                            (param.strip(), tpl % (bys[tag], selector, action)),
                                            indent=indent))
 
             if not action_elements:
                 action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
         elif atype == "run" and tag == "script":
-            action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply("%s"))' %
+            action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply(%r))' %
                                                       selector, indent=indent))
         elif atype == "editcontent":
             element = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
@@ -647,7 +647,14 @@ import selenium_taurus_extras
         elif atype == 'assert' and tag == 'title':
             action_elements.append(
                 self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))" % selector, indent=indent))
-
+        elif atype == 'store' and tag == 'title':
+            action_elements.append(self.gen_statement(
+                "_vars['%s'] = _tpl.apply(self.driver.title)" % param.strip(), indent=indent
+            ))
+        elif atype == 'store' and tag == 'string':
+            action_elements.append(self.gen_statement(
+                "_vars['%s'] = _tpl.apply('%s')" % (param.strip(), selector.strip()), indent=indent
+            ))
         if not action_elements:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
