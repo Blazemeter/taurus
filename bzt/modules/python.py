@@ -619,6 +619,11 @@ import selenium_taurus_extras
         elif atype == "run" and tag == "script":
             action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply("%s"))' %
                                                       selector, indent=indent))
+        elif atype == 'go':
+            if len(selector) > 0 and not param or len(param) == 0:
+                action_elements.append(self.gen_statement(
+                    "self.driver.get(_tpl.apply(%r))" % selector.strip(), indent=indent
+                ))
         elif atype == "editcontent":
             element = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
             tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); " \
@@ -657,9 +662,9 @@ import selenium_taurus_extras
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'editcontent', 'selectFrame'])
+                            'editcontent', 'selectFrame', 'go'])
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx"
-        expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
+        expr = re.compile("^(%s)(%s)?(\((.*)\))?$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
             msg = "Unsupported action: %s" % name
@@ -670,15 +675,17 @@ import selenium_taurus_extras
                 raise TaurusConfigError(msg)
 
         atype = res.group(1).lower()
-        tag = res.group(2).lower()
-        selector = res.group(3)
+        tag = res.group(2).lower() if res.group(2) else ""
+        selector = res.group(4)
 
         # hello, reviewer!
-        if selector.startswith('"') and selector.endswith('"'):
-            selector = selector[1:-1]
-        elif selector.startswith("'") and selector.endswith("'"):
-            selector = selector[1:-1]
-
+        if selector:
+            if selector.startswith('"') and selector.endswith('"'):
+                selector = selector[1:-1]
+            elif selector.startswith("'") and selector.endswith("'"):
+                selector = selector[1:-1]
+        else:
+            selector = ""
         return atype, tag, param, selector
 
 
