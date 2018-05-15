@@ -68,6 +68,7 @@ class TestRequests(unittest.TestCase):
             sleep(3)
             self.driver.delete_all_cookies()
             self.driver.find_element(By.LINK_TEXT, _tpl.apply('destination of the week! The Beach!')).click()
+            print(_tpl.apply('${red_pill}'))
 
 
         body = self.driver.page_source
