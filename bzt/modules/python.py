@@ -607,8 +607,7 @@ import selenium_taurus_extras
                     self.gen_statement("self.assertEqual(%s, _tpl.apply(%r))" %
                                        (tpl % (bys[tag], selector, action), param),
                                        indent=indent))
-        elif atype in ('click', 'type', 'keys',
-                       'asserttext', 'assertvalue', 'submit'):
+        elif atype in ('click', 'type', 'keys', 'submit'):
             tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
             action = None
             if atype == 'click':
