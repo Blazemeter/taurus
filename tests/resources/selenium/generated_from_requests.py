@@ -67,7 +67,11 @@ class TestRequests(unittest.TestCase):
             sleep(3)
             self.driver.delete_all_cookies()
             self.driver.find_element(By.LINK_TEXT, _tpl.apply('destination of the week! The Beach!')).click()
-
+            _vars['Title'] = _tpl.apply(self.driver.title)
+            _vars['Basic'] = _tpl.apply(self.driver.find_element(By.XPATH, _tpl.apply("//*[@id='basics']/h2")).get_attribute('innerText').strip())
+            _vars['World'] = _tpl.apply(self.driver.find_element(By.XPATH, _tpl.apply("//*[@id='basics']/h1")).get_attribute('value').strip())
+            _vars['Final'] = _tpl.apply('${Title} ${Basic} by ${By}')
+            
 
         body = self.driver.page_source
         re_pattern = re.compile(r'contained_text')

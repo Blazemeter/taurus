@@ -330,7 +330,11 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"editContentById(editor)": "lo-la-lu"},
                             "pauseFor(3s)",
                             "clearCookies()",
-                            "clickByLinkText(destination of the week! The Beach!)"
+                            "clickByLinkText(destination of the week! The Beach!)",
+                            {"storeTitle()": "Title"},
+                            {"storeTextByXPath(//*[@id='basics']/h2)": "Basic"},
+                            {"storeValueByXPath(//*[@id='basics']/h1)": "World"},
+                            {"storeString(${Title} ${Basic} by ${By})": "Final"}
 
                         ],
                     },
