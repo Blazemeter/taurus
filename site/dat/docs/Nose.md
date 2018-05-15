@@ -42,7 +42,8 @@ Supported features:
   - selenium commands:
     - window controls (selectWindow, closeWindow)
     - selectFrameBy*<sup>1</sup> Switch to frame
-    - keysBy* Send keys to element
+    - keysBy* Send keystrokes to element
+    - typeBy* Assign the value to element, cleaning it previously
     - editContent Change text in editable field (checks contenteditable prop)
     - submitBy* Send data of form by any its element
     - runScript Execute JS command
