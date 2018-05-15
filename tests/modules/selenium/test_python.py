@@ -332,7 +332,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "pauseFor(3s)",
                             "clearCookies()",
                             "clickByLinkText(destination of the week! The Beach!)",
+                            "go(http:\\blazemeter.com)",
                             "echoString(${red_pill})"
+
 
                         ],
                     },
