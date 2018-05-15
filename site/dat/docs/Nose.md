@@ -40,6 +40,7 @@ Supported features:
   - pauseFor (pause for n seconds) 
   - request method GET (only)
   - selenium commands:
+    - go(url) Redirect to another website
     - window controls (selectWindow, closeWindow)
     - selectFrameBy*<sup>1</sup> Switch to frame
     - keysBy* Send keys to element
@@ -49,7 +50,7 @@ Supported features:
     - waitBy* 
     - clickBy* 
     - doubleClickBy* 
-    - mouseDownBy* 
+    - mouseDownBy*
     - mouseUpBy* 
     - assertTextBy* Assert text on element
     - assertValueBy* Assert value attribute
