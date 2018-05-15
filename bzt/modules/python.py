@@ -605,15 +605,22 @@ import selenium_taurus_extras
                 action = "select_by_visible_text(_tpl.apply(%r))" % param
                 action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
                                                           indent=indent))
-            elif atype.startswith('assert'):
-                if atype == 'asserttext':
-                    action = "get_attribute('innerText')"
-                elif atype == 'assertvalue':
-                    action = "get_attribute('value')"
-                action_elements.append(
-                    self.gen_statement("self.assertEqual(%s, _tpl.apply(%r))" %
-                                       (tpl % (bys[tag], selector, action), param),
-                                       indent=indent))
+            elif atype.startswith('assert') or atype.startswith('store'):
+                if atype in ['asserttext', 'storetext']:
+                    action = "get_attribute('innerText').strip()"
+                elif atype in ['assertvalue', 'storevalue']:
+                    action = "get_attribute('value').strip()"
+                if atype.startswith('assert'):
+                    action_elements.append(
+                        self.gen_statement("self.assertEqual(_tpl.apply(%s), _tpl.apply(%r))" %
+                                           (tpl % (bys[tag], selector, action), param),
+                                           indent=indent))
+                elif atype.startswith('store'):
+                    action_elements.append(
+                        self.gen_statement("vars['%s'] = _tpl.apply(%s)" % 
+                                           (param.strip(), tpl % (bys[tag], selector, action)),
+                                           indent=indent))
+
             if not action_elements:
                 action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
         elif atype == "run" and tag == "script":
@@ -657,8 +664,8 @@ import selenium_taurus_extras
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'editcontent', 'selectFrame'])
-        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx"
+                            'editcontent', 'selectFrame', 'storeText', 'storeValue', 'store'])
+        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx|String"
         expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
