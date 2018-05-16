@@ -332,6 +332,10 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "pauseFor(3s)",
                             "clearCookies()",
                             "clickByLinkText(destination of the week! The Beach!)",
+                            {"storeTitle()": "Title"},
+                            {"storeTextByXPath(//*[@id='basics']/h2)": "Basic"},
+                            {"storeValueByXPath(//*[@id='basics']/h1)": "World"},
+                            {"storeString(${Title} ${Basic} by ${By})": "Final"},
                             "go(http:\\blazemeter.com)",
                             "echoString(${red_pill})"
 
