@@ -52,8 +52,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def __init__(self):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
+        self._iteration_number = None
         self._iteration_start = None
-        self._iteration_end = None
 
     def reporting_setup(self, prefix=None, suffix=None):
         if not self.reported:
@@ -148,16 +148,24 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 self.log.debug("Adding result reader for %s", fname)
                 self.reader.register_file(fname)
             elif "Starting iteration" in line:
-                marker = "start_time="
-                pos = line.index(marker)
-                self._iteration_start = float(line[pos + len(marker):].strip())
+                colon = line.index('::')
+                values = {
+                    part.split('=')[0]: part.split('=')[1]
+                    for part in line[colon+2:].strip().split(',')
+                }
+                self._iteration_number = int(values['index'])
+                self._iteration_start = float(values['start_time'])
             elif "Finishing iteration" in line:
-                marker = "end_time="
-                pos = line.index(marker)
-                self._iteration_end = float(line[pos + len(marker):].strip())
-                self.iterations.append((self._iteration_start, self._iteration_end))
-                self._iteration_start = self._iteration_end = None
-                pass
+                colon = line.index('::')
+                values = {
+                    part.split('=')[0]: part.split('=')[1]
+                    for part in line[colon+2:].strip().split(',')
+                }
+                iteration_end = float(values['end_time'])
+                duration = iteration_end - self._iteration_start
+                self.iteration_finished(self._iteration_number, self._iteration_start, duration)
+                self._iteration_start = None
+                self._iteration_number = None
 
     def check(self):
         self._check_stdout()

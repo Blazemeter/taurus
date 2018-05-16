@@ -46,11 +46,7 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         pass
 
     @abstractmethod
-    def get_iteration_times(self):
-        """
-        Return times for all iterations
-        :rtype: list[(int, int)]
-        """
+    def subscribe_to_iterations(self, handler):
         pass
 
 
@@ -87,6 +83,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         if self.runner_working_dir is None:
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
+
+    def subscribe_to_iterations(self, handler):
+        self.runner.subscribe_to_iterations(handler)
 
     def create_runner(self):
         runner_type = self.get_runner_type()

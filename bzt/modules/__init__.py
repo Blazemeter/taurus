@@ -61,7 +61,19 @@ class ReportableExecutor(ScenarioExecutor):
             self.engine.aggregator.add_underling(self.reader)
 
 
-class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, WidgetProvider):
+class IterationListener(object):
+    def __init__(self):
+        self._handlers = []
+
+    def subscribe_to_iterations(self, handler):
+        self._handlers.append(handler)
+
+    def iteration_finished(self, iteration_number, start_time, duration):
+        for handler in self._handlers:
+            handler(iteration_number, start_time, duration)
+
+
+class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, WidgetProvider, IterationListener):
     """
     Class for subprocessed executors
 
@@ -69,6 +81,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
     """
     def __init__(self):
         super(SubprocessedExecutor, self).__init__()
+        IterationListener.__init__(self)
         self.script = None
         self.process = None
         self.opened_descriptors = []
