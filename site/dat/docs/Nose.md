@@ -53,8 +53,9 @@ Supported features:
     - waitBy* 
     - clickBy* 
     - doubleClickBy* 
-    - mouseDownBy*
-    - mouseUpBy* 
+    - mouseDownBy* 
+    - mouseUpBy*
+    - dragBy*<sup>2</sup>
     - assertTextBy* Assert text on element
     - assertValueBy* Assert value attribute
     - assertTitle
@@ -66,6 +67,7 @@ Supported features:
 **Notes**:
   - \* selected by ID/Name/CSS/XPath.
   - \*<sup>1</sup> In addition you can use *ByIdx selector.
+  - \*<sup>2</sup> To select the target drop element, the elementBy\* command must be used. Sample: dragByID(a): elementByID(b)
    
 Action names are built as `<action>By<selector type>(<selector>)`. Sometimes actions can have value. Options are:
   - `waitByID`, `waitByName`, `waitByLinkText`, `waitByCSS` and `waitByXPath` - to wait until desired option becomes present on page.

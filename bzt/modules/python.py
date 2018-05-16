@@ -588,6 +588,17 @@ import selenium_taurus_extras
             action_elements.append(self.gen_statement(
                 "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
                 indent=indent))
+        elif atype == 'drag':
+            drop_action = self._parse_action(param)
+            if drop_action and drop_action[0] == "element" and not drop_action[2]:
+                drop_tag, drop_selector = (drop_action[1], drop_action[3])
+                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+                action = "drag_and_drop"
+                drag_element = tpl % (bys[tag], selector)
+                drop_element = tpl % (bys[drop_tag], drop_selector)
+                action_elements.append(self.gen_statement(
+                        "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
+                        indent=indent))
         elif atype == 'select':
             tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
             action = "select_by_visible_text(_tpl.apply(%r))" % param
@@ -686,8 +697,9 @@ import selenium_taurus_extras
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'editcontent', 'selectFrame', 'storeText', 'storeValue', 'store', 'echo',
-                            'go', 'type'])
+                            'editcontent', 'selectFrame', 'go', 'echo', 'type', 'element', 'drag',
+                            'storeText', 'storeValue', 'store'
+                           ])
 
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx|String"
         expr = re.compile("^(%s)(%s)?(\((.*)\))?$" % (actions, tag), re.IGNORECASE)

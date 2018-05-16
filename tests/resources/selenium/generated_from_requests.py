@@ -63,6 +63,7 @@ class TestRequests(unittest.TestCase):
             self.wnd_mng.close(_tpl.apply('that_window'))
             self.driver.find_element(By.NAME, _tpl.apply('toPort')).submit()
             self.driver.execute_script(_tpl.apply("alert('This is Sparta');"))
+            ActionChains(self.driver).drag_and_drop(self.driver.find_element(By.ID, _tpl.apply('address')), self.driver.find_element(By.NAME, _tpl.apply('toPort'))).perform()
             self.driver.switch_to.frame(self.driver.find_element(By.NAME, _tpl.apply('my_frame')))
             self.driver.switch_to.frame(1)
             if self.driver.find_element(By.ID, _tpl.apply('editor')).get_attribute('contenteditable'): self.driver.find_element(By.ID, _tpl.apply('editor')).clear(); self.driver.find_element(By.ID, _tpl.apply('editor')).send_keys(_tpl.apply('lo-la-lu'))
