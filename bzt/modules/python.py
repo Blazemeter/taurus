@@ -591,7 +591,7 @@ import selenium_taurus_extras
         elif atype == 'drag':
             drop_action = self._parse_action(param)
             if drop_action and drop_action[0] == "element" and not drop_action[2]:
-                drop_atype, drop_tag, drop_selector = (drop_action[0], drop_action[1], drop_action[3])
+                drop_tag, drop_selector = (drop_action[1], drop_action[3])
                 tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
                 action = "drag_and_drop"
                 drag_element = tpl % (bys[tag], selector)
