@@ -88,7 +88,6 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
         self.stdout_file = None
         self.stderr_file = None
         self.widget = None
-        self.iterations = []
 
     def _start_subprocess(self, cmdline, **kwargs):
         prefix = self.execution.get("executor", "executor")

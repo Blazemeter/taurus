@@ -293,12 +293,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                     diagnostics.append("Geckodriver log:\n" + fds.read())
         return diagnostics
 
-    def get_iteration_times(self):
-        if self.runner and self.runner.iterations:
-            return self.runner.iterations
-        else:
-            return [(self.start_time, self.end_time)]
-
 
 class SeleniumWidget(Pile, PrioritizedWidget):
     def __init__(self, script, runner_output):
