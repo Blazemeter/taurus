@@ -95,7 +95,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
 
-        builder.build_source_code()
+        builder.build_source_code(self.execution)
         builder.save(filename)
         return filename
 
@@ -260,26 +260,35 @@ import selenium_taurus_extras
         self.wdlog = wdlog
         self.appium = False
         self.ignore_unknown_actions = ignore_unknown_actions
+        self.execution = None
 
-    def build_source_code(self):
+    def build_source_code(self, execution=None):
         self.log.debug("Generating Test Case test methods")
+
+        self.execution = execution
 
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         test_class.append(self.gen_setup_method())
         test_class.append(self.gen_teardown_method())
+
+        scenario_name = self.execution.get("scenario")
 
         requests = self.scenario.get_requests(require_url=False)
         default_address = self.scenario.get("default-address")
         test_method = self.gen_test_method('test_requests')
         self.gen_setup(test_method)
 
+        req_index = -1
         for req in requests:
+            req_index += 1
             if req.label:
                 label = req.label
             elif req.url:
                 label = req.url
             else:
                 raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
+
+            label = scenario_name + ":" + str(req_index).zfill(3) + ":" + label
 
             test_method.append(self.gen_statement('with apiritif.transaction(%r):' % label))
             transaction_contents = []
@@ -768,6 +777,7 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.tree = None
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(self.log)
+        self.execution = None
 
     def gen_empty_line_stmt(self):
         return ast.Expr(value=ast.Name(id=""))  # hacky, but works
@@ -1206,7 +1216,8 @@ log.setLevel(logging.DEBUG)
         mod = ast.fix_missing_locations(mod)
         return mod
 
-    def build_source_code(self):
+    def build_source_code(self, execution=None):
+        self.execution = execution
         self.tree = self.build_tree()
 
     def save(self, filename):
