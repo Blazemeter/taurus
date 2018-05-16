@@ -604,20 +604,36 @@ import selenium_taurus_extras
             action = "select_by_visible_text(_tpl.apply(%r))" % param
             action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
                                                       indent=indent))
-        elif atype.startswith('assert'):
+        elif atype.startswith('assert') or atype.startswith('store'):
             if tag == 'title':
-                action_elements.append(
-                    self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))" % selector, indent=indent))
+                if atype.startswith('assert'):
+                    action_elements.append(
+                        self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))"
+                                           % selector, indent=indent))
+                else:
+                    action_elements.append(self.gen_statement(
+                        "_vars['%s'] = _tpl.apply(self.driver.title)" % param.strip(), indent=indent
+                    ))
+            elif atype == 'store' and tag == 'string':
+                action_elements.append(self.gen_statement(
+                    "_vars['%s'] = _tpl.apply('%s')" % (param.strip(), selector.strip()), indent=indent
+                ))
             else:
                 tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
-                if atype == 'asserttext':
+                if atype in ['asserttext', 'storetext']:
                     action = "get_attribute('innerText')"
-                elif atype == 'assertvalue':
+                elif atype in ['assertvalue', 'storevalue']:
                     action = "get_attribute('value')"
-                action_elements.append(
-                    self.gen_statement("self.assertEqual(%s, _tpl.apply(%r))" %
-                                       (tpl % (bys[tag], selector, action), param),
-                                       indent=indent))
+                if atype.startswith('assert'):
+                    action_elements.append(
+                        self.gen_statement("self.assertEqual(_tpl.apply(%s).strip(), _tpl.apply(%r).strip())" %
+                                           (tpl % (bys[tag], selector, action), param),
+                                           indent=indent))
+                elif atype.startswith('store'):
+                    action_elements.append(
+                        self.gen_statement("_vars['%s'] = _tpl.apply(%s)" %
+                                           (param.strip(), tpl % (bys[tag], selector, action)),
+                                           indent=indent))
         elif atype in ('click', 'type', 'keys', 'submit'):
             tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
             action = None
@@ -636,7 +652,7 @@ import selenium_taurus_extras
             action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
 
         elif atype == "run" and tag == "script":
-            action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply("%s"))' %
+            action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply(%r))' %
                                                       selector, indent=indent))
         elif atype == 'go':
             if selector and not param:
@@ -665,8 +681,7 @@ import selenium_taurus_extras
             action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
-
-        if len(action_elements) == 0:
+        if not action_elements:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return action_elements
@@ -682,7 +697,9 @@ import selenium_taurus_extras
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'editcontent', 'selectFrame', 'go', 'echo', 'type', 'element', 'drag'])
+                            'editcontent', 'selectFrame', 'go', 'echo', 'type', 'element', 'drag',
+                            'storeText', 'storeValue', 'store'
+                           ])
 
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx|String"
         expr = re.compile("^(%s)(%s)?(\((.*)\))?$" % (actions, tag), re.IGNORECASE)

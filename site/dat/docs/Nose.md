@@ -46,6 +46,7 @@ Supported features:
     - keysBy* Send keystrokes to element
     - typeBy* Assign the value to element, cleaning it previously
     - editContent Change text in editable field (checks contenteditable prop)
+    - selectBy* Select value in drop down list
     - submitBy* Send data of form by any its element
     - runScript Execute JS command
     - echoString(text) Print text string on the Nose output execution
@@ -57,8 +58,11 @@ Supported features:
     - dragBy*<sup>2</sup>
     - assertTextBy* Assert text on element
     - assertValueBy* Assert value attribute
-    - selectBy* Select value in drop down list
     - assertTitle
+    - storeTitle Store title in a variable
+    - storeString Store a string or template in a variable
+    - storeTextBy* Store text from element in a variable
+    - storeValueBy* Store value from eleent in a variable
 
 **Notes**:
   - \* selected by ID/Name/CSS/XPath.
@@ -139,6 +143,10 @@ It is possible to define variables to be used in the script, declaring them at t
 
 To use it, simply in any reference to a text in the script you must declare the insertion of the variable by using ```${name}```
 
+The use of variables can be used in many reference locations, in selectors or in values. 
+There are also commands that allow you to store and manipulate them.
+Some of them are storeTitle, storeTextBy *, storeValueBy * and storeString
+
 #### Sample:
 ```yaml
 scenario:
@@ -149,7 +157,10 @@ scenario:
     - url: http://blazedemo.com/
       actions:
       - assertTextByCSS(body > div.jumbotron > div > p:nth-child(2)): ${sample}
-
+      - storeTitle(): my_title
+      - storeTextByXPath(//*[@id="elemid"]/h2): my_text
+      - storeValueByXPath(//*[@id="elemid"]/input): my_value
+      - storeString(${my_title} love my ${my_text} with ${my_value}): final_text
 ```
 
 
