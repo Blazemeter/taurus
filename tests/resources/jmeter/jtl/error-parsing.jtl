@@ -1,0 +1,644 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testResults version="1.2">
+<sample t="0" lt="0" ts="1526370635314" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370635387" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370635444" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370635513" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="1" lt="0" ts="1526370635576" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370635716" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370635817" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="1" lt="0" ts="1526370635904" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370635969" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636031" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636110" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636174" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636293" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636441" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636497" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636553" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636607" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636658" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636718" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636795" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636851" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636919" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370636990" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370637054" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370637107" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370637161" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370637229" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370637310" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370637367" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370637441" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370637507" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+<sample t="0" lt="0" ts="1526370637562" s="false" lb="FAILED - JMeter file.encoding=Cp1255" rc="200" rm="file encoding supposes to be UTF8, but got: Cp1255" tn="Thread Group 1-1" dt="text" de="windows-1255" by="204" ng="1" na="1">
+  <assertionResult>
+    <name>JSR223 Assertion</name>
+    <failure>false</failure>
+    <error>false</error>
+  </assertionResult>
+  <responseHeader class="java.lang.String"></responseHeader>
+  <requestHeader class="java.lang.String"></requestHeader>
+  <responseData class="java.lang.String">JMeterVariables:
+JMeterThread.last_sample_ok=true
+JMeterThread.pack=org.apache.jmeter.threads.SamplePackage@2342f91b
+START.HMS=105033
+START.MS=1526370633761
+START.YMD=20180515
+TESTSTART.MS=1526370634200
+
+</responseData>
+  <samplerData class="java.lang.String">JMeterVariables
+</samplerData>
+</sample>
+
+</testResults>

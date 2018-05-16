@@ -40,25 +40,34 @@ Supported features:
   - pauseFor (pause for n seconds) 
   - request method GET (only)
   - selenium commands:
-    - window controls (selectWindow, closeWindow)
-    - selectFrameBy*<sup>1</sup> Switch to frame
-    - keysBy* Send keys to element
+    - go(url) Redirect to another website
+    - window controls (switchWindow, closeWindow)
+    - switchFrameBy*<sup>1</sup> Switch to frame
+    - keysBy* Send keystrokes to element
+    - typeBy* Assign the value to element, cleaning it previously
     - editContent Change text in editable field (checks contenteditable prop)
+    - selectBy* Select value in drop down list
     - submitBy* Send data of form by any its element
-    - runScript Execute JS command
+    - scriptEval Execute JS command
+    - echoString(text) Print text string on the Nose output execution
     - waitBy* 
     - clickBy* 
     - doubleClickBy* 
     - mouseDownBy* 
-    - mouseUpBy* 
+    - mouseUpBy*
+    - dragBy*<sup>2</sup>
     - assertTextBy* Assert text on element
     - assertValueBy* Assert value attribute
-    - selectBy* Select value in drop down list
     - assertTitle
+    - storeTitle Store title in a variable
+    - storeString Store a string or template in a variable
+    - storeTextBy* Store text from element in a variable
+    - storeValueBy* Store value from eleent in a variable
 
 **Notes**:
   - \* selected by ID/Name/CSS/XPath.
   - \*<sup>1</sup> In addition you can use *ByIdx selector.
+  - \*<sup>2</sup> To select the target drop element, the elementBy\* command must be used. Sample: dragByID(a): elementByID(b)
    
 Action names are built as `<action>By<selector type>(<selector>)`. Sometimes actions can have value. Options are:
   - `waitByID`, `waitByName`, `waitByLinkText`, `waitByCSS` and `waitByXPath` - to wait until desired option becomes present on page.
@@ -71,7 +80,7 @@ Action names are built as `<action>By<selector type>(<selector>)`. Sometimes act
 There is special action `pauseFor(<time>)` which makes script to sleep for specified amount of time. Also, calling action `clearCookies()` will force `delete\_all\_cookies` method to be called on WebDriver object.
 
 #### Window managment
-To manage windows or tabs, the `selectWindow(<value>)` and `closeWindow(<value>)` commands will allow you to manage them. 
+To manage windows or tabs, the `switchWindow(<value>)` and `closeWindow(<value>)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
   - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage. 
@@ -97,14 +106,14 @@ scenarios:
       actions:  # holds list of actions to perform
       - waitByCSS(body)
       - clickByID(mySubmitButton)   # link is open in new window (#1)
-      - selectWindow(1)     # switch to the second window (#0)
+      - switchWindow(1)     # switch to the second window (#0)
       - closeWindow()      # close the second window (#1)
       - pauseFor(5s)
       - clearCookies()
       - keysByName(myInputName): keys_to_type
       - submitByName(myInputName)
       - waitByID(myObjectToAppear): visible
-      - runScript("alert('This is Sparta');")
+      - scriptEval("alert('This is Sparta');")
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns
@@ -134,6 +143,10 @@ It is possible to define variables to be used in the script, declaring them at t
 
 To use it, simply in any reference to a text in the script you must declare the insertion of the variable by using ```${name}```
 
+The use of variables can be used in many reference locations, in selectors or in values. 
+There are also commands that allow you to store and manipulate them.
+Some of them are storeTitle, storeTextBy *, storeValueBy * and storeString
+
 #### Sample:
 ```yaml
 scenario:
@@ -144,7 +157,10 @@ scenario:
     - url: http://blazedemo.com/
       actions:
       - assertTextByCSS(body > div.jumbotron > div > p:nth-child(2)): ${sample}
-
+      - storeTitle(): my_title
+      - storeTextByXPath(//*[@id="elemid"]/h2): my_text
+      - storeValueByXPath(//*[@id="elemid"]/input): my_value
+      - storeString(${my_title} love my ${my_text} with ${my_value}): final_text
 ```
 
 

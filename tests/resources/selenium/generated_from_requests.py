@@ -45,9 +45,11 @@ class TestRequests(unittest.TestCase):
             ActionChains(self.driver).release(self.driver.find_element(By.XPATH, _tpl.apply('/html/body/div[3]/form/select[1]/option[6]'))).perform()
             Select(self.driver.find_element(By.NAME, _tpl.apply('toPort'))).select_by_visible_text(_tpl.apply('London'))
             self.driver.find_element(By.CSS_SELECTOR, _tpl.apply('body input.btn.btn-primary')).send_keys(Keys.ENTER)
-            self.assertEqual(self.driver.find_element(By.ID, _tpl.apply('address')).get_attribute('value'), _tpl.apply('123 Beautiful st.'))
-            self.assertEqual(self.driver.find_element(By.XPATH, _tpl.apply('/html/body/div[2]/form/div[1]/label')).get_attribute('innerText'), _tpl.apply('${name}'))
+            self.assertEqual(_tpl.apply(self.driver.find_element(By.ID, _tpl.apply('address')).get_attribute('value')).strip(), _tpl.apply('123 Beautiful st.').strip())
+            self.assertEqual(_tpl.apply(self.driver.find_element(By.XPATH, _tpl.apply('/html/body/div[2]/form/div[1]/label')).get_attribute('innerText')).strip(), _tpl.apply('${name}').strip())
             WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, _tpl.apply('toPort'))), "Element 'toPort' failed to appear within 3.5s")
+            self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(_tpl.apply('B'))
+            self.driver.find_element(By.NAME, _tpl.apply('toPort')).clear()
             self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(_tpl.apply('B'))
             self.driver.find_element(By.XPATH, _tpl.apply('//div[3]/form/select[1]//option[3]')).click()
             self.driver.find_element(By.XPATH, _tpl.apply('//div[3]/form/select[2]//option[6]')).click()
@@ -61,14 +63,21 @@ class TestRequests(unittest.TestCase):
             self.wnd_mng.close(_tpl.apply('that_window'))
             self.driver.find_element(By.NAME, _tpl.apply('toPort')).submit()
             self.driver.execute_script(_tpl.apply("alert('This is Sparta');"))
+            ActionChains(self.driver).drag_and_drop(self.driver.find_element(By.ID, _tpl.apply('address')), self.driver.find_element(By.NAME, _tpl.apply('toPort'))).perform()
             self.driver.switch_to.frame(self.driver.find_element(By.NAME, _tpl.apply('my_frame')))
             self.driver.switch_to.frame(1)
             if self.driver.find_element(By.ID, _tpl.apply('editor')).get_attribute('contenteditable'): self.driver.find_element(By.ID, _tpl.apply('editor')).clear(); self.driver.find_element(By.ID, _tpl.apply('editor')).send_keys(_tpl.apply('lo-la-lu'))
             sleep(3)
             self.driver.delete_all_cookies()
             self.driver.find_element(By.LINK_TEXT, _tpl.apply('destination of the week! The Beach!')).click()
-
-
+            _vars['Title'] = _tpl.apply(self.driver.title)
+            _vars['Basic'] = _tpl.apply(self.driver.find_element(By.XPATH, _tpl.apply("//*[@id='basics']/h2")).get_attribute('innerText'))
+            _vars['World'] = _tpl.apply(self.driver.find_element(By.XPATH, _tpl.apply("//*[@id='basics']/h1")).get_attribute('value'))
+            _vars['Final'] = _tpl.apply('${Title} ${Basic} by ${By}')
+            self.driver.get(_tpl.apply('http:\\blazemeter.com'))
+            print(_tpl.apply('${red_pill}'))
+            
+            
         body = self.driver.page_source
         re_pattern = re.compile(r'contained_text')
         self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
