@@ -313,6 +313,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "${name}"},
                             {"waitByName('toPort')": "visible"},
                             {"keysByName(\"toPort\")": "B"},
+                            {"typeByName(\"toPort\")": "B"},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
                             "clickByXPath(//div[3]/form/select[2]//option[6])",
                             "selectWindow(0)",
@@ -335,7 +336,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"storeTextByXPath(//*[@id='basics']/h2)": "Basic"},
                             {"storeValueByXPath(//*[@id='basics']/h1)": "World"},
                             {"storeString(${Title} ${Basic} by ${By})": "Final"},
+                            "go(http:\\blazemeter.com)",
                             "echoString(${red_pill})"
+
 
                         ],
                     },

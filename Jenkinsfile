@@ -1,4 +1,4 @@
-//@Library ("jenkins_library") _
+@Library ("jenkins_library") _
 
 node() {
 
@@ -26,7 +26,7 @@ node() {
         sh """ 
             cp -r site/dat/kb ./           
             rm -r site/*
-            
+             
             mkdir -p site/snapshots
             cp dist/*.tar.gz site/snapshots
             wget -P site/snapshots https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb
@@ -65,9 +65,9 @@ node() {
             cp dist/bzt-*.tar.gz s3/bzt-${BUILD_NUMBER}.tar.gz 
             """
 
-        //setAWSCredentialKeys('test_jenkins2_key')
-        //s3Upload bucket: 'deployment.blazemeter.com', file: 's3/bzt-${BUILD_NUMBER}.tar.gz',
-                // no idea what path should be
-        //        path: 'jobs/a_package/${BUILD_NUMBER}/a.blazemeter.com-'+MODIFIED_BUILD_NUMBER+'.tar.gz'
+        setAWSCredentialKeys('test_jenkins2_key')
+        s3Upload bucket: "deployment.blazemeter.com",
+                file: "s3/bzt-${BUILD_NUMBER}.tar.gz",
+                path: "jobs/${JOB_NAME}/${BUILD_NUMBER}/bzt-${BUILD_NUMBER}.tar.gz"
     }
 }

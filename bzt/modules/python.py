@@ -582,37 +582,40 @@ import selenium_taurus_extras
             cmd = "self.driver.switch_to.frame(%s)" % frame
             action_elements.append(self.gen_statement(cmd, indent=indent))
 
-        elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
-                       'asserttext', 'assertvalue', 'select', 'submit', 'storetext', 'storevalue'):
-            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
-            action = None
-            if atype == 'click':
-                action = "click()"
-            elif atype == 'submit':
-                action = "submit()"
-            elif atype == 'keys':
-                action = "send_keys(_tpl.apply(%r))" % param
-                if isinstance(param, str) and param.startswith("KEY_"):
-                    action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
-            elif atype in action_chains:
-                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
-                action = action_chains[atype]
-                action_elements.append(self.gen_statement(
-                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
-                    indent=indent))
-            elif atype == 'select':
-                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
-                action = "select_by_visible_text(_tpl.apply(%r))" % param
-                action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
-                                                          indent=indent))
-            elif atype.startswith('assert') or atype.startswith('store'):
-                if atype in ['asserttext', 'storetext']:
-                    action = "get_attribute('innerText').strip()"
-                elif atype in ['assertvalue', 'storevalue']:
-                    action = "get_attribute('value').strip()"
+        elif atype in action_chains:
+            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+            action = action_chains[atype]
+            action_elements.append(self.gen_statement(
+                "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
+                indent=indent))
+        elif atype == 'select':
+            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+            action = "select_by_visible_text(_tpl.apply(%r))" % param
+            action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
+                                                      indent=indent))
+        elif atype.startswith('assert') or atype.startswith('store'):
+            if tag == 'title':
                 if atype.startswith('assert'):
                     action_elements.append(
-                        self.gen_statement("self.assertEqual(_tpl.apply(%s), _tpl.apply(%r))" %
+                        self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))"
+                                           % selector, indent=indent))
+                else:
+                    action_elements.append(self.gen_statement(
+                        "_vars['%s'] = _tpl.apply(self.driver.title)" % param.strip(), indent=indent
+                    ))
+            elif atype == 'store' and tag == 'string':
+                action_elements.append(self.gen_statement(
+                    "_vars['%s'] = _tpl.apply('%s')" % (param.strip(), selector.strip()), indent=indent
+                ))
+            else:
+                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
+                if atype in ['asserttext', 'storetext']:
+                    action = "get_attribute('innerText')"
+                elif atype in ['assertvalue', 'storevalue']:
+                    action = "get_attribute('value')"
+                if atype.startswith('assert'):
+                    action_elements.append(
+                        self.gen_statement("self.assertEqual(_tpl.apply(%s).strip(), _tpl.apply(%r).strip())" %
                                            (tpl % (bys[tag], selector, action), param),
                                            indent=indent))
                 elif atype.startswith('store'):
@@ -620,12 +623,31 @@ import selenium_taurus_extras
                         self.gen_statement("_vars['%s'] = _tpl.apply(%s)" %
                                            (param.strip(), tpl % (bys[tag], selector, action)),
                                            indent=indent))
+        elif atype in ('click', 'type', 'keys', 'submit'):
+            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
+            action = None
+            if atype == 'click':
+                action = "click()"
+            elif atype == 'submit':
+                action = "submit()"
+            elif atype in ['keys', 'type']:
+                if atype == 'type':
+                    action_elements.append(self.gen_statement(
+                        tpl % (bys[tag], selector, "clear()"), indent=indent))
+                action = "send_keys(_tpl.apply(%r))" % str(param)
+                if isinstance(param, str) and param.startswith("KEY_"):
+                    action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
 
-            if not action_elements:
-                action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
+            action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
+
         elif atype == "run" and tag == "script":
             action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply(%r))' %
                                                       selector, indent=indent))
+        elif atype == 'go':
+            if selector and not param:
+                action_elements.append(self.gen_statement(
+                    "self.driver.get(_tpl.apply(%r))" % selector.strip(), indent=indent
+                ))
         elif atype == "editcontent":
             element = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
             tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); " \
@@ -648,17 +670,6 @@ import selenium_taurus_extras
             action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
-        elif atype == 'assert' and tag == 'title':
-            action_elements.append(
-                self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))" % selector, indent=indent))
-        elif atype == 'store' and tag == 'title':
-            action_elements.append(self.gen_statement(
-                "_vars['%s'] = _tpl.apply(self.driver.title)" % param.strip(), indent=indent
-            ))
-        elif atype == 'store' and tag == 'string':
-            action_elements.append(self.gen_statement(
-                "_vars['%s'] = _tpl.apply('%s')" % (param.strip(), selector.strip()), indent=indent
-            ))
         if not action_elements:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
@@ -675,9 +686,11 @@ import selenium_taurus_extras
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'editcontent', 'selectFrame', 'storeText', 'storeValue', 'store', 'echo'])
+                            'editcontent', 'selectFrame', 'storeText', 'storeValue', 'store', 'echo',
+                            'go', 'type'])
+
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx|String"
-        expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
+        expr = re.compile("^(%s)(%s)?(\((.*)\))?$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
             msg = "Unsupported action: %s" % name
@@ -688,15 +701,17 @@ import selenium_taurus_extras
                 raise TaurusConfigError(msg)
 
         atype = res.group(1).lower()
-        tag = res.group(2).lower()
-        selector = res.group(3)
+        tag = res.group(2).lower() if res.group(2) else ""
+        selector = res.group(4)
 
         # hello, reviewer!
-        if selector.startswith('"') and selector.endswith('"'):
-            selector = selector[1:-1]
-        elif selector.startswith("'") and selector.endswith("'"):
-            selector = selector[1:-1]
-
+        if selector:
+            if selector.startswith('"') and selector.endswith('"'):
+                selector = selector[1:-1]
+            elif selector.startswith("'") and selector.endswith("'"):
+                selector = selector[1:-1]
+        else:
+            selector = ""
         return atype, tag, param, selector
 
 

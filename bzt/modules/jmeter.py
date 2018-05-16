@@ -1400,16 +1400,16 @@ class JTLErrorsReader(object):
                 return assertion_message, False, None, r_code, assertion_name
             else:
                 return element.get('rm'), False, None, r_code, None
+
         if r_code and r_code.startswith("2"):
             if element.get('s') == "false":
                 # FIXME: would work with HTTP only...
-                children = [elem for elem in element.iterchildren() if elem.tag == "httpSample"]
+                children = [elem for elem in element.iterchildren() if elem.tag == "httpSample" or elem.tag=="sample"]
                 for child in children:
                     child_message, _, url, r_code, tag = self.get_failure_message(child)
                     if child_message:
                         return child_message, True, url, r_code, tag
-            else:
-                return None, False, None, None, None
+            return None, False, None, None, None
         else:
             url = element.xpath(self.url_xpath)
             return element.get('rm'), False, url[0].text if url else element.get("lb"), r_code, None
