@@ -590,16 +590,15 @@ import selenium_taurus_extras
                 indent=indent))
         elif atype == 'drag':
             drop_action = self._parse_action(param)
-            if drop_action:
+            if drop_action and drop_action[0] == "element" and not drop_action[2]:
                 drop_atype, drop_tag, drop_param, drop_selector = drop_action
-                if drop_atype == "element" and not drop_param:
-                    tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
-                    action = "drag_and_drop"
-                    drag_element = tpl % (bys[tag], selector)
-                    drop_element = tpl % (bys[drop_tag], drop_selector)
-                    action_elements.append(self.gen_statement(
-                            "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
-                            indent=indent))
+                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+                action = "drag_and_drop"
+                drag_element = tpl % (bys[tag], selector)
+                drop_element = tpl % (bys[drop_tag], drop_selector)
+                action_elements.append(self.gen_statement(
+                        "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
+                        indent=indent))
         elif atype == 'select':
             tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
             action = "select_by_visible_text(_tpl.apply(%r))" % param
