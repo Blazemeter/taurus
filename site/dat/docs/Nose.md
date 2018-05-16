@@ -41,14 +41,14 @@ Supported features:
   - request method GET (only)
   - selenium commands:
     - go(url) Redirect to another website
-    - window controls (selectWindow, closeWindow)
-    - selectFrameBy*<sup>1</sup> Switch to frame
+    - window controls (switchWindow, closeWindow)
+    - switchFrameBy*<sup>1</sup> Switch to frame
     - keysBy* Send keystrokes to element
     - typeBy* Assign the value to element, cleaning it previously
     - editContent Change text in editable field (checks contenteditable prop)
     - selectBy* Select value in drop down list
     - submitBy* Send data of form by any its element
-    - runScript Execute JS command
+    - scriptEval Execute JS command
     - echoString(text) Print text string on the Nose output execution
     - waitBy* 
     - clickBy* 
@@ -80,7 +80,7 @@ Action names are built as `<action>By<selector type>(<selector>)`. Sometimes act
 There is special action `pauseFor(<time>)` which makes script to sleep for specified amount of time. Also, calling action `clearCookies()` will force `delete\_all\_cookies` method to be called on WebDriver object.
 
 #### Window managment
-To manage windows or tabs, the `selectWindow(<value>)` and `closeWindow(<value>)` commands will allow you to manage them. 
+To manage windows or tabs, the `switchWindow(<value>)` and `closeWindow(<value>)` commands will allow you to manage them.
 
 These actions require a value parameter, the possible values are:
   - `number`: The index to the window in reference, 0 is the first, 1 is the second, and so with those who want to manage. 
@@ -106,14 +106,14 @@ scenarios:
       actions:  # holds list of actions to perform
       - waitByCSS(body)
       - clickByID(mySubmitButton)   # link is open in new window (#1)
-      - selectWindow(1)     # switch to the second window (#0)
+      - switchWindow(1)     # switch to the second window (#0)
       - closeWindow()      # close the second window (#1)
       - pauseFor(5s)
       - clearCookies()
       - keysByName(myInputName): keys_to_type
       - submitByName(myInputName)
       - waitByID(myObjectToAppear): visible
-      - runScript("alert('This is Sparta');")
+      - scriptEval("alert('This is Sparta');")
       assert: # assert executed after actions
       - contains:
         - blazemeter  # list of search patterns

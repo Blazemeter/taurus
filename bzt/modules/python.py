@@ -563,7 +563,7 @@ import selenium_taurus_extras
         }
 
         if tag == "window":
-            if atype == "select":
+            if atype == "switch":
                 cmd = 'self.wnd_mng.switch(_tpl.apply(%r))' % selector
                 action_elements.append(self.gen_statement(cmd, indent=indent))
             elif atype == "close":
@@ -573,7 +573,7 @@ import selenium_taurus_extras
                     cmd = 'self.wnd_mng.close()'
                 action_elements.append(self.gen_statement(cmd, indent=indent))
 
-        elif atype == "selectframe":
+        elif atype == "switchframe":
             if tag == "byidx":
                 frame = str(selector)
             else:
@@ -651,7 +651,7 @@ import selenium_taurus_extras
 
             action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
 
-        elif atype == "run" and tag == "script":
+        elif atype == "script" and tag == "eval":
             action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply(%r))' %
                                                       selector, indent=indent))
         elif atype == 'go':
@@ -696,12 +696,12 @@ import selenium_taurus_extras
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
-                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'editcontent', 'selectFrame', 'go', 'echo', 'type', 'element', 'drag',
+                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'script',
+                            'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
                             'storeText', 'storeValue', 'store'
                            ])
 
-        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx|String"
+        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Eval|ByIdx|String"
         expr = re.compile("^(%s)(%s)?(\((.*)\))?$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
