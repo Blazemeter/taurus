@@ -313,6 +313,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "${name}"},
                             {"waitByName('toPort')": "visible"},
                             {"keysByName(\"toPort\")": "B"},
+                            {"typeByName(\"toPort\")": "B"},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
                             "clickByXPath(//div[3]/form/select[2]//option[6])",
                             "selectWindow(0)",
@@ -332,7 +333,9 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "pauseFor(3s)",
                             "clearCookies()",
                             "clickByLinkText(destination of the week! The Beach!)",
+                            "go(http:\\blazemeter.com)",
                             "echoString(${red_pill})"
+
 
                         ],
                     },

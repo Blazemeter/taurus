@@ -582,42 +582,35 @@ import selenium_taurus_extras
             cmd = "self.driver.switch_to.frame(%s)" % frame
             action_elements.append(self.gen_statement(cmd, indent=indent))
 
-        elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'drag', 'mousemove', 'keys',
-                       'asserttext', 'assertvalue', 'select', 'submit'):
-            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
-            action = None
-            if atype == 'click':
-                action = "click()"
-            elif atype == 'submit':
-                action = "submit()"
-            elif atype == 'keys':
-                action = "send_keys(_tpl.apply(%r))" % param
-                if isinstance(param, str) and param.startswith("KEY_"):
-                    action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
-            elif atype in action_chains:
-                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
-                action = action_chains[atype]
-                action_elements.append(self.gen_statement(
-                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
-                    indent=indent))
-            elif atype == 'drag':
-                drop_action = self._parse_action(param)
-                if drop_action:
-                    drop_atype, drop_tag, drop_param, drop_selector = drop_action
-                    if drop_atype == "element" and not drop_param:
-                        tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
-                        action = "drag_and_drop"
-                        drag_element = tpl % (bys[tag], selector)
-                        drop_element = tpl % (bys[drop_tag], drop_selector)
-                        action_elements.append(self.gen_statement(
-                                "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
-                                indent=indent))
-            elif atype == 'select':
-                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
-                action = "select_by_visible_text(_tpl.apply(%r))" % param
-                action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
-                                                          indent=indent))
-            elif atype.startswith('assert'):
+        elif atype in action_chains:
+            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+            action = action_chains[atype]
+            action_elements.append(self.gen_statement(
+                "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
+                indent=indent))
+        elif atype == 'drag':
+            drop_action = self._parse_action(param)
+            if drop_action:
+                drop_atype, drop_tag, drop_param, drop_selector = drop_action
+                if drop_atype == "element" and not drop_param:
+                    tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+                    action = "drag_and_drop"
+                    drag_element = tpl % (bys[tag], selector)
+                    drop_element = tpl % (bys[drop_tag], drop_selector)
+                    action_elements.append(self.gen_statement(
+                            "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
+                            indent=indent))
+        elif atype == 'select':
+            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+            action = "select_by_visible_text(_tpl.apply(%r))" % param
+            action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
+                                                      indent=indent))
+        elif atype.startswith('assert'):
+            if tag == 'title':
+                action_elements.append(
+                    self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))" % selector, indent=indent))
+            else:
+                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
                 if atype == 'asserttext':
                     action = "get_attribute('innerText')"
                 elif atype == 'assertvalue':
@@ -626,11 +619,31 @@ import selenium_taurus_extras
                     self.gen_statement("self.assertEqual(%s, _tpl.apply(%r))" %
                                        (tpl % (bys[tag], selector, action), param),
                                        indent=indent))
-            if not action_elements:
-                action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
+        elif atype in ('click', 'type', 'keys', 'submit'):
+            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
+            action = None
+            if atype == 'click':
+                action = "click()"
+            elif atype == 'submit':
+                action = "submit()"
+            elif atype in ['keys', 'type']:
+                if atype == 'type':
+                    action_elements.append(self.gen_statement(
+                        tpl % (bys[tag], selector, "clear()"), indent=indent))
+                action = "send_keys(_tpl.apply(%r))" % str(param)
+                if isinstance(param, str) and param.startswith("KEY_"):
+                    action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
+
+            action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
+
         elif atype == "run" and tag == "script":
             action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply("%s"))' %
                                                       selector, indent=indent))
+        elif atype == 'go':
+            if selector and not param:
+                action_elements.append(self.gen_statement(
+                    "self.driver.get(_tpl.apply(%r))" % selector.strip(), indent=indent
+                ))
         elif atype == "editcontent":
             element = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
             tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); " \
@@ -653,11 +666,8 @@ import selenium_taurus_extras
             action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
-        elif atype == 'assert' and tag == 'title':
-            action_elements.append(
-                self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))" % selector, indent=indent))
 
-        if not action_elements:
+        if len(action_elements) == 0:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
         return action_elements
@@ -673,9 +683,10 @@ import selenium_taurus_extras
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'element', 'drag', 'editcontent', 'selectFrame', 'echo'])
+                            'editcontent', 'selectFrame', 'go', 'echo', 'type', 'element', 'drag'])
+
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx|String"
-        expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
+        expr = re.compile("^(%s)(%s)?(\((.*)\))?$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
             msg = "Unsupported action: %s" % name
@@ -686,15 +697,17 @@ import selenium_taurus_extras
                 raise TaurusConfigError(msg)
 
         atype = res.group(1).lower()
-        tag = res.group(2).lower()
-        selector = res.group(3)
+        tag = res.group(2).lower() if res.group(2) else ""
+        selector = res.group(4)
 
         # hello, reviewer!
-        if selector.startswith('"') and selector.endswith('"'):
-            selector = selector[1:-1]
-        elif selector.startswith("'") and selector.endswith("'"):
-            selector = selector[1:-1]
-
+        if selector:
+            if selector.startswith('"') and selector.endswith('"'):
+                selector = selector[1:-1]
+            elif selector.startswith("'") and selector.endswith("'"):
+                selector = selector[1:-1]
+        else:
+            selector = ""
         return atype, tag, param, selector
 
 
