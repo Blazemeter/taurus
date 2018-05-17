@@ -70,23 +70,20 @@ public class TestNGRunner {
         testNG.setVerbose(0);
         testNG.addListener(testListener);
 
-        ArrayList<Class> classes = getClasses(props);
-        if (classes.isEmpty()) {
-            throw new RuntimeException("Nothing to test");
-        } else {
-            log.info("Found test classes: " + classes.size());
-        }
-        Class[] classArray = classes.toArray(new Class[classes.size()]);
-
         List<String> suites = Lists.newArrayList();
         if (props.getProperty(TESTNG_CONFIG) != null) {
             log.info("Using TestNG config: " + props.getProperty(TESTNG_CONFIG));
             suites.add(props.getProperty(TESTNG_CONFIG));
-        }
-
-        if (!suites.isEmpty()) {
             testNG.setTestSuites(suites);
         } else {
+            log.info("No testng.xml passed, looking for test classes");
+            ArrayList<Class> classes = getClasses(props);
+            if (classes.isEmpty()) {
+                throw new RuntimeException("Nothing to test");
+            } else {
+                log.info("Found test classes: " + classes.size());
+            }
+            Class[] classArray = classes.toArray(new Class[classes.size()]);
             testNG.setTestClasses(classArray);
         }
     }
