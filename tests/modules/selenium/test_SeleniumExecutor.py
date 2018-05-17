@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import time
+from collections import Counter
 
 import yaml
 
@@ -11,7 +12,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.python import ApiritifNoseExecutor
-from bzt.six import BytesIO
+from bzt.six import BytesIO, iteritems
 from bzt.utils import LDJSONReader, FileReader
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
@@ -223,6 +224,36 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.env.add_path({"PATH": path2})
         self.assertIn(path1, self.obj.env.get("PATH"))
         self.assertIn(path2, self.obj.env.get("PATH"))
+
+    def test_subscribe_to_iterations(self):
+        iteration_counter = Counter()
+
+        def on_iteration_start(idx, started_at):
+            iteration_counter[idx] += 1
+
+        def on_iteration_end(idx, started_at):
+            iteration_counter[idx] += 1
+
+        self.configure({
+            'execution': {
+                "iterations": 5,
+                'scenario': {'script': RESOURCES_DIR + 'selenium/python/test_blazemeter_pass.py'},
+                'executor': 'selenium'
+            },
+        })
+        self.obj.prepare()
+        self.obj.subscribe_to_iterations(on_iteration_start, on_iteration_end)
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+
+        self.assertEqual(5, len(iteration_counter))
+        for key, value in iteritems(iteration_counter):
+            self.assertEqual(2, value)
 
 
 class TestReportReader(BZTestCase):

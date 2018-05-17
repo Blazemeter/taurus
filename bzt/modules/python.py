@@ -52,8 +52,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def __init__(self):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
-        self._iteration_number = None
-        self._iteration_start = None
 
     def reporting_setup(self, prefix=None, suffix=None):
         if not self.reported:
@@ -153,19 +151,18 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                     part.split('=')[0]: part.split('=')[1]
                     for part in line[colon+2:].strip().split(',')
                 }
-                self._iteration_number = int(values['index'])
-                self._iteration_start = float(values['start_time'])
+                iteration_number = int(values['index'])
+                iteration_start = float(values['start_time'])
+                self.iteration_started(iteration_number, iteration_start)
             elif "Finishing iteration" in line:
                 colon = line.index('::')
                 values = {
                     part.split('=')[0]: part.split('=')[1]
                     for part in line[colon+2:].strip().split(',')
                 }
+                iteration_number = int(values['index'])
                 iteration_end = float(values['end_time'])
-                duration = iteration_end - self._iteration_start
-                self.iteration_finished(self._iteration_number, self._iteration_start, duration)
-                self._iteration_start = None
-                self._iteration_number = None
+                self.iteration_ended(iteration_number, iteration_end)
 
     def check(self):
         self._check_stdout()

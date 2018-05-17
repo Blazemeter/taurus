@@ -46,7 +46,7 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         pass
 
     @abstractmethod
-    def subscribe_to_iterations(self, handler):
+    def subscribe_to_iterations(self, start_handler, end_handler):
         pass
 
 
@@ -84,8 +84,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
-    def subscribe_to_iterations(self, handler):
-        self.runner.subscribe_to_iterations(handler)
+    def subscribe_to_iterations(self, start_handler, end_handler):
+        self.runner.subscribe_to_iterations(start_handler, end_handler)
 
     def create_runner(self):
         runner_type = self.get_runner_type()
