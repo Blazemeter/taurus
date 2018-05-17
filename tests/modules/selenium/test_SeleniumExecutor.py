@@ -15,7 +15,7 @@ from bzt.modules.python import ApiritifNoseExecutor
 from bzt.six import BytesIO, iteritems
 from bzt.utils import LDJSONReader, FileReader
 from tests import BZTestCase, RESOURCES_DIR
-from tests.mocks import EngineEmul
+from tests.mocks import EngineEmul, DummyListener
 from tests.modules.selenium import SeleniumTestCase
 
 
@@ -226,13 +226,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertIn(path2, self.obj.env.get("PATH"))
 
     def test_subscribe_to_iterations(self):
-        iteration_counter = Counter()
-
-        def on_iteration_start(idx, started_at):
-            iteration_counter[idx] += 1
-
-        def on_iteration_end(idx, started_at):
-            iteration_counter[idx] += 1
+        dummy = DummyListener()
 
         self.configure({
             'execution': {
@@ -242,7 +236,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             },
         })
         self.obj.prepare()
-        self.obj.subscribe_to_iterations(on_iteration_start, on_iteration_end)
+        self.obj.subscribe_to_iterations(dummy)
         try:
             self.obj.startup()
             while not self.obj.check():
@@ -251,8 +245,8 @@ class TestSeleniumStuff(SeleniumTestCase):
             self.obj.shutdown()
         self.obj.post_process()
 
-        self.assertEqual(5, len(iteration_counter))
-        for key, value in iteritems(iteration_counter):
+        self.assertEqual(5, len(dummy.iteration_counter))
+        for key, value in iteritems(dummy.iteration_counter):
             self.assertEqual(2, value)
 
 

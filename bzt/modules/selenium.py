@@ -46,7 +46,11 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         pass
 
     @abstractmethod
-    def subscribe_to_iterations(self, start_handler, end_handler):
+    def subscribe_to_iterations(self, listener):
+        """
+        Subscribe to iteration events
+        :type listener: bzt.modules.IterationListener
+        """
         pass
 
 
@@ -84,8 +88,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
-    def subscribe_to_iterations(self, start_handler, end_handler):
-        self.runner.subscribe_to_iterations(start_handler, end_handler)
+    def subscribe_to_iterations(self, listener):
+        self.runner.subscribe_to_iterations(listener)
+        self.runner.set_source(self)
 
     def create_runner(self):
         runner_type = self.get_runner_type()

@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import abc
 import os
 import time
 
@@ -61,22 +62,34 @@ class ReportableExecutor(ScenarioExecutor):
             self.engine.aggregator.add_underling(self.reader)
 
 
+class IterationListener(object):
+    @abc.abstractmethod
+    def iteration_started(self, sender, iteration_number, start_time):
+        pass
+
+    @abc.abstractmethod
+    def iteration_ended(self, sender, iteration_number, end_time):
+        pass
+
+
 class IterationProvider(object):
     def __init__(self):
-        self._start_handlers = []
-        self._end_handlers = []
+        self._listeners = []
+        self._source = self
 
-    def subscribe_to_iterations(self, start_handler, end_handler):
-        self._start_handlers.append(start_handler)
-        self._end_handlers.append(end_handler)
+    def subscribe_to_iterations(self, listener):
+        self._listeners.append(listener)
+
+    def set_source(self, source_obj):
+        self._source = source_obj
 
     def iteration_started(self, iteration_number, start_time):
-        for handler in self._start_handlers:
-            handler(iteration_number, start_time)
+        for listener in self._listeners:
+            listener.iteration_started(self._source, iteration_number, start_time)
 
     def iteration_ended(self, iteration_number, end_time):
-        for handler in self._end_handlers:
-            handler(iteration_number, end_time)
+        for listener in self._listeners:
+            listener.iteration_ended(self._source, iteration_number, end_time)
 
 
 class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, WidgetProvider, IterationProvider):
