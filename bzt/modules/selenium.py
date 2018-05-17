@@ -45,6 +45,14 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         """
         pass
 
+    @abstractmethod
+    def subscribe_to_iterations(self, listener):
+        """
+        Subscribe to iteration events
+        :type listener: bzt.modules.IterationListener
+        """
+        pass
+
 
 class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
@@ -72,13 +80,17 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.register_reader = True
         self.webdrivers = []
 
-    def add_env(self, env):     # compatibility with taurus-server
+    def add_env(self, env):     # compatibility with taurus-cloud
         self.env.set(env)
 
     def get_runner_working_dir(self):
         if self.runner_working_dir is None:
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
+
+    def subscribe_to_iterations(self, listener):
+        self.runner.subscribe_to_iterations(listener)
+        self.runner.set_source(self)
 
     def create_runner(self):
         runner_type = self.get_runner_type()
