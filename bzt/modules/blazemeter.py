@@ -1986,6 +1986,7 @@ class ServiceStubCaptureHAR(Service):
 
 
 class WDGridProvisioning(Local):
+    GRID = "grid"
 
     def __init__(self):
         super(WDGridProvisioning, self).__init__()
@@ -1996,8 +1997,53 @@ class WDGridProvisioning(Local):
         CloudProvisioning.configure_client(self)
         self.__dump_status_if_needed()
         self.__dump_catalog_if_needed()
+        self.__cleanup_if_needed()
+
+        client = WDGridImages(self.user)
+        catalog = client.get_images()
+        engines = client.get_engines()
+
+        executions = []
+        proto = self.engine.config.get(ScenarioExecutor.EXEC, [])
+        provision_items = []
+        for execution in proto if isinstance(proto, list) else [proto]:
+            if self.GRID not in execution:
+                executions.append(execution)
+                continue
+
+            if not isinstance(execution[self.GRID], list):
+                execution[self.GRID] = [execution[self.GRID]]
+
+            for item in execution[self.GRID]:
+                exec_item = copy.deepcopy(execution)
+                exec_item[self.GRID] = [item]
+                img = self.get_image_id(item, catalog)
+                if img is None:
+                    raise TaurusConfigError("Grid item is invalid: %s" % item)
+
+                if not self._reused_engine(item, execution):
+                    provision_items.append((execution, item, img))
+
+                exec_item.get('env', force_set=True)['TAURUS_WEBDRIVER_ADDRESS'] = "http://localhost:4723/wd/hub"
+
+                executions.append(exec_item)
+
+        self.log.debug("Items to provision via grid: %s", provision_items)
+        request = [{"name": "%s" % id(self), "imageId": img['id']} for exec_marker, grid_item, img in provision_items]
+        client.provision(request)
+
+        for exec_marker, grid_item, img in provision_items:
+            for execution in executions:
+                if execution == exec_marker:
+                    pass
+
+        self.engine.config[ScenarioExecutor.EXEC] = executions
 
         super(WDGridProvisioning, self).prepare()
+
+    def _reused_engine(self, item, execution):
+        # TODO
+        pass
 
     def __dump_catalog_if_needed(self):
         if self.settings.get("dump-catalog", False):
@@ -2005,16 +2051,38 @@ class WDGridProvisioning(Local):
             client = WDGridImages(self.user)
             for img in client.get_images():
                 self.log.info("Image ID: %s\tOS: %s %s\tBrowser: %s %s",
-                              img['id'], img['operatingSystem'], img['operatingSystemVersion'], img['browser'], img['browserVersion'], )
+                              img['id'], img['operatingSystem'], img['operatingSystemVersion'], img['browser'],
+                              img['browserVersion'], )
 
             raise NormalShutdown("Done listing images")
 
     def __dump_status_if_needed(self):
         if self.settings.get("dump-status", False):
-            self.log.warning("Dumping status of WebDriver images below:")
+            self.log.warning("Dumping status of WebDriver engines below:")
             client = WDGridImages(self.user)
             for img in client.get_engines():
-                self.log.info("Image ID: %s\tOS: %s %s\tBrowser: %s %s",
-                              img['id'], img['operatingSystem'], img['operatingSystemVersion'], img['browser'], img['browserVersion'], )
+                self.log.info("Image ID: %s\tplatform: %s/%s\tBrowser: %s/%s",
+                              img['id'], img['operatingSystem'], img['operatingSystemVersion'], img['browser'],
+                              img['browserVersion'], )
 
             raise NormalShutdown("Done listing images")
+
+    def __cleanup_if_needed(self):
+        if self.settings.get("cleanup-engines", False):
+            self.log.warning("Cleaning up WebDriver engines")
+            client = WDGridImages(self.user)
+            for img in client.get_engines():
+                self.log.info("Stopping: %s\t%s\t#%s", img['imageId'], img['name'], img['id'],)
+                img.stop()
+
+            raise NormalShutdown("Done cleanup")
+
+    def get_image_id(self, item, catalog):
+        for img in catalog:
+            platf = item['platform'].split('/')
+            browser = item['browser'].split('/')
+            if img['operatingSystem'] == platf[0] and img['operatingSystemVersion'] == platf[1] \
+                    and img['browser'] == browser[0] and img['browserVersion'] == browser[1]:
+                return img
+
+        return None

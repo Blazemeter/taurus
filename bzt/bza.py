@@ -766,13 +766,33 @@ class BZAProxy(BZAObject):
         return response
 
 
+class WDGridEngine(BZAObject):
+    def stop(self):
+        url = self.address + "/api/v4/grid/engines/%s/stop" % self['id']
+        self._request(url, method='POST')
+
+
+class WDGridImage(BZAObject):
+    def provision(self, label):
+        data = [
+            {
+                "name": label,
+                "imageId": self['id']
+            }
+        ]
+        url = self.address + "/api/v4/grid/engines"
+        self._request(url, method='POST', data=data)
+
+
 class WDGridImages(BZAObject):
     def get_images(self):
         data = self._request(self.address + '/api/v4/grid/images')
-
-        return data["result"] # BZAObjectsList([Session(self, x) for x in data])
+        return BZAObjectsList([WDGridImage(self, x) for x in data["result"]])
 
     def get_engines(self):
         data = self._request(self.address + '/api/v4/grid/engines')
+        return BZAObjectsList([WDGridEngine(self, x) for x in data["result"]])
 
-        return data["result"] # BZAObjectsList([Session(self, x) for x in data])
+    def provision(self, data):
+        url = self.address + "/api/v4/grid/engines"
+        self._request(url, method='POST', data=data)

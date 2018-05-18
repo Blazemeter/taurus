@@ -14,21 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import ast
+import json
 import math
 import os
 import re
 import shlex
+import shutil
 import string
 import sys
 import time
-import shutil
 from abc import abstractmethod
 from collections import OrderedDict
 from subprocess import CalledProcessError
 
 import astunparse
 import yaml
-import json
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import HavingInstallableTools, Scenario, SETTINGS
@@ -479,7 +479,7 @@ import selenium_taurus_extras
                 else:
                     raise TaurusConfigError("Unsupported capability name: %s" % cap_key)
 
-        tpl = "self.driver = webdriver.Remote(command_executor={command_executor}, desired_capabilities={des_caps})"
+        tpl = "self.driver = webdriver.Remote(command_executor=os.getenv('TAURUS_WEBDRIVER_ADDRESS',{command_executor}), desired_capabilities={des_caps})"
 
         if not remote_executor:
             if self.appium:
@@ -583,11 +583,11 @@ import selenium_taurus_extras
             action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype in action_chains:
-                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
-                action = action_chains[atype]
-                action_elements.append(self.gen_statement(
-                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
-                    indent=indent))
+            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+            action = action_chains[atype]
+            action_elements.append(self.gen_statement(
+                "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
+                indent=indent))
         elif atype == 'select':
             tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
             action = "select_by_visible_text(_tpl.apply(%r))" % param
