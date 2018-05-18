@@ -1329,7 +1329,7 @@ class PythonGenerator(object):
         return self.gen_statement("# %s" % comment, indent=indent)
 
     def save(self, filename):
-        with open(filename, 'wt') as fds:
+        with codecs.open(filename, 'w', encoding='utf-8') as fds:
             for child in self.root.iter():
                 if child.text is not None:
                     indent = int(child.get('indent', "0"))
