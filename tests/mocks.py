@@ -350,6 +350,6 @@ class DummyListener(IterationListener):
     def iteration_started(self, executor, idx, started_at):
         self.iteration_counter[idx] += 1
 
-    def iteration_ended(self, executor, idx, ended_at):
+    def iteration_ended(self, executor, idx, ended_at, label):
         self.iteration_counter[idx] += 1
 

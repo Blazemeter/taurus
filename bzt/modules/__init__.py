@@ -68,7 +68,7 @@ class IterationListener(object):
         pass
 
     @abc.abstractmethod
-    def iteration_ended(self, sender, iteration_number, end_time):
+    def iteration_ended(self, sender, iteration_number, end_time, iteration_label):
         pass
 
 
@@ -87,9 +87,9 @@ class IterationProvider(object):
         for listener in self._listeners:
             listener.iteration_started(self._source, iteration_number, start_time)
 
-    def iteration_ended(self, iteration_number, end_time):
+    def iteration_ended(self, iteration_number, end_time, iteration_label):
         for listener in self._listeners:
-            listener.iteration_ended(self._source, iteration_number, end_time)
+            listener.iteration_ended(self._source, iteration_number, end_time, iteration_label)
 
 
 class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, WidgetProvider, IterationProvider):

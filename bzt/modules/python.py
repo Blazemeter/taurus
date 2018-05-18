@@ -152,8 +152,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                     for part in line[colon+2:].strip().split(',')
                 }
                 iteration_number = int(values['index'])
-                iteration_start = float(values['start_time'])
-                self.iteration_started(iteration_number, iteration_start)
+                start_time = float(values['start_time'])
+                self.iteration_started(iteration_number, start_time)
             elif "Finishing iteration" in line:
                 colon = line.index('::')
                 values = {
@@ -161,8 +161,10 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                     for part in line[colon+2:].strip().split(',')
                 }
                 iteration_number = int(values['index'])
-                iteration_end = float(values['end_time'])
-                self.iteration_ended(iteration_number, iteration_end)
+                end_time = float(values['end_time'])
+                iteration_label = str(self._source).replace(os.path.sep, "-") + "-iteration-" + str(iteration_number)
+
+                self.iteration_ended(iteration_number, end_time, iteration_label)
 
     def check(self):
         self._check_stdout()
