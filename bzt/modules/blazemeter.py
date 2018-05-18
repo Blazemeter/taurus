@@ -1994,6 +1994,7 @@ class WDGridProvisioning(Local):
     def prepare(self):
         CloudProvisioning.merge_with_blazemeter_config(self)
         CloudProvisioning.configure_client(self)
+        self.__dump_status_if_needed()
         self.__dump_catalog_if_needed()
 
         super(WDGridProvisioning, self).prepare()
@@ -2003,6 +2004,16 @@ class WDGridProvisioning(Local):
             self.log.warning("Dumping available WebDriver images below:")
             client = WDGridImages(self.user)
             for img in client.get_images():
+                self.log.info("Image ID: %s\tOS: %s %s\tBrowser: %s %s",
+                              img['id'], img['operatingSystem'], img['operatingSystemVersion'], img['browser'], img['browserVersion'], )
+
+            raise NormalShutdown("Done listing images")
+
+    def __dump_status_if_needed(self):
+        if self.settings.get("dump-status", False):
+            self.log.warning("Dumping status of WebDriver images below:")
+            client = WDGridImages(self.user)
+            for img in client.get_engines():
                 self.log.info("Image ID: %s\tOS: %s %s\tBrowser: %s %s",
                               img['id'], img['operatingSystem'], img['operatingSystemVersion'], img['browser'], img['browserVersion'], )
 

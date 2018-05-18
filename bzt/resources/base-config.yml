@@ -144,14 +144,19 @@ cli-aliases:
     cli:
       linter:
         disable: true
+
   webdriver-grid:
     provisioning: webdriver-grid
-
   webdriver-catalog:
     provisioning: webdriver-grid
     modules:
       webdriver-grid:
         dump-catalog: true
+  webdriver-status:
+    provisioning: webdriver-grid
+    modules:
+      webdriver-grid:
+        dump-status: true
 
 cli:
   linter:

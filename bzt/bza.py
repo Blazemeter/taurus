@@ -771,3 +771,8 @@ class WDGridImages(BZAObject):
         data = self._request(self.address + '/api/v4/grid/images')
 
         return data["result"] # BZAObjectsList([Session(self, x) for x in data])
+
+    def get_engines(self):
+        data = self._request(self.address + '/api/v4/grid/engines')
+
+        return data["result"] # BZAObjectsList([Session(self, x) for x in data])
