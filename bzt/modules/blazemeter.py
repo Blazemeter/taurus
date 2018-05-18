@@ -35,12 +35,13 @@ from urwid import Pile, Text
 
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
-from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
+from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED, WDGridImages
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener
+from bzt.modules.provisioning import Local
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
 from bzt.utils import dehumanize_time, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
@@ -1510,18 +1511,19 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.launch_existing_test = None
         self.disallow_empty_execution = False
 
-    def _merge_with_blazemeter_config(self):
-        if 'blazemeter' not in self.engine.config.get('modules'):
-            self.log.debug("Module 'blazemeter' wasn't found in base config")
+    @staticmethod
+    def merge_with_blazemeter_config(module):
+        if 'blazemeter' not in module.engine.config.get('modules'):
+            module.log.debug("Module 'blazemeter' wasn't found in base config")
             return
-        bm_mod = self.engine.instantiate_module('blazemeter')
+        bm_mod = module.engine.instantiate_module('blazemeter')
         bm_settings = copy.deepcopy(bm_mod.settings)
-        bm_settings.update(self.settings)
-        self.settings = bm_settings
+        bm_settings.update(module.settings)
+        module.settings = bm_settings
 
     def prepare(self):
-        self._merge_with_blazemeter_config()
-        self._configure_client()
+        CloudProvisioning.merge_with_blazemeter_config(self)
+        CloudProvisioning.configure_client(self)
         self._workspaces = self.user.accounts().workspaces()
         if not self._workspaces:
             raise TaurusNetworkError("Your account has no active workspaces, please contact BlazeMeter support")
@@ -1593,13 +1595,14 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 new_reporting.append(reporter)
         self.engine.config[Reporter.REP] = new_reporting
 
-    def _configure_client(self):
-        self.user.log = self.log
-        self.user.logger_limit = self.settings.get("request-logging-limit", self.user.logger_limit)
-        self.user.address = self.settings.get("address", self.user.address)
-        self.user.token = self.settings.get("token", self.user.token)
-        self.user.timeout = dehumanize_time(self.settings.get("timeout", self.user.timeout))
-        if not self.user.token:
+    @staticmethod
+    def configure_client(module):
+        module.user.log = module.log
+        module.user.logger_limit = module.settings.get("request-logging-limit", module.user.logger_limit)
+        module.user.address = module.settings.get("address", module.user.address)
+        module.user.token = module.settings.get("token", module.user.token)
+        module.user.timeout = dehumanize_time(module.settings.get("timeout", module.user.timeout))
+        if not module.user.token:
             raise TaurusConfigError("You must provide API token to use cloud provisioning")
 
     def startup(self):
@@ -1980,3 +1983,27 @@ class ServiceStubCaptureHAR(Service):
     def startup(self):
         if not isinstance(self.engine.provisioning, CloudProvisioning):
             self.log.warning("Stub for service 'capturehar', use cloud provisioning to have it working")
+
+
+class WDGridProvisioning(Local):
+
+    def __init__(self):
+        super(WDGridProvisioning, self).__init__()
+        self.user = User()
+
+    def prepare(self):
+        CloudProvisioning.merge_with_blazemeter_config(self)
+        CloudProvisioning.configure_client(self)
+        self.__dump_catalog_if_needed()
+
+        super(WDGridProvisioning, self).prepare()
+
+    def __dump_catalog_if_needed(self):
+        if self.settings.get("dump-catalog", False):
+            self.log.warning("Dumping available WebDriver images below:")
+            client = WDGridImages(self.user)
+            for img in client.get_images():
+                self.log.info("Image ID: %s\tOS: %s %s\tBrowser: %s %s",
+                              img['id'], img['operatingSystem'], img['operatingSystemVersion'], img['browser'], img['browserVersion'], )
+
+            raise NormalShutdown("Done listing images")

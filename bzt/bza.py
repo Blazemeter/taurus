@@ -764,3 +764,10 @@ class BZAProxy(BZAObject):
     def get_json(self):
         response = self._request(self.address + '/api/latest/proxy/download?format=json', raw_result=True)
         return response
+
+
+class WDGridImages(BZAObject):
+    def get_images(self):
+        data = self._request(self.address + '/api/v4/grid/images')
+
+        return data["result"] # BZAObjectsList([Session(self, x) for x in data])
