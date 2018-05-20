@@ -94,6 +94,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             wdlog = self.engine.create_artifact('webdriver', '.log')
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
+            builder.webdriver_address = self.execution.get("webdriver-address", None)
 
         builder.build_source_code()
         builder.save(filename)
@@ -256,6 +257,7 @@ import selenium_taurus_extras
 
     def __init__(self, scenario, parent_logger, wdlog, ignore_unknown_actions=False):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
+        self.webdriver_address = None
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
@@ -375,6 +377,8 @@ import selenium_taurus_extras
         mobile_browsers = ["Chrome", "Safari"]
         mobile_platforms = ["Android", "iOS"]
         remote_executor = self.scenario.get("remote")
+        if self.webdriver_address:
+            remote_executor = self.webdriver_address
 
         browser = self.scenario.get("browser", None)
 
@@ -388,7 +392,9 @@ import selenium_taurus_extras
             if len(browser_split) > 1:
                 browser_platform = browser_split[1]
 
-        if not browser and remote_executor:
+        if remote_executor:
+            if browser:
+                self.log.warning("Forcing browser to Remote, because of remote webdriver address")
             browser = "Remote"
         elif browser in mobile_browsers and browser_platform in mobile_platforms:
             self.appium = True
@@ -479,7 +485,7 @@ import selenium_taurus_extras
                 else:
                     raise TaurusConfigError("Unsupported capability name: %s" % cap_key)
 
-        tpl = "self.driver = webdriver.Remote(command_executor=os.getenv('TAURUS_WEBDRIVER_ADDRESS',{command_executor}), desired_capabilities={des_caps})"
+        tpl = "self.driver = webdriver.Remote(command_executor={command_executor}, desired_capabilities={des_caps})"
 
         if not remote_executor:
             if self.appium:

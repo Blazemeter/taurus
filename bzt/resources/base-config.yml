@@ -157,9 +157,8 @@ cli-aliases:
     modules:
       webdriver-grid:
         dump-status: true
-
-  webdriver-status:
-    provisioning: webdriver-grid-cleanup
+  webdriver-cleanup:
+    provisioning: webdriver-grid
     modules:
       webdriver-grid:
         cleanup-engines: true

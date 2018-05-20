@@ -2066,7 +2066,7 @@ class WDGridProvisioning(Local):
 
             upd = datetime.datetime.fromtimestamp(engine['updated'])
             exp = datetime.datetime.fromtimestamp(engine['expiration'])
-            self.log.info("Engine updated %s, expires %s: %s", upd, exp, engine)
+            self.log.debug("Engine updated %s, expires %s: %s", upd, exp, engine)
             # images that are '/initial' are not allowed to pick to anyone except author, till expiry time
             if engine['expiration'] > time.time() and engine['name'] != "%s/initial" % id(self):
                 continue
@@ -2088,7 +2088,7 @@ class WDGridProvisioning(Local):
 
             for eng in engines:
                 if eng['id'] == grid_conf["engineId"]:
-                    item.get('env', force_set=True)['TAURUS_WEBDRIVER_ADDRESS'] = eng['endpoint']
+                    item['webdriver-address'] = eng['endpoint'][:-1] if eng['endpoint'].endswith('/') else eng['endpoint']
 
         self.log.debug("Executions prototype 3: %s", to_json(executions))
 
@@ -2124,10 +2124,9 @@ class WDGridProvisioning(Local):
         if self.settings.get("dump-status", False):
             self.log.warning("Dumping status of WebDriver engines below:")
             client = WDGridImages(self.user)
-            for img in client.get_engines():
-                self.log.info("Image ID: %s\tplatform: %s/%s\tBrowser: %s/%s",
-                              img['id'], img['operatingSystem'], img['operatingSystemVersion'], img['browser'],
-                              img['browserVersion'], )
+            for eng in client.get_engines():
+                self.log.info("Engine ID: %s\timageId: %s\tstatis: %s\tComment: %s",
+                              eng['id'], eng['imageId'], eng['status'], eng['name'])
 
             raise NormalShutdown("Done listing images")
 
@@ -2164,5 +2163,6 @@ class WDGridProvisioning(Local):
                             self.log.debug("Engine is not ready: %s", status_item)
                             has_unprovisioned = True
                             break
-            self.log.info("Waiting for provisioning %ss...", client.timeout)
-            time.sleep(client.timeout)
+            if has_unprovisioned:
+                self.log.info("Waiting for provisioning %ss...", client.timeout)
+                time.sleep(client.timeout)
