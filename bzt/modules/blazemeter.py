@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
+import datetime
 import logging
 import os
 import platform
@@ -2001,11 +2002,21 @@ class WDGridProvisioning(Local):
 
         client = WDGridImages(self.user)
         catalog = client.get_images()
-        engines = client.get_engines()
 
+        executions = self._get_executions_proto()
+        self._request_provision(executions, client, catalog)
+        # request provision
+        # wait to provision all
+        # fill in env attr
+        # exec_item.get('env', force_set=True)['TAURUS_WEBDRIVER_ADDRESS'] = "http://localhost:4723/wd/hub"
+
+        self.engine.config[ScenarioExecutor.EXEC] = executions
+
+        super(WDGridProvisioning, self).prepare()
+
+    def _get_executions_proto(self):
         executions = []
         proto = self.engine.config.get(ScenarioExecutor.EXEC, [])
-        provision_items = []
         for execution in proto if isinstance(proto, list) else [proto]:
             if self.GRID not in execution:
                 executions.append(execution)
@@ -2017,33 +2028,62 @@ class WDGridProvisioning(Local):
             for item in execution[self.GRID]:
                 exec_item = copy.deepcopy(execution)
                 exec_item[self.GRID] = [item]
-                img = self.get_image_id(item, catalog)
-                if img is None:
-                    raise TaurusConfigError("Grid item is invalid: %s" % item)
-
-                if not self._reused_engine(item, execution):
-                    provision_items.append((execution, item, img))
-
-                exec_item.get('env', force_set=True)['TAURUS_WEBDRIVER_ADDRESS'] = "http://localhost:4723/wd/hub"
-
                 executions.append(exec_item)
+        self.log.debug("Executions prototype 1: %s", to_json(executions))
+        return executions
 
-        self.log.debug("Items to provision via grid: %s", provision_items)
-        request = [{"name": "%s" % id(self), "imageId": img['id']} for exec_marker, grid_item, img in provision_items]
-        client.provision(request)
+    def _request_provision(self, executions, client, catalog):
+        engines = client.get_engines()
+        provision_items = []
+        for index, item in enumerate(executions):
+            if self.GRID not in item:
+                continue
 
-        for exec_marker, grid_item, img in provision_items:
-            for execution in executions:
-                if execution == exec_marker:
-                    pass
+            grid_conf = item[self.GRID][0]
+            img = self.get_image_gridspec(grid_conf, catalog)
+            if img is None:
+                raise TaurusConfigError("Grid item is invalid: %s" % item)
 
-        self.engine.config[ScenarioExecutor.EXEC] = executions
+            grid_conf["imageId"] = img['id']
+            grid_conf["engineId"] = self._reused_engine(engines, img['id'])
 
-        super(WDGridProvisioning, self).prepare()
+            if not grid_conf["engineId"]:
+                provision_items.append((item, grid_conf, img))
+            else:
+                self.log.info("Found engine to reuse: %s/%s", img['id'], grid_conf["engineId"])
 
-    def _reused_engine(self, item, execution):
-        # TODO
+        request = [{"name": "%s/initial" % id(self), "imageId": img['id']} for exec_marker, grid_item, img in
+                   provision_items]
+        self.log.debug("Items to provision via grid: %s", request)
+        # client.provision(request)
+
+        self.log.debug("Executions prototype 2: %s", to_json(executions))
+
+    def _reused_engine(self, engines, image_id):
+        for engine in engines:
+            if engine['imageId'] != image_id:
+                continue
+
+            if engine['status'] not in ('RUNNING',):
+                continue
+
+            upd = datetime.datetime.fromtimestamp(engine['updated'])
+            exp = datetime.datetime.fromtimestamp(engine['expiration'])
+            self.log.info("Engine updated %s, expires %s: %s", upd, exp, engine)
+            # images that are '/initial' are not allowed to pick to anyone except author, till expiry time
+            if engine['expiration'] > time.time() and engine['name'] != "%s/initial" % id(self):
+                continue
+
+            return engine['id']
+
+        return None
+
+    def _fill_webdriver_endpoints(self, executions, client, catalog):
         pass
+
+    def post_process(self):
+        if self.settings.get("auto-cleanup", False):
+            self.__cleanup_if_needed()
 
     def __dump_catalog_if_needed(self):
         if self.settings.get("dump-catalog", False):
@@ -2072,12 +2112,14 @@ class WDGridProvisioning(Local):
             self.log.warning("Cleaning up WebDriver engines")
             client = WDGridImages(self.user)
             for img in client.get_engines():
-                self.log.info("Stopping: %s\t%s\t#%s", img['imageId'], img['name'], img['id'],)
+                if img['status'] in ('Terminating',):
+                    continue
+                self.log.info("Stopping: %s\t%s\t#%s", img['imageId'], img['name'], img['id'], )
                 img.stop()
 
             raise NormalShutdown("Done cleanup")
 
-    def get_image_id(self, item, catalog):
+    def get_image_gridspec(self, item, catalog):
         for img in catalog:
             platf = item['platform'].split('/')
             browser = item['browser'].split('/')
