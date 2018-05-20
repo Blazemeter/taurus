@@ -799,4 +799,5 @@ class WDGridImages(BZAObject):
 
     def provision(self, data):
         url = self.address + "/api/v4/grid/engines"
-        self._request(url, method='POST', data=data)
+        data=self._request(url, method='POST', data=data)
+        return BZAObjectsList([WDGridEngine(self, x) for x in data["result"]])

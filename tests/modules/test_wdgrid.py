@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 
@@ -6,7 +5,6 @@ from bzt import NormalShutdown
 from bzt.bza import WDGridImages
 from bzt.engine import Configuration
 from bzt.modules.blazemeter import WDGridProvisioning
-from bzt.utils import to_json
 from tests import BZTestCase
 from tests.mocks import EngineEmul
 
@@ -21,6 +19,7 @@ class TestWDGrid(BZTestCase):
         self.obj.engine = EngineEmul()
         # mock = BZMock(obj.user)
         # obj.settings['token'] = "FakeToken"
+        self.obj.user.timeout = 5
 
         self.obj.settings['address'] = env['cli-aliases']['env-vitali']['modules']['blazemeter']['address']
         self.obj.settings['token'] = env['cli-aliases']['env-vitali']['modules']['blazemeter']['token']
@@ -61,9 +60,9 @@ class TestWDGrid(BZTestCase):
                 "scenario": "scen2",
             }
         ]})
-        self.obj.settings['auto-cleanup']=True
+        self.obj.settings['auto-cleanup'] = True
 
         self.obj.prepare()
-        #logging.info(to_json(self.obj.engine.config))
+        # logging.info(to_json(self.obj.engine.config))
         # self.assertEquals(3, len(self.obj.executors))
         self.obj.post_process()

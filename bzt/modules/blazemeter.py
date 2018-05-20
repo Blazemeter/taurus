@@ -2052,7 +2052,7 @@ class WDGridProvisioning(Local):
         request = [{"name": "%s/initial" % id(self), "imageId": img['id']} for exec_marker, grid_item, img in
                    provision_items]
         self.log.debug("Items to provision via grid: %s", request)
-        # client.provision(request)
+        self._wait_provision(client, client.provision(request))
 
         self.log.debug("Executions prototype 2: %s", to_json(executions))
 
@@ -2152,3 +2152,17 @@ class WDGridProvisioning(Local):
                 return img
 
         return None
+
+    def _wait_provision(self, client, engines):
+        has_unprovisioned = True
+        while has_unprovisioned:
+            has_unprovisioned = False
+            for status_item in client.get_engines():
+                for engine in engines:
+                    if engine['id'] == status_item['id']:
+                        if status_item['status'] != 'RUNNING':
+                            self.log.debug("Engine is not ready: %s", status_item)
+                            has_unprovisioned = True
+                            break
+            self.log.info("Waiting for provisioning %ss...", client.timeout)
+            time.sleep(client.timeout)
