@@ -771,6 +771,10 @@ class WDGridEngine(BZAObject):
         url = self.address + "/api/v4/grid/engines/%s/stop" % self['id']
         self._request(url, method='POST')
 
+    def update_name(self, name):
+        url = self.address + "/api/v4/grid/engines/%s" % self['id']
+        self._request(url, method='POST', data={"name": name})
+
 
 class WDGridImage(BZAObject):
     def provision(self, label):

@@ -2005,10 +2005,7 @@ class WDGridProvisioning(Local):
 
         executions = self._get_executions_proto()
         self._request_provision(executions, client, catalog)
-        # request provision
-        # wait to provision all
-        # fill in env attr
-        # exec_item.get('env', force_set=True)['TAURUS_WEBDRIVER_ADDRESS'] = "http://localhost:4723/wd/hub"
+        self._fill_webdriver_endpoints(executions, client)
 
         self.engine.config[ScenarioExecutor.EXEC] = executions
 
@@ -2035,7 +2032,7 @@ class WDGridProvisioning(Local):
     def _request_provision(self, executions, client, catalog):
         engines = client.get_engines()
         provision_items = []
-        for index, item in enumerate(executions):
+        for item in executions:
             if self.GRID not in item:
                 continue
 
@@ -2045,7 +2042,7 @@ class WDGridProvisioning(Local):
                 raise TaurusConfigError("Grid item is invalid: %s" % item)
 
             grid_conf["imageId"] = img['id']
-            grid_conf["engineId"] = self._reused_engine(engines, img['id'])
+            grid_conf["engineId"] = self._reused_engine(engines, grid_conf["imageId"])
 
             if not grid_conf["engineId"]:
                 provision_items.append((item, grid_conf, img))
@@ -2074,16 +2071,43 @@ class WDGridProvisioning(Local):
             if engine['expiration'] > time.time() and engine['name'] != "%s/initial" % id(self):
                 continue
 
+            # engine.update_name("%s/booked" % id(self))
             return engine['id']
 
         return None
 
-    def _fill_webdriver_endpoints(self, executions, client, catalog):
-        pass
+    def _fill_webdriver_endpoints(self, executions, client):
+        engines = client.get_engines()
+        for item in executions:
+            if self.GRID not in item:
+                continue
+
+            grid_conf = item[self.GRID][0]
+            if not grid_conf["engineId"]:
+                grid_conf["engineId"] = self._reused_engine(engines, grid_conf["imageId"])
+
+            for eng in engines:
+                if eng['id'] == grid_conf["engineId"]:
+                    item.get('env', force_set=True)['TAURUS_WEBDRIVER_ADDRESS'] = eng['endpoint']
+
+        self.log.debug("Executions prototype 3: %s", to_json(executions))
 
     def post_process(self):
         if self.settings.get("auto-cleanup", False):
-            self.__cleanup_if_needed()
+            client = WDGridImages(self.user)
+            engines = client.get_engines()
+
+            for item in self.executors:
+                if self.GRID not in item.execution:
+                    continue
+
+                grid_conf = item.execution[self.GRID][0]
+                if not grid_conf["engineId"]:
+                    continue
+
+                for eng in engines:
+                    if eng['id'] == grid_conf["engineId"]:
+                        eng.stop()
 
     def __dump_catalog_if_needed(self):
         if self.settings.get("dump-catalog", False):

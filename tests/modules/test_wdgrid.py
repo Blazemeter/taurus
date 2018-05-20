@@ -38,7 +38,7 @@ class TestWDGrid(BZTestCase):
         self.obj.settings['cleanup-engines'] = True
         self.assertRaises(NormalShutdown, self.obj.prepare)
         client = WDGridImages(self.obj.user)
-        self.assertEquals(0, len(client.get_engines()))
+        self.assertEquals(0, len([x for x in client.get_engines() if x['status'] != 'Terminating']))
 
     def test_flow(self):
         self.obj.engine.config.merge({"execution": [
@@ -50,10 +50,10 @@ class TestWDGrid(BZTestCase):
                         "platform": "ubuntu/14.04",
                         "browser": "chrome/46.0.12",
                     },
-                    #{
+                    # {
                     #    "platform": "ubuntu/14.04",
                     #    "browser": "firefox/46.0.12",
-                    #}
+                    # }
                 ]
             },
             {
@@ -61,7 +61,9 @@ class TestWDGrid(BZTestCase):
                 "scenario": "scen2",
             }
         ]})
+        self.obj.settings['auto-cleanup']=True
 
         self.obj.prepare()
-        logging.info(to_json(self.obj.engine.config))
-        #self.assertEquals(3, len(self.obj.executors))
+        #logging.info(to_json(self.obj.engine.config))
+        # self.assertEquals(3, len(self.obj.executors))
+        self.obj.post_process()
