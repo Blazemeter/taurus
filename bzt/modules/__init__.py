@@ -62,37 +62,38 @@ class ReportableExecutor(ScenarioExecutor):
             self.engine.aggregator.add_underling(self.reader)
 
 
-class IterationListener(object):
+class TransactionListener(object):
     @abc.abstractmethod
-    def iteration_started(self, sender, iteration_number, start_time):
+    def transaction_started(self, sender, label, start_time):
         pass
 
     @abc.abstractmethod
-    def iteration_ended(self, sender, iteration_number, end_time, iteration_label):
+    def iteration_ended(self, sender, label, end_time):
         pass
 
 
-class IterationProvider(object):
+class TransactionProvider(object):
     def __init__(self):
         self._listeners = []
         self._source = self
 
-    def subscribe_to_iterations(self, listener):
+    def subscribe_to_transactions(self, listener):
+        assert isinstance(listener, TransactionListener)
         self._listeners.append(listener)
 
     def set_source(self, source_obj):
         self._source = source_obj
 
-    def iteration_started(self, iteration_number, start_time):
+    def transaction_started(self, label, start_time):
         for listener in self._listeners:
-            listener.iteration_started(self._source, iteration_number, start_time)
+            listener.transaction_started(self._source, label, start_time)
 
-    def iteration_ended(self, iteration_number, end_time, iteration_label):
+    def transacion_ended(self, label, duration):
         for listener in self._listeners:
-            listener.iteration_ended(self._source, iteration_number, end_time, iteration_label)
+            listener.transaction_ended(self._source, label, duration)
 
 
-class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, WidgetProvider, IterationProvider):
+class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, WidgetProvider, TransactionProvider):
     """
     Class for subprocessed executors
 
@@ -100,7 +101,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
     """
     def __init__(self):
         super(SubprocessedExecutor, self).__init__()
-        IterationProvider.__init__(self)
+        TransactionProvider.__init__(self)
         self.script = None
         self.process = None
         self.opened_descriptors = []
