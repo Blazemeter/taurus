@@ -777,7 +777,10 @@ class WDGridEngine(BZAObject):
 
     def book(self, booking_id, name=None):
         url = self.address + "/api/v4/grid/engines/%s/book" % self['id']
-        self._request(url, method='POST', data={"name": name, "bookingId": booking_id})
+        data = {"bookingId": booking_id}
+        if name:
+            data["name"] = name
+        self._request(url, method='POST', data=data)
 
     def unbook(self):
         url = self.address + "/api/v4/grid/engines/%s/unbook" % self['id']
@@ -787,6 +790,7 @@ class WDGridEngine(BZAObject):
         res = self._request(self.address + '/api/v4/grid/engines/%s' % self['id'])
         self.update(res['result'])
         return self
+
 
 class WDGridImage(BZAObject):
     def provision(self, label):
