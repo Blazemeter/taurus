@@ -179,11 +179,8 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 if failed_samples_count:
                     self.log.info(report_template, failed_samples_count, sample_label)
 
-    def __get_table(self, header, data, title=""):
-        table_headers = header["headers"]
-        table_headers_desc = header["descriptions"]
-        table_data = []
-
+    @staticmethod
+    def __set_header(table_headers, table_headers_desc):
         table_header = []
         header_index = 0
         justify_columns = {}
@@ -191,14 +188,25 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             table_header.append(table_headers_desc[header].split(":")[0])
             justify_columns[header_index] = table_headers_desc[header].split(":")[1]
             header_index += 1
-        table_data.append(table_header)
+        return table_header, justify_columns
 
+    @staticmethod
+    def __set_table_data(data, table_headers):
+        table_data = []
         for element in data:
             table_item = []
             for header in table_headers:
                 table_item.append(element[header])
             table_data.append(table_item)
+        return table_data
 
+    def __get_table(self, header, data, title=""):
+        table_headers = header["headers"]
+        table_headers_desc = header["descriptions"]
+        table_data = []
+        table_header, justify_columns = self.__set_header(table_headers, table_headers_desc)
+        table_data.append(table_header)
+        table_data.extend(self.__set_table_data(data, table_headers))
         table_instance = AsciiTable(table_data, title)
 
         table_instance.justify_columns = justify_columns
@@ -239,15 +247,15 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
 
                 failed_samples_count = cumulative[sample_label]['fail']
                 success_samples_count = cumulative[sample_label]['succ']
-                success_samples = (success_samples_count * 100) / (failed_samples_count + success_samples_count)
-                avg_rt_samples_value = cumulative[sample_label]['avg_rt']
+                success_samples = round((success_samples_count * 100) / (failed_samples_count + success_samples_count), 2)
+                avg_rt_samples_value = round(cumulative[sample_label]['avg_rt'], 3)
                 result_status = "OK"
                 if failed_samples_count > 0:
                     result_status = "FAIL"
 
                 item = {"scenario": scenario_name, "label": label_name, "status": result_status,
-                        "succ": str(success_samples) + "%", "error": "",
-                        "avg_rt": str(avg_rt_samples_value)}
+                        "succ": "{0:.2f}%".format(success_samples), "error": "",
+                        "avg_rt": "{0:.3f}".format(avg_rt_samples_value)}
 
                 # self.log.info(cumulative[sample_label])
                 errors = []
