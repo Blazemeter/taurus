@@ -225,18 +225,18 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.assertIn(path1, self.obj.env.get("PATH"))
         self.assertIn(path2, self.obj.env.get("PATH"))
 
-    def test_subscribe_to_iterations(self):
+    def test_subscribe_to_transactions(self):
         dummy = DummyListener()
 
         self.configure({
             'execution': {
                 "iterations": 5,
-                'scenario': {'script': RESOURCES_DIR + 'selenium/python/test_blazemeter_pass.py'},
+                'scenario': {'script': RESOURCES_DIR + 'selenium/python/test_selenium_transactions.py'},
                 'executor': 'selenium'
             },
         })
         self.obj.prepare()
-        self.obj.subscribe_to_iterations(dummy)
+        self.obj.subscribe_to_transactions(dummy)
         try:
             self.obj.startup()
             while not self.obj.check():

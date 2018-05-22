@@ -88,8 +88,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
             self.runner_working_dir = self.engine.create_artifact("classes", "")
         return self.runner_working_dir
 
-    def subscribe_to_transactions(self, handler):
-        self.runner.subscribe_to_transactions(handler)
+    def subscribe_to_transactions(self, listener):
+        self.runner.subscribe_to_transactions(listener)
         self.runner.set_source(self)
 
     def create_runner(self):

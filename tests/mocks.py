@@ -11,7 +11,7 @@ import requests
 
 from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools, Singletone, Service
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
-from bzt.modules import IterationListener
+from bzt.modules import TransactionListener
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.six import b
