@@ -343,13 +343,13 @@ class SingletoneServiceMock(ModuleMock, Singletone, Service):
     pass
 
 
-class DummyListener(IterationListener):
+class DummyListener(TransactionListener):
     def __init__(self):
-        self.iteration_counter = Counter()
+        self.transactions = Counter()
 
-    def iteration_started(self, executor, idx, started_at):
-        self.iteration_counter[idx] += 1
+    def transaction_started(self, sender, label, start_time):
+        self.transactions[label] += 1
 
-    def iteration_ended(self, executor, idx, ended_at, label):
-        self.iteration_counter[idx] += 1
+    def transaction_ended(self, sender, label, end_time):
+        self.transactions[label] += 1
 

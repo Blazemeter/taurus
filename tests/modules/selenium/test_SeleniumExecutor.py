@@ -245,8 +245,8 @@ class TestSeleniumStuff(SeleniumTestCase):
             self.obj.shutdown()
         self.obj.post_process()
 
-        self.assertEqual(5, len(dummy.iteration_counter))
-        for key, value in iteritems(dummy.iteration_counter):
+        self.assertEqual(5, len(dummy.transactions))
+        for key, value in iteritems(dummy.transactions):
             self.assertEqual(2, value)
 
 
