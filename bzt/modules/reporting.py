@@ -231,47 +231,42 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             if sample_label != "":
 
                 label_splited = sample_label.split(":")
-                if len(label_splited) > 2:
-                    scenario_name = label_splited[0]
-                    label_name = label_splited[2]
-                else:
-                    scenario_name = ""
-                    label_name = sample_label
+                scenario_name = label_splited[0] if len(label_splited) > 2 else ""
+                label_name = label_splited[2] if len(label_splited) > 2 else sample_label
 
                 # When change scenario add empty line
                 if last_scenario_name and last_scenario_name != scenario_name:
-                    item = {"scenario": "", "label": "", "status": "",
-                            "succ": "", "error": "",
-                            "avg_rt": ""}
-                    elements.append(item)
+                    elements.append(
+                        {
+                            "scenario": "", "label": "", "status": "",
+                            "succ": "", "error": "", "avg_rt": ""
+                        }
+                    )
 
                 failed_samples_count = cumulative[sample_label]['fail']
                 success_samples_count = cumulative[sample_label]['succ']
                 total_samples_count = failed_samples_count + success_samples_count
-                success_samples_perc = (success_samples_count * 100) / (total_samples_count)
-                success_samples = round(success_samples_perc, 2)
-                avg_rt_samples_value = round(cumulative[sample_label]['avg_rt'], 3)
-                result_status = "OK"
-                if failed_samples_count > 0:
-                    result_status = "FAIL"
+                success_samples_perc = (success_samples_count * 100) / total_samples_count
 
-                item = {"scenario": scenario_name, "label": label_name, "status": result_status,
-                        "succ": "{0:.2f}%".format(success_samples), "error": "",
-                        "avg_rt": "{0:.3f}".format(avg_rt_samples_value)}
-
-                # self.log.info(cumulative[sample_label])
                 errors = []
                 max_width = 60
                 for err_desc in cumulative[sample_label]['errors']:
                     errors.append('\n'.join(wrap(err_desc["msg"], max_width)))
-                item["error"] = "\n".join(errors)
 
-                elements.append(item)
+                elements.append(
+                    {
+                        "scenario": scenario_name,
+                        "label": label_name,
+                        "status": "FAIL" if failed_samples_count > 0 else "OK",
+                        "succ": "{0:.2f}%".format(round(success_samples_perc, 2)),
+                        "error": "\n".join(errors),
+                        "avg_rt": "{0:.3f}".format(round(cumulative[sample_label]['avg_rt'], 3))
+                    }
+                )
                 last_scenario_name = scenario_name
 
         for line in self.__get_table(header, elements):
             self.log.info(line)
-
 
     def __report_duration(self):
         """
