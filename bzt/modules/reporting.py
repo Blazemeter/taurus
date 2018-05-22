@@ -247,7 +247,9 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
 
                 failed_samples_count = cumulative[sample_label]['fail']
                 success_samples_count = cumulative[sample_label]['succ']
-                success_samples = round((success_samples_count * 100) / (failed_samples_count + success_samples_count), 2)
+                total_samples_count = failed_samples_count + success_samples_count
+                success_samples_perc = (success_samples_count * 100) / (total_samples_count)
+                success_samples = round(success_samples_perc, 2)
                 avg_rt_samples_value = round(cumulative[sample_label]['avg_rt'], 3)
                 result_status = "OK"
                 if failed_samples_count > 0:
