@@ -95,6 +95,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
             builder.webdriver_address = self.execution.get("webdriver-address", None)
+            builder.capabilities_from_outside = self.execution.get("capabilities", None)
 
         builder.build_source_code()
         builder.save(filename)
@@ -258,6 +259,7 @@ import selenium_taurus_extras
     def __init__(self, scenario, parent_logger, wdlog, ignore_unknown_actions=False):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.webdriver_address = None
+        self.capabilities_from_outside = {}
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
@@ -373,7 +375,7 @@ import selenium_taurus_extras
         test_method.append(self.gen_new_line())
 
     def _check_platform(self):
-        inherited_capabilities = []
+        inherited_capabilities = [{x: y} for x, y in iteritems(self.capabilities_from_outside)]
         mobile_browsers = ["Chrome", "Safari"]
         mobile_platforms = ["Android", "iOS"]
         remote_executor = self.scenario.get("remote")

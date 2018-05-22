@@ -793,15 +793,7 @@ class WDGridEngine(BZAObject):
 
 
 class WDGridImage(BZAObject):
-    def provision(self, label):
-        data = [
-            {
-                "name": label,
-                "imageId": self['id']
-            }
-        ]
-        url = self.address + "/api/v4/grid/engines"
-        self._request(url, method='POST', data=data)
+    pass
 
 
 class WDGridImages(BZAObject):

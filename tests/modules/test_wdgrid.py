@@ -98,7 +98,7 @@ class TestWDGrid(BZTestCase):
                     "updated": 1526557733,
                     "userId": 1,
                     "imageId": "taurus-firefox-selenium",
-                    "endpoint": None,
+                    "endpoint": "http://endpoint",
                     "bookingId": None,
                     "bookingExpiration": None,
                 }]}
@@ -131,7 +131,7 @@ class TestWDGrid(BZTestCase):
                         "updated": 1526557732,
                         "userId": 1,
                         "imageId": "taurus-chrome-selenium",
-                        "endpoint": None,
+                        "endpoint": "http://endpoint2",
                         "bookingId": None,
                         "bookingExpiration": None,
                     }

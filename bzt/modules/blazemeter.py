@@ -2107,6 +2107,9 @@ class WDGridProvisioning(Local):
     def _use_engine(self, execution, engine):
         execution[self.GRID][0]["engineId"] = engine['id']
         execution['webdriver-address'] = engine['endpoint']
+        execution.get('capabilities', force_set=True).merge({
+            "browser": execution[self.GRID][0]['browser'].split("/")[0]
+        })
 
     def post_process(self):
         for eng in self._involved_engines:
