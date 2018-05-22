@@ -660,7 +660,7 @@ class Engine(object):
                     if key in envs:
                         item = envs[key]
                 if item is not None:
-                    value += str(item)
+                    value += text_type(item)
             return value
 
         def apply_env(value, key, container):
