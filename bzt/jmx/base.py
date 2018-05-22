@@ -200,7 +200,6 @@ class JMX(object):
         if flag_overrides:
             flags.merge(flag_overrides)
 
-        logging.warning("%s", flags)
         return JMX.__jtl_writer(filename, "KPI Writer", flags)
 
     @staticmethod
