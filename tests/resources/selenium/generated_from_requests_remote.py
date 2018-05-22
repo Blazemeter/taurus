@@ -1,3 +1,4 @@
+# coding=utf-8
 import unittest
 import re
 from time import sleep
@@ -29,7 +30,7 @@ class TestRequests(unittest.TestCase):
     def test_requests(self):
         self.driver.implicitly_wait(3.5)
 
-        with apiritif.transaction('loc_sc_remote:000:/'):
+        with apiritif.transaction_logged('loc_sc_remote:000:/'):
             self.driver.get('http://blazedemo.com/')
 
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, _tpl.apply("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
@@ -40,6 +41,6 @@ class TestRequests(unittest.TestCase):
         re_pattern = re.compile(r'contained_text')
         self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
 
-        with apiritif.transaction('loc_sc_remote:001:empty'):
+        with apiritif.transaction_logged('loc_sc_remote:001:empty'):
             pass
 

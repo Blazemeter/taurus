@@ -13,9 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
 from string import Template as StrTemplate
 from selenium.common.exceptions import NoSuchWindowException
+from bzt.six import text_type
 
 
 class Apply(StrTemplate):
@@ -40,7 +40,7 @@ class Template:
     def apply(self, template):
         self.tmpl.template = template
         self.tmpl.variables = self.variables
-        return str(self.tmpl)
+        return text_type(self.tmpl)
 
 
 class WindowManager:

@@ -137,7 +137,14 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             return False
         return self.reader.read_records > 0
 
-    def check(self):
+    @staticmethod
+    def _normalize_label(label):
+        for char in ":/":
+            if char in label:
+                label = label.replace(char, '_')
+        return label
+
+    def _check_stdout(self):
         for line in self._tailer.get_lines():
             if "Adding worker" in line:
                 marker = "results="
@@ -145,7 +152,27 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 fname = line[pos + len(marker):].strip()
                 self.log.debug("Adding result reader for %s", fname)
                 self.reader.register_file(fname)
+            elif "Transaction started" in line:
+                colon = line.index('::')
+                values = {
+                    part.split('=')[0]: part.split('=')[1]
+                    for part in line[colon+2:].strip().split(',')
+                }
+                label = self._normalize_label(values['name'])
+                start_time = float(values['start_time'])
+                self.transaction_started(label, start_time)
+            elif "Transaction ended" in line:
+                colon = line.index('::')
+                values = {
+                    part.split('=')[0]: part.split('=')[1]
+                    for part in line[colon+2:].strip().split(',')
+                }
+                label = self._normalize_label(values['name'])
+                duration = float(values['duration'])
+                self.transacion_ended(label, duration)
 
+    def check(self):
+        self._check_stdout()
         return super(ApiritifNoseExecutor, self).check()
 
     def __log_lines(self):
@@ -159,6 +186,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def post_process(self):
         super(ApiritifNoseExecutor, self).post_process()
+        self._check_stdout()
         self.__log_lines()
 
     def __is_verbose(self):
@@ -290,7 +318,7 @@ import selenium_taurus_extras
 
             label = scenario_name + ":" + str(req_index).zfill(3) + ":" + label
 
-            test_method.append(self.gen_statement('with apiritif.transaction(%r):' % label))
+            test_method.append(self.gen_statement('with apiritif.transaction_logged(%r):' % label))
             transaction_contents = []
 
             if req.url is not None:
@@ -339,6 +367,7 @@ import selenium_taurus_extras
 
         imports = self.add_imports()
 
+        self.root.append(self.gen_statement("# coding=utf-8", indent=0))
         self.root.append(imports)
         self.root.extend(self.gen_global_vars())
         self.root.append(test_class)
