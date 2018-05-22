@@ -245,9 +245,7 @@ class TestSeleniumStuff(SeleniumTestCase):
             self.obj.shutdown()
         self.obj.post_process()
 
-        self.assertEqual(5, len(dummy.transactions))
-        for key, value in iteritems(dummy.transactions):
-            self.assertEqual(2, value)
+        self.assertEqual(10, dummy.transactions['hello there'])
 
 
 class TestReportReader(BZTestCase):
