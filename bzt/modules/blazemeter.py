@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
-import datetime
 import logging
 import os
 import platform
@@ -1992,6 +1991,7 @@ class WDGridProvisioning(Local):
     def __init__(self):
         super(WDGridProvisioning, self).__init__()
         self.user = User()
+        self._involved_engines = []
 
     def prepare(self):
         CloudProvisioning.merge_with_blazemeter_config(self)
@@ -2005,7 +2005,7 @@ class WDGridProvisioning(Local):
 
         executions = self._get_executions_proto()
         self._request_provision(executions, client, catalog)
-        self._fill_webdriver_endpoints(executions, client)
+        self._fill_webdriver_endpoints(executions)
 
         self.engine.config[ScenarioExecutor.EXEC] = executions
 
@@ -2032,31 +2032,34 @@ class WDGridProvisioning(Local):
     def _request_provision(self, executions, client, catalog):
         engines = client.get_engines()
         provision_items = []
-        for item in executions:
-            if self.GRID not in item:
+        for execution in executions:
+            if self.GRID not in execution:
                 continue
 
-            grid_conf = item[self.GRID][0]
+            grid_conf = execution[self.GRID][0]
             img = self.get_image_gridspec(grid_conf, catalog)
             if img is None:
-                raise TaurusConfigError("Grid item is invalid: %s" % item)
+                raise TaurusConfigError("Grid item is invalid: %s" % grid_conf)
 
             grid_conf["imageId"] = img['id']
-            grid_conf["engineId"] = self._reused_engine(engines, grid_conf["imageId"])
-
-            if not grid_conf["engineId"]:
-                provision_items.append((item, grid_conf, img))
+            grid_conf["engineId"] = None
+            reused_engine = self._find_engine_to_reuse(engines, grid_conf["imageId"], self._get_label(execution))
+            if reused_engine:
+                self.log.debug("Found engine to reuse: %s", reused_engine)
+                self._use_engine(execution, reused_engine)
             else:
-                self.log.info("Found engine to reuse: %s/%s", img['id'], grid_conf["engineId"])
+                provision_items.append((execution, grid_conf, img))
 
-        request = [{"name": "%s/initial" % id(self), "imageId": img['id']} for exec_marker, grid_item, img in
-                   provision_items]
-        self.log.debug("Items to provision via grid: %s", request)
-        self._wait_provision(client, client.provision(request))
+        if provision_items:
+            request = [{"name": self._get_label(exec_marker), "imageId": img['id']}
+                       for exec_marker, grid_item, img in provision_items]
+            self.log.debug("Items to provision via grid: %s", request)
+            self._involved_engines.extend(client.provision(request))
+            self._wait_provision()
 
         self.log.debug("Executions prototype 2: %s", to_json(executions))
 
-    def _reused_engine(self, engines, image_id):
+    def _find_engine_to_reuse(self, engines, image_id, label):
         for engine in engines:
             if engine['imageId'] != image_id:
                 continue
@@ -2064,51 +2067,52 @@ class WDGridProvisioning(Local):
             if engine['status'] not in ('RUNNING',):
                 continue
 
-            upd = datetime.datetime.fromtimestamp(engine['updated'])
-            exp = datetime.datetime.fromtimestamp(engine['expiration'])
-            self.log.debug("Engine updated %s, expires %s: %s", upd, exp, engine)
-            # images that are '/initial' are not allowed to pick to anyone except author, till expiry time
-            if engine['expiration'] > time.time() and engine['name'] != "%s/initial" % id(self):
+            if engine['bookingId']:
                 continue
 
-            # engine.update_name("%s/booked" % id(self))
-            return engine['id']
+            engine.book("%s" % id(self), label)
+            self._involved_engines.append(engine)
+            return engine
 
         return None
 
-    def _fill_webdriver_endpoints(self, executions, client):
-        engines = client.get_engines()
-        for item in executions:
-            if self.GRID not in item:
-                continue
+    def _wait_provision(self):
+        ready = lambda x: x['status'] in ("RUNNING", "STOPPING", "Terminating")
+        for engine in self._involved_engines:
+            if not ready(engine):
+                engine.fetch()
 
-            grid_conf = item[self.GRID][0]
-            if not grid_conf["engineId"]:
-                grid_conf["engineId"] = self._reused_engine(engines, grid_conf["imageId"])
+            while not ready(engine):
+                timeout = max(int(engine.timeout / 2), 5)
+                self.log.info("Waiting for provisioning %ss...", timeout)
+                time.sleep(timeout)
+                engine.fetch()
 
-            for eng in engines:
-                if eng['id'] == grid_conf["engineId"]:
-                    item['webdriver-address'] = eng['endpoint'][:-1] if eng['endpoint'].endswith('/') else eng[
-                        'endpoint']
+            if not engine['bookingId']:
+                engine.book("%s" % id(self))
+
+    def _fill_webdriver_endpoints(self, executions):
+        self.log.debug("Involved engines: %s", self._involved_engines)
+        for engine in self._involved_engines:
+            for execution in executions:
+                if self.GRID not in execution:
+                    continue
+
+                grid_conf = execution[self.GRID][0]
+                if not grid_conf["engineId"] and grid_conf['imageId'] == engine['imageId']:
+                    self._use_engine(execution, engine)
 
         self.log.debug("Executions prototype 3: %s", to_json(executions))
 
+    def _use_engine(self, execution, engine):
+        execution[self.GRID][0]["engineId"] = engine['id']
+        execution['webdriver-address'] = engine['endpoint']
+
     def post_process(self):
-        if self.settings.get("auto-cleanup", False):
-            client = WDGridImages(self.user)
-            engines = client.get_engines()
-
-            for item in self.executors:
-                if self.GRID not in item.execution:
-                    continue
-
-                grid_conf = item.execution[self.GRID][0]
-                if not grid_conf["engineId"]:
-                    continue
-
-                for eng in engines:
-                    if eng['id'] == grid_conf["engineId"]:
-                        eng.stop()
+        for eng in self._involved_engines:
+            eng.unbook()
+            if self.settings.get("auto-cleanup", False):
+                eng.stop()
 
     def __dump_catalog_if_needed(self):
         if self.settings.get("dump-catalog", False):
@@ -2153,18 +2157,8 @@ class WDGridProvisioning(Local):
 
         return None
 
-    def _wait_provision(self, client, engines):
-        has_unprovisioned = True
-        while has_unprovisioned:
-            has_unprovisioned = False
-            for status_item in client.get_engines():
-                for engine in engines:
-                    if engine['id'] == status_item['id']:
-                        if status_item['status'] != 'RUNNING':
-                            self.log.debug("Engine is not ready: %s", status_item)
-                            has_unprovisioned = True
-                            break
-            if has_unprovisioned:
-                timeout = max(int(client.timeout / 2), 5)
-                self.log.info("Waiting for provisioning %ss...", timeout)
-                time.sleep(timeout)
+    def _get_label(self, execution):
+        label = execution.get('scenario')
+        if not isinstance(label, text_type):
+            label = str(id(label))
+        return label

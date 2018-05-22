@@ -775,6 +775,18 @@ class WDGridEngine(BZAObject):
         url = self.address + "/api/v4/grid/engines/%s" % self['id']
         self._request(url, method='POST', data={"name": name})
 
+    def book(self, booking_id, name=None):
+        url = self.address + "/api/v4/grid/engines/%s/book" % self['id']
+        self._request(url, method='POST', data={"name": name, "bookingId": booking_id})
+
+    def unbook(self):
+        url = self.address + "/api/v4/grid/engines/%s/unbook" % self['id']
+        self._request(url, method='POST')
+
+    def fetch(self):
+        res = self._request(self.address + '/api/v4/grid/engines/%s' % self['id'])
+        self.update(res['result'])
+        return self
 
 class WDGridImage(BZAObject):
     def provision(self, label):
@@ -794,10 +806,10 @@ class WDGridImages(BZAObject):
         return BZAObjectsList([WDGridImage(self, x) for x in data["result"]])
 
     def get_engines(self):
-        data = self._request(self.address + '/api/v4/grid/engines')
+        data = self._request(self.address + '/api/v4/grid/engines?limit=1000')
         return BZAObjectsList([WDGridEngine(self, x) for x in data["result"]])
 
     def provision(self, data):
         url = self.address + "/api/v4/grid/engines"
-        data=self._request(url, method='POST', data=data)
+        data = self._request(url, method='POST', data=data)
         return BZAObjectsList([WDGridEngine(self, x) for x in data["result"]])
