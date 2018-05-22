@@ -1,3 +1,4 @@
+# coding=utf-8
 import unittest
 import re
 from time import sleep

@@ -353,6 +353,7 @@ import selenium_taurus_extras
 
         imports = self.add_imports()
 
+        self.root.append(self.gen_statement("# coding=utf-8", indent=0))
         self.root.append(imports)
         self.root.extend(self.gen_global_vars())
         self.root.append(test_class)
