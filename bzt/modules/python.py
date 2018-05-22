@@ -145,26 +145,24 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 fname = line[pos + len(marker):].strip()
                 self.log.debug("Adding result reader for %s", fname)
                 self.reader.register_file(fname)
-            elif "Starting iteration" in line:
+            elif "Transaction started" in line:
                 colon = line.index('::')
                 values = {
                     part.split('=')[0]: part.split('=')[1]
                     for part in line[colon+2:].strip().split(',')
                 }
-                iteration_number = int(values['index'])
+                label = values['name']
                 start_time = float(values['start_time'])
-                self.iteration_started(iteration_number, start_time)
-            elif "Finishing iteration" in line:
+                self.transaction_started(label, start_time)
+            elif "Transaction ended" in line:
                 colon = line.index('::')
                 values = {
                     part.split('=')[0]: part.split('=')[1]
                     for part in line[colon+2:].strip().split(',')
                 }
-                iteration_number = int(values['index'])
-                end_time = float(values['end_time'])
-                iteration_label = str(self._source).replace(os.path.sep, "-") + "-iteration-" + str(iteration_number)
-
-                self.iteration_ended(iteration_number, end_time, iteration_label)
+                label = values['name']
+                duration = float(values['duration'])
+                self.transacion_ended(label, duration)
 
     def check(self):
         self._check_stdout()
@@ -304,7 +302,7 @@ import selenium_taurus_extras
             else:
                 raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
 
-            test_method.append(self.gen_statement('with apiritif.transaction(%r):' % label))
+            test_method.append(self.gen_statement('with apiritif.transaction_logged(%r):' % label))
             transaction_contents = []
 
             if req.url is not None:
