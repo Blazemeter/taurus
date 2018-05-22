@@ -2088,7 +2088,8 @@ class WDGridProvisioning(Local):
 
             for eng in engines:
                 if eng['id'] == grid_conf["engineId"]:
-                    item['webdriver-address'] = eng['endpoint'][:-1] if eng['endpoint'].endswith('/') else eng['endpoint']
+                    item['webdriver-address'] = eng['endpoint'][:-1] if eng['endpoint'].endswith('/') else eng[
+                        'endpoint']
 
         self.log.debug("Executions prototype 3: %s", to_json(executions))
 
@@ -2164,5 +2165,6 @@ class WDGridProvisioning(Local):
                             has_unprovisioned = True
                             break
             if has_unprovisioned:
-                self.log.info("Waiting for provisioning %ss...", client.timeout)
-                time.sleep(client.timeout)
+                timeout = max(int(client.timeout / 2), 5)
+                self.log.info("Waiting for provisioning %ss...", timeout)
+                time.sleep(timeout)
