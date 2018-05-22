@@ -137,6 +137,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             return False
         return self.reader.read_records > 0
 
+    @staticmethod
+    def _normalize_label(label):
+        for char in ":/":
+            if char in label:
+                label = label.replace(char, '_')
+        return label
+
     def _check_stdout(self):
         for line in self._tailer.get_lines():
             if "Adding worker" in line:
@@ -151,7 +158,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                     part.split('=')[0]: part.split('=')[1]
                     for part in line[colon+2:].strip().split(',')
                 }
-                label = values['name']
+                label = self._normalize_label(values['name'])
                 start_time = float(values['start_time'])
                 self.transaction_started(label, start_time)
             elif "Transaction ended" in line:
@@ -160,7 +167,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                     part.split('=')[0]: part.split('=')[1]
                     for part in line[colon+2:].strip().split(',')
                 }
-                label = values['name']
+                label = self._normalize_label(values['name'])
                 duration = float(values['duration'])
                 self.transacion_ended(label, duration)
 
