@@ -452,10 +452,23 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __add_extractors(self, children, req):
+        self.__add_boundary_ext(children, req)
         self.__add_regexp_ext(children, req)
         self.__add_json_ext(children, req)
         self.__add_jquery_ext(children, req)
         self.__add_xpath_ext(children, req)
+
+    def __add_boundary_ext(self, children, req):
+        extractors = req.config.get("extract-boundary")
+        for varname, cfg in iteritems(extractors):
+            subj = cfg.get('subject', 'body')
+            left = cfg.get('left', TaurusConfigError("Left boundary is missing for boundary extractor %s" % varname))
+            right = cfg.get('right', TaurusConfigError("Right boundary is missing for boundary extractor %s" % varname))
+            match_no = cfg.get('match-no', 1)
+            defvalue = cfg.get('default', 'NOT_FOUND')
+            extractor = JMX._get_boundary_extractor(varname, subj, left, right, match_no, defvalue)
+            children.append(extractor)
+            children.append(etree.Element("hashTree"))
 
     def __add_regexp_ext(self, children, req):
         extractors = req.config.get("extract-regexp")

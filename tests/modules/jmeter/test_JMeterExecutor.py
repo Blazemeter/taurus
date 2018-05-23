@@ -127,6 +127,29 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("???", xml_tree.findall(".//stringProp[@name='RegexExtractor.regex']")[0].text)
         self.assertEqual("parent", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
 
+    def test_boundary_extractors(self):
+        self.obj.execution.merge(
+            {"scenario":
+                {"requests": [{
+                    "url": "http://localhost",
+                    "extract-boundary": {
+                        "varname": {"left": "foo", "right": "bar"}}}]}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        self.assertEqual("false", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.useHeaders']")[0].text)
+        self.assertEqual("foo", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.lboundary']")[0].text)
+        self.assertEqual("bar", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.rboundary']")[0].text)
+        self.assertEqual("varname", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.refname']")[0].text)
+
+    def test_boundary_extractors_exc(self):
+        self.obj.execution.merge(
+            {"scenario":
+                {"requests": [{
+                    "url": "http://localhost",
+                    "extract-boundary": {
+                        "varname": {"left": "foo"}}}]}})  # no "right"
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
+
     def test_not_jmx(self):
         self.obj.execution = {"scenario": {"script": __file__}}
         self.assertRaises(TaurusInternalException, self.obj.prepare)
