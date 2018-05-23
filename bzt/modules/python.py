@@ -95,7 +95,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
             builder.webdriver_address = self.execution.get("webdriver-address", None)
-            builder.capabilities_from_outside = self.execution.get("capabilities", None)
+            builder.capabilities_from_outside = self.execution.get("capabilities")
 
         builder.build_source_code()
         builder.save(filename)
