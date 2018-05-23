@@ -79,6 +79,28 @@ Action names are built as `<action>By<selector type>(<selector>)`. Sometimes act
 
 There is special action `pauseFor(<time>)` which makes script to sleep for specified amount of time. Also, calling action `clearCookies()` will force `delete\_all\_cookies` method to be called on WebDriver object.
 
+#### Reporting
+It is recommended to incorporate the use of the `final-stats` module with the option enabled `summary-labels` to have a better vision of results.
+It will allow to visualize the status of the tests, the average time per transaction and to visualize the errors that may occur in webdriver and other components involved in the test.
+
+Sample configuration:
+```yaml
+reporting:
+- module: final-stats
+  summary-labels: true
+```
+Sample output:
+```
++----------+-----------------+--------+---------+----------+-------+
+| scenario | label           | status | success | avg time | error |
++----------+-----------------+--------+---------+----------+-------+
+| main     | Find Flights    |   OK   | 100.00% |  10.581  |       |
+| main     | Reserve Flight  |   OK   | 100.00% |  1.276   |       |
+| main     | Purchase Flight |   OK   | 100.00% |  4.951   |       |
+| main     | Thanks          |   OK   | 100.00% |  0.062   |       |
++----------+-----------------+--------+---------+----------+-------+
+```
+
 #### Window managment
 To manage windows or tabs, the `switchWindow(<value>)` and `closeWindow(<value>)` commands will allow you to manage them.
 
