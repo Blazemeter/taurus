@@ -21,6 +21,7 @@ import os
 import time
 from collections import Counter, OrderedDict
 from datetime import datetime
+import locale
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Reporter
@@ -213,10 +214,18 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
 
         return table_instance.table.splitlines()
 
+    def __console_safe_encode(self, text):
+        return text.encode(locale.getpreferredencoding(), errors='replace').decode('unicode_escape')
+
+    def __get_scenario_label_name(self, sample_label):
+        label_splited = sample_label.split(":")
+        scenario_name = label_splited[0] if len(label_splited) > 2 else ""
+        label_name = label_splited[2] if len(label_splited) > 2 else sample_label
+
+        return scenario_name, self.__console_safe_encode(label_name)
+
     def __report_summary_labels(self, cumulative):
-        """
-        reports failed labels
-        """
+        max_width = 60
         header = {
             "headers": ["scenario", "label", "status", "succ", "avg_rt", "error"],
             "descriptions": {"scenario": "scenario:left", "label": "label:left",
@@ -230,18 +239,11 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         for sample_label in sorted_labels:
             if sample_label != "":
 
-                label_splited = sample_label.split(":")
-                scenario_name = label_splited[0] if len(label_splited) > 2 else ""
-                label_name = label_splited[2] if len(label_splited) > 2 else sample_label
+                scenario_name, label_name = self.__get_scenario_label_name(sample_label)
 
                 # When change scenario add empty line
                 if last_scenario_name and last_scenario_name != scenario_name:
-                    elements.append(
-                        {
-                            "scenario": "", "label": "", "status": "",
-                            "succ": "", "error": "", "avg_rt": ""
-                        }
-                    )
+                    elements.append({k: "" for k in header["headers"]})
 
                 failed_samples_count = cumulative[sample_label]['fail']
                 success_samples_count = cumulative[sample_label]['succ']
@@ -249,9 +251,9 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 success_samples_perc = (success_samples_count * 100) / total_samples_count
 
                 errors = []
-                max_width = 60
                 for err_desc in cumulative[sample_label]['errors']:
-                    errors.append('\n'.join(wrap(err_desc["msg"], max_width)))
+                    errors.append('\n'.join(
+                        wrap(self.__console_safe_encode(err_desc["msg"]), max_width)))
 
                 elements.append(
                     {
@@ -259,14 +261,17 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                         "label": label_name,
                         "status": "FAIL" if failed_samples_count > 0 else "OK",
                         "succ": "{0:.2f}%".format(round(success_samples_perc, 2)),
-                        "error": "\n".join(errors),
-                        "avg_rt": "{0:.3f}".format(round(cumulative[sample_label]['avg_rt'], 3))
+                        "avg_rt": "{0:.3f}".format(round(cumulative[sample_label]['avg_rt'], 3)),
+                        "error": "\n".join(errors)
                     }
                 )
                 last_scenario_name = scenario_name
 
+        self.__draw_table(header, elements, self.log.info)
+
+    def __draw_table(self, header, elements, writer):
         for line in self.__get_table(header, elements):
-            self.log.info(line)
+            writer(line)
 
     def __report_duration(self):
         """
