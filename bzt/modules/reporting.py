@@ -224,8 +224,30 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
 
         return scenario_name, self.__console_safe_encode(label_name)
 
-    def __report_summary_labels(self, cumulative):
+    def __get_sample_element(self, sample, scenario_name, label_name):
         max_width = 60
+
+        failed_samples_count = sample['fail']
+        success_samples_count = sample['succ']
+        total_samples_count = failed_samples_count + success_samples_count
+        success_samples_perc = (success_samples_count * 100) / total_samples_count
+
+        errors = []
+        for err_desc in sample['errors']:
+            errors.append('\n'.join(
+                wrap(self.__console_safe_encode(err_desc["msg"]), max_width)))
+
+        return {
+            "scenario": scenario_name,
+            "label": label_name,
+            "status": "FAIL" if failed_samples_count > 0 else "OK",
+            "succ": "{0:.2f}%".format(round(success_samples_perc, 2)),
+            "avg_rt": "{0:.3f}".format(round(sample['avg_rt'], 3)),
+            "error": "\n".join(errors)
+        }
+
+    def __report_summary_labels(self, cumulative):
+
         header = {
             "headers": ["scenario", "label", "status", "succ", "avg_rt", "error"],
             "descriptions": {"scenario": "scenario:left", "label": "label:left",
@@ -245,26 +267,8 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 if last_scenario_name and last_scenario_name != scenario_name:
                     elements.append({k: "" for k in header["headers"]})
 
-                failed_samples_count = cumulative[sample_label]['fail']
-                success_samples_count = cumulative[sample_label]['succ']
-                total_samples_count = failed_samples_count + success_samples_count
-                success_samples_perc = (success_samples_count * 100) / total_samples_count
-
-                errors = []
-                for err_desc in cumulative[sample_label]['errors']:
-                    errors.append('\n'.join(
-                        wrap(self.__console_safe_encode(err_desc["msg"]), max_width)))
-
-                elements.append(
-                    {
-                        "scenario": scenario_name,
-                        "label": label_name,
-                        "status": "FAIL" if failed_samples_count > 0 else "OK",
-                        "succ": "{0:.2f}%".format(round(success_samples_perc, 2)),
-                        "avg_rt": "{0:.3f}".format(round(cumulative[sample_label]['avg_rt'], 3)),
-                        "error": "\n".join(errors)
-                    }
-                )
+                elements.append(self.__get_sample_element(cumulative[sample_label],
+                                                          scenario_name, label_name))
                 last_scenario_name = scenario_name
 
         self.__draw_table(header, elements, self.log.info)
