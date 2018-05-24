@@ -59,10 +59,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     """
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
-    PLUGINS_MANAGER_VERSION = "0.20"
+    PLUGINS_MANAGER_VERSION = "1.1"
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
                       '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
-    CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
+    CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar'
     JMETER_VER = "4.0"
     UDP_PORT_NUMBER = None
 
@@ -1511,7 +1511,7 @@ class JMeter(RequiredTool):
         if err and "Wrong command: install-for-jmx" in err:  # old manager
             self.log.debug("pmgr can't discover jmx for plugins")
 
-        if out and "Restarting JMeter" in out:
+        if out and "Plugins manager will apply some modifications" in out:
             time.sleep(5)  # allow for modifications to complete
 
     def __install_jmeter(self, dest):
@@ -1574,7 +1574,7 @@ class JMeter(RequiredTool):
         except BaseException as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
 
-        if out and "Restarting JMeter" in out:
+        if out and "Plugins manager will apply some modifications" in out:
             time.sleep(5)  # allow for modifications to complete
 
     def _pmgr_path(self):
