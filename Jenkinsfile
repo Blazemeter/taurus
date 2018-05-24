@@ -69,6 +69,6 @@ node() {
         s3Upload bucket: "deployment.blazemeter.com",
                 file: "s3/bzt-${BUILD_NUMBER}.tar.gz",
                 path: "jobs/${JOB_NAME}/${BUILD_NUMBER}/bzt-${BUILD_NUMBER}.tar.gz",
-                acl: "publicRead"
+                acl: "PublicRead"
     }
 }
