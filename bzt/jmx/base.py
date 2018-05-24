@@ -834,23 +834,18 @@ class JMX(object):
         :rtype: lxml.etree.Element
         """
 
-        if subject.lower() == 'body':
-            subject = 'false'
-        elif subject.lower() == 'body-unescaped':
-            subject = 'unescaped'
-        elif subject.lower() == 'body-as-document':
-            subject = 'as_document'
-        elif subject.lower() == 'response-headers':
-            subject = 'true'
-        elif subject.lower() == 'request-headers':
-            subject = 'request_headers'
-        elif subject.lower() == 'url':
-            subject = 'URL'
-        elif subject.lower() == 'code':
-            subject = 'code'
-        elif subject.lower() == 'message':
-            subject = 'message'
+        subjects = {
+            'body': 'false',
+            'body-unescaped': 'unescaped',
+            'body-as-document': 'as_document',
+            'response-headers': 'true',
+            'request-headers': 'request_headers',
+            'url': 'URL',
+            'code': 'code',
+            'message': 'message',
+        }
 
+        subject = subjects.get(subject)
         element = etree.Element("BoundaryExtractor", guiclass="BoundaryExtractorGui",
                                 testclass="BoundaryExtractor", testname="Get %s" % varname, enabled="true")
         element.append(JMX._string_prop("BoundaryExtractor.useHeaders", subject))
