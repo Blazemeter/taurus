@@ -95,7 +95,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
 
-        builder.build_source_code(self.execution)
+        builder.build_source_code()
         builder.save(filename)
         return filename
 
@@ -288,73 +288,41 @@ import selenium_taurus_extras
         self.wdlog = wdlog
         self.appium = False
         self.ignore_unknown_actions = ignore_unknown_actions
-        self.execution = None
 
-    def gen_asserts(self, config):
-        test_method = []
-        if "assert" in config:
-            test_method.append(self.gen_statement("body = self.driver.page_source"))
-            for assert_config in config.get("assert"):
-                for elm in self.gen_assertion(assert_config):
-                    test_method.append(elm)
-            test_method.append(self.gen_new_line())
-        return test_method
-
-    def gen_think_time(self, think_time):
-        test_method = []
-        #think_time = req.priority_option('think-time')
-        if think_time is not None:
-            delay = dehumanize_time(think_time)
-            if delay > 0:
-                test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
-                test_method.append(self.gen_new_line())
-        return test_method
-
-    def gen_request(self, req):
-        default_address = self.scenario.get("default-address")
-        transaction_contents = []
-        if req.url is not None:
-            parsed_url = parse.urlparse(req.url)
-            if default_address and not parsed_url.netloc:
-                url = default_address + req.url
-            else:
-                url = req.url
-            transaction_contents.append(
-                self.gen_statement("self.driver.get(%r)" % url, indent=self.INDENT_STEP * 3))
-            transaction_contents.append(self.gen_new_line())
-        return transaction_contents
-
-    def build_source_code(self, execution=None):
+    def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
-
-        self.execution = execution
 
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
         test_class.append(self.gen_setup_method())
         test_class.append(self.gen_teardown_method())
 
-        scenario_name = self.execution.get("scenario")
-
         requests = self.scenario.get_requests(require_url=False)
+        default_address = self.scenario.get("default-address")
         test_method = self.gen_test_method('test_requests')
         self.gen_setup(test_method)
 
-        req_index = -1
         for req in requests:
-            req_index += 1
-
-            label = req.label if req.label else (req.url if req.url else None)
-            if not label:
+            if req.label:
+                label = req.label
+            elif req.url:
+                label = req.url
+            else:
                 raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
-
-            label = scenario_name + ":" + str(req_index).zfill(3) + ":" + label
 
             test_method.append(self.gen_statement('with apiritif.transaction_logged(%r):' % label))
             transaction_contents = []
 
-            transaction_contents.extend(self.gen_request(req))
-            if req.url is not None and req.timeout is not None:
-                test_method.append(self.gen_impl_wait(req.timeout, indent=self.INDENT_STEP * 3))
+            if req.url is not None:
+                parsed_url = parse.urlparse(req.url)
+                if default_address and not parsed_url.netloc:
+                    url = default_address + req.url
+                else:
+                    url = req.url
+                if req.timeout is not None:
+                    test_method.append(self.gen_impl_wait(req.timeout, indent=self.INDENT_STEP * 3))
+                transaction_contents.append(
+                    self.gen_statement("self.driver.get(%r)" % url, indent=self.INDENT_STEP * 3))
+                transaction_contents.append(self.gen_new_line())
 
             action_append = False
             for action_config in req.config.get("actions", []):
@@ -366,18 +334,32 @@ import selenium_taurus_extras
                 transaction_contents.append(self.gen_new_line())
 
             if transaction_contents:
-                test_method.extend(transaction_contents)
+                for line in transaction_contents:
+                    test_method.append(line)
             else:
                 test_method.append(self.gen_statement('pass', indent=self.INDENT_STEP * 3))
             test_method.append(self.gen_new_line())
 
-            test_method.extend(self.gen_asserts(req.config))
-            test_method.extend(self.gen_think_time(req.priority_option('think-time')))
+            if "assert" in req.config:
+                test_method.append(self.gen_statement("body = self.driver.page_source"))
+                for assert_config in req.config.get("assert"):
+                    for elm in self.gen_assertion(assert_config):
+                        test_method.append(elm)
+                test_method.append(self.gen_new_line())
+
+            think_time = req.priority_option('think-time')
+            if think_time is not None:
+                delay = dehumanize_time(think_time)
+                if delay > 0:
+                    test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
+                    test_method.append(self.gen_new_line())
 
         test_class.append(test_method)
 
+        imports = self.add_imports()
+
         self.root.append(self.gen_statement("# coding=utf-8", indent=0))
-        self.root.append(self.add_imports())
+        self.root.append(imports)
         self.root.extend(self.gen_global_vars())
         self.root.append(test_class)
 
@@ -815,7 +797,6 @@ class ApiritifScriptGenerator(PythonGenerator):
         self.tree = None
         self.verbose = False
         self.expr_compiler = JMeterExprCompiler(self.log)
-        self.execution = None
 
     def gen_empty_line_stmt(self):
         return ast.Expr(value=ast.Name(id=""))  # hacky, but works
@@ -1254,8 +1235,7 @@ log.setLevel(logging.DEBUG)
         mod = ast.fix_missing_locations(mod)
         return mod
 
-    def build_source_code(self, execution=None):
-        self.execution = execution
+    def build_source_code(self):
         self.tree = self.build_tree()
 
     def save(self, filename):
