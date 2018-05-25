@@ -34,6 +34,7 @@ from bzt.utils import get_full_path
 from terminaltables import AsciiTable
 from textwrap import wrap
 
+
 class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     """
     A reporter that prints short statistics on test end
@@ -217,14 +218,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __console_safe_encode(self, text):
         return text.encode(locale.getpreferredencoding(), errors='replace').decode('unicode_escape')
 
-    def __get_scenario_label_name(self, sample_label):
-        label_splited = sample_label.split(":")
-        scenario_name = label_splited[0] if len(label_splited) > 2 else ""
-        label_name = label_splited[2] if len(label_splited) > 2 else sample_label
-
-        return scenario_name, self.__console_safe_encode(label_name)
-
-    def __get_sample_element(self, sample, scenario_name, label_name):
+    def __get_sample_element(self, sample, label_name):
         max_width = 60
 
         failed_samples_count = sample['fail']
@@ -238,7 +232,6 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 wrap(self.__console_safe_encode(err_desc["msg"]), max_width)))
 
         return {
-            "scenario": scenario_name,
             "label": label_name,
             "status": "FAIL" if failed_samples_count > 0 else "OK",
             "succ": "{0:.2f}%".format(round(success_samples_perc, 2)),
@@ -249,28 +242,20 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __report_summary_labels(self, cumulative):
 
         header = {
-            "headers": ["scenario", "label", "status", "succ", "avg_rt", "error"],
-            "descriptions": {"scenario": "scenario:left", "label": "label:left",
+            "headers": ["label", "status", "succ", "avg_rt", "error"],
+            "descriptions": {"label": "label:left",
                              "status": "status:center", "succ": "success:center",
-                            "avg_rt": "avg time:center", "error": "error:left"
+                             "avg_rt": "avg time:center", "error": "error:left"
                              }
         }
         elements = []
         sorted_labels = sorted(cumulative.keys())
-        last_scenario_name = None
         for sample_label in sorted_labels:
             if sample_label != "":
-
-                scenario_name, label_name = self.__get_scenario_label_name(sample_label)
-
-                # When change scenario add empty line
-                if last_scenario_name and last_scenario_name != scenario_name:
-                    elements.append({k: "" for k in header["headers"]})
-
-                elements.append(self.__get_sample_element(cumulative[sample_label],
-                                                          scenario_name, label_name))
-                last_scenario_name = scenario_name
-
+                elements.append(
+                    self.__get_sample_element(cumulative[sample_label],
+                                              self.__console_safe_encode(sample_label))
+                )
         self.__draw_table(header, elements, self.log.info)
 
     def __draw_table(self, header, elements, writer):
