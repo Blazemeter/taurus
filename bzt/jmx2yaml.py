@@ -642,68 +642,67 @@ class JMXasDict(JMX):
         :param element:
         :return:
         """
-        regexp_extractors = {}
+        boundary_extractors = {}
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
             extractor_elements = [element for element in hashtree.iterchildren() if element.tag == "BoundaryExtractor"]
             for extractor_element in extractor_elements:
-                regexp_extractor = {}
-                if extractor_element is not None:
-                    refname = self._get_string_prop(extractor_element, 'BoundaryExtractor.refname')
+                if extractor_element is None:
+                    continue
 
-                    if refname:
-                        extractor_props = {}
-                        left = self._get_string_prop(extractor_element, 'BoundaryExtractor.lboundary')
-                        right = self._get_string_prop(extractor_element, 'BoundaryExtractor.rboundary')
-                        if left and right:
-                            extractor_props["left"] = left
-                            extractor_props["right"] = right
-                        else:
-                            self.log.warning("Incomplete boundaries in %s, skipping", extractor_element.tag)
-                            continue
+                refname = self._get_string_prop(extractor_element, 'BoundaryExtractor.refname')
+                if refname is None:
+                    self.log.warning("refname property element not found in %s skipping", extractor_element.tag)
+                    continue
 
-                        default_prop = self._get_string_prop(extractor_element, 'BoundaryExtractor.default')
+                extractor_props = {}
+                left = self._get_string_prop(extractor_element, 'BoundaryExtractor.lboundary')
+                right = self._get_string_prop(extractor_element, 'BoundaryExtractor.rboundary')
+                if left and right:
+                    extractor_props["left"] = left
+                    extractor_props["right"] = right
+                else:
+                    self.log.warning("Incomplete boundaries in %s, skipping", extractor_element.tag)
+                    continue
 
-                        if default_prop:
-                            extractor_props["default"] = default_prop
-                        else:
-                            self.log.warning("No default value found in %s", extractor_element.tag)
-                            extractor_props["default"] = ""
+                default_prop = self._get_string_prop(extractor_element, 'BoundaryExtractor.default')
 
-                        match_no_prop = self._get_string_prop(extractor_element, 'BoundaryExtractor.match_number')
+                if default_prop:
+                    extractor_props["default"] = default_prop
+                else:
+                    self.log.warning("No default value found in %s", extractor_element.tag)
+                    extractor_props["default"] = ""
 
-                        if match_no_prop and match_no_prop.isdigit():
-                            extractor_props["match-no"] = int(match_no_prop)
-                        else:
-                            self.log.warning("No match number found in %s, using default: 0", extractor_element.tag)
-                            extractor_props["match-no"] = 0
+                match_no_prop = self._get_string_prop(extractor_element, 'BoundaryExtractor.match_number')
 
-                        subject = self._get_string_prop(extractor_element, 'BoundaryExtractor.useHeaders')
+                if match_no_prop and match_no_prop.isdigit():
+                    extractor_props["match-no"] = int(match_no_prop)
+                else:
+                    self.log.warning("No match number found in %s, using default: 0", extractor_element.tag)
+                    extractor_props["match-no"] = 0
 
-                        subjects = {
-                            'false': 'body',
-                            'unescaped': 'body-unescaped',
-                            'as_document': 'body-as-document',
-                            'true': 'response-headers',
-                            'request_headers': 'request-headers',
-                            'url': 'url',
-                            'code': 'code',
-                            'message': 'message',
-                        }
-                        if subject and subject.lower() in subjects:
-                            extractor_props["subject"] = subjects.get(subject.lower())
-                        else:
-                            self.log.warning("No useHeaders property found in %s, using default: body",
-                                             extractor_element.tag)
-                            extractor_props["subject"] = 'body'
+                subject = self._get_string_prop(extractor_element, 'BoundaryExtractor.useHeaders')
 
-                        regexp_extractor.update({refname: extractor_props})
-                    else:
-                        self.log.warning("refname property element not found in %s skipping", extractor_element.tag)
-                        continue
-                regexp_extractors.update(regexp_extractor)
+                subjects = {
+                    'false': 'body',
+                    'unescaped': 'body-unescaped',
+                    'as_document': 'body-as-document',
+                    'true': 'response-headers',
+                    'request_headers': 'request-headers',
+                    'url': 'url',
+                    'code': 'code',
+                    'message': 'message',
+                }
+                if subject and subject.lower() in subjects:
+                    extractor_props["subject"] = subjects.get(subject.lower())
+                else:
+                    self.log.warning("No useHeaders property found in %s, using default: body",
+                                     extractor_element.tag)
+                    extractor_props["subject"] = 'body'
 
-        return regexp_extractors
+                boundary_extractors.update({refname: extractor_props})
+
+        return boundary_extractors
 
     def _get_json_path_extractors(self, element):
         """
