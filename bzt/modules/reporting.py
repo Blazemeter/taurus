@@ -21,6 +21,7 @@ import os
 import time
 from collections import Counter, OrderedDict
 from datetime import datetime
+import locale
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Reporter
@@ -30,6 +31,8 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorLis
 from bzt.modules.passfail import PassFailStatus
 from bzt.six import etree, iteritems, string_types
 from bzt.utils import get_full_path
+from terminaltables import AsciiTable
+from textwrap import wrap
 
 
 class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
@@ -94,6 +97,9 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 self.__report_samples_count(summary_kpi)
             if self.parameters.get("percentiles", True):
                 self.__report_percentiles(summary_kpi)
+
+            if self.parameters.get("summary-labels"):
+                self.__report_summary_labels(self.last_sec[DataPoint.CUMULATIVE])
 
             if self.parameters.get("failed-labels"):
                 self.__report_failed_labels(self.last_sec[DataPoint.CUMULATIVE])
@@ -174,6 +180,87 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 failed_samples_count = cumulative[sample_label]['fail']
                 if failed_samples_count:
                     self.log.info(report_template, failed_samples_count, sample_label)
+
+    @staticmethod
+    def __set_header(table_headers, table_headers_desc):
+        table_header = []
+        header_index = 0
+        justify_columns = {}
+        for header in table_headers:
+            table_header.append(table_headers_desc[header].split(":")[0])
+            justify_columns[header_index] = table_headers_desc[header].split(":")[1]
+            header_index += 1
+        return table_header, justify_columns
+
+    @staticmethod
+    def __set_table_data(data, table_headers):
+        table_data = []
+        for element in data:
+            table_item = []
+            for header in table_headers:
+                table_item.append(element[header])
+            table_data.append(table_item)
+        return table_data
+
+    def __get_table(self, header, data, title=""):
+        table_headers = header["headers"]
+        table_headers_desc = header["descriptions"]
+        table_data = []
+        table_header, justify_columns = self.__set_header(table_headers, table_headers_desc)
+        table_data.append(table_header)
+        table_data.extend(self.__set_table_data(data, table_headers))
+        table_instance = AsciiTable(table_data, title)
+
+        table_instance.justify_columns = justify_columns
+
+        return table_instance.table.splitlines()
+
+    def __console_safe_encode(self, text):
+        return text.encode(locale.getpreferredencoding(), errors='replace').decode('unicode_escape')
+
+    def __get_sample_element(self, sample, label_name):
+        max_width = 60
+
+        failed_samples_count = sample['fail']
+        success_samples_count = sample['succ']
+        total_samples_count = failed_samples_count + success_samples_count
+        success_samples_perc = (success_samples_count * 100) / total_samples_count
+
+        errors = []
+        for err_desc in sample['errors']:
+            errors.append('\n'.join(
+                wrap(self.__console_safe_encode(err_desc["msg"]), max_width)))
+
+        return {
+            "label": label_name,
+            "status": "FAIL" if failed_samples_count > 0 else "OK",
+            "succ": "{0:.2f}%".format(round(success_samples_perc, 2)),
+            "avg_rt": "{0:.3f}".format(round(sample['avg_rt'], 3)),
+            "error": "\n".join(errors)
+        }
+
+    def __report_summary_labels(self, cumulative):
+
+        header = {
+            "headers": ["label", "status", "succ", "avg_rt", "error"],
+            "descriptions": {"label": "label:left",
+                             "status": "status:center", "succ": "success:center",
+                             "avg_rt": "avg time:center", "error": "error:left"
+                             }
+        }
+        elements = []
+        sorted_labels = sorted(cumulative.keys())
+        for sample_label in sorted_labels:
+            if sample_label != "":
+                elements.append(
+                    self.__get_sample_element(cumulative[sample_label],
+                                              self.__console_safe_encode(sample_label))
+                )
+        self.__draw_table(header, elements, self.log.info)
+
+    def __draw_table(self, header, elements, writer):
+        for line in self.__get_table(header, elements):
+            writer(line)
 
     def __report_duration(self):
         """
