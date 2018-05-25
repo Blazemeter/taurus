@@ -1,0 +1,1 @@
+Load TestNG classes from JAR only if testng config isn't provided

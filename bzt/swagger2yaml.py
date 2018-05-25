@@ -90,7 +90,7 @@ class Swagger(object):
             self.definitions[name] = Swagger.Definition(name=name, schema=schema)
 
         for name, response in iteritems(self.swagger.get("responses", {})):
-            self.responses[name] = Swagger.Response(name=name, description=response["description"],
+            self.responses[name] = Swagger.Response(name=name, description=response.get("description"),
                                                     schema=response.get("schema"), headers=response.get("headers"))
 
         for name, param in iteritems(self.swagger.get("parameters", {})):
@@ -131,7 +131,7 @@ class Swagger(object):
 
         responses = OrderedDict()
         for name, resp in iteritems(operation.get("responses", {})):
-            response = Swagger.Response(name=name, description=resp["description"], schema=resp.get("schema"),
+            response = Swagger.Response(name=name, description=resp.get("description"), schema=resp.get("schema"),
                                         headers=resp.get("headers"))
             responses[name] = response
 
