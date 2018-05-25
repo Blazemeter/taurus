@@ -1286,7 +1286,7 @@ class PythonGenerator(object):
         return imports
 
     @abstractmethod
-    def build_source_code(self, execution=None):
+    def build_source_code(self):
         pass
 
     @staticmethod
