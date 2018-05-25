@@ -331,14 +331,19 @@ class TestConverter(BZTestCase):
             "default": "DEF_2",
         })
         # extract-boundary
-        self.assertEqual(tg_two['requests'][0]['extract-boundary'], {
-            'extractedTitle': {
-                'subject': 'body',
-                'left': '<title>',
-                'right': '</title>',
-                'match-no': 1,
-                'default': 'DEFVAL',
-            }
+        self.assertEqual(tg_two['requests'][0]['extract-boundary']['extractedTitle'], {
+            'subject': 'body',
+            'left': '<title>',
+            'right': '</title>',
+            'match-no': 1,
+            'default': 'DEFVAL',
+        })
+        self.assertEqual(tg_two['requests'][0]['extract-boundary']['extractedMeta'], {
+            'subject': 'response-headers',
+            'left': 'Host:',
+            'right': '\\n',
+            'match-no': 0,
+            'default': '',
         })
 
     def test_request_body(self):

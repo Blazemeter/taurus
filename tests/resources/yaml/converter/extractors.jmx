@@ -168,6 +168,14 @@
             <stringProp name="BoundaryExtractor.match_number">1</stringProp>
           </BoundaryExtractor>
           <hashTree/>
+          <BoundaryExtractor guiclass="BoundaryExtractorGui" testclass="BoundaryExtractor" testname="bndex2" enabled="true">
+            <stringProp name="BoundaryExtractor.useHeaders">true</stringProp>
+            <stringProp name="BoundaryExtractor.refname">extractedMeta</stringProp>
+            <stringProp name="BoundaryExtractor.lboundary">Host:</stringProp>
+            <stringProp name="BoundaryExtractor.rboundary">\n</stringProp>
+            <boolProp name="BoundaryExtractor.default_empty_value">false</boolProp>
+          </BoundaryExtractor>
+          <hashTree/>
         </hashTree>
         <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="tg2ht1rex" enabled="true">
           <stringProp name="RegexExtractor.useHeaders">false</stringProp>
