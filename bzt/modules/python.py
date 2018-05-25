@@ -323,7 +323,7 @@ import selenium_taurus_extras
             transaction_contents.append(self.gen_new_line())
         return transaction_contents
 
-    def build_source_code(self, execution=None):
+    def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
 
         test_class = self.gen_class_definition("TestRequests", ["unittest.TestCase"])
