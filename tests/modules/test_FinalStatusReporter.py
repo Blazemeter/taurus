@@ -25,13 +25,13 @@ class TestFinalStatusReporter(BZTestCase):
         obj.post_process()
 
         expected = ""
-        expected += "+----------+----------------------------------+--------+---------+----------+-----------+\n"
-        expected += "| scenario | label                            | status | success | avg time | error     |\n"
-        expected += "+----------+----------------------------------+--------+---------+----------+-----------+\n"
-        expected += "|          | http://192.168.1.1/anotherquery  |  FAIL  |  0.00%  |  0.001   | Forbidden |\n"
-        expected += "|          | http://192.168.1.1/somequery     |   OK   | 100.00% |  0.001   |           |\n"
-        expected += "|          | http://192.168.100.100/somequery |   OK   | 100.00% |  0.001   |           |\n"
-        expected += "+----------+----------------------------------+--------+---------+----------+-----------+\n"
+        expected += "+----------------------------------+--------+---------+----------+-----------+\n"
+        expected += "| label                            | status | success | avg time | error     |\n"
+        expected += "+----------------------------------+--------+---------+----------+-----------+\n"
+        expected += "| http://192.168.1.1/anotherquery  |  FAIL  |  0.00%  |  0.001   | Forbidden |\n"
+        expected += "| http://192.168.1.1/somequery     |   OK   | 100.00% |  0.001   |           |\n"
+        expected += "| http://192.168.100.100/somequery |   OK   | 100.00% |  0.001   |           |\n"
+        expected += "+----------------------------------+--------+---------+----------+-----------+\n"
 
         self.assertIn(expected, self.log_recorder.info_buff.getvalue())
 
