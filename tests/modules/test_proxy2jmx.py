@@ -94,7 +94,7 @@ class TestProxy2JMX(BZTestCase):
         with open(self.obj.engine.artifacts_dir + '/generated.smart.jmx') as fd:
             lines = fd.readlines()
             self.assertEqual(len(lines), 1)
-            self.assertEqual(lines[0].strip(), 'only one string')
+            self.assertEqual(lines[0].strip(), 'smartjmx content')
 
         with open(self.obj.engine.artifacts_dir + '/generated.simple.jmx') as fd:
             lines = fd.readlines()
