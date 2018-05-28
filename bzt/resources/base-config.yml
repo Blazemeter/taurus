@@ -89,7 +89,7 @@ modules:
   capturehar:
     class: bzt.modules.blazemeter.ServiceStubCaptureHAR
   webdriver-grid:
-    class: bzt.modules.blazemeter.WDGridProvisioning
+    class: bzt.modules.wdgrid.WDGridProvisioning
 
 ---
 # experimental & deprecated
