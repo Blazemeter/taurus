@@ -1,4 +1,17 @@
 ---
+execution:
+  - scenario: req
+    executor: selenium
+    hold-for: 1m
+    grid:
+    - platform: ubuntu/14.04
+      browser: chrome/46.0.12
+      vnc: true
+    - platform: ubuntu/14.04
+      browser: firefox/46.0.12
+      vnc: true
+
+
 scenarios:
   req:
     browser: Chrome
@@ -34,10 +47,3 @@ scenarios:
       assert: # looks a bit unaligned
       - Thank you for your purchase today!
 
-execution:
-  - scenario: req
-    executor: selenium
-    hold-for: 1m
-
-#services:
-#- virtual-display

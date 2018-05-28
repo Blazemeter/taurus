@@ -15,17 +15,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import logging
 import math
 import os
 
 import urwid
 from urwid import BaseScreen
 
+import bzt.resources as bztr
 from bzt import ManualShutdown
 from bzt.six import text_type, iteritems, PY2
 from bzt.utils import is_windows
-import bzt.resources as bztr
 
 if PY2:  # we have to put import logic here to avoid requiring python-tk library on linux
     import tkFont as tkfont

@@ -1,15 +1,39 @@
 import os
 import sys
+import time
+from random import random
+
+from PIL import Image
 
 from bzt import NormalShutdown
 from bzt.bza import WDGridImages
 from bzt.engine import Configuration
-from bzt.modules.blazemeter import WDGridProvisioning
+from bzt.modules.wdgrid import WDGridProvisioning, VNCViewer
 from tests import BZTestCase
 from tests.mocks import EngineEmul, BZMock
 
 env = Configuration()
 env.load([os.path.expanduser("~/.bzt-rc")])
+
+
+class VNCClientEmul(object):
+
+    def __init__(self):
+        self.screen = Image.new('RGB', (640, 480))
+
+    def refreshScreen(self):
+        color = (int(random() * 255), int(random() * 255), int(random() * 255))
+        self.screen = Image.new('RGB', (640, 480), color)
+
+    def disconnect(self):
+        pass
+
+
+class VNCEmul(VNCViewer):
+
+    def connect(self, address, password="secret"):
+        self.client = VNCClientEmul()
+        self.root = self._get_root_window()
 
 
 class TestWDGrid(BZTestCase):
@@ -175,6 +199,7 @@ class TestWDGrid(BZTestCase):
                     {
                         "platform": "ubuntu/14.04",
                         "browser": "chrome/46.0.12",
+                        "vnc": True
                     },
                     # {
                     #    "platform": "ubuntu/14.04",
@@ -202,7 +227,20 @@ class TestWDGrid(BZTestCase):
         ]})
         self.obj.settings['auto-cleanup'] = True
 
+        self.obj.vnc_class = VNCEmul
         self.obj.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
         # logging.info(to_json(self.obj.engine.config))
         # self.assertEquals(3, len(self.obj.executors))
+        self.obj.shutdown()
         self.obj.post_process()
+
+    def test_vnc(self):
+        obj = VNCViewer("test")
+        obj.connect("18.218.108.40")
+        for _ in range(0, 5):
+            obj.tick()
+            time.sleep(1)
+        #

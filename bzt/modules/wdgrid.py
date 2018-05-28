@@ -2,6 +2,8 @@ import copy
 import logging
 import time
 
+import urwid
+from PIL import ImageTk
 from vncdotool import api as vncapi
 
 from bzt import TaurusConfigError, NormalShutdown
@@ -9,17 +11,27 @@ from bzt.bza import User, WDGridImages
 from bzt.engine import ScenarioExecutor
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.provisioning import Local
-from bzt.six import text_type
+from bzt.six import text_type, PY2, urlparse
 from bzt.utils import to_json
+
+if PY2:
+    import Tkinter as tkinter
+else:
+    import tkinter as tkinter
 
 
 class WDGridProvisioning(Local):
+    """
+    :type _vncs: list[VNCViewer]
+    """
     GRID = "grid"
 
     def __init__(self):
         super(WDGridProvisioning, self).__init__()
+        self.vnc_class = VNCViewer
         self.user = User()
         self._involved_engines = []
+        self._vncs = []
 
     def prepare(self):
         CloudProvisioning.merge_with_blazemeter_config(self)
@@ -38,6 +50,35 @@ class WDGridProvisioning(Local):
         self.engine.config[ScenarioExecutor.EXEC] = executions
 
         super(WDGridProvisioning, self).prepare()
+
+    def startup(self):
+        for executor in self.executors:
+            if self.GRID not in executor.execution:
+                continue
+
+            if executor.execution[self.GRID][0].get('vnc', False):
+                parsed = urlparse.urlparse(executor.execution['webdriver-address'])
+                vnc_viewer = self.vnc_class(executor.label)
+                vnc_viewer.connect(parsed.netloc.split(':')[0])
+                self._vncs.append(vnc_viewer)
+
+        super(WDGridProvisioning, self).startup()
+
+    def check(self):
+        for vnc in self._vncs:
+            vnc.tick()
+        return super(WDGridProvisioning, self).check()
+
+    def shutdown(self):
+        super(WDGridProvisioning, self).shutdown()
+        for vnc in self._vncs:
+            vnc.disconnect()
+
+    def post_process(self):
+        for eng in self._involved_engines:
+            eng.unbook()
+            if self.settings.get("auto-cleanup", False):
+                eng.stop()
 
     def _get_executions_proto(self):
         executions = []
@@ -111,7 +152,7 @@ class WDGridProvisioning(Local):
                 engine.fetch()
 
             while not ready(engine):
-                timeout = max(int(engine.timeout / 2), 5)
+                timeout = max(int(engine.timeout / 2), 1)
                 self.log.info("Waiting for provisioning %ss...", timeout)
                 time.sleep(timeout)
                 engine.fetch()
@@ -138,12 +179,6 @@ class WDGridProvisioning(Local):
         execution.get('capabilities', force_set=True).merge({
             "browser": execution[self.GRID][0]['browser'].split("/")[0]
         })
-
-    def post_process(self):
-        for eng in self._involved_engines:
-            eng.unbook()
-            if self.settings.get("auto-cleanup", False):
-                eng.stop()
 
     def __dump_catalog_if_needed(self):
         if self.settings.get("dump-catalog", False):
@@ -196,14 +231,47 @@ class WDGridProvisioning(Local):
 
 
 class VNCViewer(object):
-    def __init__(self):
+    def __init__(self, title):
         super(VNCViewer, self).__init__()
+        urwid.set_encoding('utf-8')
         self.log = logging.getLogger('')
-        self.client = vncapi.connect('18.222.44.55', password="secret")
+        self.title = title
+        self.client = None
+        self.root = None
+
+    def connect(self, address, password="secret"):
+        self.log.info("Connect to " + address)
+        self.client = vncapi.connect(address, password=password)
+        self.client.refreshScreen()
+        self.root = self._get_root_window()
 
     def tick(self):
-        d = self.client.refreshScreen()
-        d.addCallback(self._refresh)
+        if not self.root:
+            self.log.debug("Window closed, ignoring")
+            return
+        self.log.debug("Refreshing image...")
+        self.client.refreshScreen()
+        self.image.paste(self.client.screen)
+        self.root.update()
 
     def _refresh(self):
         self.log.debug("Refresh")
+
+    def _get_root_window(self):
+        root = tkinter.Tk()
+        size = self.client.screen.size
+        root.geometry("%sx%s" % (size[0], size[1]))
+        root.protocol("WM_DELETE_WINDOW", self._closed_window)
+        root.title = self.title
+        self.image = ImageTk.PhotoImage(self.client.screen)
+        panel = tkinter.Label(self.root, image=self.image)
+        panel.pack()
+        return root
+
+    def _closed_window(self):
+        self.log.debug("Closed window")
+        self.root.destroy()
+        self.root = None
+
+    def disconnect(self):
+        self.client.disconnect()
