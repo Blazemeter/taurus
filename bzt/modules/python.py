@@ -102,7 +102,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+        if executable == sys.executable:
+            self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         report_type = ".ldjson" if self.engine.is_functional_mode() else ".csv"
         report_tpl = self.engine.create_artifact("apiritif-", "") + "%s" + report_type
@@ -1563,7 +1564,8 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         """
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+        if executable == sys.executable:
+            self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
 
@@ -1651,7 +1653,8 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+        if executable == sys.executable:
+            self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
 

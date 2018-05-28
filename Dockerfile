@@ -17,6 +17,7 @@ RUN apt-get -y update \
   && bash /tmp/setup_8.x \
   && apt-get -y update \
   && apt-get -y install --no-install-recommends \
+    language-pack-en \
     mc \
     tzdata \
     kmod \
@@ -83,5 +84,6 @@ RUN mkdir /bzt-configs \
   && rm -rf /tmp/* \
   && mkdir /tmp/artifacts
 
+ENV LANG en_US.UTF-8
 WORKDIR /bzt-configs
 ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]
