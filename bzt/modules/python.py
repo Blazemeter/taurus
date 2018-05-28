@@ -466,6 +466,7 @@ import selenium_taurus_extras
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
 
         setup_method_def.append(self.gen_statement("self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)"))
+        setup_method_def.append(self.gen_statement("self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)"))
 
         if self.window_size:  # FIXME: unused in fact
             statement = self.gen_statement("self.driver.set_window_position(0, 0)")
@@ -603,12 +604,12 @@ import selenium_taurus_extras
                 action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype == "switchframe":
-            if tag == "byidx":
+            if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
                 frame = str(selector)
             else:
                 frame = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
 
-            cmd = "self.driver.switch_to.frame(%s)" % frame
+            cmd = "self.frm_mng.switch(%r)" % frame
             action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype in action_chains:
