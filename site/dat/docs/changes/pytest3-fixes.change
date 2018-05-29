@@ -1,0 +1,2 @@
+add LANG=en_US.UTF-8 and locales into Docker image
+disable PYTHONPATH additions if interpreter is changed via config
