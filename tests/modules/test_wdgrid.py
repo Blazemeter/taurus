@@ -1,9 +1,11 @@
+import logging
 import os
 import sys
 import time
 from random import random
 
 from PIL import Image
+from matplotlib.pyplot import show
 
 from bzt import NormalShutdown
 from bzt.bza import WDGridImages
@@ -33,7 +35,7 @@ class VNCEmul(VNCViewer):
 
     def connect(self, address, password="secret"):
         self.client = VNCClientEmul()
-        self.root = self._get_root_window()
+        # self.root = self._get_root_window()
 
 
 class TestWDGrid(BZTestCase):
@@ -87,10 +89,76 @@ class TestWDGrid(BZTestCase):
         self.assertRaises(NormalShutdown, self.obj.prepare)
 
     def test_engines(self):
+        self.mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/grid/engines?limit=1000': [
+                {"result": [{
+                    "id": "5afd6c2518cb70ef4a711bb0",
+                    "name": "Thu May 17 14:48:23 IDT 2018 - 2",
+                    "status": "RUNNING",
+                    "expiration": None,
+                    "publicIp": None,
+                    "created": 1526557733,
+                    "updated": 1526557733,
+                    "userId": 1,
+                    "imageId": "taurus-firefox-selenium",
+                    "endpoint": None,
+                    "bookingId": "booked",
+                    "bookingExpiration": None,
+                }, {
+                    "id": "5afd6c2518cb70ef4a711bb1",
+                    "name": "Thu May 17 14:48:23 IDT 2018 - 2",
+                    "status": "Terminating",
+                    "expiration": None,
+                    "publicIp": None,
+                    "created": 1526557733,
+                    "updated": 1526557733,
+                    "userId": 1,
+                    "imageId": "taurus-firefox-selenium",
+                    "endpoint": None,
+                    "bookingId": "booked",
+                    "bookingExpiration": None,
+                }
+                ]}
+            ]})
         self.obj.settings['dump-status'] = True
         self.assertRaises(NormalShutdown, self.obj.prepare)
 
     def test_cleanup(self):
+        self.mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/grid/engines?limit=1000': [
+                {"result": [{
+                    "id": "5afd6c2518cb70ef4a711bb0",
+                    "name": "Thu May 17 14:48:23 IDT 2018 - 2",
+                    "status": "RUNNING",
+                    "expiration": None,
+                    "publicIp": None,
+                    "created": 1526557733,
+                    "updated": 1526557733,
+                    "userId": 1,
+                    "imageId": "taurus-firefox-selenium",
+                    "endpoint": None,
+                    "bookingId": "booked",
+                    "bookingExpiration": None,
+                }]},
+                {"result": [{
+                    "id": "5afd6c2518cb70ef4a711bb0",
+                    "name": "Thu May 17 14:48:23 IDT 2018 - 2",
+                    "status": "Terminating",
+                    "expiration": None,
+                    "publicIp": None,
+                    "created": 1526557733,
+                    "updated": 1526557733,
+                    "userId": 1,
+                    "imageId": "taurus-firefox-selenium",
+                    "endpoint": None,
+                    "bookingId": "booked",
+                    "bookingExpiration": None,
+                }
+                ]}
+            ]})
+        self.mock.mock_post.update({
+            'https://a.blazemeter.com/api/v4/grid/engines/5afd6c2518cb70ef4a711bb0/stop': {}
+        })
         self.obj.settings['cleanup-engines'] = True
         self.assertRaises(NormalShutdown, self.obj.prepare)
         client = WDGridImages(self.obj.user)
@@ -239,8 +307,10 @@ class TestWDGrid(BZTestCase):
 
     def test_vnc(self):
         obj = VNCViewer("test")
-        obj.connect("18.218.108.40")
+        obj.connect("18.218.130.126")
         for _ in range(0, 5):
+            logging.info("Tick %s", _)
+            obj.client.refreshScreen()
             obj.tick()
             time.sleep(1)
-        #
+            show(block=False)
