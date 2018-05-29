@@ -17,3 +17,4 @@ selenium
 Appium-Python-Client
 urwid
 vncdotool
+pygame

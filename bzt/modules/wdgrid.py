@@ -3,9 +3,9 @@ import logging
 import multiprocessing
 import os
 import time
+from struct import pack
 
-import urwid
-from PIL import ImageTk
+import pygame
 from vncdotool import api as vncapi
 from vncdotool.client import VNCDoToolFactory, VNCDoToolClient
 
@@ -14,21 +14,15 @@ from bzt.bza import User, WDGridImages
 from bzt.engine import ScenarioExecutor
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.provisioning import Local
-from bzt.six import text_type, PY2, urlparse
+from bzt.six import text_type, urlparse
 from bzt.utils import to_json
-
-if PY2:
-    import Tkinter as tkinter
-else:
-    import tkinter as tkinter
 
 
 def _start_vnc(params):
     vnc_viewer = VNCViewer(params[1])
     vnc_viewer.connect(params[0])
     while vnc_viewer.tick():
-        vnc_viewer.tick()
-        time.sleep(0.05)
+        time.sleep(0.01)
 
 
 class WDGridProvisioning(Local):
@@ -241,67 +235,78 @@ class WDGridProvisioning(Local):
 class VNCDoToolClientExt(VNCDoToolClient, object):
     def __init__(self):
         super(VNCDoToolClientExt, self).__init__()
+        self.size = None
+        self.screen = None
 
     def _handleDecodeZRLE(self, block):
         raise NotImplementedError()
 
+    def vncConnectionMade(self):
+        VNCDoToolClient.vncConnectionMade(self)
+        self.setPixelFormat()
+
     def commitUpdate(self, rectangles):
         VNCDoToolClient.commitUpdate(self, rectangles)
-        self.framebufferUpdateRequest(incremental=1)
+        if self.size and self.screen:
+            logging.debug("Updated: %s", rectangles)
+            pygame.display.update(rectangles)
+            self.framebufferUpdateRequest(incremental=1)
+        else:
+            self.framebufferUpdateRequest(incremental=0)
+
+    def updateRectangle(self, x, y, width, height, data):
+        if not self.size:
+            self.size = (width, height)  # we assume that first frame is full size
+        else:
+            self.screen.blit(
+                pygame.image.fromstring(data, (width, height), 'RGBX'),
+                (x, y)
+            )
+
+    def setPixelFormat(self, bpp=32, depth=24, bigendian=0, truecolor=1, redmax=255, greenmax=255, bluemax=255, redshift=0, greenshift=8, blueshift=16):
+        pixformat = pack("!BBBBHHHBBBxxx", bpp, depth, bigendian, truecolor, redmax, greenmax, bluemax, redshift, greenshift, blueshift)
+        self.transport.write(pack("!Bxxx16s", 0, pixformat))
+        #rember these settings
+        self.bpp, self.depth, self.bigendian, self.truecolor = bpp, depth, bigendian, truecolor
+        self.redmax, self.greenmax, self.bluemax = redmax, greenmax, bluemax
+        self.redshift, self.greenshift, self.blueshift = redshift, greenshift, blueshift
+        self.bypp = self.bpp / 8        #calc bytes per pixel
 
 
 class VNCViewer(object):
+    """
+    :type client: vncdotool.api.ThreadedVNCClientProxy
+    """
     PROTO = VNCDoToolClientExt
 
     def __init__(self, title):
         super(VNCViewer, self).__init__()
-        urwid.set_encoding('utf-8')
+        pygame.init()
         VNCDoToolFactory.protocol = self.PROTO
         self.log = logging.getLogger('')
         self.title = title
         self.client = None
-        self.root = None
-        self.image = None
 
     def connect(self, address, password="secret"):
         self.log.debug("Connect to " + address)
         self.client = vncapi.connect(address, password=password)
         self.client.refreshScreen()
-        self.root = self._get_root_window()
-        self.client.protocol.img = self.image
+        self._get_root_window()
 
     def tick(self):
-        if not self.root:
-            self.log.debug("Window closed, ignoring")
-            return False
-        self.image.paste(self.client.protocol.screen)
-        self.root.update()
+        for e in pygame.event.get():
+            # logging.debug("Event: %s", e)
+            if e.type == pygame.QUIT:
+                return False
         return True
 
-    def _refresh(self):
-        self.log.debug("Refresh")
-
     def _get_root_window(self):
-        root = tkinter.Tk()
-        size = self.client.screen.size
-        root.geometry("%sx%s" % (size[0], size[1]))
-        root.protocol("WM_DELETE_WINDOW", self._closed_window)
-        root.title(self.title)
-        root.resizable(width=False, height=False)
-        self.image = ImageTk.PhotoImage(self.client.screen)
-        panel = tkinter.Label(self.root, image=self.image)
-        panel.pack()
+        icon = os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus.png")
+        pygame.display.set_icon(pygame.image.load(icon))
+        pygame.display.set_caption(self.title)
+        self.client.protocol.screen = pygame.display.set_mode(self.client.protocol.size, 0, 24)
 
-        icon = tkinter.PhotoImage(file=os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus.png"))
-        root.tk.call('wm', 'iconphoto', root._w, icon)
 
-        return root
-
-    def _closed_window(self):
-        self.log.debug("Closed window")
-        self.root.destroy()
-        self.root = None
-
-    def disconnect(self):
+def disconnect(self):
         self.client.disconnect()
 
