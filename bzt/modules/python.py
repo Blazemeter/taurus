@@ -604,12 +604,14 @@ import selenium_taurus_extras
                 action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype == "switchframe":
-            if tag == "byidx" or selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
-                frame = str(selector)
+            if tag == "byidx":
+                cmd = "self.frm_mng.switch(%r)" % int(selector)
+            elif selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
+                cmd = "self.frm_mng.switch(%r)" % selector
             else:
                 frame = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
+                cmd = "self.frm_mng.switch(%s)" % frame
 
-            cmd = "self.frm_mng.switch(%r)" % frame
             action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype in action_chains:
