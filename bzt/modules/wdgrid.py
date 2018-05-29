@@ -1,10 +1,12 @@
 import copy
 import logging
+import multiprocessing
 import time
 
 import urwid
 from PIL import ImageTk
 from vncdotool import api as vncapi
+from vncdotool.client import VNCDoToolFactory, VNCDoToolClient
 
 from bzt import TaurusConfigError, NormalShutdown
 from bzt.bza import User, WDGridImages
@@ -20,6 +22,15 @@ else:
     import tkinter as tkinter
 
 
+def _start_vnc(params):
+    vnc_viewer = VNCViewer(params[1])
+    vnc_viewer.connect(params[0])
+    while vnc_viewer.tick():
+        vnc_viewer.tick()
+        time.sleep(0.05)
+
+
+
 class WDGridProvisioning(Local):
     """
     :type _vncs: list[VNCViewer]
@@ -28,10 +39,9 @@ class WDGridProvisioning(Local):
 
     def __init__(self):
         super(WDGridProvisioning, self).__init__()
-        self.vnc_class = VNCViewer
         self.user = User()
         self._involved_engines = []
-        self._vncs = []
+        self._vncs_pool = None
 
     def prepare(self):
         CloudProvisioning.merge_with_blazemeter_config(self)
@@ -52,27 +62,25 @@ class WDGridProvisioning(Local):
         super(WDGridProvisioning, self).prepare()
 
     def startup(self):
+        vncs = []
         for executor in self.executors:
             if self.GRID not in executor.execution:
                 continue
 
             if executor.execution[self.GRID][0].get('vnc', False):
                 parsed = urlparse.urlparse(executor.execution['webdriver-address'])
-                vnc_viewer = self.vnc_class(executor.label)
-                vnc_viewer.connect(parsed.netloc.split(':')[0])
-                self._vncs.append(vnc_viewer)
+                vncs.append((parsed.netloc.split(':')[0], executor.label))
 
+        if vncs:
+            self._vncs_pool = multiprocessing.Pool(len(vncs))
+            self._vncs_pool.map_async(_start_vnc, vncs)
+            self._vncs_pool.close()
         super(WDGridProvisioning, self).startup()
-
-    def check(self):
-        for vnc in self._vncs:
-            vnc.tick()
-        return super(WDGridProvisioning, self).check()
 
     def shutdown(self):
         super(WDGridProvisioning, self).shutdown()
-        for vnc in self._vncs:
-            vnc.disconnect()
+        if self._vncs_pool:
+            self._vncs_pool.terminate()
 
     def post_process(self):
         for eng in self._involved_engines:
@@ -238,21 +246,23 @@ class VNCViewer(object):
         self.title = title
         self.client = None
         self.root = None
+        self.image = None
 
     def connect(self, address, password="secret"):
         self.log.info("Connect to " + address)
+        VNCDoToolFactory.protocol = VNCDoToolClientExt
         self.client = vncapi.connect(address, password=password)
         self.client.refreshScreen()
         self.root = self._get_root_window()
+        self.client.protocol.img = self.image
 
     def tick(self):
         if not self.root:
             self.log.debug("Window closed, ignoring")
-            return
-        self.log.debug("Refreshing image...")
-        self.client.refreshScreen()
-        self.image.paste(self.client.screen)
+            return False
+        self.image.paste(self.client.protocol.screen)
         self.root.update()
+        return True
 
     def _refresh(self):
         self.log.debug("Refresh")
@@ -275,3 +285,16 @@ class VNCViewer(object):
 
     def disconnect(self):
         self.client.disconnect()
+
+
+class VNCDoToolClientExt(VNCDoToolClient, object):
+    def __init__(self):
+        super(VNCDoToolClientExt, self).__init__()
+        self.img = None
+
+    def _handleDecodeZRLE(self, block):
+        raise NotImplementedError()
+
+    def commitUpdate(self, rectangles):
+        VNCDoToolClient.commitUpdate(self, rectangles)
+        self.framebufferUpdateRequest(incremental=1)
