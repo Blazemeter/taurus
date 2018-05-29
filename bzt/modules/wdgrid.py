@@ -30,11 +30,7 @@ def _start_vnc(params):
         time.sleep(0.05)
 
 
-
 class WDGridProvisioning(Local):
-    """
-    :type _vncs: list[VNCViewer]
-    """
     GRID = "grid"
 
     def __init__(self):
@@ -238,10 +234,26 @@ class WDGridProvisioning(Local):
         return label
 
 
+class VNCDoToolClientExt(VNCDoToolClient, object):
+    def __init__(self):
+        super(VNCDoToolClientExt, self).__init__()
+        self.img = None
+
+    def _handleDecodeZRLE(self, block):
+        raise NotImplementedError()
+
+    def commitUpdate(self, rectangles):
+        VNCDoToolClient.commitUpdate(self, rectangles)
+        self.framebufferUpdateRequest(incremental=1)
+
+
 class VNCViewer(object):
+    PROTO = VNCDoToolClientExt
+
     def __init__(self, title):
         super(VNCViewer, self).__init__()
         urwid.set_encoding('utf-8')
+        VNCDoToolFactory.protocol = self.PROTO
         self.log = logging.getLogger('')
         self.title = title
         self.client = None
@@ -250,7 +262,6 @@ class VNCViewer(object):
 
     def connect(self, address, password="secret"):
         self.log.info("Connect to " + address)
-        VNCDoToolFactory.protocol = VNCDoToolClientExt
         self.client = vncapi.connect(address, password=password)
         self.client.refreshScreen()
         self.root = self._get_root_window()
@@ -286,15 +297,3 @@ class VNCViewer(object):
     def disconnect(self):
         self.client.disconnect()
 
-
-class VNCDoToolClientExt(VNCDoToolClient, object):
-    def __init__(self):
-        super(VNCDoToolClientExt, self).__init__()
-        self.img = None
-
-    def _handleDecodeZRLE(self, block):
-        raise NotImplementedError()
-
-    def commitUpdate(self, rectangles):
-        VNCDoToolClient.commitUpdate(self, rectangles)
-        self.framebufferUpdateRequest(incremental=1)

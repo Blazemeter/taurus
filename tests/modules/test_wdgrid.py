@@ -31,11 +31,11 @@ class VNCClientEmul(object):
         pass
 
 
-class VNCEmul(VNCViewer):
+class VNCDoToolClientExtMock(object):
+    pass
 
-    def connect(self, address, password="secret"):
-        self.client = VNCClientEmul()
-        # self.root = self._get_root_window()
+
+VNCViewer.PROTO = VNCDoToolClientExtMock
 
 
 class TestWDGrid(BZTestCase):
@@ -223,7 +223,7 @@ class TestWDGrid(BZTestCase):
                         "updated": 1526557732,
                         "userId": 1,
                         "imageId": "taurus-chrome-selenium",
-                        "endpoint": "http://endpoint2",
+                        "endpoint": "http://localhost",
                         "bookingId": None,
                         "bookingExpiration": None,
                     }
@@ -295,7 +295,6 @@ class TestWDGrid(BZTestCase):
         ]})
         self.obj.settings['auto-cleanup'] = True
 
-        self.obj.vnc_class = VNCEmul
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -305,7 +304,7 @@ class TestWDGrid(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
-    def test_vnc(self):
+    def mytest_vnc(self):
         obj = VNCViewer("test")
         obj.connect("18.218.130.126")
         for _ in range(0, 5):
