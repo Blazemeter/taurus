@@ -28,6 +28,7 @@ class TestRequests(unittest.TestCase):
         self.driver = webdriver.Firefox(profile, firefox_options=options)
         self.driver.implicitly_wait(3.5)
         self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
+        self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
 
     def tearDown(self):
         self.driver.quit()
@@ -65,8 +66,9 @@ class TestRequests(unittest.TestCase):
             self.driver.find_element(By.NAME, _tpl.apply('toPort')).submit()
             self.driver.execute_script(_tpl.apply("alert('This is Sparta');"))
             ActionChains(self.driver).drag_and_drop(self.driver.find_element(By.ID, _tpl.apply('address')), self.driver.find_element(By.NAME, _tpl.apply('toPort'))).perform()
-            self.driver.switch_to.frame(self.driver.find_element(By.NAME, _tpl.apply('my_frame')))
-            self.driver.switch_to.frame(1)
+            self.frm_mng.switch(self.driver.find_element(By.NAME, _tpl.apply('my_frame')))
+            self.frm_mng.switch(1)
+            self.frm_mng.switch('relative=parent')
             if self.driver.find_element(By.ID, _tpl.apply('editor')).get_attribute('contenteditable'): self.driver.find_element(By.ID, _tpl.apply('editor')).clear(); self.driver.find_element(By.ID, _tpl.apply('editor')).send_keys(_tpl.apply('lo-la-lu'))
             sleep(3)
             self.driver.delete_all_cookies()
