@@ -109,9 +109,8 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
             raise TaurusConfigError("ab supports only HTTP requests, while scenario doesn't have any")
 
         # add request-specific headers
-        for header in request.headers:
-            for key, val in iteritems(header):
-                args += ['-H', "%s: %s" % (key, val)]
+        for key, val in iteritems(request.headers):
+            args += ['-H', "%s: %s" % (key, val)]
 
         if request.method != 'GET':
             raise TaurusConfigError("ab supports only GET requests, but '%s' is found" % request.method)
