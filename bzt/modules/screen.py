@@ -75,7 +75,7 @@ class GUIScreen(BaseScreen):
         self.text.config(font=self.font)
         self.__prepare_tags()
 
-        icon = tkinter.PhotoImage(file=os.path.join(os.path.dirname(os.path.abspath(bztr.__file__)), "taurus_logo.gif"))
+        icon = tkinter.PhotoImage(file=os.path.join(os.path.dirname(os.path.abspath(bztr.__file__)), "taurus.png"))
         self.root.tk.call('wm', 'iconphoto', self.root._w, icon)
 
     def _stop(self):

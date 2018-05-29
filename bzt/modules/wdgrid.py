@@ -1,6 +1,7 @@
 import copy
 import logging
 import multiprocessing
+import os
 import time
 
 import urwid
@@ -8,7 +9,7 @@ from PIL import ImageTk
 from vncdotool import api as vncapi
 from vncdotool.client import VNCDoToolFactory, VNCDoToolClient
 
-from bzt import TaurusConfigError, NormalShutdown
+from bzt import TaurusConfigError, NormalShutdown, resources
 from bzt.bza import User, WDGridImages
 from bzt.engine import ScenarioExecutor
 from bzt.modules.blazemeter import CloudProvisioning
@@ -63,9 +64,11 @@ class WDGridProvisioning(Local):
             if self.GRID not in executor.execution:
                 continue
 
-            if executor.execution[self.GRID][0].get('vnc', False):
+            grid_config = executor.execution[self.GRID][0]
+            if grid_config.get('vnc', False):
                 parsed = urlparse.urlparse(executor.execution['webdriver-address'])
-                vncs.append((parsed.netloc.split(':')[0], executor.label))
+                label = "%s - %s - %s" % (executor.label, grid_config['platform'], grid_config['browser'])
+                vncs.append((parsed.netloc.split(':')[0], label))
 
         if vncs:
             self._vncs_pool = multiprocessing.Pool(len(vncs))
@@ -77,6 +80,7 @@ class WDGridProvisioning(Local):
         super(WDGridProvisioning, self).shutdown()
         if self._vncs_pool:
             self._vncs_pool.terminate()
+            self._vncs_pool.join()
 
     def post_process(self):
         for eng in self._involved_engines:
@@ -237,7 +241,6 @@ class WDGridProvisioning(Local):
 class VNCDoToolClientExt(VNCDoToolClient, object):
     def __init__(self):
         super(VNCDoToolClientExt, self).__init__()
-        self.img = None
 
     def _handleDecodeZRLE(self, block):
         raise NotImplementedError()
@@ -261,7 +264,7 @@ class VNCViewer(object):
         self.image = None
 
     def connect(self, address, password="secret"):
-        self.log.info("Connect to " + address)
+        self.log.debug("Connect to " + address)
         self.client = vncapi.connect(address, password=password)
         self.client.refreshScreen()
         self.root = self._get_root_window()
@@ -283,10 +286,15 @@ class VNCViewer(object):
         size = self.client.screen.size
         root.geometry("%sx%s" % (size[0], size[1]))
         root.protocol("WM_DELETE_WINDOW", self._closed_window)
-        root.title = self.title
+        root.title(self.title)
+        root.resizable(width=False, height=False)
         self.image = ImageTk.PhotoImage(self.client.screen)
         panel = tkinter.Label(self.root, image=self.image)
         panel.pack()
+
+        icon = tkinter.PhotoImage(file=os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus.png"))
+        root.tk.call('wm', 'iconphoto', root._w, icon)
+
         return root
 
     def _closed_window(self):
