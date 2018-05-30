@@ -12,6 +12,7 @@ from vncdotool.client import VNCDoToolFactory, VNCDoToolClient
 from bzt import TaurusConfigError, NormalShutdown, resources
 from bzt.bza import User, WDGridImages
 from bzt.engine import ScenarioExecutor
+from bzt.modules import vncviewer
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.provisioning import Local
 from bzt.six import text_type, urlparse
@@ -19,10 +20,7 @@ from bzt.utils import to_json
 
 
 def _start_vnc(params):
-    vnc_viewer = VNCViewer(params[1])
-    vnc_viewer.connect(params[0])
-    while vnc_viewer.tick():
-        time.sleep(0.01)
+    vncviewer.main(params[0], 'secret', params[1])
 
 
 class WDGridProvisioning(Local):
@@ -248,7 +246,6 @@ class VNCDoToolClientExt(VNCDoToolClient, object):
     def commitUpdate(self, rectangles):
         VNCDoToolClient.commitUpdate(self, rectangles)
         if self.size and self.screen:
-            logging.debug("Updated: %s", rectangles)
             pygame.display.update(rectangles)
             self.framebufferUpdateRequest(incremental=1)
         else:
@@ -257,30 +254,27 @@ class VNCDoToolClientExt(VNCDoToolClient, object):
     def updateRectangle(self, x, y, width, height, data):
         if not self.size:
             self.size = (width, height)  # we assume that first frame is full size
-        else:
+        elif self.screen:
             self.screen.blit(
                 pygame.image.fromstring(data, (width, height), 'RGBX'),
                 (x, y)
             )
 
-    def setPixelFormat(self, bpp=32, depth=24, bigendian=0, truecolor=1, redmax=255, greenmax=255, bluemax=255, redshift=0, greenshift=8, blueshift=16):
-        pixformat = pack("!BBBBHHHBBBxxx", bpp, depth, bigendian, truecolor, redmax, greenmax, bluemax, redshift, greenshift, blueshift)
+    def setPixelFormat(self, bpp=32, depth=24, bigendian=0, truecolor=1, redmax=255, greenmax=255, bluemax=255,
+                       redshift=0, greenshift=8, blueshift=16):
+        pixformat = pack("!BBBBHHHBBBxxx", bpp, depth, bigendian, truecolor, redmax, greenmax, bluemax, redshift,
+                         greenshift, blueshift)
         self.transport.write(pack("!Bxxx16s", 0, pixformat))
-        #rember these settings
-        self.bpp, self.depth, self.bigendian, self.truecolor = bpp, depth, bigendian, truecolor
-        self.redmax, self.greenmax, self.bluemax = redmax, greenmax, bluemax
-        self.redshift, self.greenshift, self.blueshift = redshift, greenshift, blueshift
-        self.bypp = self.bpp / 8        #calc bytes per pixel
 
 
-class VNCViewer(object):
+class VNCViewer2(object):
     """
     :type client: vncdotool.api.ThreadedVNCClientProxy
     """
     PROTO = VNCDoToolClientExt
 
     def __init__(self, title):
-        super(VNCViewer, self).__init__()
+        super(VNCViewer2, self).__init__()
         pygame.init()
         VNCDoToolFactory.protocol = self.PROTO
         self.log = logging.getLogger('')
@@ -304,9 +298,7 @@ class VNCViewer(object):
         icon = os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus.png")
         pygame.display.set_icon(pygame.image.load(icon))
         pygame.display.set_caption(self.title)
-        self.client.protocol.screen = pygame.display.set_mode(self.client.protocol.size, 0, 24)
+        self.client.protocol.screen = pygame.display.set_mode(self.client.protocol.size)
 
-
-def disconnect(self):
+    def disconnect(self):
         self.client.disconnect()
-
