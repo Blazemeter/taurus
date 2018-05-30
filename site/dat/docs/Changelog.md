@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.12.0<sup>3 jun 2018</sup>
+- new frame management support was incorporated. Frames by id, name, relative parent and relative top (Selenium IDE and SideeX style)
+- drag and drop support added to Nose Request (Selenium)
+- `go` command added to Nose Request (Selenium)
+- storeTitle, storeString, storeTextBy*, storeTitle and storeValueBy* added to Nose Request (Selenium)
+- type command added to Nose Request (Selenium)
+- summary Labels added to Final Stats Reporting module 
+- built-in new support module for generated selenium script called selenium_taurus_extras
+- services enhancing the Selenium executor can now be notified of test iteration progress
+- variable support added to Selenium (Nose)
+- new window management support was incorporated for selectWindow and closeWindow. Windows by name or sequential name incorporated (Selenium IDE and SideeX style)
+- fix `'NoneType' object is not iterable` error for JMeter result reading
+- load TestNG classes from JAR only if testng config isn't provided
+- support for YAML files in utf-8 format
+- fix connectTime inserted into JMX for JMeter 2.11
+- add boundary extractor to JMeter YAML scripting
+- make `ab`'s `headers` undestranding consistent with other executors
+- pass/Fail module is not possible to use as service anymore - removed old deprecation
+- use latest JMeter Plugins Manager 1.1 to speed-up startup
+- fix jmx2yaml crash when parsing LoopController with continue_forever set
+- proxy2jmx - because blazemeter backend has changed, we now first ask for the url of the jmx/smartjmx file and then downloading it like it used to be.
+- add LANG=en_US.UTF-8 and locales into Docker image
+- disable PYTHONPATH additions if interpreter is changed via config
+- fix `swagger2yaml` crash when found schema with `type: file`
+- fix `swagger2yaml` crash when an optional field is missing
+
+
 ## 1.11.1<sup>26 apr 2018</sup>
  - fix JMeter 4.0 crash on Windows when `JMETER_HOME` var is unset
  - add `include-timers` block to JMeter transactions

@@ -1,1 +1,0 @@
-Fix swagger2yaml crash when found schema with `type: file`

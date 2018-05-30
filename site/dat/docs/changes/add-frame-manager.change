@@ -1,1 +1,0 @@
-New frame management support was incorporated. Frames by id, name, relative parent and relative top (Selenium IDE and SideeX style)
