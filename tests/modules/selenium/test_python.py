@@ -329,6 +329,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"dragByID(address)": "elementByName(toPort)"},
                             "switchFrameByName('my_frame')",
                             "switchFrameByIdx(1)",
+                            "switchFrame(relative=parent)",
                             {"editContentById(editor)": "lo-la-lu"},
                             "pauseFor(3s)",
                             "clearCookies()",

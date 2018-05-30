@@ -1,2 +1,0 @@
-proxy2jmx - because blazemeter backend has changed,
-we now first ask for the url of the jmx/smartjmx file and then downloading it like it used to be.
