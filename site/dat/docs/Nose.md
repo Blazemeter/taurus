@@ -41,8 +41,8 @@ Supported features:
   - request method GET (only)
   - selenium commands:
     - go(url) Redirect to another website
-    - window controls (switchWindow, closeWindow)
-    - switchFrameBy*<sup>1</sup> Switch to frame
+    - window handler (switchWindow, closeWindow)
+    - frame handler (switchFrame, switchFrameBy*<sup>1</sup>)
     - keysBy* Send keystrokes to element
     - typeBy* Assign the value to element, cleaning it previously
     - editContent Change text in editable field (checks contenteditable prop)
@@ -113,6 +113,26 @@ These actions require a value parameter, the possible values are:
 
 **Note**: When any action command opens a new window (like click over a link with target window assigned), the action of selecting the window must always be declared, otherwise the actions executed by the execution were performed on the default window or the last one used with selectWindow command.
 
+#### Frame managmment
+When you need to perform actions on elements that are inside a frame or iframe, you must use the `switchFrame` command to activate the frame before perform any action.
+
+Sample usage
+```yaml
+scenario:
+  sample_frame:
+    requests:
+    - url: http://a-frame-sample.com
+      actions:
+      - switchFrame(index=0) # Select First Frame
+      - assertTextByCSS(body): "First Frame Body"
+      - switchFrame(relative=parent) # Go to parent
+      - switchFrame(index=1) # Select Second frame
+      - switchFrame(index=0) # Nested Frame, Select the First frame inside the Top Second frame
+      - assertTextByID(content): "First Frame Body inside Second Frame Body"
+      - switchFrame(relative=top) # Go to top frame (main document)
+```
+**Note**: For first level frames, it is possible to use switchFrameBy* and using selector to match the frame to switch.
+**Disclaimer**: Currently there are problems in the support of this functionality by geckodriver and chromedriver, depending on the case to test some of these methods can generate a failure, mainly in cases where you have nested frames or frames mixed between frame and iframes.
 
 #### Sample request scenario:
 ```yaml
