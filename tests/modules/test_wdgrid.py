@@ -1,41 +1,19 @@
 import logging
+import multiprocessing
 import os
 import sys
 import time
-from random import random
-
-from PIL import Image
-from matplotlib.pyplot import show
 
 from bzt import NormalShutdown
 from bzt.bza import WDGridImages
 from bzt.engine import Configuration
-from bzt.modules.wdgrid import WDGridProvisioning, VNCViewer
+from bzt.modules import vncviewer
+from bzt.modules.wdgrid import WDGridProvisioning
 from tests import BZTestCase
 from tests.mocks import EngineEmul, BZMock
 
 env = Configuration()
 env.load([os.path.expanduser("~/.bzt-rc")])
-
-
-class VNCClientEmul(object):
-
-    def __init__(self):
-        self.screen = Image.new('RGB', (640, 480))
-
-    def refreshScreen(self):
-        color = (int(random() * 255), int(random() * 255), int(random() * 255))
-        self.screen = Image.new('RGB', (640, 480), color)
-
-    def disconnect(self):
-        pass
-
-
-class VNCDoToolClientExtMock(object):
-    pass
-
-
-VNCViewer.PROTO = VNCDoToolClientExtMock
 
 
 class TestWDGrid(BZTestCase):
@@ -180,7 +158,7 @@ class TestWDGrid(BZTestCase):
                     "endpoint": None,
                     "bookingId": "booked",
                     "bookingExpiration": None,
-                },{
+                }, {
                     "id": "5afd6c2518cb70ef4a711bbb",
                     "name": "Thu May 17 14:48:23 IDT 2018 - 2",
                     "status": "RUNNING",
@@ -304,12 +282,11 @@ class TestWDGrid(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
 
-    def mytest_vnc(self):
-        obj = VNCViewer("test")
-        obj.connect("18.218.130.126")
-        for _ in range(0, 5):
-            logging.info("Tick %s", _)
-            obj.client.refreshScreen()
-            obj.tick()
-            time.sleep(1)
-            show(block=False)
+    def test_vnc(self):
+        vncs = [("localhost", "secret", "test", 1)]
+        _vncs_pool = multiprocessing.Pool(len(vncs), maxtasksperchild=1)
+        _vncs_pool.map_async(vncviewer.main, vncs)
+        time.sleep(1)
+        _vncs_pool.close()
+        _vncs_pool.terminate()
+        #_vncs_pool.join()

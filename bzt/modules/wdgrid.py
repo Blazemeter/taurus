@@ -1,15 +1,8 @@
 import copy
-import logging
 import multiprocessing
-import os
 import time
-from struct import pack
 
-import pygame
-from vncdotool import api as vncapi
-from vncdotool.client import VNCDoToolFactory, VNCDoToolClient
-
-from bzt import TaurusConfigError, NormalShutdown, resources
+from bzt import TaurusConfigError, NormalShutdown
 from bzt.bza import User, WDGridImages
 from bzt.engine import ScenarioExecutor
 from bzt.modules import vncviewer
@@ -20,7 +13,7 @@ from bzt.utils import to_json
 
 
 def _start_vnc(params):
-    vncviewer.main(params[0], 'secret', params[1])
+    (params[0], 'secret', params[1], params[2])
 
 
 class WDGridProvisioning(Local):
@@ -60,17 +53,17 @@ class WDGridProvisioning(Local):
             if grid_config.get('vnc', False):
                 parsed = urlparse.urlparse(executor.execution['webdriver-address'])
                 label = "%s - %s - %s" % (executor.label, grid_config['platform'], grid_config['browser'])
-                vncs.append((parsed.netloc.split(':')[0], label))
+                vncs.append((parsed.netloc.split(':')[0], 'secret', label, 0))
 
         if vncs:
-            self._vncs_pool = multiprocessing.Pool(len(vncs))
-            self._vncs_pool.map_async(_start_vnc, vncs)
-            self._vncs_pool.close()
+            self._vncs_pool = multiprocessing.Pool(len(vncs), maxtasksperchild=1)
+            self._vncs_pool.map_async(vncviewer.main, vncs)
         super(WDGridProvisioning, self).startup()
 
     def shutdown(self):
         super(WDGridProvisioning, self).shutdown()
         if self._vncs_pool:
+            self._vncs_pool.close()
             self._vncs_pool.terminate()
             self._vncs_pool.join()
 
@@ -228,77 +221,3 @@ class WDGridProvisioning(Local):
         if not isinstance(label, text_type):
             label = str(id(label))
         return label
-
-
-class VNCDoToolClientExt(VNCDoToolClient, object):
-    def __init__(self):
-        super(VNCDoToolClientExt, self).__init__()
-        self.size = None
-        self.screen = None
-
-    def _handleDecodeZRLE(self, block):
-        raise NotImplementedError()
-
-    def vncConnectionMade(self):
-        VNCDoToolClient.vncConnectionMade(self)
-        self.setPixelFormat()
-
-    def commitUpdate(self, rectangles):
-        VNCDoToolClient.commitUpdate(self, rectangles)
-        if self.size and self.screen:
-            pygame.display.update(rectangles)
-            self.framebufferUpdateRequest(incremental=1)
-        else:
-            self.framebufferUpdateRequest(incremental=0)
-
-    def updateRectangle(self, x, y, width, height, data):
-        if not self.size:
-            self.size = (width, height)  # we assume that first frame is full size
-        elif self.screen:
-            self.screen.blit(
-                pygame.image.fromstring(data, (width, height), 'RGBX'),
-                (x, y)
-            )
-
-    def setPixelFormat(self, bpp=32, depth=24, bigendian=0, truecolor=1, redmax=255, greenmax=255, bluemax=255,
-                       redshift=0, greenshift=8, blueshift=16):
-        pixformat = pack("!BBBBHHHBBBxxx", bpp, depth, bigendian, truecolor, redmax, greenmax, bluemax, redshift,
-                         greenshift, blueshift)
-        self.transport.write(pack("!Bxxx16s", 0, pixformat))
-
-
-class VNCViewer2(object):
-    """
-    :type client: vncdotool.api.ThreadedVNCClientProxy
-    """
-    PROTO = VNCDoToolClientExt
-
-    def __init__(self, title):
-        super(VNCViewer2, self).__init__()
-        pygame.init()
-        VNCDoToolFactory.protocol = self.PROTO
-        self.log = logging.getLogger('')
-        self.title = title
-        self.client = None
-
-    def connect(self, address, password="secret"):
-        self.log.debug("Connect to " + address)
-        self.client = vncapi.connect(address, password=password)
-        self.client.refreshScreen()
-        self._get_root_window()
-
-    def tick(self):
-        for e in pygame.event.get():
-            # logging.debug("Event: %s", e)
-            if e.type == pygame.QUIT:
-                return False
-        return True
-
-    def _get_root_window(self):
-        icon = os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus.png")
-        pygame.display.set_icon(pygame.image.load(icon))
-        pygame.display.set_caption(self.title)
-        self.client.protocol.screen = pygame.display.set_mode(self.client.protocol.size)
-
-    def disconnect(self):
-        self.client.disconnect()

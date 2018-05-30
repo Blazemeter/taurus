@@ -1,14 +1,17 @@
 import logging
+import os
 
 import pygame
 from twisted.internet import reactor
 from vncdotool import rfb
 
+from bzt import resources
+
 
 class VNCViewer(object):
     def __init__(self, label):
         pygame.display.set_caption(label)
-        self.alive = 1
+        self.alive = True
         self.loopcounter = 0
         self.sprites = pygame.sprite.RenderUpdates()
         self.buttons = 0
@@ -20,7 +23,7 @@ class VNCViewer(object):
 
     def mainloop(self):
         if self.alive:
-            reactor.callLater(0.020, self.mainloop)
+            reactor.callLater(0.050, self.mainloop)
 
 
 class RFBToGUI(rfb.RFBClient, object):
@@ -33,6 +36,8 @@ class RFBToGUI(rfb.RFBClient, object):
         """choose appropriate color depth, resize screen"""
         self.remoteframebuffer = self.factory.remoteframebuffer
         self.screen = pygame.display.set_mode((self.width, self.height))
+        icon = os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus.png")
+        pygame.display.set_icon(pygame.image.load(icon))
         self.remoteframebuffer.setProtocol(self)
         self.setEncodings([
             rfb.COPY_RECTANGLE_ENCODING,
@@ -64,42 +69,36 @@ class RFBToGUI(rfb.RFBClient, object):
 class VNCFactory(rfb.RFBFactory, object):
     """A factory for remote frame buffer connections."""
 
-    def __init__(self, remoteframebuffer,*args, **kwargs):
+    def __init__(self, remoteframebuffer, *args, **kwargs):
         rfb.RFBFactory.__init__(self, *args, **kwargs)
         self.remoteframebuffer = remoteframebuffer
         self.protocol = RFBToGUI
 
     def buildProtocol(self, addr):
-        display = addr.port - 5900
         return rfb.RFBFactory.buildProtocol(self, addr)
 
     def clientConnectionLost(self, connector, reason):
-        logging.warning("connection lost: %r" % reason.getErrorMessage())
-        reactor.stop()
+        self.remoteframebuffer.alive = False
+        logging.debug("connection lost: %r" % reason.getErrorMessage())
 
     def clientConnectionFailed(self, connector, reason):
+        self.remoteframebuffer.alive = False
         logging.warning("cannot connect to server: %r\n" % reason.getErrorMessage())
-        reactor.stop()
 
 
-def main(host, password, label, display=0):
+def main(params):
+    host, password, label, display = params
     pygame.init()
     remoteframebuffer = VNCViewer(label)
 
-    # connect to this host and port, and reconnect if we get disconnected
-    reactor.connectTCP(
-        host,  # remote hostname
-        display + 5900,  # TCP port number
-        VNCFactory(
-            remoteframebuffer,  # the application/display
-            password,  # password or none
-        )
-    )
+    reactor.connectTCP(host, display + 5900, VNCFactory(remoteframebuffer, password, ))
 
     # run the application
     reactor.callLater(0.1, remoteframebuffer.mainloop)
     reactor.run()
+    pygame.quit()
+    logging.info("Done: %s", id(reactor))
 
 
 if __name__ == '__main__':
-    main("localhost", "secret", "demo", 1)
+    main(("localhost", "secret", "demo", 1))
