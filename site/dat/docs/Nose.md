@@ -132,6 +132,7 @@ scenario:
       - switchFrame(relative=top) # Go to top frame (main document)
 ```
 **Note**: For first level frames, it is possible to use switchFrameBy* and using selector to match the frame to switch.
+
 **Disclaimer**: Currently there are problems in the support of this functionality by geckodriver and chromedriver, depending on the case to test some of these methods can generate a failure, mainly in cases where you have nested frames or frames mixed between frame and iframes.
 
 #### Sample request scenario:
