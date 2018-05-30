@@ -42,6 +42,7 @@ class Template:
         self.tmpl.variables = self.variables
         return text_type(self.tmpl)
 
+
 class FrameManager:
     
     def __init__(self, driver):
@@ -53,13 +54,14 @@ class FrameManager:
                 self.driver.switch_to_default_content()
             elif frame_name.startswith("index="):  # Switch using index frame using relative position
                 self.driver.switch_to.frame(int(frame_name.split("=")[1]))
-            elif frame_name == "relative=parent": # Switch to parent frame of the current frame
+            elif frame_name == "relative=parent":  # Switch to parent frame of the current frame
                 self.driver.switch_to.parent_frame()
-            else: # Use the selenium alternative
+            else:  # Use the selenium alternative
                 self.driver.switch_to.frame(frame_name)
         except NoSuchFrameException:
             raise NoSuchFrameException("Invalid Frame ID: %s" % frame_name)
-    
+
+
 class WindowManager:
 
     def __init__(self, driver):
