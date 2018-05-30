@@ -780,7 +780,8 @@ class WDGridEngine(BZAObject):
         data = {"bookingId": booking_id}
         if name:
             data["name"] = name
-        self._request(url, method='POST', data=data)
+        result = self._request(url, method='POST', data=data)
+        self.update(result['result'])
 
     def unbook(self):
         url = self.address + "/api/v4/grid/engines/%s/unbook" % self['id']

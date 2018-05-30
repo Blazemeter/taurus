@@ -117,6 +117,7 @@ class WDGridProvisioning(Local):
                        for exec_marker, grid_item, img in provision_items]
             self.log.debug("Items to provision via grid: %s", request)
             self._involved_engines.extend(client.provision(request))
+            # TODO: maybe we should immediately book the engines we provisioned, to avoid stealing
             self._wait_provision()
 
         self.log.debug("Executions prototype 2: %s", to_json(executions))
