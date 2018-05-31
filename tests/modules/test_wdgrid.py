@@ -244,7 +244,7 @@ class TestWDGrid(BZTestCase):
                     {
                         "platform": "ubuntu/14.04",
                         "browser": "chrome/46.0.12",
-                        "vnc": True
+                        #"vnc": True
                     },
                     # {
                     #    "platform": "ubuntu/14.04",
@@ -289,4 +289,4 @@ class TestWDGrid(BZTestCase):
         time.sleep(1)
         _vncs_pool.close()
         _vncs_pool.terminate()
-        #_vncs_pool.join()
+        _vncs_pool.join()

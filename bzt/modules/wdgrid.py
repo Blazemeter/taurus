@@ -14,7 +14,7 @@ from bzt.bza import User, WDGridImages
 from bzt.engine import ScenarioExecutor
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.provisioning import Local
-from bzt.six import text_type, urlparse
+from bzt.six import text_type, parse, PY2
 from bzt.utils import to_json
 
 
@@ -53,7 +53,7 @@ class WDGridProvisioning(Local):
 
             grid_config = executor.execution[self.GRID][0]
             if grid_config.get('vnc', False):
-                parsed = urlparse.urlparse(executor.execution['webdriver-address'])
+                parsed = parse.urlparse(executor.execution['webdriver-address'])
                 label = "%s - %s - %s" % (executor.label, grid_config['platform'], grid_config['browser'])
                 vncs.append((parsed.netloc.split(':')[0], 'secret', label, 0))
 
@@ -257,13 +257,23 @@ class RFBToGUI(rfb.RFBClient, object):
         icon = os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus.png")
         pygame.display.set_icon(pygame.image.load(icon))
         self.remoteframebuffer.setProtocol(self)
-        self.setEncodings([
-            rfb.COPY_RECTANGLE_ENCODING,
-            rfb.HEXTILE_ENCODING,
-            rfb.CORRE_ENCODING,
-            rfb.RRE_ENCODING,
-            rfb.RAW_ENCODING,
-        ])
+        if PY2 or True:
+            self.setEncodings([
+                rfb.COPY_RECTANGLE_ENCODING,
+                rfb.HEXTILE_ENCODING,
+                rfb.CORRE_ENCODING,
+                rfb.RRE_ENCODING,
+                rfb.RAW_ENCODING,
+            ])
+        else:
+            self.setEncodings([
+                rfb.COPY_RECTANGLE_ENCODING,
+                #rfb.HEXTILE_ENCODING,  # throws exception on PY3
+                #rfb.CORRE_ENCODING,  # looks like weird blocks
+                rfb.RRE_ENCODING,
+                rfb.RAW_ENCODING,
+            ])
+
         self.setPixelFormat()
         self.framebufferUpdateRequest()
 
