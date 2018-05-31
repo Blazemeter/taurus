@@ -7,8 +7,7 @@ import time
 from bzt import NormalShutdown
 from bzt.bza import WDGridImages
 from bzt.engine import Configuration
-from bzt.modules import vncviewer
-from bzt.modules.wdgrid import WDGridProvisioning
+from bzt.modules.wdgrid import WDGridProvisioning, start_vnc
 from tests import BZTestCase
 from tests.mocks import EngineEmul, BZMock
 
@@ -283,9 +282,10 @@ class TestWDGrid(BZTestCase):
         self.obj.post_process()
 
     def test_vnc(self):
+        self.skipTest("for local debug")
         vncs = [("localhost", "secret", "test", 1)]
         _vncs_pool = multiprocessing.Pool(len(vncs), maxtasksperchild=1)
-        _vncs_pool.map_async(vncviewer.main, vncs)
+        _vncs_pool.map_async(start_vnc, vncs)
         time.sleep(1)
         _vncs_pool.close()
         _vncs_pool.terminate()
