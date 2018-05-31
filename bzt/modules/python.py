@@ -705,7 +705,16 @@ import selenium_taurus_extras
                     "if %s.get_attribute('contenteditable'):" % element,
                     indent=indent),
                 self.gen_statement(
-                    "self.driver.execute_script(%s, %s)" % (editable_script, element),
+                    "self.driver.execute_script(",
+                    indent=indent + self.INDENT_STEP),
+                self.gen_statement(
+                    "%s" % editable_script,
+                    indent=indent + self.INDENT_STEP*2),
+                self.gen_statement(
+                    ", %s" % element,
+                    indent=indent + self.INDENT_STEP*2),
+                self.gen_statement(
+                    ")",
                     indent=indent + self.INDENT_STEP),
                 self.gen_statement(
                     "else:", indent=indent),
