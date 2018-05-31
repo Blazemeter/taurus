@@ -696,20 +696,22 @@ import selenium_taurus_extras
             element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
             editable_error = "The element (By.%s, %r) " \
                              "is not contenteditable element" % (bys[tag], selector)
-            editable_script_inner = "arguments[0].innerHTML = %s;"
+            editable_script_tpl = "arguments[0].innerHTML = %s;"
+            editable_script_tpl_argument = "_tpl.str_repr(_tpl.apply(%r))" % param.strip()
             editable_script = "%r %% %s" % \
-                              (editable_script_inner, "_tpl.str_repr(_tpl.apply(%r)), %s)"
-                               % (param.strip(), element))
+                              (editable_script_tpl, editable_script_tpl_argument)
             action_elements.extend([
                 self.gen_statement(
-                    "if %s.get_attribute('contenteditable'):" % element, indent=indent),
+                    "if %s.get_attribute('contenteditable'):" % element,
+                    indent=indent),
                 self.gen_statement(
-                    "self.driver.execute_script(%s" % editable_script,
+                    "self.driver.execute_script(%s, %s)" % (editable_script, element),
                     indent=indent + self.INDENT_STEP),
                 self.gen_statement(
                     "else:", indent=indent),
                 self.gen_statement(
-                    "raise NoSuchElementException(%r)" % editable_error, indent=indent + self.INDENT_STEP)
+                    "raise NoSuchElementException(%r)" % editable_error,
+                    indent=indent + self.INDENT_STEP)
             ])
         elif atype == 'echo' and tag == 'string':
             if len(selector) > 0 and not param:
