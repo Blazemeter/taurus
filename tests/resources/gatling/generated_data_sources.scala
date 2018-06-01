@@ -13,7 +13,7 @@ class TaurusSimulation_140066907317584 extends Simulation {
 
   val durationLimit = rampUpTime + holdForTime
 
-  val test1Feed = csv("test1.csv").circular
+  val test1Feed = separatedValues("test1.csv", ',').circular
 
   var httpConf = http.baseURL("")
 
