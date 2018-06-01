@@ -71,8 +71,8 @@ class TestRequests(unittest.TestCase):
             self.frm_mng.switch('relative=parent')
             if self.driver.find_element(By.ID, 'editor').get_attribute('contenteditable'):
                 self.driver.execute_script(
-                    'arguments[0].innerHTML = %s;' % _tpl.str_repr(_tpl.apply('lo-la-lu'))
-                    , self.driver.find_element(By.ID, 'editor')
+                    'arguments[0].innerHTML = %s;' % _tpl.str_repr(_tpl.apply('lo-la-lu')),
+                    self.driver.find_element(By.ID, 'editor')
                 )
             else:
                 raise NoSuchElementException("The element (By.ID, 'editor') is not contenteditable element")
