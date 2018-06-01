@@ -679,7 +679,7 @@ import selenium_taurus_extras
                     action_elements.append(self.gen_statement(
                         tpl % (bys[tag], selector, "clear()"), indent=indent))
                 action = "send_keys(_tpl.apply(%r))" % str(param)
-                if isinstance(param, str) and param.startswith("KEY_"):
+                if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
                     action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
 
             action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
