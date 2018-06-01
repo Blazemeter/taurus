@@ -704,11 +704,35 @@ import selenium_taurus_extras
                     "self.driver.get(_tpl.apply(%r))" % selector.strip(), indent=indent
                 ))
         elif atype == "editcontent":
-            element = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
-            tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); " \
-                  "{element}.send_keys(_tpl.apply('{keys}'))"
-            vals = {"element": element, "keys": param}
-            action_elements.append(self.gen_statement(tpl.format(**vals), indent=indent))
+            element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
+            editable_error = "The element (By.%s, %r) " \
+                             "is not contenteditable element" % (bys[tag], selector)
+            editable_script_tpl = "arguments[0].innerHTML = %s;"
+            editable_script_tpl_argument = "_tpl.str_repr(_tpl.apply(%r))" % param.strip()
+            editable_script = "%r %% %s" % \
+                              (editable_script_tpl, editable_script_tpl_argument)
+            action_elements.extend([
+                self.gen_statement(
+                    "if %s.get_attribute('contenteditable'):" % element,
+                    indent=indent),
+                self.gen_statement(
+                    "self.driver.execute_script(",
+                    indent=indent + self.INDENT_STEP),
+                self.gen_statement(
+                    "%s," % editable_script,
+                    indent=indent + self.INDENT_STEP*2),
+                self.gen_statement(
+                    element,
+                    indent=indent + self.INDENT_STEP*2),
+                self.gen_statement(
+                    ")",
+                    indent=indent + self.INDENT_STEP),
+                self.gen_statement(
+                    "else:", indent=indent),
+                self.gen_statement(
+                    "raise NoSuchElementException(%r)" % editable_error,
+                    indent=indent + self.INDENT_STEP)
+            ])
         elif atype == 'echo' and tag == 'string':
             if len(selector) > 0 and not param:
                 action_elements.append(

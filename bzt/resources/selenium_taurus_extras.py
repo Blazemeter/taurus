@@ -42,6 +42,10 @@ class Template:
         self.tmpl.variables = self.variables
         return text_type(self.tmpl)
 
+    @staticmethod
+    def str_repr(text):
+        return repr(text)[1:] if repr(text)[0] == "u" else repr(text)
+
 
 class FrameManager:
 
