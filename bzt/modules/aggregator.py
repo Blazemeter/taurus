@@ -17,6 +17,7 @@ limitations under the License.
 """
 import collections
 import copy
+import difflib
 import logging
 import re
 from abc import abstractmethod
@@ -26,6 +27,7 @@ from hdrpy import HdrHistogram
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
+from bzt.linter import dameraulevenshtein
 from bzt.six import iteritems
 from bzt.utils import BetterDict, dehumanize_time, JSONConvertable
 
@@ -135,7 +137,7 @@ class KPISet(BetterDict):
         return {
             "cnt": cnt,
             "msg": error,
-            "tag": tag, # just one more string qualifier
+            "tag": tag,  # just one more string qualifier
             "rc": ret_c,
             "type": errtype,
             "urls": urls,
@@ -191,10 +193,26 @@ class KPISet(BetterDict):
         :type value: dict
         """
         found = False
+        needle = selector[1]
         for item in values:
-            if item[selector[0]] == selector[1]:
+            haystack = item[selector[0]]
+            if haystack == needle:
                 item['cnt'] += value['cnt']
                 item['urls'] += value['urls']
+                found = True
+                break
+
+            div = float(max(len(haystack), len(needle)))
+            dist = dameraulevenshtein(haystack, needle) / div
+            if dist < 0.15:
+                char_diff = difflib.ndiff(haystack, needle)
+                newlbl = [x[2:] if x[0] == ' ' else 'X' for x in char_diff if x[0] in ('-', ' ')]
+
+                item[selector[0]] = "".join(newlbl)
+                item['cnt'] += value['cnt']
+                item['urls'] += value['urls']
+
+                logging.warning("Recording '%s' as '%s' due to similarity", needle, item[selector[0]])
                 found = True
                 break
 
