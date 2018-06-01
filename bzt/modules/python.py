@@ -708,10 +708,10 @@ import selenium_taurus_extras
                     "self.driver.execute_script(",
                     indent=indent + self.INDENT_STEP),
                 self.gen_statement(
-                    "%s" % editable_script,
+                    "%s," % editable_script,
                     indent=indent + self.INDENT_STEP*2),
                 self.gen_statement(
-                    ", %s" % element,
+                    element,
                     indent=indent + self.INDENT_STEP*2),
                 self.gen_statement(
                     ")",
