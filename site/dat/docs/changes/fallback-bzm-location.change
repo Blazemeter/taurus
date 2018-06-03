@@ -1,0 +1,1 @@
+for cloud test, if no sandbox location found and `default-location` is not valid, use first location by default
