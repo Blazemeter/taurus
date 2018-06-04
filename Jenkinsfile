@@ -27,28 +27,8 @@ node() {
             }
 
             sh """
-                docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME} ${isTag}
+                docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME} ${isTag} ${BUILD_NUMBER} 
                 """
-        }
-
-        stage("Create Website Update") {
-            if (isTag) {
-                sh """                
-                """
-            } else {
-                sh """ 
-                cp -r site/dat/kb ./           
-                rm -r site
-                 
-                mkdir -p site/snapshots
-                cp dist/*.tar.gz site/snapshots
-                wget -P site/snapshots https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb
-                cp build/nsis/*${BUILD_NUMBER}*.exe site/snapshots
-                
-                mkdir -p site/dat
-                mv ./kb site/dat/                            
-                """
-            }
         }
 
         stage('Update Website') {
