@@ -27,7 +27,7 @@ node() {
             }
 
             sh """
-                sudo docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME}
+                docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME}
                 """
         }
 
