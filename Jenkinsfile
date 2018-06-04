@@ -6,7 +6,7 @@ node() {
             cleanWs()
             scmVars = checkout scm
             commitHash = scmVars.GIT_COMMIT
-            isTag = true // !"".equals("${env.GIT_TAG_NAME}") && !"null".equals("${env.GIT_TAG_NAME}")
+            isTag = !"".equals("${env.GIT_TAG_NAME}") && !"null".equals("${env.GIT_TAG_NAME}")
             sh """
             env
             """
