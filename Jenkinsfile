@@ -6,30 +6,29 @@ node() {
             cleanWs()
             scmVars = checkout scm
             commitHash = scmVars.GIT_COMMIT
-            isTag = false
-            sh """
-                echo "${env.BRANCH_NAME}"
-               """
+            isTag = !"".equals("${env.BRANCH_NAME}") && !"null".equals("${env.BRANCH_NAME}")
         }
 
         stage("Docker Image Build") {
             sh """ 
             docker build -t ${JOB_NAME} .
             """
-
-            if (isTag) {
-                sh """
-                sudo docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME}
-                """
-            }
         }
 
         stage("Create Artifacts") {
-            sh """ 
-            sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
-            sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py           
-            docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME} 
+            sh """
+                sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py           
             """
+
+            if (!isTag) {
+                sh """ 
+                sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
+                """
+            }
+
+            sh """
+                sudo docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME}
+                """
         }
 
         stage("Create Website Update") {
