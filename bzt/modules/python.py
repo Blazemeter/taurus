@@ -745,7 +745,7 @@ import selenium_taurus_extras
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
             action_elements.append(self.gen_statement(tpl % (timeout, mode, bys[tag], selector, errmsg), indent=indent))
         elif atype == 'pause' and tag == 'for':
-            tpl = "sleep(%.f)"
+            tpl = "sleep(%g)"
             action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))

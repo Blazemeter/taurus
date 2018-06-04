@@ -544,6 +544,21 @@ class TestCloudProvisioning(BZTestCase):
         exec_locations = self.obj.executors[0].execution['locations']
         self.assertEquals(1, exec_locations['non-harbor-sandbox'])
 
+    def test_nosandbox_default_location(self):
+        locs = [{'id': 'loc1', 'sandbox': False, 'title': 'L1'}, {'id': 'loc2', 'sandbox': False, 'title': 'L2'}, ]
+        self.configure(
+            add_settings=False,
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            get={
+                'https://a.blazemeter.com/api/v4/workspaces/1': {"result": {"locations": locs}},
+            }
+        )
+        self.obj.user.token = "key"
+        self.obj.settings['default-location'] = "some-nonavailable"
+        self.obj.prepare()
+        exec_locations = self.obj.executors[0].execution['locations']
+        self.assertEquals(1, exec_locations['loc1'])
+
     def test_collection_defloc_sandbox(self):
         self.obj.user.token = object()
         self.configure(
