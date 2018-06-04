@@ -7,7 +7,7 @@ node() {
             scmVars = checkout scm
             commitHash = scmVars.GIT_COMMIT
             isTag = !"".equals("${env.GIT_TAG_NAME}") && !"null".equals("${env.GIT_TAG_NAME}")
-            sh "echo " + scmVars.inspect()
+            sh "echo " + scmVars
 
         }
 
