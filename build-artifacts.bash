@@ -1,7 +1,7 @@
 #!/bin/bash -xe
 BUILD_NUMBER=$2
 
-apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer
+apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer zip
 pip install "pynsist<2"
 
 # build source distribution
@@ -11,7 +11,7 @@ pip install "pynsist<2"
 ./build-windows-installer.sh ./dist/bzt-*.tar.gz
 
 
-if "$1"=="false"; then
+if [ "$1" = "false" ]; then
     cp -r site/dat/kb ./
     rm -r site
 
@@ -39,4 +39,5 @@ fi
 
 cd site
 zip -r site.zip *
+mv site.zip ..
 cd ..
