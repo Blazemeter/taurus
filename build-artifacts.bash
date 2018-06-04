@@ -39,5 +39,4 @@ fi
 
 cd site
 zip -r site.zip *
-mv site.zip ..
 cd ..
