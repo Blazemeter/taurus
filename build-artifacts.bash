@@ -1,4 +1,6 @@
 #!/bin/bash -xe
+echo Flag is: $1
+
 apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer
 pip install "pynsist<2"
 
@@ -21,4 +23,6 @@ sed -ri "s/_TAURUS_VERSION_/_${TAURUS_VERSION}_/" site/dat/docs/Installation.md
 mkdir -p site/msi
 cp build/nsis/*.exe site/msi/
 
-echo Flag is: $1
+cd site
+zip -r site.zip *
+cd ..

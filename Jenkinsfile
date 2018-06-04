@@ -11,7 +11,7 @@ node() {
 
         stage("Docker Image Build") {
             sh """ 
-            docker build -t ${JOB_NAME} .
+            #docker build -t ${JOB_NAME} .
             """
         }
 
@@ -49,8 +49,6 @@ node() {
                 mv ./kb site/dat/                            
                 """
             }
-
-            zip archive: true, dir: 'site', glob: '**/*.*', zipFile: 'site/site.zip'
         }
 
         stage('Update Website') {
