@@ -1,5 +1,5 @@
 #!/bin/bash -xe
-apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis
+apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer
 pip install "pynsist<2"
 
 # build source distribution
@@ -7,3 +7,8 @@ pip install "pynsist<2"
 
 # build a windows installer
 ./build-windows-installer.sh ./dist/bzt-*.tar.gz
+
+cd site
+composer update --prefer-stable --no-dev
+cp vendor/undera/pwe/.htaccess ./
+cd ..

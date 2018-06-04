@@ -6,7 +6,10 @@ node() {
             cleanWs()
             scmVars = checkout scm
             commitHash = scmVars.GIT_COMMIT
-            isTag = !"".equals("${env.BRANCH_NAME}") && !"null".equals("${env.BRANCH_NAME}")
+            isTag = true // !"".equals("${env.GIT_TAG_NAME}") && !"null".equals("${env.GIT_TAG_NAME}")
+            sh """
+            env
+            """
         }
 
         stage("Docker Image Build") {
@@ -34,11 +37,6 @@ node() {
         stage("Create Website Update") {
             if (isTag) {
                 sh """
-                curl -sS https://getcomposer.org/installer | php
-                cd site
-                ../composer.phar update --prefer-stable --no-dev
-                cp vendor/undera/pwe/.htaccess ./
-                cd ..
                 python site/Taurus/kwindexer.py site/dat/docs site/dat/docs/KeywordIndex.md
                 cp site/dat/docs/img/*.png site/img/
                 
