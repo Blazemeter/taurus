@@ -43,7 +43,7 @@ node() {
                 cp site/dat/docs/img/*.png site/img/
                 
                 TAURUS_VERSION=\$(python -c 'import bzt; print(bzt.VERSION)')
-                sed -ri "s/_TAURUS_VERSION_/_${TAURUS_VERSION}_/" site/dat/docs/Installation.md
+                sed -ri "s/_TAURUS_VERSION_/_\${TAURUS_VERSION}_/" site/dat/docs/Installation.md
                 mkdir -p site/msi
                 cp build/nsis/*.exe site/msi/                
                 """
