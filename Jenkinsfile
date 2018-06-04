@@ -42,7 +42,7 @@ node() {
             } else {
                 sh """ 
                 cp -r site/dat/kb ./           
-                rm -r site/*
+                rm -r site
                  
                 mkdir -p site/snapshots
                 cp dist/*.tar.gz site/snapshots
