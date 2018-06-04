@@ -27,17 +27,13 @@ node() {
             }
 
             sh """
-                docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME}
+                docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME} ${isTag}
                 """
         }
 
         stage("Create Website Update") {
             if (isTag) {
                 sh """                
-                TAURUS_VERSION=\$(python -c 'import bzt; print(bzt.VERSION)')
-                sed -ri "s/_TAURUS_VERSION_/_\${TAURUS_VERSION}_/" site/dat/docs/Installation.md
-                mkdir -p site/msi
-                cp build/nsis/*.exe site/msi/                
                 """
             } else {
                 sh """ 
