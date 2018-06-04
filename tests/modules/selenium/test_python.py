@@ -333,7 +333,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "switchFrameByIdx(1)",
                             "switchFrame(relative=parent)",
                             {"editContentById(editor)": "lo-la-lu"},
-                            "pauseFor(3s)",
+                            "pauseFor(3.5s)",
                             "clearCookies()",
                             "clickByLinkText(destination of the week! The Beach!)",
                             {"storeTitle()": "Title"},

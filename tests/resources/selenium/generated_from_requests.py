@@ -79,7 +79,7 @@ class TestRequests(unittest.TestCase):
                 )
             else:
                 raise NoSuchElementException("The element (By.ID, 'editor') is not contenteditable element")
-            sleep(3)
+            sleep(3.5)
             self.driver.delete_all_cookies()
             self.driver.find_element(By.LINK_TEXT, _tpl.apply('destination of the week! The Beach!')).click()
             _vars['Title'] = _tpl.apply(self.driver.title)
