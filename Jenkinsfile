@@ -11,7 +11,7 @@ node() {
 
         stage("Docker Image Build") {
             sh """ 
-            #docker build -t ${JOB_NAME} .
+            docker build -t ${JOB_NAME} .
             """
         }
 
