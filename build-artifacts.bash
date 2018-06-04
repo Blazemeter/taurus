@@ -12,3 +12,6 @@ cd site
 composer update --prefer-stable --no-dev
 cp vendor/undera/pwe/.htaccess ./
 cd ..
+
+python site/Taurus/kwindexer.py site/dat/docs site/dat/docs/KeywordIndex.md
+cp site/dat/docs/img/*.png site/img/

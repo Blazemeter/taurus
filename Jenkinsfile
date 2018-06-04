@@ -6,9 +6,7 @@ node() {
             cleanWs()
             scmVars = checkout scm
             commitHash = scmVars.GIT_COMMIT
-            isTag = !"".equals("${env.GIT_TAG_NAME}") && !"null".equals("${env.GIT_TAG_NAME}")
-            sh "echo " + scmVars
-
+            isTag =  scmVars.GIT_BRANCH.startsWith("refs/tags/")
         }
 
         stage("Docker Image Build") {
@@ -35,10 +33,7 @@ node() {
 
         stage("Create Website Update") {
             if (isTag) {
-                sh """
-                python site/Taurus/kwindexer.py site/dat/docs site/dat/docs/KeywordIndex.md
-                cp site/dat/docs/img/*.png site/img/
-                
+                sh """                
                 TAURUS_VERSION=\$(python -c 'import bzt; print(bzt.VERSION)')
                 sed -ri "s/_TAURUS_VERSION_/_\${TAURUS_VERSION}_/" site/dat/docs/Installation.md
                 mkdir -p site/msi
