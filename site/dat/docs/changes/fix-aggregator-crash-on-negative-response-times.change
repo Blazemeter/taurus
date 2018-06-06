@@ -1,0 +1,1 @@
+Do not crash if tool reported negative response time, warn the user about it and proceed
