@@ -1179,7 +1179,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         for location_id in sorted(available_locations):
             location = available_locations[location_id]
-            if location['sandbox'] and not location['purposes']['functional']:
+            if location['sandbox'] and not location.get('purposes', {}).get('functional', False):
                 return location_id
 
         if available_locations:
