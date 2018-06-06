@@ -36,7 +36,8 @@ from urwid import Pile, Text
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone, \
+    TAURUS_ARTIFACTS_DIR
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
@@ -57,7 +58,8 @@ CLOUD_CONFIG_FILTER_RULES = {
     "locations-weighted": True,
 
     "settings": {
-        "verbose": True
+        "verbose": True,
+        "env": True
     },
 
     "modules": {
@@ -1088,6 +1090,8 @@ class BaseCloudTest(object):
 
         self.cleanup_defaults(config)
 
+        config['settings']['env'].pop(TAURUS_ARTIFACTS_DIR)
+        config['settings']['env'].pop("OBJC_DISABLE_INITIALIZE_FORK_SAFETY")
         if self.dedicated_ips:
             config[CloudProvisioning.DEDICATED_IPS] = True
 
