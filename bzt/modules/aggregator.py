@@ -462,20 +462,19 @@ class ResultsReader(ResultsProvider):
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
 
-                error = self._fold_error(error) if error else error
+                error = self._fold_error(error)
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
                 raise TaurusInternalException("Unsupported results from %s reader: %s" % (self, result))
 
     def _fold_error(self, error):
-        if error in self._known_errors:
+        if not error or error in self._known_errors or self.max_error_count <= 0:
             return error
 
         size = len(self._known_errors)
         threshold = size / float(self.max_error_count)
         matches = difflib.get_close_matches(error, self._known_errors, 1, 1 - threshold)
         if matches:
-            self.log.debug("Merged errors messages: %s / %s", error, matches[0])
             error = matches[0]
         self._known_errors.add(error)
         return error
@@ -517,7 +516,7 @@ class ResultsReader(ResultsProvider):
         """
         self.__process_readers(final_pass)
 
-        self.log.debug("Buffer len: %s", len(self.buffer))
+        self.log.debug("Buffer len: %s; Known errors len: %s", len(self.buffer), len(self._known_errors))
         if not self.buffer:
             return
 
