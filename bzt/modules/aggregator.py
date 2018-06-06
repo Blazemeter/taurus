@@ -431,14 +431,14 @@ class ResultsReader(ResultsProvider):
 
     def __init__(self, perc_levels=()):
         super(ResultsReader, self).__init__()
-        self.known_errors = set()
-        self.max_error_count = 100
         self.generalize_labels = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
         self.min_timestamp = 0
         self.track_percentiles = perc_levels
+        self._known_errors = set()
+        self.max_error_count = 100
 
     def __process_readers(self, final_pass=False):
         """
@@ -462,37 +462,23 @@ class ResultsReader(ResultsProvider):
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
 
-                #error = self._fold_error(error) if error else error
+                error = self._fold_error(error) if error else error
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
                 raise TaurusInternalException("Unsupported results from %s reader: %s" % (self, result))
 
     def _fold_error(self, error):
-        if error in self.known_errors:
+        if error in self._known_errors:
             return error
 
-        size = len(self.known_errors)
+        size = len(self._known_errors)
         threshold = size / float(self.max_error_count)
-        matches = difflib.get_close_matches(error, self.known_errors, 1, 1 - threshold)
+        matches = difflib.get_close_matches(error, self._known_errors, 1, 1 - threshold)
         if matches:
-            #self.log.debug("Merged errors messages: %s / %s", error, matches[0])
+            self.log.debug("Merged errors messages: %s / %s", error, matches[0])
             error = matches[0]
-        self.known_errors.add(error)
+        self._known_errors.add(error)
         return error
-        """
-        div = float(max(len(haystack), len(needle)))
-        dist = dameraulevenshtein(haystack, needle) / div
-        if dist < 0.15:
-            char_diff = difflib.ndiff(haystack, needle)
-            newlbl = [x[2:] if x[0] == ' ' else 'X' for x in char_diff if x[0] in ('-', ' ')]
-
-            item[selector[0]] = "".join(newlbl)
-            item['cnt'] += value['cnt']
-            item['urls'] += value['urls']
-
-            logging.warning("Recording '%s' as '%s' due to similarity", needle, item[selector[0]])
-            found = True
-        """
 
     def __aggregate_current(self, datapoint, samples):
         """
@@ -599,6 +585,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.underlings = []
         self.buffer = BetterDict()
         self.rtimes_len = 1000
+        self.max_error_count = 100
 
     def prepare(self):
         """
@@ -639,6 +626,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         debug_str = 'Buffer scaling setup: percentile %s from %s selected'
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
         self.rtimes_len = self.settings.get("rtimes-len", self.rtimes_len)
+        self.max_error_count = self.settings.get("max-error-variety", self.max_error_count)
 
     def add_underling(self, underling):
         """
@@ -655,6 +643,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.buffer_multiplier = self.buffer_multiplier
             underling.buffer_scale_idx = self.buffer_scale_idx
             underling.rtimes_len = self.rtimes_len
+            underling.max_error_count = self.max_error_count
 
         self.underlings.append(underling)
 
