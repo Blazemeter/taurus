@@ -27,7 +27,6 @@ from hdrpy import HdrHistogram
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.linter import dameraulevenshtein
 from bzt.six import iteritems
 from bzt.utils import BetterDict, dehumanize_time, JSONConvertable
 
@@ -193,26 +192,10 @@ class KPISet(BetterDict):
         :type value: dict
         """
         found = False
-        needle = selector[1]
         for item in values:
-            haystack = item[selector[0]]
-            if haystack == needle:
+            if item[selector[0]] == selector[1]:
                 item['cnt'] += value['cnt']
                 item['urls'] += value['urls']
-                found = True
-                break
-
-            div = float(max(len(haystack), len(needle)))
-            dist = dameraulevenshtein(haystack, needle) / div
-            if dist < 0.15:
-                char_diff = difflib.ndiff(haystack, needle)
-                newlbl = [x[2:] if x[0] == ' ' else 'X' for x in char_diff if x[0] in ('-', ' ')]
-
-                item[selector[0]] = "".join(newlbl)
-                item['cnt'] += value['cnt']
-                item['urls'] += value['urls']
-
-                logging.warning("Recording '%s' as '%s' due to similarity", needle, item[selector[0]])
                 found = True
                 break
 
@@ -448,6 +431,8 @@ class ResultsReader(ResultsProvider):
 
     def __init__(self, perc_levels=()):
         super(ResultsReader, self).__init__()
+        self.known_errors = set()
+        self.max_error_count = 100
         self.generalize_labels = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
@@ -476,9 +461,38 @@ class ResultsReader(ResultsProvider):
 
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
+
+                #error = self._fold_error(error) if error else error
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
                 raise TaurusInternalException("Unsupported results from %s reader: %s" % (self, result))
+
+    def _fold_error(self, error):
+        if error in self.known_errors:
+            return error
+
+        size = len(self.known_errors)
+        threshold = size / float(self.max_error_count)
+        matches = difflib.get_close_matches(error, self.known_errors, 1, 1 - threshold)
+        if matches:
+            #self.log.debug("Merged errors messages: %s / %s", error, matches[0])
+            error = matches[0]
+        self.known_errors.add(error)
+        return error
+        """
+        div = float(max(len(haystack), len(needle)))
+        dist = dameraulevenshtein(haystack, needle) / div
+        if dist < 0.15:
+            char_diff = difflib.ndiff(haystack, needle)
+            newlbl = [x[2:] if x[0] == ' ' else 'X' for x in char_diff if x[0] in ('-', ' ')]
+
+            item[selector[0]] = "".join(newlbl)
+            item['cnt'] += value['cnt']
+            item['urls'] += value['urls']
+
+            logging.warning("Recording '%s' as '%s' due to similarity", needle, item[selector[0]])
+            found = True
+        """
 
     def __aggregate_current(self, datapoint, samples):
         """
