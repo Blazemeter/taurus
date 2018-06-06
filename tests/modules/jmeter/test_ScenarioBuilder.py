@@ -1,8 +1,10 @@
-from . import MockJMeterExecutor
-from bzt.modules.jmeter import JMeterScenarioBuilder
-from tests import BZTestCase, RESOURCES_DIR
 from tempfile import mkstemp
+
+from bzt.jmx.http import HTTPProtocolHandler
+from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
+from tests import BZTestCase, RESOURCES_DIR
+from . import MockJMeterExecutor
 
 
 class TestScenarioBuilder(BZTestCase):
@@ -10,6 +12,9 @@ class TestScenarioBuilder(BZTestCase):
         super(TestScenarioBuilder, self).setUp()
         executor = MockJMeterExecutor({"scenario": "SB"})
         executor.engine.config.merge({"scenarios": {"SB": {}}})
+        executor.settings['protocol-handlers'] = [
+            HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__
+        ]
 
         self.obj = JMeterScenarioBuilder(executor)
 
@@ -97,13 +102,13 @@ class TestScenarioBuilder(BZTestCase):
     def test_old_jmeter(self):
         """ versions before 3.0 must use JSON plugin for extracting purposes """
         self.configure(scenario={"requests": [{
-                "url": "http://blazedemo.com",
-                "extract-jsonpath": {
-                    "IP": "$.net[0].ip",
-                    "URL": {
-                        "jsonpath": "$.net[1].url",
-                        "default": "def",
-                        "from-variable": "Jm_VaR"}}}]},
+            "url": "http://blazedemo.com",
+            "extract-jsonpath": {
+                "IP": "$.net[0].ip",
+                "URL": {
+                    "jsonpath": "$.net[1].url",
+                    "default": "def",
+                    "from-variable": "Jm_VaR"}}}]},
             version="2.13")
         self.obj.save(self.jmx)
         xml_tree = etree.fromstring(open(self.jmx, "rb").read())
