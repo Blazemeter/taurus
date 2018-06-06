@@ -1,6 +1,7 @@
 import math
 from random import random
 
+from apiritif import random_string
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.utils import to_json
 from tests import BZTestCase, r
@@ -94,9 +95,9 @@ class TestConsolidatingAggregator(BZTestCase):
     @staticmethod
     def get_fail_reader_alot(offset=0):
         mock = MockReader()
-        for x in range(2, 100):
-            rnd = random() * math.pow(10, x/5)
-            mock.data.append((x + offset, "first", 1, r(), r(), r(), 200, 'FAILx%s' % int(rnd), '', 0))
+        for x in range(2, 200):
+            rnd = random() * math.pow(x, 2)
+            mock.data.append((x + offset, "first", 1, r(), r(), r(), 200, (random_string(int(rnd))), '', 0))
         return mock
 
     def test_errors_cumulative(self):
@@ -123,12 +124,12 @@ class TestConsolidatingAggregator(BZTestCase):
         aggregator.track_percentiles = [50]
         aggregator.prepare()
         reader = self.get_fail_reader_alot()
-        aggregator.max_error_count=10
+        aggregator.max_error_count = 10
         aggregator.add_underling(reader)
         aggregator.shutdown()
         aggregator.post_process()
         cum_dict = aggregator.underlings[0].cumulative
-        self.assertLess(len(cum_dict['']['errors']), 10)
+        self.assertLessEqual(len(cum_dict['']['errors']), 10)
 
     def test_set_rtimes_len(self):
         obj = ConsolidatingAggregator()
