@@ -520,7 +520,7 @@ class ResultsReader(ResultsProvider):
         """
         self.__process_readers(final_pass)
 
-        self.log.debug("Buffer len: %s; Known errors len: %s", len(self.buffer), len(self._known_errors))
+        self.log.debug("Buffer len: %s; Known errors count: %s", len(self.buffer), len(self._known_errors))
         if not self.buffer:
             return
 
