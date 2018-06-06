@@ -1090,7 +1090,9 @@ class BaseCloudTest(object):
 
         self.cleanup_defaults(config)
 
-        config['settings']['env'].pop(TAURUS_ARTIFACTS_DIR)
+        if TAURUS_ARTIFACTS_DIR in config.get('settings', force_set=True).get('env', force_set=True):
+            config['settings']['env'].pop(TAURUS_ARTIFACTS_DIR)
+
         if self.dedicated_ips:
             config[CloudProvisioning.DEDICATED_IPS] = True
 
