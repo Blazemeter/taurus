@@ -558,7 +558,6 @@ class XUnitFileWriter(object):
     def __init__(self, engine):
         """
         :type engine: bzt.engine.Engine
-        :type suite_name: str
         """
         super(XUnitFileWriter, self).__init__()
         self.engine = engine

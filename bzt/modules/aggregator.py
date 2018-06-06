@@ -459,6 +459,10 @@ class ResultsReader(ResultsProvider):
                     self.log.debug("Putting sample %s into %s", t_stamp, self.min_timestamp)
                     t_stamp = self.min_timestamp
 
+                if r_time < 0:
+                    self.log.warning("Negative response time reported by tool, resetting it to zero")
+                    r_time = 0
+
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
 

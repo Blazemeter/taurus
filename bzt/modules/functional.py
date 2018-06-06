@@ -219,7 +219,7 @@ class LoadSamplesReader(ResultsReader):
         ltc = 0
         rcd = self.STATUS_TO_CODE.get(item["status"], "UNKNOWN")
         error = item["error_msg"] if item["status"] in TestReportReader.FAILING_TESTS_STATUSES else None
-        trname = ""
+        trname = item.get("workerID", "")
         byte_count = None
         return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
 

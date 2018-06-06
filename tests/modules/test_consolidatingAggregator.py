@@ -159,6 +159,29 @@ class TestConsolidatingAggregator(BZTestCase):
         for point in obj.datapoints():
             obj.log.info(to_json(point))
 
+    def test_negative_response_time_scaling_crash(self):
+        obj = ConsolidatingAggregator()
+        obj.track_percentiles = [0.0, 50.0, 95.0, 99.0, 100.0]
+        obj.prepare()
+
+        self.sniff_log(obj.log)
+
+        mock = MockReader()
+        mock.data.append((1, "first", 1, -r(), r(), r(), 200, 'FAILx3', '', 0))
+        mock.data.append((2, "first", 1, -r(), r(), r(), 200, 'FAILx1', '', 0))
+        mock.data.append((5, "first", 1, -r(), r(), r(), 200, None, '', 0))
+        mock.data.append((7, "second", 1, -r(), r(), r(), 200, 'FAILx3', '', 0))
+        mock.data.append((3, "first", 1, -r(), r(), r(), 200, 'FAILx3', '', 0))
+        mock.data.append((6, "second", 1, -r(), r(), r(), 200, 'unique FAIL', '', 0))
+
+        obj.add_underling(mock)
+
+        obj.check()
+        for point in obj.datapoints():
+            obj.log.info(to_json(point))
+
+        self.assertIn("Negative response time reported", self.log_recorder.warn_buff.getvalue())
+
 
 class MockListener(AggregatorListener):
     def __init__(self):

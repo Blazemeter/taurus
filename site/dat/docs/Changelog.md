@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.12.0<sup>3 jun 2018</sup>
+## 1.12.0<sup>4 jun 2018</sup>
 - new frame management support was incorporated. Frames by id, name, relative parent and relative top (Selenium IDE and SideeX style)
 - drag and drop support added to Nose Request (Selenium)
 - `go` command added to Nose Request (Selenium)
@@ -25,6 +25,8 @@
 - disable PYTHONPATH additions if interpreter is changed via config
 - fix `swagger2yaml` crash when found schema with `type: file`
 - fix `swagger2yaml` crash when an optional field is missing
+- for cloud test, if no sandbox location found and `default-location` is not valid, use first location by default
+- fix Gatling YAML scripts with CSV delimiter in `data-sources`
 
 
 ## 1.11.1<sup>26 apr 2018</sup>
