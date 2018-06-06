@@ -438,7 +438,7 @@ class ResultsReader(ResultsProvider):
         self.min_timestamp = 0
         self.track_percentiles = perc_levels
         self._known_errors = set()
-        self.max_error_count = 100
+        self.max_error_count = 10
 
     def __process_readers(self, final_pass=False):
         """

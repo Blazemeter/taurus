@@ -1,3 +1,6 @@
+import math
+from random import random
+
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.utils import to_json
 from tests import BZTestCase, r
@@ -88,6 +91,14 @@ class TestConsolidatingAggregator(BZTestCase):
         mock.data.append((6 + offset, "second", 1, r(), r(), r(), 200, 'unique FAIL', '', 0))
         return mock
 
+    @staticmethod
+    def get_fail_reader_alot(offset=0):
+        mock = MockReader()
+        for x in range(2, 100):
+            rnd = random() * math.pow(10, x/5)
+            mock.data.append((x + offset, "first", 1, r(), r(), r(), 200, 'FAILx%s' % int(rnd), '', 0))
+        return mock
+
     def test_errors_cumulative(self):
         aggregator = ConsolidatingAggregator()
         aggregator.track_percentiles = [50]
@@ -106,6 +117,18 @@ class TestConsolidatingAggregator(BZTestCase):
             data = cum_dict[label]
             total_errors_count = sum(err['cnt'] for err in data['errors'])
             self.assertEqual(data['fail'], total_errors_count)
+
+    def test_errors_variety(self):
+        aggregator = ConsolidatingAggregator()
+        aggregator.track_percentiles = [50]
+        aggregator.prepare()
+        reader = self.get_fail_reader_alot()
+        aggregator.max_error_count=10
+        aggregator.add_underling(reader)
+        aggregator.shutdown()
+        aggregator.post_process()
+        cum_dict = aggregator.underlings[0].cumulative
+        self.assertLess(len(cum_dict['']['errors']), 10)
 
     def test_set_rtimes_len(self):
         obj = ConsolidatingAggregator()
