@@ -1091,7 +1091,6 @@ class BaseCloudTest(object):
         self.cleanup_defaults(config)
 
         config['settings']['env'].pop(TAURUS_ARTIFACTS_DIR)
-        config['settings']['env'].pop("OBJC_DISABLE_INITIALIZE_FORK_SAFETY")
         if self.dedicated_ips:
             config[CloudProvisioning.DEDICATED_IPS] = True
 
