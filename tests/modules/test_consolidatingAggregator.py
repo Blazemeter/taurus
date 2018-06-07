@@ -123,12 +123,14 @@ class TestConsolidatingAggregator(BZTestCase):
         aggregator = ConsolidatingAggregator()
         aggregator.track_percentiles = [50]
         aggregator.prepare()
-        reader = self.get_fail_reader_alot()
+        reader1 = self.get_fail_reader_alot()
+        reader2 = self.get_fail_reader_alot()
         aggregator.max_error_count = 10
-        aggregator.add_underling(reader)
+        aggregator.add_underling(reader1)
+        aggregator.add_underling(reader2)
         aggregator.shutdown()
         aggregator.post_process()
-        cum_dict = aggregator.underlings[0].cumulative
+        cum_dict = aggregator.cumulative
         self.assertLessEqual(len(cum_dict['']['errors']), 10)
 
     def test_set_rtimes_len(self):
