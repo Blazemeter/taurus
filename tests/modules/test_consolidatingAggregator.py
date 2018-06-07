@@ -131,7 +131,7 @@ class TestConsolidatingAggregator(BZTestCase):
         aggregator.shutdown()
         aggregator.post_process()
         cum_dict = aggregator.cumulative
-        self.assertLessEqual(len(cum_dict['']['errors']), 10)
+        self.assertLessEqual(len(cum_dict['']['errors']), 20)
 
     def test_set_rtimes_len(self):
         obj = ConsolidatingAggregator()
