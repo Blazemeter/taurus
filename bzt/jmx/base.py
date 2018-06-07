@@ -823,6 +823,40 @@ class JMX(object):
         return element
 
     @staticmethod
+    def _get_boundary_extractor(varname, subject, left, right, match_no, defvalue='NOT_FOUND'):
+        """
+
+        :type varname: str
+        :type regexp: str
+        :type template: str|int
+        :type match_no: int
+        :type default: str
+        :rtype: lxml.etree.Element
+        """
+
+        subjects = {
+            'body': 'false',
+            'body-unescaped': 'unescaped',
+            'body-as-document': 'as_document',
+            'response-headers': 'true',
+            'request-headers': 'request_headers',
+            'url': 'URL',
+            'code': 'code',
+            'message': 'message',
+        }
+
+        subject = subjects.get(subject)
+        element = etree.Element("BoundaryExtractor", guiclass="BoundaryExtractorGui",
+                                testclass="BoundaryExtractor", testname="Get %s" % varname, enabled="true")
+        element.append(JMX._string_prop("BoundaryExtractor.useHeaders", subject))
+        element.append(JMX._string_prop("BoundaryExtractor.refname", varname))
+        element.append(JMX._string_prop("BoundaryExtractor.lboundary", left))  # TODO: html-escape boundaries?
+        element.append(JMX._string_prop("BoundaryExtractor.rboundary", right))
+        element.append(JMX._string_prop("RegexExtractor.default", defvalue))
+        element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
+        return element
+
+    @staticmethod
     def _get_jquerycss_extractor(varname, selector, attribute, match_no, default="NOT_FOUND"):
         """
 

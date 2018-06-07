@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from string import Template as StrTemplate
-from selenium.common.exceptions import NoSuchWindowException
+from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
 from bzt.six import text_type
 
 
@@ -41,6 +41,29 @@ class Template:
         self.tmpl.template = template
         self.tmpl.variables = self.variables
         return text_type(self.tmpl)
+
+    @staticmethod
+    def str_repr(text):
+        return repr(text)[1:] if repr(text)[0] == "u" else repr(text)
+
+
+class FrameManager:
+
+    def __init__(self, driver):
+        self.driver = driver
+    
+    def switch(self, frame_name=None):
+        try:
+            if not frame_name or frame_name == "relative=top":
+                self.driver.switch_to_default_content()
+            elif frame_name.startswith("index="):  # Switch using index frame using relative position
+                self.driver.switch_to.frame(int(frame_name.split("=")[1]))
+            elif frame_name == "relative=parent":  # Switch to parent frame of the current frame
+                self.driver.switch_to.parent_frame()
+            else:  # Use the selenium alternative
+                self.driver.switch_to.frame(frame_name)
+        except NoSuchFrameException:
+            raise NoSuchFrameException("Invalid Frame ID: %s" % frame_name)
 
 
 class WindowManager:

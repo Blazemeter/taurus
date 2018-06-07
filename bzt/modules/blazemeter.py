@@ -1182,6 +1182,11 @@ class CloudTaurusTest(BaseCloudTest):
             if not location_id.startswith('harbor-') and location['sandbox']:
                 return location_id
 
+        if available_locations:
+            location_id = sorted(available_locations.keys())[0]
+            self.log.warning("Using first location as default: %s", location_id)
+            return location_id
+
         self.log.warning("List of supported locations for you is: %s", sorted(available_locations.keys()))
         raise TaurusConfigError("No sandbox or default location available, please specify locations manually")
 
@@ -1686,7 +1691,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 if not isinstance(service, dict):
                     service = {"module": service}
                 mod = service.get('module', TaurusConfigError("No 'module' specified for service"))
-                assert isinstance(mod, str)
+                assert isinstance(mod, str), mod
                 module = self.engine.instantiate_module(mod)
                 if isinstance(module, ServiceStubCaptureHAR):
                     self._download_logs()

@@ -3,14 +3,14 @@ import os
 import shutil
 import time
 
+from bzt import ToolError, TaurusConfigError
 from bzt.modules.aggregator import DataPoint
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
+from bzt.modules.provisioning import Local
 from bzt.six import u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict
+from bzt.utils import EXE_SUFFIX, get_full_path
 from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file
 from tests.mocks import EngineEmul
-from bzt.modules.provisioning import Local
-from bzt import ToolError, TaurusConfigError
 
 
 def get_gatling():
@@ -288,6 +288,7 @@ class TestGatlingExecutor(BZTestCase):
             with open(name2, 'rt') as file2:
                 lines1 = without_id(file1.read())
                 lines2 = without_id(file2.read())
+        self.maxDiff = None
         self.assertEqual(lines1, lines2)
 
     def test_fail_on_zero_results(self):
@@ -418,9 +419,10 @@ class TestGatlingExecutor(BZTestCase):
     def test_data_sources(self):
         self.obj.execution.merge({
             "scenario": {
-                "data-sources": [
-                    RESOURCES_DIR + "test1.csv",
-                ],
+                "data-sources": [{
+                    "path": RESOURCES_DIR + "test1.csv",
+                    "delimiter": ","
+                }],
                 "requests": ["http://blazedemo.com/?tag=${col1}"],
             }
         })
@@ -529,7 +531,7 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_labels_regular(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-3') # regular one
+        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-3')  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 10)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")

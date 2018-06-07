@@ -12,6 +12,29 @@ from bzt.modules.functional import ResultsTree, FunctionalSample
 
 
 class TestFinalStatusReporter(BZTestCase):
+    def test_log_messages_summary_labels(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict()
+        self.sniff_log(obj.log)
+        obj.parameters.merge({"summary-labels": True, "percentiles": False, "summary": False, "test-duration": False})
+
+        obj.startup()
+        obj.shutdown()
+        obj.aggregated_second(self.__get_datapoint())
+        obj.post_process()
+
+        expected = ""
+        expected += "+----------------------------------+--------+---------+----------+-----------+\n"
+        expected += "| label                            | status | success | avg time | error     |\n"
+        expected += "+----------------------------------+--------+---------+----------+-----------+\n"
+        expected += "| http://192.168.1.1/anotherquery  |  FAIL  |  0.00%  |  0.001   | Forbidden |\n"
+        expected += "| http://192.168.1.1/somequery     |   OK   | 100.00% |  0.001   |           |\n"
+        expected += "| http://192.168.100.100/somequery |   OK   | 100.00% |  0.001   |           |\n"
+        expected += "+----------------------------------+--------+---------+----------+-----------+\n"
+
+        self.assertIn(expected, self.log_recorder.info_buff.getvalue())
+
     def test_log_messages_failed_labels(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()

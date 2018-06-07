@@ -728,20 +728,11 @@ class BZAProxy(BZAObject):
     def start(self):
         self._request(self.address + '/api/latest/proxy/recording/start', method='POST')
 
-    def get_jmx(self):
-        response = self._request(self.address + '/api/latest/proxy/download?format=jmx&smart=false', raw_result=True)
-        return response
-
-    def get_smart_jmx(self):
-        # wait for availability
-        while True:
-            response = self._request(self.address + '/api/latest/proxy')
-            if response['result']['smartjmx'] == "available":
-                break
-            time.sleep(self.delay)
-
-        response = self._request(self.address + '/api/latest/proxy/download?format=jmx&smart=true', raw_result=True)
-        return response
+    def get_jmx(self, smart=False):
+        url = '/api/latest/proxy/download?format=jmx&smart=' + str(smart).lower()
+        response_url = self._request(self.address + url).get('result')
+        response_content = self._request(response_url, raw_result=True)
+        return response_content
 
     def get_addr(self):
         response = self._request(self.address + '/api/latest/proxy')

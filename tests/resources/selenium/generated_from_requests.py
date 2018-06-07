@@ -28,6 +28,7 @@ class TestRequests(unittest.TestCase):
         self.driver = webdriver.Firefox(profile, firefox_options=options)
         self.driver.implicitly_wait(3.5)
         self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
+        self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
 
     def tearDown(self):
         self.driver.quit()
@@ -52,6 +53,9 @@ class TestRequests(unittest.TestCase):
             self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(_tpl.apply('B'))
             self.driver.find_element(By.NAME, _tpl.apply('toPort')).clear()
             self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(_tpl.apply('B'))
+            self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(Keys.ENTER)
+            self.driver.find_element(By.NAME, _tpl.apply('toPort')).clear()
+            self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(Keys.ENTER)
             self.driver.find_element(By.XPATH, _tpl.apply('//div[3]/form/select[1]//option[3]')).click()
             self.driver.find_element(By.XPATH, _tpl.apply('//div[3]/form/select[2]//option[6]')).click()
             self.wnd_mng.switch(_tpl.apply('0'))
@@ -65,10 +69,17 @@ class TestRequests(unittest.TestCase):
             self.driver.find_element(By.NAME, _tpl.apply('toPort')).submit()
             self.driver.execute_script(_tpl.apply("alert('This is Sparta');"))
             ActionChains(self.driver).drag_and_drop(self.driver.find_element(By.ID, _tpl.apply('address')), self.driver.find_element(By.NAME, _tpl.apply('toPort'))).perform()
-            self.driver.switch_to.frame(self.driver.find_element(By.NAME, _tpl.apply('my_frame')))
-            self.driver.switch_to.frame(1)
-            if self.driver.find_element(By.ID, _tpl.apply('editor')).get_attribute('contenteditable'): self.driver.find_element(By.ID, _tpl.apply('editor')).clear(); self.driver.find_element(By.ID, _tpl.apply('editor')).send_keys(_tpl.apply('lo-la-lu'))
-            sleep(3)
+            self.frm_mng.switch(self.driver.find_element(By.NAME, _tpl.apply('my_frame')))
+            self.frm_mng.switch(1)
+            self.frm_mng.switch('relative=parent')
+            if self.driver.find_element(By.ID, 'editor').get_attribute('contenteditable'):
+                self.driver.execute_script(
+                    'arguments[0].innerHTML = %s;' % _tpl.str_repr(_tpl.apply('lo-la-lu')),
+                    self.driver.find_element(By.ID, 'editor')
+                )
+            else:
+                raise NoSuchElementException("The element (By.ID, 'editor') is not contenteditable element")
+            sleep(3.5)
             self.driver.delete_all_cookies()
             self.driver.find_element(By.LINK_TEXT, _tpl.apply('destination of the week! The Beach!')).click()
             _vars['Title'] = _tpl.apply(self.driver.title)

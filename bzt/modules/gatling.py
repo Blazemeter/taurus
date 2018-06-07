@@ -174,7 +174,7 @@ class GatlingScriptBuilder(object):
             varname = self._get_feeder_name(source_name)
             params = dict(varname=varname, filename=source_name, delimiter=delimiter)
             if delimiter is not None:
-                tmpl = """val %(varname)s = separatedValues("%(filename)", '%(delimiter)')"""
+                tmpl = """val %(varname)s = separatedValues("%(filename)s", '%(delimiter)s')"""
             else:
                 tmpl = 'val %(varname)s = csv("%(filename)s")'
             line = self.indent(tmpl % params, level=1)

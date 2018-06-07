@@ -16,5 +16,6 @@ requests>=2.11.1
 selenium
 Appium-Python-Client
 urwid
+terminaltables>=3.1.0
 vncdotool
 pygame

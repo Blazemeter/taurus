@@ -1372,7 +1372,7 @@ class LDJSONReader(object):
         lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
-            if not line.endswith("\n"):
+            if not last_pass and not line.endswith("\n"):
                 self.partial_buffer += line
                 continue
             line = "%s%s" % (self.partial_buffer, line)
