@@ -97,7 +97,7 @@ class TestConsolidatingAggregator(BZTestCase):
         mock = MockReader()
         for x in range(2, 200):
             rnd = random() * math.pow(x, 2)
-            mock.data.append((x + offset, "first", 1, r(), r(), r(), 200, (random_string(int(rnd))), '', 0))
+            mock.data.append((x + offset, "first", 1, r(), r(), r(), 200, (random_string(1+int(rnd))), '', 0))
         return mock
 
     def test_errors_cumulative(self):

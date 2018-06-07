@@ -62,7 +62,10 @@ node() {
                     path: "jobs/${JOB_NAME}/${BUILD_NUMBER}/bzt-${BUILD_NUMBER}.tar.gz",
                     acl: "PublicRead"
         }
+    } catch (e) {
+        currentBuild.result = "FAILED"
+        throw e
     } finally {
-        smartSlackNotification(channel: "taurus-dev")
+        smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
     }
 }
