@@ -3,7 +3,7 @@
 *High throughput, high precision HTTP load testing with low resource requirement*
 
 ## TL;DR
-Take fresh Ubuntu 14.04 and run on it:
+Take fresh Ubuntu 14.04 (or 16.04) and run on it:
 ```bash
 sudo apt-get install software-properties-common
 sudo add-apt-repository ppa:yandex-load/main
@@ -47,6 +47,8 @@ The package is compiled from sources and installed like this:
 ```bash
 sudo dpkg -i blazemeter-pbench-extras_0.0.6.1_amd64.deb
 ```
+
+If you don't want to build the package yourself, you can download it from Taurus website: [blazemeter-pbench-extras_0.0.6.1_amd64.deb](http://gettaurus.org/snapshots/blazemeter-pbench-extras_0.1.10.1_amd64.deb)
 
 ## Scenario Building
 High throughput and precision comes with a price of lost requests logic. No loops, no extractors, no assertions, no think-times, no automatic cookie handling. Also, all requests must go to the same `proto://server:port` address.
