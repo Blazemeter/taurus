@@ -1689,7 +1689,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 if not isinstance(service, dict):
                     service = {"module": service}
                 mod = service.get('module', TaurusConfigError("No 'module' specified for service"))
-                assert isinstance(mod, str), mod
+                assert isinstance(mod, string_types), mod
                 module = self.engine.instantiate_module(mod)
                 if isinstance(module, ServiceStubCaptureHAR):
                     self._download_logs()
