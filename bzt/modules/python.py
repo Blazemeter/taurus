@@ -1684,7 +1684,6 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
                     fds.write(yml)
             else:
                 raise TaurusConfigError("`variables` is neither file nor dict")
-        
         tags = scenario.get("tags", None)
         if tags:
             if isinstance(tags, (string_types, text_type)):
