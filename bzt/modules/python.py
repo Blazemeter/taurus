@@ -1690,7 +1690,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
                 self.tags = tags
             else:
                 raise TaurusConfigError("`tags` is not a string or text")
-                  
+
     def install_required_tools(self):
         self._check_tools([Robot(self.settings.get("interpreter", sys.executable), self.log),
                            TaurusRobotRunner(self.runner_path, "")])
