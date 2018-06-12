@@ -33,6 +33,9 @@ class Request(object):
         self.config = config
         self.scenario = scenario
 
+    def get(self, option, default=None):
+        return self.config.get(option, default)
+
     def priority_option(self, name, default=None):
         val = self.config.get(name, None)
         if val is None:

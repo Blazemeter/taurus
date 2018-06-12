@@ -12,7 +12,7 @@ class HTTPProtocolHandler(ProtocolHandler):
             return {str(k).lower(): str(dic[k]).lower() for k in dic}
 
         ci_scenario_headers = dic_lower(scenario.get_headers())
-        ci_request_headers = dic_lower(req.headers)
+        ci_request_headers = dic_lower(req.config.get('headers', {}))
         headers = BetterDict()
         headers.merge(ci_scenario_headers)
         headers.merge(ci_request_headers)
@@ -49,31 +49,34 @@ class HTTPProtocolHandler(ProtocolHandler):
         timeout = scenario.get("timeout", None)
         timeout = self.safe_time(timeout)
         elements = [JMX._get_http_defaults(default_address, timeout, retrieve_resources,
-                                            concurrent_pool_size, content_encoding, resources_regex),
+                                           concurrent_pool_size, content_encoding, resources_regex),
                     etree.Element("hashTree")]
         return elements
 
-    def get_sampler_pair(self, scenario, request):
-        timeout = self.safe_time(request.priority_option('timeout'))
+    def get_elements_for_request(self, scenario, request):
+        if request.get('url'):
+            timeout = self.safe_time(request.priority_option('timeout'))
 
-        content_type = self._get_merged_ci_headers(scenario, request, 'content-type')
-        if content_type == 'application/json' and isinstance(request.body, (dict, list)):
-            body = json.dumps(request.body)
-        else:
-            body = request.body
+            content_type = self._get_merged_ci_headers(scenario, request, 'content-type')
+            request_body = request.get('body')
+            if content_type == 'application/json' and isinstance(request_body, (dict, list)):
+                body = json.dumps(request_body)
+            else:
+                body = request_body
 
-        use_random_host_ip = request.priority_option('random-source-ip', default=False)
-        host_ips = get_host_ips(filter_loopbacks=True) if use_random_host_ip else []
-        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body,
-                                     request.priority_option('keepalive', default=True),
-                                     request.upload_files, request.content_encoding,
-                                     request.priority_option('follow-redirects', default=True),
-                                     use_random_host_ip, host_ips)
+            use_random_host_ip = request.priority_option('random-source-ip', default=False)
+            host_ips = get_host_ips(filter_loopbacks=True) if use_random_host_ip else []
+            label = request.get('label') or request.get('url')
+            method = request.get('method', 'GET')
+            http = JMX._get_http_request(request.get('url'), label, method, timeout, body,
+                                         request.priority_option('keepalive', default=True),
+                                         request.get('upload_files'), request.get('content_encoding'),
+                                         request.priority_option('follow-redirects', default=True),
+                                         use_random_host_ip, host_ips)
 
-        children = etree.Element("hashTree")
+            children = etree.Element("hashTree")
 
-        if request.headers:
-            children.append(JMX._get_header_mgr(request.headers))
-            children.append(etree.Element("hashTree"))
-
-        return http, children
+            if request.get('headers'):
+                children.append(JMX._get_header_mgr(request.get('headers', {})))
+                children.append(etree.Element("hashTree"))
+            return [http, children]

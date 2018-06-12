@@ -24,47 +24,9 @@ from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
 from bzt.jmx import JMX
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
-from bzt.requests_model import RequestVisitor, has_variable_pattern
+from bzt.requests_model import RequestVisitor, has_variable_pattern, Request
 from bzt.six import etree, iteritems, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, get_full_path, guess_csv_dialect, load_class
-
-
-class RequestCompiler(RequestVisitor):
-    def __init__(self, jmx_builder):
-        super(RequestCompiler, self).__init__()
-        self.jmx_builder = jmx_builder
-
-    def visit_hierarchichttprequest(self, request):
-        return self.jmx_builder.compile_request(request)
-
-    def visit_ifblock(self, block):
-        return self.jmx_builder.compile_if_block(block)
-
-    def visit_loopblock(self, block):
-        return self.jmx_builder.compile_loop_block(block)
-
-    def visit_whileblock(self, block):
-        return self.jmx_builder.compile_while_block(block)
-
-    def visit_foreachblock(self, block):
-        return self.jmx_builder.compile_foreach_block(block)
-
-    def visit_transactionblock(self, block):
-        return self.jmx_builder.compile_transaction_block(block)
-
-    def visit_includescenarioblock(self, block):
-        scenario_name = block.scenario_name
-        if scenario_name in self.path:
-            msg = "Mutual recursion detected in include-scenario blocks (scenario %s)"
-            raise TaurusConfigError(msg % scenario_name)
-        self.record_path(scenario_name)
-        return self.jmx_builder.compile_include_scenario_block(block)
-
-    def visit_actionblock(self, block):
-        return self.jmx_builder.compile_action_block(block)
-
-    def visit_setvariables(self, block):
-        return self.jmx_builder.compile_set_variables_block(block)
 
 
 class LoadSettingsProcessor(object):
@@ -177,17 +139,18 @@ class LoadSettingsProcessor(object):
 
 
 class ProtocolHandler(object):
-
-    def __init__(self, sys_props):
+    def __init__(self, scenario_builder, sys_props):
         super(ProtocolHandler, self).__init__()
+        self.scenario_builder = scenario_builder
         self.system_props = sys_props
 
+    @abstractmethod
     def get_toplevel_elements(self, scenario):
-        return []
+        return None
 
     @abstractmethod
-    def get_sampler_pair(self, scenario, request):
-        return None, None
+    def get_elements_for_request(self, scenario, request):
+        return None
 
     @staticmethod
     def safe_time(any_time):
@@ -216,11 +179,10 @@ class JMeterScenarioBuilder(JMX):
         self.scenario = executor.get_scenario()
         self.engine = executor.engine
         self.system_props = BetterDict()
-        self.request_compiler = None
         self.protocol_handlers = []
         for cls_name in self.executor.settings.get("protocol-handlers", []):
             cls_obj = load_class(cls_name)
-            instance = cls_obj(self.system_props)
+            instance = cls_obj(self, self.system_props)
             self.protocol_handlers.append(instance)
 
     def __add_think_time(self, children, req):
@@ -367,19 +329,27 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __gen_requests(self, scenario):
-        requests = scenario.get_requests()
-        elements = []
-        for compiled in self.compile_requests(requests):
-            elements.extend(compiled)
-        return elements
+        requests = scenario.get_requests_new()
+        return self.compile_requests(requests)
 
     def compile_scenario(self, scenario):
         elements = []
         for protocol in self.protocol_handlers:
-            elements.extend(protocol.get_toplevel_elements(scenario))
+            toplevels = protocol.get_toplevel_elements(scenario)
+            if toplevels:
+                elements.extend(toplevels)
         elements.extend(self.__gen_datasources(scenario))
         elements.extend(self.__gen_requests(scenario))
+        self.log.info("Compiled scenario to %s", elements)
         return elements
+
+    def compile_subrequests(self, subrequests):
+        requests = []
+        for key in range(len(subrequests)):  # pylint: disable=consider-using-enumerate
+            req = ensure_is_dict(subrequests, key, "url")
+            request_obj = Request(req, scenario=self.scenario)
+            requests.append(request_obj)
+        return self.compile_requests(requests)
 
     def compile_request(self, request):
         """
@@ -387,50 +357,29 @@ class JMeterScenarioBuilder(JMX):
         :type request: HierarchicHTTPRequest
         :return:
         """
-        sampler = children = None
+        elements = None
         for protocol in self.protocol_handlers:
-            sampler, children = protocol.get_sampler_pair(self.scenario, request)
-            if sampler is not None:
+            elements = protocol.get_elements_for_request(self.scenario, request)
+            if elements:
                 break
 
-        if sampler is None:
+        if not elements:
             self.log.warning("Problematic request: %s", request)
             raise TaurusInternalException("Unable to handle request, please review missing options")
 
-        self.__add_think_time(children, request)
+        self.log.info("Compiled request %s into %s", request, elements)
 
-        self.__add_assertions(children, request)
-
-        timeout = ProtocolHandler.safe_time(request.priority_option('timeout'))
-        if timeout is not None:
-            children.append(JMX._get_dur_assertion(timeout))
-            children.append(etree.Element("hashTree"))
-
-        self.__add_extractors(children, request)
-
-        self.__add_jsr_elements(children, request)
-
-        return [sampler, children]
-
-    def compile_if_block(self, block):
-        elements = []
-
-        # TODO: pass jmeter IfController options
-        if_controller = JMX._get_if_controller(block.condition)
-        then_children = etree.Element("hashTree")
-        for compiled in self.compile_requests(block.then_clause):
-            for element in compiled:
-                then_children.append(element)
-        elements.extend([if_controller, then_children])
-
-        if block.else_clause:
-            inverted_condition = "!(" + block.condition + ")"
-            else_controller = JMX._get_if_controller(inverted_condition)
-            else_children = etree.Element("hashTree")
-            for compiled in self.compile_requests(block.else_clause):
-                for element in compiled:
-                    else_children.append(element)
-            elements.extend([else_controller, else_children])
+        # self.__add_think_time(elements, request)
+        # self.__add_assertions(elements, request)
+        #
+        # timeout = ProtocolHandler.safe_time(request.priority_option('timeout'))
+        # if timeout is not None:
+        #     elements.append(JMX._get_dur_assertion(timeout))
+        #     elements.append(etree.Element("hashTree"))
+        #
+        # self.__add_extractors(elements, request)
+        #
+        # self.__add_jsr_elements(elements, request)
 
         return elements
 
@@ -532,12 +481,10 @@ class JMeterScenarioBuilder(JMX):
         return [test_action, children]
 
     def compile_requests(self, requests):
-        if self.request_compiler is None:
-            self.request_compiler = RequestCompiler(self)
         compiled = []
         for request in requests:
-            compiled.append(self.request_compiler.visit(request))
-            self.request_compiler.clear_path_cache()
+            compiled.extend(self.compile_request(request))
+        self.log.info("Compiled all requests into %s", compiled)
         return compiled
 
     def __generate(self):
@@ -549,7 +496,6 @@ class JMeterScenarioBuilder(JMX):
         thread_group_ht = etree.Element("hashTree", type="tg")
 
         # NOTE: set realistic dns-cache and JVM prop by default?
-        self.request_compiler = RequestCompiler(self)
         for element in self.compile_scenario(self.scenario):
             thread_group_ht.append(element)
 

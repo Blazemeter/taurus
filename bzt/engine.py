@@ -40,7 +40,7 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
-from bzt.requests_model import RequestsParser
+from bzt.requests_model import RequestsParser, Request
 from bzt.six import build_opener, install_opener, urlopen, numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
@@ -1152,6 +1152,7 @@ class Scenario(UserDict, object):
     FIELD_HEADERS = "headers"
     FIELD_BODY = "body"
     FIELD_DATA_SOURCES = 'data-sources'
+    FIELD_REQUESTS = 'requests'
 
     def __init__(self, engine, scenario=None):
         super(Scenario, self).__init__()
@@ -1204,6 +1205,16 @@ class Scenario(UserDict, object):
         """
         requests_parser = RequestsParser(self, self.engine)
         return requests_parser.extract_requests(require_url=require_url)
+
+    def get_requests_new(self, require_url=True):
+        raw_requests = self.get(self.FIELD_REQUESTS, [])
+        requests = []
+        for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
+            req = ensure_is_dict(raw_requests, key, "url")
+            if not require_url and "url" not in req:
+                req["url"] = None
+            requests.append(Request(req, scenario=self))
+        return requests
 
     def get_data_sources(self):
         data_sources = self.get(self.FIELD_DATA_SOURCES, [])

@@ -20,6 +20,7 @@ from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows
 from jmx.http import HTTPProtocolHandler
+from jmx.logic import LogicProtocolHandler
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
 from tests.modules.jmeter import MockJMeterExecutor
 
@@ -28,7 +29,8 @@ def get_jmeter():
     path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
     obj = MockJMeterExecutor()
     obj.settings.merge({'path': path, 'force-ctg': False,
-                        'protocol-handlers': [HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__]})
+                        'protocol-handlers': [HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__,
+                                              LogicProtocolHandler.__module__ + '.' + LogicProtocolHandler.__name__]})
     return obj
 
 

@@ -3,6 +3,7 @@ from tempfile import mkstemp
 from bzt.jmx.http import HTTPProtocolHandler
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
+from jmx.logic import LogicProtocolHandler
 from tests import BZTestCase, RESOURCES_DIR
 from . import MockJMeterExecutor
 
@@ -13,12 +14,14 @@ class TestScenarioBuilder(BZTestCase):
         executor = MockJMeterExecutor({"scenario": "SB"})
         executor.engine.config.merge({"scenarios": {"SB": {}}})
         executor.settings['protocol-handlers'] = [
-            HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__
+            HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__,
+            LogicProtocolHandler.__module__ + '.' + LogicProtocolHandler.__name__,
         ]
 
         self.obj = JMeterScenarioBuilder(executor)
 
-        _, self.jmx = mkstemp()
+        # _, self.jmx = mkstemp()
+        self.jmx = executor.engine.create_artifact('generated', '.jmx')
 
     def configure(self, scenario, version="3.3"):
         self.obj.scenario.data.merge(scenario)
@@ -156,3 +159,26 @@ class TestScenarioBuilder(BZTestCase):
         include = xml_tree.find(".//TransactionController/boolProp[@name='TransactionController.includeTimers']")
         self.assertIsNotNone(include)
         self.assertEqual(include.text, 'true')
+
+    def test_single_request(self):
+        self.configure(scenario={
+            "requests": ["http://blazedemo.com/"]
+        })
+        self.obj.save(self.jmx)
+        xml_tree = etree.fromstring(open(self.jmx, "rb").read())
+
+    def test_if_plus_request(self):
+        self.configure(scenario={
+            "requests": [{
+                "if": "cond",
+                "then": [
+                    "http://blazedemo.com/?then=true"
+                ],
+                "else": [
+                    "http://blazedemo.com/?else=true"
+                ]
+            }]
+        })
+        self.obj.save(self.jmx)
+        xml_tree = etree.fromstring(open(self.jmx, "rb").read())
+        include = xml_tree.find(".//TransactionController/boolProp[@name='TransactionController.includeTimers']")
