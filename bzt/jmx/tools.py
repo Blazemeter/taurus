@@ -17,6 +17,7 @@ limitations under the License.
 """
 import os
 import traceback
+from abc import abstractmethod
 from distutils.version import LooseVersion
 
 from bzt import TaurusInternalException, TaurusConfigError
@@ -184,6 +185,7 @@ class ProtocolHandler(object):
     def get_toplevel_elements(self, scenario):
         return []
 
+    @abstractmethod
     def get_sampler_pair(self, scenario, request):
         return None, None
 
