@@ -95,7 +95,7 @@ class TestConsolidatingAggregator(BZTestCase):
     @staticmethod
     def get_fail_reader_alot(offset=0):
         mock = MockReader()
-        for x in range(2, 200):
+        for x in range(100):
             rnd = random() * math.pow(x, 2)
             mock.data.append((x + offset, "first", 1, r(), r(), r(), 200, (random_string(1+int(rnd))), '', 0))
         return mock
@@ -125,13 +125,13 @@ class TestConsolidatingAggregator(BZTestCase):
         aggregator.prepare()
         reader1 = self.get_fail_reader_alot()
         reader2 = self.get_fail_reader_alot()
-        aggregator.max_error_count = 10
+        aggregator.max_error_count = 9
         aggregator.add_underling(reader1)
         aggregator.add_underling(reader2)
         aggregator.shutdown()
         aggregator.post_process()
         cum_dict = aggregator.cumulative
-        self.assertLessEqual(len(cum_dict['']['errors']), 20)
+        self.assertLessEqual(len(cum_dict['']['errors']), aggregator.max_error_count)
 
     def test_set_rtimes_len(self):
         obj = ConsolidatingAggregator()

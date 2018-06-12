@@ -374,6 +374,20 @@ class ResultsProvider(object):
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
         self.rtimes_len = None
+        self.known_errors = set()
+        self.max_error_count = 10
+
+    def _fold_error(self, error):
+        if not error or error in self.known_errors or self.max_error_count <= 0:
+            return error
+
+        size = len(self.known_errors)
+        threshold = size / float(self.max_error_count)
+        matches = difflib.get_close_matches(error, self.known_errors, 1, 1 - threshold)
+        if matches:
+            error = matches[0]
+        self.known_errors.add(error)
+        return error
 
     def add_listener(self, listener):
         """
@@ -437,8 +451,6 @@ class ResultsReader(ResultsProvider):
         self.buffer = {}
         self.min_timestamp = 0
         self.track_percentiles = perc_levels
-        self._known_errors = set()
-        self.max_error_count = 10
 
     def __process_readers(self, final_pass=False):
         """
@@ -470,18 +482,6 @@ class ResultsReader(ResultsProvider):
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
                 raise TaurusInternalException("Unsupported results from %s reader: %s" % (self, result))
-
-    def _fold_error(self, error):
-        if not error or error in self._known_errors or self.max_error_count <= 0:
-            return error
-
-        size = len(self._known_errors)
-        threshold = size / float(self.max_error_count)
-        matches = difflib.get_close_matches(error, self._known_errors, 1, 1 - threshold)
-        if matches:
-            error = matches[0]
-        self._known_errors.add(error)
-        return error
 
     def __aggregate_current(self, datapoint, samples):
         """
@@ -520,7 +520,7 @@ class ResultsReader(ResultsProvider):
         """
         self.__process_readers(final_pass)
 
-        self.log.debug("Buffer len: %s; Known errors count: %s", len(self.buffer), len(self._known_errors))
+        self.log.debug("Buffer len: %s; Known errors count: %s", len(self.buffer), len(self.known_errors))
         if not self.buffer:
             return
 
@@ -588,7 +588,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.underlings = []
         self.buffer = BetterDict()
         self.rtimes_len = 1000
-        self.max_error_count = 100
 
     def prepare(self):
         """
@@ -646,7 +645,9 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.buffer_multiplier = self.buffer_multiplier
             underling.buffer_scale_idx = self.buffer_scale_idx
             underling.rtimes_len = self.rtimes_len
+
             underling.max_error_count = self.max_error_count
+            underling.known_errors = self.known_errors  # share error set between underlings
 
         self.underlings.append(underling)
 
