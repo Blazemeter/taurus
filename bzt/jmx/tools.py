@@ -140,6 +140,10 @@ class LoadSettingsProcessor(object):
 
 class ProtocolHandler(object):
     def __init__(self, scenario_builder, sys_props):
+        """
+
+        :type scenario_builder: JMeterScenarioBuilder
+        """
         super(ProtocolHandler, self).__init__()
         self.scenario_builder = scenario_builder
         self.system_props = sys_props
@@ -364,7 +368,7 @@ class JMeterScenarioBuilder(JMX):
                 break
 
         if not elements:
-            self.log.warning("Problematic request: %s", request)
+            self.log.warning("Problematic request: %s", request.config)
             raise TaurusInternalException("Unable to handle request, please review missing options")
 
         self.log.info("Compiled request %s into %s", request, elements)
@@ -381,68 +385,6 @@ class JMeterScenarioBuilder(JMX):
         #
         # self.__add_jsr_elements(elements, request)
 
-        return elements
-
-    def compile_loop_block(self, block):
-        elements = []
-
-        loop_controller = JMX._get_loop_controller(block.loops)
-        children = etree.Element("hashTree")
-        for compiled in self.compile_requests(block.requests):
-            for element in compiled:
-                children.append(element)
-        elements.extend([loop_controller, children])
-
-        return elements
-
-    def compile_while_block(self, block):
-        elements = []
-
-        controller = JMX._get_while_controller(block.condition)
-        children = etree.Element("hashTree")
-        for compiled in self.compile_requests(block.requests):
-            for element in compiled:
-                children.append(element)
-        elements.extend([controller, children])
-
-        return elements
-
-    def compile_foreach_block(self, block):
-        """
-        :type block: ForEachBlock
-        """
-
-        elements = []
-
-        controller = JMX._get_foreach_controller(block.input_var, block.loop_var)
-        children = etree.Element("hashTree")
-        for compiled in self.compile_requests(block.requests):
-            for element in compiled:
-                children.append(element)
-        elements.extend([controller, children])
-
-        return elements
-
-    def compile_transaction_block(self, block):
-        elements = []
-        controller = JMX._get_transaction_controller(block.name,
-                                                     block.priority_option('force-parent-sample', True),
-                                                     block.include_timers)
-        children = etree.Element("hashTree")
-        for compiled in self.compile_requests(block.requests):
-            for element in compiled:
-                children.append(element)
-        elements.extend([controller, children])
-        return elements
-
-    def compile_include_scenario_block(self, block):
-        elements = []
-        controller = JMX._get_simple_controller(block.scenario_name)
-        children = etree.Element("hashTree")
-        scenario = self.executor.get_scenario(name=block.scenario_name)
-        for element in self.compile_scenario(scenario):
-            children.append(element)
-        elements.extend([controller, children])
         return elements
 
     def compile_action_block(self, block):

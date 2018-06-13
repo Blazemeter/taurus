@@ -20,7 +20,7 @@ from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows
 from jmx.http import HTTPProtocolHandler
-from jmx.logic import LogicProtocolHandler
+from jmx.logic import LogicControllersHandler
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
 from tests.modules.jmeter import MockJMeterExecutor
 
@@ -30,7 +30,7 @@ def get_jmeter():
     obj = MockJMeterExecutor()
     obj.settings.merge({'path': path, 'force-ctg': False,
                         'protocol-handlers': [HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__,
-                                              LogicProtocolHandler.__module__ + '.' + LogicProtocolHandler.__name__]})
+                                              LogicControllersHandler.__module__ + '.' + LogicControllersHandler.__name__]})
     return obj
 
 
@@ -1565,57 +1565,6 @@ class TestJMeterExecutor(BZTestCase):
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 2)
 
-    def test_request_logic_loop(self):
-        self.configure({
-            'execution': {
-                'scenario': {
-                    "requests": [{
-                        "loop": 10,
-                        "do": [
-                            "http://blazedemo.com/"]}]}}})
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        controller = xml_tree.find(".//LoopController")
-        self.assertIsNotNone(controller)
-        loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
-        self.assertEqual(loops.text, "10")
-        forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
-        self.assertEqual(forever.text, "true")
-
-    def test_request_logic_loop_forever(self):
-        self.configure({
-            'execution': {
-                'scenario': {
-                    "requests": [{
-                        "loop": "forever",
-                        "do": [
-                            "http://blazedemo.com/"]}]}}})
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        controller = xml_tree.find(".//LoopController")
-        self.assertIsNotNone(controller)
-
-        fprops = xml_tree.findall(".//boolProp[@name='LoopController.continue_forever']")
-        for fprop in fprops:
-            pptag = fprop.getparent().getparent().tag
-            if pptag == "ThreadGroup":
-                self.assertEqual("false", fprop.text)
-            elif pptag == "hashTree":
-                self.assertEqual("true", fprop.text)
-            else:
-                self.fail()
-
-        loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
-        self.assertEqual(loops.text, "-1")
-
-    def test_request_logic_loop_invalid(self):
-        self.configure({
-            'execution': {
-                'scenario': {
-                    "requests": [{
-                        "loop": 100}]}}})
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
-
     def test_resource_files_loops(self):
         self.configure({
             'execution': {
@@ -1629,30 +1578,6 @@ class TestJMeterExecutor(BZTestCase):
             'provisioning': 'cloud'})
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
-
-    def test_request_logic_while(self):
-        self.configure({
-            'execution': {
-                'scenario': {
-                    "requests": [{
-                        "while": "<cond>",
-                        "do": [
-                            "http://blazedemo.com/"]}]}}})
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        if_controller = xml_tree.find(".//WhileController")
-        self.assertIsNotNone(if_controller)
-        condition = xml_tree.find(".//WhileController/stringProp[@name='WhileController.condition']")
-        self.assertIsNotNone(condition)
-        self.assertEqual(condition.text, "<cond>")
-
-    def test_request_logic_while_invalid(self):
-        self.configure({
-            'execution': {
-                'scenario': {
-                    "requests": [{
-                        "while": "<cond>"}]}}})
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_request_logic_while_resources(self):
         self.configure({
@@ -1668,22 +1593,6 @@ class TestJMeterExecutor(BZTestCase):
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
 
-    def test_request_logic_foreach(self):
-        self.configure({
-            'execution': {
-                'scenario': {
-                    "requests": [{
-                        "foreach": "name in usernames",
-                        "do": [
-                            "http://site.com/users/${name}"]}]}}})
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        self.assertIsNotNone(xml_tree.find(".//ForeachController"))
-        input = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.inputVal']")
-        self.assertEqual(input.text, "usernames")
-        loop_var = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.returnVal']")
-        self.assertEqual(loop_var.text, "name")
-
     def test_request_logic_foreach_resources(self):
         self.configure({
             'execution': {
@@ -1698,21 +1607,6 @@ class TestJMeterExecutor(BZTestCase):
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
 
-    def test_request_logic_transaction(self):
-        self.configure({
-            'execution': {
-                'scenario': {
-                    "requests": [{
-                        "transaction": "API",
-                        "do": [
-                            "http://blazedemo.com/",
-                            "http://blazedemo.com/reserve.php"]}]}}})
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
-        controller = xml_tree.find(".//TransactionController")
-        self.assertIsNotNone(controller)
-        self.assertEqual(controller.get('testname'), "API")
-
     def test_request_logic_transaction_resources(self):
         self.configure({
             'execution': {
@@ -1726,28 +1620,6 @@ class TestJMeterExecutor(BZTestCase):
             'provisioning': 'cloud'})
         res_files = self.obj.resource_files()
         self.assertEqual(len(res_files), 1)
-
-    def test_request_logic_include(self):
-        self.configure({
-            'scenarios': {
-                'login': {
-                    'requests': ['http://example.com/login']}},
-            'execution': {
-                'scenario': {
-                    "requests": [{
-                        "include-scenario": "login"}]}}})
-        self.obj.prepare()
-        xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
-        controller = xml_tree.find(".//GenericController")
-        self.assertIsNotNone(controller)
-        self.assertEqual(controller.get('testname'), "login")
-        ht = controller.getnext()
-        sampler = ht.find('HTTPSamplerProxy')
-        self.assertIsNotNone(sampler)
-        domain = sampler.find('stringProp[@name="HTTPSampler.domain"]')
-        self.assertEqual(domain.text, "example.com")
-        path = sampler.find('stringProp[@name="HTTPSampler.path"]')
-        self.assertEqual(path.text, "/login")
 
     def test_request_logic_include_resources(self):
         self.configure({

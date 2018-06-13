@@ -1,9 +1,10 @@
 from tempfile import mkstemp
 
+from bzt import TaurusConfigError
 from bzt.jmx.http import HTTPProtocolHandler
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
-from jmx.logic import LogicProtocolHandler
+from jmx.logic import LogicControllersHandler
 from tests import BZTestCase, RESOURCES_DIR
 from . import MockJMeterExecutor
 
@@ -15,7 +16,7 @@ class TestScenarioBuilder(BZTestCase):
         executor.engine.config.merge({"scenarios": {"SB": {}}})
         executor.settings['protocol-handlers'] = [
             HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__,
-            LogicProtocolHandler.__module__ + '.' + LogicProtocolHandler.__name__,
+            LogicControllersHandler.__module__ + '.' + LogicControllersHandler.__name__,
         ]
 
         self.obj = JMeterScenarioBuilder(executor)
@@ -165,9 +166,14 @@ class TestScenarioBuilder(BZTestCase):
             "requests": ["http://blazedemo.com/"]
         })
         self.obj.save(self.jmx)
-        xml_tree = etree.fromstring(open(self.jmx, "rb").read())
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        domain = xml_tree.findtext(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.domain']")
+        self.assertEqual('blazedemo.com', domain)
+        path = xml_tree.findtext(".//HTTPSamplerProxy/stringProp[@name='HTTPSampler.path']")
+        self.assertEqual('/', path)
 
-    def test_if_plus_request(self):
+    def test_if_controller(self):
         self.configure(scenario={
             "requests": [{
                 "if": "cond",
@@ -180,5 +186,148 @@ class TestScenarioBuilder(BZTestCase):
             }]
         })
         self.obj.save(self.jmx)
-        xml_tree = etree.fromstring(open(self.jmx, "rb").read())
-        include = xml_tree.find(".//TransactionController/boolProp[@name='TransactionController.includeTimers']")
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        condition = xml_tree.findtext(".//IfController[@testname=\"If 'cond'\"]/stringProp[@name='IfController.condition']")
+        self.assertEqual('cond', condition)
+        else_condition = xml_tree.findtext(".//IfController[@testname=\"If not 'cond'\"]/stringProp[@name='IfController.condition']")
+        self.assertEqual('!(cond)', else_condition)
+
+    def test_loop_controller(self):
+        self.configure(scenario={
+            "requests": [{
+                "loop": 10,
+                "do": [
+                    "http://blazedemo.com/?loop=true"
+                ]
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        loops = xml_tree.findtext(".//LoopController/stringProp[@name='LoopController.loops']")
+        self.assertEqual('10', loops)
+
+    def test_loop_forever(self):
+        self.configure(scenario={
+            "requests": [{
+                "loop": "forever",
+                "do": [
+                    "http://blazedemo.com/"
+                ]
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        controller = xml_tree.find(".//LoopController")
+        self.assertIsNotNone(controller)
+
+        fprops = xml_tree.findall(".//boolProp[@name='LoopController.continue_forever']")
+        for fprop in fprops:
+            pptag = fprop.getparent().getparent().tag
+            if pptag == "ThreadGroup":
+                self.assertEqual("false", fprop.text)
+            elif pptag == "hashTree":
+                self.assertEqual("true", fprop.text)
+            else:
+                self.fail()
+
+        loops = xml_tree.find(".//LoopController/stringProp[@name='LoopController.loops']")
+        self.assertEqual(loops.text, "-1")
+
+    def test_loop_invalid(self):
+        self.configure(scenario={
+            "requests": [{
+                "loop": 100
+            }]
+        })
+        self.assertRaises(TaurusConfigError, lambda: self.obj.save(self.jmx))
+
+    def test_while_controller(self):
+        self.configure(scenario={
+            "requests": [{
+                "while": "<cond>",
+                "do": [
+                    "http://blazedemo.com/"
+                ]
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        controller = xml_tree.find(".//WhileController")
+        self.assertIsNotNone(controller)
+        condition = xml_tree.find(".//WhileController/stringProp[@name='WhileController.condition']")
+        self.assertIsNotNone(condition)
+        self.assertEqual(condition.text, "<cond>")
+
+    def test_while_invalid(self):
+        self.configure(scenario={
+            "requests": [{
+                "while": "<cond>"
+            }]
+        })
+        self.assertRaises(TaurusConfigError, lambda: self.obj.save(self.jmx))
+
+    def test_foreach_controller(self):
+        self.configure(scenario={
+            "requests": [{
+                "foreach": "name in usernames",
+                "do": [
+                    "http://site.com/users/${name}"
+                ]
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        self.assertIsNotNone(xml_tree.find(".//ForeachController"))
+        input = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.inputVal']")
+        self.assertEqual(input.text, "usernames")
+        loop_var = xml_tree.find(".//ForeachController/stringProp[@name='ForeachController.returnVal']")
+        self.assertEqual(loop_var.text, "name")
+
+    def test_transaction_controller(self):
+        self.configure(scenario={
+            "requests": [{
+                "transaction": "API",
+                "do": [
+                    "http://blazedemo.com/",
+                    "http://blazedemo.com/reserve.php"
+                ]
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        controller = xml_tree.find(".//TransactionController")
+        self.assertIsNotNone(controller)
+        self.assertEqual(controller.get('testname'), "API")
+
+    def test_include_scenario(self):
+        self.configure(scenario={
+            "requests": [{
+                "include-scenario": "login"
+            }]
+        })
+        self.obj.executor.engine.config.merge({'scenarios': {
+            'login': {
+                'requests': [
+                    'http://blazedemo.com/login'
+                ]
+            }
+        }})
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        controller = xml_tree.find(".//GenericController")
+        self.assertIsNotNone(controller)
+        self.assertEqual(controller.get('testname'), "login")
+        ht = controller.getnext()
+        sampler = ht.find('HTTPSamplerProxy')
+        self.assertIsNotNone(sampler)
+        domain = sampler.find('stringProp[@name="HTTPSampler.domain"]')
+        self.assertEqual(domain.text, "blazedemo.com")
+        path = sampler.find('stringProp[@name="HTTPSampler.path"]')
+        self.assertEqual(path.text, "/login")

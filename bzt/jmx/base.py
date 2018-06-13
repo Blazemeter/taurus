@@ -1123,14 +1123,16 @@ class JMX(object):
         return dbg_tree
 
     @staticmethod
-    def _get_if_controller(condition):
+    def _get_if_controller(condition, label=None):
+        if label is None:
+            label = "If Controller"
         controller = etree.Element("IfController", guiclass="IfControllerPanel", testclass="IfController",
-                                   testname="If Controller")
+                                   testname=label)
         controller.append(JMX._string_prop("IfController.condition", condition))
         return controller
 
     @staticmethod
-    def _get_loop_controller(loops):
+    def _get_loop_controller(loops, label=None):
         """
         Generates Loop Controller
 
@@ -1144,8 +1146,10 @@ class JMX(object):
             iterations = -1
         else:
             iterations = loops
+        if label is None:
+            label = "Loop Controller"
         controller = etree.Element("LoopController", guiclass="LoopControlPanel", testclass="LoopController",
-                                   testname="Loop Controller")
+                                   testname=label)
 
         # 'false' means controller can be called only one time (by parent)
         controller.append(JMX._bool_prop("LoopController.continue_forever", True))
@@ -1153,19 +1157,23 @@ class JMX(object):
         return controller
 
     @staticmethod
-    def _get_foreach_controller(input_var, loop_var):
+    def _get_foreach_controller(input_var, loop_var, label=None):
         # TODO: useSeparator option
+        if label is None:
+            label = "ForEach Controller"
         controller = etree.Element("ForeachController", guiclass="ForeachControlPanel", testclass="ForeachController",
-                                   testname="ForEach Controller")
+                                   testname=label)
         controller.append(JMX._string_prop("ForeachController.inputVal", input_var))
         controller.append(JMX._string_prop("ForeachController.returnVal", loop_var))
         controller.append(JMX._bool_prop("ForeachController.useSeparator", True))
         return controller
 
     @staticmethod
-    def _get_while_controller(condition):
+    def _get_while_controller(condition, label=None):
+        if label is None:
+            label = "While Controller"
         controller = etree.Element("WhileController", guiclass="WhileControllerGui", testclass="WhileController",
-                                   testname="While Controller")
+                                   testname=label)
         controller.append(JMX._string_prop("WhileController.condition", condition))
         return controller
 
