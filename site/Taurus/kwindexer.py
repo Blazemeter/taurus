@@ -19,7 +19,8 @@ def get_keys(struct, ignore_first_level=False):
     res = []
     if isinstance(struct, dict):
         if not ignore_first_level:
-            res.extend(struct.keys())
+            keys = [x.split('(')[0] for x in struct.keys()]
+            res.extend(keys)
         for key in struct:
             if key in IGNORED_KEYS:
                 logging.debug("Ignored: %s: %s", key, struct[key])
@@ -46,7 +47,7 @@ def index_file(fname):
             logging.warning("The block was: %s\n%s", fname, block)
 
     for key in keys:
-        assert "@" not in key, key + "\t" + fname
+        assert "(" not in key, key + "\t" + fname
 
     logging.debug("%s: %s", fname, keys)
     return keys
