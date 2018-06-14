@@ -53,7 +53,7 @@ class HTTPProtocolHandler(ProtocolHandler):
                     etree.Element("hashTree")]
         return elements
 
-    def get_elements_for_request(self, scenario, request):
+    def get_sampler_elements(self, scenario, request):
         if request.get('url'):
             timeout = self.safe_time(request.priority_option('timeout'))
 

@@ -1,10 +1,15 @@
-from tempfile import mkstemp
+import json
 
 from bzt import TaurusConfigError
+from bzt.jmx import JMX
+from bzt.jmx.actions import ActionsHandler
+from bzt.jmx.assertions import AssertionsHandler
+from bzt.jmx.extractors import ExtractorsHandler
 from bzt.jmx.http import HTTPProtocolHandler
+from bzt.jmx.logic import LogicControllersHandler
+from bzt.jmx.test_actions import TestActionsHandler
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
-from jmx.logic import LogicControllersHandler
 from tests import BZTestCase, RESOURCES_DIR
 from . import MockJMeterExecutor
 
@@ -17,6 +22,10 @@ class TestScenarioBuilder(BZTestCase):
         executor.settings['protocol-handlers'] = [
             HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__,
             LogicControllersHandler.__module__ + '.' + LogicControllersHandler.__name__,
+            ActionsHandler.__module__ + '.' + ActionsHandler.__name__,
+            AssertionsHandler.__module__ + '.' + AssertionsHandler.__name__,
+            ExtractorsHandler.__module__ + '.' + ExtractorsHandler.__name__,
+            TestActionsHandler.__module__ + '.' + TestActionsHandler.__name__
         ]
 
         self.obj = JMeterScenarioBuilder(executor)
@@ -331,3 +340,338 @@ class TestScenarioBuilder(BZTestCase):
         self.assertEqual(domain.text, "blazedemo.com")
         path = sampler.find('stringProp[@name="HTTPSampler.path"]')
         self.assertEqual(path.text, "/login")
+
+    def test_action_target(self):
+        self.configure(scenario={
+            "requests": [{
+                "action": "stop",
+                "target": "all-threads",
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        block = xml_tree.find(".//TestAction")
+        self.assertIsNotNone(block)
+        action = block.find('intProp[@name="ActionProcessor.action"]')
+        self.assertEqual(action.text, "0")
+        target = block.find('intProp[@name="ActionProcessor.target"]')
+        self.assertEqual(target.text, "2")
+
+    def test_action_unknown(self):
+        self.configure(scenario={
+            "requests": [{
+                "action": "unknown",
+            }]
+        })
+        self.assertRaises(TaurusConfigError, lambda: self.obj.save(self.jmx))
+
+    def test_set_vars(self):
+        self.configure(scenario={
+            "requests": [{
+                "set-variables": {"foo": "bar"}
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        self.assertIsNotNone(xml_tree.find(".//JSR223PreProcessor"))
+        input = xml_tree.find(".//JSR223PreProcessor/stringProp[@name='script']")
+        self.assertEqual(input.text, "vars.put('foo', 'bar');")
+
+    def test_regexp_extractors(self):
+        self.configure(scenario={
+            "requests": [{
+                "url": "http://localhost",
+                "extract-regexp": {
+                    "test_name": "???"
+                }
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        self.assertEqual("body", xml_tree.findall(".//stringProp[@name='RegexExtractor.useHeaders']")[0].text)
+        self.assertEqual("???", xml_tree.findall(".//stringProp[@name='RegexExtractor.regex']")[0].text)
+        self.assertEqual("parent", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
+
+    def test_boundary_extractors(self):
+        self.configure(scenario={
+            "requests": [{
+                "url": "http://localhost",
+                "extract-boundary": {
+                    "varname": {"left": "foo", "right": "bar"}
+                }
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        self.assertEqual("false", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.useHeaders']")[0].text)
+        self.assertEqual("foo", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.lboundary']")[0].text)
+        self.assertEqual("bar", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.rboundary']")[0].text)
+        self.assertEqual("varname", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.refname']")[0].text)
+
+    def test_boundary_extractors_exc(self):
+        self.configure(scenario={
+            "requests": [{
+                "url": "http://localhost",
+                "extract-boundary": {
+                    "varname": {"left": "foo"}
+                }
+            }]
+        })  # no "right"
+        self.assertRaises(TaurusConfigError, lambda: self.obj.save(self.jmx))
+
+    def test_css_jquery_extractor(self):
+        self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read())["scenarios"]["get-post"])
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        jq_css_extractors = xml_tree.findall(".//HtmlExtractor")
+        self.assertEqual(2, len(jq_css_extractors))
+        simplified_extractor = xml_tree.find(".//HtmlExtractor[@testname='Get name1']")
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name1")
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text,
+                         "input[name~=my_input]")
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, None)
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "0")
+        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NOT_FOUND")
+        full_form_extractor = xml_tree.find(".//HtmlExtractor[@testname='Get name2']")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name2")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text,
+                         "input[name=JMeter]")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
+        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
+
+    def test_xpath_extractor(self):
+        self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read())["scenarios"]["get-post"])
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        xpath_extractors = xml_tree.findall(".//XPathExtractor")
+        self.assertEqual(2, len(xpath_extractors))
+
+        simplified = xml_tree.find(".//XPathExtractor[@testname='Get xpath1']")
+        self.assertEqual(simplified.find(".//stringProp[@name='XPathExtractor.refname']").text, "xpath1")
+        self.assertEqual(simplified.find(".//stringProp[@name='XPathExtractor.xpathQuery']").text,
+                         "/html/head/title")
+        self.assertEqual(simplified.find(".//stringProp[@name='XPathExtractor.default']").text, "NOT_FOUND")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPathExtractor.validate']").text, "false")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "true")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "false")
+
+        full_form = xml_tree.find(".//XPathExtractor[@testname='Get xpath2']")
+        self.assertEqual(full_form.find(".//stringProp[@name='XPathExtractor.refname']").text, "xpath2")
+        self.assertEqual(full_form.find(".//stringProp[@name='XPathExtractor.xpathQuery']").text,
+                         "/html/head/base")
+        self.assertEqual(full_form.find(".//stringProp[@name='XPathExtractor.default']").text, "<no base>")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.validate']").text, "true")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "true")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "true")
+
+    def test_xpath_assertion(self):
+        self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read())["scenarios"]["get-post"])
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        assertions = xml_tree.findall(".//XPathAssertion")
+        self.assertEqual(2, len(assertions))
+
+        simplified = assertions[0]
+        self.assertEqual(simplified.find(".//stringProp[@name='XPath.xpath']").text, "/note/to")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPath.validate']").text, "false")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPath.whitespace']").text, "true")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPath.tolerant']").text, "false")
+        self.assertEqual(simplified.find(".//boolProp[@name='XPath.negate']").text, "false")
+
+        full_form = assertions[1]
+        self.assertEqual(full_form.find(".//stringProp[@name='XPath.xpath']").text, "/note/from")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPath.validate']").text, "true")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPath.whitespace']").text, "true")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPath.tolerant']").text, "true")
+        self.assertEqual(full_form.find(".//boolProp[@name='XPath.negate']").text, "true")
+
+    def test_jsonpath_assertion(self):
+        self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read())["scenarios"]["get-post"])
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        path = ".//com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion"
+        assertions = xml_tree.findall(path)
+        self.assertEqual(4, len(assertions))
+
+        vals = [
+            {'path': '$.', 'exp_val': None, 'valid': 'false',
+             'null': 'false', 'invert': 'false', 'regexp': 'true'},
+            {'path': '$.res[0].type', 'exp_val': 'some_value.1', 'valid': 'true',
+             'null': 'false', 'invert': 'false', 'regexp': 'true'},
+            {'path': '$.res[1].ip', 'exp_val': 'some_value.2', 'valid': 'true',
+             'null': 'false', 'invert': 'true', 'regexp': 'false'},
+            {'path': '$.res[2].default', 'exp_val': None, 'valid': 'false',
+             'null': 'true', 'invert': 'false', 'regexp': 'true'}]
+        for num in range(len(assertions)):
+            assertion = assertions[num]
+            val = vals[num]
+            self.assertEqual(val['path'], assertion.find(".//stringProp[@name='JSON_PATH']").text)
+            self.assertEqual(val['exp_val'], assertion.find(".//stringProp[@name='EXPECTED_VALUE']").text)
+            self.assertEqual(val['valid'], assertion.find(".//boolProp[@name='JSONVALIDATION']").text)
+            self.assertEqual(val['null'], assertion.find(".//boolProp[@name='EXPECT_NULL']").text)
+            self.assertEqual(val['invert'], assertion.find(".//boolProp[@name='INVERT']").text)
+            self.assertEqual(val['regexp'], assertion.find(".//boolProp[@name='ISREGEX']").text)
+
+    def test_transaction_and_requests1(self):
+        self.configure(scenario={
+            'force-parent-sample': False,
+            'requests': [{
+                'transaction': 'MY_TRANSACTION',
+                'do': [{
+                    'url': 'http://blazedemo.com'
+                }]
+            }]
+        })
+        self.obj.save(self.jmx)
+        jmx = JMX(self.jmx)
+        selector = 'TransactionController > boolProp[name="TransactionController.parent"]'
+        props = jmx.get(selector)
+        self.assertEqual(len(props), 1)
+        non_parent = props[0]
+        self.assertEqual(non_parent.text, 'false')
+
+    def test_transaction_and_requests2(self):
+        self.configure(scenario={
+            'requests': [{
+                'transaction': 'MY_TRANSACTION',
+                'force-parent-sample': False,
+                'do': [{
+                    'url': 'http://blazedemo.com'
+                }]
+            }]
+        })
+        self.obj.save(self.jmx)
+        jmx = JMX(self.jmx)
+        selector = 'TransactionController > boolProp[name="TransactionController.parent"]'
+        props = jmx.get(selector)
+        self.assertEqual(len(props), 1)
+        non_parent = props[0]
+        self.assertEqual(non_parent.text, 'false')
+
+    def test_request_logic_nested_if(self):
+        self.configure(scenario={
+            "requests": [{
+                "if": "<cond1>",
+                "then": [
+                    "http://blazedemo.com/", {
+                        "if": "<cond2>",
+                        "then": [
+                            "http://demo.blazemeter.com/"
+                        ]
+                    }
+                ]
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        ifs = xml_tree.findall(".//IfController")
+        self.assertEqual(2, len(ifs))
+        conditions = xml_tree.findall(".//IfController/stringProp[@name='IfController.condition']")
+        self.assertEqual(2, len(conditions))
+        self.assertEqual(conditions[0].text, "<cond1>")
+        self.assertEqual(conditions[1].text, "<cond2>")
+
+    def test_logic_test_action(self):
+        self.configure(scenario={
+            "requests": [{
+                "action": "pause",
+                "pause-duration": "1s",
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        block = xml_tree.find(".//TestAction")
+        self.assertIsNotNone(block)
+        action = block.find('intProp[@name="ActionProcessor.action"]')
+        self.assertEqual(action.text, "1")
+        target = block.find('intProp[@name="ActionProcessor.target"]')
+        self.assertEqual(target.text, "0")
+        target = block.find('stringProp[@name="ActionProcessor.duration"]')
+        self.assertEqual(target.text, "1000")
+
+    def test_jsr223_block(self):
+        script = RESOURCES_DIR + "/jmeter/jsr223_script.js"
+        self.configure(scenario={
+            "requests": [{
+                "url": "http://blazedemo.com/",
+                "jsr223": {
+                    "language": "javascript",
+                    "script-file": script,
+                    "parameters": "first second"
+                }
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        self.assertEqual(1, len(post_procs))
+
+        jsr = post_procs[0]
+        self.assertEqual(script, jsr.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
+
+    def test_jsr223_exceptions_2(self):
+        self.configure(scenario={
+            "requests": [{
+                "url": "http://blazedemo.com/",
+                "jsr223": {
+                    "language": "javascript"
+                }
+            }]
+        })
+        self.assertRaises(TaurusConfigError, lambda: self.obj.save(self.jmx))
+
+    def test_jsr223_multiple(self):
+        pre_script = RESOURCES_DIR + "/jmeter/jsr223_script.js"
+        post_script = RESOURCES_DIR + "/jmeter/bean_script.bhs"
+        self.configure(scenario={
+            "requests": [{
+                "url": "http://blazedemo.com/",
+                "jsr223": [{
+                    "language": "javascript",
+                    "script-file": pre_script,
+                    "execute": "before",
+                }, {
+                    "language": "beanshell",
+                    "script-file": post_script,
+                    "execute": "after",
+                },
+                    'vars.put("a", 1)']
+            }]
+        })
+        self.obj.save(self.jmx)
+        with open(self.jmx, "rb") as fds:
+            xml_tree = etree.fromstring(fds.read())
+        pre_procs = xml_tree.findall(".//JSR223PreProcessor[@testclass='JSR223PreProcessor']")
+        post_procs = xml_tree.findall(".//JSR223PostProcessor[@testclass='JSR223PostProcessor']")
+        self.assertEqual(1, len(pre_procs))
+        self.assertEqual(2, len(post_procs))
+
+        pre = pre_procs[0]
+        self.assertEqual(pre_script, pre.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("javascript", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+
+        pre = post_procs[0]
+        self.assertEqual(post_script, pre.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("beanshell", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+
+        pre = post_procs[1]
+        self.assertEqual(None, pre.find(".//stringProp[@name='filename']").text)
+        self.assertEqual("groovy", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
+        self.assertEqual('vars.put("a", 1)', pre.find(".//stringProp[@name='script']").text)

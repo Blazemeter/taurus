@@ -148,13 +148,14 @@ class ProtocolHandler(object):
         self.scenario_builder = scenario_builder
         self.system_props = sys_props
 
-    @abstractmethod
     def get_toplevel_elements(self, scenario):
-        return None
+        pass
 
-    @abstractmethod
-    def get_elements_for_request(self, scenario, request):
-        return None
+    def get_sampler_elements(self, scenario, request):
+        pass
+
+    def get_processor_elements(self, scenario, request):
+        pass
 
     @staticmethod
     def safe_time(any_time):
@@ -164,6 +165,23 @@ class ProtocolHandler(object):
             smart_time = any_time
 
         return smart_time
+
+    @staticmethod
+    def _add_jsr_elements(children, req):
+        jsrs = req.config.get("jsr223", [])
+        if not isinstance(jsrs, list):
+            jsrs = [jsrs]
+        for idx, _ in enumerate(jsrs):
+            jsr = ensure_is_dict(jsrs, idx, default_key='script-text')
+            lang = jsr.get("language", "groovy")
+            script_file = jsr.get("script-file", None)
+            script_text = jsr.get("script-text", None)
+            if not script_file and not script_text:
+                raise TaurusConfigError("jsr223 element must specify one of 'script-file' or 'script-text'")
+            parameters = jsr.get("parameters", "")
+            execute = jsr.get("execute", "after")
+            children.append(JMX._get_jsr223_element(lang, script_file, parameters, execute, script_text))
+            children.append(etree.Element("hashTree"))
 
 
 class JMeterScenarioBuilder(JMX):
@@ -188,128 +206,6 @@ class JMeterScenarioBuilder(JMX):
             cls_obj = load_class(cls_name)
             instance = cls_obj(self, self.system_props)
             self.protocol_handlers.append(instance)
-
-    def __add_think_time(self, children, req):
-        think_time = req.priority_option('think-time')
-        if think_time is not None:
-            children.append(JMX._get_constant_timer(ProtocolHandler.safe_time(think_time)))
-            children.append(etree.Element("hashTree"))
-
-    def __add_extractors(self, children, req):
-        self.__add_boundary_ext(children, req)
-        self.__add_regexp_ext(children, req)
-        self.__add_json_ext(children, req)
-        self.__add_jquery_ext(children, req)
-        self.__add_xpath_ext(children, req)
-
-    def __add_boundary_ext(self, children, req):
-        extractors = req.config.get("extract-boundary")
-        for varname, cfg in iteritems(extractors):
-            subj = cfg.get('subject', 'body')
-            left = cfg.get('left', TaurusConfigError("Left boundary is missing for boundary extractor %s" % varname))
-            right = cfg.get('right', TaurusConfigError("Right boundary is missing for boundary extractor %s" % varname))
-            match_no = cfg.get('match-no', 1)
-            defvalue = cfg.get('default', 'NOT_FOUND')
-            extractor = JMX._get_boundary_extractor(varname, subj, left, right, match_no, defvalue)
-            children.append(extractor)
-            children.append(etree.Element("hashTree"))
-
-    def __add_regexp_ext(self, children, req):
-        extractors = req.config.get("extract-regexp")
-        for varname in extractors:
-            cfg = ensure_is_dict(extractors, varname, "regexp")
-            extractor = JMX._get_extractor(varname, cfg.get('subject', 'body'), cfg['regexp'], cfg.get('template', 1),
-                                           cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'))
-            children.append(extractor)
-            children.append(etree.Element("hashTree"))
-
-    def __add_json_ext(self, children, req):
-        jextractors = req.config.get("extract-jsonpath")
-        for varname in jextractors:
-            cfg = ensure_is_dict(jextractors, varname, "jsonpath")
-            if LooseVersion(str(self.executor.settings.get("version"))) < LooseVersion("3.0"):
-                extractor = JMX._get_json_extractor(varname,
-                                                    cfg["jsonpath"],
-                                                    cfg.get("default", "NOT_FOUND"),
-                                                    cfg.get("from-variable", None))
-            else:
-                extractor = JMX._get_internal_json_extractor(varname,
-                                                             cfg["jsonpath"],
-                                                             cfg.get("default", "NOT_FOUND"),
-                                                             cfg.get("scope", None),
-                                                             cfg.get("from-variable", None),
-                                                             cfg.get("match-no", "0"),
-                                                             cfg.get("concat", False))
-
-            children.append(extractor)
-            children.append(etree.Element("hashTree"))
-
-    def __add_jquery_ext(self, children, req):
-        css_jquery_extors = req.config.get("extract-css-jquery")
-        for varname in css_jquery_extors:
-            cfg = ensure_is_dict(css_jquery_extors, varname, "expression")
-            extractor = self._get_jquerycss_extractor(varname,
-                                                      cfg['expression'],
-                                                      cfg.get('attribute', ""),
-                                                      cfg.get('match-no', 0),
-                                                      cfg.get('default', 'NOT_FOUND'))
-            children.append(extractor)
-            children.append(etree.Element("hashTree"))
-
-    def __add_xpath_ext(self, children, req):
-        xpath_extractors = req.config.get("extract-xpath")
-        for varname in xpath_extractors:
-            cfg = ensure_is_dict(xpath_extractors, varname, "xpath")
-            children.append(JMX._get_xpath_extractor(varname,
-                                                     cfg['xpath'],
-                                                     cfg.get('default', 'NOT_FOUND'),
-                                                     cfg.get('validate-xml', False),
-                                                     cfg.get('ignore-whitespace', True),
-                                                     cfg.get("match-no", "-1"),
-                                                     cfg.get('use-namespaces', False),
-                                                     cfg.get('use-tolerant-parser', False)))
-            children.append(etree.Element("hashTree"))
-
-    @staticmethod
-    def __add_assertions(children, req):
-        assertions = req.config.get("assert", [])
-        for idx, assertion in enumerate(assertions):
-            assertion = ensure_is_dict(assertions, idx, "contains")
-            if not isinstance(assertion['contains'], list):
-                assertion['contains'] = [assertion['contains']]
-            children.append(JMX._get_resp_assertion(assertion.get("subject", Scenario.FIELD_BODY),
-                                                    assertion['contains'],
-                                                    assertion.get('regexp', True),
-                                                    assertion.get('not', False),
-                                                    assertion.get('assume-success', False)))
-            children.append(etree.Element("hashTree"))
-
-        jpath_assertions = req.config.get("assert-jsonpath", [])
-        for idx, assertion in enumerate(jpath_assertions):
-            assertion = ensure_is_dict(jpath_assertions, idx, "jsonpath")
-
-            exc = TaurusConfigError('JSON Path not found in assertion: %s' % assertion)
-            component = JMX._get_json_path_assertion(assertion.get('jsonpath', exc),
-                                                     assertion.get('expected-value', ''),
-                                                     assertion.get('validate', False),
-                                                     assertion.get('expect-null', False),
-                                                     assertion.get('invert', False),
-                                                     assertion.get('regexp', True))
-            children.append(component)
-            children.append(etree.Element("hashTree"))
-
-        xpath_assertions = req.config.get("assert-xpath", [])
-        for idx, assertion in enumerate(xpath_assertions):
-            assertion = ensure_is_dict(xpath_assertions, idx, "xpath")
-
-            exc = TaurusConfigError('XPath not found in assertion: %s' % assertion)
-            component = JMX._get_xpath_assertion(assertion.get('xpath', exc),
-                                                 assertion.get('validate-xml', False),
-                                                 assertion.get('ignore-whitespace', True),
-                                                 assertion.get('use-tolerant-parser', False),
-                                                 assertion.get('invert', False))
-            children.append(component)
-            children.append(etree.Element("hashTree"))
 
     @staticmethod
     def __add_jsr_elements(children, req):
@@ -361,11 +257,19 @@ class JMeterScenarioBuilder(JMX):
         :type request: HierarchicHTTPRequest
         :return:
         """
-        elements = None
+        elements = []
         for protocol in self.protocol_handlers:
-            elements = protocol.get_elements_for_request(self.scenario, request)
-            if elements:
+            elems = protocol.get_sampler_elements(self.scenario, request)
+            if elems:
+                elements.extend(elems)
                 break
+
+        processors = []
+        for protocol in self.protocol_handlers:
+            procs = protocol.get_processor_elements(self.scenario, request)
+            if procs:
+                processors.extend(procs)
+        elements.extend(processors)
 
         if not elements:
             self.log.warning("Problematic request: %s", request.config)
@@ -373,54 +277,7 @@ class JMeterScenarioBuilder(JMX):
 
         self.log.info("Compiled request %s into %s", request, elements)
 
-        # self.__add_think_time(elements, request)
-        # self.__add_assertions(elements, request)
-        #
-        # timeout = ProtocolHandler.safe_time(request.priority_option('timeout'))
-        # if timeout is not None:
-        #     elements.append(JMX._get_dur_assertion(timeout))
-        #     elements.append(etree.Element("hashTree"))
-        #
-        # self.__add_extractors(elements, request)
-        #
-        # self.__add_jsr_elements(elements, request)
-
         return elements
-
-    def compile_action_block(self, block):
-        """
-        :type block: ActionBlock
-        :return:
-        """
-        actions = {
-            'stop': 0,
-            'pause': 1,
-            'stop-now': 2,
-            'continue': 3,
-        }
-        targets = {'current-thread': 0, 'all-threads': 2}
-        action = actions[block.action]
-        target = targets[block.target]
-        duration = 0
-        if block.duration is not None:
-            duration = int(block.duration * 1000)
-        test_action = JMX._get_action_block(action, target, duration)
-        children = etree.Element("hashTree")
-        self.__add_jsr_elements(children, block)
-        return [test_action, children]
-
-    def compile_set_variables_block(self, block):
-        # pause current thread for 0s
-        test_action = JMX._get_action_block(action_index=1, target_index=0, duration_ms=0)
-        children = etree.Element("hashTree")
-        fmt = "vars.put('%s', %r);"
-        block.config["jsr223"] = [{
-            "language": "groovy",
-            "execute": "before",
-            "script-text": "\n".join(fmt % (var, expr) for var, expr in iteritems(block.mapping))
-        }]
-        self.__add_jsr_elements(children, block)
-        return [test_action, children]
 
     def compile_requests(self, requests):
         compiled = []

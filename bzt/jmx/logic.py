@@ -3,16 +3,12 @@ import re
 from lxml import etree
 
 from bzt import TaurusConfigError
-from jmx import JMX
-from jmx.tools import ProtocolHandler
-from utils import dehumanize_time
+from bzt.jmx import JMX
+from bzt.jmx.tools import ProtocolHandler
 
 
 class LogicControllersHandler(ProtocolHandler):
-    def get_toplevel_elements(self, scenario):
-        return None
-
-    def get_elements_for_request(self, scenario, request):
+    def get_sampler_elements(self, scenario, request):
         if 'if' in request.config:
             condition = request.get("if")
             # TODO: apply some checks to `condition`?
