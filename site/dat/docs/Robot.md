@@ -42,6 +42,19 @@ execution:
     script: tests/
 ```
 
+## Tags
+
+You can pass tags you want to include by specifying `tags` in the scenario:
+```yaml
+execution:
+- executor: robot
+  scenario:
+    tags: create,database  # comma-separated list of tags
+    variables:
+      BROWSER: Firefox
+    script: tests/
+```
+
 ## Configuration Options
 
 The `interpreter` option allows providing custom interpreter for your tests
