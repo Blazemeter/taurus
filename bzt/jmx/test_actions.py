@@ -1,10 +1,7 @@
 from lxml import etree
 
-from bzt import TaurusConfigError
 from bzt.jmx import JMX
 from bzt.jmx.tools import ProtocolHandler
-from bzt.six import iteritems
-from bzt.utils import dehumanize_time
 
 
 class TestActionsHandler(ProtocolHandler):

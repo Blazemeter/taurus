@@ -10,39 +10,57 @@ from bzt.jmx.tools import ProtocolHandler
 class LogicControllersHandler(ProtocolHandler):
     def get_sampler_elements(self, scenario, request):
         if 'if' in request.config:
-            condition = request.get("if")
-            # TODO: apply some checks to `condition`?
-            then_clause = request.get("then", TaurusConfigError("'then' clause is mandatory for 'if' blocks"))
-            else_clause = request.get("else", [])
-            return self.compile_if_block(condition, then_clause, else_clause, request)
+            return self._handle_if(request)
         elif 'loop' in request.config:
-            loops = request.get("loop")
-            do_block = request.get("do", TaurusConfigError("'do' option is mandatory for 'loop' blocks"))
-            return self.compile_loop_block(loops, do_block, request)
+            return self._handle_loop(request)
         elif 'while' in request.config:
-            condition = request.get("while")
-            do_block = request.get("do", TaurusConfigError("'do' option is mandatory for 'while' blocks"))
-            return self.compile_while_block(condition, do_block, request)
+            return self._handle_while(request)
         elif 'foreach' in request.config:
-            iteration_str = request.get("foreach")
-            match = re.match(r'(.+) in (.+)', iteration_str)
-            if not match:
-                msg = "'foreach' value should be in format '<elementName> in <collection>' but '%s' found"
-                raise TaurusConfigError(msg % iteration_str)
-            loop_var, input_var = match.groups()
-            do_block = request.get("do", TaurusConfigError("'do' field is mandatory for 'foreach' blocks"))
-            return self.compile_foreach_block(input_var, loop_var, do_block, request)
+            return self._handle_foreach(request)
         elif 'transaction' in request.config:
-            name = request.get('transaction')
-            do_block = request.get('do', TaurusConfigError("'do' field is mandatory for transaction blocks"))
-            include_timers = request.get('include-timers', False)
-            force_parent_sample = request.priority_option('force-parent-sample', True)
-            return self.compile_transaction_block(name, include_timers, force_parent_sample, do_block, request)
+            return self._handle_transaction(request)
         elif 'include-scenario' in request.config:
-            name = request.get('include-scenario')
-            return self.compile_include_scenario_block(name)
+            return self._handle_include(request)
         else:
             return None
+
+    def _handle_include(self, request):
+        name = request.get('include-scenario')
+        return self.compile_include_scenario_block(name)
+
+    def _handle_transaction(self, request):
+        name = request.get('transaction')
+        do_block = request.get('do', TaurusConfigError("'do' field is mandatory for transaction blocks"))
+        include_timers = request.get('include-timers', False)
+        force_parent_sample = request.priority_option('force-parent-sample', True)
+        return self.compile_transaction_block(name, include_timers, force_parent_sample, do_block, request)
+
+    def _handle_foreach(self, request):
+        iteration_str = request.get("foreach")
+        match = re.match(r'(.+) in (.+)', iteration_str)
+        if not match:
+            msg = "'foreach' value should be in format '<elementName> in <collection>' but '%s' found"
+            raise TaurusConfigError(msg % iteration_str)
+        loop_var, input_var = match.groups()
+        do_block = request.get("do", TaurusConfigError("'do' field is mandatory for 'foreach' blocks"))
+        return self.compile_foreach_block(input_var, loop_var, do_block, request)
+
+    def _handle_while(self, request):
+        condition = request.get("while")
+        do_block = request.get("do", TaurusConfigError("'do' option is mandatory for 'while' blocks"))
+        return self.compile_while_block(condition, do_block, request)
+
+    def _handle_loop(self, request):
+        loops = request.get("loop")
+        do_block = request.get("do", TaurusConfigError("'do' option is mandatory for 'loop' blocks"))
+        return self.compile_loop_block(loops, do_block, request)
+
+    def _handle_if(self, request):
+        condition = request.get("if")
+        # TODO: apply some checks to `condition`?
+        then_clause = request.get("then", TaurusConfigError("'then' clause is mandatory for 'if' blocks"))
+        else_clause = request.get("else", [])
+        return self.compile_if_block(condition, then_clause, else_clause, request)
 
     def compile_if_block(self, condition, then_clause, else_clause, request):
         elements = []

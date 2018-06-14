@@ -17,15 +17,12 @@ limitations under the License.
 """
 import os
 import traceback
-from abc import abstractmethod
-from distutils.version import LooseVersion
 
 from bzt import TaurusInternalException, TaurusConfigError
-from bzt.engine import Scenario
 from bzt.jmx import JMX
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
-from bzt.requests_model import RequestVisitor, has_variable_pattern, Request
-from bzt.six import etree, iteritems, numeric_types
+from bzt.requests_model import has_variable_pattern, Request
+from bzt.six import etree, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, get_full_path, guess_csv_dialect, load_class
 
 
