@@ -1,5 +1,6 @@
 *** Test Cases ***
 User can create an account and log in
+    [Tags]    create
     Create Valid User    fred    P4ssw0rd
     Attempt to Login with Credentials    fred    P4ssw0rd
     Status Should Be    Logged In
