@@ -85,7 +85,7 @@ class TestApacheBenchExecutor(BZTestCase):
                 "keepalive": True,
                 "requests": [{
                     "url": "http://blazedemo.com",
-                    "headers": [{"X-Answer": "42"}],
+                    "headers": {"X-Answer": "42"},
                     "keepalive": False,
                     "method": "GET"}]}})
         self.obj.prepare()

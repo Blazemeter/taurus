@@ -1272,6 +1272,7 @@ def is_piped(file_obj):
 
 class PythonGenerator(object):
     IMPORTS = ''
+    INDENT_STEP = 4
 
     def __init__(self, scenario, parent_logger):
         self.root = etree.Element("PythonCode")
@@ -1296,36 +1297,45 @@ class PythonGenerator(object):
         return class_def_element
 
     @staticmethod
-    def gen_method_definition(method_name, params, indent=4):
+    def gen_method_definition(method_name, params, indent=None):
+        if indent is None:
+            indent = PythonGenerator.INDENT_STEP
+
         def_tmpl = "def {method_name}({params}):"
         method_def_element = etree.Element("method_definition", indent=str(indent))
         method_def_element.text = def_tmpl.format(method_name=method_name, params=",".join(params))
         return method_def_element
 
     @staticmethod
-    def gen_decorator_statement(decorator_name, indent=4):
+    def gen_decorator_statement(decorator_name, indent=None):
+        if indent is None:
+            indent = PythonGenerator.INDENT_STEP
+
         def_tmpl = "@{decorator_name}"
         decorator_element = etree.Element("decorator_statement", indent=str(indent))
         decorator_element.text = def_tmpl.format(decorator_name=decorator_name)
         return decorator_element
 
     @staticmethod
-    def gen_statement(statement, indent=8):
+    def gen_statement(statement, indent=None):
+        if indent is None:
+            indent = PythonGenerator.INDENT_STEP*2
+
         statement_elem = etree.Element("statement", indent=str(indent))
         statement_elem.text = statement
         return statement_elem
 
-    def gen_comment(self, comment, indent=8):
-        return self.gen_statement("# %s" % comment, indent)
+    def gen_comment(self, comment, indent=None):
+        return self.gen_statement("# %s" % comment, indent=indent)
 
     def save(self, filename):
-        with open(filename, 'wt') as fds:
+        with codecs.open(filename, 'w', encoding='utf-8') as fds:
             for child in self.root.iter():
                 if child.text is not None:
                     indent = int(child.get('indent', "0"))
                     fds.write(" " * indent + child.text + "\n")
 
-    def gen_new_line(self, indent=8):
+    def gen_new_line(self, indent=0):
         return self.gen_statement("", indent=indent)
 
 
@@ -1362,7 +1372,7 @@ class LDJSONReader(object):
         lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
-            if not line.endswith("\n"):
+            if not last_pass and not line.endswith("\n"):
                 self.partial_buffer += line
                 continue
             line = "%s%s" % (self.partial_buffer, line)

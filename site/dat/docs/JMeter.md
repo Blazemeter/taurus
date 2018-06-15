@@ -287,6 +287,7 @@ Extractors are the objects that attached to request to take a piece of the respo
 The concept is based on JMeter's extractors. The following types of extractors are supported:
 
 - by regular expression
+- by boundary
 - by JSONPath expression
 - by CSS/JQuery selectors
 - by XPath query
@@ -310,6 +311,7 @@ scenarios:
         title: /html/head/title
 ```
 
+Note that boundary extractor has no shorthand form. It can only be defined with full form.
 
 The full form for extractors is:
 
@@ -350,6 +352,14 @@ scenarios:
           match-no: -1
           use-namespaces: false
           use-tolerant-parser: false
+     - url: http://blazedemo.com/${varname}.xml
+       extract-boundary:
+         pagetitle:
+           subject: body  # extractor scope. values are: body, body-unescaped, body-as-document, response-headers, request-headers, url, code, message
+           left: <title>  # left boundary to look for
+           right: </title>  # right boundary to look for
+           match-no: 1  # match number. 0 for random
+           default: DEFVAL  # default value, if nothing is matched
 ```
 
 Parameters of jsonpath exractor `concat`, `scope` and `match-num` work only on JMeter >= 3.0

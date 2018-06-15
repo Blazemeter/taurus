@@ -5,11 +5,13 @@ import random
 import sys
 import tempfile
 from _socket import SOCK_STREAM, AF_INET
+from collections import Counter
 
 import requests
 
 from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools, Singletone, Service
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
+from bzt.modules import TransactionListener
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.six import b
@@ -339,3 +341,15 @@ class BZMock(object):
 
 class SingletoneServiceMock(ModuleMock, Singletone, Service):
     pass
+
+
+class DummyListener(TransactionListener):
+    def __init__(self):
+        self.transactions = Counter()
+
+    def transaction_started(self, sender, label, start_time):
+        self.transactions[label] += 1
+
+    def transaction_ended(self, sender, label, end_time):
+        self.transactions[label] += 1
+

@@ -289,6 +289,10 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
             "scenarios": {
                 "loc_sc": {
                     "default-address": "http://blazedemo.com",
+                    "variables": {
+                        "red_pill": "take_it",
+                        "name": "Name"
+                    },
                     "timeout": "3.5s",
                     "requests": [{
                         "url": "/",
@@ -306,15 +310,39 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"selectByName(toPort)": "London"},
                             {"keysByCSS(body input.btn.btn-primary)": "KEY_ENTER"},
                             {"assertValueByID(address)": "123 Beautiful st."},
-                            {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "Name"},
+                            {"assertTextByXPath(/html/body/div[2]/form/div[1]/label)": "${name}"},
                             {"waitByName('toPort')": "visible"},
                             {"keysByName(\"toPort\")": "B"},
+                            {"typeByName(\"toPort\")": "B"},
+                            {"keysByName(\"toPort\")": u"KEY_ENTER"},
+                            {"typeByName(\"toPort\")": "KEY_ENTER"},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
                             "clickByXPath(//div[3]/form/select[2]//option[6])",
-                            "clickByXPath(//input[@type='submit'])",
-                            "pauseFor(3s)",
+                            "switchWindow(0)",
+                            "switchWindow('win_ser_local')",
+                            "switchWindow('win_ser_1')",
+                            "switchWindow('that_window')",
+                            "closeWindow(1)",
+                            "closeWindow('win_ser_local')",
+                            "closeWindow('win_ser_1')",
+                            "closeWindow('that_window')",
+                            "submitByName(\"toPort\")",
+                            "scriptEval(\"alert('This is Sparta');\")",
+                            {"dragByID(address)": "elementByName(toPort)"},
+                            "switchFrameByName('my_frame')",
+                            "switchFrameByIdx(1)",
+                            "switchFrame(relative=parent)",
+                            {"editContentById(editor)": "lo-la-lu"},
+                            "pauseFor(3.5s)",
                             "clearCookies()",
-                            "clickByLinkText(destination of the week! The Beach!)"
+                            "clickByLinkText(destination of the week! The Beach!)",
+                            {"storeTitle()": "Title"},
+                            {"storeTextByXPath(//*[@id='basics']/h2)": "Basic"},
+                            {"storeValueByXPath(//*[@id='basics']/h1)": "World"},
+                            {"storeString(${Title} ${Basic} by ${By})": "Final"},
+                            "go(http:\\blazemeter.com)",
+                            "echoString(${red_pill})"
+
 
                         ],
                     },
@@ -1495,4 +1523,54 @@ class TestRobotExecutor(BZTestCase):
         samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
         self.obj.log.info(samples)
         self.assertEqual(5, len(samples))
+        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
+
+    def test_single_tag(self):
+        self.configure({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "tags": "create",
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot",
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
+        self.obj.log.info(samples)
+        self.assertEqual(1, len(samples))
+        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
+
+    def test_multiple_tags(self):
+        self.configure({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "tags": "create,database",
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot",
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
+        self.obj.log.info(samples)
+        self.assertEqual(2, len(samples))
         self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))

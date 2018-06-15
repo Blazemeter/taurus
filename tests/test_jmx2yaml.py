@@ -330,6 +330,21 @@ class TestConverter(BZTestCase):
             "jsonpath": "$.bar",
             "default": "DEF_2",
         })
+        # extract-boundary
+        self.assertEqual(tg_two['requests'][0]['extract-boundary']['extractedTitle'], {
+            'subject': 'body',
+            'left': '<title>',
+            'right': '</title>',
+            'match-no': 1,
+            'default': 'DEFVAL',
+        })
+        self.assertEqual(tg_two['requests'][0]['extract-boundary']['extractedMeta'], {
+            'subject': 'response-headers',
+            'left': 'Host:',
+            'right': '\\n',
+            'match-no': 0,
+            'default': '',
+        })
 
     def test_request_body(self):
         yml = self._get_tmp()
@@ -536,4 +551,3 @@ class TestConverter(BZTestCase):
         first, second = requests
         self.assertEqual('forever', first['loop'])
         self.assertEqual(10, second['loop'])
-

@@ -177,7 +177,7 @@ class Proxy2JMX(Service, Singletone):
         self.log.info("Simple JMX saved into %s", self.output_simple)
 
         self.log.info("Waiting for proxy to generate SmartJMX...")
-        jmx_text = self.proxy.get_smart_jmx()
+        jmx_text = self.proxy.get_jmx(smart=True)
         if not self.output_smart:
             self.output_smart = self.engine.create_artifact(self.label, '.smart.jmx')
         with open(self.output_smart, 'w') as _file:

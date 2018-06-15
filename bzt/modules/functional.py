@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 from abc import abstractmethod
-from collections import namedtuple
 
 from bzt.engine import Aggregator
 from bzt.modules.aggregator import ResultsReader
@@ -132,7 +131,7 @@ class ResultsTree(BetterDict):
 class FunctionalResultsReader(object):
     @abstractmethod
     def read(self, last_pass=False):
-        "Yields functional samples"
+        """Yields functional samples"""
         yield
 
 
@@ -220,7 +219,7 @@ class LoadSamplesReader(ResultsReader):
         ltc = 0
         rcd = self.STATUS_TO_CODE.get(item["status"], "UNKNOWN")
         error = item["error_msg"] if item["status"] in TestReportReader.FAILING_TESTS_STATUSES else None
-        trname = ""
+        trname = item.get("workerID", "")
         byte_count = None
         return tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count
 

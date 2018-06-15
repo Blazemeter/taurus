@@ -63,6 +63,7 @@ reporting:
 - module: final-stats
   summary: true  # overall samples count and percent of failures
   percentiles: true  # display average times and percentiles
+  summary-labels: false # provides list of sample labels, status, percentage of completed, avg time and errors
   failed-labels: false  # provides list of sample labels with failures
   test-duration: true  # provides test duration
   dump-xml: filename to export data in XML format

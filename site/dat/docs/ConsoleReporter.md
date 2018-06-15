@@ -21,6 +21,9 @@ modules:
     # - console (ncurses-based dashboard, default for *nix systems)
     # - gui (window-based dashboard, default for Windows, requires Tkinter)
     # - dummy (text output into console for non-tty cases)
+    
+    dummy-cols: 140  # width for dummy screen
+    dummy-rows: 35   # height for dummy screen 
 ```
 
 You can also disable this reporter by using [command-line](CommandLine.md) `-o` switch:

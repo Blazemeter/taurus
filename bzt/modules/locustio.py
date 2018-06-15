@@ -313,19 +313,19 @@ from locust import HttpLocust, TaskSet, task
         self.root.append(scenario_class)
         self.root.append(swarm_class)
 
-        swarm_class.append(self.gen_statement('task_set = UserBehaviour', indent=4))
+        swarm_class.append(self.gen_statement('task_set = UserBehaviour', indent=self.INDENT_STEP))
 
         default_address = self.scenario.get("default-address", "")
-        swarm_class.append(self.gen_statement('host = "%s"' % default_address, indent=4))
+        swarm_class.append(self.gen_statement('host = "%s"' % default_address, indent=self.INDENT_STEP))
 
-        swarm_class.append(self.gen_statement('min_wait = %s' % 0, indent=4))
-        swarm_class.append(self.gen_statement('max_wait = %s' % 0, indent=4))
-        swarm_class.append(self.gen_new_line(indent=0))
+        swarm_class.append(self.gen_statement('min_wait = %s' % 0, indent=self.INDENT_STEP))
+        swarm_class.append(self.gen_statement('max_wait = %s' % 0, indent=self.INDENT_STEP))
+        swarm_class.append(self.gen_new_line())
 
         scenario_class.append(self.gen_decorator_statement('task(1)'))
 
         scenario_class.append(self.__gen_task())
-        scenario_class.append(self.gen_new_line(indent=0))
+        scenario_class.append(self.gen_new_line())
 
     def __gen_task(self):
         task = self.gen_method_definition("generated_task", ['self'])

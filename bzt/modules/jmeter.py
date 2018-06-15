@@ -59,10 +59,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     """
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
-    PLUGINS_MANAGER_VERSION = "0.20"
+    PLUGINS_MANAGER_VERSION = "1.1"
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
                       '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
-    CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.0/cmdrunner-2.0.jar'
+    CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar'
     JMETER_VER = "4.0"
     UDP_PORT_NUMBER = None
 
@@ -568,8 +568,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_listener(log_lst, jmx)
 
     def __add_result_writers(self, jmx):
+        version = LooseVersion(str(self.settings.get('version', self.JMETER_VER)))
+        flags = {}
+        if version < LooseVersion("2.13"):
+            flags['^connectTime'] = False
+
         self.kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl)
+        kpi_lst = jmx.new_kpi_listener(self.kpi_jtl, flags)
         self.__add_listener(kpi_lst, jmx)
 
         verbose = self.engine.config.get(SETTINGS).get("verbose", False)
@@ -1395,16 +1400,16 @@ class JTLErrorsReader(object):
                 return assertion_message, False, None, r_code, assertion_name
             else:
                 return element.get('rm'), False, None, r_code, None
+
         if r_code and r_code.startswith("2"):
             if element.get('s') == "false":
                 # FIXME: would work with HTTP only...
-                children = [elem for elem in element.iterchildren() if elem.tag == "httpSample"]
+                children = [elem for elem in element.iterchildren() if elem.tag == "httpSample" or elem.tag=="sample"]
                 for child in children:
                     child_message, _, url, r_code, tag = self.get_failure_message(child)
                     if child_message:
                         return child_message, True, url, r_code, tag
-            else:
-                return None, False, None, None, None
+            return None, False, None, None, None
         else:
             url = element.xpath(self.url_xpath)
             return element.get('rm'), False, url[0].text if url else element.get("lb"), r_code, None
@@ -1506,7 +1511,7 @@ class JMeter(RequiredTool):
         if err and "Wrong command: install-for-jmx" in err:  # old manager
             self.log.debug("pmgr can't discover jmx for plugins")
 
-        if out and "Restarting JMeter" in out:
+        if out and "Plugins manager will apply some modifications" in out:
             time.sleep(5)  # allow for modifications to complete
 
     def __install_jmeter(self, dest):
@@ -1569,7 +1574,7 @@ class JMeter(RequiredTool):
         except BaseException as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
 
-        if out and "Restarting JMeter" in out:
+        if out and "Plugins manager will apply some modifications" in out:
             time.sleep(5)  # allow for modifications to complete
 
     def _pmgr_path(self):

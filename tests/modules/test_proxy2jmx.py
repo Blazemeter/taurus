@@ -69,10 +69,10 @@ class TestProxy2JMX(BZTestCase):
             ResponseEmul(200, ''),
             ResponseEmul(200, ''),  # startup: startRecording
             ResponseEmul(200, ''),  # shutdown: stopRecording
+            ResponseEmul(200, '{"result" : "http://jmx_url"}'),
             ResponseEmul(200, 'regular jmx contents'),
-            ResponseEmul(200, '{"result" : {"smartjmx": "unavailable"}}'),
-            ResponseEmul(200, '{"result" : {"smartjmx": "available"}}'),
-            ResponseEmul(200, 'only one string')]
+            ResponseEmul(200, '{"result" : "http://smartjmx_url"}'),
+            ResponseEmul(200, 'smartjmx content')]
 
         self.obj.engine.config.merge({
             'modules': {
@@ -94,7 +94,7 @@ class TestProxy2JMX(BZTestCase):
         with open(self.obj.engine.artifacts_dir + '/generated.smart.jmx') as fd:
             lines = fd.readlines()
             self.assertEqual(len(lines), 1)
-            self.assertEqual(lines[0].strip(), 'only one string')
+            self.assertEqual(lines[0].strip(), 'smartjmx content')
 
         with open(self.obj.engine.artifacts_dir + '/generated.simple.jmx') as fd:
             lines = fd.readlines()
@@ -123,9 +123,10 @@ class TestProxy2JMX(BZTestCase):
             ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
             ResponseEmul(200, '1'),  # stopRecording
             ResponseEmul(200, '2'),  # clearRecording
+            ResponseEmul(200, '{"result" : "http://jmx_url"}'),
             ResponseEmul(200, 'regular jmx contents'),
-            ResponseEmul(200, '{"result" : {"smartjmx": "available"}}'),
-            ResponseEmul(200, 'only one string')
+            ResponseEmul(200, '{"result" : "http://smartjmx_url"}'),
+            ResponseEmul(200, 'smartjmx content')
         ]
 
         self.obj.engine.config.merge({'modules': {'recorder': {'token': '123'}}})
@@ -202,10 +203,10 @@ class TestProxy2JMX(BZTestCase):
             ResponseEmul(200, ''),
             ResponseEmul(200, ''),  # startup: startRecording
             ResponseEmul(200, ''),  # shutdown: stopRecording
+            ResponseEmul(200, '{"result" : "http://jmx_url"}'),
             ResponseEmul(200, 'regular jmx contents'),
-            ResponseEmul(200, '{"result" : {"smartjmx": "unavailable"}}'),
-            ResponseEmul(200, '{"result" : {"smartjmx": "available"}}'),
-            ResponseEmul(200, 'only one string')]
+            ResponseEmul(200, '{"result" : "http://smartjmx_url"}'),
+            ResponseEmul(200, 'smartjmx content')]
 
         self.obj.engine.config.merge({
             'modules': {
