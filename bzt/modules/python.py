@@ -1655,6 +1655,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
         super(RobotExecutor, self).__init__()
         self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "robot_runner.py")
         self.variables_file = None
+        self.tags = None
 
     def resource_files(self):
         files = super(RobotExecutor, self).resource_files()
@@ -1685,6 +1686,12 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
                     fds.write(yml)
             else:
                 raise TaurusConfigError("`variables` is neither file nor dict")
+        tags = scenario.get("tags", None)
+        if tags:
+            if isinstance(tags, (string_types, text_type)):
+                self.tags = tags
+            else:
+                raise TaurusConfigError("`tags` is not a string or text")
 
     def install_required_tools(self):
         self._check_tools([Robot(self.settings.get("interpreter", sys.executable), self.log),
@@ -1708,6 +1715,9 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
         if self.variables_file is not None:
             cmdline += ['--variablefile', self.variables_file]
 
+        if self.tags is not None:
+            cmdline += ['--include', self.tags]
+            
         cmdline += [self.script]
         self._start_subprocess(cmdline)
 

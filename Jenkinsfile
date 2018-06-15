@@ -6,64 +6,29 @@ node() {
             cleanWs()
             scmVars = checkout scm
             commitHash = scmVars.GIT_COMMIT
-            isTag = false
-            sh """
-                echo "${env.BRANCH_NAME}"
-               """
+            isTag =  scmVars.GIT_BRANCH.startsWith("refs/tags/")
         }
 
         stage("Docker Image Build") {
             sh """ 
             docker build -t ${JOB_NAME} .
             """
-
-            if (isTag) {
-                sh """
-                sudo docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME}
-                """
-            }
         }
 
         stage("Create Artifacts") {
-            sh """ 
-            sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
-            sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py           
-            docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME} 
+            sh """
+                sed -ri "s/OS: /Rev: ${commitHash}; OS: /" bzt/cli.py           
             """
-        }
 
-        stage("Create Website Update") {
-            if (isTag) {
-                sh """
-                curl -sS https://getcomposer.org/installer | php
-                cd site
-                ../composer.phar update --prefer-stable --no-dev
-                cp vendor/undera/pwe/.htaccess ./
-                cd ..
-                python site/Taurus/kwindexer.py site/dat/docs site/dat/docs/KeywordIndex.md
-                cp site/dat/docs/img/*.png site/img/
-                
-                TAURUS_VERSION=\$(python -c 'import bzt; print(bzt.VERSION)')
-                sed -ri "s/_TAURUS_VERSION_/_${TAURUS_VERSION}_/" site/dat/docs/Installation.md
-                mkdir -p site/msi
-                cp build/nsis/*.exe site/msi/                
-                """
-            } else {
+            if (!isTag) {
                 sh """ 
-                cp -r site/dat/kb ./           
-                rm -r site/*
-                 
-                mkdir -p site/snapshots
-                cp dist/*.tar.gz site/snapshots
-                wget -P site/snapshots https://s3.amazonaws.com/deployment.blazemeter.com/jobs/taurus-pbench/10/blazemeter-pbench-extras_0.1.10.1_amd64.deb
-                cp build/nsis/*${BUILD_NUMBER}*.exe site/snapshots
-                
-                mkdir -p site/dat
-                mv ./kb site/dat/                            
+                sed -ri "s/VERSION = .([^\\"]+)./VERSION = '\\1.${BUILD_NUMBER}'/" bzt/__init__.py
                 """
             }
 
-            zip archive: true, dir: 'site', glob: '**/*.*', zipFile: 'site/site.zip'
+            sh """
+                docker run --entrypoint /bzt-configs/build-artifacts.bash -v `pwd`:/bzt-configs -t ${JOB_NAME} ${isTag} ${BUILD_NUMBER} 
+                """
         }
 
         stage('Update Website') {
@@ -97,7 +62,10 @@ node() {
                     path: "jobs/${JOB_NAME}/${BUILD_NUMBER}/bzt-${BUILD_NUMBER}.tar.gz",
                     acl: "PublicRead"
         }
+    } catch (e) {
+        currentBuild.result = "FAILED"
+        throw e
     } finally {
-        smartSlackNotification(channel: "taurus-dev")
+        smartSlackNotification(channel: "taurus-dev", buildStatus:currentBuild.result ?: 'SUCCESS')
     }
 }
