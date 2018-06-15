@@ -1,1 +1,0 @@
-Fix jmx2yaml crash when parsing LoopController with continue_forever set

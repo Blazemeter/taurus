@@ -102,7 +102,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+        if executable == sys.executable:
+            self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         report_type = ".ldjson" if self.engine.is_functional_mode() else ".csv"
         report_tpl = self.engine.create_artifact("apiritif-", "") + "%s" + report_type
@@ -137,7 +138,14 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             return False
         return self.reader.read_records > 0
 
-    def check(self):
+    @staticmethod
+    def _normalize_label(label):
+        for char in ":/":
+            if char in label:
+                label = label.replace(char, '_')
+        return label
+
+    def _check_stdout(self):
         for line in self._tailer.get_lines():
             if "Adding worker" in line:
                 marker = "results="
@@ -145,7 +153,27 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 fname = line[pos + len(marker):].strip()
                 self.log.debug("Adding result reader for %s", fname)
                 self.reader.register_file(fname)
+            elif "Transaction started" in line:
+                colon = line.index('::')
+                values = {
+                    part.split('=')[0]: part.split('=')[1]
+                    for part in line[colon+2:].strip().split(',')
+                }
+                label = self._normalize_label(values['name'])
+                start_time = float(values['start_time'])
+                self.transaction_started(label, start_time)
+            elif "Transaction ended" in line:
+                colon = line.index('::')
+                values = {
+                    part.split('=')[0]: part.split('=')[1]
+                    for part in line[colon+2:].strip().split(',')
+                }
+                label = self._normalize_label(values['name'])
+                duration = float(values['duration'])
+                self.transacion_ended(label, duration)
 
+    def check(self):
+        self._check_stdout()
         return super(ApiritifNoseExecutor, self).check()
 
     def __log_lines(self):
@@ -159,6 +187,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def post_process(self):
         super(ApiritifNoseExecutor, self).post_process()
+        self._check_stdout()
         self.__log_lines()
 
     def __is_verbose(self):
@@ -261,6 +290,40 @@ import selenium_taurus_extras
         self.appium = False
         self.ignore_unknown_actions = ignore_unknown_actions
 
+    def gen_asserts(self, config):
+        test_method = []
+        if "assert" in config:
+            test_method.append(self.gen_statement("body = self.driver.page_source"))
+            for assert_config in config.get("assert"):
+                for elm in self.gen_assertion(assert_config):
+                    test_method.append(elm)
+            test_method.append(self.gen_new_line())
+        return test_method
+
+    def gen_think_time(self, think_time):
+        test_method = []
+        #think_time = req.priority_option('think-time')
+        if think_time is not None:
+            delay = dehumanize_time(think_time)
+            if delay > 0:
+                test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
+                test_method.append(self.gen_new_line())
+        return test_method
+
+    def gen_request(self, req):
+        default_address = self.scenario.get("default-address")
+        transaction_contents = []
+        if req.url is not None:
+            parsed_url = parse.urlparse(req.url)
+            if default_address and not parsed_url.netloc:
+                url = default_address + req.url
+            else:
+                url = req.url
+            transaction_contents.append(
+                self.gen_statement("self.driver.get(%r)" % url, indent=self.INDENT_STEP * 3))
+            transaction_contents.append(self.gen_new_line())
+        return transaction_contents
+
     def build_source_code(self):
         self.log.debug("Generating Test Case test methods")
 
@@ -269,7 +332,6 @@ import selenium_taurus_extras
         test_class.append(self.gen_teardown_method())
 
         requests = self.scenario.get_requests(require_url=False)
-        default_address = self.scenario.get("default-address")
         test_method = self.gen_test_method('test_requests')
         self.gen_setup(test_method)
 
@@ -281,20 +343,12 @@ import selenium_taurus_extras
             else:
                 raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
 
-            test_method.append(self.gen_statement('with apiritif.transaction(%r):' % label))
+            test_method.append(self.gen_statement('with apiritif.transaction_logged(%r):' % label))
             transaction_contents = []
 
-            if req.url is not None:
-                parsed_url = parse.urlparse(req.url)
-                if default_address and not parsed_url.netloc:
-                    url = default_address + req.url
-                else:
-                    url = req.url
-                if req.timeout is not None:
+            transaction_contents.extend(self.gen_request(req))
+            if req.url is not None and req.timeout is not None:
                     test_method.append(self.gen_impl_wait(req.timeout, indent=self.INDENT_STEP * 3))
-                transaction_contents.append(
-                    self.gen_statement("self.driver.get(%r)" % url, indent=self.INDENT_STEP * 3))
-                transaction_contents.append(self.gen_new_line())
 
             action_append = False
             for action_config in req.config.get("actions", []):
@@ -306,31 +360,18 @@ import selenium_taurus_extras
                 transaction_contents.append(self.gen_new_line())
 
             if transaction_contents:
-                for line in transaction_contents:
-                    test_method.append(line)
+                test_method.extend(transaction_contents)
             else:
                 test_method.append(self.gen_statement('pass', indent=self.INDENT_STEP * 3))
             test_method.append(self.gen_new_line())
 
-            if "assert" in req.config:
-                test_method.append(self.gen_statement("body = self.driver.page_source"))
-                for assert_config in req.config.get("assert"):
-                    for elm in self.gen_assertion(assert_config):
-                        test_method.append(elm)
-                test_method.append(self.gen_new_line())
-
-            think_time = req.priority_option('think-time')
-            if think_time is not None:
-                delay = dehumanize_time(think_time)
-                if delay > 0:
-                    test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
-                    test_method.append(self.gen_new_line())
+            test_method.extend(self.gen_asserts(req.config))
+            test_method.extend(self.gen_think_time(req.priority_option('think-time')))
 
         test_class.append(test_method)
 
-        imports = self.add_imports()
-
-        self.root.append(imports)
+        self.root.append(self.gen_statement("# coding=utf-8", indent=0))
+        self.root.append(self.add_imports())
         self.root.extend(self.gen_global_vars())
         self.root.append(test_class)
 
@@ -437,6 +478,7 @@ import selenium_taurus_extras
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
 
         setup_method_def.append(self.gen_statement("self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)"))
+        setup_method_def.append(self.gen_statement("self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)"))
 
         if self.window_size:  # FIXME: unused in fact
             statement = self.gen_statement("self.driver.set_window_position(0, 0)")
@@ -563,7 +605,7 @@ import selenium_taurus_extras
         }
 
         if tag == "window":
-            if atype == "select":
+            if atype == "switch":
                 cmd = 'self.wnd_mng.switch(_tpl.apply(%r))' % selector
                 action_elements.append(self.gen_statement(cmd, indent=indent))
             elif atype == "close":
@@ -573,58 +615,128 @@ import selenium_taurus_extras
                     cmd = 'self.wnd_mng.close()'
                 action_elements.append(self.gen_statement(cmd, indent=indent))
 
-        elif atype == "selectframe":
+        elif atype == "switchframe":
             if tag == "byidx":
-                frame = str(selector)
+                cmd = "self.frm_mng.switch(%r)" % int(selector)
+            elif selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
+                cmd = "self.frm_mng.switch(%r)" % selector
             else:
                 frame = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
+                cmd = "self.frm_mng.switch(%s)" % frame
 
-            cmd = "self.driver.switch_to.frame(%s)" % frame
             action_elements.append(self.gen_statement(cmd, indent=indent))
 
-        elif atype in ('click', 'doubleclick', 'mousedown', 'mouseup', 'mousemove', 'keys',
-                       'asserttext', 'assertvalue', 'select', 'submit'):
+        elif atype in action_chains:
+            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+            action = action_chains[atype]
+            action_elements.append(self.gen_statement(
+                "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
+                indent=indent))
+        elif atype == 'drag':
+            drop_action = self._parse_action(param)
+            if drop_action and drop_action[0] == "element" and not drop_action[2]:
+                drop_tag, drop_selector = (drop_action[1], drop_action[3])
+                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+                action = "drag_and_drop"
+                drag_element = tpl % (bys[tag], selector)
+                drop_element = tpl % (bys[drop_tag], drop_selector)
+                action_elements.append(self.gen_statement(
+                        "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
+                        indent=indent))
+        elif atype == 'select':
+            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+            action = "select_by_visible_text(_tpl.apply(%r))" % param
+            action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
+                                                      indent=indent))
+        elif atype.startswith('assert') or atype.startswith('store'):
+            if tag == 'title':
+                if atype.startswith('assert'):
+                    action_elements.append(
+                        self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))"
+                                           % selector, indent=indent))
+                else:
+                    action_elements.append(self.gen_statement(
+                        "_vars['%s'] = _tpl.apply(self.driver.title)" % param.strip(), indent=indent
+                    ))
+            elif atype == 'store' and tag == 'string':
+                action_elements.append(self.gen_statement(
+                    "_vars['%s'] = _tpl.apply('%s')" % (param.strip(), selector.strip()), indent=indent
+                ))
+            else:
+                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
+                if atype in ['asserttext', 'storetext']:
+                    action = "get_attribute('innerText')"
+                elif atype in ['assertvalue', 'storevalue']:
+                    action = "get_attribute('value')"
+                if atype.startswith('assert'):
+                    action_elements.append(
+                        self.gen_statement("self.assertEqual(_tpl.apply(%s).strip(), _tpl.apply(%r).strip())" %
+                                           (tpl % (bys[tag], selector, action), param),
+                                           indent=indent))
+                elif atype.startswith('store'):
+                    action_elements.append(
+                        self.gen_statement("_vars['%s'] = _tpl.apply(%s)" %
+                                           (param.strip(), tpl % (bys[tag], selector, action)),
+                                           indent=indent))
+        elif atype in ('click', 'type', 'keys', 'submit'):
             tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
             action = None
             if atype == 'click':
                 action = "click()"
             elif atype == 'submit':
                 action = "submit()"
-            elif atype == 'keys':
-                action = "send_keys(_tpl.apply(%r))" % param
-                if isinstance(param, str) and param.startswith("KEY_"):
+            elif atype in ['keys', 'type']:
+                if atype == 'type':
+                    action_elements.append(self.gen_statement(
+                        tpl % (bys[tag], selector, "clear()"), indent=indent))
+                action = "send_keys(_tpl.apply(%r))" % str(param)
+                if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
                     action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
-            elif atype in action_chains:
-                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
-                action = action_chains[atype]
-                action_elements.append(self.gen_statement(
-                    "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
-                    indent=indent))
-            elif atype == 'select':
-                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
-                action = "select_by_visible_text(_tpl.apply(%r))" % param
-                action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
-                                                          indent=indent))
-            elif atype.startswith('assert'):
-                if atype == 'asserttext':
-                    action = "get_attribute('innerText')"
-                elif atype == 'assertvalue':
-                    action = "get_attribute('value')"
-                action_elements.append(
-                    self.gen_statement("self.assertEqual(%s, _tpl.apply(%r))" %
-                                       (tpl % (bys[tag], selector, action), param),
-                                       indent=indent))
-            if not action_elements:
-                action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
-        elif atype == "run" and tag == "script":
-            action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply("%s"))' %
+
+            action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
+
+        elif atype == "script" and tag == "eval":
+            action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply(%r))' %
                                                       selector, indent=indent))
+        elif atype == 'go':
+            if selector and not param:
+                action_elements.append(self.gen_statement(
+                    "self.driver.get(_tpl.apply(%r))" % selector.strip(), indent=indent
+                ))
         elif atype == "editcontent":
-            element = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
-            tpl = "if {element}.get_attribute('contenteditable'): {element}.clear(); " \
-                  "{element}.send_keys(_tpl.apply('{keys}'))"
-            vals = {"element": element, "keys": param}
-            action_elements.append(self.gen_statement(tpl.format(**vals), indent=indent))
+            element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
+            editable_error = "The element (By.%s, %r) " \
+                             "is not contenteditable element" % (bys[tag], selector)
+            editable_script_tpl = "arguments[0].innerHTML = %s;"
+            editable_script_tpl_argument = "_tpl.str_repr(_tpl.apply(%r))" % param.strip()
+            editable_script = "%r %% %s" % \
+                              (editable_script_tpl, editable_script_tpl_argument)
+            action_elements.extend([
+                self.gen_statement(
+                    "if %s.get_attribute('contenteditable'):" % element,
+                    indent=indent),
+                self.gen_statement(
+                    "self.driver.execute_script(",
+                    indent=indent + self.INDENT_STEP),
+                self.gen_statement(
+                    "%s," % editable_script,
+                    indent=indent + self.INDENT_STEP*2),
+                self.gen_statement(
+                    element,
+                    indent=indent + self.INDENT_STEP*2),
+                self.gen_statement(
+                    ")",
+                    indent=indent + self.INDENT_STEP),
+                self.gen_statement(
+                    "else:", indent=indent),
+                self.gen_statement(
+                    "raise NoSuchElementException(%r)" % editable_error,
+                    indent=indent + self.INDENT_STEP)
+            ])
+        elif atype == 'echo' and tag == 'string':
+            if len(selector) > 0 and not param:
+                action_elements.append(
+                    self.gen_statement("print(_tpl.apply(%r))" % selector.strip(), indent=indent))
         elif atype == 'wait':
             tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, _tpl.apply(%r))), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
@@ -633,14 +745,10 @@ import selenium_taurus_extras
             errmsg = "Element %r failed to appear within %ss" % (selector, timeout)
             action_elements.append(self.gen_statement(tpl % (timeout, mode, bys[tag], selector, errmsg), indent=indent))
         elif atype == 'pause' and tag == 'for':
-            tpl = "sleep(%.f)"
+            tpl = "sleep(%g)"
             action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
-        elif atype == 'assert' and tag == 'title':
-            action_elements.append(
-                self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))" % selector, indent=indent))
-
         if not action_elements:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
@@ -656,10 +764,13 @@ import selenium_taurus_extras
             raise TaurusConfigError("Unsupported value for action: %s" % action_config)
 
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
-                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'run',
-                            'editcontent', 'selectFrame'])
-        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Script|ByIdx"
-        expr = re.compile("^(%s)(%s)\((.*)\)$" % (actions, tag), re.IGNORECASE)
+                            'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'script',
+                            'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
+                            'storeText', 'storeValue', 'store'
+                           ])
+
+        tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Eval|ByIdx|String"
+        expr = re.compile("^(%s)(%s)?(\((.*)\))?$" % (actions, tag), re.IGNORECASE)
         res = expr.match(name)
         if not res:
             msg = "Unsupported action: %s" % name
@@ -670,43 +781,45 @@ import selenium_taurus_extras
                 raise TaurusConfigError(msg)
 
         atype = res.group(1).lower()
-        tag = res.group(2).lower()
-        selector = res.group(3)
+        tag = res.group(2).lower() if res.group(2) else ""
+        selector = res.group(4)
 
         # hello, reviewer!
-        if selector.startswith('"') and selector.endswith('"'):
-            selector = selector[1:-1]
-        elif selector.startswith("'") and selector.endswith("'"):
-            selector = selector[1:-1]
-
+        if selector:
+            if selector.startswith('"') and selector.endswith('"'):
+                selector = selector[1:-1]
+            elif selector.startswith("'") and selector.endswith("'"):
+                selector = selector[1:-1]
+        else:
+            selector = ""
         return atype, tag, param, selector
 
 
-def capitalize(str):
-    if str and str[0] in string.ascii_lowercase:
-        return str[0].upper() + str[1:]
-    else:
-        return str
+def normalize_class_name(text):
+    allowed_chars = "%s%s%s" % (string.digits, string.ascii_letters, '_')
+    split_separator = re.split(r'[\-_]', text)
+    return ''.join([capitalize_class_name(part, allowed_chars) for part in split_separator])
+
+
+def capitalize_class_name(text, allowed_chars):
+    return filter_string(text, allowed_chars).capitalize()
+
+
+def filter_string(text, allowed_chars):
+    return ''.join(c for c in text if c in allowed_chars)
+
+
+def normalize_method_name(text):
+    allowed_chars = "%s%s%s" % (string.digits, string.ascii_letters, '- ')
+    return filter_string(text, allowed_chars).replace(' ', '_').replace('-', '_')
 
 
 def create_class_name(label):
-    if label.startswith('autogenerated'):
-        class_name = 'TestAPI'
-    else:
-        allowed_chars = string.digits + string.ascii_letters + '_'
-        parts = re.split(r'[\-_]', label)
-        parts = [''.join(c for c in part if c in allowed_chars) for part in parts]
-        class_name = 'Test' + ''.join(capitalize(part) for part in parts)
-    return class_name
+    return 'TestAPI' if label.startswith('autogenerated') else 'Test%s' % normalize_class_name(label)
 
 
 def create_method_name(label):
-    if label.startswith('autogenerated'):
-        clean = 'test_requests'
-    else:
-        allowed = string.digits + string.ascii_letters + '- '
-        clean = ''.join(c for c in label if c in allowed).replace(' ', '_').replace('-', '_')
-    return clean
+    return 'test_requests' if label.startswith('autogenerated') else normalize_method_name(label)
 
 
 class ApiritifScriptGenerator(PythonGenerator):
@@ -1489,7 +1602,8 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         """
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+        if executable == sys.executable:
+            self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
 
@@ -1577,7 +1691,8 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
 
-        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+        if executable == sys.executable:
+            self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
 

@@ -62,7 +62,6 @@
             }
           },
           "404": {
-            "description": "Not found",
             "schema": {
               "$ref": "#/definitions/ApiResponseError"
             }

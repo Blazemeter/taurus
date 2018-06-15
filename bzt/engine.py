@@ -29,6 +29,7 @@ import threading
 import time
 import traceback
 import uuid
+import codecs
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
@@ -660,7 +661,7 @@ class Engine(object):
                     if key in envs:
                         item = envs[key]
                 if item is not None:
-                    value += str(item)
+                    value += text_type(item)
             return value
 
         def apply_env(value, key, container):
@@ -697,7 +698,7 @@ class Configuration(BetterDict):
         for config_file in config_files:
             try:
                 configs = []
-                with open(config_file) as fds:
+                with codecs.open(config_file, 'r', encoding='utf-8') as fds:
                     if self.tab_replacement_spaces:
                         contents = self._replace_tabs(fds.readlines(), config_file)
                     else:

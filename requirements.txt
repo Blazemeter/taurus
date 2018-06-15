@@ -1,4 +1,4 @@
-apiritif>=0.6.3
+apiritif>=0.6.5
 astunparse
 colorama; sys_platform == 'windows'
 colorlog
@@ -16,3 +16,4 @@ requests>=2.11.1
 selenium
 Appium-Python-Client
 urwid
+terminaltables>=3.1.0

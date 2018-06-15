@@ -1329,7 +1329,7 @@ class PythonGenerator(object):
         return self.gen_statement("# %s" % comment, indent=indent)
 
     def save(self, filename):
-        with open(filename, 'wt') as fds:
+        with codecs.open(filename, 'w', encoding='utf-8') as fds:
             for child in self.root.iter():
                 if child.text is not None:
                     indent = int(child.get('indent', "0"))
@@ -1372,7 +1372,7 @@ class LDJSONReader(object):
         lines = self.file.get_lines(size=1024 * 1024, last_pass=last_pass)
 
         for line in lines:
-            if not line.endswith("\n"):
+            if not last_pass and not line.endswith("\n"):
                 self.partial_buffer += line
                 continue
             line = "%s%s" % (self.partial_buffer, line)

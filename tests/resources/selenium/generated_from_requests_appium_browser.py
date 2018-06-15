@@ -1,3 +1,4 @@
+# coding=utf-8
 import unittest
 import re
 from time import sleep
@@ -22,6 +23,7 @@ class TestRequests(unittest.TestCase):
         self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={"browserName": "Chrome", "deviceName": "", "platformName": "Android"})
         self.driver.implicitly_wait(3.5)
         self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
+        self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
 
     def tearDown(self):
         self.driver.quit()
@@ -29,7 +31,7 @@ class TestRequests(unittest.TestCase):
     def test_requests(self):
         self.driver.implicitly_wait(3.5)
 
-        with apiritif.transaction('/'):
+        with apiritif.transaction_logged('/'):
             self.driver.get('http://blazedemo.com/')
 
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, _tpl.apply("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
@@ -40,6 +42,6 @@ class TestRequests(unittest.TestCase):
         re_pattern = re.compile(r'contained_text')
         self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
 
-        with apiritif.transaction('empty'):
+        with apiritif.transaction_logged('empty'):
             pass
 
