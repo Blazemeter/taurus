@@ -43,12 +43,10 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location):
         'packages': '\n'.join(['tkinter', '_tkinter']),
         'pypi_wheels': "\n".join(wheels_list),
         'extra_wheel_sources': wheel_dir,
-        'files': '\n'.join(['README.md',
-                            r'installers\win32\_tkinter.pyd > $INSTDIR\pkgs',
-                            r'installers\win32\tcl86t.dll > $INSTDIR\pkgs',
-                            r'installers\win32\tk86t.dll > $INSTDIR\pkgs',
-                            r'installers\win32\lib',
-                            ])
+        'files': '\n'.join([
+            'README.md',
+            'lib',
+        ])
     }
 
     with open(cfg_location, 'w') as fds:
