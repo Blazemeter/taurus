@@ -17,6 +17,7 @@ limitations under the License.
 """
 import collections
 import copy
+import difflib
 import logging
 import re
 from abc import abstractmethod
@@ -135,7 +136,7 @@ class KPISet(BetterDict):
         return {
             "cnt": cnt,
             "msg": error,
-            "tag": tag, # just one more string qualifier
+            "tag": tag,  # just one more string qualifier
             "rc": ret_c,
             "type": errtype,
             "urls": urls,
@@ -373,6 +374,20 @@ class ResultsProvider(object):
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
         self.rtimes_len = None
+        self.known_errors = set()
+        self.max_error_count = 100
+
+    def _fold_error(self, error):
+        if not error or error in self.known_errors or self.max_error_count <= 0:
+            return error
+
+        size = len(self.known_errors)
+        threshold = (size / float(self.max_error_count)) ** 2
+        matches = difflib.get_close_matches(error, self.known_errors, 1, 1 - threshold)
+        if matches:
+            error = matches[0]
+        self.known_errors.add(error)
+        return error
 
     def add_listener(self, listener):
         """
@@ -462,6 +477,8 @@ class ResultsReader(ResultsProvider):
 
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
+
+                error = self._fold_error(error)
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
                 raise TaurusInternalException("Unsupported results from %s reader: %s" % (self, result))
@@ -503,7 +520,7 @@ class ResultsReader(ResultsProvider):
         """
         self.__process_readers(final_pass)
 
-        self.log.debug("Buffer len: %s", len(self.buffer))
+        self.log.debug("Buffer len: %s; Known errors count: %s", len(self.buffer), len(self.known_errors))
         if not self.buffer:
             return
 
@@ -611,6 +628,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         debug_str = 'Buffer scaling setup: percentile %s from %s selected'
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
         self.rtimes_len = self.settings.get("rtimes-len", self.rtimes_len)
+        self.max_error_count = self.settings.get("max-error-variety", self.max_error_count)
 
     def add_underling(self, underling):
         """
@@ -627,6 +645,9 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.buffer_multiplier = self.buffer_multiplier
             underling.buffer_scale_idx = self.buffer_scale_idx
             underling.rtimes_len = self.rtimes_len
+
+            underling.max_error_count = self.max_error_count
+            underling.known_errors = self.known_errors  # share error set between underlings
 
         self.underlings.append(underling)
 

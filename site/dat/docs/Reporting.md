@@ -135,6 +135,7 @@ modules:
     max-buffer-len: 2h      # maximal length of buffer (default: infinity)
     
     rtimes-len: 500         # size of storage for response time values (default: 1000)  
+    max-error-variety: 100  # max count of different error messages accepted (default: 100)
         
     percentiles:  # percentile levels to track, 
                   # 0 also means min, 100 also means max 
@@ -147,6 +148,8 @@ modules:
     - 100.0
 ```
 `rtimes-len` allows to reduce memory consumption for heavy tests. On the other hand, you reduce the precision of distribution with that.
+
+`max-error-variety` affects the intensity of treating different error messages as same, by closest match. Setting it to 0 or negative will disable error message merging.
  
 ## Pass/Fail Criteria Subsystem
  
