@@ -316,6 +316,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"typeByName(\"toPort\")": "B"},
                             {"keysByName(\"toPort\")": u"KEY_ENTER"},
                             {"typeByName(\"toPort\")": "KEY_ENTER"},
+                            {"typeByName(\"toPort\")": 123},
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
                             "clickByXPath(//div[3]/form/select[2]//option[6])",
                             "switchWindow(0)",
