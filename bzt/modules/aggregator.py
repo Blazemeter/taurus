@@ -382,7 +382,7 @@ class ResultsProvider(object):
             return error
 
         size = len(self.known_errors)
-        threshold = size / float(self.max_error_count)
+        threshold = (size / float(self.max_error_count)) ** 2
         matches = difflib.get_close_matches(error, self.known_errors, 1, 1 - threshold)
         if matches:
             error = matches[0]
