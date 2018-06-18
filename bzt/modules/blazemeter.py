@@ -1154,7 +1154,7 @@ class BaseCloudTest(object):
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
         available_locations = {}
-        is_taurus4 = self.cloud_mode == 'taurusCloud'
+        is_taurus4 = True
         workspace = Workspace(self._project, {'id': self._project['workspaceId']})
         for loc in workspace.locations(include_private=is_taurus4):
             available_locations[loc['id']] = loc
@@ -1184,7 +1184,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         for location_id in sorted(available_locations):
             location = available_locations[location_id]
-            if not location_id.startswith('harbor-') and location['sandbox']:
+            if location['sandbox'] and not location.get('purposes', {}).get('functional', False):
                 return location_id
 
         if available_locations:
