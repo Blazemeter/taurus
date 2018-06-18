@@ -26,7 +26,7 @@ from tests.modules.jmeter import MockJMeterExecutor
 def get_jmeter():
     path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
     obj = MockJMeterExecutor()
-    obj.settings.merge({'path': path, 'force-ctg': False})
+    obj.settings.merge({'path': path, 'force-ctg': False, 'protocol-handlers': ['bzt.jmx.http.HTTPProtocolHandler']})
     return obj
 
 
