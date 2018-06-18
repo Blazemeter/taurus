@@ -375,7 +375,7 @@ class ResultsProvider(object):
         self.buffer_scale_idx = None
         self.rtimes_len = None
         self.known_errors = set()
-        self.max_error_count = 10
+        self.max_error_count = 100
 
     def _fold_error(self, error):
         if not error or error in self.known_errors or self.max_error_count <= 0:
