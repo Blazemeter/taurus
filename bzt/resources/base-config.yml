@@ -10,6 +10,8 @@ modules:
     class: bzt.modules.grinder.GrinderExecutor
   jmeter:
     class: bzt.modules.jmeter.JMeterExecutor
+    protocol-handlers:
+    - bzt.jmx.http.HTTPProtocolHandler
   locust:
     class: bzt.modules.locustio.LocustIOExecutor
   molotov:
