@@ -374,9 +374,7 @@ class JMeterScenarioBuilder(JMX):
 
     def compile_scenario(self, scenario):
         elements = []
-        protocol_name = scenario.get('protocol', self.default_protocol)
-        if protocol_name in self.protocol_handlers:
-            protocol = self.protocol_handlers[protocol_name]
+        for _, protocol in iteritems(self.protocol_handlers):
             elements.extend(protocol.get_toplevel_elements(scenario))
         elements.extend(self.__gen_datasources(scenario))
         elements.extend(self.__gen_requests(scenario))
