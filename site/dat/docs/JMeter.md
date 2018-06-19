@@ -853,3 +853,28 @@ scenarios:
 ```
 
 You can read more on that [here](SoapUI.md).
+
+## Protocol Handlers
+
+JMX generator used by Taurus supports extensibility. It can be controlled with `protocol` option.
+
+`protocol` setting at request level specifies which protocol handler to use to generate corresponding JMX.
+`protocol` can also be specified at scenario level, which will apply it to all requests in the scenario.
+
+```yaml
+modules:
+  jmeter:
+    protocol-handlers:  # list of protocols supported by JMX generator
+      http: bzt.jmx.http.HTTPProtocolHandler
+    default-protocol: http  # default protocol used by JMX generator
+
+scenarios:
+  protocols-demo:
+    protocol: http  # default protocol
+    requests:
+    - url: http://blazedemo.com/
+    
+execution:
+- executor: jmeter
+  scenario: protocols-demo
+```
