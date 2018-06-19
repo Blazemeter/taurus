@@ -215,6 +215,7 @@ class JMeterScenarioBuilder(JMX):
         self.engine = executor.engine
         self.system_props = BetterDict()
         self.request_compiler = None
+        self.default_protocol = self.executor.settings.get('default-protocol', 'http')
         self.protocol_handlers = {}
         for protocol, cls_name in iteritems(self.executor.settings.get("protocol-handlers")):
             cls_obj = load_class(cls_name)
@@ -373,7 +374,7 @@ class JMeterScenarioBuilder(JMX):
 
     def compile_scenario(self, scenario):
         elements = []
-        protocol_name = scenario.get('protocol', 'http')
+        protocol_name = scenario.get('protocol', self.default_protocol)
         if protocol_name in self.protocol_handlers:
             protocol = self.protocol_handlers[protocol_name]
             elements.extend(protocol.get_toplevel_elements(scenario))
@@ -388,7 +389,7 @@ class JMeterScenarioBuilder(JMX):
         :return:
         """
         sampler = children = None
-        protocol_name = self.scenario.get('protocol', 'http')
+        protocol_name = request.priority_option('protocol', default=self.default_protocol)
         if protocol_name in self.protocol_handlers:
             protocol = self.protocol_handlers[protocol_name]
             sampler, children = protocol.get_sampler_pair(self.scenario, request)

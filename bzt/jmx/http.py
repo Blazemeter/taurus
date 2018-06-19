@@ -54,9 +54,6 @@ class HTTPProtocolHandler(ProtocolHandler):
         return elements
 
     def get_sampler_pair(self, scenario, request):
-        # if not any(request.url.startswith(prefix) for prefix in ['http', 'https', '/']):
-        #     return None, None
-
         timeout = self.safe_time(request.priority_option('timeout'))
 
         content_type = self._get_merged_ci_headers(scenario, request, 'content-type')
