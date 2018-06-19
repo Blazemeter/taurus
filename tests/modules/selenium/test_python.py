@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import tempfile
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
@@ -1173,14 +1174,21 @@ class TestApiritifScriptGenerator(BZTestCase):
 
     def test_load_reader(self):
         reader = ApiritifLoadReader(self.obj.log)
-        items = list(reader._read())
+
+        # add empty reader
+        with tempfile.NamedTemporaryFile() as f_name:
+            reader.register_file(f_name.name)
+            items = list(reader._read())
+
         self.assertEqual(len(items), 0)
+        self.assertFalse(reader.read_records)
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         items = list(reader._read())
         self.assertEqual(len(items), 2)
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         items = list(reader._read())
+        self.assertTrue(reader.read_records)
         self.assertEqual(len(items), 4)
 
     def test_func_reader(self):
@@ -1523,4 +1531,54 @@ class TestRobotExecutor(BZTestCase):
         samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
         self.obj.log.info(samples)
         self.assertEqual(5, len(samples))
+        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
+
+    def test_single_tag(self):
+        self.configure({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "tags": "create",
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot",
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
+        self.obj.log.info(samples)
+        self.assertEqual(1, len(samples))
+        self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))
+
+    def test_multiple_tags(self):
+        self.configure({
+            "execution": [{
+                "iterations": 1,
+                "scenario": {
+                    "tags": "create,database",
+                    "script": RESOURCES_DIR + "selenium/robot/simple/test.robot",
+                }
+            }]
+        })
+        self.obj.prepare()
+        try:
+            self.obj.startup()
+            while not self.obj.check():
+                time.sleep(self.obj.engine.check_interval)
+        finally:
+            self.obj.shutdown()
+        self.obj.post_process()
+        self.assertFalse(self.obj.has_results())
+        self.assertNotEquals(self.obj.process, None)
+        samples = [json.loads(line) for line in open(self.obj.report_file).readlines() if line]
+        self.obj.log.info(samples)
+        self.assertEqual(2, len(samples))
         self.assertTrue(all(sample["status"] == "PASSED" for sample in samples))

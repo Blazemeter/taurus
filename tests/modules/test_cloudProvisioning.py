@@ -542,7 +542,7 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.user.token = "key"
         self.obj.prepare()
         exec_locations = self.obj.executors[0].execution['locations']
-        self.assertEquals(1, exec_locations['non-harbor-sandbox'])
+        self.assertEquals(1, exec_locations['harbor-sandbox'])
 
     def test_nosandbox_default_location(self):
         locs = [{'id': 'loc1', 'sandbox': False, 'title': 'L1'}, {'id': 'loc2', 'sandbox': False, 'title': 'L2'}, ]

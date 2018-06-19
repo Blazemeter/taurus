@@ -11,7 +11,7 @@ import yaml
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.jmx import JMX
-from bzt.jmx.tools import JMeterScenarioBuilder
+from bzt.jmx.tools import JMeterScenarioBuilder, ProtocolHandler
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
@@ -26,7 +26,11 @@ from tests.modules.jmeter import MockJMeterExecutor
 def get_jmeter():
     path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
     obj = MockJMeterExecutor()
-    obj.settings.merge({'path': path, 'force-ctg': False})
+    obj.settings.merge({
+        'path': path, 'force-ctg': False, 'protocol-handlers': {
+            'http': 'bzt.jmx.http.HTTPProtocolHandler'
+        }
+    })
     return obj
 
 
@@ -1132,7 +1136,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(st_tg_concurrency.text, "123")
 
     def test_smart_time(self):
-        s_t = JMeterScenarioBuilder.smart_time
+        s_t = ProtocolHandler.safe_time
         self.assertEqual(s_t('1m'), 60 * 1000.0)
         self.assertEqual(s_t('${VAR}'), '${VAR}')
 

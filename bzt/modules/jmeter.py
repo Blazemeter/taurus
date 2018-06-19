@@ -1483,6 +1483,10 @@ class JMeter(RequiredTool):
             if "is too low to run JMeter" in jmout:
                 raise ToolError("Java version is too low to run JMeter")
 
+            if "Error:" in jmout:
+                self.log.warning("JMeter output: \n%s", jmout)
+                raise ToolError("Unable to run JMeter, see error above")
+
             return True
 
         except OSError:

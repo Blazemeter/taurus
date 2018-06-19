@@ -36,7 +36,8 @@ from urwid import Pile, Text
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone, \
+    TAURUS_ARTIFACTS_DIR
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
@@ -57,7 +58,8 @@ CLOUD_CONFIG_FILTER_RULES = {
     "locations-weighted": True,
 
     "settings": {
-        "verbose": True
+        "verbose": True,
+        "env": True
     },
 
     "modules": {
@@ -1088,6 +1090,9 @@ class BaseCloudTest(object):
 
         self.cleanup_defaults(config)
 
+        if TAURUS_ARTIFACTS_DIR in config.get('settings', force_set=True).get('env', force_set=True):
+            config['settings']['env'].pop(TAURUS_ARTIFACTS_DIR)
+
         if self.dedicated_ips:
             config[CloudProvisioning.DEDICATED_IPS] = True
 
@@ -1149,7 +1154,7 @@ class BaseCloudTest(object):
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
         available_locations = {}
-        is_taurus4 = self.cloud_mode == 'taurusCloud'
+        is_taurus4 = True
         workspace = Workspace(self._project, {'id': self._project['workspaceId']})
         for loc in workspace.locations(include_private=is_taurus4):
             available_locations[loc['id']] = loc
@@ -1179,7 +1184,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         for location_id in sorted(available_locations):
             location = available_locations[location_id]
-            if not location_id.startswith('harbor-') and location['sandbox']:
+            if location['sandbox'] and not location.get('purposes', {}).get('functional', False):
                 return location_id
 
         if available_locations:
@@ -1691,7 +1696,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 if not isinstance(service, dict):
                     service = {"module": service}
                 mod = service.get('module', TaurusConfigError("No 'module' specified for service"))
-                assert isinstance(mod, str), mod
+                assert isinstance(mod, string_types), mod
                 module = self.engine.instantiate_module(mod)
                 if isinstance(module, ServiceStubCaptureHAR):
                     self._download_logs()
