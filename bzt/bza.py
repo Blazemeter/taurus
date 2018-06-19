@@ -34,7 +34,7 @@ class BZAObject(dict):
         self.logger_limit = 256
         self.token = None
         self.cert = None
-        self.verify = None
+        self.verify = True
         self.log = logging.getLogger(self.__class__.__name__)
         self.http_session = requests.Session()
         self.http_request = self.http_session.request

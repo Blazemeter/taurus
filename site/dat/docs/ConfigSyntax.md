@@ -114,7 +114,7 @@ settings:
   env: # set environment variables to set
     VARNAME1: VARVALUE1
     VARNAME2: VARVALUE2
-  ssl-cert: certs/staging.pem
+  ssl-cert: certs/staging.pem  # SSL certificate for validation. You can set it to `false` to disable validation.
   ssl-client-cert: certs/client.cert
 ```
 
