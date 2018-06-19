@@ -77,7 +77,8 @@ class TestEngine(BZTestCase):
             },
             "modules": {
                 "local": "bzt.modules.provisioning.Local",
-                "jmeter": "tests.modules.jmeter.MockJMeterExecutor",
+                "jmeter": {"class": "tests.modules.jmeter.MockJMeterExecutor",
+                           "protocol-handlers": {"http": "bzt.jmx.http.HTTPProtocolHandler"}},
             }})
         self.obj.prepare()
 
