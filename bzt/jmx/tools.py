@@ -201,7 +201,7 @@ class JMeterScenarioBuilder(JMX):
     """
     Helper to build JMeter test plan from Scenario
 
-    :type protocol_handlers: list[ProtocolHandler]
+    :type protocol_handlers: dict[str,ProtocolHandler]
     """
 
     def __init__(self, executor, original=None):
@@ -215,11 +215,11 @@ class JMeterScenarioBuilder(JMX):
         self.engine = executor.engine
         self.system_props = BetterDict()
         self.request_compiler = None
-        self.protocol_handlers = []
-        for cls_name in self.executor.settings.get("protocol-handlers", []):
+        self.protocol_handlers = {}
+        for protocol, cls_name in iteritems(self.executor.settings.get("protocol-handlers")):
             cls_obj = load_class(cls_name)
             instance = cls_obj(self.system_props)
-            self.protocol_handlers.append(instance)
+            self.protocol_handlers[protocol] = instance
 
     def __add_think_time(self, children, req):
         think_time = req.priority_option('think-time')
@@ -373,7 +373,9 @@ class JMeterScenarioBuilder(JMX):
 
     def compile_scenario(self, scenario):
         elements = []
-        for protocol in self.protocol_handlers:
+        protocol_name = scenario.get('protocol', 'http')
+        if protocol_name in self.protocol_handlers:
+            protocol = self.protocol_handlers[protocol_name]
             elements.extend(protocol.get_toplevel_elements(scenario))
         elements.extend(self.__gen_datasources(scenario))
         elements.extend(self.__gen_requests(scenario))
@@ -386,13 +388,13 @@ class JMeterScenarioBuilder(JMX):
         :return:
         """
         sampler = children = None
-        for protocol in self.protocol_handlers:
+        protocol_name = self.scenario.get('protocol', 'http')
+        if protocol_name in self.protocol_handlers:
+            protocol = self.protocol_handlers[protocol_name]
             sampler, children = protocol.get_sampler_pair(self.scenario, request)
-            if sampler is not None:
-                break
 
         if sampler is None:
-            self.log.warning("Problematic request: %s", request)
+            self.log.warning("Problematic request: %s", request.config)
             raise TaurusInternalException("Unable to handle request, please review missing options")
 
         self.__add_think_time(children, request)

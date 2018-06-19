@@ -12,9 +12,9 @@ class TestScenarioBuilder(BZTestCase):
         super(TestScenarioBuilder, self).setUp()
         executor = MockJMeterExecutor({"scenario": "SB"})
         executor.engine.config.merge({"scenarios": {"SB": {}}})
-        executor.settings['protocol-handlers'] = [
-            HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__
-        ]
+        executor.settings['protocol-handlers'] = {
+            'http': HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__
+        }
 
         self.obj = JMeterScenarioBuilder(executor)
 
