@@ -136,7 +136,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def has_results(self):
         if not self.reader:
             return False
-        return self.reader.read_records > 0
+        return self.reader.read_records
 
     @staticmethod
     def _normalize_label(label):
@@ -215,9 +215,8 @@ class ApiritifLoadReader(ResultsReader):
 
     def _read(self, final_pass=False):
         for reader in self.readers:
-            if not self.read_records:
-                self.read_records = True
             for sample in reader._read(final_pass):
+                self.read_records = True
                 yield sample
 
 

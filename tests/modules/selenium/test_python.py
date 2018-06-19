@@ -1,6 +1,7 @@
 import json
 import os
 import time
+import tempfile
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
@@ -1173,14 +1174,21 @@ class TestApiritifScriptGenerator(BZTestCase):
 
     def test_load_reader(self):
         reader = ApiritifLoadReader(self.obj.log)
-        items = list(reader._read())
+
+        # add empty reader
+        with tempfile.NamedTemporaryFile() as f_name:
+            reader.register_file(f_name.name)
+            items = list(reader._read())
+
         self.assertEqual(len(items), 0)
+        self.assertFalse(reader.read_records)
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         items = list(reader._read())
         self.assertEqual(len(items), 2)
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         items = list(reader._read())
+        self.assertTrue(reader.read_records)
         self.assertEqual(len(items), 4)
 
     def test_func_reader(self):
