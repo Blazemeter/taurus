@@ -123,8 +123,9 @@ class Engine(object):
 
             def wrapper():
                 settings = self.config.get(SETTINGS)
-                ssl_cert = settings.get('ssl-cert', None)
-                return self._check_updates(install_id, ssl_cert=ssl_cert)
+                verify = settings.get('ssl-cert', True)
+                cert = settings.get('ssl-client-cert', None)
+                return self._check_updates(install_id, verify=verify, cert=cert)
 
             thread = threading.Thread(target=wrapper)  # intentionally non-daemon thread
             thread.start()
@@ -609,12 +610,12 @@ class Engine(object):
             opener = build_opener(proxy_handler)
             install_opener(opener)
 
-    def _check_updates(self, install_id, ssl_cert=None):
+    def _check_updates(self, install_id, verify=None, cert=None):
         try:
             params = (bzt.VERSION, install_id)
             url = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
             self.log.debug("Requesting updates info: %s", url)
-            response = requests.get(url, timeout=10, cert=ssl_cert)
+            response = requests.get(url, timeout=10, cert=cert, verify=verify)
 
             resp = response.content
             if not isinstance(resp, str):

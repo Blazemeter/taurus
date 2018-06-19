@@ -33,7 +33,8 @@ class BZAObject(dict):
         self.timeout = 30
         self.logger_limit = 256
         self.token = None
-        self.ssl_cert = None
+        self.cert = None
+        self.verify = None
         self.log = logging.getLogger(self.__class__.__name__)
         self.http_session = requests.Session()
         self.http_request = self.http_session.request
@@ -88,7 +89,7 @@ class BZAObject(dict):
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
 
         response = self.http_request(method=log_method, url=url, data=data, headers=headers, timeout=self.timeout,
-                                     cert=self.ssl_cert)
+                                     cert=self.cert, verify=self.verify)
 
         resp = response.content
         if not isinstance(resp, str):
