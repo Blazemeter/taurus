@@ -245,13 +245,10 @@ class VNCViewer(object):
 
 
 class RFBToGUI(rfb.RFBClient, object):
-    """RFBClient protocol that talks to the GUI app"""
-
     def _handleDecodeZRLE(self, block):
         raise NotImplementedError()
 
     def vncConnectionMade(self):
-        """choose appropriate color depth, resize screen"""
         self.remoteframebuffer = self.factory.remoteframebuffer
         self.screen = pygame.display.set_mode((self.width, self.height))
         icon = os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus.png")
@@ -268,8 +265,8 @@ class RFBToGUI(rfb.RFBClient, object):
         else:
             self.setEncodings([
                 rfb.COPY_RECTANGLE_ENCODING,
-                #rfb.HEXTILE_ENCODING,  # throws exception on PY3
-                #rfb.CORRE_ENCODING,  # looks like weird blocks
+                # rfb.HEXTILE_ENCODING,  # throws exception on PY3
+                # rfb.CORRE_ENCODING,  # looks like weird blocks
                 rfb.RRE_ENCODING,
                 rfb.RAW_ENCODING,
             ])
@@ -288,10 +285,7 @@ class RFBToGUI(rfb.RFBClient, object):
         self.framebufferUpdateRequest(incremental=1)
 
     def updateRectangle(self, x, y, width, height, data):
-        self.screen.blit(
-            pygame.image.fromstring(data, (width, height), 'RGBX'),  # TODO color format
-            (x, y)
-        )
+        self.screen.blit(pygame.image.fromstring(data, (width, height), 'RGBX'), (x, y))
 
 
 class VNCFactory(rfb.RFBFactory, object):
@@ -321,7 +315,6 @@ def start_vnc(params):
 
     reactor.connectTCP(host, display + 5900, VNCFactory(remoteframebuffer, password, ))
 
-    # run the application
     reactor.callLater(0.1, remoteframebuffer.mainloop)
     reactor.run()
     pygame.quit()

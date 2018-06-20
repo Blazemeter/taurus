@@ -1,18 +1,12 @@
-import logging
 import multiprocessing
-import os
 import sys
 import time
 
 from bzt import NormalShutdown
 from bzt.bza import WDGridImages
-from bzt.engine import Configuration
 from bzt.modules.wdgrid import WDGridProvisioning, start_vnc
 from tests import BZTestCase
 from tests.mocks import EngineEmul, BZMock
-
-env = Configuration()
-env.load([os.path.expanduser("~/.bzt-rc")])
 
 
 class TestWDGrid(BZTestCase):
@@ -24,8 +18,6 @@ class TestWDGrid(BZTestCase):
         self.obj.settings['token'] = "FakeToken"
         self.obj.user.timeout = 5
 
-        # self.obj.settings['address'] = env['cli-aliases']['env-vitali']['modules']['blazemeter']['address']
-        # self.obj.settings['token'] = env['cli-aliases']['env-vitali']['modules']['blazemeter']['token']
         self.obj.settings['request-logging-limit'] = sys.maxsize
 
         self.mock.mock_get.update({
@@ -244,7 +236,7 @@ class TestWDGrid(BZTestCase):
                     {
                         "platform": "ubuntu/14.04",
                         "browser": "chrome/46.0.12",
-                        #"vnc": True
+                        # "vnc": True
                     },
                     # {
                     #    "platform": "ubuntu/14.04",
