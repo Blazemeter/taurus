@@ -5,6 +5,7 @@ import os
 import time
 
 import pygame
+from terminaltables import SingleTable
 from twisted.internet import reactor
 from vncdotool import rfb
 
@@ -178,13 +179,14 @@ class WDGridProvisioning(Local):
 
     def __dump_catalog_if_needed(self):
         if self.settings.get("dump-catalog", False):
-            self.log.warning("Dumping available WebDriver images below:")
+            data = [("Image ID", "Platform", "Browser")]
             client = WDGridImages(self.user)
             for img in client.get_images():
-                self.log.info("Image ID: %s\tOS: %s %s\tBrowser: %s %s",
-                              img['id'], img['operatingSystem'], img['operatingSystemVersion'], img['browser'],
-                              img['browserVersion'], )
+                data.append((img['id'],
+                             img['operatingSystem'] + '/' + img['operatingSystemVersion'],
+                             img['browser'] + '/' + img['browserVersion']))
 
+            self.log.warning("Dumping available WebDriver images below:\n" + SingleTable(data).table)
             raise NormalShutdown("Done listing images")
 
     def __dump_status_if_needed(self):
