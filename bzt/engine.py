@@ -43,7 +43,7 @@ from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusIntern
 from bzt.requests_model import RequestsParser
 from bzt.six import build_opener, install_opener, urlopen, numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
-from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
+from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import str_representer, Environment
 
@@ -92,6 +92,8 @@ class Engine(object):
         self.default_cwd = None
         self.logging_level_down = lambda: None
         self.logging_level_up = lambda: None
+
+        self._http_client = None
 
     def configure(self, user_configs, read_config_files=True):
         """
@@ -592,34 +594,37 @@ class Engine(object):
 
     def _set_up_proxy(self):
         proxy_settings = self.config.get("settings").get("proxy")
-        if proxy_settings and proxy_settings.get("address"):
-            proxy_url = parse.urlsplit(proxy_settings.get("address"))
-            self.log.debug("Using proxy settings: %s", proxy_url)
-            username = proxy_settings.get("username")
-            pwd = proxy_settings.get("password")
-            scheme = proxy_url.scheme if proxy_url.scheme else 'http'
-            if username and pwd:
-                proxy_uri = "%s://%s:%s@%s" % (scheme, username, pwd, proxy_url.netloc)
-            else:
-                proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
-            proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
-            opener = build_opener(proxy_handler)
-            install_opener(opener)
+        # if proxy_settings and proxy_settings.get("address"):
+        #     proxy_url = parse.urlsplit(proxy_settings.get("address"))
+        #     self.log.debug("Using proxy settings: %s", proxy_url)
+        #     username = proxy_settings.get("username")
+        #     pwd = proxy_settings.get("password")
+        #     scheme = proxy_url.scheme if proxy_url.scheme else 'http'
+        #     if username and pwd:
+        #         proxy_uri = "%s://%s:%s@%s" % (scheme, username, pwd, proxy_url.netloc)
+        #     else:
+        #         proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
+        #     self.log.info("Proxy uri: %r", proxy_uri)
+        #     proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
+        #     opener = build_opener(proxy_handler)
+        #     install_opener(opener)
+
+    def get_http_client(self):
+        if self._http_client is None:
+            self._http_client = HTTPClient()
+            self._http_client.add_proxy_settings(self.config.get("settings").get("proxy"))
+        return self._http_client
 
     def _check_updates(self, install_id):
         try:
             params = (bzt.VERSION, install_id)
-            req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
-            self.log.debug("Requesting updates info: %s", req)
-            response = urlopen(req, timeout=10)
-            resp = response.read()
+            addr = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
+            self.log.debug("Requesting updates info: %s", addr)
+            client = self.get_http_client()
+            response = client.request('GET', addr, timeout=10)
 
-            if not isinstance(resp, str):
-                resp = resp.decode()
-
-            self.log.debug("Taurus updates info: %s", resp)
-
-            data = json.loads(resp)
+            data = response.json()
+            self.log.debug("Taurus updates info: %s", data)
             mine = LooseVersion(bzt.VERSION)
             latest = LooseVersion(data['latest'])
             if mine < latest or data['needsUpgrade']:

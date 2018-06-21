@@ -38,6 +38,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import traceback
 import webbrowser
 import zipfile
 import ipaddress
@@ -47,6 +48,8 @@ from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
 from math import log
+
+import requests
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
 from urwid import BaseScreen
@@ -909,17 +912,68 @@ def shutdown_process(process_obj, log_obj):
             log_obj.debug("Failed to terminate process: %s", exc)
 
 
+class HTTPClient(object):
+    def __init__(self):
+        self.session = requests.Session()
+        self.log = logging.getLogger(self.__class__.__name__)
+
+    def add_proxy_settings(self, proxy_settings):
+        if not proxy_settings:
+            return
+        if not proxy_settings.get("address"):
+            return
+
+        proxy_url = parse.urlsplit(proxy_settings.get("address"))
+        self.log.debug("Using proxy settings: %s", proxy_url)
+        username = proxy_settings.get("username")
+        pwd = proxy_settings.get("password")
+        scheme = proxy_url.scheme if proxy_url.scheme else 'http'
+        if username and pwd:
+            proxy_uri = "%s://%s:%s@%s" % (scheme, username, pwd, proxy_url.netloc)
+        else:
+            proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
+        self.log.info("Proxy uri: %r", proxy_uri)
+        self.session.proxies = {"https": proxy_uri, "http": proxy_uri}
+
+        self.session.verify = proxy_settings.get('ssl-cert', True)
+        self.session.cert = proxy_settings.get('ssl-client-cert', None)
+
+    def download_file(self, url, filename, reporthook=None, data=None):
+        try:
+            with self.session.get(url, stream=True, data=data) as conn:
+                with open(filename, 'wb') as f:
+                    for chunk in conn.iter_content(chunk_size=1024):
+                        if chunk:
+                            f.write(chunk)
+        except requests.exceptions.RequestException as exc:
+            resp = exc.response
+            self.log.debug("File download resulted in exception: %s", traceback.format_exc())
+            raise TaurusNetworkError("Unsuccessful download from %s: %s - %s" % (url, resp.status_code, resp.reason))
+
+    def request(self, method, url, *args, **kwargs):
+        try:
+            return self.session.request(method, url, *args, **kwargs)
+        except requests.exceptions.RequestException as exc:
+            resp = exc.response
+            self.log.debug("Request resulted in exception: %s", traceback.format_exc())
+            raise TaurusNetworkError("Request to %s failed: %s - %s" % (url, resp.status_code, resp.reason))
+
+
 class ExceptionalDownloader(request.FancyURLopener, object):
-    def http_error_default(self, url, fp, errcode, errmsg, headers):
-        fp.close()
-        raise TaurusNetworkError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
+    def __init__(self, client):
+        """
+
+        :type client: HTTPClient
+        """
+        self.client = client
 
     def get(self, url, filename=None, reporthook=None, data=None, suffix=""):
         fd = None
         try:
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
-            response = self.retrieve(url, filename, reporthook, data)
+            response = self.client.download_file(url, filename, reporthook, data)
+            response.raise_for_status()
         except BaseException:
             if fd:
                 os.close(fd)
@@ -928,7 +982,7 @@ class ExceptionalDownloader(request.FancyURLopener, object):
 
         if fd:
             os.close(fd)
-        return response
+        return filename
 
 
 class RequiredTool(object):
@@ -936,7 +990,8 @@ class RequiredTool(object):
     Abstract required tool
     """
 
-    def __init__(self, tool_name, tool_path, download_link=""):
+    def __init__(self, http_client, tool_name, tool_path, download_link=""):
+        self.http_client = http_client
         self.tool_name = tool_name
         self.tool_path = tool_path
         self.download_link = download_link
@@ -970,14 +1025,14 @@ class RequiredTool(object):
         else:
             links = self.mirror_manager.mirrors()
 
-        downloader = ExceptionalDownloader()
+        downloader = ExceptionalDownloader(self.http_client)
         sock_timeout = socket.getdefaulttimeout()
         socket.setdefaulttimeout(5)
         for link in links:
             self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
-                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)[0]
+                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
@@ -1130,8 +1185,14 @@ class Node(RequiredTool):
 
 
 class MirrorsManager(object):
-    def __init__(self, base_link, parent_logger):
+    def __init__(self, base_link, http_client, parent_logger):
+        """
+
+        :type base_link: str
+        :type http_client: HTTPClient
+        """
         self.base_link = base_link
+        self.http_client = http_client
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.page_source = None
 
@@ -1141,12 +1202,11 @@ class MirrorsManager(object):
 
     def mirrors(self):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
-        downloader = ExceptionalDownloader()
         try:
-            tmp_file = downloader.get(self.base_link)[0]
-            with open(tmp_file) as fds:
-                self.page_source = fds.read()
+            response = self.http_client.request('GET', self.base_link)
+            self.page_source = response.text
         except BaseException:
+            self.log.debug("Exception: %s", traceback.format_exc())
             self.log.error("Can't fetch %s", self.base_link)
         mirrors = self._parse_mirrors()
         return (mirror for mirror in mirrors)
