@@ -1582,6 +1582,17 @@ class TestJMeterExecutor(BZTestCase):
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(forever.text, "true")
 
+    def test_request_once(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "once": ["http://blazedemo.com/"]}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        controller = xml_tree.find(".//OnceOnlyController")
+        self.assertIsNotNone(controller)
+
     def test_request_logic_loop_forever(self):
         self.configure({
             'execution': {
