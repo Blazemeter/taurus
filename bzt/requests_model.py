@@ -259,7 +259,10 @@ class RequestsParser(object):
             req = ensure_is_dict(raw_requests, key, "url")
             if not require_url and "url" not in req:
                 req["url"] = None
-            requests.append(self.__parse_request(req))
+            try:
+                requests.append(self.__parse_request(req))
+            except:
+                raise TaurusConfigError("wrong request:\n %s" % req)
         return requests
 
     def extract_requests(self, require_url=True):
