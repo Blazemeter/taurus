@@ -262,7 +262,7 @@ class RequestsParser(object):
             try:
                 requests.append(self.__parse_request(req))
             except:
-                raise TaurusConfigError("wrong request:\n %s" % req)
+                raise TaurusConfigError("Wrong request:\n %s" % req)
         return requests
 
     def extract_requests(self, require_url=True):
