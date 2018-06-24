@@ -1615,8 +1615,23 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIsNone(clear)
         collection = auth_mgr[0].findall("collectionProp[@name='AuthManager.auth_list']/elementProp")
         self.assertEqual(3, len(collection))
-        url = collection[0].findall("stringProp[@name='Authorization.url']")
-        self.assertEqual(url[0].text, "http://blazedemo.com/")
+        self.assertEqual(["http://blazedemo.com/", "user1", "pass1", None, None, None], self.get_auth(collection[0]))
+        self.assertEqual([None, "user2", "pass2", "my_domain", "secret_zone", "KERBEROS"], self.get_auth(collection[1]))
+        self.assertEqual(["localhost", "user3", "pass3", None, None, None], self.get_auth(collection[2]))
+
+    @staticmethod
+    def get_auth(element):
+        props = [
+            element.find("stringProp[@name='Authorization.url']"),
+            element.find("stringProp[@name='Authorization.username']"),
+            element.find("stringProp[@name='Authorization.password']"),
+            element.find("stringProp[@name='Authorization.domain']"),
+            element.find("stringProp[@name='Authorization.realm']"),
+            element.find("stringProp[@name='Authorization.mechanism']")]
+        for i in range(len(props)):
+            if props[i] is not None:
+                props[i] = props[i].text
+        return props
 
     def test_auth_manager_short_form(self):
         self.configure({
