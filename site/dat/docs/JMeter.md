@@ -806,7 +806,7 @@ Possible authorization params and their value are:
 * domain: non-standard parameter, can be used instead of url
 * realm: protected space
 * mechanism: digest (default) or kerberos.
-
+Required of them are username & password and one of url & domain.
 For implementation of authorization Taurus uses JMeter HTTP Authorization Manager.  
 
 ## User cookies

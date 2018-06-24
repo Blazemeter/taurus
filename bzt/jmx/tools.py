@@ -588,8 +588,8 @@ class JMeterScenarioBuilder(JMX):
         clear_flag = False
 
         if isinstance(authorizations, dict):
-            if "clear" in authorizations:  # full form
-                clear_flag = authorizations.get("clear")
+            if "clear" in authorizations or "list" in authorizations:  # full form
+                clear_flag = authorizations.get("clear", False)
                 authorizations = authorizations.get("list", [])
             else:
                 authorizations = [authorizations]  # short form
@@ -605,10 +605,19 @@ class JMeterScenarioBuilder(JMX):
         for authorization in authorizations:
             auth_element = JMX._element_prop(name="", element_type="Authorization")
 
-            s_url = JMX._string_prop("Authorization.url", authorization.get("url", ""))
-            s_name = JMX._string_prop("Authorization.username", authorization.get("name", ""))
-            s_pass = JMX._string_prop("Authorization.password", authorization.get("pass", ""))
-            s_domain = JMX._string_prop("Authorization.domain", authorization.get("domain", ""))
+            conf_url = authorization.get("url", "")
+            conf_name = authorization.get("name", "")
+            conf_pass = authorization.get("password", "")
+            conf_domain = authorization.get("domain", "")
+
+            if not (conf_name and conf_pass and (conf_url or conf_domain)):
+                self.log.warning("Wrong authorization: %s" % authorization)
+                continue
+
+            s_url = JMX._string_prop("Authorization.url", conf_url)
+            s_name = JMX._string_prop("Authorization.username", conf_name)
+            s_pass = JMX._string_prop("Authorization.password", conf_pass)
+            s_domain = JMX._string_prop("Authorization.domain", conf_domain)
             s_realm = JMX._string_prop("Authorization.realm", authorization.get("realm", ""))
             conf_mech = authorization.get("mechanism", "").upper()
 
