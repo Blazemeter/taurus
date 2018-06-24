@@ -609,24 +609,18 @@ class JMeterScenarioBuilder(JMX):
             conf_name = authorization.get("name", "")
             conf_pass = authorization.get("password", "")
             conf_domain = authorization.get("domain", "")
+            conf_realm = authorization.get("realm", "")
+            conf_mech = authorization.get("mechanism", "").upper()
 
             if not (conf_name and conf_pass and (conf_url or conf_domain)):
                 self.log.warning("Wrong authorization: %s" % authorization)
                 continue
 
-            s_url = JMX._string_prop("Authorization.url", conf_url)
-            s_name = JMX._string_prop("Authorization.username", conf_name)
-            s_pass = JMX._string_prop("Authorization.password", conf_pass)
-            s_domain = JMX._string_prop("Authorization.domain", conf_domain)
-            s_realm = JMX._string_prop("Authorization.realm", authorization.get("realm", ""))
-            conf_mech = authorization.get("mechanism", "").upper()
-
-            auth_element.append(s_url)
-            auth_element.append(s_name)
-            auth_element.append(s_pass)
-            auth_element.append(s_domain)
-            auth_element.append(s_domain)
-            auth_element.append(s_realm)
+            auth_element.append(JMX._string_prop("Authorization.url", conf_url))
+            auth_element.append(JMX._string_prop("Authorization.username", conf_name))
+            auth_element.append(JMX._string_prop("Authorization.password", conf_pass))
+            auth_element.append(JMX._string_prop("Authorization.domain", conf_domain))
+            auth_element.append(JMX._string_prop("Authorization.realm", conf_realm))
 
             if conf_mech == "KERBEROS":     # optional prop
                 auth_element.append(JMX._string_prop("Authorization.mechanism", "KERBEROS"))
