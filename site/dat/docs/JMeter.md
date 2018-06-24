@@ -761,7 +761,9 @@ You can consider this block to be a syntactic sugar over JSR223 blocks, because 
 
 
 #### HTTP Authorization
-You can use three follow forms for http authorization purposes:
+See [RFC2617](https://tools.ietf.org/html/rfc2617) for http authorization details
+
+You can use three follow forms for such purposes:
 ```yaml
 scenarios:
   simply:
@@ -784,7 +786,7 @@ scenarios:
       name: username2
       password: pass2
 ```
-If you want to reset authorization for each test iteration you need to use `clear` flag and full form:
+If you want to reset authorization for each test iteration you have to use `clear` flag and full form:
 ```yaml
 scenarios:
   full_auth:
@@ -798,7 +800,14 @@ scenarios:
         name: username2
         password: pass2
 ```
-For implementation of that Taurus uses JMeter HTTP Authorization Manager 
+Possible authorization params and their value are:
+* url: link to the resource you want to access
+* username & password: your credential
+* domain: non-standard parameter, can be used instead of url
+* realm: protected space
+* mechanism: digest (default) or kerberos.
+
+For implementation of authorization Taurus uses JMeter HTTP Authorization Manager.  
 
 ## User cookies
 Taurus allows you to set up some user cookies with follow syntax:

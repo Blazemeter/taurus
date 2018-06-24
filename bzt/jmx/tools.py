@@ -610,6 +610,7 @@ class JMeterScenarioBuilder(JMX):
             s_pass = JMX._string_prop("Authorization.password", authorization.get("pass", ""))
             s_domain = JMX._string_prop("Authorization.domain", authorization.get("domain", ""))
             s_realm = JMX._string_prop("Authorization.realm", authorization.get("realm", ""))
+            conf_mech = authorization.get("mechanism", "").upper()
 
             auth_element.append(s_url)
             auth_element.append(s_name)
@@ -617,6 +618,9 @@ class JMeterScenarioBuilder(JMX):
             auth_element.append(s_domain)
             auth_element.append(s_domain)
             auth_element.append(s_realm)
+
+            if conf_mech == "KERBEROS":     # optional prop
+                auth_element.append(JMX._string_prop("Authorization.mechanism", "KERBEROS"))
 
             auth_coll.append(auth_element)
 
