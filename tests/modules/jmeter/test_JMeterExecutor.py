@@ -1590,9 +1590,11 @@ class TestJMeterExecutor(BZTestCase):
                     "requests": ["empty"]}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        auth = xml_tree.findall(".//hashTree[@type='tg']/AuthManager/collectionProp[@name='AuthManager.auth_list']")
-        self.assertEqual(1, len(auth))
-        url = auth[0].findall("elementProp/stringProp[@name='Authorization.url']")
+        auth_mgr = xml_tree.findall(".//hashTree[@type='tg']/AuthManager")
+        self.assertEqual(1, len(auth_mgr))
+        collection = auth_mgr[0].findall("collectionProp[@name='AuthManager.auth_list']")
+        self.assertEqual(1, len(collection))
+        url = collection[0].findall("elementProp/stringProp[@name='Authorization.url']")
         self.assertEqual(url[0].text, "http://blazedemo.com/")
 
     def test_request_logic_loop_forever(self):

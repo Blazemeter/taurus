@@ -763,8 +763,43 @@ You can consider this block to be a syntactic sugar over JSR223 blocks, because 
 #### HTTP Authorization
 You can use three follow forms for http authorization purposes:
 ```yaml
+scenarios:
+  simply:
+    authorization:
+      url: auth_server_addr
+      name: my_username
+      password: my_pass
+
 ```
-It'
+It's the shortest form for quick setup. You can use several authorizations:
+
+```yaml
+scenarios:
+  simply:
+    multi_auth:
+    - url: auth_server_addr1
+      name: username1
+      password: pass1
+    - url: auth_server_addr2
+      name: username2
+      password: pass2
+```
+If you want to reset authorization for each test iteration you need to use `clear` flag and full form:
+```yaml
+scenarios:
+  full_auth:
+    authorization:
+      clear: true   # false by default
+      list:
+      - url: auth_server_addr1
+        name: username1
+        password: pass1
+      - url: auth_server_addr2
+        name: username2
+        password: pass2
+```
+For implementation of that Taurus uses JMeter HTTP Authorization Manager 
+
 ## User cookies
 Taurus allows you to set up some user cookies with follow syntax:
 ```yaml

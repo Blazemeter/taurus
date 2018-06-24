@@ -598,7 +598,7 @@ class JMeterScenarioBuilder(JMX):
             raise TaurusConfigError("Wrong authorization format: %s" % authorizations)
 
         if clear_flag:
-            mgr.append(JMX._bool_prop("LoopController.clearEachIteration", True))
+            mgr.append(JMX._bool_prop("AuthManager.clearEachIteration", True))
 
         auth_coll = JMX._collection_prop("AuthManager.auth_list")
 
