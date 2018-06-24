@@ -1130,57 +1130,6 @@ class JMX(object):
         return controller
 
     @staticmethod
-    def get_auth_mgr(authorizations):
-        """
-        Generates HTTP Authorization Manager
-
-        Expected values(by JMeter):
-            AuthManager.clearEachIteration: boolean
-
-        :return: etree element, AuthManager
-        """
-        mgr = etree.Element("AuthManager", guiclass="AuthPanel", testclass="AuthManager",
-                            testname="HTTP Authorization Manager")
-
-        clear_flag = False
-
-        if isinstance(authorizations, dict):
-            if "clear" in authorizations:     # full form
-                clear_flag = authorizations.get("clear")
-                authorizations = authorizations.get("list", [])
-            else:
-                authorizations = [authorizations]   # short form
-
-        if not isinstance(authorizations, list):
-            raise TaurusConfigError("Wrong authorization format: %s" % authorizations)
-
-        if clear_flag:
-            mgr.append(JMX._bool_prop("LoopController.clearEachIteration", True))
-
-        auth_coll = JMX._collection_prop("AuthManager.auth_list")
-
-        for authorization in authorizations:
-            auth_element = JMX._element_prop(name="", element_type="Authorization")
-
-            s_url = JMX._string_prop("Authorization.url", authorization.get("url", ""))
-            s_name = JMX._string_prop("Authorization.username", authorization.get("name", ""))
-            s_pass = JMX._string_prop("Authorization.password", authorization.get("pass", ""))
-            s_domain = JMX._string_prop("Authorization.domain", authorization.get("domain", ""))
-            s_realm = JMX._string_prop("Authorization.realm", authorization.get("realm", ""))
-
-            auth_element.append(s_url)
-            auth_element.append(s_name)
-            auth_element.append(s_pass)
-            auth_element.append(s_domain)
-            auth_element.append(s_domain)
-            auth_element.append(s_realm)
-
-            auth_coll.append(auth_element)
-
-        mgr.append(auth_coll)
-        return mgr
-
-    @staticmethod
     def _get_loop_controller(loops):
         """
         Generates Loop Controller

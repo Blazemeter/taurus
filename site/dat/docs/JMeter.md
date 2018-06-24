@@ -759,6 +759,12 @@ changed to "BAZ".
 
 You can consider this block to be a syntactic sugar over JSR223 blocks, because that's exactly how it works.
 
+
+#### HTTP Authorization
+You can use three follow forms for http authorization purposes:
+```yaml
+```
+It'
 ## User cookies
 Taurus allows you to set up some user cookies with follow syntax:
 ```yaml

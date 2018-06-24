@@ -376,6 +376,7 @@ class JMeterScenarioBuilder(JMX):
         elements = []
         for _, protocol in iteritems(self.protocol_handlers):
             elements.extend(protocol.get_toplevel_elements(scenario))
+        elements.extend(self.__gen_authorization(scenario))
         elements.extend(self.__gen_datasources(scenario))
         elements.extend(self.__gen_requests(scenario))
         return elements
@@ -569,6 +570,60 @@ class JMeterScenarioBuilder(JMX):
         # NOTE: bad design, as repetitive save will duplicate stuff
         self.__generate()
         super(JMeterScenarioBuilder, self).save(filename)
+
+    def __gen_authorization(self, scenario):
+        """
+        Generates HTTP Authorization Manager
+
+        """
+        elements = []
+        authorizations = scenario.get("authorization")
+        if not authorizations:
+            return
+
+        mgr = etree.Element("AuthManager", guiclass="AuthPanel", testclass="AuthManager",
+                            testname="HTTP Authorization Manager")
+        elements.append(mgr)
+
+        clear_flag = False
+
+        if isinstance(authorizations, dict):
+            if "clear" in authorizations:  # full form
+                clear_flag = authorizations.get("clear")
+                authorizations = authorizations.get("list", [])
+            else:
+                authorizations = [authorizations]  # short form
+
+        if not isinstance(authorizations, list):
+            raise TaurusConfigError("Wrong authorization format: %s" % authorizations)
+
+        if clear_flag:
+            mgr.append(JMX._bool_prop("LoopController.clearEachIteration", True))
+
+        auth_coll = JMX._collection_prop("AuthManager.auth_list")
+
+        for authorization in authorizations:
+            auth_element = JMX._element_prop(name="", element_type="Authorization")
+
+            s_url = JMX._string_prop("Authorization.url", authorization.get("url", ""))
+            s_name = JMX._string_prop("Authorization.username", authorization.get("name", ""))
+            s_pass = JMX._string_prop("Authorization.password", authorization.get("pass", ""))
+            s_domain = JMX._string_prop("Authorization.domain", authorization.get("domain", ""))
+            s_realm = JMX._string_prop("Authorization.realm", authorization.get("realm", ""))
+
+            auth_element.append(s_url)
+            auth_element.append(s_name)
+            auth_element.append(s_pass)
+            auth_element.append(s_domain)
+            auth_element.append(s_domain)
+            auth_element.append(s_realm)
+
+            auth_coll.append(auth_element)
+
+        mgr.append(auth_coll)
+
+        elements.append(etree.Element("hashTree"))
+        return elements
 
     def __gen_datasources(self, scenario):
         sources = scenario.get("data-sources")
