@@ -610,6 +610,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if self.get_scenario().get("disable-listeners", not self.settings.get("gui", False)):
             JMeterExecutor.__disable_listeners(jmx)
 
+        auth_mgr = self.get_scenario().get("authorization")
+        if auth_mgr:
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.get_auth_mgr(auth_mgr))
+            jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
+
         user_def_vars = self.get_scenario().get("variables")
         if user_def_vars:
             jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, jmx.add_user_def_vars_elements(user_def_vars))

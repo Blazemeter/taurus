@@ -1582,6 +1582,21 @@ class TestJMeterExecutor(BZTestCase):
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(forever.text, "true")
 
+    def test_auth_manager(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "authorization": [{"url": "http://blazedemo.com/"}],
+                    "requests": ["empty"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        mgr = xml_tree.find(".//AuthManager")
+        self.assertIsNotNone(mgr)
+        auth = xml_tree.findall(".//collectionProp[@name='AuthManager.auth_list']")
+        self.assertEqual(1, len(auth))
+        url = auth[0].findall("elementProp/stringProp[@name='Authorization.url']")
+        self.assertEqual(url[0].text, "http://blazedemo.com/")
+
     def test_request_logic_loop_forever(self):
         self.configure({
             'execution': {
