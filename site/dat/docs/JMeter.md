@@ -775,8 +775,8 @@ It's the shortest form for quick setup. You can use several authorizations:
 
 ```yaml
 scenarios:
-  simply:
-    multi_auth:
+  multi_auth:
+    authorization:    
     - url: auth_server_addr1
       name: username1
       password: pass1
