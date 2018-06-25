@@ -117,7 +117,7 @@ class Engine(object):
         self.config['included-configs'] = all_includes
 
         self.config.merge({"version": bzt.VERSION})
-        self._set_up_proxy()
+        self.get_http_client()
 
         if self.config.get(SETTINGS).get("check-updates", True):
             install_id = self.config.get("install-id", self._generate_id())
@@ -591,23 +591,6 @@ class Engine(object):
             self.aggregator = self.instantiate_module(cls)
         self.prepared.append(self.aggregator)
         self.aggregator.prepare()
-
-    def _set_up_proxy(self):
-        proxy_settings = self.config.get("settings").get("proxy")
-        # if proxy_settings and proxy_settings.get("address"):
-        #     proxy_url = parse.urlsplit(proxy_settings.get("address"))
-        #     self.log.debug("Using proxy settings: %s", proxy_url)
-        #     username = proxy_settings.get("username")
-        #     pwd = proxy_settings.get("password")
-        #     scheme = proxy_url.scheme if proxy_url.scheme else 'http'
-        #     if username and pwd:
-        #         proxy_uri = "%s://%s:%s@%s" % (scheme, username, pwd, proxy_url.netloc)
-        #     else:
-        #         proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
-        #     self.log.info("Proxy uri: %r", proxy_uri)
-        #     proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
-        #     opener = build_opener(proxy_handler)
-        #     install_opener(opener)
 
     def get_http_client(self):
         if self._http_client is None:

@@ -925,6 +925,7 @@ class HTTPClient(object):
 
         proxy_url = parse.urlsplit(proxy_settings.get("address"))
         self.log.debug("Using proxy settings: %s", proxy_url)
+        self.log.info("Using proxy: %r", proxy_url)
         username = proxy_settings.get("username")
         pwd = proxy_settings.get("password")
         scheme = proxy_url.scheme if proxy_url.scheme else 'http'
@@ -932,7 +933,6 @@ class HTTPClient(object):
             proxy_uri = "%s://%s:%s@%s" % (scheme, username, pwd, proxy_url.netloc)
         else:
             proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
-        self.log.info("Proxy uri: %r", proxy_uri)
         self.session.proxies = {"https": proxy_uri, "http": proxy_uri}
 
         self.session.verify = proxy_settings.get('ssl-cert', True)
@@ -941,14 +941,22 @@ class HTTPClient(object):
     def download_file(self, url, filename, reporthook=None, data=None):
         try:
             with self.session.get(url, stream=True, data=data) as conn:
+                total = int(conn.headers.get('content-length', 0))
+                block_size = 1024
+                count = 0
                 with open(filename, 'wb') as f:
-                    for chunk in conn.iter_content(chunk_size=1024):
+                    for chunk in conn.iter_content(chunk_size=block_size):
                         if chunk:
                             f.write(chunk)
+                            count += 1
+                            reporthook(count, block_size, total)
         except requests.exceptions.RequestException as exc:
             resp = exc.response
             self.log.debug("File download resulted in exception: %s", traceback.format_exc())
-            raise TaurusNetworkError("Unsuccessful download from %s: %s - %s" % (url, resp.status_code, resp.reason))
+            msg = "Unsuccessful download from %s" % url
+            if resp is not None:
+                msg += ": %s - %s" % (resp.status_code, resp.reason)
+            raise TaurusNetworkError(msg)
 
     def request(self, method, url, *args, **kwargs):
         try:
@@ -956,24 +964,35 @@ class HTTPClient(object):
         except requests.exceptions.RequestException as exc:
             resp = exc.response
             self.log.debug("Request resulted in exception: %s", traceback.format_exc())
-            raise TaurusNetworkError("Request to %s failed: %s - %s" % (url, resp.status_code, resp.reason))
+            msg = "Request to %s failed" % url
+            if resp is not None:
+                msg += ": %s - %s" % (resp.status_code, resp.reason)
+            raise TaurusNetworkError(msg)
 
 
 class ExceptionalDownloader(request.FancyURLopener, object):
-    def __init__(self, client):
+    def __init__(self, http_client=None):
         """
 
-        :type client: HTTPClient
+        :type http_client: HTTPClient
         """
-        self.client = client
+        super(ExceptionalDownloader, self).__init__()
+        self.http_client = http_client
+
+    def http_error_default(self, url, fp, errcode, errmsg, headers):
+        fp.close()
+        raise TaurusNetworkError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
 
     def get(self, url, filename=None, reporthook=None, data=None, suffix=""):
         fd = None
         try:
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
-            response = self.client.download_file(url, filename, reporthook, data)
-            response.raise_for_status()
+            if self.http_client is not None:
+                self.http_client.download_file(url, filename, reporthook, data)
+                result = [filename]
+            else:
+                result = self.retrieve(url, filename, reporthook, data)
         except BaseException:
             if fd:
                 os.close(fd)
@@ -982,7 +1001,7 @@ class ExceptionalDownloader(request.FancyURLopener, object):
 
         if fd:
             os.close(fd)
-        return filename
+        return result
 
 
 class RequiredTool(object):
@@ -990,7 +1009,7 @@ class RequiredTool(object):
     Abstract required tool
     """
 
-    def __init__(self, http_client, tool_name, tool_path, download_link=""):
+    def __init__(self, tool_name, tool_path, download_link="", http_client=None):
         self.http_client = http_client
         self.tool_name = tool_name
         self.tool_path = tool_path
@@ -1032,7 +1051,7 @@ class RequiredTool(object):
             self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
-                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)
+                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)[0]
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
@@ -1043,8 +1062,8 @@ class RequiredTool(object):
 
 
 class JavaVM(RequiredTool):
-    def __init__(self, parent_logger, tool_path='java', download_link=''):
-        super(JavaVM, self).__init__("JavaVM", tool_path, download_link)
+    def __init__(self, parent_logger, tool_path='java', download_link='', http_client=None):
+        super(JavaVM, self).__init__("JavaVM", tool_path, download_link, http_client=http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
@@ -1185,15 +1204,15 @@ class Node(RequiredTool):
 
 
 class MirrorsManager(object):
-    def __init__(self, base_link, http_client, parent_logger):
+    def __init__(self, base_link, parent_logger, http_client=None):
         """
 
         :type base_link: str
         :type http_client: HTTPClient
         """
         self.base_link = base_link
-        self.http_client = http_client
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.http_client = http_client
         self.page_source = None
 
     @abstractmethod
@@ -1202,9 +1221,15 @@ class MirrorsManager(object):
 
     def mirrors(self):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
+        downloader = ExceptionalDownloader()
         try:
-            response = self.http_client.request('GET', self.base_link)
-            self.page_source = response.text
+            if self.http_client:
+                response = self.http_client.request('GET', self.base_link)
+                self.page_source = response.text
+            else:
+                tmp_file = downloader.get(self.base_link)[0]
+                with open(tmp_file) as fds:
+                    self.page_source = fds.read()
         except BaseException:
             self.log.debug("Exception: %s", traceback.format_exc())
             self.log.error("Can't fetch %s", self.base_link)

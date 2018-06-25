@@ -1539,7 +1539,7 @@ class JMeter(RequiredTool):
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
     def __download_additions(self, tools):
-        downloader = ExceptionalDownloader()
+        downloader = ExceptionalDownloader(self.http_client)
         with ProgressBarContext() as pbar:
             for tool in tools:
                 url = tool[0]
@@ -1658,7 +1658,7 @@ class JarCleaner(object):
 class JMeterMirrorsManager(MirrorsManager):
     def __init__(self, http_client, parent_logger, jmeter_version):
         self.jmeter_version = str(jmeter_version)
-        super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, http_client, parent_logger)
+        super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger, http_client)
 
     def _parse_mirrors(self):
         links = []
