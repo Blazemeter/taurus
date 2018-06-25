@@ -264,7 +264,7 @@ class RequestsParser(object):
             try:
                 requests.append(self.__parse_request(req))
             except BaseException as exc:
-                logging.debug("%s\n%s" % traceback.format_exc())
+                logging.debug("%s\n%s" % (exc, traceback.format_exc()))
                 raise TaurusConfigError("Wrong request:\n %s" % req)
         return requests
 
