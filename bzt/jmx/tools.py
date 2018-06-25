@@ -571,7 +571,8 @@ class JMeterScenarioBuilder(JMX):
         self.__generate()
         super(JMeterScenarioBuilder, self).save(filename)
 
-    def __gen_authorization(self, scenario):
+    @staticmethod
+    def __gen_authorization(scenario):
         """
         Generates HTTP Authorization Manager
 
