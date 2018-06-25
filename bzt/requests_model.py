@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import logging
+import traceback
 import mimetypes
 import re
 
@@ -259,7 +261,11 @@ class RequestsParser(object):
             req = ensure_is_dict(raw_requests, key, "url")
             if not require_url and "url" not in req:
                 req["url"] = None
-            requests.append(self.__parse_request(req))
+            try:
+                requests.append(self.__parse_request(req))
+            except BaseException as exc:
+                logging.debug("%s\n%s" % (exc, traceback.format_exc()))
+                raise TaurusConfigError("Wrong request:\n %s" % req)
         return requests
 
     def extract_requests(self, require_url=True):

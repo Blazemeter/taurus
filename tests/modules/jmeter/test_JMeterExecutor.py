@@ -900,6 +900,15 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {'think-time': 0.75}}})
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
+    def test_wrong_loop(self):
+        # https://groups.google.com/forum/#!topic/codename-taurus/iaT6O2UhfBE
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'requests': [{"loop": "forever", "do": "bla-bla"}]}}})
+
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
+
     def test_variable_csv_file(self):
         self.obj.execution.merge({
             "scenario": {
