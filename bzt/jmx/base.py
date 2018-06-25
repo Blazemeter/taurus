@@ -195,7 +195,7 @@ class JMX(object):
             "url": False
         }
 
-        flags=BetterDict()
+        flags = BetterDict()
         flags.merge(defaults)
         if flag_overrides:
             flags.merge(flag_overrides)
@@ -989,7 +989,8 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_xpath_extractor(varname, xpath, default, validate_xml, ignore_whitespace, match_no, use_namespaces, use_tolerant_parser):
+    def _get_xpath_extractor(varname, xpath, default, validate_xml, ignore_whitespace, match_no, use_namespaces,
+                             use_tolerant_parser):
         """
         :type varname: str
         :type xpath: str
