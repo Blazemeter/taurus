@@ -2,13 +2,43 @@ import logging
 
 from tests.mocks import EngineEmul
 from bzt.modules.jmeter import JMeter, JMeterExecutor
-from bzt.utils import get_full_path
+from bzt.utils import get_full_path, HTTPClient
+
+
+class MockResponse(object):
+    def __init__(self, text=None, file=None):
+        self.text = text
+        self.file = file
+
+
+class MockHTTPClient(HTTPClient):
+    def __init__(self, responses_dict=None):
+        super(MockHTTPClient, self).__init__()
+        self.responses_dict = {}
+
+    def add_response(self, method, url, text=None, file=None):
+        self.responses_dict[(method, url)] = MockResponse(text, file)
+
+    def download_file(self, url, filename, reporthook=None, data=None):
+        key = ('GET', url)
+        resp = self.responses_dict[key]
+        with open(filename, 'wb') as fdsto:
+            with open(resp.file, 'rb') as fdsfrom:
+                fdsto.write(fdsfrom.read())
+        return filename
+
+    def request(self, method, url, *args, **kwargs):
+        key = (method, url)
+        return self.responses_dict[key]
 
 
 class MockJMeter(JMeter):
     def __init__(self, jmeter_version=JMeterExecutor.JMETER_VER, has_ctg=None, reaction=None, http_client=None):
         jmeter_path = "~/.bzt/jmeter-taurus/{version}/"
         jmeter_path = get_full_path(jmeter_path)
+
+        if http_client is None:
+            http_client = MockHTTPClient()
 
         super(MockJMeter, self).__init__(tool_path=jmeter_path, parent_logger=logging.getLogger(''),
                                          jmeter_version=jmeter_version, jmeter_download_link=None, plugins=[],

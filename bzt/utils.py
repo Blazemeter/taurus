@@ -942,6 +942,11 @@ class HTTPClient(object):
         self.session.cert = proxy_settings.get('ssl-client-cert', None)
 
     def get_proxy_jvm_args(self):
+        if not self.proxy_settings:
+            return ''
+        if not self.proxy_settings.get("address"):
+            return ''
+
         props = OrderedDict()
 
         proxy_url = parse.urlsplit(self.proxy_settings.get("address"))
@@ -978,6 +983,7 @@ class HTTPClient(object):
             raise TaurusNetworkError(msg)
 
     def request(self, method, url, *args, **kwargs):
+        self.log.debug('Making HTTP request %s %s', method, url)
         try:
             return self.session.request(method, url, *args, **kwargs)
         except requests.exceptions.RequestException as exc:
