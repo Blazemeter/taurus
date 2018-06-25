@@ -260,6 +260,44 @@ class JMX(object):
                              guiclass="ArgumentsPanel", testclass="Arguments")
 
     @staticmethod
+    def get_auth_manager(authorizations, clear_flag):
+        mgr = etree.Element("AuthManager", guiclass="AuthPanel", testclass="AuthManager",
+                            testname="HTTP Authorization Manager")
+
+        if clear_flag:
+            mgr.append(JMX._bool_prop("AuthManager.clearEachIteration", True))
+
+        auth_coll = JMX._collection_prop("AuthManager.auth_list")
+        mgr.append(auth_coll)
+
+        for authorization in authorizations:
+            auth_element = JMX._element_prop(name="", element_type="Authorization")
+
+            conf_url = authorization.get("url", "")
+            conf_name = authorization.get("name", "")
+            conf_pass = authorization.get("password", "")
+            conf_domain = authorization.get("domain", "")
+            conf_realm = authorization.get("realm", "")
+            conf_mech = authorization.get("mechanism", "").upper()
+
+            if not (conf_name and conf_pass and (conf_url or conf_domain)):
+                logging.warning("Wrong authorization: %s" % authorization)
+                continue
+
+            auth_element.append(JMX._string_prop("Authorization.url", conf_url))
+            auth_element.append(JMX._string_prop("Authorization.username", conf_name))
+            auth_element.append(JMX._string_prop("Authorization.password", conf_pass))
+            auth_element.append(JMX._string_prop("Authorization.domain", conf_domain))
+            auth_element.append(JMX._string_prop("Authorization.realm", conf_realm))
+
+            if conf_mech == "KERBEROS":  # optional prop
+                auth_element.append(JMX._string_prop("Authorization.mechanism", "KERBEROS"))
+
+            auth_coll.append(auth_element)
+
+        return mgr
+
+    @staticmethod
     def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None, follow_redirects=True,
                           use_random_host_ip=False, host_ips=()):
         """

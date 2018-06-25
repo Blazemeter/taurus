@@ -578,58 +578,23 @@ class JMeterScenarioBuilder(JMX):
         """
         elements = []
         authorizations = scenario.get("authorization")
-        if not authorizations:
-            return
+        if authorizations:
+            clear_flag = False
 
-        mgr = etree.Element("AuthManager", guiclass="AuthPanel", testclass="AuthManager",
-                            testname="HTTP Authorization Manager")
-        elements.append(mgr)
+            if isinstance(authorizations, dict):
+                if "clear" in authorizations or "list" in authorizations:  # full form
+                    clear_flag = authorizations.get("clear", False)
+                    authorizations = authorizations.get("list", [])
+                else:
+                    authorizations = [authorizations]  # short form
 
-        clear_flag = False
+            if not isinstance(authorizations, list):
+                raise TaurusConfigError("Wrong authorization format: %s" % authorizations)
 
-        if isinstance(authorizations, dict):
-            if "clear" in authorizations or "list" in authorizations:  # full form
-                clear_flag = authorizations.get("clear", False)
-                authorizations = authorizations.get("list", [])
-            else:
-                authorizations = [authorizations]  # short form
+            auth_manager = JMX.get_auth_manager(authorizations, clear_flag)
+            elements.append(auth_manager)
+            elements.append(etree.Element("hashTree"))
 
-        if not isinstance(authorizations, list):
-            raise TaurusConfigError("Wrong authorization format: %s" % authorizations)
-
-        if clear_flag:
-            mgr.append(JMX._bool_prop("AuthManager.clearEachIteration", True))
-
-        auth_coll = JMX._collection_prop("AuthManager.auth_list")
-
-        for authorization in authorizations:
-            auth_element = JMX._element_prop(name="", element_type="Authorization")
-
-            conf_url = authorization.get("url", "")
-            conf_name = authorization.get("name", "")
-            conf_pass = authorization.get("password", "")
-            conf_domain = authorization.get("domain", "")
-            conf_realm = authorization.get("realm", "")
-            conf_mech = authorization.get("mechanism", "").upper()
-
-            if not (conf_name and conf_pass and (conf_url or conf_domain)):
-                self.log.warning("Wrong authorization: %s" % authorization)
-                continue
-
-            auth_element.append(JMX._string_prop("Authorization.url", conf_url))
-            auth_element.append(JMX._string_prop("Authorization.username", conf_name))
-            auth_element.append(JMX._string_prop("Authorization.password", conf_pass))
-            auth_element.append(JMX._string_prop("Authorization.domain", conf_domain))
-            auth_element.append(JMX._string_prop("Authorization.realm", conf_realm))
-
-            if conf_mech == "KERBEROS":     # optional prop
-                auth_element.append(JMX._string_prop("Authorization.mechanism", "KERBEROS"))
-
-            auth_coll.append(auth_element)
-
-        mgr.append(auth_coll)
-
-        elements.append(etree.Element("hashTree"))
         return elements
 
     def __gen_datasources(self, scenario):
