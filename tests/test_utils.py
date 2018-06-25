@@ -8,6 +8,7 @@ import tempfile
 from psutil import Popen
 from os.path import join
 
+from bzt import TaurusNetworkError
 from bzt.six import PY2
 from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient
 from tests import BZTestCase, RESOURCES_DIR
@@ -151,3 +152,34 @@ class TestHTTPClient(BZTestCase):
             for key in ['proxyHost', 'proxyPort', 'proxyUser', 'proxyPass']:
                 combo_key = protocol + '.' + key
                 self.assertIn(combo_key, jvm_args)
+
+    def test_download_file(self):
+        obj = HTTPClient()
+        fd, tmpfile = tempfile.mkstemp()
+        os.close(fd)
+
+        obj.download_file('http://httpbin.org/anything', tmpfile)
+
+        self.assertTrue(os.path.exists(tmpfile))
+
+        with open(tmpfile) as fds:
+            contents = fds.read()
+
+        self.assertGreaterEqual(len(contents), 0)
+
+    def test_download_fail(self):
+        obj = HTTPClient()
+        fd, tmpfile = tempfile.mkstemp()
+        os.close(fd)
+
+        self.assertRaises(TaurusNetworkError, lambda: obj.download_file('http://httpbin.org/status/404', tmpfile))
+
+    def test_request(self):
+        obj = HTTPClient()
+        resp = obj.request('GET', 'http://httpbin.org/status/200')
+        self.assertTrue(resp.ok)
+
+    def test_request_fail(self):
+        obj = HTTPClient()
+        resp = obj.request('GET', 'http://httpbin.org/status/404')
+        self.assertFalse(resp.ok)

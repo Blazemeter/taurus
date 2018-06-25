@@ -961,6 +961,8 @@ class HTTPClient(object):
     def download_file(self, url, filename, reporthook=None, data=None):
         try:
             with self.session.get(url, stream=True, data=data) as conn:
+                if not conn.ok:
+                    raise ValueError("Status code %s", conn.status_code)
                 total = int(conn.headers.get('content-length', 0))
                 block_size = 1024
                 count = 0
@@ -969,7 +971,8 @@ class HTTPClient(object):
                         if chunk:
                             f.write(chunk)
                             count += 1
-                            reporthook(count, block_size, total)
+                            if reporthook:
+                                reporthook(count, block_size, total)
         except requests.exceptions.RequestException as exc:
             resp = exc.response
             self.log.debug("File download resulted in exception: %s", traceback.format_exc())
@@ -977,6 +980,9 @@ class HTTPClient(object):
             if resp is not None:
                 msg += ": %s - %s" % (resp.status_code, resp.reason)
             raise TaurusNetworkError(msg)
+        except BaseException:
+            self.log.debug("File download resulted in exception: %s", traceback.format_exc())
+            raise TaurusNetworkError("Unsuccessful download from %s" % url)
 
     def request(self, method, url, *args, **kwargs):
         self.log.debug('Making HTTP request %s %s', method, url)
