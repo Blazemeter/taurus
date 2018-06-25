@@ -9,7 +9,7 @@ from psutil import Popen
 from os.path import join
 
 from bzt.six import PY2
-from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows
+from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 
@@ -118,3 +118,36 @@ class TestFileReader(BZTestCase):
     def test_decode_crash(self):
         self.configure(join(RESOURCES_DIR, 'jmeter', 'jtl', 'unicode.jtl'))
         self.obj.get_bytes(size=180)  # shouldn't crash with UnicodeDecodeError
+
+
+class TestHTTPClient(BZTestCase):
+    def test_proxy_setup(self):
+        obj = HTTPClient()
+        obj.add_proxy_settings({"address": "http://localhost:3128",
+                                "username": "me",
+                                "password": "too"})
+
+        self.assertIn('http', obj.session.proxies)
+        self.assertIn('https', obj.session.proxies)
+
+        self.assertEqual(obj.session.proxies['http'], 'http://me:too@localhost:3128')
+        self.assertEqual(obj.session.proxies['https'], 'http://me:too@localhost:3128')
+
+    def test_proxy_ssl_cert(self):
+        obj = HTTPClient()
+        obj.add_proxy_settings({"ssl-cert": "i am server side cert",
+                                "ssl-client-cert": "i am client side cert"})
+
+        self.assertEqual(obj.session.verify, 'i am server side cert')
+        self.assertEqual(obj.session.cert, 'i am client side cert')
+
+    def test_jvm_args(self):
+        obj = HTTPClient()
+        obj.add_proxy_settings({"address": "http://localhost:3128",
+                                "username": "me",
+                                "password": "too"})
+        jvm_args = obj.get_proxy_jvm_args()
+        for protocol in ['http', 'https']:
+            for key in ['proxyHost', 'proxyPort', 'proxyUser', 'proxyPass']:
+                combo_key = protocol + '.' + key
+                self.assertIn(combo_key, jvm_args)
