@@ -867,9 +867,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         jmeter_path = get_full_path(jmeter_path)
         download_link = self.settings.get("download-link", None)
         plugins = self.settings.get("plugins", [])
-        proxy = self.engine.config.get('settings').get('proxy')
-        self.tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, proxy,
-                           self.engine.get_http_client())
+        self.tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, self.engine.get_http_client())
 
         if self._need_to_install(self.tool):
             self.tool.install()
@@ -1462,13 +1460,12 @@ class JMeter(RequiredTool):
     JMeter tool
     """
 
-    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, proxy, http_client):
-        super(JMeter, self).__init__("JMeter", tool_path, jmeter_download_link)
+    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, http_client):
+        super(JMeter, self).__init__("JMeter", tool_path, jmeter_download_link, http_client=http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
         self.mirror_manager = JMeterMirrorsManager(http_client, self.log, self.version)
         self.plugins = plugins
-        self.proxy_settings = proxy
         self.tool_path = self.tool_path.format(version=self.version)
 
     def check_if_installed(self):
@@ -1494,9 +1491,9 @@ class JMeter(RequiredTool):
             self.log.debug("JMeter check failed.")
             return False
 
-    def _pmgr_call(self, params):
+    def _pmgr_call(self, params, env=None):
         cmd = [self._pmgr_path()] + params
-        proc = shell_exec(cmd)
+        proc = shell_exec(cmd, env=env)
         return communicate(proc)
 
     def install_for_jmx(self, jmx_file):
@@ -1504,8 +1501,16 @@ class JMeter(RequiredTool):
             self.log.warning("Script %s not found" % jmx_file)
             return
 
+        env = None
+        if self.http_client:
+            env = os.environ.copy()
+            jvm_args = env.get('JVM_ARGS', '')
+            jvm_args = (jvm_args + ' ' + self.http_client.get_proxy_jvm_args()).strip()
+            self.log.debug('Passing JVM_ARGS: %r', jvm_args)
+            env['JVM_ARGS'] = jvm_args
+
         try:
-            out, err = self._pmgr_call(["install-for-jmx", jmx_file])
+            out, err = self._pmgr_call(["install-for-jmx", jmx_file], env=env)
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
         except KeyboardInterrupt:
             raise
@@ -1570,10 +1575,20 @@ class JMeter(RequiredTool):
         self.log.info("Installing JMeter plugins: %s", plugin_str)
         cmd = [plugins_manager_cmd, 'install', plugin_str]
         self.log.debug("Trying: %s", cmd)
+
+        env = os.environ.copy()
+        if self.http_client:
+            jvm_args = env.get('JVM_ARGS', '')
+            jvm_args = (jvm_args + ' ' + self.http_client.get_proxy_jvm_args()).strip()
+            self.log.debug('Passing JVM_ARGS: %r', jvm_args)
+            env['JVM_ARGS'] = jvm_args
+
         try:
-            proc = shell_exec(cmd)
+            proc = shell_exec(cmd, env=env)
             out, err = communicate(proc)
             self.log.debug("Install plugins: %s / %s", out, err)
+            if proc.returncode is not None and proc.returncode != 0:
+                raise ToolError("Failed to install JMeter plugins with code %s" % proc.returncode)
         except KeyboardInterrupt:
             raise
         except BaseException as exc:

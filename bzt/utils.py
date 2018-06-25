@@ -45,7 +45,7 @@ import ipaddress
 import psutil
 
 from abc import abstractmethod
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, OrderedDict
 from contextlib import contextmanager
 from math import log
 
@@ -916,6 +916,7 @@ class HTTPClient(object):
     def __init__(self):
         self.session = requests.Session()
         self.log = logging.getLogger(self.__class__.__name__)
+        self.proxy_settings = None
 
     def add_proxy_settings(self, proxy_settings):
         if not proxy_settings:
@@ -923,9 +924,11 @@ class HTTPClient(object):
         if not proxy_settings.get("address"):
             return
 
-        proxy_url = parse.urlsplit(proxy_settings.get("address"))
+        self.proxy_settings = proxy_settings
+        proxy_addr = proxy_settings.get("address")
+        self.log.info("Using proxy %r", proxy_addr)
+        proxy_url = parse.urlsplit(proxy_addr)
         self.log.debug("Using proxy settings: %s", proxy_url)
-        self.log.info("Using proxy: %r", proxy_url)
         username = proxy_settings.get("username")
         pwd = proxy_settings.get("password")
         scheme = proxy_url.scheme if proxy_url.scheme else 'http'
@@ -937,6 +940,22 @@ class HTTPClient(object):
 
         self.session.verify = proxy_settings.get('ssl-cert', True)
         self.session.cert = proxy_settings.get('ssl-client-cert', None)
+
+    def get_proxy_jvm_args(self):
+        props = OrderedDict()
+
+        proxy_url = parse.urlsplit(self.proxy_settings.get("address"))
+        username = self.proxy_settings.get("username")
+        pwd = self.proxy_settings.get("password")
+        for protocol in ["http", "https"]:
+            props[protocol+'.proxyHost'] = proxy_url.hostname
+            props[protocol+'.proxyPort'] = proxy_url.port or 80
+            if username and pwd:
+                props[protocol + '.proxyUser'] = username
+                props[protocol + '.proxyPass'] = pwd
+
+        jvm_args = " ".join(("-D%s=%s" % (key, value)) for key, value in iteritems(props))
+        return jvm_args
 
     def download_file(self, url, filename, reporthook=None, data=None):
         try:

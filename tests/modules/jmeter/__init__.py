@@ -11,7 +11,7 @@ class MockJMeter(JMeter):
         jmeter_path = get_full_path(jmeter_path)
 
         super(MockJMeter, self).__init__(tool_path=jmeter_path, parent_logger=logging.getLogger(''),
-                                         jmeter_version=jmeter_version, jmeter_download_link=None, plugins=[], proxy={},
+                                         jmeter_version=jmeter_version, jmeter_download_link=None, plugins=[],
                                          http_client=http_client)
         self.has_ctg = has_ctg
         self.reaction = reaction if reaction else []
@@ -19,7 +19,7 @@ class MockJMeter(JMeter):
     def ctg_plugin_installed(self):
         return self.has_ctg
 
-    def _pmgr_call(self, params):
+    def _pmgr_call(self, params, env=None):
         # replaces real pmgr call
         reaction = self.reaction.pop(0)
         if 'raise' in reaction:
