@@ -35,13 +35,14 @@ from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
 from json import encoder
 
+import requests
 import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestsParser
-from bzt.six import build_opener, install_opener, urlopen, numeric_types
+from bzt.six import build_opener, install_opener, numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
@@ -121,7 +122,10 @@ class Engine(object):
             install_id = self.config.get("install-id", self._generate_id())
 
             def wrapper():
-                return self._check_updates(install_id)
+                settings = self.config.get(SETTINGS)
+                verify = settings.get('ssl-cert', True)
+                cert = settings.get('ssl-client-cert', None)
+                return self._check_updates(install_id, verify=verify, cert=cert)
 
             thread = threading.Thread(target=wrapper)  # intentionally non-daemon thread
             thread.start()
@@ -606,14 +610,14 @@ class Engine(object):
             opener = build_opener(proxy_handler)
             install_opener(opener)
 
-    def _check_updates(self, install_id):
+    def _check_updates(self, install_id, verify=None, cert=None):
         try:
             params = (bzt.VERSION, install_id)
-            req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
-            self.log.debug("Requesting updates info: %s", req)
-            response = urlopen(req, timeout=10)
-            resp = response.read()
+            url = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
+            self.log.debug("Requesting updates info: %s", url)
+            response = requests.get(url, timeout=10, cert=cert, verify=verify)
 
+            resp = response.content
             if not isinstance(resp, str):
                 resp = resp.decode()
 

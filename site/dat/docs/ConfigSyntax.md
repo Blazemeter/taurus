@@ -92,6 +92,8 @@ Available settings are:
  - `default-executor` - module alias for executor that will be used by default for [executions](ExecutionSettings.md)
  - `proxy` - proxy settings for BZA feeding, Taurus will use proxy settings from OS environment by default.
  - `env` - environment variables to set for Taurus, useful with [evaluating feature](#Environment-Variable-Access). Setting environment variable to `null` makes it to delete variable, if one is set. Special `TAURUS\_ARTIFACTS\_DIR` variable is set by Taurus, pointing onto artifacts dir location.
+ - `ssl-cert` - SSL certificate that Taurus will use for all its requests
+ - `ssl-client-cert` - client side SSL certificate (see [requests docs](http://docs.python-requests.org/en/master/user/advanced/#client-side-certificates) for more info)
  
 See default settings below:
 
@@ -112,6 +114,8 @@ settings:
   env: # set environment variables to set
     VARNAME1: VARVALUE1
     VARNAME2: VARVALUE2
+  ssl-cert: certs/staging.pem  # SSL certificate for validation. You can set it to `false` to disable validation.
+  ssl-client-cert: certs/client.cert
 ```
 
 ## Human-Readable Time Specifications
