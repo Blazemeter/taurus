@@ -167,12 +167,19 @@ class TestHTTPClient(BZTestCase):
 
         self.assertGreaterEqual(len(contents), 0)
 
-    def test_download_fail(self):
+    def test_download_404(self):
         obj = HTTPClient()
         fd, tmpfile = tempfile.mkstemp()
         os.close(fd)
 
         self.assertRaises(TaurusNetworkError, lambda: obj.download_file('http://httpbin.org/status/404', tmpfile))
+
+    def test_download_fail(self):
+        obj = HTTPClient()
+        fd, tmpfile = tempfile.mkstemp()
+        os.close(fd)
+
+        self.assertRaises(TaurusNetworkError, lambda: obj.download_file('http://non.existent.com/', tmpfile))
 
     def test_request(self):
         obj = HTTPClient()
@@ -181,5 +188,4 @@ class TestHTTPClient(BZTestCase):
 
     def test_request_fail(self):
         obj = HTTPClient()
-        resp = obj.request('GET', 'http://httpbin.org/status/404')
-        self.assertFalse(resp.ok)
+        self.assertRaises(TaurusNetworkError, lambda: obj.request('GET', 'http://non.existent.com/'))
