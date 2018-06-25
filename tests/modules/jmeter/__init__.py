@@ -6,12 +6,13 @@ from bzt.utils import get_full_path
 
 
 class MockJMeter(JMeter):
-    def __init__(self, jmeter_version=JMeterExecutor.JMETER_VER, has_ctg=None, reaction=None):
+    def __init__(self, jmeter_version=JMeterExecutor.JMETER_VER, has_ctg=None, reaction=None, http_client=None):
         jmeter_path = "~/.bzt/jmeter-taurus/{version}/"
         jmeter_path = get_full_path(jmeter_path)
 
         super(MockJMeter, self).__init__(tool_path=jmeter_path, parent_logger=logging.getLogger(''),
-                                         jmeter_version=jmeter_version, jmeter_download_link=None, plugins=[], proxy={})
+                                         jmeter_version=jmeter_version, jmeter_download_link=None, plugins=[], proxy={},
+                                         http_client=http_client)
         self.has_ctg = has_ctg
         self.reaction = reaction if reaction else []
 
