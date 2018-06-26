@@ -16,7 +16,7 @@ class BZAProxyEmul(BZAProxy):
         super(BZAProxyEmul, self).__init__()
         self.service = service
 
-    def _request(self, url, data=None, headers=None, method=None, raw_result=False):
+    def _request(self, url, data=None, headers=None, method=None, raw_result=False, use_auth=True):
         self.log.debug("Emulating: %s", url)
         response = self.service.responses.pop(0)
         resp = response.text
