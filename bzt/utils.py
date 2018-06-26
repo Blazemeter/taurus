@@ -998,25 +998,24 @@ class HTTPClient(object):
 
 
 class ExceptionalDownloader(request.FancyURLopener, object):
-    def __init__(self, http_client=None):
+    def __init__(self):
         """
 
         :type http_client: HTTPClient
         """
         super(ExceptionalDownloader, self).__init__()
-        self.http_client = http_client
 
     def http_error_default(self, url, fp, errcode, errmsg, headers):
         fp.close()
         raise TaurusNetworkError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
 
-    def get(self, url, filename=None, reporthook=None, data=None, suffix=""):
+    def get(self, url, filename=None, reporthook=None, data=None, suffix="", http_client=None):
         fd = None
         try:
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
-            if self.http_client is not None:
-                self.http_client.download_file(url, filename, reporthook, data)
+            if http_client is not None:
+                http_client.download_file(url, filename, reporthook, data)
                 result = [filename]
             else:
                 result = self.retrieve(url, filename, reporthook, data)
@@ -1058,7 +1057,8 @@ class RequiredTool(object):
                 os.makedirs(os.path.dirname(self.tool_path))
             downloader = ExceptionalDownloader()
             self.log.info("Downloading %s", self.download_link)
-            downloader.get(self.download_link, self.tool_path, reporthook=pbar.download_callback)
+            downloader.get(self.download_link, self.tool_path, reporthook=pbar.download_callback,
+                           http_client=self.http_client)
 
             if self.check_if_installed():
                 return self.tool_path
@@ -1071,14 +1071,15 @@ class RequiredTool(object):
         else:
             links = self.mirror_manager.mirrors()
 
-        downloader = ExceptionalDownloader(self.http_client)
+        downloader = ExceptionalDownloader()
         sock_timeout = socket.getdefaulttimeout()
         socket.setdefaulttimeout(5)
         for link in links:
             self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
-                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)[0]
+                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix,
+                                          http_client=self.http_client)[0]
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
