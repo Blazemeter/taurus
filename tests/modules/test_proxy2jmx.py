@@ -141,9 +141,9 @@ class TestProxy2JMX(BZTestCase):
 
     def _check_linux(self):
         required_env = {
-            'DESKTOP_SESSION': None, 'HTTP_PROXY': 'http://host1:port1', 'https_proxy': 'http://host1:port1',
-            'GNOME_DESKTOP_SESSION_ID': None, 'http_proxy': 'http://host1:port1', 'XDG_CURRENT_DESKTOP': None,
-            'HTTPS_PROXY': 'http://host1:port1', 'CHROMIUM_USER_FLAGS': '--proxy-server=http://host1:port1',
+            'DESKTOP_SESSION': None, 'HTTP_PROXY': 'user1:123@host1:port1', 'https_proxy': 'user1:123@host1:port1',
+            'GNOME_DESKTOP_SESSION_ID': None, 'http_proxy': 'user1:123@host1:port1', 'XDG_CURRENT_DESKTOP': None,
+            'HTTPS_PROXY': 'user1:123@host1:port1', 'CHROMIUM_USER_FLAGS': '--proxy-server=user1:123@host1:port1',
             'KDE_FULL_SESSION': None}
 
         self.obj.startup()
