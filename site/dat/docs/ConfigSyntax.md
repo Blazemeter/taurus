@@ -105,7 +105,7 @@ settings:
     address: http://127.0.0.1:8080  # proxy server address
     username: user  # username and password used if authentication is configured on proxy server
     password: 12345
-    ssl-cert: path/to/cert  # SSL server-side certificate
+    ssl-cert: path/to/cert  # SSL server-side certificate. You can set it to `false` to disable cert validation.
     ssl-client-cert: path/to/cert  # SSL client-side certificate
   check-updates: true  # check for newer version of Taurus on startup
   verbose: false  # whenever you run bzt with -v option, it sets debug=true, 
