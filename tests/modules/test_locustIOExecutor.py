@@ -1,8 +1,7 @@
 import logging
+import os
 import sys
 import time
-
-import os
 import unittest
 
 try:
@@ -152,6 +151,14 @@ class TestLocustIOExecutor(BZTestCase):
         for point in points:
             self.assertEquals(len(point[DataPoint.CURRENT][''][KPISet.ERRORS]), 1)
             self.assertGreaterEqual(point[DataPoint.CURRENT][''][KPISet.FAILURES], 70)
+
+    def test_locust_delayed_slave(self):
+        if six.PY3:
+            logging.warning("No locust available for python 3")
+
+        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves-none.ldjson", 2, logging.getLogger(""))
+        points = [x for x in obj.datapoints(True)]
+        self.assertEquals(0, len(points))
 
     def test_locust_resource_files(self):
         if six.PY3:
