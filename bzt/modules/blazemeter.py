@@ -191,6 +191,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
     :type _test: bzt.bza.Test
     :type _master: bzt.bza.Master
+    :type _session: bzt.bza.Session
     """
 
     def __init__(self):
