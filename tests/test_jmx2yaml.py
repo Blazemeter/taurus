@@ -1,6 +1,8 @@
 # coding=utf-8
 import os
+import sys
 import yaml
+import tempfile
 
 from bzt.engine import ScenarioExecutor
 from bzt.jmx2yaml import JMX2YAML
@@ -541,6 +543,30 @@ class TestConverter(BZTestCase):
         yml = yaml.load(open(self.obj.dst_file).read())
         requests = yml.get("scenarios").get("Thread Group").get("requests")
         self.assertEqual(len(requests), 14)
+
+    def test_wrong_controllers(self):
+        with open(RESOURCES_DIR + "jmeter/jmx/all_controllers.jmx") as f:
+            content = f.read()
+
+            # follow controllers should became unrecognized
+            content = content.replace("IfController", "FiController", sys.maxint)
+            content = content.replace("WhileController", "UnlessController", sys.maxint)
+            content = content.replace("ForeachController", "NeverController", sys.maxint)
+
+        fd, wrong_jmx = tempfile.mkstemp(suffix=".jmx")
+        os.close(fd)
+        try:
+            with open(wrong_jmx, "a") as _file:
+                _file.write(content)
+
+            self.configure(wrong_jmx)
+            self.obj.process()
+            yml = yaml.load(open(self.obj.dst_file).read())
+            requests = yml.get("scenarios").get("Thread Group").get("requests")
+            self.assertNotEqual(len(requests), 14)
+        finally:
+            if os.path.exists(wrong_jmx):
+                os.remove(wrong_jmx)
 
     def test_loop_controllers(self):
         self.configure(RESOURCES_DIR + "yaml/converter/loop-controllers.jmx")
