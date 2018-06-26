@@ -750,7 +750,12 @@ class BZAProxy(BZAObject):
 
         self._request(self.address + '/api/latest/proxy/recording/clear', method='POST')
 
-        return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])
+        return 'http://%s:%s@%s:%s' % (
+            proxy_info['username'],
+            proxy_info['password'],
+            proxy_info['host'],
+            proxy_info['port']
+        )
 
     def get_json(self):
         response = self._request(self.address + '/api/latest/proxy/download?format=json', raw_result=True)
