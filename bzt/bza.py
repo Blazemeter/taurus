@@ -47,7 +47,7 @@ class BZAObject(dict):
                     continue
                 self.__setattr__(attr, proto.__getattribute__(attr))
 
-    def _request(self, url, data=None, headers=None, method=None, raw_result=False):
+    def _request(self, url, data=None, headers=None, method=None, raw_result=False, use_auth=True):
         """
         :param url: str
         :type data: Union[dict,str]
@@ -61,14 +61,15 @@ class BZAObject(dict):
         headers["X-Client-Id"] = "Taurus"
         headers["X-Client-Version"] = VERSION
 
-        if isinstance(self.token, string_types) and ':' in self.token:
-            token = self.token
-            if isinstance(token, text_type):
-                token = token.encode('ascii')
-            token = base64.b64encode(token).decode('ascii')
-            headers['Authorization'] = 'Basic ' + token
-        elif self.token:
-            headers["X-Api-Key"] = self.token
+        if use_auth:
+            if isinstance(self.token, string_types) and ':' in self.token:
+                token = self.token
+                if isinstance(token, text_type):
+                    token = token.encode('ascii')
+                token = base64.b64encode(token).decode('ascii')
+                headers['Authorization'] = 'Basic ' + token
+            elif self.token:
+                headers["X-Api-Key"] = self.token
 
         if method:
             log_method = method
@@ -731,7 +732,7 @@ class BZAProxy(BZAObject):
     def get_jmx(self, smart=False):
         url = '/api/latest/proxy/download?format=jmx&smart=' + str(smart).lower()
         response_url = self._request(self.address + url).get('result')
-        response_content = self._request(response_url, raw_result=True)
+        response_content = self._request(response_url, raw_result=True, use_auth=False)
         return response_content
 
     def get_addr(self):
