@@ -1544,14 +1544,14 @@ class JMeter(RequiredTool):
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
 
     def __download_additions(self, tools):
-        downloader = ExceptionalDownloader()
+        downloader = ExceptionalDownloader(self.http_client)
         with ProgressBarContext() as pbar:
             for tool in tools:
                 url = tool[0]
                 _file = os.path.basename(url)
                 self.log.info("Downloading %s from %s", _file, url)
                 try:
-                    downloader.get(url, tool[1], reporthook=pbar.download_callback, http_client=self.http_client)
+                    downloader.get(url, tool[1], reporthook=pbar.download_callback)
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
