@@ -85,7 +85,7 @@ class TestProxy2JMX(BZTestCase):
         self.obj.engine.provisioning.executors = [executor]
 
         self.obj.prepare()
-        self.assertEqual(self.obj.proxy_addr, 'http://user1:123@host1:port1')
+        self.assertEqual(self.obj.proxy_addr, 'user1:123@host1:port1')
 
         self.obj.startup()
         self.obj.shutdown()
@@ -115,7 +115,7 @@ class TestProxy2JMX(BZTestCase):
         self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
 
         self.obj.prepare()
-        self.assertEqual(self.obj.proxy_addr, 'http://user1:123@host1:port1')
+        self.assertEqual(self.obj.proxy_addr, 'user1:123@host1:port1')
 
     def test_filename(self):
         self.obj.api_delay = 1
