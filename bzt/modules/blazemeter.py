@@ -237,6 +237,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self._user.address = self.settings.get("address", self._user.address).rstrip("/")
         self._user.data_address = self.settings.get("data-address", self._user.data_address).rstrip("/")
         self._user.timeout = dehumanize_time(self.settings.get("timeout", self._user.timeout))
+        self._user.http_session = self.engine.get_http_client()
 
         # direct data feeding case
         sess_id = self.parameters.get("session-id")
@@ -1609,6 +1610,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.user.address = self.settings.get("address", self.user.address)
         self.user.token = self.settings.get("token", self.user.token)
         self.user.timeout = dehumanize_time(self.settings.get("timeout", self.user.timeout))
+        self.user.http_session = self.engine.get_http_client()
         if not self.user.token:
             raise TaurusConfigError("You must provide API token to use cloud provisioning")
 

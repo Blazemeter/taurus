@@ -35,7 +35,6 @@ class BZAObject(dict):
         self.token = None
         self.log = logging.getLogger(self.__class__.__name__)
         self.http_session = requests.Session()
-        self.http_request = self.http_session.request
 
         # copy infrastructure from prototype
         if isinstance(proto, BZAObject):
@@ -55,6 +54,7 @@ class BZAObject(dict):
         :param method: str
         :return: dict
         """
+        request = self.http_session.request
         if not headers:
             headers = {}
 
@@ -86,7 +86,7 @@ class BZAObject(dict):
 
         self.log.debug("Request: %s %s %s", log_method, url, data[:self.logger_limit] if data else None)
 
-        response = self.http_request(method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
+        response = request(method=log_method, url=url, data=data, headers=headers, timeout=self.timeout)
 
         resp = response.content
         if not isinstance(resp, str):
