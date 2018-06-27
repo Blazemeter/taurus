@@ -74,6 +74,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "JSONPostProcessor",
               ]
 
+LOWER_KNOWN_TAGS = [tag.lower() for tag in KNOWN_TAGS]
+
 
 class JMXasDict(JMX):
     """
@@ -89,7 +91,6 @@ class JMXasDict(JMX):
 
     def load(self, original):
         super(JMXasDict, self).load(original)
-        self._clean_disabled_elements(self.tree)
         self._clean_jmx_tree(self.tree)
         self._get_global_objects()
 
@@ -1235,7 +1236,7 @@ class JMXasDict(JMX):
             elif elem.tag == 'HTTPSamplerProxy':
                 request = self._get_request_settings(elem)
                 requests.append(request)
-            elif elem.tag:
+            elif elem.tag == "hashTree":    # structure isn't recognized, just extract requests from hashTree
                 subrequests = self.__extract_requests(elem)
                 requests.extend(subrequests)
         return requests
@@ -1410,43 +1411,36 @@ class JMXasDict(JMX):
                     if override:
                         tg_dict[default_key] = defaults[default_key]
 
-    @staticmethod
-    def _remove_element(element):
-        sibling = element.getnext()
-        if sibling is not None and sibling.tag == "hashTree":
-            sibling.getparent().remove(sibling)
-        element.getparent().remove(element)
-
-    def _clean_disabled_elements(self, element):
-        """
-        Removes all disabled elements
-        :param element:
-        :return:
-        """
-        for subelement in element.iter():
-            if subelement.tag.endswith("prop"):
-                continue
-            if subelement.get("enabled") == 'false':
-                self.log.info("Removing disabled element %s (%s)", subelement.tag, subelement.get("testname"))
-                self._remove_element(subelement)
-                self._clean_disabled_elements(element)
-                return
-
     def _clean_jmx_tree(self, element):
         """
-        Removes all unknown elements
+        Removes all unknown and disabled elements
         :return:
         """
         for subelement in element.findall('./'):
-            if subelement.tag.lower().endswith("prop"):
-                continue
-            if subelement.tag not in KNOWN_TAGS and not subelement.tag.endswith("Controller"):
-                self.log.warning("Removing unknown element: %s (%s)", subelement.tag, subelement.get("testname"))
-                self._remove_element(subelement)
+            tag = subelement.tag.lower()
+            if tag == 'hashtree':
+                self._clean_jmx_tree(subelement)    # look inside
+            else:
+                unknown = tag not in LOWER_KNOWN_TAGS
+                disabled = subelement.get("enabled") == "false"
+                if unknown:
+                    self.log.warning("Removing unknown element: %s (%s)", subelement.tag, subelement.get("testname"))
+                elif disabled:
+                    self.log.info("Removing disabled element: %s (%s)", subelement.tag, subelement.get("testname"))
+                else:
+                    continue
+
+                sibling = subelement.getnext()
+                subelement.getparent().remove(subelement)
+                next_is_hashtree = sibling is not None and sibling.tag.lower() == "hashtree"
+
+                # remove correspond hashtree
+                if next_is_hashtree and (not tag.endswith("controller") or disabled):
+                    sibling.getparent().remove(sibling)
+
+                # start from the beginning
                 self._clean_jmx_tree(element)
-                return
-            if subelement.tag.lower() == 'hashtree':
-                self._clean_jmx_tree(subelement)
+                break
 
     def _record_additional_file(self, base_filename, extension, content):
         filename = base_filename + extension
