@@ -626,6 +626,8 @@ class MonitoringBuffer(object):
                         value *= 100
                     elif field == 'bytes-recv' or field.lower().startswith('net'):
                         field = 'Network I/O'
+                    elif field == 'engine-loop':
+                        field = 'Busy Taurus'
                     else:
                         continue  # maybe one day BZA will accept all other metrics...
 
