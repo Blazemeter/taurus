@@ -1423,10 +1423,10 @@ class JMXasDict(JMX):
             else:
                 unknown = tag not in LOWER_KNOWN_TAGS
                 disabled = subelement.get("enabled") == "false"
-                if unknown:
-                    self.log.warning("Removing unknown element: %s (%s)", subelement.tag, subelement.get("testname"))
-                elif disabled:
+                if disabled:
                     self.log.info("Removing disabled element: %s (%s)", subelement.tag, subelement.get("testname"))
+                elif unknown:
+                    self.log.warning("Removing unknown element: %s (%s)", subelement.tag, subelement.get("testname"))
                 else:
                     continue
 

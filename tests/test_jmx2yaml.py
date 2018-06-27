@@ -542,16 +542,14 @@ class TestConverter(BZTestCase):
         self.obj.process()
         yml = yaml.load(open(self.obj.dst_file).read())
         requests = yml.get("scenarios").get("Thread Group").get("requests")
-        self.assertEqual(len(requests), 14)
+        self.assertEqual(len(requests), 14)     # todo: compare with correct yaml
 
-    def test_wrong_controllers(self):
+    def test_include_controllers(self):
         with open(RESOURCES_DIR + "jmeter/jmx/all_controllers.jmx") as f:
             content = f.read()
 
-            # follow controllers should became unrecognized
+            # If Controllers should became unknown
             content = content.replace("IfController", "FiController", sys.maxint)
-            content = content.replace("WhileController", "UnlessController", sys.maxint)
-            content = content.replace("ForeachController", "NeverController", sys.maxint)
 
         fd, wrong_jmx = tempfile.mkstemp(suffix=".jmx")
         os.close(fd)
@@ -563,7 +561,7 @@ class TestConverter(BZTestCase):
             self.obj.process()
             yml = yaml.load(open(self.obj.dst_file).read())
             requests = yml.get("scenarios").get("Thread Group").get("requests")
-            self.assertNotEqual(len(requests), 14)
+
         finally:
             if os.path.exists(wrong_jmx):
                 os.remove(wrong_jmx)
