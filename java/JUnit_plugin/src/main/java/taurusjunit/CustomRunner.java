@@ -6,6 +6,7 @@ import org.junit.runner.JUnitCore;
 import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
@@ -58,7 +59,7 @@ public class CustomRunner {
 
         long startTime = System.currentTimeMillis();
         for (int iteration = 0; iteration < iterations; iteration++) {
-            runner.run(classes.toArray(new Class[classes.size()]));
+            runner.run(classes.toArray(new Class[0]));
             log.info("Elapsed: " + (System.currentTimeMillis() - startTime) + ", limit: " + (hold * 1000));
             if (hold > 0 && System.currentTimeMillis() - startTime > hold * 1000) {
                 log.info("Duration limit reached, stopping");
@@ -114,6 +115,11 @@ public class CustomRunner {
             log.info("TestCase.class.isAssignableFrom(" + c.getCanonicalName() + ") = " + TestCase.class.isAssignableFrom(c));
             log.info("has_annotations(" + c.getCanonicalName() + ") = " + has_annotations(c));
 
+            if (Modifier.isAbstract(c.getModifiers())) {
+                log.info("Skip because of abstract");
+                continue;
+            }
+
             if (TestCase.class.isAssignableFrom(c) || has_annotations(c)) {
                 test_classes.add(c);
                 log.info("class added to tests: " + c.getCanonicalName());
@@ -123,7 +129,7 @@ public class CustomRunner {
     }
 
     protected static boolean has_annotations(Class<?> c) {
-        for (Method method : c.getDeclaredMethods()) {
+        for (Method method : c.getMethods()) {
             if (method.isAnnotationPresent(org.junit.Test.class)) {
                 return true;
             }
