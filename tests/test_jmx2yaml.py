@@ -532,7 +532,7 @@ class TestConverter(BZTestCase):
             content = f.read()
 
         # make IfControllers unknown
-        content = content.replace("IfController", "FiController", sys.maxint)
+        content = content.replace("IfController", "FiController", sys.maxsize)
 
         fd, wrong_jmx = tempfile.mkstemp(suffix=".jmx")
         os.close(fd)
