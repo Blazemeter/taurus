@@ -1252,14 +1252,19 @@ class JMXasDict(JMX):
 
         strprop = controller.find(".//stringProp[@name='LoopController.loops']")
         if strprop is not None and strprop.text:
-            iterations = int(strprop.text)
+            iterations = strprop.text
         else:
             intprop = controller.find(".//intProp[@name='LoopController.loops']")
             if intprop is not None and intprop.text:
-                iterations = int(intprop.text)
+                iterations = intprop.text
             else:
                 self.log.warning("LoopController.loops has non-numeric value, resetting to 1")
                 iterations = 1
+
+        try:
+            iterations = int(iterations)
+        except ValueError:
+            pass
 
         loops = 'forever' if iterations == -1 else iterations
         requests = self.__extract_requests(ht_element)
