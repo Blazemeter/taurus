@@ -43,8 +43,8 @@ install:
   else
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
-- nvm install 8.11
-- nvm use 8.11
+- nvm install 6.11
+- nvm use 6.11
 - gem install rspec
 - $PIP_INSTALL --upgrade pip
 - $PIP_INSTALL -r requirements.txt
