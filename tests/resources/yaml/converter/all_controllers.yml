@@ -1,0 +1,113 @@
+---
+execution:
+- concurrency: 1
+  hold-for: 60s
+  iterations: 1
+  ramp-up: 60s
+  scenario: Thread Group
+scenarios:
+  Thread Group:
+    requests:
+    - if: IF1
+      then:
+      - follow-redirects: true
+        label: HR1
+        method: GET
+        url: /
+      - follow-redirects: true
+        label: HR2
+        method: GET
+        url: /
+      - if: IF1.1
+        then:
+        - follow-redirects: true
+          label: HR1.1
+          method: GET
+          url: /
+      - do:
+        - follow-redirects: true
+          label: HR1.2
+          method: GET
+          url: /
+        while: '${WC1}'
+    - do:
+      - follow-redirects: true
+        label: HR3
+        method: GET
+        url: /
+      include-timers: false
+      transaction: TC
+    - do:
+      - follow-redirects: true
+        label: HR4
+        method: GET
+        url: /
+      loop: ${LC}
+    - do:
+      - follow-redirects: true
+        label: HR5
+        method: GET
+        url: /
+      while: ${WC}
+    - follow-redirects: true
+      label: HR6
+      method: GET
+      url: /
+    - do:
+      - follow-redirects: true
+        label: HR7
+        method: GET
+        url: /
+      foreach: FEC in FEC
+    - follow-redirects: true
+      label: HR8
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR9
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR10
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR11
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR12
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR13
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR14
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR15
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR16
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR17
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR18
+      method: GET
+      url: /
+    - follow-redirects: true
+      label: HR19
+      method: GET
+      url: /
+    store-cache: false
+    store-cookie: false
+    use-dns-cache-mgr: false
+

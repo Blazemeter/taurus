@@ -521,13 +521,13 @@ class TestConverter(BZTestCase):
         self.assertEqual(requests[1].get('follow-redirects'), True)
         self.assertEqual(requests[2].get('follow-redirects'), False)
 
-    def test_controllers(self):
+    def test_all_controllers(self):
         self.configure(RESOURCES_DIR + "jmeter/jmx/all_controllers.jmx")
         self.obj.process()
-        self.assertTrue(self.same_yaml("all_controllers.1.yml"))
+        self.assertTrue(self.same_yaml("all_controllers.yml"))
 
     def test_include_controllers(self):
-        """ check case when included controller is known and external is not """
+        """ check whether known controller included into unknown one is parsed properly """
         with open(RESOURCES_DIR + "jmeter/jmx/all_controllers.jmx") as f:
             content = f.read()
 
@@ -542,9 +542,9 @@ class TestConverter(BZTestCase):
 
             self.configure(wrong_jmx)
             self.obj.process()
-
-            self.assertTrue(self.same_yaml("all_controllers.2.yml"))
-
+            yml = yaml.load(open(self.obj.dst_file).read())
+            requests = yml.get("scenarios").get("Thread Group").get("requests")
+            self.assertTrue(any(request.get("while") == "${WC}" for request in requests))
         finally:
             if os.path.exists(wrong_jmx):
                 os.remove(wrong_jmx)

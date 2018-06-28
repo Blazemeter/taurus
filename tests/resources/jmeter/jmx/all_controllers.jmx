@@ -102,7 +102,7 @@
             <hashTree/>
           </hashTree>
           <WhileController guiclass="WhileControllerGui" testclass="WhileController" testname="WC1" enabled="true">
-            <stringProp name="WhileController.condition">{WC1}</stringProp>
+            <stringProp name="WhileController.condition">${WC1}</stringProp>
           </WhileController>
           <hashTree>
             <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HR1.2" enabled="true">
