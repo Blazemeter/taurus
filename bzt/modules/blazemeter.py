@@ -191,6 +191,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
     :type _test: bzt.bza.Test
     :type _master: bzt.bza.Master
+    :type _session: bzt.bza.Session
     """
 
     def __init__(self):
@@ -625,6 +626,8 @@ class MonitoringBuffer(object):
                         value *= 100
                     elif field == 'bytes-recv' or field.lower().startswith('net'):
                         field = 'Network I/O'
+                    elif field == 'engine-loop':
+                        field = 'Busy Taurus'
                     else:
                         continue  # maybe one day BZA will accept all other metrics...
 
