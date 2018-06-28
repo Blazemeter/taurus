@@ -37,8 +37,13 @@ class TestConverter(BZTestCase):
             os.remove(self.obj.dst_file)
         super(TestConverter, self).tearDown()
 
-    @staticmethod
-    def same_yaml(file1, file2):
+    def same_yaml(self, file1, file2=None):
+        if file2 is None:
+            file2 = self.obj.dst_file
+
+        if not file1.startswith("/"):
+            file1 = RESOURCES_DIR + "yaml/converter/" + file1
+
         yml1 = yaml.load(open(file1).read())
         yml2 = yaml.load(open(file2).read())
         return yml1 == yml2
@@ -226,12 +231,9 @@ class TestConverter(BZTestCase):
     def test_broken_request_assertions(self):
         # see comments in broken_resp_asserts.jmx for explanation of cases
         # don't save broken_resp_asserts.jmx by jmeter
-        yml = self._get_tmp()
-        self.configure(RESOURCES_DIR + "yaml/converter/broken_resp_asserts.jmx", yml)
+        self.configure(RESOURCES_DIR + "yaml/converter/broken_resp_asserts.jmx")
         self.obj.process()
-        yml1 = RESOURCES_DIR + "yaml/converter/broken_resp_asserts.yml"
-        yml2 = yml
-        self.assertTrue(yml1, yml2)
+        self.assertTrue(self.same_yaml("broken_resp_asserts.yml"))
 
     def test_copy_global_json_assertions(self):
         self.configure(RESOURCES_DIR + "yaml/converter/assertions.jmx")
@@ -398,17 +400,13 @@ class TestConverter(BZTestCase):
     def test_all(self):
         self.configure(RESOURCES_DIR + "yaml/converter/disabled.jmx")
         self.obj.process()
-        yml1 = RESOURCES_DIR + "yaml/converter/disabled.yml"
-        yml2 = self.obj.dst_file
-        self.assertTrue(self.same_yaml(yml1, yml2))
+        self.assertTrue(self.same_yaml("disabled.yml"))
 
     def test_params_conversion(self):
         self.configure(RESOURCES_DIR + "yaml/converter/params_conversion.jmx")
         self.sniff_log(self.obj.log)
         self.obj.process()
-        yml1 = self.obj.dst_file
-        yml2 = RESOURCES_DIR + "yaml/converter/params_conversion.yml"
-        self.assertTrue(self.same_yaml(yml1, yml2))
+        self.assertTrue(self.same_yaml("params_conversion.yml"))
         self.assertNotIn('n1', self.log_recorder.warn_buff.getvalue())
         self.assertNotIn('n2', self.log_recorder.warn_buff.getvalue())
         self.assertIn('n1_101', self.log_recorder.debug_buff.getvalue())
@@ -454,9 +452,7 @@ class TestConverter(BZTestCase):
     def test_controllers_to_requests(self):
         self.configure(RESOURCES_DIR + "yaml/converter/controllers.jmx")
         self.obj.process()
-        yml1 = yaml.load(open(RESOURCES_DIR + "yaml/converter/controllers.yml").read())
-        yml2 = yaml.load(open(self.obj.dst_file).read())
-        self.assertEqual(yml1, yml2)
+        self.assertTrue(self.same_yaml("controllers.yml"))
 
     def test_jsr223(self):
         self.configure(RESOURCES_DIR + "jmeter/jmx/jsr223.jmx")
@@ -540,16 +536,15 @@ class TestConverter(BZTestCase):
     def test_controllers(self):
         self.configure(RESOURCES_DIR + "jmeter/jmx/all_controllers.jmx")
         self.obj.process()
-        yml = yaml.load(open(self.obj.dst_file).read())
-        requests = yml.get("scenarios").get("Thread Group").get("requests")
-        self.assertEqual(len(requests), 14)     # todo: compare with correct yaml
+        self.assertTrue(self.same_yaml("all_controllers.1.yml"))
 
     def test_include_controllers(self):
+        """ check case when included controller is known and external is not """
         with open(RESOURCES_DIR + "jmeter/jmx/all_controllers.jmx") as f:
             content = f.read()
 
-            # If Controllers should became unknown
-            content = content.replace("IfController", "FiController", sys.maxint)
+        # make IfControllers unknown
+        content = content.replace("IfController", "FiController", sys.maxint)
 
         fd, wrong_jmx = tempfile.mkstemp(suffix=".jmx")
         os.close(fd)
@@ -559,8 +554,8 @@ class TestConverter(BZTestCase):
 
             self.configure(wrong_jmx)
             self.obj.process()
-            yml = yaml.load(open(self.obj.dst_file).read())
-            requests = yml.get("scenarios").get("Thread Group").get("requests")
+
+            self.assertTrue(self.same_yaml("all_controllers.2.yml"))
 
         finally:
             if os.path.exists(wrong_jmx):

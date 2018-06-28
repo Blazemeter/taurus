@@ -1260,7 +1260,6 @@ class JMXasDict(JMX):
             else:
                 self.log.warning("LoopController.loops has non-numeric value, resetting to 1")
                 iterations = 1
-
         try:
             iterations = int(iterations)
         except ValueError:
