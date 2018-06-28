@@ -9,7 +9,6 @@ from bzt.jmx2yaml import JMX2YAML
 from bzt.utils import get_full_path, FileReader
 
 from tests import BZTestCase, RESOURCES_DIR
-from tests.mocks import EngineEmul
 
 
 class FakeOptions(object):
@@ -25,7 +24,6 @@ class FakeOptions(object):
 class TestConverter(BZTestCase):
     def setUp(self):
         super(TestConverter, self).setUp()
-        self.engine = EngineEmul()
         self.obj = JMX2YAML(file_name=None, options=FakeOptions())
 
     def configure(self, src_file, dst_file=None, dump_jmx=None):
@@ -48,18 +46,15 @@ class TestConverter(BZTestCase):
         yml2 = yaml.load(open(file2).read())
         return yml1 == yml2
 
-    def _get_tmp(self, prefix='test', suffix='.yml'):
-        return self.engine.create_artifact(prefix, suffix)
-
     def test_objprop(self):
-        self.configure(RESOURCES_DIR + "jmeter/jmx/http.jmx", self._get_tmp())
+        self.configure(RESOURCES_DIR + "jmeter/jmx/http.jmx")
         self.sniff_log(self.obj.log)
         self.obj.process()
         self.assertNotIn("Removing unknown element: name (None)", self.log_recorder.warn_buff.getvalue())
         self.assertNotIn("Removing unknown element: value (None)", self.log_recorder.warn_buff.getvalue())
 
     def test_loadjmx1(self):
-        self.configure(RESOURCES_DIR + "jmeter/jmx/http.jmx", self._get_tmp())
+        self.configure(RESOURCES_DIR + "jmeter/jmx/http.jmx")
         self.sniff_log(self.obj.log)
         self.obj.process()
         self.assertIn("Loading jmx file", self.log_recorder.info_buff.getvalue())
@@ -89,7 +84,7 @@ class TestConverter(BZTestCase):
         self.assertIn("Error while processing jmx file", self.log_recorder.err_buff.getvalue())
 
     def test_loadjmx4(self):
-        self.configure(RESOURCES_DIR + "jmeter/jmx/http.jmx", self._get_tmp('tmp', 'file'))
+        self.configure(RESOURCES_DIR + "jmeter/jmx/http.jmx")
         self.sniff_log(self.obj.log)
         self.obj.process()
         self.assertIn("Loading jmx file", self.log_recorder.info_buff.getvalue())
@@ -97,8 +92,10 @@ class TestConverter(BZTestCase):
         self.assertIn("Removing unknown element", self.log_recorder.warn_buff.getvalue())
 
     def test_export_clean_jmx(self):
-        tmp_jmx_name = self._get_tmp('tmp', '.jmx')
-        open(tmp_jmx_name, 'w+').close()  # touch file
+        fd, tmp_jmx_name = tempfile.mkstemp()
+        os.close(fd)
+        open(tmp_jmx_name, 'w+').close()    # touch file
+
         self.configure(RESOURCES_DIR + "yaml/converter/disabled.jmx", dump_jmx=tmp_jmx_name)
         self.sniff_log(self.obj.log)
         self.obj.process()
@@ -114,7 +111,7 @@ class TestConverter(BZTestCase):
             self.assertIn("Bad jmx format", exc.args[0])
 
     def test_clean_disabled_jmx(self):
-        self.configure(RESOURCES_DIR + "yaml/converter/disabled.jmx", self._get_tmp())
+        self.configure(RESOURCES_DIR + "yaml/converter/disabled.jmx")
         self.obj.process()
         disabled_elements = [element for element in self.obj.converter.dialect.tree.iter() if
                              element.get("enabled") == "false"]
@@ -147,20 +144,18 @@ class TestConverter(BZTestCase):
         self.assertEqual(local_csv['quoted'], False)
 
     def test_copy_global_headers(self):
-        yml = self._get_tmp()
-        self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx", yml)
+        self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
-        yml = yaml.load(open(yml).read())
+        yml = yaml.load(open(self.obj.dst_file).read())
         headers_first_tg = yml.get("scenarios").get("Thread Group one").get("headers", [])
         headers_second_tg = yml.get("scenarios").get("Thread Group two").get("headers", [])
         self.assertEqual(len(headers_first_tg), 3)
         self.assertEqual(len(headers_second_tg), 2)
 
     def test_cache_cookie_dns_overrides(self):
-        yml = self._get_tmp()
-        self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx", yml)
+        self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
-        yml = yaml.load(open(yml).read())
+        yml = yaml.load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
         tg_two = yml.get("scenarios").get('Thread Group two')
         cache_first_tg = tg_one.get("store-cache")
@@ -177,10 +172,9 @@ class TestConverter(BZTestCase):
         self.assertEqual(dns_cache_mgr_second_tg, True)
 
     def test_think_time_overrides(self):
-        yml = self._get_tmp()
-        self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx", yml)
+        self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
-        yml = yaml.load(open(yml).read())
+        yml = yaml.load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
         tg_two = yml.get("scenarios").get('Thread Group two')
         request_tg_two = tg_two.get("requests")[0]
@@ -193,10 +187,9 @@ class TestConverter(BZTestCase):
         self.assertEqual(req_timer, "100ms")
 
     def test_request_defaults(self):
-        yml = self._get_tmp()
-        self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx", yml)
+        self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
-        yml = yaml.load(open(yml).read())
+        yml = yaml.load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get('Thread Group one')
         tg_two = yml.get("scenarios").get('Thread Group two')
         self.assertEqual(tg_one.get("default-address"), "https://127.0.0.2/")
@@ -209,10 +202,9 @@ class TestConverter(BZTestCase):
         self.assertEqual(tg_two.get("concurrent-pool-size"), 10)
 
     def test_copy_global_request_assertions(self):
-        yml = self._get_tmp()
-        self.configure(RESOURCES_DIR + "yaml/converter/assertions.jmx", yml)
+        self.configure(RESOURCES_DIR + "yaml/converter/assertions.jmx")
         self.obj.process()
-        yml = yaml.load(open(yml).read())
+        yml = yaml.load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get("tg1")
         tg_two = yml.get("scenarios").get("tg2")
         tg_one_assertions = tg_one.get("assert")
@@ -351,10 +343,9 @@ class TestConverter(BZTestCase):
         })
 
     def test_request_body(self):
-        yml = self._get_tmp()
-        self.configure(RESOURCES_DIR + "yaml/converter/extractors.jmx", yml)
+        self.configure(RESOURCES_DIR + "yaml/converter/extractors.jmx")
         self.obj.process()
-        yml = yaml.load(open(yml).read())
+        yml = yaml.load(open(self.obj.dst_file).read())
         tg_one = yml.get("scenarios").get("tg1")
         tg_two = yml.get("scenarios").get("tg2")
         tg_one_req_one_body = tg_one.get("requests")[0].get("body")
@@ -365,10 +356,9 @@ class TestConverter(BZTestCase):
         self.assertEqual(tg_two_req_one_body, None)
 
     def test_json_body(self):
-        yml = self._get_tmp()
-        self.configure(RESOURCES_DIR + "yaml/converter/json_body.jmx", yml)
+        self.configure(RESOURCES_DIR + "yaml/converter/json_body.jmx")
         self.obj.process()
-        yml = yaml.load(open(yml).read())
+        yml = yaml.load(open(self.obj.dst_file).read())
         reqs1 = yml.get("scenarios").get("tg1")['requests']
         reqs2 = yml.get("scenarios").get("tg2")['requests']
         bodies = {req['label']: req.get('body', None) for req in reqs1 + reqs2}
@@ -379,10 +369,9 @@ class TestConverter(BZTestCase):
                             or isinstance(bodies[label], targets[label]))
 
     def test_duration_throughput(self):
-        yml = self._get_tmp()
-        self.configure(RESOURCES_DIR + "yaml/converter/duration.jmx", yml)
+        self.configure(RESOURCES_DIR + "yaml/converter/duration.jmx")
         self.obj.process()
-        yml = yaml.load(open(yml).read())
+        yml = yaml.load(open(self.obj.dst_file).read())
         tg_one = yml.get(ScenarioExecutor.EXEC)[0]
         tg_two = yml.get(ScenarioExecutor.EXEC)[1]
         tg_three = yml.get(ScenarioExecutor.EXEC)[2]
@@ -418,10 +407,9 @@ class TestConverter(BZTestCase):
         self.obj.process()
 
     def test_load_profile_default_values(self):
-        yml = self._get_tmp()
-        self.configure(RESOURCES_DIR + "yaml/converter/default.jmx", yml)
+        self.configure(RESOURCES_DIR + "yaml/converter/default.jmx")
         self.obj.process()
-        yml = yaml.load(open(yml).read())
+        yml = yaml.load(open(self.obj.dst_file).read())
         execution = yml.get(ScenarioExecutor.EXEC)[0]
         self.assertEqual("60s", execution.get("ramp-up"))
         self.assertEqual("60s", execution.get("hold-for"))
