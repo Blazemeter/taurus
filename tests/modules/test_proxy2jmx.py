@@ -7,7 +7,7 @@ from bzt import TaurusConfigError
 from bzt.modules.proxy2jmx import Proxy2JMX, BZAProxy
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import is_windows, is_linux, get_full_path
-from tests import BZTestCase, BUILD_DIR
+from tests import BZTestCase
 from tests.mocks import EngineEmul
 
 
@@ -104,7 +104,9 @@ class TestProxy2JMX(BZTestCase):
     def test_existing_proxy(self):
         self.obj.api_delay = 1
         self.obj.responses = [
-            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1",  "username":"user1", "password":"123", "status": "active"}}'),
+            ResponseEmul(200,
+                         '{"result" : {"port": "port1", "host": "host1",  '
+                         '"username":"user1", "password":"123", "status": "active"}}'),
             ResponseEmul(200, ''),  # stopRecording
             ResponseEmul(200, '')]  # clearRecording
 
@@ -120,7 +122,9 @@ class TestProxy2JMX(BZTestCase):
     def test_filename(self):
         self.obj.api_delay = 1
         self.obj.responses = [
-            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1",  "username":"user1", "password":"123", "status": "active"}}'),
+            ResponseEmul(200,
+                         '{"result" : {"port": "port1", "host": "host1",  '
+                         '"username":"user1", "password":"123", "status": "active"}}'),
             ResponseEmul(200, '1'),  # stopRecording
             ResponseEmul(200, '2'),  # clearRecording
             ResponseEmul(200, '{"result" : "http://jmx_url"}'),
@@ -173,7 +177,7 @@ class TestProxy2JMX(BZTestCase):
 
         required_env = {
             'PATH_TO_CHROME': dst_chrome,
-            'ADDITIONAL_CHROME_PARAMS': '--proxy-server="http://host1:port1"',
+            'ADDITIONAL_CHROME_PARAMS': '--proxy-server="user1:123@host1:port1"',
             'CHROME_LOADER_LOG': join(self.obj.engine.artifacts_dir, 'chrome-loader.log')}
 
         os.environ['PATH'] = join(art_dir, 'chromedriver') + os.pathsep + os.getenv('PATH')
