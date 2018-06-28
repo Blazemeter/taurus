@@ -153,7 +153,7 @@
         </hashTree>
         <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="LC" enabled="true">
           <boolProp name="LoopController.continue_forever">true</boolProp>
-          <stringProp name="LoopController.loops">4</stringProp>
+          <stringProp name="LoopController.loops">${LC}</stringProp>
         </LoopController>
         <hashTree>
           <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="HR4" enabled="true">
