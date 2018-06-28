@@ -1261,13 +1261,13 @@ class JMXasDict(JMX):
             else:
                 self.log.warning("LoopController.loops has non-numeric value, resetting to 1")
                 iterations = 1
-        try:
-            if not has_variable_pattern(iterations):
+        if not has_variable_pattern(iterations):
+            try:
                 iterations = int(iterations)
-        except ValueError:
-            msg = "Wrong iterations value in %s Loop Controller: %s, replace with default (1)"
-            self.log.warning(msg, controller.get("testname"), iterations)
-            iterations = 1
+            except ValueError:
+                msg = "Wrong iterations value in %s Loop Controller: %s, replace with default (1)"
+                self.log.warning(msg, controller.get("testname"), iterations)
+                iterations = 1
 
         loops = 'forever' if iterations == -1 else iterations
         requests = self.__extract_requests(ht_element)
