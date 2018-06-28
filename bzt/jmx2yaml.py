@@ -33,6 +33,7 @@ from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
 from bzt.utils import get_full_path
+from bzt.requests_model import has_variable_pattern
 
 INLINE_JSR223_MAX_LEN = 10
 
@@ -1261,9 +1262,12 @@ class JMXasDict(JMX):
                 self.log.warning("LoopController.loops has non-numeric value, resetting to 1")
                 iterations = 1
         try:
-            iterations = int(iterations)
+            if not has_variable_pattern(iterations):
+                iterations = int(iterations)
         except ValueError:
-            pass
+            msg = "Wrong iterations value in %s Loop Controller: %s, replace with default (1)"
+            self.log.warning(msg, controller.get("testname"), iterations)
+            iterations = 1
 
         loops = 'forever' if iterations == -1 else iterations
         requests = self.__extract_requests(ht_element)
