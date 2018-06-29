@@ -274,8 +274,8 @@ class TestWDGrid(BZTestCase):
         self.obj.post_process()
 
     def test_vnc(self):
-        self.skipTest("for local debug")
-        vncs = [("localhost", "secret", "test", 1)]
+        #self.skipTest("for local debug")
+        vncs = [("localhost", "secret", "test", 0)]
         _vncs_pool = multiprocessing.Pool(len(vncs), maxtasksperchild=1)
         _vncs_pool.map_async(start_vnc, vncs)
         time.sleep(1)

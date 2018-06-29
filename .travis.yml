@@ -35,6 +35,7 @@ addons:
     packages:
       - oracle-java8-set-default
       - mono-complete
+      - x11vnc
 
 install:
 - |
@@ -54,6 +55,7 @@ before_script:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
 - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
 - python tests/resources/httpserver/start.py &
+- x11vnc &
 
 script:
 - coverage run --source=. `which nosetests` tests -v $GENERAL_EXCLUDE $OSX_EXCLUDE
