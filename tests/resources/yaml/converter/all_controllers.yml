@@ -29,7 +29,7 @@ scenarios:
           label: HR1.2
           method: GET
           url: /
-        while: '${WC1}'
+        while: ${WC1}
     - do:
       - follow-redirects: true
         label: HR3
@@ -71,10 +71,11 @@ scenarios:
       label: HR10
       method: GET
       url: /
-    - follow-redirects: true
-      label: HR11
-      method: GET
-      url: /
+    - once:
+      - follow-redirects: true
+        label: HR11(OOC)
+        method: GET
+        url: /
     - follow-redirects: true
       label: HR12
       method: GET
