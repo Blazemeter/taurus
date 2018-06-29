@@ -1613,7 +1613,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.engine.config[Reporter.REP] = new_reporting
 
     @staticmethod
-    def _configure_client(module):
+    def configure_client(module):
         module.user.log = module.log
         module.user.logger_limit = module.settings.get("request-logging-limit", module.user.logger_limit)
         module.user.address = module.settings.get("address", module.user.address)

@@ -196,13 +196,16 @@ class WDGridProvisioning(Local):
             for eng in client.get_engines():
                 data.append((eng['id'], eng['imageId'], eng['status'], eng['name']))
 
-            self.log.warning("Dumping status of WebDriver engines below:\n" + SingleTable(data).table)
+            if len(data)>1:
+                self.log.warning("Dumping status of WebDriver engines below:\n" + SingleTable(data).table)
+            else:
+                self.log.warning("No engines are up")
 
             raise NormalShutdown("Done listing images")
 
     def __cleanup_if_needed(self):
         if self.settings.get("cleanup-engines", False):
-            self.log.warning("Cleaning up WebDriver engines")
+            self.log.warning("Cleaning up WebDriver engines...")
             client = WDGridImages(self.user)
             for img in client.get_engines():
                 if img['status'] in ('Terminating',):
@@ -210,7 +213,7 @@ class WDGridProvisioning(Local):
                 self.log.info("Stopping: %s\t%s\t#%s", img['imageId'], img['name'], img['id'], )
                 img.stop()
             else:
-                self.log.info("No engines to stop")
+                self.log.warning("No engines to stop")
 
             raise NormalShutdown("Done cleanup")
 
