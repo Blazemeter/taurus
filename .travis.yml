@@ -44,6 +44,7 @@ install:
   else
     gpg --keyserver hkp://keys.gnupg.net --recv-keys $RVM_KEY && rvm get stable || echo "rvm update fail"
   fi
+- if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install x11vnc; fi
 - nvm install 6.11
 - nvm use 6.11
 - gem install rspec
@@ -54,7 +55,6 @@ install:
 before_script:
 - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sh -e /etc/init.d/xvfb start; fi
 - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo nohup bash -c "xvfb :99 &"; fi
-- if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install x11vnc; fi
 - python tests/resources/httpserver/start.py &
 - x11vnc &
 
