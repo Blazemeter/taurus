@@ -20,7 +20,7 @@ from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
-from tests.modules.jmeter import MockJMeterExecutor
+from tests.modules.jmeter import MockJMeterExecutor, MockHTTPClient
 
 
 def get_jmeter():
@@ -32,16 +32,6 @@ def get_jmeter():
         }
     })
     return obj
-
-
-def get_jmeter_executor_vars():
-    return (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
-            JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER)
-
-
-def set_jmeter_executor_vars(jmeter_vars):
-    (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
-     JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER) = jmeter_vars
 
 
 class TestJMeterExecutor(BZTestCase):
@@ -304,15 +294,20 @@ class TestJMeterExecutor(BZTestCase):
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
 
-        jmeter_vars = get_jmeter_executor_vars()
-        set_jmeter_executor_vars(jmeter_vars)
+        jmeter_res_dir = RESOURCES_DIR + "/jmeter/"
+        http_client = MockHTTPClient()
+        http_client.add_response('GET', 'https://jmeter.apache.org/download_jmeter.cgi',
+                                 file=jmeter_res_dir + "unicode_file")
+        http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-2.13.zip',
+                                 file=jmeter_res_dir + "jmeter-dist-2.13.zip")
+        http_client.add_response('GET', 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/1.1/jmeter-plugins-manager-1.1.jar',
+                                 file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+        http_client.add_response('GET', 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
+                                 file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+
+        jmeter_ver = JMeterExecutor.JMETER_VER
+        self.obj.engine.get_http_client = lambda: http_client
         try:
-            jmeter_res_dir = "file:///" + RESOURCES_DIR + "/jmeter/"
-            JMeterExecutor.MIRRORS_SOURCE = jmeter_res_dir + "unicode_file"
-            JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_res_dir + "jmeter-dist-{version}.zip"
-            JMeterExecutor.PLUGINS_MANAGER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.CMDRUNNER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.PLUGINS = ['Alice', 'Bob']
             JMeterExecutor.JMETER_VER = '2.13'
 
             self.obj.settings.merge({"path": path})
@@ -342,7 +337,7 @@ class TestJMeterExecutor(BZTestCase):
 
             self.obj.prepare()
         finally:
-            set_jmeter_executor_vars(jmeter_vars)
+            JMeterExecutor.JMETER_VER = jmeter_ver
 
     def test_install_jmeter_3_0(self):
         path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
@@ -351,14 +346,20 @@ class TestJMeterExecutor(BZTestCase):
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
 
-        jmeter_vars = get_jmeter_executor_vars()
+        jmeter_res_dir = RESOURCES_DIR + "/jmeter/"
+        http_client = MockHTTPClient()
+        http_client.add_response('GET', 'https://jmeter.apache.org/download_jmeter.cgi',
+                                 file=jmeter_res_dir + "unicode_file")
+        http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.0.zip',
+                                 file=jmeter_res_dir + "jmeter-dist-3.0.zip")
+        http_client.add_response('GET', 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/1.1/jmeter-plugins-manager-1.1.jar',
+                                 file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+        http_client.add_response('GET', 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
+                                 file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+
+        self.obj.engine.get_http_client = lambda: http_client
+        jmeter_ver = JMeterExecutor.JMETER_VER
         try:
-            jmeter_res_dir = "file:///" + RESOURCES_DIR + "/jmeter/"
-            JMeterExecutor.MIRRORS_SOURCE = jmeter_res_dir + "unicode_file"
-            JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_res_dir + "jmeter-dist-{version}.zip"
-            JMeterExecutor.PLUGINS_MANAGER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.CMDRUNNER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.PLUGINS = ['Alice', 'Bob']
             JMeterExecutor.JMETER_VER = '3.0'
 
             self.obj.settings.merge({"path": path})
@@ -385,7 +386,7 @@ class TestJMeterExecutor(BZTestCase):
 
             self.obj.prepare()
         finally:
-            set_jmeter_executor_vars(jmeter_vars)
+            JMeterExecutor.JMETER_VER = jmeter_ver
 
     def test_think_time_bug(self):
         self.configure({
@@ -898,6 +899,15 @@ class TestJMeterExecutor(BZTestCase):
                 'hold-for': '30s',
                 'concurrency': 5,
                 'scenario': {'think-time': 0.75}}})
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
+
+    def test_wrong_loop(self):
+        # https://groups.google.com/forum/#!topic/codename-taurus/iaT6O2UhfBE
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'requests': [{"loop": "forever", "do": "bla-bla"}]}}})
+
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_variable_csv_file(self):
@@ -1581,6 +1591,17 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(loops.text, "10")
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(forever.text, "true")
+
+    def test_request_once(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "once": ["http://blazedemo.com/"]}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        controller = xml_tree.find(".//OnceOnlyController")
+        self.assertIsNotNone(controller)
 
     def test_request_logic_loop_forever(self):
         self.configure({

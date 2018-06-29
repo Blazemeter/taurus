@@ -49,7 +49,7 @@ class HTTPProtocolHandler(ProtocolHandler):
         timeout = scenario.get("timeout", None)
         timeout = self.safe_time(timeout)
         elements = [JMX._get_http_defaults(default_address, timeout, retrieve_resources,
-                                            concurrent_pool_size, content_encoding, resources_regex),
+                                           concurrent_pool_size, content_encoding, resources_regex),
                     etree.Element("hashTree")]
         return elements
 

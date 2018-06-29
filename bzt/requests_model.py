@@ -13,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import logging
+import traceback
 import mimetypes
 import re
 
@@ -124,6 +126,18 @@ class IfBlock(Request):
         return "IfBlock(condition=%s, then=%s, else=%s)" % (self.condition, then_clause, else_clause)
 
 
+class OnceBlock(Request):
+    NAME = "once"
+
+    def __init__(self, requests, config):
+        super(OnceBlock, self).__init__(config)
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        return "OnceBlock(requests=%s)" % requests
+
+
 class LoopBlock(Request):
     NAME = "loop"
 
@@ -206,6 +220,10 @@ class RequestsParser(object):
             else_clause = req.get("else", [])
             else_requests = self.__parse_requests(else_clause)
             return IfBlock(condition, then_requests, else_requests, req)
+        elif 'once' in req:
+            do_block = req.get("once", TaurusConfigError("operation list is mandatory for 'once' blocks"))
+            do_requests = self.__parse_requests(do_block)
+            return OnceBlock(do_requests, req)
         elif 'loop' in req:
             loops = req.get("loop")
             do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'loop' blocks"))
@@ -259,7 +277,11 @@ class RequestsParser(object):
             req = ensure_is_dict(raw_requests, key, "url")
             if not require_url and "url" not in req:
                 req["url"] = None
-            requests.append(self.__parse_request(req))
+            try:
+                requests.append(self.__parse_request(req))
+            except BaseException as exc:
+                logging.debug("%s\n%s" % (exc, traceback.format_exc()))
+                raise TaurusConfigError("Wrong request:\n %s" % req)
         return requests
 
     def extract_requests(self, require_url=True):
