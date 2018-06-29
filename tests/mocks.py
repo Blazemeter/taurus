@@ -305,6 +305,7 @@ class BZMock(object):
             self.apply(obj)
 
     def apply(self, obj):
+        obj.http_session = self
         obj.http_request = self._request_mock
 
     def _request_mock(self, method, url, **kwargs):
