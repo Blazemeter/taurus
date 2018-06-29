@@ -2,6 +2,7 @@ import copy
 import logging
 import multiprocessing
 import os
+import sys
 import time
 
 import pygame
@@ -16,7 +17,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.provisioning import Local
 from bzt.six import text_type, parse, PY2
-from bzt.utils import to_json
+from bzt.utils import to_json, shell_exec, shutdown_process
 
 
 class WDGridProvisioning(Local):
@@ -26,7 +27,7 @@ class WDGridProvisioning(Local):
         super(WDGridProvisioning, self).__init__()
         self.user = User()
         self._involved_engines = []
-        self._vncs_pool = None
+        self._vncs_pool = []
 
     def prepare(self):
         CloudProvisioning.merge_with_blazemeter_config(self)
@@ -58,17 +59,19 @@ class WDGridProvisioning(Local):
                 label = "%s - %s - %s" % (executor.label, grid_config['platform'], grid_config['browser'])
                 vncs.append((parsed.netloc.split(':')[0], 'secret', label, 0))
 
+        self.log.info("VNCs: %r", vncs)
+
         if vncs:
-            self._vncs_pool = multiprocessing.Pool(len(vncs), maxtasksperchild=1)
-            self._vncs_pool.map_async(start_vnc, vncs)
+            for vnc in vncs:
+                self._vncs_pool.append(shell_exec([sys.executable, "-m", "bzt.resources.vncclient"] +
+                                                  [str(c) for c in vnc]))
         super(WDGridProvisioning, self).startup()
 
     def shutdown(self):
         super(WDGridProvisioning, self).shutdown()
         if self._vncs_pool:
-            self._vncs_pool.close()
-            self._vncs_pool.terminate()
-            self._vncs_pool.join()
+            for proc in self._vncs_pool:
+                shutdown_process(proc, self.log)
 
     def post_process(self):
         for eng in self._involved_engines:
@@ -326,9 +329,10 @@ def start_vnc(params):
     pygame.init()
     remoteframebuffer = VNCViewer(label)
 
-    reactor.connectTCP(host, display + 5900, VNCFactory(remoteframebuffer, password, ))
+    reactor.connectTCP(host, int(display) + 5900, VNCFactory(remoteframebuffer, password, ))
 
     reactor.callLater(0.1, remoteframebuffer.mainloop)
+    time.sleep(1)
     reactor.run()
     pygame.quit()
     logging.debug("Done: %s", id(reactor))
