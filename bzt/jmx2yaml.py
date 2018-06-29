@@ -60,6 +60,7 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "CSVDataSet",
               "GenericController",
               "ResultCollector",
+              "OnceOnlyController",
               "Arguments",
               "IfController",
               "LoopController",
@@ -1218,6 +1219,10 @@ class JMXasDict(JMX):
                 hash_tree = next(children)
                 if_block = self.__extract_if_controller(elem, hash_tree)
                 requests.append(if_block)
+            elif elem.tag == 'OnceOnlyController':
+                hash_tree = next(children)
+                once_block = self.__extract_once_controller(hash_tree)
+                requests.append(once_block)
             elif elem.tag == 'LoopController':
                 hash_tree = next(children)
                 loop_block = self.__extract_loop_controller(elem, hash_tree)
@@ -1246,6 +1251,10 @@ class JMXasDict(JMX):
         condition = self._get_string_prop(controller, "IfController.condition")
         requests = self.__extract_requests(ht_element)
         return {'if': condition, 'then': requests}
+
+    def __extract_once_controller(self, ht_element):
+        requests = self.__extract_requests(ht_element)
+        return {'once': requests}
 
     def __extract_loop_controller(self, controller, ht_element):
         # NOTE: we can't rely on LoopController.continue_forever , as it's for some reason always `true` on 4.0
