@@ -267,7 +267,7 @@ class RFBToGUI(rfb.RFBClient, object):
         icon = os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus_logo.gif")
         pygame.display.set_icon(pygame.image.load(icon))
         self.remoteframebuffer.setProtocol(self)
-        if PY2 or True:
+        if PY2:
             self.setEncodings([
                 rfb.COPY_RECTANGLE_ENCODING,
                 rfb.HEXTILE_ENCODING,
@@ -315,12 +315,10 @@ class VNCFactory(rfb.RFBFactory, object):
     def clientConnectionLost(self, connector, reason):
         self.remoteframebuffer.alive = False
         logging.debug("connection lost: %r" % reason.getErrorMessage())
-        reactor.stop()
 
     def clientConnectionFailed(self, connector, reason):
         self.remoteframebuffer.alive = False
         logging.warning("cannot connect to server: %r\n" % reason.getErrorMessage())
-        reactor.stop()
 
 
 def start_vnc(params):
