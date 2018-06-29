@@ -16,7 +16,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.provisioning import Local
 from bzt.six import text_type, parse, PY2
-from bzt.utils import to_json, shell_exec, shutdown_process
+from bzt.utils import to_json, shell_exec, shutdown_process, is_mac
 
 
 class WDGridProvisioning(Local):
@@ -62,8 +62,12 @@ class WDGridProvisioning(Local):
 
         if vncs:
             for vnc in vncs:
-                self._vncs_pool.append(shell_exec([sys.executable, "-m", "bzt.resources.vncclient"] +
-                                                  [str(c) for c in vnc]))
+                if is_mac():
+                    cmd = ["open", "vnc://remote:%s@%s:%s" % (vnc[1], vnc[0], int(vnc[3]) + 5900)]
+                else:
+                    cmd = [sys.executable, "-m", "bzt.resources.vncclient"] + [str(c) for c in vnc]
+
+                self._vncs_pool.append(shell_exec(cmd))
         super(WDGridProvisioning, self).startup()
 
     def shutdown(self):
@@ -298,6 +302,7 @@ class RFBToGUI(rfb.RFBClient, object):
         self.framebufferUpdateRequest(incremental=1)
 
     def updateRectangle(self, x, y, width, height, data):
+        # print("Update: %s %s %s %s" % (x, y, width, height))
         self.screen.blit(pygame.image.fromstring(data, (width, height), 'RGBX'), (x, y))
 
 
