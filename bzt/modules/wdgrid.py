@@ -191,11 +191,12 @@ class WDGridProvisioning(Local):
 
     def __dump_status_if_needed(self):
         if self.settings.get("dump-status", False):
-            self.log.warning("Dumping status of WebDriver engines below:")
+            data = [("Engine ID", "Image ID", "Status", "Comment")]
             client = WDGridImages(self.user)
             for eng in client.get_engines():
-                self.log.info("Engine ID: %s\timageId: %s\tstatis: %s\tComment: %s",
-                              eng['id'], eng['imageId'], eng['status'], eng['name'])
+                data.append((eng['id'], eng['imageId'], eng['status'], eng['name']))
+
+            self.log.warning("Dumping status of WebDriver engines below:\n" + SingleTable(data).table)
 
             raise NormalShutdown("Done listing images")
 
@@ -208,6 +209,8 @@ class WDGridProvisioning(Local):
                     continue
                 self.log.info("Stopping: %s\t%s\t#%s", img['imageId'], img['name'], img['id'], )
                 img.stop()
+            else:
+                self.log.info("No engines to stop")
 
             raise NormalShutdown("Done cleanup")
 
@@ -304,10 +307,12 @@ class VNCFactory(rfb.RFBFactory, object):
     def clientConnectionLost(self, connector, reason):
         self.remoteframebuffer.alive = False
         logging.debug("connection lost: %r" % reason.getErrorMessage())
+        reactor.stop()
 
     def clientConnectionFailed(self, connector, reason):
         self.remoteframebuffer.alive = False
         logging.warning("cannot connect to server: %r\n" % reason.getErrorMessage())
+        reactor.stop()
 
 
 def start_vnc(params):
