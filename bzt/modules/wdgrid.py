@@ -262,7 +262,7 @@ class RFBToGUI(rfb.RFBClient, object):
     def vncConnectionMade(self):
         self.remoteframebuffer = self.factory.remoteframebuffer
         self.screen = pygame.display.set_mode((self.width, self.height))
-        icon = os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus.gif")
+        icon = os.path.join(os.path.dirname(os.path.abspath(resources.__file__)), "taurus_logo.gif")
         pygame.display.set_icon(pygame.image.load(icon))
         self.remoteframebuffer.setProtocol(self)
         if PY2 or True:
