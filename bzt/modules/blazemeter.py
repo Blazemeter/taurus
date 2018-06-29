@@ -1613,17 +1613,17 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.engine.config[Reporter.REP] = new_reporting
 
     @staticmethod
-    def _configure_client(self):
-        self.user.log = self.log
-        self.user.logger_limit = self.settings.get("request-logging-limit", self.user.logger_limit)
-        self.user.address = self.settings.get("address", self.user.address)
-        self.user.token = self.settings.get("token", self.user.token)
-        self.user.timeout = dehumanize_time(self.settings.get("timeout", self.user.timeout))
-        if isinstance(self.user.http_session, requests.Session):
-            self.log.debug("Installing http client")
-            self.user.http_session = self.engine.get_http_client()
-            self.user.http_request = self.user.http_session.request
-        if not self.user.token:
+    def _configure_client(module):
+        module.user.log = module.log
+        module.user.logger_limit = module.settings.get("request-logging-limit", module.user.logger_limit)
+        module.user.address = module.settings.get("address", module.user.address)
+        module.user.token = module.settings.get("token", module.user.token)
+        module.user.timeout = dehumanize_time(module.settings.get("timeout", module.user.timeout))
+        if isinstance(module.user.http_session, requests.Session):
+            module.log.debug("Installing http client")
+            module.user.http_session = module.engine.get_http_client()
+            module.user.http_request = module.user.http_session.request
+        if not module.user.token:
             raise TaurusConfigError("You must provide API token to use cloud provisioning")
 
     def startup(self):
