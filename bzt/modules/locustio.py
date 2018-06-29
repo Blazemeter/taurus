@@ -218,7 +218,10 @@ class SlavesReader(ResultsProvider):
         self.read_buffer = ""
 
     def _calculate_datapoints(self, final_pass=False):
-        self.read_buffer += self.file.get_bytes(size=1024 * 1024, last_pass=final_pass)
+        read = self.file.get_bytes(size=1024 * 1024, last_pass=final_pass)
+        if not read or not read.strip():
+            return
+        self.read_buffer += read
         while "\n" in self.read_buffer:
             _line = self.read_buffer[:self.read_buffer.index("\n") + 1]
             self.read_buffer = self.read_buffer[len(_line):]

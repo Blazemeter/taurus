@@ -1,0 +1,29 @@
+execution:
+- executor: jmeter
+  hold-for: 30s
+  scenario:
+    retrieve-resources: false
+    requests:
+    - http://blazedemo.com/
+
+
+# instructing JMeter to use proxy
+modules:
+  jmeter:
+    system-properties:
+      http.proxyHost: 192.168.100.2
+      http.proxyPort: 3128
+      http.proxyUser: me
+      http.proxyPass: really
+      https.proxyHost: 192.168.100.2
+      https.proxyPort: 3128
+      https.proxyUser: me
+      https.proxyPass: really
+
+# instructing Taurus to use proxy for Taurus-based requests (installing JMeter and plugins, etc)
+settings:
+  proxy:
+    address: http://192.168.100.2:3128
+    username: me
+    password: really
+

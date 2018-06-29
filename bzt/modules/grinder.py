@@ -34,10 +34,10 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     """
     Grinder executor module
     """
-    DOWNLOAD_LINK = "http://sourceforge.net/projects/grinder/files/The%20Grinder%203/{version}" \
-                    "/grinder-{version}-binary.zip/download"
+    DOWNLOAD_LINK = "https://downloads.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
+                    "/grinder-{version}-binary.zip?r=&ts=" + str(int(time.time())) + "&use_mirror=autoselect"
     VERSION = "3.11"
-    MIRRORS_SOURCE = "http://sourceforge.net/settings/mirror_choices?projectname=grinder&filename=The%20Grinder" \
+    MIRRORS_SOURCE = "https://sourceforge.net/settings/mirror_choices?projectname=grinder&filename=The%20Grinder" \
                      "%203/{version}/grinder-{version}-binary.zip&dialog=true".format(version=VERSION)
 
     def __init__(self):

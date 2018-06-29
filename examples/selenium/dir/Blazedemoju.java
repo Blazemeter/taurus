@@ -1,3 +1,5 @@
+package dir;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.AfterClass;
@@ -17,7 +19,7 @@ import org.openqa.selenium.*;
 
 import static org.openqa.selenium.OutputType.*;
 
-public class Blazedemoju {
+public class Blazedemoju extends Base {
     FirefoxDriver wd;
 
     @Before
@@ -26,8 +28,7 @@ public class Blazedemoju {
         wd.manage().timeouts().implicitlyWait(60, TimeUnit.SECONDS);
     }
 
-    @Test
-    public void blazedemoju() {
+    public void testMethod() {
         wd.get("http://blazedemo.com/");
         if (!wd.findElement(By.xpath("//div[3]/form/select[1]//option[3]")).isSelected()) {
             wd.findElement(By.xpath("//div[3]/form/select[1]//option[3]")).click();
@@ -42,7 +43,9 @@ public class Blazedemoju {
 
     @After
     public void tearDown() {
-        wd.quit();
+        if (wd!=null) {
+            wd.quit();
+        }
     }
 
     public static boolean isAlertPresent(FirefoxDriver wd) {
