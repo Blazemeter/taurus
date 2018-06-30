@@ -58,8 +58,6 @@ class WDGridProvisioning(Local):
                 label = "%s - %s - %s" % (executor.label, grid_config['platform'], grid_config['browser'])
                 vncs.append((parsed.netloc.split(':')[0], 'secret', label, 0))
 
-        self.log.info("VNCs: %r", vncs)
-
         if vncs:
             for vnc in vncs:
                 if is_mac():
