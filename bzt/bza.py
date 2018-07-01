@@ -757,12 +757,12 @@ class BZAProxy(BZAObject):
                 self.stop()
         else:
             self.log.info('Creating new recording proxy...')
-            response = self._request(self.address + '/api/latest/proxy', method='POST', data={'auth':False})
+            response = self._request(self.address + '/api/latest/proxy', method='POST', data={'auth': False})
             proxy_info = response['result']
 
         self._request(self.address + '/api/latest/proxy/recording/clear', method='POST')
 
-        return '%s:%s' % (
+        return 'http://%s:%s' % (
             proxy_info['host'],
             proxy_info['port']
         )
