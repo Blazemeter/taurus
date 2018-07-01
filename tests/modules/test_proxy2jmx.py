@@ -7,7 +7,7 @@ from bzt import TaurusConfigError
 from bzt.modules.proxy2jmx import Proxy2JMX, BZAProxy
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import is_windows, is_linux, get_full_path
-from tests import BZTestCase, BUILD_DIR
+from tests import BZTestCase
 from tests.mocks import EngineEmul
 
 
@@ -65,7 +65,7 @@ class TestProxy2JMX(BZTestCase):
         self.obj.api_delay = 1
         self.obj.responses = [
             ResponseEmul(200, '{"result" : {}}'),
-            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1"}}'),
+            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1", "username":"user1", "password":"123"}}'),
             ResponseEmul(200, ''),
             ResponseEmul(200, ''),  # startup: startRecording
             ResponseEmul(200, ''),  # shutdown: stopRecording
@@ -85,7 +85,7 @@ class TestProxy2JMX(BZTestCase):
         self.obj.engine.provisioning.executors = [executor]
 
         self.obj.prepare()
-        self.assertEqual(self.obj.proxy_addr, 'http://host1:port1')
+        self.assertEqual(self.obj.proxy_addr, 'user1:123@host1:port1')
 
         self.obj.startup()
         self.obj.shutdown()
@@ -104,7 +104,9 @@ class TestProxy2JMX(BZTestCase):
     def test_existing_proxy(self):
         self.obj.api_delay = 1
         self.obj.responses = [
-            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
+            ResponseEmul(200,
+                         '{"result" : {"port": "port1", "host": "host1",  '
+                         '"username":"user1", "password":"123", "status": "active"}}'),
             ResponseEmul(200, ''),  # stopRecording
             ResponseEmul(200, '')]  # clearRecording
 
@@ -115,12 +117,14 @@ class TestProxy2JMX(BZTestCase):
         self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
 
         self.obj.prepare()
-        self.assertEqual(self.obj.proxy_addr, 'http://host1:port1')
+        self.assertEqual(self.obj.proxy_addr, 'user1:123@host1:port1')
 
     def test_filename(self):
         self.obj.api_delay = 1
         self.obj.responses = [
-            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
+            ResponseEmul(200,
+                         '{"result" : {"port": "port1", "host": "host1",  '
+                         '"username":"user1", "password":"123", "status": "active"}}'),
             ResponseEmul(200, '1'),  # stopRecording
             ResponseEmul(200, '2'),  # clearRecording
             ResponseEmul(200, '{"result" : "http://jmx_url"}'),
@@ -141,9 +145,9 @@ class TestProxy2JMX(BZTestCase):
 
     def _check_linux(self):
         required_env = {
-            'DESKTOP_SESSION': None, 'HTTP_PROXY': 'http://host1:port1', 'https_proxy': 'http://host1:port1',
-            'GNOME_DESKTOP_SESSION_ID': None, 'http_proxy': 'http://host1:port1', 'XDG_CURRENT_DESKTOP': None,
-            'HTTPS_PROXY': 'http://host1:port1', 'CHROMIUM_USER_FLAGS': '--proxy-server=http://host1:port1',
+            'DESKTOP_SESSION': None, 'HTTP_PROXY': 'user1:123@host1:port1', 'https_proxy': 'user1:123@host1:port1',
+            'GNOME_DESKTOP_SESSION_ID': None, 'http_proxy': 'user1:123@host1:port1', 'XDG_CURRENT_DESKTOP': None,
+            'HTTPS_PROXY': 'user1:123@host1:port1', 'CHROMIUM_USER_FLAGS': '--proxy-server=user1:123@host1:port1',
             'KDE_FULL_SESSION': None}
 
         self.obj.startup()
@@ -173,7 +177,7 @@ class TestProxy2JMX(BZTestCase):
 
         required_env = {
             'PATH_TO_CHROME': dst_chrome,
-            'ADDITIONAL_CHROME_PARAMS': '--proxy-server="http://host1:port1"',
+            'ADDITIONAL_CHROME_PARAMS': '--proxy-server="user1:123@host1:port1"',
             'CHROME_LOADER_LOG': join(self.obj.engine.artifacts_dir, 'chrome-loader.log')}
 
         os.environ['PATH'] = join(art_dir, 'chromedriver') + os.pathsep + os.getenv('PATH')
@@ -199,7 +203,7 @@ class TestProxy2JMX(BZTestCase):
     def test_chrome_proxy(self):
         self.obj.responses = [
             ResponseEmul(200, '{"result" : {}}'),
-            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1"}}'),
+            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1",  "username":"user1", "password":"123"}}'),
             ResponseEmul(200, ''),
             ResponseEmul(200, ''),  # startup: startRecording
             ResponseEmul(200, ''),  # shutdown: stopRecording

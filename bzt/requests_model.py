@@ -126,6 +126,18 @@ class IfBlock(Request):
         return "IfBlock(condition=%s, then=%s, else=%s)" % (self.condition, then_clause, else_clause)
 
 
+class OnceBlock(Request):
+    NAME = "once"
+
+    def __init__(self, requests, config):
+        super(OnceBlock, self).__init__(config)
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        return "OnceBlock(requests=%s)" % requests
+
+
 class LoopBlock(Request):
     NAME = "loop"
 
@@ -208,6 +220,10 @@ class RequestsParser(object):
             else_clause = req.get("else", [])
             else_requests = self.__parse_requests(else_clause)
             return IfBlock(condition, then_requests, else_requests, req)
+        elif 'once' in req:
+            do_block = req.get("once", TaurusConfigError("operation list is mandatory for 'once' blocks"))
+            do_requests = self.__parse_requests(do_block)
+            return OnceBlock(do_requests, req)
         elif 'loop' in req:
             loops = req.get("loop")
             do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'loop' blocks"))
