@@ -9,7 +9,7 @@ from collections import OrderedDict
 
 import requests
 
-from bzt import TaurusNetworkError, ManualShutdown, VERSION
+from bzt import TaurusNetworkError, ManualShutdown, VERSION, TaurusException
 from bzt.six import string_types
 from bzt.six import text_type
 from bzt.six import urlencode
@@ -719,6 +719,10 @@ class Session(BZAObject):
         self.send_kpi_data(data_str, submit_target='engine_health')
 
 
+class BZAProxyException(TaurusException):
+    pass
+
+
 class BZAProxy(BZAObject):
     def __init__(self):
         super(BZAProxy, self).__init__()
@@ -741,20 +745,24 @@ class BZAProxy(BZAObject):
 
         proxy_info = response['result']
         if proxy_info:
+            self.log.info('Proxy already exists')
+            if 'username' in proxy_info:
+                msg = 'Proxy has auth, unable to use it'
+                self.log.info(msg)
+                raise BZAProxyException(msg)
+
             self.log.info('Using existing recording proxy...')
             if proxy_info['status'] == 'active':
                 self.log.info('Proxy is active, stop it')
                 self.stop()
         else:
             self.log.info('Creating new recording proxy...')
-            response = self._request(self.address + '/api/latest/proxy', method='POST')
+            response = self._request(self.address + '/api/latest/proxy', method='POST', data={'auth': False})
             proxy_info = response['result']
 
         self._request(self.address + '/api/latest/proxy/recording/clear', method='POST')
 
-        return '%s:%s@%s:%s' % (
-            proxy_info['username'],
-            proxy_info['password'],
+        return 'http://%s:%s' % (
             proxy_info['host'],
             proxy_info['port']
         )
