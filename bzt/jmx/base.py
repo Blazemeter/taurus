@@ -1169,6 +1169,18 @@ class JMX(object):
         return controller
 
     @staticmethod
+    def _get_once_controller():
+        """
+        Generates Once Only Controller
+
+        :return: etree element, OnceOnlyController
+        """
+        controller = etree.Element("OnceOnlyController", guiclass="OnceOnlyControllerGui",
+                                   testclass="OnceOnlyController", testname="Once Only Controller")
+
+        return controller
+
+    @staticmethod
     def _get_loop_controller(loops):
         """
         Generates Loop Controller

@@ -26,7 +26,7 @@ from bzt.utils import sync_run, get_full_path, is_windows, to_json, dehumanize_t
 MOCHA_NPM_PACKAGE_NAME = "mocha@4.0.1"
 SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver@3.6.0"
 WDIO_NPM_PACKAGE_NAME = "webdriverio@4.8.0"
-WDIO_MOCHA_PLUGIN_NPM_PACKAGE_NAME = "wdio-mocha-framework"
+WDIO_MOCHA_PLUGIN_NPM_PACKAGE_NAME = "wdio-mocha-framework@0.5.13"
 NEWMAN_NPM_PACKAGE_NAME = "newman"
 
 

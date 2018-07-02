@@ -7,7 +7,7 @@ from bzt import TaurusConfigError
 from bzt.modules.proxy2jmx import Proxy2JMX, BZAProxy
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import is_windows, is_linux, get_full_path
-from tests import BZTestCase, BUILD_DIR
+from tests import BZTestCase
 from tests.mocks import EngineEmul
 
 
@@ -104,7 +104,8 @@ class TestProxy2JMX(BZTestCase):
     def test_existing_proxy(self):
         self.obj.api_delay = 1
         self.obj.responses = [
-            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
+            ResponseEmul(200,
+                         '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
             ResponseEmul(200, ''),  # stopRecording
             ResponseEmul(200, '')]  # clearRecording
 
@@ -120,7 +121,8 @@ class TestProxy2JMX(BZTestCase):
     def test_filename(self):
         self.obj.api_delay = 1
         self.obj.responses = [
-            ResponseEmul(200, '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
+            ResponseEmul(200,
+                         '{"result" : {"port": "port1", "host": "host1", "status": "active"}}'),
             ResponseEmul(200, '1'),  # stopRecording
             ResponseEmul(200, '2'),  # clearRecording
             ResponseEmul(200, '{"result" : "http://jmx_url"}'),

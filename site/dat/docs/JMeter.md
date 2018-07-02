@@ -520,6 +520,7 @@ scenarios:
 
 Taurus allows to control execution flow with the following constructs:
 - `if` blocks
+- `once` blocks
 - `loop` blocks
 - `while` blocks
 - `foreach` blocks
@@ -587,6 +588,17 @@ scenarios:
       then:
         - https://example.com/${username}
 ```
+
+##### Once blocks
+`once` blocks is executed only once (per thread).
+```yaml
+scenarios:
+  loop_example:
+    requests:
+    - once:
+      - http://blazedemo.com/
+```
+They're correspond to JMeter's `Once Only Controllers`.
 
 ##### Loop Blocks
 

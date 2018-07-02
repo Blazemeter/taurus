@@ -39,6 +39,9 @@ class RequestCompiler(RequestVisitor):
     def visit_ifblock(self, block):
         return self.jmx_builder.compile_if_block(block)
 
+    def visit_onceblock(self, block):
+        return self.jmx_builder.compile_once_block(block)
+
     def visit_loopblock(self, block):
         return self.jmx_builder.compile_loop_block(block)
 
@@ -431,6 +434,18 @@ class JMeterScenarioBuilder(JMX):
                 for element in compiled:
                     else_children.append(element)
             elements.extend([else_controller, else_children])
+
+        return elements
+
+    def compile_once_block(self, block):
+        elements = []
+
+        once_controller = JMX._get_once_controller()
+        children = etree.Element("hashTree")
+        for compiled in self.compile_requests(block.requests):
+            for element in compiled:
+                children.append(element)
+        elements.extend([once_controller, children])
 
         return elements
 

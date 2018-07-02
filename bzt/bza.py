@@ -5,12 +5,11 @@ it may become separate library in the future. Things like imports and logging sh
 import base64
 import json
 import logging
-import time
 from collections import OrderedDict
 
 import requests
 
-from bzt import TaurusNetworkError, ManualShutdown, VERSION
+from bzt import TaurusNetworkError, ManualShutdown, VERSION, TaurusException
 from bzt.six import string_types
 from bzt.six import text_type
 from bzt.six import urlencode
@@ -61,7 +60,10 @@ class BZAObject(dict):
         headers["X-Client-Id"] = "Taurus"
         headers["X-Client-Version"] = VERSION
 
-        if isinstance(self.token, string_types) and ':' in self.token:
+        has_auth = headers and "X-Api-Key" in headers
+        if has_auth:
+            pass  # all is good, we have auth provided
+        elif isinstance(self.token, string_types) and ':' in self.token:
             token = self.token
             if isinstance(token, text_type):
                 token = token.encode('ascii')
@@ -717,6 +719,10 @@ class Session(BZAObject):
         self.send_kpi_data(data_str, submit_target='engine_health')
 
 
+class BZAProxyException(TaurusException):
+    pass
+
+
 class BZAProxy(BZAObject):
     def __init__(self):
         super(BZAProxy, self).__init__()
@@ -731,7 +737,7 @@ class BZAProxy(BZAObject):
     def get_jmx(self, smart=False):
         url = '/api/latest/proxy/download?format=jmx&smart=' + str(smart).lower()
         response_url = self._request(self.address + url).get('result')
-        response_content = self._request(response_url, raw_result=True)
+        response_content = self._request(response_url, raw_result=True, headers={"X-Api-Key": self.token})
         return response_content
 
     def get_addr(self):
@@ -739,18 +745,27 @@ class BZAProxy(BZAObject):
 
         proxy_info = response['result']
         if proxy_info:
+            self.log.info('Proxy already exists')
+            if 'username' in proxy_info:
+                msg = 'Proxy has auth, unable to use it'
+                self.log.info(msg)
+                raise BZAProxyException(msg)
+
             self.log.info('Using existing recording proxy...')
             if proxy_info['status'] == 'active':
                 self.log.info('Proxy is active, stop it')
                 self.stop()
         else:
             self.log.info('Creating new recording proxy...')
-            response = self._request(self.address + '/api/latest/proxy', method='POST')
+            response = self._request(self.address + '/api/latest/proxy', method='POST', data={'auth': False})
             proxy_info = response['result']
 
         self._request(self.address + '/api/latest/proxy/recording/clear', method='POST')
 
-        return 'http://%s:%s' % (proxy_info['host'], proxy_info['port'])
+        return 'http://%s:%s' % (
+            proxy_info['host'],
+            proxy_info['port']
+        )
 
     def get_json(self):
         response = self._request(self.address + '/api/latest/proxy/download?format=json', raw_result=True)
