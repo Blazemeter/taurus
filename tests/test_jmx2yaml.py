@@ -227,6 +227,19 @@ class TestConverter(BZTestCase):
         self.obj.process()
         self.assertTrue(self.same_yaml("broken_resp_asserts.yml"))
 
+    def test_auth_manager(self):
+        self.configure(RESOURCES_DIR + "yaml/converter/auth_manager.jmx")
+        self.obj.process()
+        yml = yaml.load(open(self.obj.dst_file).read())
+        auth = yml.get("scenarios").get("Thread Group").get("authorization")
+        sample = {
+            'clear': True,
+            'list': [{
+                'url': 'ya.ru/page', 'password': 'p1', 'realm': 'one', 'name': 'u1', 'mechanism': 'KERBEROS'},
+                {'domain': 'ma.ru', 'password': 'p2', 'name': 'u2'}]}
+
+        self.assertEqual(auth, sample)
+
     def test_copy_global_json_assertions(self):
         self.configure(RESOURCES_DIR + "yaml/converter/assertions.jmx")
         self.obj.process()
