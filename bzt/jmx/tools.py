@@ -379,6 +379,7 @@ class JMeterScenarioBuilder(JMX):
         elements = []
         for _, protocol in iteritems(self.protocol_handlers):
             elements.extend(protocol.get_toplevel_elements(scenario))
+        elements.extend(self.__gen_authorization(scenario))
         elements.extend(self.__gen_datasources(scenario))
         elements.extend(self.__gen_requests(scenario))
         return elements
@@ -584,6 +585,33 @@ class JMeterScenarioBuilder(JMX):
         # NOTE: bad design, as repetitive save will duplicate stuff
         self.__generate()
         super(JMeterScenarioBuilder, self).save(filename)
+
+    @staticmethod
+    def __gen_authorization(scenario):
+        """
+        Generates HTTP Authorization Manager
+
+        """
+        elements = []
+        authorizations = scenario.get("authorization")
+        if authorizations:
+            clear_flag = False
+
+            if isinstance(authorizations, dict):
+                if "clear" in authorizations or "list" in authorizations:  # full form
+                    clear_flag = authorizations.get("clear", False)
+                    authorizations = authorizations.get("list", [])
+                else:
+                    authorizations = [authorizations]  # short form
+
+            if not isinstance(authorizations, list):
+                raise TaurusConfigError("Wrong authorization format: %s" % authorizations)
+
+            auth_manager = JMX.get_auth_manager(authorizations, clear_flag)
+            elements.append(auth_manager)
+            elements.append(etree.Element("hashTree"))
+
+        return elements
 
     def __gen_datasources(self, scenario):
         sources = scenario.get("data-sources")

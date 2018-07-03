@@ -11,7 +11,7 @@ import yaml
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.jmx import JMX
-from bzt.jmx.tools import JMeterScenarioBuilder, ProtocolHandler
+from bzt.jmx.tools import ProtocolHandler
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
@@ -1591,6 +1591,101 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(loops.text, "10")
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(forever.text, "true")
+
+    def test_auth_manager_multi_form(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "authorization": [{
+                        "url": "http://blazedemo.com/",
+                        "name": "user1",
+                        "password": "pass1"
+                    }, {
+                        "domain": "my_domain",
+                        "name": "user2",
+                        "password": "pass2",
+                        "realm": "secret_zone",
+                        "mechanism": "kerberos"
+                    }, {
+                        "url": "localhost",
+                        "name": "user3",
+                        "password": "pass3",
+                        "mechanism": "digest"
+                    }, {
+                        # no url/domain, must be skipped
+                        "name": "user4",
+                        "password": "pass4"
+                    }],
+                    "requests": ["empty"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        auth_mgr = xml_tree.findall(".//hashTree[@type='tg']/AuthManager")
+        self.assertEqual(1, len(auth_mgr))
+        clear = auth_mgr[0].find("boolProp[@name='AuthManager.clearEachIteration']")
+        self.assertIsNone(clear)
+        collection = auth_mgr[0].findall("collectionProp[@name='AuthManager.auth_list']/elementProp")
+        self.assertEqual(3, len(collection))
+        self.assertEqual(["http://blazedemo.com/", "user1", "pass1", None, None, None], self.get_auth(collection[0]))
+        self.assertEqual([None, "user2", "pass2", "my_domain", "secret_zone", "KERBEROS"], self.get_auth(collection[1]))
+        self.assertEqual(["localhost", "user3", "pass3", None, None, None], self.get_auth(collection[2]))
+
+    @staticmethod
+    def get_auth(element):
+        props = [
+            element.find("stringProp[@name='Authorization.url']"),
+            element.find("stringProp[@name='Authorization.username']"),
+            element.find("stringProp[@name='Authorization.password']"),
+            element.find("stringProp[@name='Authorization.domain']"),
+            element.find("stringProp[@name='Authorization.realm']"),
+            element.find("stringProp[@name='Authorization.mechanism']")]
+        for i in range(len(props)):
+            if props[i] is not None:
+                props[i] = props[i].text
+        return props
+
+    def test_auth_manager_short_form(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "authorization": {
+                        "url": "http://blazedemo.com/",
+                        "name": "user1",
+                        "password": "pass1"
+                    },
+                    "requests": ["empty"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        auth_mgr = xml_tree.findall(".//hashTree[@type='tg']/AuthManager")
+        self.assertEqual(1, len(auth_mgr))
+        clear = auth_mgr[0].find("boolProp[@name='AuthManager.clearEachIteration']")
+        self.assertIsNone(clear)
+        collection = auth_mgr[0].findall("collectionProp[@name='AuthManager.auth_list']/elementProp")
+        self.assertEqual(1, len(collection))
+        url = collection[0].findall("stringProp[@name='Authorization.url']")
+        self.assertEqual(url[0].text, "http://blazedemo.com/")
+
+    def test_auth_manager_full_form(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "authorization": {
+                        "clear": True,
+                        "list": [{
+                            "url": "http://blazedemo.com/",
+                            "name": "user1",
+                            "password": "pass1"
+                        }]},
+                    "requests": ["empty"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        auth_mgr = xml_tree.findall(".//hashTree[@type='tg']/AuthManager")
+        self.assertEqual(1, len(auth_mgr))
+        clear = auth_mgr[0].find("boolProp[@name='AuthManager.clearEachIteration']")
+        self.assertEqual("true", clear.text)
+        collection = auth_mgr[0].findall("collectionProp[@name='AuthManager.auth_list']/elementProp")
+        self.assertEqual(1, len(collection))
+        url = collection[0].findall("stringProp[@name='Authorization.url']")
+        self.assertEqual(url[0].text, "http://blazedemo.com/")
 
     def test_request_once(self):
         self.configure({
