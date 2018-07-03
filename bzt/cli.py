@@ -180,7 +180,7 @@ class CLI(object):
             overrider = ConfigOverrider(self.log)
             overrider.apply_overrides(self.options.option, self.engine.config)
 
-        settings = self.engine.config.get(SETTINGS)
+        settings = self.engine.config.get(SETTINGS, force_set=True)
         settings.get('verbose', bool(self.options.verbose))  # respect value from config
         if self.options.verbose:  # force verbosity if cmdline asked for it
             settings['verbose'] = True
@@ -211,16 +211,20 @@ class CLI(object):
                 raise NormalShutdown("Linting has finished, no errors were found")
 
     def _level_down_logging(self):
-        self.log.debug("Leveling down log file verbosity, use -v option to have DEBUG messages enabled")
+        target = logging.DEBUG if self.options.verbose else logging.INFO
         for handler in self.log.handlers:
             if issubclass(handler.__class__, logging.FileHandler):
-                handler.setLevel(logging.DEBUG if self.options.verbose else logging.INFO)
+                if handler.level != target:
+                    msg = "Leveling down log file verbosity to %s, use -v option to have DEBUG messages enabled"
+                    self.log.debug(msg, logging.getLevelName(target))
+                    handler.setLevel(target)
 
     def _level_up_logging(self):
         for handler in self.log.handlers:
             if issubclass(handler.__class__, logging.FileHandler):
-                handler.setLevel(logging.DEBUG)
-        self.log.debug("Leveled up log file verbosity")
+                if handler.level != logging.DEBUG:
+                    handler.setLevel(logging.DEBUG)
+                    self.log.debug("Leveled up log file verbosity")
 
     def perform(self, configs):
         """
@@ -238,7 +242,7 @@ class CLI(object):
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
 
-            if not self.engine.config.get(SETTINGS).get('verbose', False):
+            if not self.engine.config.get(SETTINGS).get('verbose', False, force_set=True):
                 self.engine.logging_level_down = self._level_down_logging
                 self.engine.logging_level_up = self._level_up_logging
 
