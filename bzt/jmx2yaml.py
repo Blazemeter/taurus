@@ -74,6 +74,7 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "BeanShellPreProcessor",
               "BeanShellPostProcessor",
               "JSONPostProcessor",
+              "AuthManager",
               ]
 
 LOWER_KNOWN_TAGS = [tag.lower() for tag in KNOWN_TAGS]
@@ -479,6 +480,59 @@ class JMXasDict(JMX):
             base_settings["label"] = element.get("testname")
         self.log.debug('Got %s for base settings in %s (%s)', base_settings, element.tag, element.get("testname"))
         return base_settings
+
+    def _get_authorization(self, element):
+        authorization = {}
+        hashtree = element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            auth_mgrs = [element for element in hashtree.iterchildren() if element.tag == "AuthManager"]
+
+            num_auth_mgrs = len(auth_mgrs)
+            if not num_auth_mgrs:
+                return {}
+            elif num_auth_mgrs > 1:
+                self.log.warning('Found %s Authorization Manager elements, only first one will be used')
+
+            auth_mgr = auth_mgrs[0]
+
+            clear_flag = self._get_bool_prop(auth_mgr, "AuthManager.clearEachIteration")
+            if clear_flag:
+                authorization['clear'] = clear_flag
+
+            auth_list = []
+
+            selector = ".//collectionProp[@name='AuthManager.auth_list']"
+            auth_collection = auth_mgr.find(selector)
+
+            if auth_collection is None or not auth_collection.findall(".//elementProp"):
+                self.log.warning("Authorizations collection not found in %s, skipping", auth_mgr.tag)
+                return {}
+
+            for line in auth_collection.findall(".//elementProp"):
+                auth_element = {}
+
+                props = {
+                    "url": line.find("stringProp[@name='Authorization.url']"),
+                    "name": line.find("stringProp[@name='Authorization.username']"),
+                    "password": line.find("stringProp[@name='Authorization.password']"),
+                    "domain": line.find("stringProp[@name='Authorization.domain']"),
+                    "realm": line.find("stringProp[@name='Authorization.realm']"),
+                    "mechanism": line.find("stringProp[@name='Authorization.mechanism']")}
+
+                for key in props:
+                    if props[key] is not None:
+                        text = props[key].text
+                        if text:
+                            auth_element[key] = text
+
+                auth_list.append(auth_element)
+
+            authorization["list"] = auth_list
+            msg = "Got %s for authorization in %s (%s)"
+            self.log.debug(msg, authorization, auth_mgr.tag, auth_mgr.get("testname"))
+            return {"authorization": authorization}
+
+        return {}
 
     def _get_data_sources(self, element):
         """
@@ -1331,6 +1385,7 @@ class JMXasDict(JMX):
         global_tg_settings = self._get_global_tg_scenario()
         tg_settings = {"requests": []}
         tg_settings.update(default_tg_settings)
+        tg_settings.update(self._get_authorization(tg_etree_element))
         tg_settings.update(self._get_data_sources(tg_etree_element))
         tg_settings.update(self._get_headers(tg_etree_element))
         tg_settings.update(self._get_store_cache(tg_etree_element))

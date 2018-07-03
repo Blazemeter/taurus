@@ -771,6 +771,56 @@ changed to "BAZ".
 
 You can consider this block to be a syntactic sugar over JSR223 blocks, because that's exactly how it works.
 
+
+#### HTTP Authorization
+See [RFC2617](https://tools.ietf.org/html/rfc2617) for http authorization details
+
+You can use three follow forms for such purposes:
+```yaml
+scenarios:
+  simply:
+    authorization:
+      url: auth_server_addr
+      name: my_username
+      password: my_pass
+
+```
+It's the shortest form for quick setup. You can use several authorizations:
+
+```yaml
+scenarios:
+  multi_auth:
+    authorization:    
+    - url: auth_server_addr1
+      name: username1
+      password: pass1
+    - url: auth_server_addr2
+      name: username2
+      password: pass2
+```
+If you want to reset authorization for each test iteration you have to use `clear` flag and full form:
+```yaml
+scenarios:
+  full_auth:
+    authorization:
+      clear: true   # false by default
+      list:
+      - url: auth_server_addr1
+        name: username1
+        password: pass1
+      - url: auth_server_addr2
+        name: username2
+        password: pass2
+```
+Possible authorization params and their value are:
+* url: link to the resource you want to access
+* username & password: your credential
+* domain: non-standard parameter, can be used instead of url
+* realm: protected space
+* mechanism: digest (default) or kerberos.
+Required of them are username & password and one of url & domain.
+For implementation of authorization Taurus uses JMeter HTTP Authorization Manager.  
+
 ## User cookies
 Taurus allows you to set up some user cookies with follow syntax:
 ```yaml
