@@ -234,7 +234,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
     def startup(self):
         # java -cp junit.jar:selenium-test-small.jar:
         # selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar
-        # taurusjunit.CustomRunner runner.properties
+        # com.blazemeter.taurus.junit.CustomRunner runner.properties
 
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
@@ -254,7 +254,8 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
         class_path = os.pathsep.join(self.base_class_path)
-        junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true", "taurusjunit.CustomRunner", self.props_file]
+        junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true",
+                          "com.blazemeter.taurus.junit.CustomRunner", self.props_file]
 
         self._start_subprocess(junit_cmd_line)
 
@@ -323,7 +324,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
     def startup(self):
         # java -classpath
         # testng.jar:selenium-server.jar:taurus-java-helpers.jar:json.jar:compiled.jar
-        # taurustestng.TestNGRunner runner.properties
+        # com.blazemeter.taurus.testng.TestNGRunner runner.properties
 
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
@@ -346,7 +347,8 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
             if testng_xml:
                 props.write('testng_config=%s\n' % testng_xml.replace(os.path.sep, '/'))
 
-        cmdline = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurustestng.TestNGRunner", self.props_file]
+        cmdline = ["java", "-cp", os.pathsep.join(self.base_class_path),
+                   "com.blazemeter.taurus.testng.TestNGRunner", self.props_file]
         self._start_subprocess(cmdline)
 
 
