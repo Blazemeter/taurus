@@ -322,7 +322,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
     def startup(self):
         # java -classpath
-        # testng.jar:selenium-server.jar:taurus-testng-1.0.jar:json.jar:compiled.jar
+        # testng.jar:selenium-server.jar:taurus-java-helpers.jar:json.jar:compiled.jar
         # taurustestng.TestNGRunner runner.properties
 
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
