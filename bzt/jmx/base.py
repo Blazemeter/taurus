@@ -613,14 +613,15 @@ class JMX(object):
 
         udv_element = etree.Element(JMX.SET_VAR_ACTION, guiclass=JMX.SET_VAR_ACTION+"Gui",
                                     testclass=JMX.SET_VAR_ACTION, testname=testname)
-        arg_element = etree.Element("Arguments", guiclass="ArgumentsPanel", testclass="Arguments",
-                                    testname="User Defined Variables")
+        arg_element = etree.Element("elementProp", name="SetVariablesAction", guiclass="ArgumentsPanel",
+                                    testclass="Arguments", testname="User Defined Variables", elementType="Arguments")
         udv_element.append(arg_element)
         udv_collection_prop = JMX._collection_prop("Arguments.arguments")
         arg_element.append(udv_collection_prop)
 
         for var_name in sorted(udv_dict.keys(), key=str):
             udv_element_prop = JMX._element_prop(name=str(var_name), element_type="Argument")
+            udv_collection_prop.append(udv_element_prop)
 
             udv_arg_name_prop = JMX._string_prop("Argument.name", var_name)
             udv_arg_value_prop = JMX._string_prop("Argument.value", udv_dict[var_name])
@@ -628,7 +629,6 @@ class JMX(object):
             udv_element_prop.append(udv_arg_name_prop)
             udv_element_prop.append(udv_arg_value_prop)
             udv_element_prop.append(udv_arg_meta_prop)
-            udv_collection_prop.append(udv_element_prop)
 
         return udv_element
 
