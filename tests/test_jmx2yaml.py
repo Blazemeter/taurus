@@ -430,6 +430,7 @@ class TestConverter(BZTestCase):
         self.assertEqual(1, execution.get("iterations"))
 
     def test_variables(self):
+        """ check both variables definition method: Arguments & kg.apc.jmeter.control.sampler.SetVariablesAction """
         self.configure(RESOURCES_DIR + "yaml/converter/vars.jmx")
         self.obj.process()
         yml = yaml.load(open(self.obj.dst_file).read())
