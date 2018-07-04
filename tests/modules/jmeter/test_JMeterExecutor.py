@@ -728,7 +728,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(0, len(self.obj.settings.get('properties')))
 
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        udv_elements = xml_tree.findall(".//Arguments[@testclass='Arguments']")
+        path = ".//%s[@testclass='%s']" % (JMX.SET_VAR_ACTION, JMX.SET_VAR_ACTION)
+        udv_elements = xml_tree.findall(path)
         self.assertEqual(1, len(udv_elements))
 
     def test_distributed_th_hostnames(self):
