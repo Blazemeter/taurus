@@ -41,19 +41,18 @@ import time
 import traceback
 import webbrowser
 import zipfile
-import ipaddress
-import psutil
-
 from abc import abstractmethod
 from collections import defaultdict, Counter, OrderedDict
 from contextlib import contextmanager
 from math import log
+from subprocess import CalledProcessError, PIPE, check_output, STDOUT
+from webbrowser import GenericBrowser
 
+import ipaddress
+import psutil
 import requests
 from progressbar import ProgressBar, Percentage, Bar, ETA
-from subprocess import CalledProcessError, PIPE, check_output, STDOUT
 from urwid import BaseScreen
-from webbrowser import GenericBrowser
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import stream_decode, file_type, etree, parse, deunicode
@@ -949,8 +948,8 @@ class HTTPClient(object):
         username = self.proxy_settings.get("username")
         pwd = self.proxy_settings.get("password")
         for protocol in ["http", "https"]:
-            props[protocol+'.proxyHost'] = proxy_url.hostname
-            props[protocol+'.proxyPort'] = proxy_url.port or 80
+            props[protocol + '.proxyHost'] = proxy_url.hostname
+            props[protocol + '.proxyPort'] = proxy_url.port or 80
             if username and pwd:
                 props[protocol + '.proxyUser'] = username
                 props[protocol + '.proxyPass'] = pwd
@@ -1431,7 +1430,7 @@ class PythonGenerator(object):
     @staticmethod
     def gen_statement(statement, indent=None):
         if indent is None:
-            indent = PythonGenerator.INDENT_STEP*2
+            indent = PythonGenerator.INDENT_STEP * 2
 
         statement_elem = etree.Element("statement", indent=str(indent))
         statement_elem.text = statement
@@ -1514,3 +1513,16 @@ def get_host_ips(filter_loopbacks=True):
 
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
+
+
+class TaurusJavaHelperJar(RequiredTool):
+    VERSION = "1.0"
+    DWN_LINK = "http://search.maven.org/remotecontent?filepath=com/blazemeter/taurus-java-helpers/" \
+               "%s/taurus-java-helpers-%s.jar" % (VERSION, VERSION)
+    INSTALL_PATH = "~/.bzt/java-helper/%s/taurus-java-helpers.jar" % VERSION
+
+    def __init__(self, log):
+        super(TaurusJavaHelperJar, self).__init__("TaurusJavaHelperJar",
+                                                  os.path.expanduser(self.INSTALL_PATH),
+                                                  self.DWN_LINK)
+        self.log = log
