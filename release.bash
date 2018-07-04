@@ -1,11 +1,5 @@
 #! /bin/bash -xe
 
-echo "Building Grinder plugin"
-pushd $(dirname $0)/java/grinder_logger
-mvn clean package
-cp target/*.jar $(dirname $0)/../../bzt/resources/
-popd
-
 echo "Building JUnit plugin"
 pushd $(dirname $0)/java/JUnit_plugin
 mvn clean package
