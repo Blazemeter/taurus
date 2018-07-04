@@ -54,6 +54,7 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "BoundaryExtractor",
               "com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor",
               "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion",
+              "kg.apc.jmeter.control.sampler.SetVariablesAction",
               "XPathAssertion",
               "XPathExtractor",
               "ResponseAssertion",
@@ -1131,9 +1132,10 @@ class JMXasDict(JMX):
         hashtree = element.getnext()
 
         if hashtree is not None and hashtree.tag == "hashTree":
-            arguments = [element for element in hashtree.iterchildren() if element.tag == "Arguments"]
-            for argument in arguments:
-                for element in argument.find(".//collectionProp").findall(".//elementProp"):
+            children = hashtree.iterchildren()
+            args = [child for child in children if child.tag in ("Arguments", JMX.SET_VAR_ACTION)]
+            for arg in args:
+                for element in arg.find(".//collectionProp").findall(".//elementProp"):
                     var_name = self._get_string_prop(element, 'Argument.name')
                     var_value = self._get_string_prop(element, 'Argument.value')
                     if var_name and var_value:
