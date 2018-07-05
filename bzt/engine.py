@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import codecs
 import copy
 import datetime
 import hashlib
@@ -29,7 +30,6 @@ import threading
 import time
 import traceback
 import uuid
-import codecs
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
@@ -41,8 +41,8 @@ from yaml.representer import SafeRepresenter
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestsParser
-from bzt.six import build_opener, install_opener, urlopen, numeric_types
-from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
+from bzt.six import numeric_types
+from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import str_representer, Environment
@@ -449,7 +449,7 @@ class Engine(object):
             return filename
         elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
             parsed_url = parse.urlparse(filename)
-            downloader = ExceptionalDownloader()
+            downloader = ExceptionalDownloader(self.get_http_client())
             self.log.info("Downloading %s", filename)
             tmp_f_name, http_msg = downloader.get(filename)
             cd_header = http_msg.get('Content-Disposition', '')
