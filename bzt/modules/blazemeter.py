@@ -1726,7 +1726,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 if not os.path.exists(cloud_dir):
                     os.makedirs(cloud_dir)
                 dest = os.path.join(cloud_dir, log['filename'])
-                dwn = ExceptionalDownloader(self.user.http_session)
+                dwn = ExceptionalDownloader(self.engine.get_http_client())
                 with ProgressBarContext() as pbar:
                     try:
                         dwn.get(log['dataUrl'], dest, reporthook=pbar.download_callback)
