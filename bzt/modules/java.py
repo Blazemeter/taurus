@@ -24,7 +24,7 @@ from os.path import join
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools, Scenario
 from bzt.modules import SubprocessedExecutor
-from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager
+from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager, TaurusJavaHelperJar
 
 SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.6/" \
                          "selenium-server-standalone-3.6.0.jar"
@@ -99,7 +99,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         global_additional_classpath = self.settings.get("additional-classpath", [])
 
         execution_files = self.execution.get('files', [], force_set=True)
-        execution_files.extend(global_additional_classpath)     # later we need to fix path for sending into cloud
+        execution_files.extend(global_additional_classpath)  # later we need to fix path for sending into cloud
 
         return resources
 
@@ -212,7 +212,8 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
     def install_required_tools(self):
         super(JUnitTester, self).install_required_tools()
         self.junit_path = self.path_lambda(self.settings.get("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar"))
-        self.junit_listener_path = join(get_full_path(__file__, step_up=2), "resources", "taurus-junit-1.0.jar")
+        helper = TaurusJavaHelperJar(self.log)
+        self.junit_listener_path = helper.tool_path
 
         tools = []
         # only check javac if we need to compile. if we have JAR as script - we don't need javac
@@ -226,14 +227,14 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         tools.append(JUnitJar(self.junit_path, self.log, JUNIT_VERSION))
         tools.append(HamcrestJar(self.hamcrest_path, HAMCREST_DOWNLOAD_LINK))
         tools.append(JsonJar(self.json_jar_path, JSON_JAR_DOWNLOAD_LINK))
-        tools.append(JUnitListenerJar(self.junit_listener_path, ""))
+        tools.append(helper)
 
         self._check_tools(tools)
 
     def startup(self):
         # java -cp junit.jar:selenium-test-small.jar:
         # selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar
-        # taurusjunit.CustomRunner runner.properties
+        # com.blazemeter.taurus.junit.CustomRunner runner.properties
 
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
@@ -253,7 +254,8 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
                 props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
 
         class_path = os.pathsep.join(self.base_class_path)
-        junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true", "taurusjunit.CustomRunner", self.props_file]
+        junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true",
+                          "com.blazemeter.taurus.junit.CustomRunner", self.props_file]
 
         self._start_subprocess(junit_cmd_line)
 
@@ -301,7 +303,8 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
     def install_required_tools(self):
         super(TestNGTester, self).install_required_tools()
         self.testng_path = self.path_lambda(self.settings.get("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar"))
-        self.testng_plugin_path = join(get_full_path(__file__, step_up=2), "resources", "taurus-testng-1.0.jar")
+        helper = TaurusJavaHelperJar(self.log)
+        self.testng_plugin_path = helper.tool_path
 
         tools = []
         if self.script and any(self._collect_script_files({'.java'})):
@@ -314,14 +317,14 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         tools.append(TestNGJar(self.testng_path, TESTNG_DOWNLOAD_LINK))
         tools.append(HamcrestJar(self.hamcrest_path, HAMCREST_DOWNLOAD_LINK))
         tools.append(JsonJar(self.json_jar_path, JSON_JAR_DOWNLOAD_LINK))
-        tools.append(TestNGPluginJar(self.testng_plugin_path, ""))
+        tools.append(helper)
 
         self._check_tools(tools)
 
     def startup(self):
         # java -classpath
-        # testng.jar:selenium-server.jar:taurus-testng-1.0.jar:json.jar:compiled.jar
-        # taurustestng.TestNGRunner runner.properties
+        # testng.jar:selenium-server.jar:taurus-java-helpers.jar:json.jar:compiled.jar
+        # com.blazemeter.taurus.testng.TestNGRunner runner.properties
 
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
@@ -344,7 +347,8 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
             if testng_xml:
                 props.write('testng_config=%s\n' % testng_xml.replace(os.path.sep, '/'))
 
-        cmdline = ["java", "-cp", os.pathsep.join(self.base_class_path), "taurustestng.TestNGRunner", self.props_file]
+        cmdline = ["java", "-cp", os.pathsep.join(self.base_class_path),
+                   "com.blazemeter.taurus.testng.TestNGRunner", self.props_file]
         self._start_subprocess(cmdline)
 
 
@@ -416,22 +420,6 @@ class JUnitJar(RequiredTool):
 
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
-
-
-class JUnitListenerJar(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(JUnitListenerJar, self).__init__("JUnitListener", tool_path, download_link)
-
-    def install(self):
-        raise ToolError("Automatic installation of JUnitListener isn't implemented")
-
-
-class TestNGPluginJar(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(TestNGPluginJar, self).__init__("TestNGPlugin", tool_path, download_link)
-
-    def install(self):
-        raise ToolError("TestNG plugin should be bundled with Taurus distribution")
 
 
 class JUnitMirrorsManager(MirrorsManager):
