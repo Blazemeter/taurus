@@ -393,18 +393,18 @@ class TestJMeterExecutor(BZTestCase):
             JMeterExecutor.JMETER_VER = jmeter_ver
 
     def test_install_disabled(self):
-        os.environ["TAURUS_DISABLE_DOWNLOADS"] = "true"
         path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
         self.obj.mock_install = False
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
         try:
+            os.environ["TAURUS_DISABLE_DOWNLOADS"] = "true"
             self.obj.settings.merge({"path": path})
             self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}],})
             self.assertRaises(TaurusInternalException, self.obj.prepare)
         finally:
-            os.unsetenv("TAURUS_DISABLE_DOWNLOADS")
+            os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
 
     def test_think_time_bug(self):
         self.configure({
