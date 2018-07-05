@@ -604,7 +604,7 @@ class JMX(object):
         shaper_collection.append(coll_prop)
 
     @staticmethod
-    def add_user_def_vars_elements(udv_dict, testname="Variables from Taurus"):
+    def get_set_var_action(udv_dict, testname="Variables from Taurus"):
         """
         :type testname: str
         :type udv_dict: dict[str,str]
@@ -630,6 +630,33 @@ class JMX(object):
             udv_element_prop.append(udv_arg_value_prop)
             udv_element_prop.append(udv_arg_meta_prop)
 
+        return udv_element
+
+    @staticmethod
+    def add_user_def_vars_elements(udv_dict, testname="Variables from Taurus"):
+        """
+        :type testname: str
+        :type udv_dict: dict[str,str]
+        :rtype: etree.Element
+        """
+
+        udv_element = etree.Element("Arguments", guiclass="ArgumentsPanel", testclass="Arguments",
+                                    testname=testname)
+        udv_collection_prop = JMX._collection_prop("Arguments.arguments")
+
+        for var_name in sorted(udv_dict.keys(), key=str):
+            udv_element_prop = JMX._element_prop(str(var_name), "Argument")
+            udv_arg_name_prop = JMX._string_prop("Argument.name", var_name)
+            udv_arg_value_prop = JMX._string_prop("Argument.value", udv_dict[var_name])
+            udv_arg_desc_prop = JMX._string_prop("Argument.desc", "")
+            udv_arg_meta_prop = JMX._string_prop("Argument.metadata", "=")
+            udv_element_prop.append(udv_arg_name_prop)
+            udv_element_prop.append(udv_arg_value_prop)
+            udv_element_prop.append(udv_arg_desc_prop)
+            udv_element_prop.append(udv_arg_meta_prop)
+            udv_collection_prop.append(udv_element_prop)
+
+        udv_element.append(udv_collection_prop)
         return udv_element
 
     @staticmethod
