@@ -769,9 +769,6 @@ scenarios:
 This example will set initial value of `${foo}` to be "BAR", but after first iteration it will be
 changed to "BAZ".
 
-You can consider this block to be a syntactic sugar over JSR223 blocks, because that's exactly how it works.
-
-
 #### HTTP Authorization
 See [RFC2617](https://tools.ietf.org/html/rfc2617) for http authorization details
 

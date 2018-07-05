@@ -41,19 +41,18 @@ import time
 import traceback
 import webbrowser
 import zipfile
-import ipaddress
-import psutil
-
 from abc import abstractmethod
 from collections import defaultdict, Counter, OrderedDict
 from contextlib import contextmanager
 from math import log
+from subprocess import CalledProcessError, PIPE, check_output, STDOUT
+from webbrowser import GenericBrowser
 
+import ipaddress
+import psutil
 import requests
 from progressbar import ProgressBar, Percentage, Bar, ETA
-from subprocess import CalledProcessError, PIPE, check_output, STDOUT
 from urwid import BaseScreen
-from webbrowser import GenericBrowser
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import stream_decode, file_type, etree, parse, deunicode
@@ -949,8 +948,8 @@ class HTTPClient(object):
         username = self.proxy_settings.get("username")
         pwd = self.proxy_settings.get("password")
         for protocol in ["http", "https"]:
-            props[protocol+'.proxyHost'] = proxy_url.hostname
-            props[protocol+'.proxyPort'] = proxy_url.port or 80
+            props[protocol + '.proxyHost'] = proxy_url.hostname
+            props[protocol + '.proxyPort'] = proxy_url.port or 80
             if username and pwd:
                 props[protocol + '.proxyUser'] = username
                 props[protocol + '.proxyPass'] = pwd
@@ -1059,7 +1058,7 @@ class RequiredTool(object):
         with ProgressBarContext() as pbar:
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
-            downloader = ExceptionalDownloader()
+            downloader = ExceptionalDownloader(self.http_client)
             self.log.info("Downloading %s", self.download_link)
             downloader.get(self.download_link, self.tool_path, reporthook=pbar.download_callback)
 
@@ -1251,15 +1250,11 @@ class MirrorsManager(object):
 
     def mirrors(self):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
-        downloader = ExceptionalDownloader()
+        downloader = ExceptionalDownloader(self.http_client)
         try:
-            if self.http_client:
-                response = self.http_client.request('GET', self.base_link)
-                self.page_source = response.text
-            else:
-                tmp_file = downloader.get(self.base_link)[0]
-                with open(tmp_file) as fds:
-                    self.page_source = fds.read()
+            tmp_file = downloader.get(self.base_link)[0]
+            with open(tmp_file) as fds:
+                self.page_source = fds.read()
         except BaseException:
             self.log.debug("Exception: %s", traceback.format_exc())
             self.log.error("Can't fetch %s", self.base_link)
@@ -1434,7 +1429,7 @@ class PythonGenerator(object):
     @staticmethod
     def gen_statement(statement, indent=None):
         if indent is None:
-            indent = PythonGenerator.INDENT_STEP*2
+            indent = PythonGenerator.INDENT_STEP * 2
 
         statement_elem = etree.Element("statement", indent=str(indent))
         statement_elem.text = statement
@@ -1517,3 +1512,16 @@ def get_host_ips(filter_loopbacks=True):
 
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
+
+
+class TaurusJavaHelperJar(RequiredTool):
+    VERSION = "1.0"
+    DWN_LINK = "http://search.maven.org/remotecontent?filepath=com/blazemeter/taurus-java-helpers/" \
+               "%s/taurus-java-helpers-%s.jar" % (VERSION, VERSION)
+    INSTALL_PATH = "~/.bzt/java-helper/%s/taurus-java-helpers.jar" % VERSION
+
+    def __init__(self, log):
+        super(TaurusJavaHelperJar, self).__init__("TaurusJavaHelperJar",
+                                                  os.path.expanduser(self.INSTALL_PATH),
+                                                  self.DWN_LINK)
+        self.log = log

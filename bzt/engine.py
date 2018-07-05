@@ -449,7 +449,7 @@ class Engine(object):
             return filename
         elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
             parsed_url = parse.urlparse(filename)
-            downloader = ExceptionalDownloader()
+            downloader = ExceptionalDownloader(self.get_http_client())
             self.log.info("Downloading %s", filename)
             tmp_f_name, http_msg = downloader.get(filename)
             cd_header = http_msg.get('Content-Disposition', '')
