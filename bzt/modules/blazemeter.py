@@ -32,7 +32,7 @@ from ssl import SSLError
 import requests
 import yaml
 from requests.exceptions import ReadTimeout
-from terminaltables import SingleTable
+from terminaltables import SingleTable, AsciiTable
 from urwid import Pile, Text
 
 from bzt import AutomatedShutdown
@@ -1597,7 +1597,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             for location_id in sorted(locations):
                 location = locations[location_id]
                 data.append((location_id, location['title']))
-            self.log.warning("Dumping available locations instead of running the test:\n%s", SingleTable(data).table)
+            table = SingleTable(data) if sys.stdout.isatty() else AsciiTable(data)
+            self.log.warning("Dumping available locations instead of running the test:\n%s", table.table)
             raise NormalShutdown("Done listing locations")
 
     def _filter_reporting(self):

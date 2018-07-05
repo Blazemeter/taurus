@@ -18,10 +18,12 @@ limitations under the License.
 import copy
 import csv
 import os
+import sys
 import time
 from collections import Counter, OrderedDict
 from datetime import datetime
-import locale
+
+from terminaltables import SingleTable, AsciiTable
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Reporter
@@ -31,8 +33,6 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorLis
 from bzt.modules.passfail import PassFailStatus
 from bzt.six import etree, iteritems, string_types
 from bzt.utils import get_full_path
-from terminaltables import AsciiTable
-from textwrap import wrap
 
 
 class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
@@ -98,7 +98,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
             if self.parameters.get("percentiles", True):
                 self.__report_percentiles(summary_kpi)
 
-            if self.parameters.get("summary-labels"):
+            if self.parameters.get("summary-labels", True):
                 self.__report_summary_labels(self.last_sec[DataPoint.CUMULATIVE])
 
             if self.parameters.get("failed-labels"):
@@ -166,8 +166,14 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         self.log.info(fmt, summary_kpi_set[KPISet.AVG_RESP_TIME], summary_kpi_set[KPISet.AVG_LATENCY],
                       summary_kpi_set[KPISet.AVG_CONN_TIME])
 
+        data = [("Percentile, %", "Resp. Time, s")]
         for key in sorted(summary_kpi_set[KPISet.PERCENTILES].keys(), key=float):
-            self.log.info("Percentile %.1f%%: %.3f", float(key), summary_kpi_set[KPISet.PERCENTILES][key])
+            data.append((float(key), summary_kpi_set[KPISet.PERCENTILES][key]))
+            # self.log.info("Percentile %.1f%%: %.3f", )
+        table = SingleTable(data) if sys.stdout.isatty() else AsciiTable(data)
+        table.justify_columns[0] = 'right'
+        table.justify_columns[1] = 'right'
+        self.log.info("Percentiles:\n%s", table.table)
 
     def __report_failed_labels(self, cumulative):
         """
@@ -181,86 +187,35 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 if failed_samples_count:
                     self.log.info(report_template, failed_samples_count, sample_label)
 
-    @staticmethod
-    def __set_header(table_headers, table_headers_desc):
-        table_header = []
-        header_index = 0
-        justify_columns = {}
-        for header in table_headers:
-            table_header.append(table_headers_desc[header].split(":")[0])
-            justify_columns[header_index] = table_headers_desc[header].split(":")[1]
-            header_index += 1
-        return table_header, justify_columns
-
-    @staticmethod
-    def __set_table_data(data, table_headers):
-        table_data = []
-        for element in data:
-            table_item = []
-            for header in table_headers:
-                table_item.append(element[header])
-            table_data.append(table_item)
-        return table_data
-
-    def __get_table(self, header, data, title=""):
-        table_headers = header["headers"]
-        table_headers_desc = header["descriptions"]
-        table_data = []
-        table_header, justify_columns = self.__set_header(table_headers, table_headers_desc)
-        table_data.append(table_header)
-        table_data.extend(self.__set_table_data(data, table_headers))
-        table_instance = AsciiTable(table_data, title)
-
-        table_instance.justify_columns = justify_columns
-
-        return table_instance.table.splitlines()
-
-    def __console_safe_encode(self, text):
-        return text.encode(locale.getpreferredencoding(), errors='replace').decode('unicode_escape')
-
     def __get_sample_element(self, sample, label_name):
-        max_width = 60
-
         failed_samples_count = sample['fail']
         success_samples_count = sample['succ']
         total_samples_count = failed_samples_count + success_samples_count
         success_samples_perc = (success_samples_count * 100) / total_samples_count
 
-        errors = []
+        errors = set()
         for err_desc in sample['errors']:
-            errors.append('\n'.join(
-                wrap(self.__console_safe_encode(err_desc["msg"]), max_width)))
+            errors.add(err_desc["msg"])
 
-        return {
-            "label": label_name,
-            "status": "FAIL" if failed_samples_count > 0 else "OK",
-            "succ": "{0:.2f}%".format(round(success_samples_perc, 2)),
-            "avg_rt": "{0:.3f}".format(round(sample['avg_rt'], 3)),
-            "error": "\n".join(errors)
-        }
+        return (
+            label_name,
+            "FAIL" if failed_samples_count > 0 else "OK",
+            "{0:.2f}%".format(round(success_samples_perc, 2)),
+            "{0:.3f}".format(round(sample['avg_rt'], 3)),
+            "\n".join(errors)
+        )
 
     def __report_summary_labels(self, cumulative):
+        data = [("label", "status", "succ", "avg_rt", "error")]
+        justify = {0: "left", 1: "center", 2: "right", 3: "right", 4: "left"}
 
-        header = {
-            "headers": ["label", "status", "succ", "avg_rt", "error"],
-            "descriptions": {"label": "label:left",
-                             "status": "status:center", "succ": "success:center",
-                             "avg_rt": "avg time:center", "error": "error:left"
-                             }
-        }
-        elements = []
         sorted_labels = sorted(cumulative.keys())
         for sample_label in sorted_labels:
             if sample_label != "":
-                elements.append(
-                    self.__get_sample_element(cumulative[sample_label],
-                                              self.__console_safe_encode(sample_label))
-                )
-        self.__draw_table(header, elements, self.log.info)
-
-    def __draw_table(self, header, elements, writer):
-        for line in self.__get_table(header, elements):
-            writer(line)
+                data.append(self.__get_sample_element(cumulative[sample_label], sample_label))
+        table = SingleTable(data) if sys.stdout.isatty() else AsciiTable(data)
+        table.justify_columns = justify
+        self.log.info("Request label stats:\n%s", table.table)
 
     def __report_duration(self):
         """
