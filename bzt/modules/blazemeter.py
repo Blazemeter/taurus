@@ -32,6 +32,7 @@ from ssl import SSLError
 import requests
 import yaml
 from requests.exceptions import ReadTimeout
+from terminaltables import SingleTable
 from urwid import Pile, Text
 
 from bzt import AutomatedShutdown
@@ -1588,14 +1589,15 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def __dump_locations_if_needed(self):
         if self.settings.get("dump-locations", False):
-            self.log.warning("Dumping available locations instead of running the test")
             locations = {}
             for loc in self._workspaces.locations(include_private=True):
                 locations[loc['id']] = loc
 
+            data = [("ID", "Name")]
             for location_id in sorted(locations):
                 location = locations[location_id]
-                self.log.info("Location: %s\t%s", location_id, location['title'])
+                data.append((location_id, location['title']))
+            self.log.warning("Dumping available locations instead of running the test:\n%s", SingleTable(data).table)
             raise NormalShutdown("Done listing locations")
 
     def _filter_reporting(self):
