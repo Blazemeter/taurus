@@ -440,7 +440,8 @@ class TestConverter(BZTestCase):
         tg_two = scenarios["TG2"]
         self.assertEqual(tg_two.get('variables'),
                          {"tg2_local": "tg2", "global_var": "global", "auth_token": "shouldn't be masked"})
-        self.assertEqual(tg_two.get("requests").get("set-variables"),
+
+        self.assertEqual(tg_two.get("requests")[1].get("set-variables"),
                          {"sva_name1": "sva_val1", "sva_name2": "sva_val2"})
 
     def test_no_variables(self):

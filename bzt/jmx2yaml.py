@@ -40,7 +40,6 @@ INLINE_JSR223_MAX_LEN = 10
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
               "ThreadGroup",
-              "kg.apc.jmeter.timers.VariableThroughputTimer",
               "kg.apc.jmeter.threads.SteppingThreadGroup",
               "DNSCacheManager",
               "HeaderManager",
@@ -54,7 +53,6 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "BoundaryExtractor",
               "com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor",
               "com.atlantbh.jmeter.plugins.jsonutils.jsonpathassertion.JSONPathAssertion",
-              "kg.apc.jmeter.control.sampler.SetVariablesAction",
               "XPathAssertion",
               "XPathExtractor",
               "ResponseAssertion",
@@ -76,6 +74,8 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "BeanShellPostProcessor",
               "JSONPostProcessor",
               "AuthManager",
+              JMX.SET_VAR_ACTION,
+              JMX.THR_TIMER,
               ]
 
 LOWER_KNOWN_TAGS = [tag.lower() for tag in KNOWN_TAGS]
@@ -1134,13 +1134,16 @@ class JMXasDict(JMX):
         if hashtree is not None and hashtree.tag == "hashTree":
             arguments = [element for element in hashtree.iterchildren() if element.tag == "Arguments"]
             for argument in arguments:
-                for element in argument.find(".//collectionProp").findall(".//elementProp"):
-                    var_name = self._get_string_prop(element, 'Argument.name')
-                    var_value = self._get_string_prop(element, 'Argument.value')
-                    if var_name and var_value:
-                        variables[var_name] = var_value
+                self.__parse_argument_element(argument, variables)
 
         return {"variables": variables} if variables else {}
+
+    def __parse_argument_element(self, argument, variables):
+        for element in argument.find(".//collectionProp").findall(".//elementProp"):
+            var_name = self._get_string_prop(element, 'Argument.name')
+            var_value = self._get_string_prop(element, 'Argument.value')
+            if var_name and var_value:
+                variables[var_name] = var_value
 
     def _get_jsr223_processors(self, element):
         """
@@ -1278,6 +1281,9 @@ class JMXasDict(JMX):
                 hash_tree = next(children)
                 once_block = self.__extract_once_controller(hash_tree)
                 requests.append(once_block)
+            elif elem.tag == JMX.SET_VAR_ACTION:
+                set_variables_block = self.__extract_set_variables(elem)
+                requests.append(set_variables_block)
             elif elem.tag == 'LoopController':
                 hash_tree = next(children)
                 loop_block = self.__extract_loop_controller(elem, hash_tree)
@@ -1306,6 +1312,11 @@ class JMXasDict(JMX):
         condition = self._get_string_prop(controller, "IfController.condition")
         requests = self.__extract_requests(ht_element)
         return {'if': condition, 'then': requests}
+
+    def __extract_set_variables(self, action):
+        variables = {}
+        self.__parse_argument_element(action, variables)
+        return {"set-variables": variables} if variables else {}
 
     def __extract_once_controller(self, ht_element):
         requests = self.__extract_requests(ht_element)
