@@ -17,6 +17,7 @@ limitations under the License.
 """
 import copy
 import csv
+import locale
 import os
 import sys
 import time
@@ -187,6 +188,9 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
                 if failed_samples_count:
                     self.log.info(report_template, failed_samples_count, sample_label)
 
+    def __console_safe_encode(self, text):
+        return text.encode(locale.getpreferredencoding(), errors='replace').decode('unicode_escape')
+
     def __get_sample_element(self, sample, label_name):
         failed_samples_count = sample['fail']
         success_samples_count = sample['succ']
@@ -195,10 +199,10 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
 
         errors = set()
         for err_desc in sample['errors']:
-            errors.add(err_desc["msg"])
+            errors.add(self.__console_safe_encode(err_desc["msg"]))
 
         return (
-            label_name,
+            self.__console_safe_encode(label_name),
             "FAIL" if failed_samples_count > 0 else "OK",
             "{0:.2f}%".format(round(success_samples_perc, 2)),
             "{0:.3f}".format(round(sample['avg_rt'], 3)),
