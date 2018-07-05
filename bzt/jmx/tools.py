@@ -533,18 +533,11 @@ class JMeterScenarioBuilder(JMX):
         self.__add_jsr_elements(children, block)
         return [test_action, children]
 
-    def compile_set_variables_block(self, block):
-        # pause current thread for 0s
-        test_action = JMX._get_action_block(action_index=1, target_index=0, duration_ms=0)
-        children = etree.Element("hashTree")
-        fmt = "vars.put('%s', %r);"
-        block.config["jsr223"] = [{
-            "language": "groovy",
-            "execute": "before",
-            "script-text": "\n".join(fmt % (var, expr) for var, expr in iteritems(block.mapping))
-        }]
-        self.__add_jsr_elements(children, block)
-        return [test_action, children]
+    @staticmethod
+    def compile_set_variables_block(block):
+        set_var_action = JMX.get_set_var_action(block.mapping)
+        hashtree = etree.Element("hashTree")
+        return [set_var_action, hashtree]
 
     def compile_requests(self, requests):
         if self.request_compiler is None:

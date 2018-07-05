@@ -43,6 +43,7 @@ class JMX(object):
     TEST_PLAN_SEL = "jmeterTestPlan>hashTree>hashTree"
     THR_GROUP_SEL = TEST_PLAN_SEL + ">hashTree[type=tg]"
     THR_TIMER = "kg.apc.jmeter.timers.VariableThroughputTimer"
+    SET_VAR_ACTION = "kg.apc.jmeter.control.sampler.SetVariablesAction"
 
     def __init__(self, original=None, test_plan_name="BZT Generated Test Plan"):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -601,6 +602,35 @@ class JMX(object):
         coll_prop.append(end_rps_prop)
         coll_prop.append(duration_prop)
         shaper_collection.append(coll_prop)
+
+    @staticmethod
+    def get_set_var_action(udv_dict, testname="Variables from Taurus"):
+        """
+        :type testname: str
+        :type udv_dict: dict[str,str]
+        :rtype: etree.Element
+        """
+
+        udv_element = etree.Element(JMX.SET_VAR_ACTION, guiclass=JMX.SET_VAR_ACTION+"Gui",
+                                    testclass=JMX.SET_VAR_ACTION, testname=testname)
+        arg_element = etree.Element("elementProp", name="SetVariablesAction", guiclass="ArgumentsPanel",
+                                    testclass="Arguments", testname="User Defined Variables", elementType="Arguments")
+        udv_element.append(arg_element)
+        udv_collection_prop = JMX._collection_prop("Arguments.arguments")
+        arg_element.append(udv_collection_prop)
+
+        for var_name in sorted(udv_dict.keys(), key=str):
+            udv_element_prop = JMX._element_prop(name=str(var_name), element_type="Argument")
+            udv_collection_prop.append(udv_element_prop)
+
+            udv_arg_name_prop = JMX._string_prop("Argument.name", var_name)
+            udv_arg_value_prop = JMX._string_prop("Argument.value", udv_dict[var_name])
+            udv_arg_meta_prop = JMX._string_prop("Argument.metadata", "=")
+            udv_element_prop.append(udv_arg_name_prop)
+            udv_element_prop.append(udv_arg_value_prop)
+            udv_element_prop.append(udv_arg_meta_prop)
+
+        return udv_element
 
     @staticmethod
     def add_user_def_vars_elements(udv_dict, testname="Variables from Taurus"):

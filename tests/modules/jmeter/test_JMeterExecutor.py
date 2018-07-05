@@ -1989,9 +1989,10 @@ class TestJMeterExecutor(BZTestCase):
                         "set-variables": {"foo": "bar"}}]}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        self.assertIsNotNone(xml_tree.find(".//JSR223PreProcessor"))
-        input = xml_tree.find(".//JSR223PreProcessor/stringProp[@name='script']")
-        self.assertEqual(input.text, "vars.put('foo', 'bar');")
+        set_var_action = xml_tree.find(".//" + JMX.SET_VAR_ACTION)
+        self.assertIsNotNone(set_var_action)
+        self.assertEqual("foo", set_var_action.find(".//stringProp[@name='Argument.name']").text)
+        self.assertEqual("bar", set_var_action.find(".//stringProp[@name='Argument.value']").text)
 
     def test_request_null_headers(self):
         self.configure({
