@@ -116,6 +116,8 @@ settings:
     VARNAME2: VARVALUE2
 ```
 
+There is special handling in Taurus for env variable named `TAURUS\_DISABLE\_DOWNLOADS`. Setting it to any value will make Taurus to raise error instead of downloading any tool from Internet.
+
 ## Human-Readable Time Specifications
 All time specifications in Taurus configs, including timeouts and durations, are _always_ expressed in unit of _seconds_.
 Use special strings convention to make it human-readable. Examples:
