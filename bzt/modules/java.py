@@ -270,8 +270,8 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
             props = self.settings.get("properties")
             props.merge(scenario.get("properties"))
             props.merge(self.execution.get("properties"))
-            for key, val in iteritems(props):
-                fds.write("%s=%s\n" % (key, val))
+            for key in sorted(props.keys()):
+                fds.write("%s=%s\n" % (key, props[key]))
 
         class_path = os.pathsep.join(self.base_class_path)
         junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true",
