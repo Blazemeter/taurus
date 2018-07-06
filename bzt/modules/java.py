@@ -273,9 +273,6 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
             for key, val in iteritems(props):
                 fds.write("%s=%s\n" % (key, val))
 
-            if load.hold:
-                fds.write("hold_for=%s\n" % load.hold)
-
         class_path = os.pathsep.join(self.base_class_path)
         junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true",
                           "com.blazemeter.taurus.junit.CustomRunner", self.props_file]

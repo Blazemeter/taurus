@@ -4,6 +4,8 @@ scenarios:
     script: Blazedemoju.java
     properties:
       scenprop: 1
+    run-items:
+    - Blazedemoju#blazedemoju1
 
 execution:
   - executor: selenium
