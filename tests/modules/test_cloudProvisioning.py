@@ -1048,10 +1048,9 @@ class TestCloudProvisioning(BZTestCase):
 
         warnings = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
-        info = self.log_recorder.info_buff.getvalue()
-        self.assertIn("Location: us-west\tDallas (Rackspace)", info)
-        self.assertIn("Location: us-east-1\tEast", info)
-        self.assertIn("Location: harbor-sandbox\tSandbox", info)
+        self.assertIn("us-west", warnings)
+        self.assertIn("us-east-1", warnings)
+        self.assertIn("harbor-sandbox", warnings)
         self.obj.post_process()
 
     def test_dump_locations_new_style(self):
@@ -1066,10 +1065,9 @@ class TestCloudProvisioning(BZTestCase):
 
         warnings = self.log_recorder.warn_buff.getvalue()
         self.assertIn("Dumping available locations instead of running the test", warnings)
-        info = self.log_recorder.info_buff.getvalue()
-        self.assertIn("Location: us-west\tDallas (Rackspace)", info)
-        self.assertIn("Location: us-east-1\tEast", info)
-        self.assertIn("Location: harbor-sandbox\tSandbox", info)
+        self.assertIn("us-west", warnings)
+        self.assertIn("us-east-1", warnings)
+        self.assertIn("harbor-sandbox", warnings)
 
         self.obj.post_process()
 
