@@ -257,15 +257,15 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
 
             run_items = self._get_items_list('run-items')
             if run_items:
-                fds.write("run_items=%s" % ','.join(run_items))
+                fds.write("run_items=%s\n" % ','.join(run_items))
 
             includes = self._get_items_list('include-categories')
             if includes:
-                fds.write("include_category=%s" % ','.join(includes))
+                fds.write("include_category=%s\n" % ','.join(includes))
 
             excludes = self._get_items_list('exclude-categories')
             if excludes:
-                fds.write("exclude_category=%s" % ','.join(excludes))
+                fds.write("exclude_category=%s\n" % ','.join(excludes))
 
             props = self.settings.get("properties")
             props.merge(scenario.get("properties"))
