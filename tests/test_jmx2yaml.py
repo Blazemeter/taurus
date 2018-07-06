@@ -121,17 +121,18 @@ class TestConverter(BZTestCase):
         self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
         self.obj.process()
         yml = yaml.load(open(self.obj.dst_file).read())
-        datasets_first_tg = yml.get("scenarios").get("Thread Group one").get("data-sources")
-        datasets_second_tg = yml.get("scenarios").get("Thread Group two").get("data-sources")
 
-        global_csv_tg_one = [dataset for dataset in datasets_first_tg if dataset.get('path') == 'global.csv']
-        global_csv_tg_two = [dataset for dataset in datasets_second_tg if dataset.get('path') == 'global.csv']
+        tg1_datasets = yml.get("scenarios").get("Thread Group one").get("data-sources")
+        tg2_datasets = yml.get("scenarios").get("Thread Group two").get("data-sources")
 
-        local_csv_tg_one = [dataset for dataset in datasets_first_tg if dataset.get('path') == 'local.csv']
-        local_csv_tg_two = [dataset for dataset in datasets_second_tg if dataset.get('path') == 'local.csv']
-        self.assertEqual(len(global_csv_tg_one), len(global_csv_tg_two), 1)
-        self.assertEqual(len(local_csv_tg_one), 1)
-        self.assertEqual(len(local_csv_tg_two), 0)
+        tg1_files = [ds.get("path") for ds in tg1_datasets]
+        tg2_files = [ds.get("path") for ds in tg2_datasets]
+
+        self.assertEqual(3, len(tg1_files))
+        self.assertEqual(1, len(tg2_files))
+
+        self.assertEqual(set(tg1_files), {"global.csv", "local.csv", "grandchild.csv"})
+        self.assertEqual(set(tg2_files), {"global.csv"})
 
     def test_parse_csv_dataset(self):
         self.configure(RESOURCES_DIR + "yaml/converter/global_copy.jmx")
