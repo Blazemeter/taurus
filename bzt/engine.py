@@ -630,6 +630,7 @@ class Engine(object):
 
         for varname in envs:
             if envs[varname]:
+                envs[varname] = str(envs[varname])
                 envs[varname] = os.path.expandvars(envs[varname])
 
         for varname in envs:

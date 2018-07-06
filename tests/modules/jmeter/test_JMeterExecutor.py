@@ -300,9 +300,11 @@ class TestJMeterExecutor(BZTestCase):
                                  file=jmeter_res_dir + "unicode_file")
         http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-2.13.zip',
                                  file=jmeter_res_dir + "jmeter-dist-2.13.zip")
-        http_client.add_response('GET', 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/1.1/jmeter-plugins-manager-1.1.jar',
+        http_client.add_response('GET',
+                                 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/1.1/jmeter-plugins-manager-1.1.jar',
                                  file=jmeter_res_dir + "jmeter-plugins-manager.jar")
-        http_client.add_response('GET', 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
+        http_client.add_response('GET',
+                                 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
                                  file=jmeter_res_dir + "jmeter-plugins-manager.jar")
 
         jmeter_ver = JMeterExecutor.JMETER_VER
@@ -352,9 +354,11 @@ class TestJMeterExecutor(BZTestCase):
                                  file=jmeter_res_dir + "unicode_file")
         http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.0.zip',
                                  file=jmeter_res_dir + "jmeter-dist-3.0.zip")
-        http_client.add_response('GET', 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/1.1/jmeter-plugins-manager-1.1.jar',
+        http_client.add_response('GET',
+                                 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/1.1/jmeter-plugins-manager-1.1.jar',
                                  file=jmeter_res_dir + "jmeter-plugins-manager.jar")
-        http_client.add_response('GET', 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
+        http_client.add_response('GET',
+                                 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
                                  file=jmeter_res_dir + "jmeter-plugins-manager.jar")
 
         self.obj.engine.get_http_client = lambda: http_client
@@ -387,6 +391,20 @@ class TestJMeterExecutor(BZTestCase):
             self.obj.prepare()
         finally:
             JMeterExecutor.JMETER_VER = jmeter_ver
+
+    def test_install_disabled(self):
+        path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        self.obj.mock_install = False
+
+        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        self.assertFalse(os.path.exists(path))
+        try:
+            os.environ["TAURUS_DISABLE_DOWNLOADS"] = "true"
+            self.obj.settings.merge({"path": path})
+            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}],})
+            self.assertRaises(TaurusInternalException, self.obj.prepare)
+        finally:
+            os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
 
     def test_think_time_bug(self):
         self.configure({
