@@ -171,8 +171,8 @@ class TestJUnitTester(BZTestCase):
     def test_simple(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.execution.merge({
-            "scenario": {"script": RESOURCES_DIR + "BlazeDemo.java", "properties": {"scenprop": 1}},
-            "properties": {"execprop": 1}
+            "scenario": {"script": RESOURCES_DIR + "BlazeDemo.java", "properties": {"scenprop": 3}},
+            "properties": {"execprop": 2}
         })
         self.obj.settings.merge({"properties": {"settprop": 1}})
         self.obj.prepare()
@@ -184,7 +184,9 @@ class TestJUnitTester(BZTestCase):
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
         self.assertTrue(self.obj.has_results())
-        self.assertEqual(1, self.obj.engine.aggregator.cumulative[''][KPISet.SUCCESSES])
+        cumulative = self.obj.engine.aggregator.cumulative
+        self.assertEqual("java.lang.RuntimeException: 123", cumulative[''][KPISet.ERRORS][0]['msg'])
+        self.assertEqual(1, cumulative[''][KPISet.SUCCESSES])
 
 
 class TestSeleniumJUnitTester(SeleniumTestCase):
