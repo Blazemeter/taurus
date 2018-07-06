@@ -24,7 +24,7 @@ from os.path import join
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools, Scenario
 from bzt.modules import SubprocessedExecutor
-from bzt.six import iteritems, string_types
+from bzt.six import string_types
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager, TaurusJavaHelperJar
 
 SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.6/" \
