@@ -143,9 +143,11 @@ class BZTestCase(TestCase):
             self.captured_logger.removeHandler(self.log_recorder)
             self.log_recorder.close()
 
-    def assertFilesEqual(self, expected, actual):
+    def assertFilesEqual(self, expected, actual, replace_str="", replace_with=""):
         with open(expected) as exp, open(actual) as act:
-            diff = list(difflib.unified_diff(act.readlines(), exp.readlines()))
+            act_lines = [x.replace(replace_str, replace_with) for x in act.readlines()]
+            exp_lines = [x.replace(replace_str, replace_with) for x in exp.readlines()]
+            diff = list(difflib.unified_diff(act_lines, exp_lines))
             if diff:
                 msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
                 raise AssertionError(msg + "".join(diff))

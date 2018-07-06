@@ -183,6 +183,9 @@ class TestJUnitTester(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
+
+        self.assertFilesEqual(RESOURCES_DIR + "selenium/junit/runner.properties", self.obj.props_file,
+                              self.obj.engine.artifacts_dir, "ARTIFACTS")
         self.assertTrue(self.obj.has_results())
         cumulative = self.obj.engine.aggregator.cumulative
         self.assertEqual("java.lang.RuntimeException: 123", cumulative[''][KPISet.ERRORS][0]['msg'])
