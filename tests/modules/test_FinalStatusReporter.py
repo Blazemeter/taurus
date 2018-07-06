@@ -1,14 +1,14 @@
 import os
-from collections import Counter
 import time
+from collections import Counter
 
-from tests import BZTestCase, random_datapoint
-from tests.mocks import EngineEmul
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
+from bzt.modules.functional import ResultsTree, FunctionalSample
 from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
-from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.functional import ResultsTree, FunctionalSample
+from tests import BZTestCase, random_datapoint
+from tests.mocks import EngineEmul
 
 
 class TestFinalStatusReporter(BZTestCase):
@@ -24,14 +24,14 @@ class TestFinalStatusReporter(BZTestCase):
         obj.aggregated_second(self.__get_datapoint())
         obj.post_process()
 
-        expected = ""
-        expected += "+----------------------------------+--------+---------+----------+-----------+\n"
-        expected += "| label                            | status | success | avg time | error     |\n"
-        expected += "+----------------------------------+--------+---------+----------+-----------+\n"
-        expected += "| http://192.168.1.1/anotherquery  |  FAIL  |  0.00%  |  0.001   | Forbidden |\n"
-        expected += "| http://192.168.1.1/somequery     |   OK   | 100.00% |  0.001   |           |\n"
-        expected += "| http://192.168.100.100/somequery |   OK   | 100.00% |  0.001   |           |\n"
-        expected += "+----------------------------------+--------+---------+----------+-----------+\n"
+        expected = ("Request label stats:\n"
+                    "+----------------------------------+--------+---------+--------+-----------+\n"
+                    "| label                            | status |    succ | avg_rt | error     |\n"
+                    "+----------------------------------+--------+---------+--------+-----------+\n"
+                    "| http://192.168.1.1/anotherquery  |  FAIL  |   0.00% |  0.001 | Forbidden |\n"
+                    "| http://192.168.1.1/somequery     |   OK   | 100.00% |  0.001 |           |\n"
+                    "| http://192.168.100.100/somequery |   OK   | 100.00% |  0.001 |           |\n"
+                    "+----------------------------------+--------+---------+--------+-----------+\n")
 
         self.assertIn(expected, self.log_recorder.info_buff.getvalue())
 
@@ -53,20 +53,26 @@ class TestFinalStatusReporter(BZTestCase):
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
         self.sniff_log(obj.log)
-        obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False, "test-duration": False})
+        obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False, "test-duration": False,
+                              "summary-labels": False})
 
         obj.startup()
         obj.shutdown()
         obj.aggregated_second(self.__get_datapoint())
         obj.post_process()
         target_output = ("Average times: total 0.001, latency 0.000, connect 0.000\n"
-                         "Percentile 0.0%: 0.000\n"
-                         "Percentile 50.0%: 0.000\n"
-                         "Percentile 90.0%: 0.001\n"
-                         "Percentile 95.0%: 0.001\n"
-                         "Percentile 99.0%: 0.003\n"
-                         "Percentile 99.9%: 0.008\n"
-                         "Percentile 100.0%: 0.081\n"
+                         "Percentiles:\n"
+                         "+---------------+---------------+\n"
+                         "| Percentile, % | Resp. Time, s |\n"
+                         "+---------------+---------------+\n"
+                         "|           0.0 |           0.0 |\n"
+                         "|          50.0 |           0.0 |\n"
+                         "|          90.0 |         0.001 |\n"
+                         "|          95.0 |         0.001 |\n"
+                         "|          99.0 |         0.003 |\n"
+                         "|          99.9 |         0.008 |\n"
+                         "|         100.0 |         0.081 |\n"
+                         "+---------------+---------------+\n"
                          )
         self.assertEqual(target_output, self.log_recorder.info_buff.getvalue())
 
@@ -75,7 +81,8 @@ class TestFinalStatusReporter(BZTestCase):
         obj.engine = EngineEmul()
         obj.parameters = BetterDict()
         self.sniff_log(obj.log)
-        obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True, "test-duration": False})
+        obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True, "test-duration": False,
+                              "summary-labels": False})
         obj.aggregated_second(self.__get_datapoint())
         obj.startup()
         obj.shutdown()

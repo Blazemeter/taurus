@@ -1010,6 +1010,9 @@ class ExceptionalDownloader(request.FancyURLopener, object):
         raise TaurusNetworkError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
 
     def get(self, url, filename=None, reporthook=None, data=None, suffix=""):
+        if os.getenv("TAURUS_DISABLE_DOWNLOADS", ""):
+            raise TaurusInternalException("Downloads are disabled by TAURUS_DISABLE_DOWNLOADS env var")
+
         fd = None
         try:
             if not filename:
