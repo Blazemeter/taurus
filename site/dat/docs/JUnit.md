@@ -1,8 +1,7 @@
 # JUnit Executor
 Allows to run functional tests based on JUnit library.
 
-Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time
-will be exceeded.
+Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time will be exceeded.
 
 Usage:
 ```yaml
@@ -56,6 +55,13 @@ scenarios:
       propname: propvalue
 ```
 
+## Running Subset of Tests
+
+You can specify list of specific classes, or methods, to run from available tests. For that, use `run-items` option under scenario or execution. This is optional parameter. See [example](#scenario-example) below.
+
+You can also specify `include-categories` and `exclude-categories` under scenario or execution, to utilize [corresponding feature](https://github.com/junit-team/junit4/wiki/categories) of JUnit. These are optional parameters.
+
+
 ## Scenario Example
 
 ```yaml
@@ -63,12 +69,27 @@ execution:
 - executor: junit
   iterations: 5  # loop over test suite for 5 times  
   scenario: complex
+  run-items:
+  - package.Class2#testmethod2
+  include-categories:
+  - categories.FastTests
+  - categories.SmokeTests
+  exclude-categories:
+  - categories.SlowTests
   properties:
     target_url: http://prod.abc.def/ghi  # will extend module and scenario properties    
   
 scenarios:
   complex:
     script: /home/user/tests/my_test.java
+    run-items:
+    - package.Class1
+    - package.Class2#test2
+    include-categories:
+    - categories.SlowTests
+    exclude-categories:
+    - categories.FastTests
+    - categories.SmokeTests
     additional-classpath:  # optional, following libs will be added to java classpath
     - /home/user/lib_one.jar
     - /home/user/lib_two.jar

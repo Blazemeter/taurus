@@ -8,6 +8,8 @@ scenarios:
 execution:
   - executor: selenium
     scenario: bdm
+    run-items:
+    - Blazedemoju#blazedemoju
     iterations: 5
     properties:
       execprop: 1
