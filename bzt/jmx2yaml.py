@@ -535,7 +535,7 @@ class JMXasDict(JMX):
 
         return {}
 
-    def _get_data_sources(self, element):
+    def _get_data_sources(self, element, recursive=False):
         """
         data-sources option
         :param element:
@@ -544,7 +544,12 @@ class JMXasDict(JMX):
         data_sources = []
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
-            data_sources_elements = [element for element in hashtree.iterchildren() if element.tag == "CSVDataSet"]
+            if recursive:
+                elements = hashtree.iterdescendants()
+            else:
+                elements = hashtree.iterchildren()
+
+            data_sources_elements = [elem for elem in elements if elem.tag == "CSVDataSet"]
             for data_source in data_sources_elements:
                 self.log.debug("datasource file: %s", data_source.get("testname"))
                 if data_source is not None:
@@ -1398,7 +1403,7 @@ class JMXasDict(JMX):
         tg_settings = {"requests": []}
         tg_settings.update(default_tg_settings)
         tg_settings.update(self._get_authorization(tg_etree_element))
-        tg_settings.update(self._get_data_sources(tg_etree_element))
+        tg_settings.update(self._get_data_sources(tg_etree_element, recursive=True))
         tg_settings.update(self._get_headers(tg_etree_element))
         tg_settings.update(self._get_store_cache(tg_etree_element))
         tg_settings.update(self._get_store_cookie(tg_etree_element))
