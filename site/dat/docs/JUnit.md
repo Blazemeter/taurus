@@ -37,6 +37,8 @@ modules:
     jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
     working-dir: classes  # set name of runner working directory within artifacts dir
     compile-target-java: 1.7  # -source and -target option value for javac
+    properties:  # Java system properties
+      propname: propvalue
 ```
 
 When running tests, Taurus will automatically add `selenium-server`, `json-jar`, `hamcrest-core`, along with JUnit jar
@@ -50,6 +52,8 @@ scenarios:
     additional-classpath:
     - deps/gson-1.0.1.jar
     - deps/common-utils-0.15.1.jar
+    properties:  # Java system properties, will extend module properties
+      propname: propvalue
 ```
 
 ## Scenario Example
@@ -59,17 +63,24 @@ execution:
 - executor: junit
   iterations: 5  # loop over test suite for 5 times  
   scenario: complex
+  properties:
+    target_url: http://prod.abc.def/ghi  # will extend module and scenario properties    
   
 scenarios:
   complex:
     script: /home/user/tests/my_test.java
     additional-classpath:  # optional, following libs will be added to java classpath
     - /home/user/lib_one.jar
-    - /home/user/lib_two.jar    
+    - /home/user/lib_two.jar
+    properties:
+      target_url: http://testing.abc.def/ghi
+      filesize: 10M    
     
 modules:
   junit:
     jar-name: compiled_jar_from_provided_sources.jar
+    properties:
+      filesize: 1M    
         
 reporting:
 - module: junit-xml

@@ -24,6 +24,7 @@ from os.path import join
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools, Scenario
 from bzt.modules import SubprocessedExecutor
+from bzt.six import iteritems
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager, TaurusJavaHelperJar
 
 SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.6/" \
@@ -240,18 +241,27 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         jar_list.extend(self._collect_script_files({".jar"}))
         self.base_class_path.extend(jar_list)
 
-        with open(self.props_file, 'wt') as props:
-            props.write("report_file=%s\n" % self.report_file)
+        with open(self.props_file, 'wt') as fds:
+            fds.write("report_file=%s\n" % self.report_file)
 
             load = self.get_load()
             if load.iterations:
-                props.write("iterations=%s\n" % load.iterations)
+                fds.write("iterations=%s\n" % load.iterations)
 
             if load.hold:
-                props.write("hold_for=%s\n" % load.hold)
+                fds.write("hold_for=%s\n" % load.hold)
 
             for index, item in enumerate(jar_list):
-                props.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
+                fds.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
+
+            props = self.settings.get("properties")
+            props.merge(self.get_scenario().get("properties"))
+            props.merge(self.execution.get("properties"))
+            for key, val in iteritems(props):
+                fds.write("%s=%s\n" % (key, val))
+
+            if load.hold:
+                fds.write("hold_for=%s\n" % load.hold)
 
         class_path = os.pathsep.join(self.base_class_path)
         junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true",

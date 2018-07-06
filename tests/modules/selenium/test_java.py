@@ -4,20 +4,20 @@ import os
 import shutil
 import time
 import traceback
+from os import listdir
+from os.path import exists, join, dirname
 
 import yaml
 
-from os import listdir
-from os.path import exists, join, dirname
 from bzt.engine import ScenarioExecutor
 from bzt.modules import java
-from bzt.modules.selenium import SeleniumExecutor
+from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION, JavaC
+from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import get_full_path, ToolError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
-from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
 
 
 class TestTestNGTester(BZTestCase):
@@ -170,7 +170,11 @@ class TestJUnitTester(BZTestCase):
 
     def test_simple(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()
-        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "BlazeDemo.java"}})
+        self.obj.execution.merge({
+            "scenario": {"script": RESOURCES_DIR + "BlazeDemo.java", "properties": {"scenprop": 1}},
+            "properties": {"execprop": 1}
+        })
+        self.obj.settings.merge({"properties": {"settprop": 1}})
         self.obj.prepare()
         self.obj.engine.aggregator.prepare()
         self.obj.startup()
@@ -187,6 +191,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
     """
     :type obj: bzt.modules.selenium.SeleniumExecutor
     """
+
     def __init__(self, methodName='runTest'):
         super(TestSeleniumJUnitTester, self).__init__(methodName)
         self.obj = None
