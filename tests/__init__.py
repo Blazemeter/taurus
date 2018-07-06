@@ -147,7 +147,7 @@ class BZTestCase(TestCase):
         with open(expected) as exp, open(actual) as act:
             act_lines = [x.replace(replace_str, replace_with) for x in act.readlines()]
             exp_lines = [x.replace(replace_str, replace_with) for x in exp.readlines()]
-            diff = list(difflib.unified_diff(act_lines, exp_lines))
+            diff = list(difflib.unified_diff(exp_lines, act_lines))
             if diff:
                 msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
                 raise AssertionError(msg + "".join(diff))
