@@ -965,6 +965,15 @@ class JMX(object):
         return element
 
     @staticmethod
+    def get_scope_props(scope, from_variable):
+        props = []
+        if scope:
+            props.append(JMX._string_prop("Sample.scope", scope))
+            if scope == "variable":
+                props.append(JMX._string_prop("Scope.variable", from_variable))
+        return props
+
+    @staticmethod
     def _get_internal_json_extractor(varname, jsonpath, default, scope, from_variable, match_no, concat):
         """
         :type varname: str
@@ -983,10 +992,7 @@ class JMX(object):
         if default:
             element.append(JMX._string_prop("JSONPostProcessor.defaultValues", default))
 
-        if scope:
-            element.append(JMX._string_prop("Sample.scope", scope))
-            if scope == "variable":
-                element.append(JMX._string_prop("Scope.variable", from_variable))
+        element.extend(JMX.get_scope_props(scope, from_variable))
 
         if concat:
             element.append(JMX._bool_prop("JSONPostProcessor.compute_concat", True))
