@@ -30,7 +30,7 @@ before_test:
   - ps: Start-Process python tests/resources/httpserver/start.py
 
 test_script:
-  - "%PYTHON%\\python.exe -m nose tests.modules.selenium.test_python.TestSeleniumScriptBuilder -v --exclude-dir=tests/resources \
+  - "%PYTHON%\\python.exe -m nose tests.modules.selenium.test_python -v --exclude-dir=tests/resources \
       --exclude-dir=tests/ci --with-coverage"
 
 after_test:
