@@ -25,7 +25,6 @@ class TestSwagger2YAML(BZTestCase):
     def setUp(self):
         super(TestSwagger2YAML, self).setUp()
         self.engine = EngineEmul()
-        self.maxDiff = None
 
     def _get_swagger2yaml(self, path, file_name=None):
         return Swagger2YAML(FakeOptions(file_name=file_name), RESOURCES_DIR + path)
