@@ -150,7 +150,7 @@ class BZTestCase(TestCase):
                     logging.warning("HERE WE GO")
                     logging.warning(x)
                     logging.warning(x.replace(replace_str, replace_with))
-            act.seek(0)
+            exp.seek(0)
 
             act_lines = [x.replace(replace_str, replace_with).rstrip() for x in act.readlines()]
             exp_lines = [x.replace(replace_str, replace_with).rstrip() for x in exp.readlines()]
