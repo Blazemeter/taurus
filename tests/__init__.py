@@ -145,7 +145,7 @@ class BZTestCase(TestCase):
 
     def assertFilesEqual(self, expected, actual, replace_str="", replace_with=""):
         with open(expected) as exp, open(actual) as act:
-            for x in act.readlines():
+            for x in exp.readlines():
                 if "webdriver" in x:
                     logging.warning("HERE WE GO")
                     logging.warning(x)
