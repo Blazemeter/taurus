@@ -145,16 +145,8 @@ class BZTestCase(TestCase):
 
     def assertFilesEqual(self, expected, actual, replace_str="", replace_with=""):
         with open(expected) as exp, open(actual) as act:
-            for x in exp.readlines():
-                if "webdriver" in x:
-                    logging.warning("HERE WE GO")
-                    logging.warning(x)
-                    logging.warning(x.replace(replace_str, replace_with))
-            exp.seek(0)
-
-            act_lines = [x.replace(replace_str, replace_with).rstrip() for x in act.readlines()]
             exp_lines = [x.replace(replace_str, replace_with).rstrip() for x in exp.readlines()]
-            diff = list(difflib.unified_diff(exp_lines, act_lines, lineterm=""))
+            diff = list(difflib.unified_diff(exp_lines, act.readlines(), lineterm=""))
             if diff:
                 msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
                 raise AssertionError(msg + "\n".join(diff))
