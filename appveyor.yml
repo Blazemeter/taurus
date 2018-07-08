@@ -3,6 +3,10 @@ skip_branch_with_pr: true
 
 environment:
   matrix:
+    - PYTHON: "C:\\Python35"
+      PYTHON_VERSION: "3.5.x"
+      PYTHON_ARCH: "64"
+      NODEJS_VERSION: "6"
     - PYTHON: "C:\\Python27"
       PYTHON_VERSION: "2.7.x"
       PYTHON_ARCH: "64"
@@ -30,8 +34,8 @@ before_test:
   - ps: Start-Process python tests/resources/httpserver/start.py
 
 test_script:
-  - "%PYTHON%\\python.exe -m nose tests.modules.selenium.test_python -v --exclude-dir=tests/resources \
-      --exclude-dir=tests/ci --with-coverage"
+  - "%PYTHON%\\python.exe -m nose tests -v --exclude-dir=tests/resources \
+      --exclude-dir=tests/ci --with-coverage --cover-inclusive"
 
 after_test:
   - "coverage report -m"
