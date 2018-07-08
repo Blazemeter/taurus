@@ -1,7 +1,7 @@
 import json
 import os
-import time
 import tempfile
+import time
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
@@ -343,8 +343,6 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"storeString(${Title} ${Basic} by ${By})": "Final"},
                             "go(http:\\blazemeter.com)",
                             "echoString(${red_pill})"
-
-
                         ],
                     },
                         {"label": "empty"}
@@ -384,17 +382,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-
-        with open(RESOURCES_DIR + "selenium/generated_from_requests.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminator and exclude specific build path
-        gen_contents = [line.rstrip() for line in gen_contents if 'webdriver' not in line]
-        sample_contents = [line.rstrip() for line in sample_contents if 'webdriver' not in line]
-
-        self.assertEqual(gen_contents, sample_contents)
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests.py",
+                              (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\'), "<somewhere>")
 
     def test_headless_default(self):
         self.configure({
@@ -509,17 +498,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-
-        with open(RESOURCES_DIR + "selenium/generated_from_requests_remote.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminator
-        gen_contents = [line.rstrip() for line in gen_contents]
-        sample_contents = [line.rstrip() for line in sample_contents]
-
-        self.assertEqual(gen_contents, sample_contents)
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests_remote.py")
 
     def test_build_script_appium_browser(self):
         self.configure({
@@ -556,17 +535,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-
-        with open(RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminator
-        gen_contents = [line.rstrip() for line in gen_contents]
-        sample_contents = [line.rstrip() for line in sample_contents]
-
-        self.assertEqual(gen_contents, sample_contents)
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py")
 
 
 class TestApiritifScriptGenerator(BZTestCase):
@@ -1222,7 +1191,7 @@ class TestApiritifScriptGenerator(BZTestCase):
                 "scenario": {
                     "default-address": "http://blazedemo.com",
                     "variables": {
-                      "product_id": "5b6c",
+                        "product_id": "5b6c",
                     },
                     "requests": [{
                         "url": "/",
