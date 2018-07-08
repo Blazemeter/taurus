@@ -4,7 +4,7 @@ import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 import scala.concurrent.duration._
 
-class TaurusSimulation_140524525357264 extends Simulation {
+class SIMNAME extends Simulation {
   val concurrency = Integer.getInteger("concurrency", 1).toInt
   val rampUpTime = Integer.getInteger("ramp-up", 0).toInt
   val holdForTime = Integer.getInteger("hold-for", 0).toInt

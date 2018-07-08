@@ -1,3 +1,0 @@
-* remove whole disabled node (and also its hashTree, i.e. included elements)
-* support conversion of variable parametrized LoopController
-* improve check of conversion controllers (supported/unsupported, disabled, included, etc.)
