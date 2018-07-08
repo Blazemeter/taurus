@@ -382,7 +382,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests.py", self.obj.engine.artifacts_dir, "<somewhere>")
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests.py",
+                              self.obj.engine.artifacts_dir, "<somewhere>")
 
     def test_headless_default(self):
         self.configure({
