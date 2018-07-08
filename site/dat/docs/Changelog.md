@@ -3,6 +3,20 @@
 ## 1.12.1<sup>next</sup>
 
 - set `LC_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
+- support SSL certificates for proxies with `settings.proxy.ssl-cert` option
+- limit max variety for error messages with `max-error-variety` option
+- add Authorization Manager support for JMeter YAML scripting
+- add Once Only Controller support for JMeter YAML scripting
+- use special JMeter plugin for `set-variables`
+- do not crash if tool reported negative response time, warn the user about it and proceed
+- fix empty results read handling for Apiritif tests
+- Fix JMeter installation under proxy
+- remove whole disabled node (and also its hashTree, i.e. included elements)
+- support conversion of variable parametrized LoopController
+- improve check of conversion controllers (supported/unsupported, disabled, included, etc.)
+- fix `AssertionError: monitoring` error for cloud tests
+
+
 
 ## 1.12.0<sup>4 jun 2018</sup>
 - new frame management support was incorporated. Frames by id, name, relative parent and relative top (Selenium IDE and SideeX style)
