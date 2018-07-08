@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.12.1<sup>next</sup>
+
+- set `LC_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
+
 ## 1.12.0<sup>4 jun 2018</sup>
 - new frame management support was incorporated. Frames by id, name, relative parent and relative top (Selenium IDE and SideeX style)
 - drag and drop support added to Nose Request (Selenium)
