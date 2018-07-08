@@ -10,12 +10,21 @@
 - use special JMeter plugin for `set-variables`
 - do not crash if tool reported negative response time, warn the user about it and proceed
 - fix empty results read handling for Apiritif tests
-- Fix JMeter installation under proxy
+- fix JMeter installation under proxy
 - remove whole disabled node (and also its hashTree, i.e. included elements)
 - support conversion of variable parametrized LoopController
 - improve check of conversion controllers (supported/unsupported, disabled, included, etc.)
 - fix `AssertionError: monitoring` error for cloud tests
-
+- handle log verbosity flag from config better
+- use newer `hdrpy` lib to improve datapoint export performance
+- recognize JUnit test methods inherited from abstract class, filter out abstract class
+- don't fail if slave log is delayed for Locust.io distributed test
+- proxy2jmx - fixed download jmx file for new BlazeMeter API
+- extract all Java helper classes into separate repo
+- send Taurus `engine-loop` monitoring KPI to BlazeMeter
+- send `settings.env` into cloud test config
+- support 'tags' in Robot Executor (thanks to @ddhoot09)
+- use Sandbox as default location for BlazeMeter Cloud
 
 
 ## 1.12.0<sup>4 jun 2018</sup>
