@@ -45,8 +45,8 @@
         </HTTPSamplerProxy>
         <hashTree>
           <HtmlExtractor guiclass="HtmlExtractorGui" testclass="HtmlExtractor" testname="CSSE" enabled="true">
-            <stringProp name="HtmlExtractor.refname"></stringProp>
-            <stringProp name="HtmlExtractor.expr"></stringProp>
+            <stringProp name="HtmlExtractor.refname">css_n</stringProp>
+            <stringProp name="HtmlExtractor.expr">css_q</stringProp>
             <stringProp name="HtmlExtractor.attribute"></stringProp>
             <stringProp name="HtmlExtractor.default"></stringProp>
             <boolProp name="HtmlExtractor.default_empty_value">false</boolProp>
@@ -57,8 +57,8 @@
           </HtmlExtractor>
           <hashTree/>
           <JSONPostProcessor guiclass="JSONPostProcessorGui" testclass="JSONPostProcessor" testname="JE" enabled="true">
-            <stringProp name="JSONPostProcessor.referenceNames"></stringProp>
-            <stringProp name="JSONPostProcessor.jsonPathExprs"></stringProp>
+            <stringProp name="JSONPostProcessor.referenceNames">json_v</stringProp>
+            <stringProp name="JSONPostProcessor.jsonPathExprs">Json_p</stringProp>
             <stringProp name="JSONPostProcessor.match_numbers"></stringProp>
             <stringProp name="Sample.scope">variable</stringProp>
             <stringProp name="Scope.variable">V_JE</stringProp>
@@ -66,9 +66,9 @@
           <hashTree/>
           <BoundaryExtractor guiclass="BoundaryExtractorGui" testclass="BoundaryExtractor" testname="BE" enabled="true">
             <stringProp name="BoundaryExtractor.useHeaders">false</stringProp>
-            <stringProp name="BoundaryExtractor.refname"></stringProp>
-            <stringProp name="BoundaryExtractor.lboundary"></stringProp>
-            <stringProp name="BoundaryExtractor.rboundary"></stringProp>
+            <stringProp name="BoundaryExtractor.refname">boundary_n</stringProp>
+            <stringProp name="BoundaryExtractor.lboundary">boundary_l</stringProp>
+            <stringProp name="BoundaryExtractor.rboundary">roundary_r</stringProp>
             <stringProp name="BoundaryExtractor.default"></stringProp>
             <boolProp name="BoundaryExtractor.default_empty_value">false</boolProp>
             <stringProp name="BoundaryExtractor.match_number"></stringProp>
@@ -78,8 +78,8 @@
           <hashTree/>
           <RegexExtractor guiclass="RegexExtractorGui" testclass="RegexExtractor" testname="REE" enabled="true">
             <stringProp name="RegexExtractor.useHeaders">false</stringProp>
-            <stringProp name="RegexExtractor.refname"></stringProp>
-            <stringProp name="RegexExtractor.regex"></stringProp>
+            <stringProp name="RegexExtractor.refname">ree_name</stringProp>
+            <stringProp name="RegexExtractor.regex">ree_exp</stringProp>
             <stringProp name="RegexExtractor.template"></stringProp>
             <stringProp name="RegexExtractor.default"></stringProp>
             <stringProp name="RegexExtractor.match_number"></stringProp>
@@ -88,9 +88,9 @@
           <hashTree/>
           <XPathExtractor guiclass="XPathExtractorGui" testclass="XPathExtractor" testname="XE" enabled="true">
             <stringProp name="XPathExtractor.default"></stringProp>
-            <stringProp name="XPathExtractor.refname"></stringProp>
+            <stringProp name="XPathExtractor.refname">XE_name</stringProp>
             <stringProp name="XPathExtractor.matchNumber">-1</stringProp>
-            <stringProp name="XPathExtractor.xpathQuery"></stringProp>
+            <stringProp name="XPathExtractor.xpathQuery">XE_query</stringProp>
             <boolProp name="XPathExtractor.validate">false</boolProp>
             <boolProp name="XPathExtractor.tolerant">false</boolProp>
             <boolProp name="XPathExtractor.namespace">false</boolProp>
@@ -99,8 +99,8 @@
           </XPathExtractor>
           <hashTree/>
           <com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor guiclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.gui.JSONPathExtractorGui" testclass="com.atlantbh.jmeter.plugins.jsonutils.jsonpathextractor.JSONPathExtractor" testname="jp@JPE" enabled="true">
-            <stringProp name="VAR"></stringProp>
-            <stringProp name="JSONPATH"></stringProp>
+            <stringProp name="VAR">Json_plugin_var_name</stringProp>
+            <stringProp name="JSONPATH">JP_exp</stringProp>
             <stringProp name="DEFAULT"></stringProp>
             <stringProp name="VARIABLE">V_JRE</stringProp>
             <stringProp name="SUBJECT">VAR</stringProp>

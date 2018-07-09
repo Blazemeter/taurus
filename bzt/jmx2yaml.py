@@ -823,7 +823,7 @@ class JMXasDict(JMX):
                         self.log.warning("No queries declared for JSONPath extractor")
                         continue
                     def_values = self._get_string_prop(extractor_element, 'JSONPostProcessor.defaultValues')
-                    def_values_iter = iter(def_values.split(';') if def_values is not None else None)
+                    def_values_iter = iter(def_values.split(';') if def_values is not None else [])
                     for var, query in zip(variables.split(';'), queries.split(';')):
                         extractor = {"jsonpath": query}
                         try:

@@ -459,6 +459,10 @@ class TestConverter(BZTestCase):
         self.obj.process()
         self.assertTrue(self.same_yaml("controllers.yml"))
 
+    def test_json_delimiter(self):
+        self.configure(RESOURCES_DIR + "jmeter/jmx//json_extractors.jmx")
+        self.obj.process()
+
     def test_jsr223(self):
         self.configure(RESOURCES_DIR + "jmeter/jmx/jsr223.jmx")
         try:
