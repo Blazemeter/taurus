@@ -891,7 +891,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_boundary_extractor(varname, subject, left, right, match_no, defvalue='NOT_FOUND'):
+    def _get_boundary_extractor(varname, subject, left, right, match_no, defvalue='NOT_FOUND', scope='', from_var=''):
         """
 
         :type varname: str
@@ -899,6 +899,8 @@ class JMX(object):
         :type template: str|int
         :type match_no: int
         :type default: str
+        :type scope: str
+        :type from_var: sr
         :rtype: lxml.etree.Element
         """
 
@@ -922,6 +924,7 @@ class JMX(object):
         element.append(JMX._string_prop("BoundaryExtractor.rboundary", right))
         element.append(JMX._string_prop("RegexExtractor.default", defvalue))
         element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
+        element.extend(JMX.get_scope_props(scope, from_var))
         return element
 
     @staticmethod

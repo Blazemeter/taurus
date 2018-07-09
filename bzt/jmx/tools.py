@@ -246,7 +246,9 @@ class JMeterScenarioBuilder(JMX):
             right = cfg.get('right', TaurusConfigError("Right boundary is missing for boundary extractor %s" % varname))
             match_no = cfg.get('match-no', 1)
             defvalue = cfg.get('default', 'NOT_FOUND')
-            extractor = JMX._get_boundary_extractor(varname, subj, left, right, match_no, defvalue)
+            scope = cfg.get("scope", None)
+            from_var = cfg.get("from-variable", None)
+            extractor = JMX._get_boundary_extractor(varname, subj, left, right, match_no, defvalue, scope, from_var)
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
