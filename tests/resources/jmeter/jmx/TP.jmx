@@ -83,7 +83,6 @@
             <stringProp name="RegexExtractor.template"></stringProp>
             <stringProp name="RegexExtractor.default"></stringProp>
             <stringProp name="RegexExtractor.match_number"></stringProp>
-            <stringProp name="Sample.scope">variable</stringProp>
             <stringProp name="Scope.variable">V_REE</stringProp>
           </RegexExtractor>
           <hashTree/>

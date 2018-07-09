@@ -256,8 +256,11 @@ class JMeterScenarioBuilder(JMX):
         extractors = req.config.get("extract-regexp")
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
+            scope = cfg.get("scope", None)
+            from_var = cfg.get("from-variable", None)
+
             extractor = JMX._get_extractor(varname, cfg.get('subject', 'body'), cfg['regexp'], cfg.get('template', 1),
-                                           cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'))
+                                           cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'), scope, from_var)
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 

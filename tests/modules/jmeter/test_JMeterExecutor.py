@@ -114,12 +114,17 @@ class TestJMeterExecutor(BZTestCase):
                 {"requests": [{
                     "url": "http://localhost",
                     "extract-regexp": {
-                        "test_name": "???"}}]}})
+                        "varname": {
+                            "regexp": "???",
+                            "scope": "variable",
+                            "from-variable": "RESULT"}
+                    }}]}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         self.assertEqual("body", xml_tree.findall(".//stringProp[@name='RegexExtractor.useHeaders']")[0].text)
         self.assertEqual("???", xml_tree.findall(".//stringProp[@name='RegexExtractor.regex']")[0].text)
-        self.assertEqual("parent", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
+        self.assertEqual("variable", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
+        self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
 
     def test_boundary_extractors(self):
         self.obj.execution.merge(
