@@ -158,7 +158,7 @@ class TestHTTPClient(BZTestCase):
         fd, tmpfile = tempfile.mkstemp()
         os.close(fd)
 
-        obj.download_file('http://httpbin.org/anything', tmpfile)
+        obj.download_file('http://localhost:8000/', tmpfile)
 
         self.assertTrue(os.path.exists(tmpfile))
 
@@ -172,7 +172,7 @@ class TestHTTPClient(BZTestCase):
         fd, tmpfile = tempfile.mkstemp()
         os.close(fd)
 
-        self.assertRaises(TaurusNetworkError, lambda: obj.download_file('http://httpbin.org/status/404', tmpfile))
+        self.assertRaises(TaurusNetworkError, lambda: obj.download_file('http://localhost:8000/404', tmpfile))
 
     def test_download_fail(self):
         obj = HTTPClient()
@@ -183,7 +183,7 @@ class TestHTTPClient(BZTestCase):
 
     def test_request(self):
         obj = HTTPClient()
-        resp = obj.request('GET', 'http://httpbin.org/status/200')
+        resp = obj.request('GET', 'http://localhost:8000/')
         self.assertTrue(resp.ok)
 
     def test_request_fail(self):
