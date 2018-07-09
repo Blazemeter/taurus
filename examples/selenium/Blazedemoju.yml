@@ -2,14 +2,27 @@
 scenarios:
   bdm:
     script: Blazedemoju.java
+    properties:
+      scenprop: 1
+    run-items:
+    - Blazedemoju#blazedemoju1
 
 execution:
   - executor: selenium
     scenario: bdm
+    run-items:
+    - Blazedemoju#blazedemoju
     iterations: 5
+    properties:
+      execprop: 1
 
 modules:
   selenium:
     selenium-tools:
       junit: 
         compile-target-java: 1.8
+    properties:
+      selsett: 1
+  junit:
+    properties:
+      junitsett: 1

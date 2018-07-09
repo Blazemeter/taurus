@@ -23,6 +23,11 @@ public class BlazeDemo {
         wd.findElement(By.cssSelector("input.btn.btn-primary")).click();
     }
 
+    @Test
+    public void ErrorWithProps() {
+        throw new RuntimeException(System.getProperty("settprop") + System.getProperty("execprop") + System.getProperty("scenprop"));
+    }
+
     @After
     public void tearDown() {
         wd.quit();
