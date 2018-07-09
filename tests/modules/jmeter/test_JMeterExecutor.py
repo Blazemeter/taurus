@@ -975,7 +975,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
         self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
         self.assertEqual("variable", full_form.find(".//stringProp[@name='Sample.scope']").text)
-        self.assertEqual("RESULT", full_form.find(".//stringProp[@name='Scope.variable']").text)
+        self.assertEqual("CSS_RESULT", full_form.find(".//stringProp[@name='Scope.variable']").text)
 
     def test_xpath_extractor(self):
         self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))
@@ -1002,6 +1002,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.validate']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "true")
+        self.assertEqual("variable", full_form.find(".//stringProp[@name='Sample.scope']").text)
+        self.assertEqual("XPATH_RESULT", full_form.find(".//stringProp[@name='Scope.variable']").text)
 
     def test_xpath_assertion(self):
         self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))

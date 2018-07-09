@@ -1031,7 +1031,7 @@ class JMX(object):
 
     @staticmethod
     def _get_xpath_extractor(varname, xpath, default, validate_xml, ignore_whitespace, match_no, use_namespaces,
-                             use_tolerant_parser):
+                             use_tolerant_parser, scope, from_var):
         """
         :type varname: str
         :type xpath: str
@@ -1039,6 +1039,8 @@ class JMX(object):
         :type validate_xml: bool
         :type ignore_whitespace: bool
         :type use_tolerant_parser: bool
+        :type scope: str
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
         element = etree.Element("XPathExtractor",
@@ -1053,6 +1055,9 @@ class JMX(object):
         element.append(JMX._string_prop("XPathExtractor.matchNumber", match_no))
         element.append(JMX._bool_prop("XPathExtractor.namespace", use_namespaces))
         element.append(JMX._bool_prop("XPathExtractor.tolerant", use_tolerant_parser))
+
+        element.extend(JMX.get_scope_props(scope, from_var))
+
         return element
 
     @staticmethod

@@ -37,7 +37,7 @@
               "match-no": 1,
               "default": "NV_JMETER",
               "scope": "variable",
-              "from-variable": "RESULT"
+              "from-variable": "CSS_RESULT"
             }
           },
           "extract-xpath": {
@@ -47,7 +47,9 @@
               "default": "<no base>",
               "ignore-whitespace": true,
               "validate-xml": true,
-              "use-tolerant-parser": true
+              "use-tolerant-parser": true,
+              "scope": "variable",
+              "from-variable": "XPATH_RESULT"
             }
           },
           "assert": [

@@ -310,7 +310,9 @@ class JMeterScenarioBuilder(JMX):
                                                      cfg.get('ignore-whitespace', True),
                                                      cfg.get("match-no", "-1"),
                                                      cfg.get('use-namespaces', False),
-                                                     cfg.get('use-tolerant-parser', False)))
+                                                     cfg.get('use-tolerant-parser', False),
+                                                     cfg.get("scope", None),
+                                                     cfg.get("from-variable", None)))
             children.append(etree.Element("hashTree"))
 
     @staticmethod
