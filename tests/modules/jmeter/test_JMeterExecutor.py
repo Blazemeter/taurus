@@ -143,7 +143,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual("foo", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.lboundary']")[0].text)
         self.assertEqual("bar", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.rboundary']")[0].text)
         self.assertEqual("varname", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.refname']")[0].text)
-        self.assertEqual("variable", xml_tree.findall(".//stringProp[@name='Scope.scope']")[0].text)
+        self.assertEqual("variable", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
         self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
 
     def test_boundary_extractors_exc(self):
