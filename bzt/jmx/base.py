@@ -900,7 +900,7 @@ class JMX(object):
         :type match_no: int
         :type default: str
         :type scope: str
-        :type from_var: sr
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
 
@@ -928,13 +928,14 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_jquerycss_extractor(varname, selector, attribute, match_no, default="NOT_FOUND"):
+    def _get_jquerycss_extractor(varname, selector, attribute, match_no, default="NOT_FOUND", scope='', from_var=''):
         """
-
         :type varname: str
         :type regexp: str
         :type match_no: int
         :type default: str
+        :type scope: str
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
 
@@ -945,6 +946,7 @@ class JMX(object):
         element.append(JMX._string_prop("HtmlExtractor.attribute", attribute))
         element.append(JMX._string_prop("HtmlExtractor.match_number", match_no))
         element.append(JMX._string_prop("HtmlExtractor.default", default))
+        element.extend(JMX.get_scope_props(scope, from_var))
         return element
 
     @staticmethod

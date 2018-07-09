@@ -35,7 +35,9 @@
               "expression": "input[name=JMeter]",
               "attribute": "value",
               "match-no": 1,
-              "default": "NV_JMETER"
+              "default": "NV_JMETER",
+              "scope": "variable",
+              "from-variable": "RESULT"
             }
           },
           "extract-xpath": {

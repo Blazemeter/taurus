@@ -960,20 +960,22 @@ class TestJMeterExecutor(BZTestCase):
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
         jq_css_extractors = modified_xml_tree.findall(".//HtmlExtractor")
         self.assertEqual(2, len(jq_css_extractors))
-        simplified_extractor = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name1']")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name1")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text,
+        simply_form = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name1']")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name1")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.expr']").text,
                          "input[name~=my_input]")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, None)
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "0")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NOT_FOUND")
-        full_form_extractor = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name2']")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name2")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text,
-                         "input[name=JMeter]")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.attribute']").text, None)
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "0")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.default']").text, "NOT_FOUND")
+
+        full_form = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name2']")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name2")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.expr']").text, "input[name=JMeter]")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
+        self.assertEqual("variable", full_form.find(".//stringProp[@name='Sample.scope']").text)
+        self.assertEqual("RESULT", full_form.find(".//stringProp[@name='Scope.variable']").text)
 
     def test_xpath_extractor(self):
         self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))

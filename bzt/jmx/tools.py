@@ -293,7 +293,9 @@ class JMeterScenarioBuilder(JMX):
                                                       cfg['expression'],
                                                       cfg.get('attribute', ""),
                                                       cfg.get('match-no', 0),
-                                                      cfg.get('default', 'NOT_FOUND'))
+                                                      cfg.get('default', 'NOT_FOUND'),
+                                                      cfg.get("scope", None),
+                                                      cfg.get("from-variable", None))
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
