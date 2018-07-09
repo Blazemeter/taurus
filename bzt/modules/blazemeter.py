@@ -1816,6 +1816,10 @@ class ResultsFromBZA(ResultsProvider):
                         self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
                         continue
 
+                    if kpi['n'] <= 0:
+                        self.log.warning("Skipping empty KPI item got from API: %s", kpi)
+                        continue
+
                     kpiset = self.__get_kpiset(aggr, kpi, label_str)
                     point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
@@ -1883,6 +1887,8 @@ class ResultsFromBZA(ResultsProvider):
         kpiset[KPISet.FAILURES] = kpi['ec']
         kpiset[KPISet.CONCURRENCY] = kpi['na']
         kpiset[KPISet.SAMPLE_COUNT] = kpi['n']
+        assert kpi['n'] >= kpi['ec']
+        kpiset[KPISet.SUCCESSES] = kpi['n'] - kpi['ec']
         kpiset.sum_rt += kpi['t_avg'] * kpi['n'] / 1000.0
         kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0
         perc_map = {'90line': 90.0, "95line": 95.0, "99line": 99.0}

@@ -1,0 +1,1 @@
+- ignore KPI items from BlazeMeter cloud API if they have zero samples
