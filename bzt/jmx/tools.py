@@ -246,7 +246,9 @@ class JMeterScenarioBuilder(JMX):
             right = cfg.get('right', TaurusConfigError("Right boundary is missing for boundary extractor %s" % varname))
             match_no = cfg.get('match-no', 1)
             defvalue = cfg.get('default', 'NOT_FOUND')
-            extractor = JMX._get_boundary_extractor(varname, subj, left, right, match_no, defvalue)
+            scope = cfg.get("scope", None)
+            from_var = cfg.get("from-variable", None)
+            extractor = JMX._get_boundary_extractor(varname, subj, left, right, match_no, defvalue, scope, from_var)
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
@@ -254,8 +256,11 @@ class JMeterScenarioBuilder(JMX):
         extractors = req.config.get("extract-regexp")
         for varname in extractors:
             cfg = ensure_is_dict(extractors, varname, "regexp")
+            scope = cfg.get("scope", None)
+            from_var = cfg.get("from-variable", None)
+
             extractor = JMX._get_extractor(varname, cfg.get('subject', 'body'), cfg['regexp'], cfg.get('template', 1),
-                                           cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'))
+                                           cfg.get('match-no', 1), cfg.get('default', 'NOT_FOUND'), scope, from_var)
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
@@ -288,7 +293,9 @@ class JMeterScenarioBuilder(JMX):
                                                       cfg['expression'],
                                                       cfg.get('attribute', ""),
                                                       cfg.get('match-no', 0),
-                                                      cfg.get('default', 'NOT_FOUND'))
+                                                      cfg.get('default', 'NOT_FOUND'),
+                                                      cfg.get("scope", None),
+                                                      cfg.get("from-variable", None))
             children.append(extractor)
             children.append(etree.Element("hashTree"))
 
@@ -303,7 +310,9 @@ class JMeterScenarioBuilder(JMX):
                                                      cfg.get('ignore-whitespace', True),
                                                      cfg.get("match-no", "-1"),
                                                      cfg.get('use-namespaces', False),
-                                                     cfg.get('use-tolerant-parser', False)))
+                                                     cfg.get('use-tolerant-parser', False),
+                                                     cfg.get("scope", None),
+                                                     cfg.get("from-variable", None)))
             children.append(etree.Element("hashTree"))
 
     @staticmethod

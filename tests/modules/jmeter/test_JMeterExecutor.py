@@ -114,12 +114,17 @@ class TestJMeterExecutor(BZTestCase):
                 {"requests": [{
                     "url": "http://localhost",
                     "extract-regexp": {
-                        "test_name": "???"}}]}})
+                        "varname": {
+                            "regexp": "???",
+                            "scope": "variable",
+                            "from-variable": "RESULT"}
+                    }}]}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         self.assertEqual("body", xml_tree.findall(".//stringProp[@name='RegexExtractor.useHeaders']")[0].text)
         self.assertEqual("???", xml_tree.findall(".//stringProp[@name='RegexExtractor.regex']")[0].text)
-        self.assertEqual("parent", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
+        self.assertEqual("variable", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
+        self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
 
     def test_boundary_extractors(self):
         self.obj.execution.merge(
@@ -127,13 +132,19 @@ class TestJMeterExecutor(BZTestCase):
                 {"requests": [{
                     "url": "http://localhost",
                     "extract-boundary": {
-                        "varname": {"left": "foo", "right": "bar"}}}]}})
+                        "varname": {
+                            "left": "foo",
+                            "right": "bar",
+                            "scope": "variable",
+                            "from-variable": "RESULT"}}}]}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         self.assertEqual("false", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.useHeaders']")[0].text)
         self.assertEqual("foo", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.lboundary']")[0].text)
         self.assertEqual("bar", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.rboundary']")[0].text)
         self.assertEqual("varname", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.refname']")[0].text)
+        self.assertEqual("variable", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
+        self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
 
     def test_boundary_extractors_exc(self):
         self.obj.execution.merge(
@@ -949,20 +960,22 @@ class TestJMeterExecutor(BZTestCase):
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
         jq_css_extractors = modified_xml_tree.findall(".//HtmlExtractor")
         self.assertEqual(2, len(jq_css_extractors))
-        simplified_extractor = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name1']")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name1")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text,
+        simply_form = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name1']")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name1")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.expr']").text,
                          "input[name~=my_input]")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, None)
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "0")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NOT_FOUND")
-        full_form_extractor = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name2']")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name2")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text,
-                         "input[name=JMeter]")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.attribute']").text, None)
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "0")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.default']").text, "NOT_FOUND")
+
+        full_form = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name2']")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name2")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.expr']").text, "input[name=JMeter]")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
+        self.assertEqual("variable", full_form.find(".//stringProp[@name='Sample.scope']").text)
+        self.assertEqual("CSS_RESULT", full_form.find(".//stringProp[@name='Scope.variable']").text)
 
     def test_xpath_extractor(self):
         self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))
@@ -989,6 +1002,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.validate']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "true")
+        self.assertEqual("variable", full_form.find(".//stringProp[@name='Sample.scope']").text)
+        self.assertEqual("XPATH_RESULT", full_form.find(".//stringProp[@name='Scope.variable']").text)
 
     def test_xpath_assertion(self):
         self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))

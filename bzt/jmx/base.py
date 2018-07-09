@@ -857,14 +857,15 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_extractor(varname, headers, regexp, template, match_no, default='NOT_FOUND'):
+    def _get_extractor(varname, headers, regexp, template, match_no, default='NOT_FOUND', scope='', from_var=''):
         """
-
         :type varname: str
         :type regexp: str
         :type template: str|int
         :type match_no: int
         :type default: str
+        :type scope: str
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
         if isinstance(template, int):
@@ -884,21 +885,22 @@ class JMX(object):
         element.append(JMX._string_prop("RegexExtractor.useHeaders", headers))
         element.append(JMX._string_prop("RegexExtractor.refname", varname))
         element.append(JMX._string_prop("RegexExtractor.regex", regexp))
-        element.append(JMX._string_prop("Sample.scope", "parent"))
         element.append(JMX._string_prop("RegexExtractor.template", template))
         element.append(JMX._string_prop("RegexExtractor.default", default))
         element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
+        element.extend(JMX.get_scope_props(scope, from_var))
         return element
 
     @staticmethod
-    def _get_boundary_extractor(varname, subject, left, right, match_no, defvalue='NOT_FOUND'):
+    def _get_boundary_extractor(varname, subject, left, right, match_no, defvalue='NOT_FOUND', scope='', from_var=''):
         """
-
         :type varname: str
         :type regexp: str
         :type template: str|int
         :type match_no: int
         :type default: str
+        :type scope: str
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
 
@@ -922,16 +924,18 @@ class JMX(object):
         element.append(JMX._string_prop("BoundaryExtractor.rboundary", right))
         element.append(JMX._string_prop("RegexExtractor.default", defvalue))
         element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
+        element.extend(JMX.get_scope_props(scope, from_var))
         return element
 
     @staticmethod
-    def _get_jquerycss_extractor(varname, selector, attribute, match_no, default="NOT_FOUND"):
+    def _get_jquerycss_extractor(varname, selector, attribute, match_no, default="NOT_FOUND", scope='', from_var=''):
         """
-
         :type varname: str
         :type regexp: str
         :type match_no: int
         :type default: str
+        :type scope: str
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
 
@@ -942,6 +946,7 @@ class JMX(object):
         element.append(JMX._string_prop("HtmlExtractor.attribute", attribute))
         element.append(JMX._string_prop("HtmlExtractor.match_number", match_no))
         element.append(JMX._string_prop("HtmlExtractor.default", default))
+        element.extend(JMX.get_scope_props(scope, from_var))
         return element
 
     @staticmethod
@@ -965,6 +970,15 @@ class JMX(object):
         return element
 
     @staticmethod
+    def get_scope_props(scope, from_variable):
+        props = []
+        if scope:
+            props.append(JMX._string_prop("Sample.scope", scope))
+            if scope == "variable":
+                props.append(JMX._string_prop("Scope.variable", from_variable))
+        return props
+
+    @staticmethod
     def _get_internal_json_extractor(varname, jsonpath, default, scope, from_variable, match_no, concat):
         """
         :type varname: str
@@ -983,10 +997,7 @@ class JMX(object):
         if default:
             element.append(JMX._string_prop("JSONPostProcessor.defaultValues", default))
 
-        if scope:
-            element.append(JMX._string_prop("Sample.scope", scope))
-            if scope == "variable":
-                element.append(JMX._string_prop("Scope.variable", from_variable))
+        element.extend(JMX.get_scope_props(scope, from_variable))
 
         if concat:
             element.append(JMX._bool_prop("JSONPostProcessor.compute_concat", True))
@@ -1020,7 +1031,7 @@ class JMX(object):
 
     @staticmethod
     def _get_xpath_extractor(varname, xpath, default, validate_xml, ignore_whitespace, match_no, use_namespaces,
-                             use_tolerant_parser):
+                             use_tolerant_parser, scope, from_var):
         """
         :type varname: str
         :type xpath: str
@@ -1028,6 +1039,8 @@ class JMX(object):
         :type validate_xml: bool
         :type ignore_whitespace: bool
         :type use_tolerant_parser: bool
+        :type scope: str
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
         element = etree.Element("XPathExtractor",
@@ -1042,6 +1055,9 @@ class JMX(object):
         element.append(JMX._string_prop("XPathExtractor.matchNumber", match_no))
         element.append(JMX._bool_prop("XPathExtractor.namespace", use_namespaces))
         element.append(JMX._bool_prop("XPathExtractor.tolerant", use_tolerant_parser))
+
+        element.extend(JMX.get_scope_props(scope, from_var))
+
         return element
 
     @staticmethod
