@@ -327,14 +327,15 @@ scenarios:
           match-no: 1  # if multiple values has matched, which match use (0=random)
           template: 1  # which capture group to take, integer or template string
           subject: body  #  subject for search
+          scope: all  # check main and sub-samples
       extract-jsonpath:   
         varname:
           jsonpath: $.jsonpath[0]  # jsonpath expression
           default: NOT_FOUND  # default value to use when jsonpath not found
           from-variable: JM_VAR # JMeter variable for search
-          concat: false # \
-          scope: all    # - see below
-          match-no: 4   # /
+          concat: false   # \
+          scope: variable # - see below
+          match-no: 4     # /
     - url: http://blazedemo.com/${varname}/${page_title}
       extract-css-jquery:
         extractor2:
@@ -342,6 +343,7 @@ scenarios:
           attribute: value
           match-no: 1
           default: NOT_FOUND
+          scope: children   # check sub-samples
     - url: http://blazedemo.com/${varname}/${extractor2}.xml
       extract-xpath:
         destination:
@@ -362,9 +364,7 @@ scenarios:
            default: DEFVAL  # default value, if nothing is matched
 ```
 
-Parameters of jsonpath exractor `concat`, `scope` and `match-num` work only on JMeter >= 3.0
-If several results are found they will be concatenated with ',' if `concat`.
-You can choose `scope` for applying expressions. Possible targets are:
+You can choose `scope` for applying expressions. Possible value for targets are:
   - `all` - main sample and sub-samples
   - `children` - sub-samples
   - `variable` for search in JMeter variables
@@ -377,6 +377,10 @@ Possible subjects for regexp are:
   - `headers`
   - `http-code`
   - `url`
+  
+Parameters of jsonpath exractor `concat`, `scope` and `match-num` work only on JMeter >= 3.0
+If several results are found they will be concatenated with ',' if `concat`.
+
 
 ##### Assertions
 
