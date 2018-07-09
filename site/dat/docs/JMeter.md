@@ -377,7 +377,7 @@ Possible subjects for regexp are:
   - `headers`
   - `http-code`
   - `url`
-  
+
 Parameters of jsonpath exractor `concat`, `scope` and `match-num` work only on JMeter >= 3.0
 If several results are found they will be concatenated with ',' if `concat`.
 
