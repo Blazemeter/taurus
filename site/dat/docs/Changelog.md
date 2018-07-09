@@ -54,6 +54,13 @@
 - fix `swagger2yaml` crash when an optional field is missing
 - for cloud test, if no sandbox location found and `default-location` is not valid, use first location by default
 - fix Gatling YAML scripts with CSV delimiter in `data-sources`
+- use `TAURUS\_DISABLE\_DOWNLOADS` env var to disable automated tool install
+- use more scope options for JMeter extractors
+- handle nested CSV sources in jmx2yaml
+- ignore KPI items from BlazeMeter cloud API if they have zero samples
+- add `properties` support for JUnit executor
+- add selective JUnit test running
+- use nice table for `-locations` and for final stats reporter
 
 
 ## 1.11.1<sup>26 apr 2018</sup>
