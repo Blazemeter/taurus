@@ -1,3 +1,41 @@
+# Autosave files
+*~
+
+# build
+[Oo]bj/
+[Bb]in/
+packages/
+TestResults/
+
+# globs
+Makefile.in
+*.DS_Store
+*.sln.cache
+*.suo
+*.cache
+*.pidb
+*.userprefs
+*.usertasks
+config.log
+config.make
+config.status
+aclocal.m4
+install-sh
+autom4te.cache/
+*.user
+*.tar.gz
+tarballs/
+test-results/
+Thumbs.db
+
+# Mac bundle stuff
+*.dmg
+*.app
+
+ 
+
+# dotCover
+*.dotCover
 #.Visual Studio
 **/.vs/
 
@@ -64,37 +102,4 @@ publish/
 project.lock.json
 project.fragment.lock.json
 artifacts/
-
-
-**/target/
-*.iml
-**/.idea/
-/.cache/
-/site/img/docs
-/site/dat/eg_globals.xml
-/build/
-/dist/
-/*.egg-info/
-.coverage
-
-*.pyc
-*.project
-
-/site/composer.lock
-/site/.htaccess
-/site/vendor
-/site/img/design
-/site/dat/tmp
-/site/snapshots
-
-# node.js
-node_modules
-.npm
-
-/examples/BOOTH1/converted/
-
-bzt/resources/NUnitRunner/*
-bzt/resources/XUnitRunner/*
-
- 
 

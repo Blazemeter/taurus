@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "XUnitRunner": {
+      "commandName": "Project",
+      "commandLineArgs": "--target=\"D:\\source\\taurus\\dotnet\\XUnitRunner\\xunitSample\\bin\\Debug\\netcoreapp2.1\\XUnitExample.dll\" --iterations=2"
+    }
+  }
+}
