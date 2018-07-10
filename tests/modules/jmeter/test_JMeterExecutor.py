@@ -211,7 +211,13 @@ class TestJMeterExecutor(BZTestCase):
                         }, {
                             'url': 'http://second.com',
                             'body': 'body2',
-                            'body-file': body_file2}]}}})
+                            'body-file': body_file2
+                        }, {
+                            'url': 'https://the third.com',
+                            'method': 'post',
+                            'body-file': '${J_VAR}'
+                        }
+                    ]}}})
         res_files = self.obj.get_resource_files()
         scenario = self.obj.get_scenario()
         body_files = [req.get('body-file') for req in scenario.get('requests')]
@@ -221,6 +227,12 @@ class TestJMeterExecutor(BZTestCase):
         self.assertFalse(body_fields[0])
         self.assertEqual(body_fields[1], 'body2')
         self.assertEqual(body_files, [body_file1, body_file2])
+
+        self.obj.prepare()
+
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        elements = xml_tree.findall(".//CSVDataSet[@testclass='CSVDataSet']")
+
 
     def test_datasources_with_delimiter(self):
         self.obj.execution.merge({"scenario":
