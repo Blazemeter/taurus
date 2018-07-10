@@ -14,21 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-from subprocess import check_output, CalledProcessError, STDOUT
+from subprocess import CalledProcessError, STDOUT
 
-from bzt import TaurusConfigError, ToolError
+from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools
-from bzt.utils import get_full_path, is_windows, RequiredTool
+from bzt.utils import get_full_path, RequiredTool
 
 
-class XUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
+class XUnitExecutor(SubprocessedExecutor):
     def __init__(self):
         super(XUnitExecutor, self).__init__()
         self.runner_dir = os.path.join(get_full_path(__file__, step_up=2), "resources", "XUnitRunner")
         self.runner_executable = os.path.join(self.runner_dir, "XUnitRunner.exe")
     
-
     def prepare(self):
         super(XUnitExecutor, self).prepare()
         self.script = get_full_path(self.get_script_path())
