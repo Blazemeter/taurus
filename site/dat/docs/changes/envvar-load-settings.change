@@ -1,0 +1,1 @@
+- fix failure when `settings.env` variables are used in non-JMeter load settings
