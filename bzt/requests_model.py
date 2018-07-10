@@ -72,7 +72,7 @@ class HTTPRequest(Request):
             if body:
                 self.log.warning('body and body-file fields are found, only first will take effect')
             else:
-                if self.method in ("PUT", "POST", "PATCH") and has_variable_pattern(body_file):
+                if self.method in ("PUT", "POST") and has_variable_pattern(body_file):
                     return
 
                 body_file_path = self.engine.find_file(body_file)
@@ -333,6 +333,7 @@ class ResourceFilesCollector(RequestVisitor):
 
     def visit_hierarchichttprequest(self, request):
         files = []
+
         body_file = request.config.get('body-file')
         if body_file and not has_variable_pattern(body_file):
             files.append(body_file)

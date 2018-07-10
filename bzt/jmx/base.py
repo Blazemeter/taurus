@@ -23,6 +23,7 @@ from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario, BetterDict
+from bzt.requests_model import has_variable_pattern
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types
 
 
@@ -341,20 +342,7 @@ class JMX(object):
         if encoding is not None:
             proxy.append(JMX._string_prop("HTTPSampler.contentEncoding", encoding))
 
-        if files:
-            proxy.append(JMX._bool_prop("HTTPSampler.DO_MULTIPART_POST", True))
-            proxy.append(JMX._bool_prop("HTTPSampler.BROWSER_COMPATIBLE_MULTIPART", True))
-
-            files_prop = JMX._element_prop("HTTPsampler.Files", "HTTPFileArgs")
-            files_coll = JMX._collection_prop("HTTPFileArgs.files")
-            for file_dict in files:
-                file_elem = JMX._element_prop(file_dict['path'], "HTTPFileArg")
-                file_elem.append(JMX._string_prop("File.path", file_dict['path']))
-                file_elem.append(JMX._string_prop("File.paramname", file_dict["param"]))
-                file_elem.append(JMX._string_prop("File.mimetype", file_dict['mime-type']))
-                files_coll.append(file_elem)
-            files_prop.append(files_coll)
-            proxy.append(files_prop)
+        proxy.extend(JMX.get_files_elements(files))
 
         if use_random_host_ip and host_ips:
             if len(host_ips) > 1:
@@ -364,6 +352,34 @@ class JMX(object):
             proxy.append(JMX._string_prop("HTTPSampler.ipSource", expr))
 
         return proxy
+
+    @staticmethod
+    def get_files_elements(files):
+        if not files:
+            return []
+
+        # check if it's multipart
+        if len(files) > 1 or files[0].get("param", "") or not has_variable_pattern(files[0].get("path", "")):
+            elements = [
+                JMX._bool_prop("HTTPSampler.DO_MULTIPART_POST", True),
+                JMX._bool_prop("HTTPSampler.BROWSER_COMPATIBLE_MULTIPART", True)]
+        else:
+            elements = []
+
+        files_prop = JMX._element_prop("HTTPsampler.Files", "HTTPFileArgs")
+        elements.append(files_prop)
+
+        files_coll = JMX._collection_prop("HTTPFileArgs.files")
+        for file_dict in files:
+            file_elem = JMX._element_prop(file_dict.get("path", ""), "HTTPFileArg")
+            file_elem.append(JMX._string_prop("File.path", file_dict.get("path", "")))
+            file_elem.append(JMX._string_prop("File.paramname", file_dict.get("param", "")))
+            file_elem.append(JMX._string_prop("File.mimetype", file_dict.get("mime-type", "")))
+            files_coll.append(file_elem)
+        files_prop.append(files_coll)
+
+        return elements
+
 
     @staticmethod
     def __add_body_from_string(args, body, proxy):

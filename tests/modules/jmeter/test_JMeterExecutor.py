@@ -231,8 +231,10 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
 
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        elements = xml_tree.findall(".//CSVDataSet[@testclass='CSVDataSet']")
-
+        elements = xml_tree.findall(".//HTTPSamplerProxy/elementProp[@name='HTTPsampler.Files']")
+        self.assertEqual(1, len(elements))
+        self.assertEqual("${J_VAR}", elements[0].find(".//stringProp[@name='File.path']").text)
+        self.assertIsNone(elements[0].find(".//stringProp[@name='File.paramname']").text)
 
     def test_datasources_with_delimiter(self):
         self.obj.execution.merge({"scenario":

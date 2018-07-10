@@ -64,9 +64,15 @@ class HTTPProtocolHandler(ProtocolHandler):
 
         use_random_host_ip = request.priority_option('random-source-ip', default=False)
         host_ips = get_host_ips(filter_loopbacks=True) if use_random_host_ip else []
+
+        files = request.upload_files
+        body_file = request.config.get("body-file")
+        if not body and not files and body_file and request.method in ("PUT", "POST"):
+            files = [{"path": body_file}]
+
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body,
                                      request.priority_option('keepalive', default=True),
-                                     request.upload_files, request.content_encoding,
+                                     files, request.content_encoding,
                                      request.priority_option('follow-redirects', default=True),
                                      use_random_host_ip, host_ips)
 
