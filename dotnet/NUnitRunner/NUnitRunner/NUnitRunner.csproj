@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -29,32 +29,32 @@
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Mono.Cecil, Version=0.9.6.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\..\Nuget\repository\NUnit.Engine.3.7.0\lib\Mono.Cecil.dll</HintPath>
+    </Reference>
+    <Reference Include="Mono.Options, Version=5.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\..\Nuget\repository\Mono.Options.5.3.0.1\lib\net4-client\Mono.Options.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\..\Nuget\repository\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit-agent, Version=3.7.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\..\Nuget\repository\NUnit.Engine.3.7.0\lib\nunit-agent.exe</HintPath>
+    </Reference>
+    <Reference Include="nunit-agent-x86, Version=3.7.0.0, Culture=neutral, processorArchitecture=x86">
+      <HintPath>..\..\..\..\..\Nuget\repository\NUnit.Engine.3.7.0\lib\nunit-agent-x86.exe</HintPath>
+    </Reference>
+    <Reference Include="nunit.engine, Version=3.7.0.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\..\Nuget\repository\NUnit.Engine.3.7.0\lib\nunit.engine.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.engine.api, Version=3.0.0.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\..\Nuget\repository\NUnit.Engine.Api.3.7.0\lib\nunit.engine.api.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework, Version=3.7.1.0, Culture=neutral, PublicKeyToken=2638cd05610744eb, processorArchitecture=MSIL">
+      <HintPath>..\..\..\..\..\Nuget\repository\NUnit.3.7.1\lib\net45\nunit.framework.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
-    <Reference Include="nunit.framework">
-      <HintPath>..\packages\NUnit.3.7.1\lib\net45\nunit.framework.dll</HintPath>
-    </Reference>
     <Reference Include="System.Xml" />
-    <Reference Include="Mono.Cecil">
-      <HintPath>..\packages\NUnit.Engine.3.7.0\lib\Mono.Cecil.dll</HintPath>
-    </Reference>
-    <Reference Include="nunit-agent-x86">
-      <HintPath>..\packages\NUnit.Engine.3.7.0\lib\nunit-agent-x86.exe</HintPath>
-    </Reference>
-    <Reference Include="nunit-agent">
-      <HintPath>..\packages\NUnit.Engine.3.7.0\lib\nunit-agent.exe</HintPath>
-    </Reference>
-    <Reference Include="nunit.engine.api">
-      <HintPath>..\packages\NUnit.Engine.3.7.0\lib\nunit.engine.api.dll</HintPath>
-    </Reference>
-    <Reference Include="nunit.engine">
-      <HintPath>..\packages\NUnit.Engine.3.7.0\lib\nunit.engine.dll</HintPath>
-    </Reference>
-    <Reference Include="Mono.Options">
-      <HintPath>..\packages\Mono.Options.5.3.0.1\lib\net4-client\Mono.Options.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
@@ -62,7 +62,9 @@
     <Compile Include="NUnitTestClass.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
