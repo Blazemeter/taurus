@@ -1043,24 +1043,31 @@ class ScenarioExecutor(EngineModule):
         """
         Helper method to read load specification
         """
-        def eval_num(value):
+
+        def eval_int(value):
             try:
-                return float(value)
-            except (TypeError, ValueError):
+                return int(value)
+            except (ValueError, TypeError):
+                return value
+
+        def eval_float(value):
+            try:
+                return int(value)
+            except (ValueError, TypeError):
                 return value
 
         prov_type = self.engine.config.get(Provisioning.PROV)
 
         ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type)
-        throughput = eval_num(self.execution[ScenarioExecutor.THRPT].get(prov_type, 0))
+        throughput = eval_float(self.execution[ScenarioExecutor.THRPT].get(prov_type, 0))
 
         ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type)
-        concurrency = eval_num(self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0))
+        concurrency = eval_int(self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0))
 
-        iterations = eval_num(self.execution.get("iterations", None))
+        iterations = eval_int(self.execution.get("iterations", None))
 
-        ramp_up = eval_num(self.execution.get(ScenarioExecutor.RAMP_UP, None))
-        steps = eval_num(self.execution.get(ScenarioExecutor.STEPS, None))
+        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
+        steps = eval_int(self.execution.get(ScenarioExecutor.STEPS, None))
         hold = dehumanize_time(self.execution.get(ScenarioExecutor.HOLD_FOR, 0))
         if ramp_up is None:
             duration = hold
