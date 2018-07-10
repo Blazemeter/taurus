@@ -54,7 +54,7 @@ class HTTPRequest(Request):
         msg = "Option 'url' is mandatory for request but not found in %s" % config
         self.url = self.config.get("url", TaurusConfigError(msg))
         self.label = self.config.get("label", self.url)
-        self.method = self.config.get("method", "GET")
+        self.method = self.config.get("method", "GET").upper()
 
         # TODO: add method to join dicts/lists from scenario/request level?
         self.headers = self.config.get("headers", {})
@@ -72,6 +72,9 @@ class HTTPRequest(Request):
             if body:
                 self.log.warning('body and body-file fields are found, only first will take effect')
             else:
+                if self.method in ("PUT", "POST", "PATCH") and has_variable_pattern(body_file):
+                    return
+
                 body_file_path = self.engine.find_file(body_file)
                 with open(body_file_path) as fhd:
                     body = fhd.read()
@@ -84,16 +87,15 @@ class HierarchicHTTPRequest(HTTPRequest):
         super(HierarchicHTTPRequest, self).__init__(config, scenario, engine)
         self.upload_files = self.config.get("upload-files", [])
 
-        method = self.config.get("method")
-        if method == "PUT" and len(self.upload_files) > 1:
+        if self.method == "PUT" and len(self.upload_files) > 1:
             self.upload_files = self.upload_files[:1]
 
         for file_dict in self.upload_files:
             param = file_dict.get("param", None)
 
-            if method == "PUT":
+            if self.method == "PUT":
                 file_dict["param"] = ""
-            if method == "POST" and not param:
+            if self.method == "POST" and not param:
                 raise TaurusConfigError("Items from upload-files must specify parameter name")
 
             path_exc = TaurusConfigError("Items from upload-files must specify path to file")

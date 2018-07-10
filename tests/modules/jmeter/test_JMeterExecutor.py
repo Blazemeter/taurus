@@ -226,7 +226,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn(body_file2, res_files)
         self.assertFalse(body_fields[0])
         self.assertEqual(body_fields[1], 'body2')
-        self.assertEqual(body_files, [body_file1, body_file2])
+        self.assertEqual(body_files, [body_file1, body_file2, '${J_VAR}'])
 
         self.obj.prepare()
 
