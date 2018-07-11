@@ -19,7 +19,7 @@
     />
 
     <url link="kwindex" menu="1" title="Keyword Index"
-         class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="/docs/KeywordIndex.md"
+         class="PWE\Modules\RedirectAccepted\RedirectAccepted" base="/docs/KeywordIndex"
     />
 
     <url link="support" menu="1" title="Support Forums" accept="1"
