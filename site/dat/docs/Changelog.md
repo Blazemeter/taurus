@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.12.1<sup>next</sup>
+## 1.12.1<sup>11 jul 2018</sup>
 
 - set `LC_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
 - support SSL certificates for proxies with `settings.proxy.ssl-cert` option
@@ -25,7 +25,8 @@
 - send `settings.env` into cloud test config
 - support 'tags' in Robot Executor (thanks to @ddhoot09)
 - use Sandbox as default location for BlazeMeter Cloud
-
+- handle `body-file` option on JMeter level instead of Taurus level
+- fix failure when `settings.env` variables are used in non-JMeter load settings
 
 ## 1.12.0<sup>4 jun 2018</sup>
 - new frame management support was incorporated. Frames by id, name, relative parent and relative top (Selenium IDE and SideeX style)
