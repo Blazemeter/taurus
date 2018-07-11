@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import codecs
 import copy
 import csv
 import fnmatch
@@ -910,17 +911,17 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def get_error_diagnostics(self):
         diagnostics = []
         if self.stdout_file is not None:
-            with open(self.stdout_file.name) as fds:
+            with codecs.open(self.stdout_file.name, encoding='utf-8') as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("JMeter STDOUT:\n" + contents)
         if self.stderr_file is not None:
-            with open(self.stderr_file.name) as fds:
+            with codecs.open(self.stderr_file.name, encoding='utf-8') as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("JMeter STDERR:\n" + contents)
         if self.jmeter_log is not None and os.path.exists(self.jmeter_log):
-            with open(self.jmeter_log) as fds:
+            with codecs.open(self.jmeter_log, encoding='utf-8') as fds:
                 log_contents = fds.read().strip()
                 trimmed_log = self.__trim_jmeter_log(log_contents)
                 if trimmed_log:
