@@ -275,3 +275,26 @@ class TestScenarioExecutor(BZTestCase):
             self.assertEqual(1, len(results))
         else:
             self.assertEqual(2, len(results))
+
+    def test_get_load_str(self):
+        self.executor.execution.merge({
+            "concurrency": "2",
+            "hold-for": "3",
+            "ramp-up": "4",
+            "iterations": "5",
+            "throughput": "6",
+            "steps": "7",
+        })
+        load = self.executor.get_load()
+        self.assertEquals(2, load.concurrency)
+        self.assertEquals(3, load.hold)
+        self.assertEquals(4, load.ramp_up)
+        self.assertEquals(5, load.iterations)
+        self.assertEquals(6, load.throughput)
+        self.assertEquals(7, load.steps)
+
+    def test_get_load_str_fail(self):
+        self.executor.execution.merge({
+            "concurrency": "2VU",
+        })
+        self.assertRaises(TaurusConfigError, self.executor.get_load)
