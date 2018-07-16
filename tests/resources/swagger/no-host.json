@@ -1,4 +1,4 @@
-﻿{"swagger":"2.0","info":{"version":"v1","title":"ERP API","description":"API ERP Erli","contact":{"name":"Erli","url":"","email":"admin@hotmail.com"}},
+{"swagger":"2.0","info":{"version":"v1","title":"ERP API","description":"API ERP Erli","contact":{"name":"Erli","url":"","email":"admin@hotmail.com"}},
     "basePath":"/","paths":{"/api":{"post":{"tags":["Api"],"operationId":"ApiPost","consumes":["application/json-patch+json","application/json","text/json","application/*+json"],"produces":[],"parameters":[{"name":"request","in":"body","required":false,"schema":{"$ref":"#/definitions/TokenRequest"}}],"responses":{"200":{"description":"Success"}}}}},
     "definitions":{
     "TokenRequest":{"type":"object","properties":{"username":{"type":"string"},"password":{"type":"string"}}},
