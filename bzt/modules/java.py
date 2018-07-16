@@ -210,7 +210,8 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
 
     def install_required_tools(self):
         super(JUnitTester, self).install_required_tools()
-        self.junit_path = self.engine.find_file(self.settings.get("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar"))
+        self.junit_path = self.engine.find_file(
+            self.settings.get("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar"))
         helper = TaurusJavaHelperJar(self.log)
         self.junit_listener_path = helper.tool_path
 
@@ -332,7 +333,8 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
     def install_required_tools(self):
         super(TestNGTester, self).install_required_tools()
-        self.testng_path = self.engine.find_file(self.settings.get("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar"))
+        self.testng_path = self.engine.find_file(
+            self.settings.get("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar"))
         helper = TaurusJavaHelperJar(self.log)
         self.testng_plugin_path = helper.tool_path
 
