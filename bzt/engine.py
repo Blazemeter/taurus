@@ -444,10 +444,8 @@ class Engine(object):
         """
         if not filename:
             return filename
-        filename = os.path.expanduser(filename)
-        if os.path.exists(filename):
-            return filename
-        elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
+
+        if filename.lower().startswith("http://") or filename.lower().startswith("https://"):
             parsed_url = parse.urlparse(filename)
             downloader = ExceptionalDownloader(self.get_http_client())
             self.log.info("Downloading %s", filename)
@@ -461,12 +459,15 @@ class Engine(object):
             self.log.debug("Moving %s to %s", tmp_f_name, dest)
             shutil.move(tmp_f_name, dest)
             return dest
-        elif self.file_search_paths:
-            for dirname in self.file_search_paths:
+        else:
+            filename = os.path.expanduser(filename)     # expanding of '~' is required for check of existence
+
+            # check filename 'as is' and all combinations of file_search_path/filename
+            for dirname in [""] + self.file_search_paths:
                 location = os.path.join(dirname, filename)
                 if os.path.exists(location):
                     self.log.warning("Guessed location from search paths for %s: %s", filename, location)
-                    return location
+                    return get_full_path(location)
 
         self.log.warning("Could not find location at path: %s", filename)
         return filename
