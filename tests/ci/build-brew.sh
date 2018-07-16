@@ -34,7 +34,12 @@ command -v brew >/dev/null 2>&1 ||
     echo | ruby -e "$(curl -fsSL ${BREW_LINK}/install)"
     # suppress interactive mode (ENTER for confirmation)
 
-brew remove --force --ignore-dependencies $(brew list)
+BREW_LIST="`brew list`"
+if [ ! -z "$BREW_LIST" ]; then
+  brew remove --force --ignore-dependencies $(brew list)
+fi
+
+brew update
 brew install python2
 
 if [ -z "$1" ]; then
@@ -42,7 +47,6 @@ if [ -z "$1" ]; then
 else
     BZT_VER="$1"
 fi
-
 PYPKG_URL="https://files.pythonhosted.org/packages/source/b/bzt/bzt-${BZT_VER}.tar.gz"
 SHA256=`curl -L -s "${PYPKG_URL}" | shasum -a 256 | awk '{split($0, a); print a[1]}'`
 
@@ -59,7 +63,7 @@ class Bzt < Formula
   sha256 "${SHA256}"
   head "https://github.com/greyfenrir/taurus.git"
 
-  depends_on :python if MacOS.version <= :snow_leopard
+  depends_on "python@2" if MacOS.version <= :snow_leopard
 
 EOF
 
