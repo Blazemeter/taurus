@@ -268,7 +268,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         jar_files = []
         files = self.execution.get('files', [])
         for candidate in files:
-            candidate = get_full_path(self.engine.find_file(candidate))
+            candidate = self.engine.find_file(candidate)
             if os.path.isfile(candidate) and candidate.lower().endswith('.jar'):
                 jar_files.append(candidate)
             elif os.path.isdir(candidate):

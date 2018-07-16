@@ -64,7 +64,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.selenium_server_path = "~/.bzt/selenium-taurus/selenium-server.jar"
 
     def path_lambda(self, x):
-        return os.path.abspath(self.engine.find_file(x))
+        return self.engine.find_file(x)
 
     def install_required_tools(self):
         self.hamcrest_path = self.path_lambda(self.settings.get("hamcrest-core", self.hamcrest_path))

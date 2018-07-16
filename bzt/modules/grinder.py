@@ -134,7 +134,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.exec_id = self.label
         self.script = self.get_script_path()
         if self.script:
-            self.script = os.path.abspath(self.engine.find_file(self.script))
+            self.script = self.engine.find_file(self.script)
         elif "requests" in scenario:
             self.script = self.__scenario_from_requests()
         else:

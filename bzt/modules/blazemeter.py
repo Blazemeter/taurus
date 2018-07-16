@@ -1439,7 +1439,7 @@ class MasterProvisioning(Provisioning):
             config += to_json(self.engine.config.get('scenarios'))
             config += to_json(executor.settings)
             for rfile in executor_rfiles:
-                if not os.path.exists(self.engine.find_file(rfile)):  # TODO: what about files started from 'http://'?
+                if not os.path.exists(self.engine.find_file(rfile)):
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
                 if to_json(rfile) not in config:  # TODO: might be check is needed to improve
                     additional_files.append(rfile)
@@ -1454,7 +1454,7 @@ class MasterProvisioning(Provisioning):
 
     def _fix_filenames(self, old_names):
         # check for concurrent base names
-        old_full_names = [get_full_path(self.engine.find_file(x)) for x in old_names]
+        old_full_names = [self.engine.find_file(x) for x in old_names]
         rbases = [os.path.basename(get_full_path(rfile)) for rfile in old_full_names]
         rpaths = [get_full_path(rfile, step_up=1) for rfile in old_full_names]
         while rbases:

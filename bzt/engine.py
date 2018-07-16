@@ -439,6 +439,7 @@ class Engine(object):
         """
         Try to find file or dir in search_path if it was specified. Helps finding files
         in non-CLI environments or relative to config path
+        Return path is full and mustn't treat with abspath/etc.
         :param filename: file basename to find
         :type filename: str
         """
