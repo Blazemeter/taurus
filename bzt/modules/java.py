@@ -21,8 +21,8 @@ import time
 from os import listdir
 from os.path import join
 
-from bzt import ToolError, TaurusConfigError
-from bzt.engine import HavingInstallableTools, Scenario
+from bzt import ToolError
+from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.six import string_types
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager, TaurusJavaHelperJar

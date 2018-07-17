@@ -19,7 +19,7 @@ import mimetypes
 import re
 
 from bzt import TaurusConfigError, TaurusInternalException
-from bzt.utils import ensure_is_dict, dehumanize_time, get_full_path
+from bzt.utils import ensure_is_dict, dehumanize_time
 
 VARIABLE_PATTERN = re.compile("\${.+\}")
 

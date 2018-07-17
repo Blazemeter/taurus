@@ -21,9 +21,7 @@ from distutils.version import LooseVersion
 from math import ceil
 from subprocess import CalledProcessError
 
-import os
-
-from bzt import TaurusConfigError, ToolError
+from bzt import ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
