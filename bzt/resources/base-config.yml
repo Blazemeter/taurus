@@ -36,6 +36,8 @@ modules:
     class: bzt.modules.javascript.MochaTester
   nunit:
     class: bzt.modules.csharp.NUnitExecutor
+  xunit:
+    class: bzt.modules.csharp.XUnitExecutor
   pytest:
     class: bzt.modules.python.PyTestExecutor
   wdio:
