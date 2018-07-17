@@ -15,7 +15,7 @@ from bzt.cli import CLI
 from bzt.engine import SelfDiagnosable
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.six import u
-from bzt.utils import run_once, EXE_SUFFIX
+from bzt.utils import run_once, EXE_SUFFIX, get_full_path
 
 TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
 
@@ -152,6 +152,16 @@ class BZTestCase(TestCase):
                 logging.info("Replacements are: %s => %s", replace_str, replace_with)
                 msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
                 raise AssertionError(msg + "\n".join(diff))
+
+    def assertPathsEqual(self, p1, p2):
+        if not isinstance(p1, list):
+            p1 = [p1]
+
+        if not isinstance(p2, list):
+            p2 = [p2]
+
+        for num in range(len(p1)):
+            self.assertEqual(get_full_path(p1[num]), get_full_path(p2[num]))
 
 
 def local_paths_config():

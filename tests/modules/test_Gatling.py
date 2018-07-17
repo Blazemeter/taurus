@@ -135,7 +135,7 @@ class TestGatlingExecutor(BZTestCase):
         script_path = RESOURCES_DIR + "gatling/bs"
         self.obj.execution.merge({"scenario": {"script": script_path}})
         res_files = self.obj.resource_files()
-        self.assertEqual(res_files, [script_path])
+        self.assertPathsEqual(res_files, [script_path])
 
     def test_resource_files_collection_local(self):
         script = "LocalBasicSimulation.scala"
