@@ -995,7 +995,10 @@ class ScenarioExecutor(EngineModule):
         else:
             script = scenario.get(Scenario.SCRIPT)
 
-        return self.engine.find_file(script)
+        script = self.engine.find_file(script)
+        scenario[Scenario.SCRIPT] = script
+
+        return script
 
     def get_scenario(self, name=None, cache_scenario=True):
         """
