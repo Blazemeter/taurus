@@ -140,8 +140,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         return self.widget
 
     def resource_files(self):
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
+        script = self.get_script_path()
         if script:
             return [script]
         else:

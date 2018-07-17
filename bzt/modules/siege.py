@@ -57,15 +57,16 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         with open(self.__rc_name, 'w') as rc_file:
             rc_file.writelines('\n'.join(config_params))
 
-        if Scenario.SCRIPT in self.scenario and self.scenario[Scenario.SCRIPT]:
-            self.__url_name = self.engine.find_file(self.scenario[Scenario.SCRIPT])
+        self.__url_name = self.get_script_path()
+
+        if self.__url_name:
             self.engine.existing_artifact(self.__url_name)
         elif 'requests' in self.scenario:
             self.__url_name = self._fill_url_file()
         else:
             raise TaurusConfigError("Siege: you must specify either script(url-file) or some requests")
 
-        out = self.engine.create_artifact("siege", ".out") \
+        out = self.engine.create_artifact("siege", ".out")
 
         self.stdout_file = open(out, 'w')
         self.stderr_file = open(self.engine.create_artifact("siege", ".err"), 'w')
@@ -75,8 +76,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
             self.engine.aggregator.add_underling(self.reader)
 
     def resource_files(self):
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
+        script = self.get_script_path()
         if script:
             return [script]
         else:

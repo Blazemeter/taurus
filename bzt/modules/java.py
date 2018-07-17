@@ -73,9 +73,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         """
         make jar.
         """
-        self.script = self.get_scenario().get(Scenario.SCRIPT,
-                                              TaurusConfigError("Script not passed to runner %s" % self))
-        self.script = self.engine.find_file(self.script)
+        self.script = self.get_script_path(required=True)
 
         self.install_required_tools()
 

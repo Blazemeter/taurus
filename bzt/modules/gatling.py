@@ -497,12 +497,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def resource_files(self):
         files = []
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
+        script = self.get_script_path()
         if script:
             files.append(script)
         else:
-            for source in scenario.get_data_sources():
+            data_sources = self.get_scenario().get_data_sources()
+            for source in data_sources:
                 source_path = self.engine.find_file(source["path"])
                 files.append(source_path)
         files.extend(self.get_additional_classpath())

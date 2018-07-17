@@ -254,7 +254,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def resource_files(self):
         resource_files = []
-        script_file_path = self.get_scenario().get(Scenario.SCRIPT)
+        script_file_path = self.get_script_path()
         if script_file_path:
             resource_files.append(script_file_path)
 

@@ -755,7 +755,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 jmx.save(self.original_jmx)
                 scenario[Scenario.SCRIPT] = self.original_jmx
 
-        script = self.get_scenario().get(Scenario.SCRIPT, None)
+        script = self.get_script_path()
         if script:
             resource_files.append(script)
 

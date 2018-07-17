@@ -98,8 +98,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         shutdown_process(self.pbench.process, self.log)
 
     def resource_files(self):
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT)
+        script = self.get_script_path()
         if script:
             return [script]
         else:
@@ -199,13 +198,12 @@ class PBenchTool(object):
             _fhd.write(substituter.substitute(params))
 
     def generate_payload(self, scenario):
-        script_path = scenario.get(Scenario.SCRIPT)
-        if script_path:
-            self.payload_file = self.engine.find_file(script_path)
-        else:
+        self.payload_file = self.executor.get_script_path()
+
+        if not self.payload_file:       # generation from requests
             self.payload_file = self.engine.create_artifact("pbench", '.src')
             self.log.info("Generating payload file: %s", self.payload_file)
-            self._generate_payload_inner(scenario)
+            self._generate_payload_inner(scenario)  # raises if there is no requests
 
     @staticmethod
     def _estimate_schedule_size_rps(load, payload_count):
