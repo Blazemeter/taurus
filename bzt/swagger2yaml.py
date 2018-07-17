@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import copy
+import json
 import logging
 import os
 import re
@@ -72,11 +73,19 @@ class Swagger(object):
         self.default_security = []
 
     def _load(self, swagger_spec_fd):
+        content = swagger_spec_fd.read()
         try:
-            self.swagger = yaml_ordered_load(swagger_spec_fd, yaml.SafeLoader)
+            self.log.debug("Loading Swagger spec as YAML")
+            self.swagger = yaml_ordered_load(content, yaml.SafeLoader)
             self.log.info("Loaded Swagger spec %s", swagger_spec_fd)
-        except IOError as exc:
-            raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_fd, exc))
+        except BaseException as exc:
+            self.log.debug("Can't parse Swagger spec as YAML")
+            try:
+                self.log.debug("Loading Swagger spec as JSON")
+                self.swagger = json.loads(content)
+                self.log.info("Loaded Swagger spec %s", swagger_spec_fd)
+            except BaseException:
+                raise TaurusConfigError("Error when parsing Swagger file '%s': %s" % (swagger_spec_fd, exc))
 
     def _validate_swagger_version(self):
         swagger_version = self.swagger.get("swagger", self.swagger.get("openapi"))
@@ -216,7 +225,11 @@ class Swagger(object):
         return copy.deepcopy(self.info)
 
     def get_host(self):
-        return self.swagger.get("host")
+        host = self.swagger.get("host", "")
+        if not host:
+            self.log.warning("Warning: no `host` declared, using HOST placeholder")
+            host = "HOST"
+        return host
 
     def get_base_path(self):
         return self.swagger.get("basePath")
