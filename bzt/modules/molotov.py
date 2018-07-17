@@ -41,11 +41,6 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.tool_path = None
         self.scenario = None
 
-    def _get_script(self):
-        scenario = self.get_scenario()
-        script = scenario.get("script", TaurusConfigError("You must provide script for Molotov"))
-        return self.engine.find_file(script)
-
     def prepare(self):
         self.tool_path = self.install_required_tools()
 
@@ -88,7 +83,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
         cmdline += ['--use-extension=bzt.resources.molotov_ext']
 
-        cmdline += [self._get_script()]
+        cmdline += [self.get_script_path(required=True)]
 
         self.env.set({"MOLOTOV_TAURUS_REPORT": self.report_file_name})
         self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
@@ -135,7 +130,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         return diagnostics
 
     def resource_files(self):
-        return [self._get_script()]
+        return [self.get_script_path(required=True)]
 
 
 class Molotov(RequiredTool):

@@ -981,13 +981,20 @@ class ScenarioExecutor(EngineModule):
         else:
             return False
 
-    def get_script_path(self, scenario=None):
+    def get_script_path(self, required=False, scenario=None):
         """
+        :type required: bool
         :type scenario: Scenario
         """
         if scenario is None:
             scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
+
+        if required:
+            exc = TaurusConfigError("You must provide script for %s" % self)
+            script = scenario.get(Scenario.SCRIPT, exc)
+        else:
+            script = scenario.get(Scenario.SCRIPT)
+
         return self.engine.find_file(script)
 
     def get_scenario(self, name=None, cache_scenario=True):
@@ -1018,7 +1025,7 @@ class ScenarioExecutor(EngineModule):
                 else:
                     scenario = label
 
-                path = self.get_script_path(Scenario(self.engine, scenario))
+                path = self.get_script_path(scenario=Scenario(self.engine, scenario))
                 if path is not None:
                     label = os.path.basename(path)
                 if path is None or label in scenarios:

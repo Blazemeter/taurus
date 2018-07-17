@@ -635,12 +635,11 @@ class JMeterScenarioBuilder(JMX):
                     delimiter = ','
                     self.log.warning("Can't detect CSV dialect, default delimiter will be '%s'", delimiter)
             else:
-                modified_path = self.executor.engine.find_file(source_path)
-                if not os.path.isfile(modified_path):
-                    raise TaurusConfigError("data-sources path not found: %s" % modified_path)
+                source_path = self.executor.engine.find_file(source_path)
+                if not os.path.isfile(source_path):
+                    raise TaurusConfigError("data-sources path not found: %s" % source_path)
                 if not delimiter:
-                    delimiter = self.__guess_delimiter(modified_path)
-                source_path = get_full_path(modified_path)
+                    delimiter = self.__guess_delimiter(source_path)
 
             config = JMX._get_csv_config(source_path, delimiter, source.get("quoted", False), source.get("loop", True),
                                          source.get("variable-names", ""))
