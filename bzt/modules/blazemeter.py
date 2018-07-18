@@ -1338,6 +1338,7 @@ class CloudCollectionTest(BaseCloudTest):
                 raise TaurusConfigError("Invalid location requested: %s" % location)
 
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
+        self.log.warning("Using collection-based tests is deprecated in Taurus, will be removed in future versions")
         if self.launch_existing_test:
             return
 

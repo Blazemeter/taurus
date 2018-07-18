@@ -182,6 +182,9 @@ services:
     - conn-all
 
 modules: # TODO: cleanup as much as possible from defaults
+  cloud:
+    default-location: us-central1-a
+
   gatling:
     properties:
       gatling.data.file.bufferSize: 256
