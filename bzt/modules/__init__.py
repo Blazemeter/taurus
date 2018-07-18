@@ -121,8 +121,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
         self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, **kwargs)
 
     def resource_files(self):
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT)
+        script = self.get_script_path()
         if script:
             return [script]
         else:

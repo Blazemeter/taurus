@@ -21,8 +21,8 @@ import time
 from os import listdir
 from os.path import join
 
-from bzt import ToolError, TaurusConfigError
-from bzt.engine import HavingInstallableTools, Scenario
+from bzt import ToolError
+from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.six import string_types
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager, TaurusJavaHelperJar
@@ -63,21 +63,17 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.json_jar_path = "~/.bzt/selenium-taurus/tools/junit/json.jar"
         self.selenium_server_path = "~/.bzt/selenium-taurus/selenium-server.jar"
 
-    def path_lambda(self, x):
-        return os.path.abspath(self.engine.find_file(x))
-
     def install_required_tools(self):
-        self.hamcrest_path = self.path_lambda(self.settings.get("hamcrest-core", self.hamcrest_path))
-        self.json_jar_path = self.path_lambda(self.settings.get("json-jar", self.json_jar_path))
-        self.selenium_server_path = self.path_lambda(self.settings.get("selenium-server", self.selenium_server_path))
+        self.hamcrest_path = self.engine.find_file(self.settings.get("hamcrest-core", self.hamcrest_path))
+        self.json_jar_path = self.engine.find_file(self.settings.get("json-jar", self.json_jar_path))
+        self.selenium_server_path = self.engine.find_file(
+            self.settings.get("selenium-server", self.selenium_server_path))
 
     def prepare(self):
         """
         make jar.
         """
-        self.script = self.get_scenario().get(Scenario.SCRIPT,
-                                              TaurusConfigError("Script not passed to runner %s" % self))
-        self.script = self.engine.find_file(self.script)
+        self.script = self.get_script_path(required=True)
 
         self.install_required_tools()
 
@@ -205,14 +201,15 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         self.install_required_tools()
 
         self.base_class_path += [self.junit_path, self.junit_listener_path]
-        self.base_class_path = [self.path_lambda(x) for x in self.base_class_path]
+        self.base_class_path = [self.engine.find_file(x) for x in self.base_class_path]
 
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
 
     def install_required_tools(self):
         super(JUnitTester, self).install_required_tools()
-        self.junit_path = self.path_lambda(self.settings.get("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar"))
+        self.junit_path = self.engine.find_file(
+            self.settings.get("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar"))
         helper = TaurusJavaHelperJar(self.log)
         self.junit_listener_path = helper.tool_path
 
@@ -334,7 +331,8 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
     def install_required_tools(self):
         super(TestNGTester, self).install_required_tools()
-        self.testng_path = self.path_lambda(self.settings.get("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar"))
+        self.testng_path = self.engine.find_file(
+            self.settings.get("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar"))
         helper = TaurusJavaHelperJar(self.log)
         self.testng_plugin_path = helper.tool_path
 

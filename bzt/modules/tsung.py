@@ -23,7 +23,7 @@ import traceback
 import copy
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import FileLister, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
@@ -140,8 +140,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         return self.widget
 
     def resource_files(self):
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
+        script = self.get_script_path()
         if script:
             return [script]
         else:

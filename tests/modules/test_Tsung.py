@@ -7,7 +7,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig, Tsung
 from bzt.six import etree
 from bzt.utils import EXE_SUFFIX, BetterDict, is_windows
-from tests import BZTestCase
+from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
 
@@ -15,7 +15,7 @@ TOOL_NAME = 'tsung' + EXE_SUFFIX
 
 
 def get_res_path(resource):
-    return path.join(path.dirname(__file__), '..', 'resources', 'tsung', resource)
+    return path.join(RESOURCES_DIR, 'tsung', resource)
 
 
 class TestTsungExecutor(BZTestCase):
@@ -25,7 +25,7 @@ class TestTsungExecutor(BZTestCase):
         self.obj.engine = EngineEmul()
         self.obj.env = self.obj.engine.env
         self.obj.settings = BetterDict()
-        self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
+        self.obj.settings.merge({"path": get_res_path(TOOL_NAME)})
         self.obj.execution = BetterDict()
 
     def test_prepare_no_script_no_requests(self):

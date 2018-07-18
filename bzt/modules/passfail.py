@@ -25,7 +25,7 @@ from collections import OrderedDict
 from urwid import Pile, Text
 
 from bzt import AutomatedShutdown, TaurusConfigError
-from bzt.engine import Reporter, Service
+from bzt.engine import Reporter
 from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.six import string_types, viewvalues, iteritems
