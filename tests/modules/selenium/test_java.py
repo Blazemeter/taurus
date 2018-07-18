@@ -14,7 +14,7 @@ from bzt.modules import java
 from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
 from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION, JavaC
 from bzt.modules.selenium import SeleniumExecutor
-from bzt.utils import get_full_path, ToolError
+from bzt.utils import ToolError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
@@ -444,9 +444,9 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
                     'additional-classpath': [settings_cp]}}})
         self.obj.prepare()
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
-        base_class_path = ':'.join(self.obj.runner.base_class_path)
-        self.assertIn(scenario_cp, base_class_path)
-        self.assertIn(settings_cp, base_class_path)
+        class_path = ':'.join(self.obj.runner.class_path)
+        self.assertIn(scenario_cp, class_path)
+        self.assertIn(settings_cp, class_path)
 
     def test_resource_files_collection_remote_jar(self):
         self.configure({

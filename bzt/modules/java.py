@@ -58,7 +58,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.working_dir = os.getcwd()
         self.target_java = "1.8"
         self.props_file = None
-        self.base_class_path = []
+        self.class_path = []
         self.hamcrest_path = "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar"
         self.json_jar_path = "~/.bzt/selenium-taurus/tools/junit/json.jar"
         self.selenium_server_path = "~/.bzt/selenium-taurus/selenium-server.jar"
@@ -79,9 +79,9 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
         self.working_dir = self.engine.create_artifact(self.settings.get("working-dir", "classes"), "")
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
-        self.base_class_path.extend(self.settings.get("additional-classpath", []))
-        self.base_class_path.extend(self.get_scenario().get("additional-classpath", []))
-        self.base_class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_path])
+        self.class_path.extend(self.settings.get("additional-classpath", []))
+        self.class_path.extend(self.get_scenario().get("additional-classpath", []))
+        self.class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_path])
 
         self.props_file = self.engine.create_artifact("runner", ".properties")
 
@@ -130,7 +130,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
                       "-d", self.working_dir,
                       ]
 
-        compile_cl.extend(["-cp", os.pathsep.join(self.base_class_path)])
+        compile_cl.extend(["-cp", os.pathsep.join(self.class_path)])
         compile_cl.extend(self._collect_script_files({".java"}))
 
         with open(self.engine.create_artifact("javac", ".out"), 'ab') as javac_out:
@@ -200,8 +200,8 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         super(JUnitTester, self).prepare()
         self.install_required_tools()
 
-        self.base_class_path += [self.junit_path, self.junit_listener_path]
-        self.base_class_path = [self.engine.find_file(x) for x in self.base_class_path]
+        self.class_path += [self.junit_path, self.junit_listener_path]
+        self.class_path = [self.engine.find_file(x) for x in self.class_path]
 
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
@@ -236,7 +236,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
 
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
-        self.base_class_path.extend(jar_list)
+        self.class_path.extend(jar_list)
         scenario = self.get_scenario()
 
         with open(self.props_file, 'wt') as fds:
@@ -270,7 +270,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
             for key in sorted(props.keys()):
                 fds.write("%s=%s\n" % (key, props[key]))
 
-        class_path = os.pathsep.join(self.base_class_path)
+        class_path = os.pathsep.join(self.class_path)
         junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true",
                           "com.blazemeter.taurus.junit.CustomRunner", self.props_file]
 
@@ -303,7 +303,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
     def prepare(self):
         super(TestNGTester, self).prepare()
         self.install_required_tools()
-        self.base_class_path += [self.testng_path, self.testng_plugin_path]
+        self.class_path += [self.testng_path, self.testng_plugin_path]
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
 
@@ -358,7 +358,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
-        self.base_class_path.extend(jar_list)
+        self.class_path.extend(jar_list)
 
         with open(self.props_file, 'wt') as props:
             props.write("report_file=%s\n" % self.report_file)
@@ -377,7 +377,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
             if testng_xml:
                 props.write('testng_config=%s\n' % testng_xml.replace(os.path.sep, '/'))
 
-        cmdline = ["java", "-cp", os.pathsep.join(self.base_class_path),
+        cmdline = ["java", "-cp", os.pathsep.join(self.class_path),
                    "com.blazemeter.taurus.testng.TestNGRunner", self.props_file]
         self._start_subprocess(cmdline)
 
