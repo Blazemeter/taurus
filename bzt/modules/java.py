@@ -102,13 +102,16 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
         self.class_path = [self.engine.find_file(x) for x in self.class_path]
 
-        if any(self._collect_script_files({'.java'})):
+        if self._collect_script_files({'.java'}):
             self._tools.append(JavaC(self.log))
 
         self._tools.append(TclLibrary(self.log))
         self._tools.append(JavaVM(self.log))
 
         self.install_required_tools()
+
+        if self._collect_script_files({'.java'}):
+            self.compile_scripts()
 
     def resource_files(self):
         resources = super(JavaTestRunner, self).resource_files()
@@ -122,7 +125,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
     def _collect_script_files(self, extensions):
         file_list = []
-        if self.script is not None and os.path.isdir(self.script):
+        if os.path.isdir(self.script):
             for root, _, files in os.walk(self.script):
                 for test_file in files:
                     if os.path.splitext(test_file)[1].lower() in extensions:
@@ -222,9 +225,6 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
 
         super(JUnitTester, self).prepare()
 
-        if any(self._collect_script_files({'.java'})):
-            self.compile_scripts()
-
     def startup(self):
         # java -cp junit.jar:selenium-test-small.jar:
         # selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar
@@ -301,9 +301,6 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         self._tools.append(TestNGJar(self.testng_path, TESTNG_DOWNLOAD_LINK))
 
         super(TestNGTester, self).prepare()
-
-        if any(self._collect_script_files({'.java'})):
-            self.compile_scripts()
 
     def detected_testng_xml(self):
         script_path = self.get_script_path()
