@@ -102,7 +102,8 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
         self.class_path = [self.engine.find_file(x) for x in self.class_path]
 
-        if self._collect_script_files({'.java'}):
+        java_scripts = self._collect_script_files({'.java'})
+        if java_scripts:
             self._tools.append(JavaC(self.log))
 
         self._tools.append(TclLibrary(self.log))
@@ -110,8 +111,8 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
         self.install_required_tools()
 
-        if self._collect_script_files({'.java'}):
-            self.compile_scripts()
+        if java_scripts:
+            self._compile_scripts(java_scripts)
 
     def resource_files(self):
         resources = super(JavaTestRunner, self).resource_files()
@@ -136,7 +137,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
                 file_list.append(get_full_path(self.script))
         return file_list
 
-    def compile_scripts(self):
+    def _compile_scripts(self, java_scripts):
         """
         Compile .java files
         """
@@ -154,7 +155,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
                       ]
 
         compile_cl.extend(["-cp", os.pathsep.join(self.class_path)])
-        compile_cl.extend(self._collect_script_files({".java"}))
+        compile_cl.extend(java_scripts)
 
         with open(self.engine.create_artifact("javac", ".out"), 'ab') as javac_out:
             with open(self.engine.create_artifact("javac", ".err"), 'ab') as javac_err:
@@ -175,9 +176,9 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
         self.log.info("Compiling .java files completed")
 
-        self.make_jar()
+        self._make_jar()
 
-    def make_jar(self):
+    def _make_jar(self):
         """
         move all .class files to compiled.jar
         """
