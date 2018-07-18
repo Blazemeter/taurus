@@ -21,7 +21,7 @@ import subprocess
 import time
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import ScenarioExecutor, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
@@ -133,14 +133,13 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         scenario = self.get_scenario()
         self.exec_id = self.label
         self.script = self.get_script_path()
-        if self.script:
-            self.script = os.path.abspath(self.engine.find_file(self.script))
-        elif "requests" in scenario:
-            self.script = self.__scenario_from_requests()
-        else:
-            msg = "There must be a script file or requests for its generation "
-            msg += "to run Grinder tool (%s)" % self.execution.get('scenario')
-            raise TaurusConfigError(msg)
+        if not self.script:
+            if "requests" in scenario:
+                self.script = self.__scenario_from_requests()
+            else:
+                msg = "There must be a script file or requests for its generation "
+                msg += "to run Grinder tool (%s)" % self.execution.get('scenario')
+                raise TaurusConfigError(msg)
 
         self.properties_file = self.engine.create_artifact("grinder", ".properties")
 
@@ -255,7 +254,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def resource_files(self):
         resource_files = []
-        script_file_path = self.get_scenario().get(Scenario.SCRIPT)
+        script_file_path = self.get_script_path()
         if script_file_path:
             resource_files.append(script_file_path)
 

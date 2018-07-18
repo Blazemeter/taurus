@@ -19,7 +19,7 @@ import mimetypes
 import re
 
 from bzt import TaurusConfigError, TaurusInternalException
-from bzt.utils import ensure_is_dict, dehumanize_time, get_full_path
+from bzt.utils import ensure_is_dict, dehumanize_time
 
 VARIABLE_PATTERN = re.compile("\${.+\}")
 
@@ -101,7 +101,7 @@ class HierarchicHTTPRequest(HTTPRequest):
             path_exc = TaurusConfigError("Items from upload-files must specify path to file")
             path = str(file_dict.get("path", path_exc))
             if not has_variable_pattern(path):  # exclude variables
-                path = get_full_path(self.engine.find_file(path))  # prepare full path for jmx
+                path = self.engine.find_file(path)  # prepare full path for jmx
             else:
                 msg = "Path '%s' contains variable and can't be expanded. Don't use relative paths in 'upload-files'!"
                 self.log.warning(msg % path)

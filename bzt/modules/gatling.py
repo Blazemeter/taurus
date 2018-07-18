@@ -268,7 +268,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         jar_files = []
         files = self.execution.get('files', [])
         for candidate in files:
-            candidate = get_full_path(self.engine.find_file(candidate))
+            candidate = self.engine.find_file(candidate)
             if os.path.isfile(candidate) and candidate.lower().endswith('.jar'):
                 jar_files.append(candidate)
             elif os.path.isdir(candidate):
@@ -497,12 +497,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def resource_files(self):
         files = []
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
+        script = self.get_script_path()
         if script:
             files.append(script)
         else:
-            for source in scenario.get_data_sources():
+            data_sources = self.get_scenario().get_data_sources()
+            for source in data_sources:
                 source_path = self.engine.find_file(source["path"])
                 files.append(source_path)
         files.extend(self.get_additional_classpath())
