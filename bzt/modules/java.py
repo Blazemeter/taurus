@@ -65,8 +65,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.selenium_server_path = "~/.bzt/selenium-taurus/selenium-server.jar"
 
     def install_required_tools(self):
-        tools = [self.engine.find_file(tool) for tool in self._tools]
-        self._check_tools(tools)
+        self._check_tools(self._tools)
 
     def prepare(self):
         self.script = self.get_script_path(required=True)
@@ -75,7 +74,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
         self.props_file = self.engine.create_artifact("runner", ".properties")
 
-        self.working_dir = self.engine.create_artifact(self.settings.get("working-dir", "classes"))
+        self.working_dir = self.engine.create_artifact(self.settings.get("working-dir", "classes"), "")
         if not os.path.exists(self.working_dir):
             os.makedirs(self.working_dir)
 
