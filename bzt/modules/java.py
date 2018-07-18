@@ -59,36 +59,56 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.target_java = "1.8"
         self.props_file = None
         self.class_path = []
+        self._tools = []
         self.hamcrest_path = "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar"
         self.json_jar_path = "~/.bzt/selenium-taurus/tools/junit/json.jar"
         self.selenium_server_path = "~/.bzt/selenium-taurus/selenium-server.jar"
 
     def install_required_tools(self):
-        self.hamcrest_path = self.engine.find_file(self.settings.get("hamcrest-core", self.hamcrest_path))
-        self.json_jar_path = self.engine.find_file(self.settings.get("json-jar", self.json_jar_path))
-        self.selenium_server_path = self.engine.find_file(
-            self.settings.get("selenium-server", self.selenium_server_path))
+        tools = [self.engine.find_file(tool) for tool in self._tools]
+        self._check_tools(tools)
 
     def prepare(self):
-        """
-        make jar.
-        """
         self.script = self.get_script_path(required=True)
 
-        self.install_required_tools()
-
-        self.working_dir = self.engine.create_artifact(self.settings.get("working-dir", "classes"), "")
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
-        self.class_path.extend(self.settings.get("additional-classpath", []))
-        self.class_path.extend(self.get_scenario().get("additional-classpath", []))
-        self.class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_path])
 
         self.props_file = self.engine.create_artifact("runner", ".properties")
 
+        self.working_dir = self.engine.create_artifact(self.settings.get("working-dir", "classes"))
         if not os.path.exists(self.working_dir):
             os.makedirs(self.working_dir)
 
         self.reporting_setup(suffix=".ldjson")
+
+        self.class_path.extend(self.settings.get("additional-classpath", []))
+        self.class_path.extend(self.get_scenario().get("additional-classpath", []))
+
+        self.selenium_server_path = self.settings.get("selenium-server", self.selenium_server_path)
+        self.hamcrest_path = self.settings.get("hamcrest-core", self.hamcrest_path)
+        self.json_jar_path = self.settings.get("json-jar", self.json_jar_path)
+
+        self.class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_path])
+
+        link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
+        self._tools.append(SeleniumServerJar(self.selenium_server_path, link, self.log))
+
+        self._tools.append(HamcrestJar(self.hamcrest_path, HAMCREST_DOWNLOAD_LINK))
+        self._tools.append(JsonJar(self.json_jar_path, JSON_JAR_DOWNLOAD_LINK))
+
+        helper = TaurusJavaHelperJar(self.log)
+        self._tools.append(helper)
+        self.class_path.append(helper.tool_path)
+
+        self.class_path = [self.engine.find_file(x) for x in self.class_path]
+
+        if any(self._collect_script_files({'.java'})):
+            self._tools.append(JavaC(self.log))
+
+        self._tools.append(TclLibrary(self.log))
+        self._tools.append(JavaVM(self.log))
+
+        self.install_required_tools()
 
     def resource_files(self):
         resources = super(JavaTestRunner, self).resource_files()
@@ -193,41 +213,17 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
 
     def __init__(self):
         super(JUnitTester, self).__init__()
-        self.junit_path = None
-        self.junit_listener_path = None
+        self.junit_path = "~/.bzt/selenium-taurus/tools/junit/junit.jar"
 
     def prepare(self):
-        super(JUnitTester, self).prepare()
-        self.install_required_tools()
+        self.junit_path = self.engine.find_file(self.settings.get("path", self.junit_path))
+        self._tools.append(JUnitJar(self.junit_path, self.log, JUNIT_VERSION))
+        self.class_path.append(self.junit_path)
 
-        self.class_path += [self.junit_path, self.junit_listener_path]
-        self.class_path = [self.engine.find_file(x) for x in self.class_path]
+        super(JUnitTester, self).prepare()
 
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
-
-    def install_required_tools(self):
-        super(JUnitTester, self).install_required_tools()
-        self.junit_path = self.engine.find_file(
-            self.settings.get("path", "~/.bzt/selenium-taurus/tools/junit/junit.jar"))
-        helper = TaurusJavaHelperJar(self.log)
-        self.junit_listener_path = helper.tool_path
-
-        tools = []
-        # only check javac if we need to compile. if we have JAR as script - we don't need javac
-        if self.script and any(self._collect_script_files({'.java'})):
-            tools.append(JavaC(self.log))
-
-        tools.append(TclLibrary(self.log))
-        tools.append(JavaVM(self.log))
-        link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
-        tools.append(SeleniumServerJar(self.selenium_server_path, link, self.log))
-        tools.append(JUnitJar(self.junit_path, self.log, JUNIT_VERSION))
-        tools.append(HamcrestJar(self.hamcrest_path, HAMCREST_DOWNLOAD_LINK))
-        tools.append(JsonJar(self.json_jar_path, JSON_JAR_DOWNLOAD_LINK))
-        tools.append(helper)
-
-        self._check_tools(tools)
 
     def startup(self):
         # java -cp junit.jar:selenium-test-small.jar:
@@ -297,13 +293,15 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
     def __init__(self):
         super(TestNGTester, self).__init__()
-        self.testng_path = None
-        self.testng_plugin_path = None
+        self.testng_path = "~/.bzt/selenium-taurus/tools/testng/testng.jar"
 
     def prepare(self):
+        self.testng_path = self.engine.find_file(self.settings.get("path", self.testng_path))
+        self.class_path.append(self.testng_path)
+        self._tools.append(TestNGJar(self.testng_path, TESTNG_DOWNLOAD_LINK))
+
         super(TestNGTester, self).prepare()
-        self.install_required_tools()
-        self.class_path += [self.testng_path, self.testng_plugin_path]
+
         if any(self._collect_script_files({'.java'})):
             self.compile_scripts()
 
@@ -328,28 +326,6 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
             resources.append(testng_xml)
 
         return resources
-
-    def install_required_tools(self):
-        super(TestNGTester, self).install_required_tools()
-        self.testng_path = self.engine.find_file(
-            self.settings.get("path", "~/.bzt/selenium-taurus/tools/testng/testng.jar"))
-        helper = TaurusJavaHelperJar(self.log)
-        self.testng_plugin_path = helper.tool_path
-
-        tools = []
-        if self.script and any(self._collect_script_files({'.java'})):
-            tools.append(JavaC(self.log))
-
-        tools.append(TclLibrary(self.log))
-        tools.append(JavaVM(self.log))
-        link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
-        tools.append(SeleniumServerJar(self.selenium_server_path, link, self.log))
-        tools.append(TestNGJar(self.testng_path, TESTNG_DOWNLOAD_LINK))
-        tools.append(HamcrestJar(self.hamcrest_path, HAMCREST_DOWNLOAD_LINK))
-        tools.append(JsonJar(self.json_jar_path, JSON_JAR_DOWNLOAD_LINK))
-        tools.append(helper)
-
-        self._check_tools(tools)
 
     def startup(self):
         # java -classpath
