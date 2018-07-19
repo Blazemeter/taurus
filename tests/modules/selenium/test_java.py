@@ -68,7 +68,6 @@ class TestTestNGTester(BZTestCase):
             self.obj.execution.merge({
                 "scenario": {
                     "script": RESOURCES_DIR + "selenium/testng/jars/testng-suite.jar"}})
-            self.obj.install_required_tools()
             self.obj.prepare()
             self.assertTrue(exists(join(dummy_installation_path, "selenium-server.jar")))
             self.assertTrue(exists(join(dummy_installation_path, "tools", "testng", "testng.jar")))
@@ -155,13 +154,11 @@ class TestJUnitTester(BZTestCase):
                 "scenario": {
                     "script": RESOURCES_DIR + "selenium/junit/jar/"},
                 "runner": "junit"})
-            self.obj.install_required_tools()
             self.obj.prepare()
             self.assertIsInstance(self.obj, JUnitTester)
             self.assertTrue(exists(join(dummy_installation_path, "selenium-server.jar")))
             self.assertTrue(exists(join(dummy_installation_path, "tools", "junit", "junit.jar")))
-            self.assertTrue(
-                exists(join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
+            self.assertTrue(exists(join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
         finally:
             java.SELENIUM_DOWNLOAD_LINK = selenium_server_link
             java.JUNIT_DOWNLOAD_LINK = junit_link
