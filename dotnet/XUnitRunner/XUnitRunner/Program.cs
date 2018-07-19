@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.Loader;
-using Microsoft.Extensions.Configuration;
 using System.Threading;
+using Microsoft.Extensions.Configuration;
 using Xunit.Runners;
 
 namespace XUnitRunner
@@ -15,6 +14,7 @@ namespace XUnitRunner
         // We use consoleLock because messages can arrive in parallel, so we want to make sure we get
         // consistent console output.
         private static readonly object ConsoleLock = new object();
+
         // Use an event to know when we're done
         private static readonly ManualResetEvent Finished = new ManualResetEvent(false);
 
@@ -22,8 +22,8 @@ namespace XUnitRunner
         // Start out assuming success; we'll set this to 1 if we get a failed test
 
 
-
         public static IConfiguration Configuration { get; set; }
+
         public static void ShowHelp()
         {
             Console.WriteLine("XUnit runner for Taurus");
@@ -40,7 +40,7 @@ namespace XUnitRunner
         public static Dictionary<string, string> GetSwitchMappings(string[] args)
         {
             return args.Select(item =>
-                 new KeyValuePair<string, string>(item.Replace("/", "").Replace("-", "").Split('=')[0], item.Split('=')?[1]))
+                    new KeyValuePair<string, string>(item.Replace("/", "").Replace("-", "").Split('=')[0], item.Split('=')?[1]))
                 .ToDictionary(item => item.Key, item => item.Value);
         }
 
@@ -71,7 +71,7 @@ namespace XUnitRunner
 
             if (opts.reportFile.IndexOf('\\') <= 0)
             {
-                opts.reportFile = System.AppContext.BaseDirectory + opts.reportFile;
+                opts.reportFile = AppContext.BaseDirectory + opts.reportFile;
             }
 
             if (dict.TryGetValue("iterations", out var sValue))
@@ -93,90 +93,10 @@ namespace XUnitRunner
 
             return opts;
         }
-        #region Events
-
-        private static void OnDiscoveryComplete(DiscoveryCompleteInfo info)
-        {
-            lock (ConsoleLock)
-            {
-                var oldColor = Console.ForegroundColor;
-                if (info.TestCasesToRun == 0)
-                {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                }
-                Console.WriteLine($"Running {info.TestCasesToRun} of {info.TestCasesDiscovered} tests...");
-                Console.ForegroundColor = oldColor;
-            }
-
-        }
-
-        private static void OnExecutionComplete(ExecutionCompleteInfo info)
-        {
-            //lock (ConsoleLock)
-            //{
-
-            //    Console.WriteLine($"Finished: {info.TotalTests} tests in {Math.Round(info.ExecutionTime, 3)}s ({info.TestsFailed} failed, {info.TestsSkipped} skipped)");
-            //}
-            
-            Finished.Set();
-        }
-        private static void OnTestPassed(TestPassedInfo info)
-        {
-
-            var start = DateTime.Now.AddSeconds((double)info.ExecutionTime * (-1));
-            var item = new ReportItem
-            {
-                StartTime = (start.ToUniversalTime().Ticks - 621355968000000000) / 10000000,
-                Duration = info.ExecutionTime,
-                TestCase = info.MethodName,
-                TestSuite = info.TypeName,
-                ErrorMessage = "",
-                ErrorTrace = "",
-                Status = "PASSED"
-            };
-            _recordingListener.WriteReport(item);
-
-
-        }
-        private static void OnTestSkipped(TestSkippedInfo info)
-        {
-
-            var item = new ReportItem
-            {
-                Duration = 0,
-                TestCase = info.MethodName,
-                TestSuite = info.TypeName,
-                ErrorMessage = info.SkipReason.Trim(),
-                Status = "SKIPPED"
-            };
-            _recordingListener.WriteReport(item);
-        }
-
-
-        private static void OnTestFailed(TestFailedInfo info)
-        {
-            var start = DateTime.Now.AddSeconds((double)info.ExecutionTime * (-1));
-            var item = new ReportItem
-            {
-                StartTime = (start.ToUniversalTime().Ticks - 621355968000000000) / 10000000,
-                Duration = info.ExecutionTime,
-                TestCase = info.MethodName,
-                TestSuite = info.TypeName,
-                ErrorMessage = info.ExceptionMessage.Trim(),
-                ErrorTrace = info.ExceptionStackTrace.Trim(),
-                Status = "FAILED"
-            };
-            _recordingListener.WriteReport(item);
-        }
-
-
-        #endregion
-
 
 
         public static void Main(string[] args)
         {
-
             var runnerOptions = new RunnerOptions();
 
             try
@@ -209,15 +129,15 @@ namespace XUnitRunner
                         {
                             Console.WriteLine($"Iteration {i + 1} of {runnerOptions.iterations}");
                             WaitForIdle(runner, i, "Start");
-                            runner.Start();//typeName: null, diagnosticMessages: true, parallel: false
+                            runner.Start(); //typeName: null, diagnosticMessages: true, parallel: false
 
                             var offset = DateTime.Now - startTime;
                             if (runnerOptions.durationLimit > 0 && offset.TotalSeconds > runnerOptions.durationLimit)
                             {
                                 break;
                             }
-                            WaitForIdle(runner, i, "Dispose");
 
+                            WaitForIdle(runner, i, "Dispose");
                         }
                     }
                 }
@@ -234,7 +154,7 @@ namespace XUnitRunner
         }
 
         /// <summary>
-        /// Waits for Idle status. XUnit will not Start or Dispose if the state is not in an Idle status
+        ///     Waits for Idle status. XUnit will not Start or Dispose if the state is not in an Idle status
         /// </summary>
         /// <param name="runner">The runner.</param>
         /// <param name="currentIteration">The current iteration.</param>
@@ -258,5 +178,75 @@ namespace XUnitRunner
                 break;
             }
         }
+
+        #region Events
+
+        private static void OnDiscoveryComplete(DiscoveryCompleteInfo info)
+        {
+            lock (ConsoleLock)
+            {
+                var oldColor = Console.ForegroundColor;
+                if (info.TestCasesToRun == 0)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                }
+
+                Console.WriteLine($"Running {info.TestCasesToRun} of {info.TestCasesDiscovered} tests...");
+                Console.ForegroundColor = oldColor;
+            }
+        }
+
+        private static void OnExecutionComplete(ExecutionCompleteInfo info)
+        {
+            Finished.Set();
+        }
+
+        private static void OnTestPassed(TestPassedInfo info)
+        {
+            var start = DateTime.Now.AddSeconds((double) info.ExecutionTime * -1);
+            var item = new ReportItem
+            {
+                StartTime = (start.ToUniversalTime().Ticks - 621355968000000000) / 10000000,
+                Duration = info.ExecutionTime,
+                TestCase = info.MethodName,
+                TestSuite = info.TypeName,
+                ErrorMessage = "",
+                ErrorTrace = "",
+                Status = "PASSED"
+            };
+            _recordingListener.WriteReport(item);
+        }
+
+        private static void OnTestSkipped(TestSkippedInfo info)
+        {
+            var item = new ReportItem
+            {
+                Duration = 0,
+                TestCase = info.MethodName,
+                TestSuite = info.TypeName,
+                ErrorMessage = info.SkipReason.Trim(),
+                Status = "SKIPPED"
+            };
+            _recordingListener.WriteReport(item);
+        }
+
+
+        private static void OnTestFailed(TestFailedInfo info)
+        {
+            var start = DateTime.Now.AddSeconds((double) info.ExecutionTime * -1);
+            var item = new ReportItem
+            {
+                StartTime = (start.ToUniversalTime().Ticks - 621355968000000000) / 10000000,
+                Duration = info.ExecutionTime,
+                TestCase = info.MethodName,
+                TestSuite = info.TypeName,
+                ErrorMessage = info.ExceptionMessage.Trim(),
+                ErrorTrace = info.ExceptionStackTrace.Trim(),
+                Status = "FAILED"
+            };
+            _recordingListener.WriteReport(item);
+        }
+
+        #endregion
     }
 }
