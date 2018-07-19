@@ -67,8 +67,9 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.class_path = []
         self._tools = []
         self._java_scripts = []
+        self._full_install = True
 
-    def install_required_tools(self, full_install=True):
+    def install_required_tools(self):
         selenium_link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
         selenium_path = self.settings.get("selenium-server", SELENIUM_SERVER_PATH)
         self._add_jar_tool(SeleniumServerJar(selenium_path, selenium_link, self.log))
@@ -81,7 +82,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
         self._add_jar_tool(TaurusJavaHelperJar(self.log))
 
-        if full_install or self._java_scripts:
+        if self._full_install or self._java_scripts:
             self._tools.append(JavaC(self.log))
 
         self._tools.append(TclLibrary(self.log))
@@ -114,7 +115,8 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         # expand user-defined class path elements
         self.class_path = [self.engine.find_file(x) for x in self.class_path]
 
-        self.install_required_tools(full_install=False)
+        self._full_install = False  # should we move it to install_required_tools() params?
+        self.install_required_tools()
 
         self._compile_scripts()
 
@@ -221,11 +223,11 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
     """
     Allows to test java and jar files
     """
-    def install_required_tools(self, full_install=True):
+    def install_required_tools(self):
         junit_path = self.engine.find_file(self.settings.get("path", JUNIT_PATH))
         self._add_jar_tool(JUnitJar(junit_path, self.log, JUNIT_VERSION))
 
-        super(JUnitTester, self).install_required_tools(full_install)
+        super(JUnitTester, self).install_required_tools()
 
     def startup(self):
         # java -cp junit.jar:selenium-test-small.jar:
@@ -293,11 +295,11 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
     """
     __test__ = False  # Hello, nosetests discovery mechanism
 
-    def install_required_tools(self, full_install=True):
+    def install_required_tools(self):
         testng_path = self.engine.find_file(self.settings.get("path", TESTNG_PATH))
         self._add_jar_tool(TestNGJar(testng_path, TESTNG_DOWNLOAD_LINK))
 
-        super(TestNGTester, self).install_required_tools(full_install)
+        super(TestNGTester, self).install_required_tools()
 
     def detected_testng_xml(self):
         script_path = self.get_script_path()
