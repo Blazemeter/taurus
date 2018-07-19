@@ -1041,7 +1041,7 @@ class RequiredTool(object):
     def __init__(self, tool_name, tool_path, download_link="", http_client=None):
         self.http_client = http_client
         self.tool_name = tool_name
-        self.tool_path = get_full_path(tool_path, default="")
+        self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
