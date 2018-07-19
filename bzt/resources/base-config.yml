@@ -37,7 +37,7 @@ modules:
   nunit:
     class: bzt.modules.csharp.NUnitExecutor
   xunit:
-    class: bzt.modules.csharp.XUnitExecutor
+    class: bzt.modules.dotnet.XUnitExecutor
   pytest:
     class: bzt.modules.python.PyTestExecutor
   wdio:
