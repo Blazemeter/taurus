@@ -46,6 +46,12 @@ HAMCREST_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/ham
 
 JSON_JAR_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/json/json/20160810/json-20160810.jar"
 
+JUNIT_PATH = "~/.bzt/selenium-taurus/tools/junit/junit.jar"
+HAMCREST_PATH = "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar"
+JSON_JAR_PATH = "~/.bzt/selenium-taurus/tools/junit/json.jar"
+SELENIUM_SERVER_PATH = "~/.bzt/selenium-taurus/selenium-server.jar"
+TESTNG_PATH = "~/.bzt/selenium-taurus/tools/testng/testng.jar"
+
 
 class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
     """
@@ -60,12 +66,13 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.props_file = None
         self.class_path = []
         self._tools = []
-        self.hamcrest_path = "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar"
-        self.json_jar_path = "~/.bzt/selenium-taurus/tools/junit/json.jar"
-        self.selenium_server_path = "~/.bzt/selenium-taurus/selenium-server.jar"
 
     def install_required_tools(self):
         self._check_tools(self._tools)
+
+    def _add_jar_tool(self, req_tool):
+        self._tools.append(req_tool)
+        self.class_path.append(req_tool.tool_path)
 
     def prepare(self):
         self.script = self.get_script_path(required=True)
@@ -83,23 +90,20 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.class_path.extend(self.settings.get("additional-classpath", []))
         self.class_path.extend(self.get_scenario().get("additional-classpath", []))
 
-        self.selenium_server_path = self.settings.get("selenium-server", self.selenium_server_path)
-        self.hamcrest_path = self.settings.get("hamcrest-core", self.hamcrest_path)
-        self.json_jar_path = self.settings.get("json-jar", self.json_jar_path)
-
-        self.class_path.extend([self.hamcrest_path, self.json_jar_path, self.selenium_server_path])
-
-        link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
-        self._tools.append(SeleniumServerJar(self.selenium_server_path, link, self.log))
-
-        self._tools.append(HamcrestJar(self.hamcrest_path, HAMCREST_DOWNLOAD_LINK))
-        self._tools.append(JsonJar(self.json_jar_path, JSON_JAR_DOWNLOAD_LINK))
-
-        helper = TaurusJavaHelperJar(self.log)
-        self._tools.append(helper)
-        self.class_path.append(helper.tool_path)
-
+        # expand user-defined class path elements
         self.class_path = [self.engine.find_file(x) for x in self.class_path]
+
+        selenium_link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
+        selenium_path = self.settings.get("selenium-server", SELENIUM_SERVER_PATH)
+        self._add_jar_tool(SeleniumServerJar(selenium_path, selenium_link, self.log))
+
+        hamcrest_path = self.settings.get("hamcrest-core", HAMCREST_PATH)
+        self._add_jar_tool(HamcrestJar(hamcrest_path, HAMCREST_DOWNLOAD_LINK))
+
+        json_jar_path = self.settings.get("json-jar", JSON_JAR_PATH)
+        self._add_jar_tool(JsonJar(json_jar_path, JSON_JAR_DOWNLOAD_LINK))
+
+        self._add_jar_tool(TaurusJavaHelperJar(self.log))
 
         java_scripts = self._collect_script_files({'.java'})
         if java_scripts:
@@ -213,15 +217,9 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
     """
     Allows to test java and jar files
     """
-
-    def __init__(self):
-        super(JUnitTester, self).__init__()
-        self.junit_path = "~/.bzt/selenium-taurus/tools/junit/junit.jar"
-
     def prepare(self):
-        self.junit_path = self.engine.find_file(self.settings.get("path", self.junit_path))
-        self._tools.append(JUnitJar(self.junit_path, self.log, JUNIT_VERSION))
-        self.class_path.append(self.junit_path)
+        junit_path = self.engine.find_file(self.settings.get("path", JUNIT_PATH))
+        self._add_jar_tool(JUnitJar(junit_path, self.log, JUNIT_VERSION))
 
         super(JUnitTester, self).prepare()
 
@@ -291,14 +289,9 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
     """
     __test__ = False  # Hello, nosetests discovery mechanism
 
-    def __init__(self):
-        super(TestNGTester, self).__init__()
-        self.testng_path = "~/.bzt/selenium-taurus/tools/testng/testng.jar"
-
     def prepare(self):
-        self.testng_path = self.engine.find_file(self.settings.get("path", self.testng_path))
-        self.class_path.append(self.testng_path)
-        self._tools.append(TestNGJar(self.testng_path, TESTNG_DOWNLOAD_LINK))
+        testng_path = self.engine.find_file(self.settings.get("path", TESTNG_PATH))
+        self._add_jar_tool(TestNGJar(self.testng_path, TESTNG_DOWNLOAD_LINK))
 
         super(TestNGTester, self).prepare()
 

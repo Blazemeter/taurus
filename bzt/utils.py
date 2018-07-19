@@ -1041,7 +1041,7 @@ class RequiredTool(object):
     def __init__(self, tool_name, tool_path, download_link="", http_client=None):
         self.http_client = http_client
         self.tool_name = tool_name
-        self.tool_path = tool_path
+        self.tool_path = get_full_path(tool_path, default="")
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
@@ -1520,8 +1520,6 @@ class TaurusJavaHelperJar(RequiredTool):
                "%s/taurus-java-helpers-%s.jar" % (VERSION, VERSION)
     INSTALL_PATH = "~/.bzt/java-helper/%s/taurus-java-helpers.jar" % VERSION
 
-    def __init__(self, log):
-        super(TaurusJavaHelperJar, self).__init__("TaurusJavaHelperJar",
-                                                  os.path.expanduser(self.INSTALL_PATH),
-                                                  self.DWN_LINK)
-        self.log = log
+    def __init__(self, logger):
+        super(TaurusJavaHelperJar, self).__init__("TaurusJavaHelperJar", self.INSTALL_PATH, self.DWN_LINK)
+        self.log = logger
