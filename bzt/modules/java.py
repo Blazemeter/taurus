@@ -291,7 +291,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
     def prepare(self):
         testng_path = self.engine.find_file(self.settings.get("path", TESTNG_PATH))
-        self._add_jar_tool(TestNGJar(self.testng_path, TESTNG_DOWNLOAD_LINK))
+        self._add_jar_tool(TestNGJar(testng_path, TESTNG_DOWNLOAD_LINK))
 
         super(TestNGTester, self).prepare()
 
