@@ -81,7 +81,6 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
 
         self._add_jar_tool(TaurusJavaHelperJar(self.log))
 
-        self._java_scripts = self._collect_script_files({'.java'})
         if self._java_scripts:
             self._tools.append(JavaC(self.log))
 
@@ -98,6 +97,8 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.script = self.get_script_path(required=True)
 
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
+
+        self._java_scripts = self._collect_script_files({'.java'})
 
         self.props_file = self.engine.create_artifact("runner", ".properties")
 
