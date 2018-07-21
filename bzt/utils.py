@@ -1258,8 +1258,8 @@ class MirrorsManager(object):
         except BaseException:
             self.log.debug("Exception: %s", traceback.format_exc())
             self.log.error("Can't fetch %s", self.base_link)
-        mirrors = self._parse_mirrors()
-        return (mirror for mirror in mirrors)
+        return self._parse_mirrors()
+
 
 
 @contextmanager

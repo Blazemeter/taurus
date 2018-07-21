@@ -29,7 +29,6 @@ from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredToo
 
 SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.6/" \
                          "selenium-server-standalone-3.6.0.jar"
-SELENIUM_VERSION = "3.6"  # FIXME: unused, remove it
 
 JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/" \
                       "{version}/junit-{version}.jar"
