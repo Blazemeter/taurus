@@ -13,8 +13,7 @@ class HTTPProtocolHandler(ProtocolHandler):
 
         ci_scenario_headers = dic_lower(scenario.get_headers())
         ci_request_headers = dic_lower(req.headers)
-        headers = BetterDict()
-        headers.merge(ci_scenario_headers)
+        headers = BetterDict.from_dict(ci_scenario_headers)
         headers.merge(ci_request_headers)
         if header.lower() in headers:
             return headers[header]

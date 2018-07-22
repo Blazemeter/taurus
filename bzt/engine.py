@@ -1024,8 +1024,7 @@ class ScenarioExecutor(EngineModule):
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
-                    scenario = BetterDict()
-                    scenario.merge({Scenario.SCRIPT: label})
+                    scenario = BetterDict.from_dict({Scenario.SCRIPT: label})
                 else:
                     scenario = label
 

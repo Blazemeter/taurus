@@ -55,8 +55,7 @@ class SoapUI2YAML(object):
 
         self._cleanup_config(converted_config)
 
-        exporter = Configuration()
-        exporter.merge(converted_config)
+        exporter = Configuration.from_dict(converted_config)
 
         if self.options.file_name:
             file_name = self.options.file_name

@@ -176,6 +176,16 @@ class BetterDict(defaultdict):
     Wrapper for defaultdict that able to deep merge other dicts into itself
     """
 
+    @classmethod
+    def from_dict(cls, orig):
+        # https://stackoverflow.com/questions/50013768/how-can-i-convert-nested-dictionary-to-defaultdict/50013806
+        if isinstance(orig, dict):
+            return cls(lambda: None, {k: cls.from_dict(v) for k, v in orig.items()})
+        elif isinstance(orig, list):
+            return [cls.from_dict(e) for e in orig]
+        else:
+            return orig
+
     def get(self, key, default=defaultdict, force_set=False):
         """
         Change get with setdefault
@@ -273,8 +283,7 @@ class BetterDict(defaultdict):
         """
         for idx, obj in enumerate(values):
             if isinstance(obj, dict):
-                values[idx] = BetterDict()
-                values[idx].merge(obj)
+                values[idx] = BetterDict.from_dict(obj)
             elif isinstance(obj, list):
                 self.__ensure_list_type(obj)
 

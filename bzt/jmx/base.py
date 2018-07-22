@@ -197,8 +197,7 @@ class JMX(object):
             "url": False
         }
 
-        flags = BetterDict()
-        flags.merge(defaults)
+        flags = BetterDict.from_dict(defaults)
         if flag_overrides:
             flags.merge(flag_overrides)
 
@@ -238,8 +237,7 @@ class JMX(object):
             "threadCounts": True,
             "url": True
         }
-        flags = BetterDict()
-        flags.merge(default_flags)
+        flags = BetterDict.from_dict(default_flags)
         flags.merge(user_flags)
 
         if is_full:
