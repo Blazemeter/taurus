@@ -261,6 +261,7 @@ class BetterDict(defaultdict):
                     self[key] = val
             else:
                 self[key] = val
+        return self
 
     def __merge_list_elements(self, left, right, key):
         for index, righty in enumerate(right):
@@ -548,15 +549,13 @@ def ensure_is_dict(container, key, default_key=None):
     if (isinstance(container, dict) and key not in container) \
             or (isinstance(container, list) and not container[key]):
         if default_key:
-            container[key] = BetterDict()
-            container[key][default_key] = None
+            container[key] = BetterDict.from_dict({default_key: None})
         else:
             container[key] = BetterDict()
     elif not isinstance(container[key], dict):
         if default_key:
             val = container[key]
-            container[key] = BetterDict()
-            container[key][default_key] = val
+            container[key] = BetterDict.from_dict({default_key: val})
         else:
             container[key] = BetterDict()
 

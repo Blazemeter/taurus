@@ -1180,8 +1180,7 @@ class CloudTaurusTest(BaseCloudTest):
                 self._check_locations(engine_config[CloudProvisioning.LOC], available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
-                executor.execution[CloudProvisioning.LOC] = BetterDict()
-                executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
+                executor.execution[CloudProvisioning.LOC] = BetterDict.from_dict({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
@@ -1313,8 +1312,7 @@ class CloudCollectionTest(BaseCloudTest):
             else:
                 if not global_locations:
                     default_loc = self._get_default_location(available_locations)
-                    executor.execution[CloudProvisioning.LOC] = BetterDict()
-                    executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
+                    executor.execution[CloudProvisioning.LOC] = BetterDict.from_dict({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 

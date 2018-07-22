@@ -41,8 +41,7 @@ class TestMonitoring(BZTestCase):
         widget = obj.get_widget()
         obj.add_listener(widget)
 
-        crit_conf = BetterDict()
-        crit_conf.merge({"threshold": 5, "subject": "127.0.0.1:4444/cpu"})
+        crit_conf = BetterDict.from_dict({"threshold": 5, "subject": "127.0.0.1:4444/cpu"})
         criteria = MonitoringCriteria(crit_conf, obj)
         obj.add_listener(criteria)
 

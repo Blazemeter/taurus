@@ -40,6 +40,7 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
+from bzt.modules.aggregator import KPISet, DataPoint
 from bzt.requests_model import RequestsParser
 from bzt.six import numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
@@ -822,6 +823,8 @@ class Configuration(BetterDict):
 
 yaml.add_representer(Configuration, SafeRepresenter.represent_dict)
 yaml.add_representer(BetterDict, SafeRepresenter.represent_dict)
+yaml.add_representer(KPISet, SafeRepresenter.represent_dict)
+yaml.add_representer(DataPoint, SafeRepresenter.represent_dict)
 if PY2:
     yaml.add_representer(text_type, SafeRepresenter.represent_unicode)
 yaml.add_representer(str, str_representer)
@@ -965,7 +968,7 @@ class ScenarioExecutor(EngineModule):
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
         self.provisioning = None
-        self.execution = BetterDict()
+        self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
         self.__scenario = None
         self.label = None
         self.widget = None

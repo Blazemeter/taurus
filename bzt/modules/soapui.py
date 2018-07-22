@@ -325,8 +325,7 @@ class SoapUIScriptConverter(object):
         return extractors
 
     def _extract_scenario(self, test_case, case_level_props):
-        variables = BetterDict()
-        variables.merge(case_level_props)
+        variables = BetterDict.from_dict(case_level_props)
         requests = []
 
         extractors = BetterDict()
@@ -394,8 +393,7 @@ class SoapUIScriptConverter(object):
             "#TestCase#" + key: value
             for key, value in iteritems(case_properties)
             }
-        case_level_props = BetterDict()
-        case_level_props.merge(suite_level_props)
+        case_level_props = BetterDict.from_dict(suite_level_props)
         case_level_props.merge(case_properties)
 
         scenario = self._extract_scenario(test_case, case_level_props)
@@ -410,8 +408,7 @@ class SoapUIScriptConverter(object):
         project_properties = self._extract_properties(project, key_prefix="#Project#")
 
         for suite in test_suites:
-            suite_props = BetterDict()
-            suite_props.merge(project_properties)
+            suite_props = BetterDict.from_dict(project_properties)
             suite_props.merge(self._extract_properties(suite, key_prefix="#TestSuite#"))
 
             test_cases = suite.findall('.//con:testCase', namespaces=self.NAMESPACES)
