@@ -69,9 +69,8 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self._full_install = True
 
     def install_required_tools(self):
-        selenium_link = SELENIUM_DOWNLOAD_LINK.format(version=SELENIUM_VERSION)
         selenium_path = self.settings.get("selenium-server", SELENIUM_SERVER_PATH)
-        self._add_jar_tool(SeleniumServerJar(selenium_path, selenium_link, self.log))
+        self._add_jar_tool(SeleniumServerJar(selenium_path, SELENIUM_DOWNLOAD_LINK, self.log))
 
         hamcrest_path = self.settings.get("hamcrest-core", HAMCREST_PATH)
         self._add_jar_tool(HamcrestJar(hamcrest_path, HAMCREST_DOWNLOAD_LINK))
