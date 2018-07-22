@@ -95,7 +95,7 @@ class KPISet(BetterDict):
         self.sum_cn = 0
         self.perc_levels = perc_levels
         self.rtimes_len = rt_dist_maxlen
-        self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
+        self._concurrencies = Counter()
         # scalars
         self[KPISet.SAMPLE_COUNT] = 0
         self[KPISet.CONCURRENCY] = 0
@@ -110,7 +110,7 @@ class KPISet(BetterDict):
         self[KPISet.ERRORS] = []
         self[KPISet.RESP_TIMES] = RespTimesCounter(1, 60 * 30 * 1000, 3)  # is maximum value of 30 minutes enough?
         self[KPISet.RESP_CODES] = Counter()
-        self[KPISet.PERCENTILES] = BetterDict()
+        self[KPISet.PERCENTILES] = {}
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels)
@@ -285,7 +285,7 @@ class KPISet(BetterDict):
         return inst
 
 
-class DataPoint(BetterDict):
+class DataPoint(dict):
     """
     Represents an aggregate data point
 
@@ -308,8 +308,8 @@ class DataPoint(BetterDict):
         self.perc_levels = perc_levels
         self[self.SOURCE_ID] = None
         self[self.TIMESTAMP] = ts
-        self[self.CUMULATIVE] = BetterDict()
-        self[self.CURRENT] = BetterDict()
+        self[self.CUMULATIVE] = {}
+        self[self.CURRENT] = {}
         self[self.SUBRESULTS] = []
 
     def __deepcopy__(self, memo):
@@ -326,7 +326,7 @@ class DataPoint(BetterDict):
         :return:
         """
         for label, val in iteritems(src):
-            dest = dst.get(label, KPISet(self.perc_levels), force_set=True)
+            dest = dst.setdefault(label, KPISet(self.perc_levels))
             if not isinstance(val, KPISet):
                 val = KPISet.from_dict(val)
                 val.perc_levels = self.perc_levels
@@ -363,6 +363,7 @@ class DataPoint(BetterDict):
 yaml.add_representer(KPISet, SafeRepresenter.represent_dict)
 yaml.add_representer(DataPoint, SafeRepresenter.represent_dict)
 
+
 class ResultsProvider(object):
     """
     :type listeners: list[AggregatorListener]
@@ -370,7 +371,7 @@ class ResultsProvider(object):
 
     def __init__(self):
         super(ResultsProvider, self).__init__()
-        self.cumulative = BetterDict()
+        self.cumulative = {}
         self.track_percentiles = [0.0, 50.0, 90.0, 95.0, 99.0, 99.9, 100.0]
         self.listeners = []
         self.buffer_len = 2
@@ -408,7 +409,7 @@ class ResultsProvider(object):
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.get(label, KPISet(self.track_percentiles, self.rtimes_len), force_set=True)
+            cumul = self.cumulative.setdefault(label, KPISet(self.track_percentiles, self.rtimes_len))
             cumul.merge_kpis(data)
             cumul.recalculate()
 
@@ -503,10 +504,7 @@ class ResultsReader(ResultsProvider):
             if self.generalize_labels:
                 label = self.__generalize_label(label)
 
-            if label in current:
-                label = current[label]
-            else:
-                label = current.get(label, KPISet(self.track_percentiles), force_set=True)
+            label = current.setdefault(label, KPISet(self.track_percentiles))
 
             # empty means overall
             label.add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))

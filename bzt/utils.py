@@ -178,7 +178,9 @@ class BetterDict(defaultdict):
 
     @classmethod
     def from_dict(cls, orig):
+        """
         # https://stackoverflow.com/questions/50013768/how-can-i-convert-nested-dictionary-to-defaultdict/50013806
+        """
         if isinstance(orig, dict):
             return cls(lambda: None, {k: cls.from_dict(v) for k, v in orig.items()})
         elif isinstance(orig, list):

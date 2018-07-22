@@ -1832,7 +1832,7 @@ class ResultsFromBZA(ResultsProvider):
                 if err_diff:
                     for label in err_diff:
                         point_label = '' if label == 'ALL' else label
-                        kpiset = point[DataPoint.CURRENT].get(point_label, KPISet(), force_set=True)
+                        kpiset = point[DataPoint.CURRENT].setdefault(point_label, KPISet())
                         kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
                     self.prev_errors = self.cur_errors
 
