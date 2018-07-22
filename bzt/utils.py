@@ -203,10 +203,12 @@ class BetterDict(defaultdict):
         else:
             return value
 
-    def merge(self, src):
+    def merge(self, src, ignore_flags=False):
         """
         Deep merge other dict into current
-        '-'  - overwrite operation prefix for dict key
+        '~' - 'overwrite' operation prefix for dict key
+        '$' - 'elementwise-merge' operation prefix
+        '^' - 'eliminate' operation prefix
 
         :type src: dict
         """
@@ -215,23 +217,26 @@ class BetterDict(defaultdict):
 
         for key, val in iteritems(src):
             merge_list_items = False
-            if key.startswith("^"):  # eliminate flag
-                # TODO: improve logic - use val contents to see what to eliminate
-                if key[1:] in self:
-                    self.pop(key[1:])
-                continue
-            elif key.startswith("~"):  # overwrite flag
-                if key[1:] in self:
-                    self.pop(key[1:])
-                key = key[1:]
-            elif key.startswith("$"):
-                merge_list_items = True
-                key = key[1:]
+            if not ignore_flags:
+                if key.startswith("^"):  # eliminate flag
+                    # TODO: improve logic - use val contents to see what to eliminate
+                    if key[1:] in self:
+                        self.pop(key[1:])
+                    continue
+                elif key.startswith("~"):  # overwrite flag
+                    if key[1:] in self:
+                        self.pop(key[1:])
+                    key = key[1:]
+                    logging.info("overwrite enabled for key %r", key)
+                elif key.startswith("$"):
+                    merge_list_items = True
+                    key = key[1:]
+                    logging.info("merge list items enabled for key %r", key)
 
             if isinstance(val, dict):
                 dst = self.get(key, force_set=True)
                 if isinstance(dst, BetterDict):
-                    dst.merge(val)
+                    dst.merge(val, ignore_flags=ignore_flags)
                 elif isinstance(dst, Counter):
                     self[key] += val
                 elif isinstance(dst, dict):
@@ -274,7 +279,7 @@ class BetterDict(defaultdict):
         for idx, obj in enumerate(values):
             if isinstance(obj, dict):
                 values[idx] = BetterDict()
-                values[idx].merge(obj)
+                values[idx].merge(obj, ignore_flags=True)
             elif isinstance(obj, list):
                 self.__ensure_list_type(obj)
 

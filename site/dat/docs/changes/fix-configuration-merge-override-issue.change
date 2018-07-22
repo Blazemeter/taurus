@@ -1,0 +1,1 @@
+Fix configuration merge-override issue (when combining `$` and `~`)
