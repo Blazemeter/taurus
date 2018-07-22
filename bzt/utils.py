@@ -323,6 +323,9 @@ class BetterDict(defaultdict):
                     if not self.get(key):  # clear empty
                         del self[key]
 
+    def __repr__(self):
+        return dict(self).__repr__()
+
 
 def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     base = os.path.join(directory, prefix)

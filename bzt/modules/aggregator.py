@@ -23,12 +23,14 @@ import re
 from abc import abstractmethod
 from collections import Counter
 
-from hdrpy import HdrHistogram
+import yaml
+from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems
 from bzt.utils import BetterDict, dehumanize_time, JSONConvertable
+from hdrpy import HdrHistogram
 
 
 class RespTimesCounter(JSONConvertable):
@@ -357,6 +359,9 @@ class DataPoint(BetterDict):
         if do_recalculate:
             self.recalculate()
 
+
+yaml.add_representer(KPISet, SafeRepresenter.represent_dict)
+yaml.add_representer(DataPoint, SafeRepresenter.represent_dict)
 
 class ResultsProvider(object):
     """

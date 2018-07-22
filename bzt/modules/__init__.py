@@ -20,7 +20,7 @@ import os
 import time
 
 from bzt import ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, SelfDiagnosable
+from bzt.engine import ScenarioExecutor, FileLister, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
