@@ -29,7 +29,7 @@ from yaml.representer import SafeRepresenter
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems
-from bzt.utils import BetterDict, dehumanize_time, JSONConvertable
+from bzt.utils import dehumanize_time, JSONConvertable
 from hdrpy import HdrHistogram
 
 
@@ -66,7 +66,7 @@ class RespTimesCounter(JSONConvertable):
         }
 
 
-class KPISet(BetterDict):
+class KPISet(dict):
     """
     Main entity in results, contains all KPIs for single label,
     capable of merging other KPISet's into it to compose cumulative results
@@ -589,7 +589,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.generalize_labels = False
         self.ignored_labels = ["ignore"]
         self.underlings = []
-        self.buffer = BetterDict()
+        self.buffer = {}
         self.rtimes_len = 1000
 
     def prepare(self):
@@ -682,7 +682,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                         self.log.debug("Putting datapoint %s into %s", tstamp, mints)
                         data[DataPoint.TIMESTAMP] = mints
                         tstamp = mints
-                self.buffer.get(tstamp, [], force_set=True).append(data)
+                self.buffer.setdefault(tstamp, []).append(data)
 
     def _calculate_datapoints(self, final_pass=False):
         """
