@@ -2,6 +2,7 @@ import time
 
 import datetime
 
+from bzt import ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
 from tests import BZTestCase
@@ -107,3 +108,23 @@ class LocalProvisioningTest(BZTestCase):
             executor.is_has_results = True
 
         local.post_process()
+
+    def test_exception(self):
+        local = Local()
+        local.engine = EngineEmul()
+        local.engine.config[ScenarioExecutor.EXEC] = [{}]
+        local.engine.config.get("settings")["default-executor"] = "mock"
+        local.prepare()
+        local.startup()
+
+        local.check()
+
+        local.shutdown()
+        try:
+            local.post_process()
+        except ToolError as exc:
+            self.assertNotIn('DIAGNOSTICS', str(exc))
+            self.assertIsNotNone(exc.diagnostics)
+            self.assertEqual(exc.diagnostics, ['DIAGNOSTICS'])
+        except BaseException as exc:
+            self.fail("Was supposed to fail with ToolError, but crashed with %s" % exc)

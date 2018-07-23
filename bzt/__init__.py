@@ -58,13 +58,6 @@ class ToolError(TaurusException):
         :type message: str
         :type diagnostics: list[str]
         """
-        try:
-            if diagnostics:
-                message += "\n" + "\n".join(line for line in diagnostics)
-        except BaseException as exc:
-            logger = logging.getLogger()
-            logger.debug(traceback.format_exc())
-            logger.warn("Coulnd't extract diagnostics info from the tool: %s", str(exc))
         super(ToolError, self).__init__(message)
         self.diagnostics = diagnostics
 
