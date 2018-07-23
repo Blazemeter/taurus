@@ -24,8 +24,7 @@ class TestTsungExecutor(BZTestCase):
         self.obj = TsungExecutor()
         self.obj.engine = EngineEmul()
         self.obj.env = self.obj.engine.env
-        self.obj.settings = BetterDict()
-        self.obj.settings.merge({"path": get_res_path(TOOL_NAME)})
+        self.obj.settings = BetterDict.from_dict({"path": get_res_path(TOOL_NAME)})
         self.obj.execution = BetterDict()
 
     def test_prepare_no_script_no_requests(self):

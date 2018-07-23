@@ -72,7 +72,7 @@ def random_sample(ts, label='', conc=1):
 
 def random_datapoint(n):
     point = DataPoint(n)
-    overall = point[DataPoint.CURRENT].get('', KPISet(), force_set=True)
+    overall = point[DataPoint.CURRENT].setdefault('', KPISet())
     overall[KPISet.CONCURRENCY] = r(100)
     overall[KPISet.SAMPLE_COUNT] = int(100 * r(1000)) + 1
     overall[KPISet.SUCCESSES] = int(overall[KPISet.SAMPLE_COUNT] * random())
@@ -92,7 +92,7 @@ def random_datapoint(n):
     overall.sum_rt = overall[KPISet.AVG_RESP_TIME] * overall[KPISet.SAMPLE_COUNT]
     overall.sum_cn = overall[KPISet.AVG_CONN_TIME] * overall[KPISet.SAMPLE_COUNT]
     overall.sum_lt = overall[KPISet.AVG_LATENCY] * overall[KPISet.SAMPLE_COUNT]
-    cumul = point[DataPoint.CUMULATIVE].get('', KPISet(), force_set=True)
+    cumul = point[DataPoint.CUMULATIVE].setdefault('', KPISet())
     cumul.merge_kpis(overall)
     cumul.recalculate()
 

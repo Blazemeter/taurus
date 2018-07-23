@@ -317,8 +317,7 @@ class PBenchTool(object):
     def _build_request(self, request, scenario):
         path = self._get_request_path(request, scenario)
         http = "%s %s HTTP/1.1\r\n" % (request.method, path)
-        headers = BetterDict()
-        headers.merge({"Host": self.hostname})
+        headers = BetterDict.from_dict({"Host": self.hostname})
         if not scenario.get("keepalive", True):
             headers.merge({"Connection": 'close'})  # HTTP/1.1 implies keep-alive by default
         body = ""

@@ -635,8 +635,7 @@ class Swagger2YAML(object):
             self.log.error("Error while processing Swagger spec: %s", self.file_to_convert)
             raise
 
-        exporter = Configuration()
-        exporter.merge(converted_config)
+        exporter = Configuration.from_dict(converted_config)
 
         if self.options.file_name:
             file_name = self.options.file_name

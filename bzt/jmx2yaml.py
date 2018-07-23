@@ -1630,8 +1630,7 @@ class JMX2YAML(object):
             self.log.error("Error while processing jmx file: %s", self.src_file)
             raise
 
-        exporter = Configuration()
-        exporter.merge(jmx_as_dict)
+        exporter = Configuration.from_dict(jmx_as_dict)
 
         if self.options.file_name:
             self.dst_file = self.options.file_name

@@ -671,8 +671,8 @@ class Configuration(BetterDict):
     JSON = "JSON"
     YAML = "YAML"
 
-    def __init__(self):
-        super(Configuration, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(Configuration, self).__init__(*args, **kwargs)
         self.log = logging.getLogger('')
         self.dump_filename = None
         self.tab_replacement_spaces = 0
@@ -965,7 +965,7 @@ class ScenarioExecutor(EngineModule):
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
         self.provisioning = None
-        self.execution = BetterDict()
+        self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
         self.__scenario = None
         self.label = None
         self.widget = None
@@ -1024,8 +1024,7 @@ class ScenarioExecutor(EngineModule):
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
-                    scenario = BetterDict()
-                    scenario.merge({Scenario.SCRIPT: label})
+                    scenario = BetterDict.from_dict({Scenario.SCRIPT: label})
                 else:
                     scenario = label
 

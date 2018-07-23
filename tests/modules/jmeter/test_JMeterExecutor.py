@@ -788,8 +788,7 @@ class TestJMeterExecutor(BZTestCase):
 
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
-        self.obj.settings['properties'] = BetterDict()
-        self.obj.settings['properties'].merge({"a": 1})
+        self.obj.settings['properties'] = BetterDict.from_dict({"a": 1})
 
         self.obj.prepare()
         self.obj.startup()

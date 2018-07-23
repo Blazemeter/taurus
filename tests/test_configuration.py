@@ -216,3 +216,14 @@ class TestConfiguration(BZTestCase):
             dump = json.loads(fds.read())
         self.assertEqual(dump["foo"], "inf")
         self.assertEqual(dehumanize_time(dump["foo"]), float("inf"))
+
+    def test_overwrite_execution_locations(self):
+        obj = Configuration()
+        obj.merge({
+            "execution": [{"locations": {"us-central1-a": 1}}],
+        })
+        obj.merge({
+            "$execution": [{"~locations": {"harbor-1": 1}}],
+        })
+        logging.info(obj)
+        self.assertEqual(obj, {"execution": [{"locations": {"harbor-1": 1}}]})

@@ -358,8 +358,7 @@ class DataCriterion(FailCriterion):
         :type crit_config: str
         :rtype: dict
         """
-        res = BetterDict()
-        res.merge({
+        res = BetterDict.from_dict({
             "subject": None,
             "condition": None,
             "threshold": None,

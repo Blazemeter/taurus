@@ -20,12 +20,10 @@ class TestJUnitXML(BZTestCase):
         # test path parameter from config
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
 
         path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml-path-in-settings',
                                            dir=obj.engine.artifacts_dir)
-
-        obj.parameters.merge({"filename": path_from_config, "data-source": "sample-labels"})
+        obj.parameters = BetterDict.from_dict({"filename": path_from_config, "data-source": "sample-labels"})
 
         obj.prepare()
 
@@ -61,9 +59,7 @@ class TestJUnitXML(BZTestCase):
     def test_prepare_no_filename_in_settings(self):
         obj = JUnitXMLReporter()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
-
-        obj.parameters.merge({"data-source": "sample-labels"})
+        obj.parameters = BetterDict.from_dict({"data-source": "sample-labels"})
 
         obj.prepare()
         datapoint = DataPoint(0, [])
@@ -104,13 +100,12 @@ class TestJUnitXML(BZTestCase):
         rep = BlazeMeterUploader()
         rep.results_url = "http://report/123"
         obj.engine.reporters.append(rep)
-        obj.parameters = BetterDict()
 
         path_from_config = tempfile.mktemp(suffix='.xml', prefix='junit-xml-sample-labels',
                                            dir=obj.engine.artifacts_dir)
 
         # data-source: finalstats by default
-        obj.parameters.merge({"filename": path_from_config})
+        obj.parameters = BetterDict.from_dict({"filename": path_from_config})
 
         obj.prepare()
 
@@ -324,8 +319,7 @@ class TestJUnitXML(BZTestCase):
 
         pass_fail = PassFailStatus()
 
-        crit_cfg = BetterDict()
-        crit_cfg.merge({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
+        crit_cfg = BetterDict.from_dict({'stop': True, 'fail': True, 'timeframe': -1, 'threshold': '150ms',
                                   'condition': '<', 'subject': 'avg-rt'})
         criteria = DataCriterion(crit_cfg, pass_fail)
         pass_fail.criteria.append(criteria)

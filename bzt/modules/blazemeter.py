@@ -1180,8 +1180,7 @@ class CloudTaurusTest(BaseCloudTest):
                 self._check_locations(engine_config[CloudProvisioning.LOC], available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
-                executor.execution[CloudProvisioning.LOC] = BetterDict()
-                executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
+                executor.execution[CloudProvisioning.LOC] = BetterDict.from_dict({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
@@ -1313,8 +1312,7 @@ class CloudCollectionTest(BaseCloudTest):
             else:
                 if not global_locations:
                     default_loc = self._get_default_location(available_locations)
-                    executor.execution[CloudProvisioning.LOC] = BetterDict()
-                    executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
+                    executor.execution[CloudProvisioning.LOC] = BetterDict.from_dict({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
@@ -1834,7 +1832,7 @@ class ResultsFromBZA(ResultsProvider):
                 if err_diff:
                     for label in err_diff:
                         point_label = '' if label == 'ALL' else label
-                        kpiset = point[DataPoint.CURRENT].get(point_label, KPISet(), force_set=True)
+                        kpiset = point[DataPoint.CURRENT].setdefault(point_label, KPISet())
                         kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
                     self.prev_errors = self.cur_errors
 

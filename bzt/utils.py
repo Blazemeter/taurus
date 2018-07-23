@@ -176,6 +176,18 @@ class BetterDict(defaultdict):
     Wrapper for defaultdict that able to deep merge other dicts into itself
     """
 
+    @classmethod
+    def from_dict(cls, orig):
+        """
+        # https://stackoverflow.com/questions/50013768/how-can-i-convert-nested-dictionary-to-defaultdict/50013806
+        """
+        if isinstance(orig, dict):
+            return cls(lambda: None, {k: cls.from_dict(v) for k, v in orig.items()})
+        elif isinstance(orig, list):
+            return [cls.from_dict(e) for e in orig]
+        else:
+            return orig
+
     def get(self, key, default=defaultdict, force_set=False):
         """
         Change get with setdefault
@@ -251,6 +263,7 @@ class BetterDict(defaultdict):
                     self[key] = val
             else:
                 self[key] = val
+        return self
 
     def __merge_list_elements(self, left, right, key):
         for index, righty in enumerate(right):
@@ -273,8 +286,7 @@ class BetterDict(defaultdict):
         """
         for idx, obj in enumerate(values):
             if isinstance(obj, dict):
-                values[idx] = BetterDict()
-                values[idx].merge(obj)
+                values[idx] = BetterDict.from_dict(obj)
             elif isinstance(obj, list):
                 self.__ensure_list_type(obj)
 
@@ -312,6 +324,9 @@ class BetterDict(defaultdict):
                     self.get(key).filter(rules[key])
                     if not self.get(key):  # clear empty
                         del self[key]
+
+    def __repr__(self):
+        return dict(self).__repr__()
 
 
 def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
@@ -539,15 +554,13 @@ def ensure_is_dict(container, key, default_key=None):
     if (isinstance(container, dict) and key not in container) \
             or (isinstance(container, list) and not container[key]):
         if default_key:
-            container[key] = BetterDict()
-            container[key][default_key] = None
+            container[key] = BetterDict.from_dict({default_key: None})
         else:
             container[key] = BetterDict()
     elif not isinstance(container[key], dict):
         if default_key:
             val = container[key]
-            container[key] = BetterDict()
-            container[key][default_key] = val
+            container[key] = BetterDict.from_dict({default_key: val})
         else:
             container[key] = BetterDict()
 
