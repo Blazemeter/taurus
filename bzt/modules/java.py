@@ -278,7 +278,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         script_path = self.get_script_path()
         if script_path and self.settings.get("autodetect-xml", True):
             script_dir = get_full_path(script_path, step_up=1)
-            testng_xml = os.path.join(script_dir, 'testng.xml')
+            testng_xml = join(script_dir, 'testng.xml')
             if os.path.exists(testng_xml):
                 return testng_xml
         return None
@@ -371,14 +371,13 @@ class SeleniumTool(RequiredTool):
     VERSION = ""
 
     def __init__(self, tool_name, local_path, tool_file, maven_path, version=VERSION):
-        tool_name = tool_name.format(version=version)
         tool_file = tool_file.format(version=version)
         maven_path = maven_path.format(version=version)
 
         if not local_path:
             local_path = self.LOCAL_PATH.format(tool_file=tool_file)
 
-        local_path = local_path.format(version=self.VERSION)
+        local_path = local_path.format(tool_file=tool_file)
         download_link = self.MAVEN.format(maven_path=maven_path)
         super(SeleniumTool, self).__init__(tool_name=tool_name, tool_path=local_path, download_link=download_link)
 
