@@ -13,9 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import json
 import os
-import shutil
 import subprocess
 import time
 from os import listdir
@@ -25,31 +23,7 @@ from bzt import ToolError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.six import string_types
-from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, MirrorsManager, TaurusJavaHelperJar
-
-SELENIUM_DOWNLOAD_LINK = "http://selenium-release.storage.googleapis.com/3.6/" \
-                         "selenium-server-standalone-3.6.0.jar"
-
-JUNIT_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=junit/junit/" \
-                      "{version}/junit-{version}.jar"
-JUNIT_VERSION = "4.12"
-JUNIT_MIRRORS_SOURCE = "http://search.maven.org/solrsearch/select?q=g%3A%22junit%22%20AND%20a%3A%22" \
-                       "junit%22%20AND%20v%3A%22{version}%22&rows=20&wt=json".format(version=JUNIT_VERSION)
-
-TESTNG_VERSION = "6.8.5"
-TESTNG_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/testng/testng/" \
-                       "{version}/testng-{version}.jar".format(version=TESTNG_VERSION)
-
-HAMCREST_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/hamcrest/hamcrest-core" \
-                         "/1.3/hamcrest-core-1.3.jar"
-
-JSON_JAR_DOWNLOAD_LINK = "http://search.maven.org/remotecontent?filepath=org/json/json/20160810/json-20160810.jar"
-
-JUNIT_PATH = "~/.bzt/selenium-taurus/tools/junit/junit.jar"
-HAMCREST_PATH = "~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar"
-JSON_JAR_PATH = "~/.bzt/selenium-taurus/tools/junit/json.jar"
-SELENIUM_SERVER_PATH = "~/.bzt/selenium-taurus/selenium-server.jar"
-TESTNG_PATH = "~/.bzt/selenium-taurus/tools/testng/testng.jar"
+from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM, RequiredTool, TaurusJavaHelperJar
 
 
 class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
@@ -69,15 +43,9 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self._full_install = True
 
     def install_required_tools(self):
-        selenium_path = self.settings.get("selenium-server", SELENIUM_SERVER_PATH)
-        self._add_jar_tool(SeleniumServerJar(selenium_path, SELENIUM_DOWNLOAD_LINK, self.log))
-
-        hamcrest_path = self.settings.get("hamcrest-core", HAMCREST_PATH)
-        self._add_jar_tool(HamcrestJar(hamcrest_path, HAMCREST_DOWNLOAD_LINK))
-
-        json_jar_path = self.settings.get("json-jar", JSON_JAR_PATH)
-        self._add_jar_tool(JsonJar(json_jar_path, JSON_JAR_DOWNLOAD_LINK))
-
+        self._add_jar_tool(SeleniumServerJar(self.settings.get("selenium-server")))
+        self._add_jar_tool(HamcrestJar(self.settings.get("hamcrest-core")))
+        self._add_jar_tool(JsonJar(self.settings.get("json-jar")))
         self._add_jar_tool(TaurusJavaHelperJar(self.log))
 
         if self._full_install or self._java_scripts:
@@ -222,8 +190,14 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
     Allows to test java and jar files
     """
     def install_required_tools(self):
-        junit_path = self.engine.find_file(self.settings.get("path", JUNIT_PATH))
-        self._add_jar_tool(JUnitJar(junit_path, self.log, JUNIT_VERSION))
+        path = self.settings.get("path")   # todo: check creation of directory with junit.jar name and existed file
+
+        self._add_jar_tool(JUnitUpiterApi(path))
+        self._add_jar_tool(JUnitUpiterEngine(path))
+        self._add_jar_tool(JUnitPlatformLauncher(path))
+        self._add_jar_tool(JUnitPlatformRunner(path))
+        self._add_jar_tool(JUnitPlatformSuiteApi(path))
+        self._add_jar_tool(JUnitVintageEngine(path))
 
         super(JUnitTester, self).install_required_tools()
 
@@ -294,8 +268,7 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
     __test__ = False  # Hello, nosetests discovery mechanism
 
     def install_required_tools(self):
-        testng_path = self.engine.find_file(self.settings.get("path", TESTNG_PATH))
-        self._add_jar_tool(TestNGJar(testng_path, TESTNG_DOWNLOAD_LINK))
+        self._add_jar_tool(TestNGJar(self.settings.get("path")))
 
         super(TestNGTester, self).install_required_tools()
 
@@ -352,24 +325,9 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
         self._start_subprocess(cmdline)
 
 
-class TestNGJar(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(TestNGJar, self).__init__("TestNG", tool_path, download_link)
-
-
-class HamcrestJar(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(HamcrestJar, self).__init__("HamcrestJar", tool_path, download_link)
-
-
-class JsonJar(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(JsonJar, self).__init__("JsonJar", tool_path, download_link)
-
-
 class JavaC(RequiredTool):
-    def __init__(self, parent_logger, tool_path='javac', download_link=''):
-        super(JavaC, self).__init__("JavaC", tool_path, download_link)
+    def __init__(self, parent_logger, tool_path="javac"):
+        super(JavaC, self).__init__("JavaC", tool_path)
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
@@ -385,9 +343,12 @@ class JavaC(RequiredTool):
 
 
 class SeleniumServerJar(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(SeleniumServerJar, self).__init__("Selenium server", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, local_path):
+        download_link = "http://selenium-release.storage.googleapis.com/3.6/selenium-server-standalone-3.6.0.jar"
+        if not local_path:
+            local_path = "~/.bzt/selenium-taurus/selenium-server.jar"
+
+        super(SeleniumServerJar, self).__init__("Selenium server", local_path, download_link)
 
     def check_if_installed(self):
         self.log.debug("%s path: %s", self.tool_name, self.tool_path)
@@ -402,52 +363,97 @@ class SeleniumServerJar(RequiredTool):
             return False
 
 
-class JUnitJar(RequiredTool):
-    def __init__(self, tool_path, parent_logger, junit_version):
-        super(JUnitJar, self).__init__("JUnit", tool_path)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.version = junit_version
-        self.mirror_manager = JUnitMirrorsManager(self.log, self.version)
+class SeleniumTool(RequiredTool):
+    MAVEN = "http://search.maven.org/remotecontent?filepath={maven_path}"
+    LOCAL_PATH = "~/.bzt/selenium-taurus/{tool_file}"
+    VERSION = ""
 
-    def install(self):
-        dest = get_full_path(self.tool_path, step_up=1)
-        self.log.info("Will install %s into %s", self.tool_name, dest)
-        junit_dist = self._download(suffix=".jar")
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-        shutil.move(junit_dist, self.tool_path)
-        self.log.info("Installed JUnit successfully")
+    def __init__(self, tool_name, local_path, tool_file, maven_path, version=VERSION):
+        tool_name = tool_name.format(version=version)
+        tool_file = tool_file.format(version=version)
+        maven_path = maven_path.format(version=version)
 
-        if not self.check_if_installed():
-            raise ToolError("Unable to run %s after installation!" % self.tool_name)
+        if not local_path:
+            local_path = self.LOCAL_PATH.format(tool_file=tool_file)
+
+        local_path = local_path.format(version=self.VERSION)
+        download_link = self.MAVEN.format(maven_path=maven_path)
+        super(SeleniumTool, self).__init__(tool_name=tool_name, tool_path=local_path, download_link=download_link)
 
 
-class JUnitMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, junit_version):
-        self.junit_version = junit_version
-        super(JUnitMirrorsManager, self).__init__(JUNIT_MIRRORS_SOURCE, parent_logger)
+class JsonJar(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/json/json/20160810/json-20160810.jar"
+        super(JsonJar, self).__init__("JsonJar", tool_path, tool_file="json.jar", maven_path=maven_path)
 
-    def _parse_mirrors(self):
-        links = []
-        if self.page_source is not None:
-            self.log.debug('Parsing mirrors...')
-            try:
-                resp = json.loads(self.page_source)
-                objects = resp.get("response", {}).get("docs", [])
-                if objects:
-                    obj = objects[0]
-                    group = obj.get("g")
-                    artifact = obj.get("a")
-                    version = obj.get("v")
-                    ext = obj.get("p")
-                    link_template = "http://search.maven.org/remotecontent?filepath={group}/{artifact}/" \
-                                    "{version}/{artifact}-{version}.{ext}"
-                    link = link_template.format(group=group, artifact=artifact, version=version, ext=ext)
-                    links.append(link)
-            except BaseException as exc:
-                self.log.error("Error while parsing mirrors %s", exc)
-        default_link = JUNIT_DOWNLOAD_LINK.format(version=self.junit_version)
-        if default_link not in links:
-            links.append(default_link)
-        self.log.debug('Total mirrors: %d', len(links))
-        return links
+
+class TestNGJar(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/testng/testng/{version}/testng-{version}.jar"
+        version = "6.8.5"
+        tool_file = "testng-{version}.jar"
+        super(TestNGJar, self).__init__("TestNG", tool_path, tool_file, maven_path, version)
+
+
+class HamcrestJar(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/hamcrest/hamcrest-core/1.3/hamcrest-core-{version}.jar"
+        tool_file = "hamcrest-core-{version}.jar"
+        version = "1.3"
+        super(HamcrestJar, self).__init__("HamcrestJar", tool_path, tool_file, maven_path, version)
+
+
+class JUnitUpiterApi(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/junit/upiter/junit-jupiter-api-{version}.jar"
+        tool_file = "junit-jupiter-api-{version}.jar"
+        version = "5.2.0"
+        super(JUnitUpiterApi, self).__init__("JUnitUpiterApi", tool_path, tool_file, maven_path, version)
+
+
+class JUnitUpiterEngine(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/junit/upiter/junit-jupiter-engine-{version}.jar"
+        tool_file = "junit-jupiter-engine-{version}.jar"
+        version = "5.2.0"
+        super(JUnitUpiterEngine, self).__init__("JUnitUpiterEngine", tool_path, tool_file, maven_path, version)
+
+
+class JUnitPlatformCommons(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/junit/platform/junit-platform-commons-{version}.jar"
+        tool_file = "junit-platform-commons-{version}.jar"
+        version = "1.2.0"
+        super(JUnitPlatformCommons, self).__init__("JUnitPlatformCommons", tool_path, tool_file, maven_path, version)
+
+
+class JUnitPlatformLauncher(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/junit/platform/junit-platform-launcher-{version}.jar"
+        tool_file = "junit-platform-launcher-{version}.jar"
+        version = "1.2.0"
+        super(JUnitPlatformLauncher, self).__init__("JUnitPlatformLauncher", tool_path, tool_file, maven_path, version)
+
+
+class JUnitPlatformRunner(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/junit/platform/junit-platform-runner-{version}.jar"
+        tool_file = "junit-platform-runner-{version}.jar"
+        version = "1.2.0"
+        super(JUnitPlatformRunner, self).__init__("JUnitPlatformRunner", tool_path, tool_file, maven_path, version)
+
+
+class JUnitPlatformSuiteApi(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/junit/platform/junit-platform-suite-api-{version}.jar"
+        tool_file = "junit-platform-suite-api-{version}.jar"
+        version = "1.2.0"
+        super(JUnitPlatformSuiteApi, self).__init__("JUnitPlatformSuiteApi", tool_path, tool_file, maven_path, version)
+
+
+class JUnitVintageEngine(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/junit/vintage/junit-vintage-engine-{version}.jar"
+        tool_file = "junit-vintage-engine-{version}.jar"
+        version = "5.2.0"
+        super(JUnitVintageEngine, self).__init__("JUnitVintageEngine", tool_path, tool_file, maven_path, version)
