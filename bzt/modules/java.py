@@ -429,6 +429,14 @@ class JUnitPlatformCommons(SeleniumTool):
         super(JUnitPlatformCommons, self).__init__("JUnitPlatformCommons", tool_path, tool_file, maven_path, version)
 
 
+class JUnitPlatformEngine(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/junit/platform/junit-platform-engine-{version}.jar"
+        tool_file = "junit-platform-engine-{version}.jar"
+        version = "1.2.0"
+        super(JUnitPlatformEngine, self).__init__("JUnitPlatformEngine", tool_path, tool_file, maven_path, version)
+
+
 class JUnitPlatformLauncher(SeleniumTool):
     def __init__(self, tool_path):
         maven_path = "org/junit/platform/junit-platform-launcher-{version}.jar"
