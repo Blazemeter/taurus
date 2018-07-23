@@ -192,8 +192,10 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
     def install_required_tools(self):
         path = self.settings.get("path")   # todo: check creation of directory with junit.jar name and existed file
 
-        self._add_jar_tool(JUnitUpiterApi(path))
-        self._add_jar_tool(JUnitUpiterEngine(path))
+        self._add_jar_tool(JUnitJupiterApi(path))
+        self._add_jar_tool(JUnitJupiterEngine(path))
+        self._add_jar_tool(JUnitPlatformCommons(path))
+        self._add_jar_tool(JUnitPlatformEngine(path))
         self._add_jar_tool(JUnitPlatformLauncher(path))
         self._add_jar_tool(JUnitPlatformRunner(path))
         self._add_jar_tool(JUnitPlatformSuiteApi(path))
@@ -403,20 +405,20 @@ class HamcrestJar(SeleniumTool):
         super(HamcrestJar, self).__init__("HamcrestJar", tool_path, tool_file, maven_path, version)
 
 
-class JUnitUpiterApi(SeleniumTool):
+class JUnitJupiterApi(SeleniumTool):
     def __init__(self, tool_path):
-        maven_path = "org/junit/upiter/junit-jupiter-api-{version}.jar"
+        maven_path = "org/junit/jupiter/junit-jupiter-api-{version}.jar"
         tool_file = "junit-jupiter-api-{version}.jar"
         version = "5.2.0"
-        super(JUnitUpiterApi, self).__init__("JUnitUpiterApi", tool_path, tool_file, maven_path, version)
+        super(JUnitJupiterApi, self).__init__("JUnitJupiterApi", tool_path, tool_file, maven_path, version)
 
 
-class JUnitUpiterEngine(SeleniumTool):
+class JUnitJupiterEngine(SeleniumTool):
     def __init__(self, tool_path):
-        maven_path = "org/junit/upiter/junit-jupiter-engine-{version}.jar"
+        maven_path = "org/junit/jupiter/junit-jupiter-engine-{version}.jar"
         tool_file = "junit-jupiter-engine-{version}.jar"
         version = "5.2.0"
-        super(JUnitUpiterEngine, self).__init__("JUnitUpiterEngine", tool_path, tool_file, maven_path, version)
+        super(JUnitJupiterEngine, self).__init__("JUnitJupiterEngine", tool_path, tool_file, maven_path, version)
 
 
 class JUnitPlatformCommons(SeleniumTool):
