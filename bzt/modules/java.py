@@ -190,7 +190,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
     Allows to test java and jar files
     """
     def install_required_tools(self):
-        path = self.settings.get("path")   # todo: check creation of directory with junit.jar name and existed file
+        path = self.settings.get("path")   # todo: check creation of junit.jar directory if this file existed
 
         self._add_jar_tool(JUnitJupiterApi(path))
         self._add_jar_tool(JUnitJupiterEngine(path))
