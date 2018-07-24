@@ -200,6 +200,9 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         self._add_jar_tool(JUnitPlatformRunner(path))
         self._add_jar_tool(JUnitPlatformSuiteApi(path))
         self._add_jar_tool(JUnitVintageEngine(path))
+        self._add_jar_tool(ApiGuardian(path))
+        self._add_jar_tool(OpenTest4j(path))
+        self._add_jar_tool(JUnit(path))
 
         super(JUnitTester, self).install_required_tools()
 
@@ -241,6 +244,11 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
             props = self.settings.get("properties")
             props.merge(scenario.get("properties"))
             props.merge(self.execution.get("properties"))
+
+            junit_version = str(self.settings.get("junit-version", "5"))
+            if junit_version == "5":
+                props.merge({"junit_version": 5})
+
             for key in sorted(props.keys()):
                 fds.write("%s=%s\n" % (key, props[key]))
 
@@ -406,7 +414,7 @@ class HamcrestJar(SeleniumTool):
 
 class JUnitJupiterApi(SeleniumTool):
     def __init__(self, tool_path):
-        maven_path = "org/junit/jupiter/junit-jupiter-api-{version}.jar"
+        maven_path = "org/junit/jupiter/junit-jupiter-api/{version}/junit-jupiter-api-{version}.jar"
         tool_file = "junit-jupiter-api-{version}.jar"
         version = "5.2.0"
         super(JUnitJupiterApi, self).__init__("JUnitJupiterApi", tool_path, tool_file, maven_path, version)
@@ -414,7 +422,7 @@ class JUnitJupiterApi(SeleniumTool):
 
 class JUnitJupiterEngine(SeleniumTool):
     def __init__(self, tool_path):
-        maven_path = "org/junit/jupiter/junit-jupiter-engine-{version}.jar"
+        maven_path = "org/junit/jupiter/junit-jupiter-engine/{version}/junit-jupiter-engine-{version}.jar"
         tool_file = "junit-jupiter-engine-{version}.jar"
         version = "5.2.0"
         super(JUnitJupiterEngine, self).__init__("JUnitJupiterEngine", tool_path, tool_file, maven_path, version)
@@ -422,7 +430,7 @@ class JUnitJupiterEngine(SeleniumTool):
 
 class JUnitPlatformCommons(SeleniumTool):
     def __init__(self, tool_path):
-        maven_path = "org/junit/platform/junit-platform-commons-{version}.jar"
+        maven_path = "org/junit/platform/junit-platform-commons/{version}/junit-platform-commons-{version}.jar"
         tool_file = "junit-platform-commons-{version}.jar"
         version = "1.2.0"
         super(JUnitPlatformCommons, self).__init__("JUnitPlatformCommons", tool_path, tool_file, maven_path, version)
@@ -430,7 +438,7 @@ class JUnitPlatformCommons(SeleniumTool):
 
 class JUnitPlatformEngine(SeleniumTool):
     def __init__(self, tool_path):
-        maven_path = "org/junit/platform/junit-platform-engine-{version}.jar"
+        maven_path = "org/junit/platform/junit-platform-engine/{version}/junit-platform-engine-{version}.jar"
         tool_file = "junit-platform-engine-{version}.jar"
         version = "1.2.0"
         super(JUnitPlatformEngine, self).__init__("JUnitPlatformEngine", tool_path, tool_file, maven_path, version)
@@ -438,7 +446,7 @@ class JUnitPlatformEngine(SeleniumTool):
 
 class JUnitPlatformLauncher(SeleniumTool):
     def __init__(self, tool_path):
-        maven_path = "org/junit/platform/junit-platform-launcher-{version}.jar"
+        maven_path = "org/junit/platform/junit-platform-launcher/{version}/junit-platform-launcher-{version}.jar"
         tool_file = "junit-platform-launcher-{version}.jar"
         version = "1.2.0"
         super(JUnitPlatformLauncher, self).__init__("JUnitPlatformLauncher", tool_path, tool_file, maven_path, version)
@@ -446,7 +454,7 @@ class JUnitPlatformLauncher(SeleniumTool):
 
 class JUnitPlatformRunner(SeleniumTool):
     def __init__(self, tool_path):
-        maven_path = "org/junit/platform/junit-platform-runner-{version}.jar"
+        maven_path = "org/junit/platform/junit-platform-runner/{version}/junit-platform-runner-{version}.jar"
         tool_file = "junit-platform-runner-{version}.jar"
         version = "1.2.0"
         super(JUnitPlatformRunner, self).__init__("JUnitPlatformRunner", tool_path, tool_file, maven_path, version)
@@ -454,7 +462,7 @@ class JUnitPlatformRunner(SeleniumTool):
 
 class JUnitPlatformSuiteApi(SeleniumTool):
     def __init__(self, tool_path):
-        maven_path = "org/junit/platform/junit-platform-suite-api-{version}.jar"
+        maven_path = "org/junit/platform/junit-platform-suite-api/{version}/junit-platform-suite-api-{version}.jar"
         tool_file = "junit-platform-suite-api-{version}.jar"
         version = "1.2.0"
         super(JUnitPlatformSuiteApi, self).__init__("JUnitPlatformSuiteApi", tool_path, tool_file, maven_path, version)
@@ -462,7 +470,32 @@ class JUnitPlatformSuiteApi(SeleniumTool):
 
 class JUnitVintageEngine(SeleniumTool):
     def __init__(self, tool_path):
-        maven_path = "org/junit/vintage/junit-vintage-engine-{version}.jar"
+        maven_path = "org/junit/vintage/junit-vintage-engine/{version}/junit-vintage-engine-{version}.jar"
         tool_file = "junit-vintage-engine-{version}.jar"
         version = "5.2.0"
         super(JUnitVintageEngine, self).__init__("JUnitVintageEngine", tool_path, tool_file, maven_path, version)
+
+
+class ApiGuardian(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/apiguardian/apiguardian-api/{version}/apiguardian-api-{version}.jar"
+        tool_file = "apiguardian-api-{version}.jar"
+        version = "1.0.0"
+        super(ApiGuardian, self).__init__("ApiGuardian", tool_path, tool_file, maven_path, version)
+
+
+class OpenTest4j(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "org/opentest4j/opentest4j/{version}/opentest4j-{version}.jar"
+        tool_file = "opentest4j-{version}.jar"
+        version = "1.1.0"
+        super(OpenTest4j, self).__init__("OpenTest4j", tool_path, tool_file, maven_path, version)
+
+
+class JUnit(SeleniumTool):
+    def __init__(self, tool_path):
+        maven_path = "junit/junit/{version}/junit-{version}.jar"
+        tool_file = "junit-{version}.jar"
+        version = "4.12"
+        super(JUnit, self).__init__("JUnit", tool_path, tool_file, maven_path, version)
+

@@ -1515,7 +1515,7 @@ def is_url(url):
 
 
 class TaurusJavaHelperJar(RequiredTool):
-    VERSION = "1.1"
+    VERSION = "1.2"
     DWN_LINK = "http://search.maven.org/remotecontent?filepath=com/blazemeter/taurus-java-helpers/" \
                "%s/taurus-java-helpers-%s.jar" % (VERSION, VERSION)
     INSTALL_PATH = "~/.bzt/java-helper/%s/taurus-java-helpers.jar" % VERSION
