@@ -187,15 +187,17 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.log.info("Making .jar file completed")
 
 
-class JUnitTester(JavaTestRunner, HavingInstallableTools):
+class JUnitTester(JavaTestRunner):
     """
     Allows to test java and jar files
     """
     def install_required_tools(self):
         path = self.settings.get("path")
-        if not os.path.isdir(get_full_path(path)):
+        if os.path.isfile(get_full_path(path)):
             self.log.warning("JUnit path must point to directory.")
             path = ""
+        else:
+            path = os.path.join(path, "{tool_file}")
 
         self._add_jar_tool(JUnitJupiterApi(path))
         self._add_jar_tool(JUnitJupiterEngine(path))
@@ -276,7 +278,7 @@ class JUnitTester(JavaTestRunner, HavingInstallableTools):
         return exec_items
 
 
-class TestNGTester(JavaTestRunner, HavingInstallableTools):
+class TestNGTester(JavaTestRunner):
     """
     Allows to test java and jar files with TestNG
     """
@@ -284,7 +286,6 @@ class TestNGTester(JavaTestRunner, HavingInstallableTools):
 
     def install_required_tools(self):
         self._add_jar_tool(TestNG(self.settings.get("path")))
-
         super(TestNGTester, self).install_required_tools()
 
     def detected_testng_xml(self):

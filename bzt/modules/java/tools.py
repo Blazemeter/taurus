@@ -29,7 +29,7 @@ class JarTool(RequiredTool):
         maven_path = maven_path.format(version=version)
 
         if not local_path:
-            local_path = self.LOCAL_PATH.format(tool_file=tool_file)
+            local_path = self.LOCAL_PATH
 
         local_path = local_path.format(tool_file=tool_file)
         download_link = self.MAVEN_URL.format(maven_path=maven_path)
