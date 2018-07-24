@@ -185,7 +185,8 @@ class JUnit(JarTool):
 
 
 class TaurusJavaHelper(JarTool):
-    def __init__(self, tool_path):
+    def __init__(self):
+        tool_path = ""
         maven_path = "com/blazemeter/taurus-java-helpers/{version}/taurus-java-helpers-{version}.jar"
         tool_file = "taurus-java-helpers-{version}.jar"
         version = "1.2"
