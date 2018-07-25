@@ -136,7 +136,7 @@ class Local(Provisioning):
         """
         Call shutdown on executors
         """
-        exc_info = None
+        exc_info = exc_value = None
         for executor in self.executors:
             if executor in self.engine.started:
                 self.log.debug("Shutdown %s", executor)
@@ -147,14 +147,16 @@ class Local(Provisioning):
                     self.log.debug(msg, executor.__class__.__name__, exc, traceback.format_exc())
                     if not exc_info:
                         exc_info = sys.exc_info()
+                    if not exc_value:
+                        exc_value = exc
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)
 
     def post_process(self):
         """
         Post-process executors
         """
-        exc_info = None
+        exc_info = exc_value = None
         for executor in self.executors:
             if executor in self.engine.prepared:
                 self.log.debug("Post-process %s", executor)
@@ -173,5 +175,7 @@ class Local(Provisioning):
                     self.log.debug(msg, executor.__class__.__name__, exc, traceback.format_exc())
                     if not exc_info:
                         exc_info = sys.exc_info()
+                    if not exc_value:
+                        exc_value = exc
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)

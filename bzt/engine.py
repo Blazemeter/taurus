@@ -199,7 +199,7 @@ class Engine(object):
         calls `shutdown` in any case
         """
         self.log.info("Starting...")
-        exc_info = None
+        exc_info = exc_value = None
         try:
             self._startup()
             self.logging_level_down()
@@ -219,9 +219,11 @@ class Engine(object):
                     self.stopping_reason = exc
                 if not exc_info:
                     exc_info = sys.exc_info()
+                if not exc_value:
+                    exc_value = exc
 
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)
 
     def _check_modules_list(self):
         stop = False
@@ -262,7 +264,7 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         self.log.debug("Current stop reason: %s", self.stopping_reason)
-        exc_info = None
+        exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
             try:
@@ -272,10 +274,12 @@ class Engine(object):
                 self.log.debug("%s:\n%s", exc, traceback.format_exc())
                 if not exc_info:
                     exc_info = sys.exc_info()
+                if not exc_value:
+                    exc_value = exc
 
         self.config.dump()
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)
 
     def post_process(self):
         """
@@ -283,7 +287,7 @@ class Engine(object):
         """
         self.log.info("Post-processing...")
         # :type exception: BaseException
-        exc_info = None
+        exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         # services are last because of shellexec which is "final-final" action
         for module in modules:
@@ -299,10 +303,12 @@ class Engine(object):
                         self.stopping_reason = exc
                     if not exc_info:
                         exc_info = sys.exc_info()
+                    if not exc_value:
+                        exc_value = exc
         self.config.dump()
 
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)
 
     def create_artifact(self, prefix, suffix):
         """
@@ -671,8 +677,8 @@ class Configuration(BetterDict):
     JSON = "JSON"
     YAML = "YAML"
 
-    def __init__(self):
-        super(Configuration, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(Configuration, self).__init__(*args, **kwargs)
         self.log = logging.getLogger('')
         self.dump_filename = None
         self.tab_replacement_spaces = 0
@@ -965,7 +971,7 @@ class ScenarioExecutor(EngineModule):
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
         self.provisioning = None
-        self.execution = BetterDict()
+        self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
         self.__scenario = None
         self.label = None
         self.widget = None
@@ -1024,8 +1030,7 @@ class ScenarioExecutor(EngineModule):
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
-                    scenario = BetterDict()
-                    scenario.merge({Scenario.SCRIPT: label})
+                    scenario = BetterDict.from_dict({Scenario.SCRIPT: label})
                 else:
                     scenario = label
 

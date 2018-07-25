@@ -15,9 +15,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_summary_labels(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
+        obj.parameters = BetterDict.from_dict({"summary-labels": True, "percentiles": False, "summary": False, "test-duration": False})
         self.sniff_log(obj.log)
-        obj.parameters.merge({"summary-labels": True, "percentiles": False, "summary": False, "test-duration": False})
 
         obj.startup()
         obj.shutdown()
@@ -38,9 +37,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_failed_labels(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
+        obj.parameters = BetterDict.from_dict({"failed-labels": True, "percentiles": False, "summary": False, "test-duration": False})
         self.sniff_log(obj.log)
-        obj.parameters.merge({"failed-labels": True, "percentiles": False, "summary": False, "test-duration": False})
 
         obj.startup()
         obj.shutdown()
@@ -51,10 +49,9 @@ class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_percentiles(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
+        obj.parameters = BetterDict.from_dict({"failed-labels": False, "percentiles": True, "summary": False, "test-duration": False,
+                                               "summary-labels": False})
         self.sniff_log(obj.log)
-        obj.parameters.merge({"failed-labels": False, "percentiles": True, "summary": False, "test-duration": False,
-                              "summary-labels": False})
 
         obj.startup()
         obj.shutdown()
@@ -79,10 +76,9 @@ class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_samples_count(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
+        obj.parameters = BetterDict.from_dict({"failed-labels": False, "percentiles": False, "summary": True, "test-duration": False,
+                                               "summary-labels": False})
         self.sniff_log(obj.log)
-        obj.parameters.merge({"failed-labels": False, "percentiles": False, "summary": True, "test-duration": False,
-                              "summary-labels": False})
         obj.aggregated_second(self.__get_datapoint())
         obj.startup()
         obj.shutdown()
@@ -109,12 +105,11 @@ class TestFinalStatusReporter(BZTestCase):
     def test_dump(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
-        self.sniff_log(obj.log)
-        obj.parameters.merge({
+        obj.parameters = BetterDict.from_dict({
             "dump-xml": obj.engine.create_artifact("status", ".xml"),
             "dump-csv": obj.engine.create_artifact("status", ".csv")
         })
+        self.sniff_log(obj.log)
 
         obj.aggregated_second(random_datapoint(time.time()))
         obj.startup()
@@ -143,9 +138,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_func_report_all_no_stacktrace(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
+        obj.parameters = BetterDict.from_dict({"report-tests": "all", "print-stacktrace": False})
         self.sniff_log(obj.log)
-        obj.parameters.merge({"report-tests": "all", "print-stacktrace": False})
         obj.prepare()
         obj.startup()
         obj.shutdown()
@@ -274,9 +268,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_blazemeter_report_link(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
         xml_report = obj.engine.create_artifact("status", ".xml")
-        obj.parameters.merge({
+        obj.parameters = BetterDict.from_dict({
             "dump-xml": xml_report,
         })
 
@@ -298,9 +291,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_blazemeter_cloud_report_link(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
         xml_report = obj.engine.create_artifact("status", ".xml")
-        obj.parameters.merge({
+        obj.parameters = BetterDict.from_dict({
             "dump-xml": xml_report,
         })
 
@@ -322,9 +314,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_xml_report_test_duration(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
         xml_report = obj.engine.create_artifact("status", ".xml")
-        obj.parameters.merge({
+        obj.parameters = BetterDict.from_dict({
             "dump-xml": xml_report,
         })
 
@@ -349,9 +340,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_csv_report_fieldname_order(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict()
         csv_report = obj.engine.create_artifact("report", ".csv")
-        obj.parameters.merge({
+        obj.parameters = BetterDict.from_dict({
             "dump-csv": csv_report,
         })
 

@@ -4,7 +4,7 @@ import sys
 import yaml
 import tempfile
 
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, Configuration
 from bzt.jmx2yaml import JMX2YAML
 from bzt.utils import get_full_path, FileReader
 

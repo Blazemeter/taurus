@@ -234,8 +234,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.log.info("Scenario name '%s' is already taken, renaming to '%s'", scenario_name, new_name)
             scenario_name = new_name
 
-        merged_scenario = BetterDict()
-        merged_scenario.merge(conv_scenario)
+        merged_scenario = BetterDict.from_dict(conv_scenario)
         merged_scenario.merge(base_scenario.data)
         for field in [Scenario.SCRIPT, "test-case"]:
             if field in merged_scenario:

@@ -77,9 +77,10 @@ def get_stacktrace(exc):
     return ''.join(traceback.format_tb(exc.__traceback__)).rstrip()
 
 
-def reraise(exc_info):
+def reraise(exc_info, exc=None):
     _type, message, stacktrace = exc_info
-    exc = _type(message)
+    if exc is None:
+        exc = _type(message)
     exc.__traceback__ = stacktrace
     raise exc
 
