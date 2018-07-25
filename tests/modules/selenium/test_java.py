@@ -10,11 +10,10 @@ from os.path import exists, join, dirname
 import yaml
 
 from bzt.engine import ScenarioExecutor
-from bzt.modules import java
 from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
 from bzt.modules.java import JUnitTester, TestNGTester
 from bzt.modules.java.executors import JavaTestRunner
-from bzt.modules.java.tools import JUnit, JavaC, JarTool
+from bzt.modules.java.tools import JavaC, JarTool
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import ToolError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR
@@ -46,39 +45,43 @@ class TestTestNGTester(BZTestCase):
         self.obj.post_process()
 
     def test_install_tools(self):
-        dummy_installation_path = BUILD_DIR + "selenium-taurus"
-        base_link = "file:///" + RESOURCES_DIR + "selenium"
+        installation_path = BUILD_DIR + "selenium-taurus"
+        source_url = "file:///" + RESOURCES_DIR + "selenium/selenium-server.jar"
 
-        shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
+        shutil.rmtree(dirname(installation_path), ignore_errors=True)
 
-        selenium_server_link = java.SELENIUM_DOWNLOAD_LINK
-        testng_link = java.TESTNG_DOWNLOAD_LINK
-        hamcrest_link = java.HAMCREST_DOWNLOAD_LINK
+        saved_url = JarTool.URL
+        saved_local_path = JarTool.LOCAL_PATH
+
         try:
+            JarTool.URL = source_url
+            JarTool.LOCAL_PATH = join(installation_path, "{tool_file}")
 
-            java.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
-            java.TESTNG_DOWNLOAD_LINK = base_link + "/testng-6.8.5.jar"
-            java.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
-
-            self.assertFalse(exists(dummy_installation_path))
+            self.assertFalse(exists(installation_path))
 
             self.obj.settings.merge({
-                "selenium-server": join(dummy_installation_path, "selenium-server.jar"),
-                "hamcrest-core": join(dummy_installation_path, "tools", "testng", "hamcrest-core.jar"),
-                "path": join(dummy_installation_path, "tools", "testng", "testng.jar")
-            })
+                "selenium-server": join(installation_path, "selenium-server.jar"),
+                "hamcrest-core": join(installation_path, "tools", "testng", "hamcrest-core.jar"),
+                "path": JarTool.LOCAL_PATH})
 
             self.obj.execution.merge({
                 "scenario": {
                     "script": RESOURCES_DIR + "selenium/testng/jars/testng-suite.jar"}})
+
             self.obj.prepare()
-            self.assertTrue(exists(join(dummy_installation_path, "selenium-server.jar")))
-            self.assertTrue(exists(join(dummy_installation_path, "tools", "testng", "testng.jar")))
-            self.assertTrue(exists(join(dummy_installation_path, "tools", "testng", "hamcrest-core.jar")))
+
         finally:
-            java.SELENIUM_DOWNLOAD_LINK = selenium_server_link
-            java.TESTNG_DOWNLOAD_LINK = testng_link
-            java.HAMCREST_DOWNLOAD_LINK = hamcrest_link
+            JarTool.URL = saved_url
+            JarTool.LOCAL_PATH = saved_local_path
+
+        self.assertIsInstance(self.obj, TestNGTester)
+
+        jar_tools = [tool for tool in self.obj._tools if isinstance(tool, JarTool)]
+        self.assertTrue(15, len(jar_tools))
+
+        for tool in jar_tools:
+            msg = "Wrong path to {tool}: {path}".format(tool=str(tool), path=str(tool.tool_path))
+            self.assertTrue(os.path.isfile(tool.tool_path), msg)
 
     def test_failed_setup(self):
         self.obj.execution.merge({
@@ -155,17 +158,18 @@ class TestJUnitTester(BZTestCase):
                     "script": RESOURCES_DIR + "selenium/junit/jar/"},
                 "runner": "junit"})
             self.obj.prepare()
-            self.assertIsInstance(self.obj, JUnitTester)
-
-            jar_tools = [tool for tool in self.obj._tools if isinstance(tool, JarTool)]
-            self.assertTrue(15, len(jar_tools))
-
-            for tool in jar_tools:
-                msg = "Wrong path to {tool}: {path}".format(tool=str(tool), path=str(tool.tool_path))
-                self.assertTrue(os.path.isfile(tool.tool_path), msg)
         finally:
             JarTool.URL = saved_url
             JarTool.LOCAL_PATH = saved_local_path
+
+        self.assertIsInstance(self.obj, JUnitTester)
+
+        jar_tools = [tool for tool in self.obj._tools if isinstance(tool, JarTool)]
+        self.assertTrue(15, len(jar_tools))
+
+        for tool in jar_tools:
+            msg = "Wrong path to {tool}: {path}".format(tool=str(tool), path=str(tool.tool_path))
+            self.assertTrue(os.path.isfile(tool.tool_path), msg)
 
     def test_simple(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()

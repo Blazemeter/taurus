@@ -57,7 +57,7 @@ class JavaC(RequiredTool):
 
 class SeleniumServer(JarTool):
     VERSION = "3.6"
-    REMOTE_ADDR = "http://selenium-release.storage.googleapis.com/{remote_path}"
+    REMOTE_ADDR = "http://selenium-release.storage.googleapis.com/"
     REMOTE_PATH = "{version}/selenium-server-standalone-{version}.0.jar"
 
     def __init__(self, local_path):
