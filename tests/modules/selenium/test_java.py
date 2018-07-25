@@ -12,7 +12,9 @@ import yaml
 from bzt.engine import ScenarioExecutor
 from bzt.modules import java
 from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
-from bzt.modules.java import JUnitTester, JavaTestRunner, TestNGTester, JUnitJar, JUNIT_VERSION, JavaC
+from bzt.modules.java import JUnitTester, TestNGTester
+from bzt.modules.java.executors import JavaTestRunner
+from bzt.modules.java.tools import JUnit, JavaC, JarTool
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import ToolError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR
@@ -53,6 +55,7 @@ class TestTestNGTester(BZTestCase):
         testng_link = java.TESTNG_DOWNLOAD_LINK
         hamcrest_link = java.HAMCREST_DOWNLOAD_LINK
         try:
+
             java.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
             java.TESTNG_DOWNLOAD_LINK = base_link + "/testng-6.8.5.jar"
             java.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
@@ -127,27 +130,24 @@ class TestJUnitTester(BZTestCase):
         check installation of selenium-server, junit
         :return:
         """
-        dummy_installation_path = BUILD_DIR + "selenium-taurus"
-        base_link = "file:///" + RESOURCES_DIR + "selenium"
+        installation_path = BUILD_DIR + "selenium-taurus"
+        source_url = "file:///" + RESOURCES_DIR + "selenium/selenium-server.jar"
 
-        shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
+        shutil.rmtree(dirname(installation_path), ignore_errors=True)
 
-        selenium_server_link = java.SELENIUM_DOWNLOAD_LINK
-        junit_link = java.JUNIT_DOWNLOAD_LINK
-        junit_mirrors = java.JUNIT_MIRRORS_SOURCE
-        hamcrest_link = java.HAMCREST_DOWNLOAD_LINK
+        saved_url = JarTool.URL
+        saved_local_path = JarTool.LOCAL_PATH
+
         try:
-            java.SELENIUM_DOWNLOAD_LINK = base_link + "/selenium-server-standalone-2.46.0.jar"
-            java.JUNIT_DOWNLOAD_LINK = base_link + "/junit-4.12.jar"
-            java.JUNIT_MIRRORS_SOURCE = base_link + "unicode_file"
-            java.HAMCREST_DOWNLOAD_LINK = base_link + "/hamcrest-core-1.3.jar"
+            JarTool.URL = source_url
+            JarTool.LOCAL_PATH = join(installation_path, "{tool_file}")
 
-            self.assertFalse(exists(dummy_installation_path))
+            self.assertFalse(exists(installation_path))
 
             self.obj.settings.merge({
-                "selenium-server": join(dummy_installation_path, "selenium-server.jar"),
-                "hamcrest-core": join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar"),
-                "path": join(dummy_installation_path, "tools", "junit", "junit.jar")
+                "selenium-server": join(installation_path, "selenium-server.jar"),
+                "hamcrest-core": join(installation_path, "tools", "junit", "hamcrest-core.jar"),
+                "path": installation_path
             })
 
             self.obj.execution.merge({
@@ -156,14 +156,16 @@ class TestJUnitTester(BZTestCase):
                 "runner": "junit"})
             self.obj.prepare()
             self.assertIsInstance(self.obj, JUnitTester)
-            self.assertTrue(exists(join(dummy_installation_path, "selenium-server.jar")))
-            self.assertTrue(exists(join(dummy_installation_path, "tools", "junit", "junit.jar")))
-            self.assertTrue(exists(join(dummy_installation_path, "tools", "junit", "hamcrest-core.jar")))
+
+            jar_tools = [tool for tool in self.obj._tools if isinstance(tool, JarTool)]
+            self.assertTrue(15, len(jar_tools))
+
+            for tool in jar_tools:
+                msg = "Wrong path to {tool}: {path}".format(tool=str(tool), path=str(tool.tool_path))
+                self.assertTrue(os.path.isfile(tool.tool_path), msg)
         finally:
-            java.SELENIUM_DOWNLOAD_LINK = selenium_server_link
-            java.JUNIT_DOWNLOAD_LINK = junit_link
-            java.HAMCREST_DOWNLOAD_LINK = hamcrest_link
-            java.JUNIT_MIRRORS_SOURCE = junit_mirrors
+            JarTool.URL = saved_url
+            JarTool.LOCAL_PATH = saved_local_path
 
     def test_simple(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()
@@ -197,13 +199,6 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
     def __init__(self, methodName='runTest'):
         super(TestSeleniumJUnitTester, self).__init__(methodName)
         self.obj = None
-
-    def test_junit_mirrors(self):
-        dummy_installation_path = BUILD_DIR + "selenium-taurus"
-        shutil.rmtree(dirname(dummy_installation_path), ignore_errors=True)
-        junit_path = join(dummy_installation_path, "tools", "junit", "junit.jar")
-        objjm = JUnitJar(junit_path, logging.getLogger(), JUNIT_VERSION)
-        objjm.install()
 
     def test_prepare_java_single(self):
         """

@@ -20,19 +20,21 @@ from bzt.utils import shell_exec, RequiredTool
 
 
 class JarTool(RequiredTool):
-    MAVEN_URL = "http://search.maven.org/remotecontent?filepath={maven_path}"
-    LOCAL_PATH = "~/.bzt/selenium-taurus/{tool_file}"
     VERSION = ""
+    URL = "{remote_addr}{remote_path}"
+    REMOTE_ADDR = "http://search.maven.org/remotecontent?filepath="
+    REMOTE_PATH = ""
+    LOCAL_PATH = "~/.bzt/selenium-taurus/{tool_file}"
 
-    def __init__(self, tool_name, local_path, tool_file, maven_path, version=VERSION):
-        tool_file = tool_file.format(version=version)
-        maven_path = maven_path.format(version=version)
+    def __init__(self, tool_name, local_path, tool_file):
+        tool_file = tool_file.format(version=self.VERSION)
+        remote_path = self.REMOTE_PATH.format(version=self.VERSION)
 
         if not local_path:
             local_path = self.LOCAL_PATH
 
         local_path = local_path.format(tool_file=tool_file)
-        download_link = self.MAVEN_URL.format(maven_path=maven_path)
+        download_link = self.URL.format(remote_addr=self.REMOTE_ADDR, remote_path=remote_path)
         super(JarTool, self).__init__(tool_name=tool_name, tool_path=local_path, download_link=download_link)
 
 
@@ -53,13 +55,14 @@ class JavaC(RequiredTool):
         raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
-class SeleniumServer(RequiredTool):
-    def __init__(self, local_path):
-        download_link = "http://selenium-release.storage.googleapis.com/3.6/selenium-server-standalone-3.6.0.jar"
-        if not local_path:
-            local_path = "~/.bzt/selenium-taurus/selenium-server.jar"
+class SeleniumServer(JarTool):
+    VERSION = "3.6"
+    REMOTE_ADDR = "http://selenium-release.storage.googleapis.com/{remote_path}"
+    REMOTE_PATH = "{version}/selenium-server-standalone-{version}.0.jar"
 
-        super(SeleniumServer, self).__init__("Selenium server", local_path, download_link)
+    def __init__(self, local_path):
+        tool_file = "selenium-server-{version}.jar"
+        super(SeleniumServer, self).__init__("Selenium server", local_path, tool_file)
 
     def check_if_installed(self):
         self.log.debug("%s path: %s", self.tool_name, self.tool_path)
@@ -75,119 +78,135 @@ class SeleniumServer(RequiredTool):
 
 
 class Json(JarTool):
+    REMOTE_PATH = "org/json/json/20160810/json-20160810.jar"
+
     def __init__(self, tool_path):
-        maven_path = "org/json/json/20160810/json-20160810.jar"
-        super(Json, self).__init__("Json", tool_path, tool_file="json.jar", maven_path=maven_path)
+        tool_file = "json.jar"
+        super(Json, self).__init__("Json", tool_path, tool_file)
 
 
 class TestNG(JarTool):
+    VERSION = "6.8.5"
+    REMOTE_PATH = "org/testng/testng/{version}/testng-{version}.jar"
+
     def __init__(self, tool_path):
-        maven_path = "org/testng/testng/{version}/testng-{version}.jar"
-        version = "6.8.5"
         tool_file = "testng-{version}.jar"
-        super(TestNG, self).__init__("TestNG", tool_path, tool_file, maven_path, version)
+        super(TestNG, self).__init__("TestNG", tool_path, tool_file)
 
 
 class Hamcrest(JarTool):
+    VERSION = "1.3"
+    REMOTE_PATH = "org/hamcrest/hamcrest-core/{version}/hamcrest-core-{version}.jar"
+
     def __init__(self, tool_path):
-        maven_path = "org/hamcrest/hamcrest-core/1.3/hamcrest-core-{version}.jar"
         tool_file = "hamcrest-core-{version}.jar"
-        version = "1.3"
-        super(Hamcrest, self).__init__("HamcrestJar", tool_path, tool_file, maven_path, version)
+        super(Hamcrest, self).__init__("HamcrestJar", tool_path, tool_file)
 
 
 class JUnitJupiterApi(JarTool):
+    VERSION = "5.2.0"
+    REMOTE_PATH = "org/junit/jupiter/junit-jupiter-api/{version}/junit-jupiter-api-{version}.jar"
+
     def __init__(self, tool_path):
-        maven_path = "org/junit/jupiter/junit-jupiter-api/{version}/junit-jupiter-api-{version}.jar"
         tool_file = "junit-jupiter-api-{version}.jar"
-        version = "5.2.0"
-        super(JUnitJupiterApi, self).__init__("JUnitJupiterApi", tool_path, tool_file, maven_path, version)
+        super(JUnitJupiterApi, self).__init__("JUnitJupiterApi", tool_path, tool_file)
 
 
 class JUnitJupiterEngine(JarTool):
+    VERSION = "5.2.0"
+    REMOTE_PATH = "org/junit/jupiter/junit-jupiter-engine/{version}/junit-jupiter-engine-{version}.jar"
+
     def __init__(self, tool_path):
-        maven_path = "org/junit/jupiter/junit-jupiter-engine/{version}/junit-jupiter-engine-{version}.jar"
         tool_file = "junit-jupiter-engine-{version}.jar"
-        version = "5.2.0"
-        super(JUnitJupiterEngine, self).__init__("JUnitJupiterEngine", tool_path, tool_file, maven_path, version)
-
-
-class JUnitPlatformCommons(JarTool):
-    def __init__(self, tool_path):
-        maven_path = "org/junit/platform/junit-platform-commons/{version}/junit-platform-commons-{version}.jar"
-        tool_file = "junit-platform-commons-{version}.jar"
-        version = "1.2.0"
-        super(JUnitPlatformCommons, self).__init__("JUnitPlatformCommons", tool_path, tool_file, maven_path, version)
-
-
-class JUnitPlatformEngine(JarTool):
-    def __init__(self, tool_path):
-        maven_path = "org/junit/platform/junit-platform-engine/{version}/junit-platform-engine-{version}.jar"
-        tool_file = "junit-platform-engine-{version}.jar"
-        version = "1.2.0"
-        super(JUnitPlatformEngine, self).__init__("JUnitPlatformEngine", tool_path, tool_file, maven_path, version)
-
-
-class JUnitPlatformLauncher(JarTool):
-    def __init__(self, tool_path):
-        maven_path = "org/junit/platform/junit-platform-launcher/{version}/junit-platform-launcher-{version}.jar"
-        tool_file = "junit-platform-launcher-{version}.jar"
-        version = "1.2.0"
-        super(JUnitPlatformLauncher, self).__init__("JUnitPlatformLauncher", tool_path, tool_file, maven_path, version)
-
-
-class JUnitPlatformRunner(JarTool):
-    def __init__(self, tool_path):
-        maven_path = "org/junit/platform/junit-platform-runner/{version}/junit-platform-runner-{version}.jar"
-        tool_file = "junit-platform-runner-{version}.jar"
-        version = "1.2.0"
-        super(JUnitPlatformRunner, self).__init__("JUnitPlatformRunner", tool_path, tool_file, maven_path, version)
-
-
-class JUnitPlatformSuiteApi(JarTool):
-    def __init__(self, tool_path):
-        maven_path = "org/junit/platform/junit-platform-suite-api/{version}/junit-platform-suite-api-{version}.jar"
-        tool_file = "junit-platform-suite-api-{version}.jar"
-        version = "1.2.0"
-        super(JUnitPlatformSuiteApi, self).__init__("JUnitPlatformSuiteApi", tool_path, tool_file, maven_path, version)
+        super(JUnitJupiterEngine, self).__init__("JUnitJupiterEngine", tool_path, tool_file)
 
 
 class JUnitVintageEngine(JarTool):
+    VERSION = "5.2.0"
+    REMOTE_PATH = "org/junit/vintage/junit-vintage-engine/{version}/junit-vintage-engine-{version}.jar"
+
     def __init__(self, tool_path):
-        maven_path = "org/junit/vintage/junit-vintage-engine/{version}/junit-vintage-engine-{version}.jar"
         tool_file = "junit-vintage-engine-{version}.jar"
-        version = "5.2.0"
-        super(JUnitVintageEngine, self).__init__("JUnitVintageEngine", tool_path, tool_file, maven_path, version)
+        super(JUnitVintageEngine, self).__init__("JUnitVintageEngine", tool_path, tool_file)
+
+
+class JUnitPlatformCommons(JarTool):
+    VERSION = "1.2.0"
+    REMOTE_PATH = "org/junit/platform/junit-platform-commons/{version}/junit-platform-commons-{version}.jar"
+
+    def __init__(self, tool_path):
+        tool_file = "junit-platform-commons-{version}.jar"
+        super(JUnitPlatformCommons, self).__init__("JUnitPlatformCommons", tool_path, tool_file)
+
+
+class JUnitPlatformEngine(JarTool):
+    VERSION = "1.2.0"
+    REMOTE_PATH = "org/junit/platform/junit-platform-engine/{version}/junit-platform-engine-{version}.jar"
+
+    def __init__(self, tool_path):
+        tool_file = "junit-platform-engine-{version}.jar"
+        super(JUnitPlatformEngine, self).__init__("JUnitPlatformEngine", tool_path, tool_file)
+
+
+class JUnitPlatformLauncher(JarTool):
+    VERSION = "1.2.0"
+    REMOTE_PATH = "org/junit/platform/junit-platform-launcher/{version}/junit-platform-launcher-{version}.jar"
+
+    def __init__(self, tool_path):
+        tool_file = "junit-platform-launcher-{version}.jar"
+        super(JUnitPlatformLauncher, self).__init__("JUnitPlatformLauncher", tool_path, tool_file)
+
+
+class JUnitPlatformRunner(JarTool):
+    VERSION = "1.2.0"
+    REMOTE_PATH = "org/junit/platform/junit-platform-runner/{version}/junit-platform-runner-{version}.jar"
+
+    def __init__(self, tool_path):
+        tool_file = "junit-platform-runner-{version}.jar"
+        super(JUnitPlatformRunner, self).__init__("JUnitPlatformRunner", tool_path, tool_file)
+
+
+class JUnitPlatformSuiteApi(JarTool):
+    VERSION = "1.2.0"
+    REMOTE_PATH = "org/junit/platform/junit-platform-suite-api/{version}/junit-platform-suite-api-{version}.jar"
+
+    def __init__(self, tool_path):
+        tool_file = "junit-platform-suite-api-{version}.jar"
+        super(JUnitPlatformSuiteApi, self).__init__("JUnitPlatformSuiteApi", tool_path, tool_file)
 
 
 class ApiGuardian(JarTool):
+    VERSION = "1.0.0"
+    REMOTE_PATH = "org/apiguardian/apiguardian-api/{version}/apiguardian-api-{version}.jar"
+
     def __init__(self, tool_path):
-        maven_path = "org/apiguardian/apiguardian-api/{version}/apiguardian-api-{version}.jar"
         tool_file = "apiguardian-api-{version}.jar"
-        version = "1.0.0"
-        super(ApiGuardian, self).__init__("ApiGuardian", tool_path, tool_file, maven_path, version)
+        super(ApiGuardian, self).__init__("ApiGuardian", tool_path, tool_file)
 
 
 class OpenTest4j(JarTool):
+    VERSION = "1.1.0"
+    REMOTE_PATH = "org/opentest4j/opentest4j/{version}/opentest4j-{version}.jar"
+
     def __init__(self, tool_path):
-        maven_path = "org/opentest4j/opentest4j/{version}/opentest4j-{version}.jar"
         tool_file = "opentest4j-{version}.jar"
-        version = "1.1.0"
-        super(OpenTest4j, self).__init__("OpenTest4j", tool_path, tool_file, maven_path, version)
+        super(OpenTest4j, self).__init__("OpenTest4j", tool_path, tool_file)
 
 
 class JUnit(JarTool):
+    VERSION = "4.12"
+    REMOTE_PATH = "junit/junit/{version}/junit-{version}.jar"
+
     def __init__(self, tool_path):
-        maven_path = "junit/junit/{version}/junit-{version}.jar"
         tool_file = "junit-{version}.jar"
-        version = "4.12"
-        super(JUnit, self).__init__("JUnit", tool_path, tool_file, maven_path, version)
+        super(JUnit, self).__init__("JUnit", tool_path, tool_file)
 
 
 class TaurusJavaHelper(JarTool):
+    VERSION = "1.2"
+    REMOTE_PATH = "com/blazemeter/taurus-java-helpers/{version}/taurus-java-helpers-{version}.jar"
+
     def __init__(self):
         tool_path = ""
-        maven_path = "com/blazemeter/taurus-java-helpers/{version}/taurus-java-helpers-{version}.jar"
         tool_file = "taurus-java-helpers-{version}.jar"
-        version = "1.2"
-        super(TaurusJavaHelper, self).__init__("TaurusJavaHelper", tool_path, tool_file, maven_path, version)
+        super(TaurusJavaHelper, self).__init__("TaurusJavaHelper", tool_path, tool_file)
