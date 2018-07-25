@@ -104,7 +104,7 @@ class TestTestNGTester(BZTestCase):
 
 class TestJavaC(BZTestCase):
     def test_missed_tool(self):
-        self.obj = JavaC(logging.getLogger(''), tool_path='javac-not-found')
+        self.obj = JavaC(tool_path='javac-not-found')
         self.assertEqual(False, self.obj.check_if_installed())
         self.assertRaises(ToolError, self.obj.install)
 
