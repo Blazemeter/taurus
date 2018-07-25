@@ -252,7 +252,7 @@ class JUnitTester(JavaTestRunner):
             props.merge(scenario.get("properties"))
             props.merge(self.execution.get("properties"))
 
-            junit_version = str(self.settings.get("junit-version", "5"))
+            junit_version = str(self.settings.get("junit-version", "4"))
             if junit_version == "5":
                 props.merge({"junit_version": 5})
 
