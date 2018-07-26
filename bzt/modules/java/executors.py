@@ -192,11 +192,12 @@ class JUnitTester(JavaTestRunner):
     Allows to test java and jar files
     """
     def install_required_tools(self):
-        path = self.settings.get("path")
-        if os.path.isfile(get_full_path(path)):
-            self.log.warning("JUnit path must point to directory.")
-            path = ""
-        else:
+        path = get_full_path(self.settings.get("path"))
+        if path:
+            if os.path.isfile(get_full_path(path, "")):
+                self.log.warning("JUnit path must point to directory.")
+                path = get_full_path(path, step_up=1)
+
             path = os.path.join(path, "{tool_file}")
 
         self._add_jar_tool(JUnitJupiterApi(path))
