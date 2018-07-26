@@ -180,16 +180,19 @@ class CLI(object):
             overrider = ConfigOverrider(self.log)
             overrider.apply_overrides(self.options.option, self.engine.config)
 
+        if self.__is_verbose():
+            CLI.console_handler.setLevel(logging.DEBUG)
+        self.engine.create_artifacts_dir(configs, merged_config)
+        self.engine.default_cwd = os.getcwd()
+        self.engine.eval_env()  # yacky, I don't like having it here, but how to apply it after aliases and artif dir?
+
+    def __is_verbose(self):
         settings = self.engine.config.get(SETTINGS, force_set=True)
         settings.get('verbose', bool(self.options.verbose))  # respect value from config
         if self.options.verbose:  # force verbosity if cmdline asked for it
             settings['verbose'] = True
 
-        if settings.get('verbose'):
-            CLI.console_handler.setLevel(logging.DEBUG)
-        self.engine.create_artifacts_dir(configs, merged_config)
-        self.engine.default_cwd = os.getcwd()
-        self.engine.eval_env()  # yacky, I don't like having it here, but how to apply it after aliases and artif dir?
+        return settings.get('verbose', False)
 
     def __lint_config(self):
         settings = self.engine.config.get(CLI.CLI_SETTINGS).get("linter")
@@ -211,7 +214,7 @@ class CLI(object):
                 raise NormalShutdown("Linting has finished, no errors were found")
 
     def _level_down_logging(self):
-        target = logging.DEBUG if self.options.verbose else logging.INFO
+        target = logging.DEBUG if self.__is_verbose() else logging.INFO
         for handler in self.log.handlers:
             if issubclass(handler.__class__, logging.FileHandler):
                 if handler.level != target:
