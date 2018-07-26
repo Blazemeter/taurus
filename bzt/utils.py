@@ -1271,8 +1271,8 @@ class MirrorsManager(object):
         except BaseException:
             self.log.debug("Exception: %s", traceback.format_exc())
             self.log.error("Can't fetch %s", self.base_link)
-        mirrors = self._parse_mirrors()
-        return (mirror for mirror in mirrors)
+        return self._parse_mirrors()
+
 
 
 @contextmanager
@@ -1526,13 +1526,3 @@ def get_host_ips(filter_loopbacks=True):
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
 
-
-class TaurusJavaHelperJar(RequiredTool):
-    VERSION = "1.1"
-    DWN_LINK = "http://search.maven.org/remotecontent?filepath=com/blazemeter/taurus-java-helpers/" \
-               "%s/taurus-java-helpers-%s.jar" % (VERSION, VERSION)
-    INSTALL_PATH = "~/.bzt/java-helper/%s/taurus-java-helpers.jar" % VERSION
-
-    def __init__(self, logger):
-        super(TaurusJavaHelperJar, self).__init__("TaurusJavaHelperJar", self.INSTALL_PATH, self.DWN_LINK)
-        self.log = logger

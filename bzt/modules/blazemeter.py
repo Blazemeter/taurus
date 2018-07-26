@@ -127,6 +127,7 @@ CLOUD_CONFIG_FILTER_RULES = {
 
 CLOUD_CONFIG_FILTER_RULES['modules']['!cloud'] = CLOUD_CONFIG_FILTER_RULES['modules']['!blazemeter']
 NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
+NOTE_SIZE_LIMIT = 2048
 
 
 def send_with_retry(method):
@@ -467,7 +468,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             note = self._session['note'] + '\n' + note
         note = note.strip()
         if note:
-            self._session.set({'note': note})
+            self._session.set({'note': note[:NOTE_SIZE_LIMIT]})
 
     def append_note_to_master(self, note):
         self._master.fetch()
@@ -475,7 +476,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             note = self._master['note'] + '\n' + note
         note = note.strip()
         if note:
-            self._master.set({'note': note})
+            self._master.set({'note': note[:NOTE_SIZE_LIMIT]})
 
     def check(self):
         """

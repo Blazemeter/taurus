@@ -9,7 +9,7 @@ from collections import Counter
 
 import requests
 
-from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools, Singletone, Service
+from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools, Singletone, Service, SelfDiagnosable
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules import TransactionListener
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
@@ -61,7 +61,7 @@ class EngineEmul(Engine):
         return super(EngineEmul, self).prepare()
 
 
-class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister, HavingInstallableTools):
+class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister, HavingInstallableTools, SelfDiagnosable):
     """ mock """
 
     def __init__(self):
@@ -170,6 +170,9 @@ class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister, HavingIns
 
     def install_required_tools(self):
         self.log.debug("All is good")
+
+    def get_error_diagnostics(self):
+        return ['DIAGNOSTICS']
 
 
 class MockReader(ResultsReader, AggregatorListener):

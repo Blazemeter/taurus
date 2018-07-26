@@ -29,16 +29,19 @@ downloaded and installed automatically into `~/.bzt/selenium-taurus`.
 ```yaml
 modules:
   junit:
-    path: ~/.bzt/selenium-taurus/tools/junit/junit.jar  # path to JUnit framework
+    path: ~/.bzt/selenium-taurus/tools/junit  # path to directory of JUnit framework
     selenium-server: ~/.bzt/selenium-taurus/selenium-server.jar  # path to Selenium Standalone Server
     hamcrest-core: ~/.bzt/selenium-taurus/tools/junit/hamcrest-core.jar  # path to Hamcrest lib
     json-jar: ~/.bzt/selenium-taurus/tools/junit/json.jar  # path to JSON lib
     jar-name: compiled.jar,  # set name of jar file when compiling from java source files 
     working-dir: classes  # set name of runner working directory within artifacts dir
     compile-target-java: 1.7  # -source and -target option value for javac
+    junit-version: 5 # use JUnit5 (turned off by default)
     properties:  # Java system properties
       propname: propvalue
 ```
+
+Note: only specific names/versions of JUnit framework jars is supported. If you want to use your own bundle at first just run test without `path` and revise `~/.bzt/selenium-taurus` directory.
 
 When running tests, Taurus will automatically add `selenium-server`, `json-jar`, `hamcrest-core`, along with JUnit jar
 to the classpath. If your test suite requires additional libraries - you can specify them as a list of jars with
