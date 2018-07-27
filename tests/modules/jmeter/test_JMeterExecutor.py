@@ -326,7 +326,7 @@ class TestJMeterExecutor(BZTestCase):
         http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-2.13.zip',
                                  file=jmeter_res_dir + "jmeter-dist-2.13.zip")
         url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
-              '%s/jmeter-plugins-manager-%s.jar' % ([JMeterExecutor.PLUGINS_MANAGER_VERSION] * 2)
+              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeterExecutor.PLUGINS_MANAGER_VERSION)
         http_client.add_response('GET', url, file=jmeter_res_dir + "jmeter-plugins-manager.jar")
         http_client.add_response('GET',
                                  'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
@@ -380,7 +380,7 @@ class TestJMeterExecutor(BZTestCase):
         http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.0.zip',
                                  file=jmeter_res_dir + "jmeter-dist-3.0.zip")
         url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
-              '%s/jmeter-plugins-manager-%s.jar' % ([JMeterExecutor.PLUGINS_MANAGER_VERSION] * 2)
+              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeterExecutor.PLUGINS_MANAGER_VERSION)
 
         http_client.add_response('GET', url, file=jmeter_res_dir + "jmeter-plugins-manager.jar")
         http_client.add_response('GET',
