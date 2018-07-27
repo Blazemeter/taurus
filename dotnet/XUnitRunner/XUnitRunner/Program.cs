@@ -107,6 +107,8 @@ namespace XUnitRunner
             {
                 Console.WriteLine(e.Message);
                 Console.WriteLine("Try running with '--help' for more information.");
+                var stList = e.StackTrace.ToString().Split('\\');
+                Console.WriteLine("Exception occurred at " + stList[stList.Count() - 1]);
                 Environment.Exit(1);
             }
 
