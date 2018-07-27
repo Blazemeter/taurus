@@ -54,6 +54,11 @@ namespace XUnitRunner
                 ShowHelp();
             }
 
+            foreach (KeyValuePair<string, string> pair in dict)
+            {
+                Console.WriteLine("{0} - {1}", pair.Key, pair.Value);
+            }
+
             if (!dict.TryGetValue("target", out opts.targetAssembly))
             {
                 throw new Exception("Target test suite wasn't provided.");
@@ -64,14 +69,9 @@ namespace XUnitRunner
                 throw new Exception($"Target test suite cannot be found {opts.targetAssembly}");
             }
 
-            if (dict.ContainsKey("report-file"))
+            if (dict.ContainsKey("reportfile"))
             {
-                opts.reportFile = dict["report-file"];
-            }
-
-            if (opts.reportFile.IndexOf('\\') <= 0)
-            {
-                opts.reportFile = AppContext.BaseDirectory + opts.reportFile;
+                opts.reportFile = dict["reportfile"];
             }
 
             if (dict.TryGetValue("iterations", out var sValue))
@@ -150,8 +150,6 @@ namespace XUnitRunner
                 Finished.Dispose();
             }
 
-            Console.WriteLine("Press ENTER to continue");
-            Console.Read();
             Environment.Exit(0);
         }
 

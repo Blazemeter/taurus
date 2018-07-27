@@ -25,7 +25,7 @@ from bzt.utils import get_full_path, is_windows, RequiredTool
 class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(NUnitExecutor, self).__init__()
-        self.runner_dir = os.path.join(get_full_path(__file__, step_up=2), "resources", "NUnitRunner")
+        self.runner_dir = os.path.join(get_full_path(__file__, step_up=3), "resources", "NUnitRunner")
         self.runner_executable = os.path.join(self.runner_dir, "NUnitRunner.exe")
         self.mono = Mono("mono", "", self.log)
 
