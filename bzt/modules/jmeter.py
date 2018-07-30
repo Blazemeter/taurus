@@ -967,8 +967,6 @@ class JTLReader(ResultsReader):
             ltc = int(row["Latency"]) / 1000.0
             if "Connect" in row:
                 cnn = int(row["Connect"]) / 1000.0
-                if cnn < ltc:  # this is generally bad idea...
-                    ltc -= cnn  # fixing latency included into connect time
             else:
                 cnn = None
 
