@@ -16,22 +16,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
+import os
 import sys
 import time
 from collections import OrderedDict, Counter
-from imp import find_module
-from subprocess import STDOUT
+from subprocess import STDOUT, CalledProcessError
 
-import os
 from bzt import ToolError, TaurusConfigError
-from bzt.six import PY3, iteritems
-
 from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
-from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader
+from bzt.six import iteritems, communicate
+from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader, shell_exec
 from bzt.utils import shutdown_process, RequiredTool, dehumanize_time
 
 
@@ -183,21 +181,19 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
 class LocustIO(RequiredTool):
     def __init__(self, parent_logger):
-        super(LocustIO, self).__init__("LocustIO", "")
+        super(LocustIO, self).__init__("LocustIO", "locust")
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
+        self.log.debug('Checking LocustIO: %s' % self.tool_path)
         try:
-            find_module("locust")
-            self.already_installed = True
-        except ImportError:
-            self.log.error("LocustIO is not installed, see http://docs.locust.io/en/latest/installation.html")
+            stdout, stderr = communicate(shell_exec([self.tool_path, '--version']))
+            self.log.debug("Locustio check stdout/stderr: %s, %s", stdout, stderr)
+        except (CalledProcessError, OSError, AttributeError):
             return False
         return True
 
     def install(self):
-        if PY3:
-            raise ToolError("LocustIO is not currently compatible with Python 3.x")
         msg = "Unable to locate locustio package. Please install it like this: pip install locustio"
         raise ToolError(msg)
 

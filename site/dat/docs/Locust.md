@@ -47,12 +47,16 @@ class WebsiteUser(HttpLocust):
     min_wait = 100
     max_wait = 1500
 ```
+
 ## Requests Scenario
+
 LocustIO executor partially supports building scenario from requests. Supported features:
+
  - request methods GET/POST
  - headers and body for requests
  - set timeout/think-time on both scenario/request levels
  - assertions (for body and http-code)
+ 
 ```yaml
 scenarios:
   request_example:
@@ -74,6 +78,7 @@ scenarios:
         regexp: false  # treat string as regular expression, true by default
         not: false  # inverse assertion condition
 ```
+
 Keep in mind: locust requires default url for its work (empty string is accepted). You have to set `host`
 in python script or `default-address` in script for Taurus. If both are found value from Taurus script has priority.
  
