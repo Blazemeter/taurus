@@ -31,7 +31,6 @@ class XUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
 
     def install_required_tools(self):
         if not is_windows():
-            self.log.debug("Checking for Mono")
             if not self.dotnet.check_if_installed():
                 self.dotnet.install()
 
@@ -45,10 +44,7 @@ class XUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix=".ldjson")
 
     def startup(self):
-        cmdline = []
-        if not is_windows():
-            if self.dotnet.tool_path:
-                cmdline.append(self.dotnet.tool_path)
+        cmdline = [self.dotnet.tool_path]
 
         cmdline += [self.runner_executable,
                     "--target=" + self.script,
@@ -60,8 +56,6 @@ class XUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         if load.hold:
             cmdline += ['--duration=' + str(int(load.hold))]
 
-        self.log.info(cmdline)
-
         self._start_subprocess(cmdline)
 
 
@@ -71,6 +65,7 @@ class Dotnet(RequiredTool):
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
+        self.log.debug("Checking for Dotnet")
         try:
             output = check_output([self.tool_path, '--version'], stderr=STDOUT)
             self.log.debug("%s output: %s", self.tool_name, output)

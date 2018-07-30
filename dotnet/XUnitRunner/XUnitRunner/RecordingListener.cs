@@ -32,6 +32,7 @@ namespace XUnitRunner
 
         public void WriteReport(ReportItem item)
         {
+            var errorMessage = item.ErrorMessage.Replace("\n", "; ");
             var sample = new Dictionary<object, object>
             {
                 {"start_time", item.StartTime},
@@ -39,7 +40,7 @@ namespace XUnitRunner
                 {"test_case", item.TestCase},
                 {"test_suite", item.TestSuite},
                 {"status", item.Status},
-                {"error_msg", item.ErrorMessage},
+                {"error_msg", errorMessage},
                 {"error_trace", item.ErrorTrace},
                 {"extras", item.Extras}
             };

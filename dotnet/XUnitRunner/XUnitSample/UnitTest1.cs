@@ -11,10 +11,10 @@ namespace XUnitExample
         }
 
 
-        [Fact(DisplayName = "AssertThatTwoEquals2_Success")]
-        public void AssertThatTwoEquals2_Success()
+        [Fact(DisplayName = "AssertThatTwoEquals2_Failure")]
+        public void AssertThatTwoEquals2_Failure()
         {
-            Assert.Equal(2, 2);
+            Assert.Equal(2, 4);
         }
     }
 }
