@@ -59,6 +59,9 @@ class RespTimesCounter(JSONConvertable):
     def get_counts(self):
         return self.histogram.get_value_counts()
 
+    def get_stdev(self):
+        return self.histogram.get_stddev()
+
     def __json__(self):
         return {
             float(rt) / 1000: count
@@ -224,6 +227,7 @@ class KPISet(dict):
                 str(float(perc)): value / 1000.0
                 for perc, value in iteritems(resp_times.get_percentiles_dict(self.perc_levels))
             }
+            self[self.STDEV_RESP_TIME] = resp_times.get_stdev()
 
         return self
 
@@ -255,6 +259,7 @@ class KPISet(dict):
             # using existing percentiles
             # FIXME: it's not valid to overwrite, better take average
             self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
+        self[self.STDEV_RESP_TIME] = self[self.RESP_TIMES].get_stdev()
 
         self[self.RESP_CODES].update(src[self.RESP_CODES])
 
@@ -280,6 +285,7 @@ class KPISet(dict):
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
         inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
+        inst[inst.STDEV_RESP_TIME] = inst[inst.RESP_TIMES].get_stdev()
         for error in inst[KPISet.ERRORS]:
             error['urls'] = Counter(error['urls'])
         return inst
