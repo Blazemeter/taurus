@@ -16,6 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
+import math
 import os
 import sys
 import time
@@ -75,6 +76,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.start_time = time.time()
         load = self.get_load()
         concurrency = load.concurrency or 1
+
+        if self.is_master:
+            concurrency = math.ceil(concurrency / float(self.expected_slaves))
+
         if load.ramp_up:
             hatch = concurrency / float(load.ramp_up)
         else:
@@ -92,7 +97,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         args += ["--no-web", "--only-summary", ]
         args += ["--clients=%d" % concurrency, "--hatch-rate=%f" % hatch]
         if load.iterations:
-            args.append("--num-request=%d" % load.iterations)
+            num_requests = load.iterations * concurrency
+            args.append("--num-request=%d" % num_requests)
+            self.env.set({"LOCUST_NUMREQUESTS": num_requests})
 
         if self.is_master:
             args.extend(["--master", '--expect-slaves=%s' % self.expected_slaves])
@@ -284,6 +291,7 @@ class SlavesReader(ResultsProvider):
                     KPISet.inc_list(kpiset[KPISet.ERRORS], ("msg", err['error']), new_err)
                     kpiset[KPISet.FAILURES] += err['occurences']
 
+            kpiset[KPISet.SUCCESSES] = kpiset[KPISet.SAMPLE_COUNT] - kpiset[KPISet.FAILURES]
             point[DataPoint.CURRENT][item['name']] = kpiset
             overall.merge_kpis(kpiset)
 
