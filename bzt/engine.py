@@ -473,7 +473,8 @@ class Engine(object):
             for dirname in [""] + self.file_search_paths:
                 location = os.path.join(dirname, filename)
                 if os.path.exists(location):
-                    self.log.warning("Guessed location from search paths for %s: %s", filename, location)
+                    if dirname:
+                        self.log.warning("Guessed location from search paths for %s: %s", filename, location)
                     return get_full_path(location)
 
         self.log.warning("Could not find location at path: %s", filename)
