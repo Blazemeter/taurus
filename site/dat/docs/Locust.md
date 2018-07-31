@@ -47,9 +47,11 @@ class WebsiteUser(HttpLocust):
     min_wait = 100
     max_wait = 1500
 ```
+
 ## Requests Scenario
 
 LocustIO executor partially supports building scenario from requests. Supported features:
+
  - request methods GET/POST
  - headers and body for requests
  - set timeout/think-time on both scenario/request levels
