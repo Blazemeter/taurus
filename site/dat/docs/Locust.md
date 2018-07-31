@@ -3,7 +3,7 @@
 
 Locust package is not installed automatically by Taurus, please install it manually: `pip install locustio`
 
-Make note that for Locust `iterations` option means quantity of requests, not cycles of scenario (as the last can contains more than one request). Next load profile settings has no effect for this executor: `throughput` and `steps` 
+Make note that for Locust `iterations` option means quantity of requests, not cycles of scenario (as the last can contains more than one request). Following load profile settings has no effect for this executor: `throughput` and `steps` 
 
 Taurus appends `PYTHONPATH` with path to artifacts directory and current working directory. Make sure you have no module name clashes (for example, don't name your locustfile as `locust.py`).
 
@@ -48,11 +48,13 @@ class WebsiteUser(HttpLocust):
     max_wait = 1500
 ```
 ## Requests Scenario
+
 LocustIO executor partially supports building scenario from requests. Supported features:
  - request methods GET/POST
  - headers and body for requests
  - set timeout/think-time on both scenario/request levels
  - assertions (for body and http-code)
+
 ```yaml
 scenarios:
   request_example:
@@ -74,6 +76,7 @@ scenarios:
         regexp: false  # treat string as regular expression, true by default
         not: false  # inverse assertion condition
 ```
+
 Keep in mind: locust requires default url for its work (empty string is accepted). You have to set `host`
 in python script or `default-address` in script for Taurus. If both are found value from Taurus script has priority.
  
