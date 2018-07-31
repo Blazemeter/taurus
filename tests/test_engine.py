@@ -15,8 +15,25 @@ class TestEngine(BZTestCase):
         self.obj = EngineEmul()
         self.paths = local_paths_config()
 
+    def test_find_file(self):
+        self.sniff_log(self.obj.log)
+
+        config = RESOURCES_DIR + "json/get-post.json"
+        configs = [config, self.paths]
+        self.obj.configure(configs)
+        self.assertEqual(2, len(self.obj.file_search_paths))
+
+        self.obj.find_file(config)
+        self.assertEqual("", self.log_recorder.warn_buff.getvalue())
+
+        self.obj.find_file("reporting.json")
+        self.assertIn("Guessed location", self.log_recorder.warn_buff.getvalue())
+
+        self.obj.find_file("definitely_missed.file")
+        self.assertIn("Could not find", self.log_recorder.warn_buff.getvalue())
+
     def test_missed_config(self):
-        configs = ['difinitely_missed.file']
+        configs = ['definitely_missed.file']
         try:
             self.obj.configure(configs)
             self.fail()
