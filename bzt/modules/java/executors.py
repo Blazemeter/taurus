@@ -237,14 +237,14 @@ class JUnitTester(JavaTestRunner):
 
                 fds.write("{name}={val}\n".format(name=name, val=val))
 
-        with open(self.props_file, 'wt') as fds:
-            props = self.settings.get("properties")
-            props.merge(self.get_scenario().get("properties"))
-            props.merge(self.execution.get("properties"))
-            junit_version = str(self.settings.get("junit-version", "4"))
-            if junit_version == "5":
-                props.merge({"junit_version": 5})
+        props = self.settings.get("properties")
+        props.merge(self.get_scenario().get("properties"))
+        props.merge(self.execution.get("properties"))
+        junit_version = str(self.settings.get("junit-version", "4"))
+        if junit_version == "5":
+            props.merge({"junit_version": 5})
 
+        with open(self.props_file, 'wt') as fds:
             for key in sorted(props.keys()):
                 write_prop(key, props[key])
 

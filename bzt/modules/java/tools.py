@@ -202,7 +202,7 @@ class JUnit(JarTool):
 
 
 class TaurusJavaHelper(JarTool):
-    VERSION = "1.4"
+    VERSION = "1.3"
     REMOTE_PATH = "com/blazemeter/taurus-java-helpers/{version}/taurus-java-helpers-{version}.jar"
 
     def __init__(self, tool_path=""):
