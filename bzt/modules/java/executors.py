@@ -214,57 +214,53 @@ class JUnitTester(JavaTestRunner):
 
         super(JUnitTester, self).install_required_tools()
 
-    def startup(self):
-        # java -cp junit.jar:selenium-test-small.jar:
-        # selenium-2.46.0/selenium-java-2.46.0.jar:./../selenium-server.jar
-        # com.blazemeter.taurus.junit.CustomRunner runner.properties
+    def prepare(self):
+        super(JUnitTester, self).prepare()
+        self.__write_props_file()
 
+    def startup(self):
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
         jar_list.extend(self._collect_script_files({".jar"}))
         self.class_path.extend(jar_list)
-        scenario = self.get_scenario()
+
+        class_path = os.pathsep.join(self.class_path)
+        runner_class = "com.blazemeter.taurus.junit.CustomRunner"
+        junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true", runner_class, self.props_file]
+
+        self._start_subprocess(junit_cmd_line)
+
+    def __write_props_file(self):
+        def write_prop(name, val):
+            if val:
+                if isinstance(val, list):
+                    val = ",".join(val)
+
+                fds.write("{name}={val}\n".format(name=name, val=val))
 
         with open(self.props_file, 'wt') as fds:
-            fds.write("report_file=%s\n" % self.report_file)
-
-            load = self.get_load()
-            if load.iterations:
-                fds.write("iterations=%s\n" % load.iterations)
-
-            if load.hold:
-                fds.write("hold_for=%s\n" % load.hold)
-
-            for index, item in enumerate(jar_list):
-                fds.write("target_%s=%s\n" % (index, item.replace(os.path.sep, '/')))
-
-            run_items = self._get_items_list('run-items')
-            if run_items:
-                fds.write("run_items=%s\n" % ','.join(run_items))
-
-            includes = self._get_items_list('include-categories')
-            if includes:
-                fds.write("include_category=%s\n" % ','.join(includes))
-
-            excludes = self._get_items_list('exclude-categories')
-            if excludes:
-                fds.write("exclude_category=%s\n" % ','.join(excludes))
-
             props = self.settings.get("properties")
-            props.merge(scenario.get("properties"))
+            props.merge(self.get_scenario().get("properties"))
             props.merge(self.execution.get("properties"))
-
             junit_version = str(self.settings.get("junit-version", "4"))
             if junit_version == "5":
                 props.merge({"junit_version": 5})
 
             for key in sorted(props.keys()):
-                fds.write("%s=%s\n" % (key, props[key]))
+                write_prop(key, props[key])
 
-        class_path = os.pathsep.join(self.class_path)
-        junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true",
-                          "com.blazemeter.taurus.junit.CustomRunner", self.props_file]
+            fds.write("report_file=%s\n" % self.report_file)
 
-        self._start_subprocess(junit_cmd_line)
+            load = self.get_load()
+
+            write_prop("iterations", load.iterations)
+            write_prop("hold_for", load.hold)
+            write_prop("concurrency", load.concurrency)
+            write_prop("ramp_up", load.ramp_up)
+            write_prop("steps", load.steps)
+
+            write_prop("run_items", self._get_items_list("run-items"))
+            write_prop("include_category", self._get_items_list("include-categories"))
+            write_prop("exclude_category", self._get_items_list("exclude-categories"))
 
     def _get_items_list(self, param):
         scenario = self.get_scenario()
