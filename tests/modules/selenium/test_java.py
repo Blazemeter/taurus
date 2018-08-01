@@ -187,9 +187,13 @@ class TestJUnitTester(BZTestCase):
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
 
-        self.assertFilesEqual(RESOURCES_DIR + "selenium/junit/runner.properties", self.obj.props_file,
-                              (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '/'), "ARTIFACTS+")
+        orig_prop_file = RESOURCES_DIR + "selenium/junit/runner.properties"
+        start1 = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '/')
+        start2 = "ARTIFACTS+"
+        self.assertFilesEqual(orig_prop_file, self.obj.props_file, replace_str=start1, replace_with=start2)
+
         self.assertTrue(self.obj.has_results())
+
         cumulative = self.obj.engine.aggregator.cumulative
         self.assertEqual("java.lang.RuntimeException: 123", cumulative[''][KPISet.ERRORS][0]['msg'])
         self.assertEqual(1, cumulative[''][KPISet.SUCCESSES])
