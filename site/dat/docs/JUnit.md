@@ -2,6 +2,7 @@
 Allows to run functional tests based on JUnit library.
 
 Taurus can loop test suite execution in a loop until desired number of `iterations` will complete or `hold-for` time will be exceeded.
+Also following `(load settings)[ExecutionSettings.md#Load-Profile]` are available: `concurrency`, `ramp-up`, `steps`.
 
 Usage:
 ```yaml
@@ -70,7 +71,10 @@ You can also specify `include-categories` and `exclude-categories` under scenari
 ```yaml
 execution:
 - executor: junit
-  iterations: 5  # loop over test suite for 5 times  
+  iterations: 5  # loop over test suite for 5 times
+  concurrency: 20   # number of virtual users
+  ramp_up: 1m       # time of load growing
+  steps: 5          # number of steps of growing
   scenario: complex
   run-items:
   - package.Class2#testmethod2
