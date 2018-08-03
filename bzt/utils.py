@@ -1059,6 +1059,7 @@ class RequiredTool(object):
         self.already_installed = False
         self.mirror_manager = None
         self.log = logging.getLogger('')
+        self.version = None
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
@@ -1113,6 +1114,7 @@ class JavaVM(RequiredTool):
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = sync_run(cmd)
+            self.version = re.findall("java version\ \"([_\d\.]*)", output)[0]
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except (CalledProcessError, OSError) as exc:
