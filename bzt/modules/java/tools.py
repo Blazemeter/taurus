@@ -13,10 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import re
 import subprocess
 
 from bzt import ToolError
-from bzt.utils import shell_exec, RequiredTool
+from bzt.utils import shell_exec, sync_run, RequiredTool
 
 
 class JarTool(RequiredTool):
@@ -43,11 +44,15 @@ class JavaC(RequiredTool):
         super(JavaC, self).__init__("JavaC", tool_path)
 
     def check_if_installed(self):
+        cmd = [self.tool_path, '-version']
+        self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
-            output = subprocess.check_output([self.tool_path, '-version'], stderr=subprocess.STDOUT)
+            output = sync_run(cmd)
+            self.version = re.findall("javac\ ([\d\._]*)", output)[0]
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
-        except (subprocess.CalledProcessError, OSError):
+        except (subprocess.CalledProcessError, OSError) as exc:
+            self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
     def install(self):
