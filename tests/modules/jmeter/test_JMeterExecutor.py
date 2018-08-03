@@ -27,7 +27,6 @@ _jvm = JavaVM(logging.getLogger(''))
 _jvm.check_if_installed()
 java_version = _jvm.version
 java10 = LooseVersion(java_version) >= LooseVersion("10")
-a = 1 + 1
 
 
 def get_jmeter():
