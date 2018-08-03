@@ -108,6 +108,14 @@ class TestJavaC(BZTestCase):
         self.assertEqual(False, self.obj.check_if_installed())
         self.assertRaises(ToolError, self.obj.install)
 
+    def test_get_version(self):
+        self.obj = JavaC()
+        out1 = "javac 10.0.1"
+        out2 = "javac 1.8.0_151"
+
+        self.assertEqual("10", self.obj._get_version(out1))
+        self.assertEqual("8", self.obj._get_version(out2))
+
 
 class TestJUnitTester(BZTestCase):
     def setUp(self):

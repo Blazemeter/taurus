@@ -17,7 +17,7 @@ import re
 import subprocess
 
 from bzt import ToolError
-from bzt.utils import shell_exec, sync_run, RequiredTool
+from bzt.utils import shell_exec, sync_run, RequiredTool, parse_java_version
 
 
 class JarTool(RequiredTool):
@@ -43,13 +43,22 @@ class JavaC(RequiredTool):
     def __init__(self, tool_path="javac"):
         super(JavaC, self).__init__("JavaC", tool_path)
 
+    def _get_version(self, output):
+        versions = re.findall("javac\ ([\d\._]*)", output)
+        version = parse_java_version(versions)
+
+        if not version:
+            self.log.warning("Tool version parsing error: %s", output)
+
+        return version
+
     def check_if_installed(self):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = sync_run(cmd)
-            self.version = re.findall("javac\ ([\d\._]*)", output)[0]
             self.log.debug("%s output: %s", self.tool_name, output)
+            self.version = self._get_version(output)
             return True
         except (subprocess.CalledProcessError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)

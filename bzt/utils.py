@@ -46,6 +46,7 @@ from collections import defaultdict, Counter, OrderedDict
 from contextlib import contextmanager
 from math import log
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
+from distutils.version import LooseVersion
 from webbrowser import GenericBrowser
 
 import ipaddress
@@ -90,6 +91,19 @@ def get_files_recursive(dir_name, exclude_mask=''):
         for _file in files:
             if not fnmatch.fnmatch(_file, exclude_mask):
                 yield os.path.join(root, _file)
+
+
+def parse_java_version(versions):
+    if versions:
+        version = versions[0]
+
+        if LooseVersion(version) > LooseVersion("6"):  # start of openjdk naming
+            major = re.findall("^([\d]*)", version)
+        else:
+            major = re.findall("\.([\d]*)", version)
+
+        if major:
+            return major[0]
 
 
 def run_once(func):
@@ -1061,6 +1075,9 @@ class RequiredTool(object):
         self.log = logging.getLogger('')
         self.version = None
 
+    def _get_version(self, output):
+        return
+
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
             self.already_installed = True
@@ -1109,12 +1126,21 @@ class JavaVM(RequiredTool):
         super(JavaVM, self).__init__("JavaVM", tool_path, download_link, http_client=http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
 
+    def _get_version(self, output):
+        versions = re.findall("version\ \"([_\d\.]*)", output)
+        version = parse_java_version(versions)
+
+        if not version:
+            self.log.warning("Tool version parsing error: %s", output)
+
+        return version
+
     def check_if_installed(self):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = sync_run(cmd)
-            self.version = re.findall("java version\ \"([_\d\.]*)", output)[0]
+            self.version = self._get_version(output)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except (CalledProcessError, OSError) as exc:
