@@ -106,6 +106,18 @@ class TestSeleniumStuff(SeleniumTestCase):
             time.sleep(1)
         self.obj.shutdown()
 
+    def test_from_extension(self):
+        self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_from_extension.yml").read()))
+        self.obj.prepare()
+        self.obj.get_widget()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv"))
+        lines = reader.get_lines(last_pass=True)
+        self.assertEquals(4, len(list(lines)))
+
     def test_requests(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
         self.obj.prepare()
