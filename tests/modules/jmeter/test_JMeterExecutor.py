@@ -26,7 +26,7 @@ from tests.modules.jmeter import MockJMeterExecutor, MockHTTPClient
 _jvm = JavaVM(logging.getLogger(''))
 _jvm.check_if_installed()
 java_version = _jvm.version
-java10 = LooseVersion(java_version) >= LooseVersion("1.10")
+java10 = LooseVersion(java_version) >= LooseVersion("10")
 
 
 def get_jmeter():
