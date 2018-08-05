@@ -12,7 +12,7 @@ execution:
 
 scenarios:
   qwerty-Selenium:
-    browser: Chrome  # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
+    browser: Firefox # available browsers are: ["Firefox", "Chrome", "Ie", "Opera"]
     headless: false
     timeout: 60s
     think-time: 0s
