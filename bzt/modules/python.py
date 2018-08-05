@@ -87,10 +87,10 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             builder = ApiritifScriptGenerator(scenario, self.label, self.log)
             builder.verbose = self.__is_verbose()
         else:
-            selenium_extras = os.path.join(get_full_path(__file__, step_up=2), "resources", "selenium_taurus_extras.py")
-            selenium_extras_artifacts = os.path.join(self.engine.artifacts_dir, os.path.basename(selenium_extras))
-            if not os.path.isfile(selenium_extras_artifacts):
-                shutil.copyfile(selenium_extras, selenium_extras_artifacts)
+            #selenium_extras = os.path.join(get_full_path(__file__, step_up=2), "resources", "selenium_taurus_extras.py")
+            #selenium_extras_artifacts = os.path.join(self.engine.artifacts_dir, os.path.basename(selenium_extras))
+            #if not os.path.isfile(selenium_extras_artifacts):
+            #    shutil.copyfile(selenium_extras, selenium_extras_artifacts)
             wdlog = self.engine.create_artifact('webdriver', '.log')
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
