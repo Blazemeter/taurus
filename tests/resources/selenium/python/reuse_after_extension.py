@@ -20,8 +20,9 @@ _tpl = selenium_taurus_extras.Template(_vars)
 
 class TestRequests(unittest.TestCase):
     def setUp(self):
-        options = webdriver.ChromeOptions()
-        self.driver = webdriver.Chrome(service_log_path='/home/fenrir/Projects/taurus/build/test/2018-08-04_08-25-48.315483/webdriver.log', chrome_options=options)
+        options = webdriver.FirefoxOptions()
+        profile = webdriver.FirefoxProfile()
+        self.driver = webdriver.Firefox(profile, firefox_options=options)
         self.driver.implicitly_wait(60.0)
         self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
         self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
