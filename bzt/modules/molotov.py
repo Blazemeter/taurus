@@ -79,12 +79,12 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
             duration += hold
         cmdline += ['--duration', str(duration)]
 
+        # todo: add bzt.resources to PYTHONPATH?
         cmdline += ['--use-extension=bzt.resources.molotov_ext']
 
         cmdline += [self.get_script_path(required=True)]
 
         self.env.set({"MOLOTOV_TAURUS_REPORT": self.report_file_name})
-        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         self.start_time = time.time()
         self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
