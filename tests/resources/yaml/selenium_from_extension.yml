@@ -21,8 +21,8 @@ scenarios:
       actions:
       - go(https://www.demoblaze.com/)
       - clickByID(itemc)
-      - clickByLinkText(HTC One M9)
-      - clickByLinkText(Add to cart)
+      #- clickByLinkText(HTC One M9)
+      #- clickByLinkText(Add to cart)
       # WARN: Command Not yet supported. ('assertAlert:"Product added":""')
-      - clickByID(cartur)
-      - clickByLinkText(Home (current))
+      #- clickByID(cartur)
+      #- clickByLinkText(Home (current))

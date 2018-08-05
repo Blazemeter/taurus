@@ -3,7 +3,6 @@ import os
 import re
 import shutil
 import time
-from collections import Counter
 
 import yaml
 
@@ -12,7 +11,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import LoadSamplesReader, FuncSamplesReader
 from bzt.modules.provisioning import Local
 from bzt.modules.python import ApiritifNoseExecutor
-from bzt.six import BytesIO, iteritems
+from bzt.six import BytesIO
 from bzt.utils import LDJSONReader, FileReader
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul, DummyListener
@@ -114,9 +113,25 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(1)
         self.obj.shutdown()
-        reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv"))
-        lines = reader.get_lines(last_pass=True)
-        self.assertEquals(4, len(list(lines)))
+        results = list(self.obj.runner.reader._read(final_pass=True))
+        self.assertEquals(1, len(results))
+        self.assertIsNone(results[0][7])    # error msg
+
+    def test_from_extension_reuse(self):
+        self.configure({ScenarioExecutor.EXEC: {
+            "executor": "selenium",
+            "iterations": 1,
+            "scenario": {"script": RESOURCES_DIR + "selenium/python/reuse_after_extension.py"}
+        }})
+        self.obj.prepare()
+        self.obj.get_widget()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(1)
+        self.obj.shutdown()
+        results = list(self.obj.runner.reader._read(final_pass=True))
+        self.assertEquals(1, len(results))
+        self.assertIsNone(results[0][7])  # error msg
 
     def test_requests(self):
         self.configure(yaml.load(open(RESOURCES_DIR + "yaml/selenium_executor_requests.yml").read()))
