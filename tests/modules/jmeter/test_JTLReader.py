@@ -219,4 +219,4 @@ class TestJTLReader(BZTestCase):
         res = list(self.obj.datapoints(final_pass=True))
         elapsed = time.time() - start
         logging.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
-        self.assertLess(elapsed, 5)
+        self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go
