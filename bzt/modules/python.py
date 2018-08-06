@@ -21,7 +21,6 @@ import shlex
 import string
 import sys
 import time
-import shutil
 from abc import abstractmethod
 from collections import OrderedDict
 from subprocess import CalledProcessError
@@ -77,6 +76,12 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 self.script = self.__tests_from_requests()
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
+
+        # todo: requred tools?
+
+        # path to taurus dir. It's necessary for bzt usage inside tools/helpers
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+
         self.reporting_setup()  # no prefix/suffix because we don't fully control report file names
 
     def __tests_from_requests(self):
@@ -87,10 +92,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             builder = ApiritifScriptGenerator(scenario, self.label, self.log)
             builder.verbose = self.__is_verbose()
         else:
-            selenium_extras = os.path.join(get_full_path(__file__, step_up=2), "resources", "selenium_taurus_extras.py")
-            selenium_extras_artifacts = os.path.join(self.engine.artifacts_dir, os.path.basename(selenium_extras))
-            if not os.path.isfile(selenium_extras_artifacts):
-                shutil.copyfile(selenium_extras, selenium_extras_artifacts)
             wdlog = self.engine.create_artifact('webdriver', '.log')
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
             builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
@@ -101,9 +102,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
-
-        if executable == sys.executable:
-            self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         report_type = ".ldjson" if self.engine.is_functional_mode() else ".csv"
         report_tpl = self.engine.create_artifact("apiritif-", "") + "%s" + report_type
@@ -261,7 +259,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-import selenium_taurus_extras
+from bzt.resources import selenium_taurus_extras
 """
     IMPORTS_APPIUM = """import unittest
 import re
@@ -277,7 +275,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-import selenium_taurus_extras
+from bzt.resources import selenium_taurus_extras
     """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
@@ -1601,9 +1599,6 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         """
         executable = self.settings.get("interpreter", sys.executable)
 
-        if executable == sys.executable:
-            self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
-
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
 
         load = self.get_load()
@@ -1696,9 +1691,6 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
 
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
-
-        if executable == sys.executable:
-            self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         cmdline = [executable, self.runner_path, '--report-file', self.report_file]
 

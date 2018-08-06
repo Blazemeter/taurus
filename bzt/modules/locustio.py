@@ -51,6 +51,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.__setup_script()
         self.engine.existing_artifact(self.script)
 
+        # path to taurus dir. It's necessary for bzt usage inside tools/helpers
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+
         self.is_master = self.execution.get("master", self.is_master)
 
         if self.is_master:
@@ -87,9 +90,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
         wrapper = os.path.join(get_full_path(__file__, step_up=2), "resources", "locustio-taurus-wrapper.py")
 
-        self.env.add_path({"PYTHONPATH": self.engine.artifacts_dir})
-        self.env.add_path({"PYTHONPATH": os.getcwd()})
         self.env.set({"LOCUST_DURATION": dehumanize_time(load.duration)})
+
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+        self.env.add_path({"PYTHONPATH": self.engine.artifacts_dir})
 
         self.log_file = self.engine.create_artifact("locust", ".log")
         args = [sys.executable, wrapper, '-f', self.script]

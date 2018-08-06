@@ -543,6 +543,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         super(TestApiritifScriptGenerator, self).setUp()
         self.obj = ApiritifNoseExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
