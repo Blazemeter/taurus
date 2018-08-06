@@ -13,7 +13,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-import selenium_taurus_extras
+import bzt.resources.selenium_taurus_extras as selenium_taurus_extras
 
 _vars = {}
 _tpl = selenium_taurus_extras.Template(_vars)

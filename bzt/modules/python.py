@@ -77,15 +77,10 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             else:
                 raise TaurusConfigError("Nothing to test, no requests were provided in scenario")
 
-        # todo: convert follow to pythonpath
-        # selenium_extras = os.path.join(get_full_path(__file__, step_up=2), "resources", "selenium_taurus_extras.py")
-        # selenium_extras_artifacts = os.path.join(self.engine.artifacts_dir, os.path.basename(selenium_extras))
-        # if not os.path.isfile(selenium_extras_artifacts):
-        #    shutil.copyfile(selenium_extras, selenium_extras_artifacts)
-        resources_dir = os.path.join(get_full_path(__file__, step_up=2), "resources")
-        self.env.add_path({"PYTHONPATH": resources_dir})
-
         # todo: requred tools?
+
+        # path to taurus dir. It's necessary for bzt usage inside tools/helpers
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         self.reporting_setup()  # no prefix/suffix because we don't fully control report file names
 
@@ -264,7 +259,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-import selenium_taurus_extras
+import bzt.resources.selenium_taurus_extras as selenium_taurus_extras
 """
     IMPORTS_APPIUM = """import unittest
 import re
@@ -280,7 +275,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-import selenium_taurus_extras
+import bzt.resources.selenium_taurus_extras as selenium_taurus_extras
     """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
