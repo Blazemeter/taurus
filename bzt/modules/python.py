@@ -259,7 +259,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-import bzt.resources.selenium_taurus_extras as selenium_taurus_extras
+from bzt.resources import selenium_taurus_extras
 """
     IMPORTS_APPIUM = """import unittest
 import re
@@ -275,7 +275,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-import bzt.resources.selenium_taurus_extras as selenium_taurus_extras
+from bzt.resources import selenium_taurus_extras
     """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
