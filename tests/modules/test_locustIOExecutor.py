@@ -310,7 +310,13 @@ class TestLocustIOExecutor(BZTestCase):
         self.obj.post_process()
 
         kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
-        self.assertTrue(os.path.exists(kpi_path))
+        listdir = os.listdir(self.obj.engine.artifacts_dir)
+        with open(self.obj.engine.artifacts_dir + "/locust.log") as fds:
+            locust_log = fds.read()
+        with open(self.obj.engine.artifacts_dir + "/locust.out") as fds:
+            locust_out = fds.read()
+
+        self.assertTrue(os.path.exists(kpi_path), "listdir: %s\nlog: %s\nout: %s\n" % (listdir, locust_log, locust_out))
 
         reader = JTLReader(kpi_path, self.obj.log)
         for point in reader.datapoints():
