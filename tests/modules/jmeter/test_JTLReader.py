@@ -217,4 +217,6 @@ class TestJTLReader(BZTestCase):
         start = time.time()
         self.configure(RESOURCES_DIR + "/jmeter/jtl/slow-stdev.jtl")
         list(self.obj.datapoints(final_pass=True))
-        self.assertLess(time.time() - start, 5)
+        elapsed = time.time() - start
+        logging.debug("Elapsed: %s", elapsed)
+        self.assertLess(elapsed, 5)
