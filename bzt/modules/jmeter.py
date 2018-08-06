@@ -1459,6 +1459,8 @@ class JMeter(RequiredTool):
     """
 
     def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, http_client):
+        if jmeter_download_link is not None:
+            jmeter_download_link = jmeter_download_link.format(version=jmeter_version)
         super(JMeter, self).__init__("JMeter", tool_path, jmeter_download_link, http_client=http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
