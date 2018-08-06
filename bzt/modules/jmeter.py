@@ -865,7 +865,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER, force_set=True)
         jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/{version}/", force_set=True)
         jmeter_path = get_full_path(jmeter_path)
-        download_link = self.settings.get("download-link", None).format(version=jmeter_version)
+        download_link = self.settings.get("download-link", None)
         plugins = self.settings.get("plugins", [])
         self.tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, self.engine.get_http_client())
 
@@ -1459,6 +1459,8 @@ class JMeter(RequiredTool):
     """
 
     def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, http_client):
+        if jmeter_download_link is not None:
+            jmeter_download_link = jmeter_download_link.format(version=jmeter_version)
         super(JMeter, self).__init__("JMeter", tool_path, jmeter_download_link, http_client=http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
