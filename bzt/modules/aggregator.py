@@ -40,6 +40,8 @@ class RespTimesCounter(JSONConvertable):
         self.high = high
         self.sign_figures = sign_figures
         self.histogram = HdrHistogram(low, high, sign_figures)
+        self._cached_perc = None
+        self._cached_stdev = None
 
     def __bool__(self):
         return len(self) > 0
@@ -48,19 +50,27 @@ class RespTimesCounter(JSONConvertable):
         return self.histogram.total_count
 
     def add(self, item, count=1):
+        self._cached_perc = None
+        self._cached_stdev = None
         self.histogram.record_value(item, count)
 
     def merge(self, other):
+        self._cached_perc = None
+        self._cached_stdev = None
         self.histogram.add(other.histogram)
 
     def get_percentiles_dict(self, percentiles):
-        return self.histogram.get_percentile_to_value_dict(percentiles)
+        if self._cached_perc is None or set(self._cached_perc.keys()) != set(percentiles):
+            self._cached_perc = self.histogram.get_percentile_to_value_dict(percentiles)
+        return self._cached_perc
 
     def get_counts(self):
         return self.histogram.get_value_counts()
 
     def get_stdev(self, mean):
-        return self.histogram.get_stddev(mean)
+        if self._cached_stdev is None:
+            self._cached_stdev = self.histogram.get_stddev(mean)
+        return self._cached_stdev
 
     def __json__(self):
         return {
