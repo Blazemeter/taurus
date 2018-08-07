@@ -25,6 +25,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
+from bzt.six import string_types
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -85,7 +86,7 @@ class GatlingScriptBuilder(object):
                                         level=3)
 
             if req.body is not None:
-                if isinstance(req.body, str):
+                if isinstance(req.body, string_types):
                     exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
                     exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
                 else:

@@ -632,12 +632,6 @@ class MultiPartForm(object):
         if mimetype is None:
             mimetype = mimetypes.guess_type(filename)[0] or default
 
-        # if isinstance(fieldname, six.u()):
-        # fieldname = fieldname.encode()
-
-        # if isinstance(body, str):
-        # body = body.encode()
-
         self.files.append((fieldname, filename, mimetype, body))
 
     def add_file(self, fieldname, filename, file_handle=None, mimetype=None):
@@ -683,8 +677,6 @@ class MultiPartForm(object):
         # then return CR+LF separated data
         flattened = list(itertools.chain(*parts))
         flattened.append('--' + self.boundary + '--')
-        # flattened.append('')
-        # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in flattened)
         return flattened
 
     def form_as_bytes(self):
@@ -704,7 +696,6 @@ class MultiPartForm(object):
         res_bytes = b("\r\n").join(result_list)
         res_bytes += b("\r\n")
         return res_bytes
-        # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
 
 def to_json(obj, indent=True):

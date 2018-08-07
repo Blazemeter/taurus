@@ -137,7 +137,6 @@ class TestConfiguration(BZTestCase):
         obj.load([RESOURCES_DIR + "yaml/tabs-issue.yml"])
         fname = tempfile.mkstemp()[1]
         obj.dump(fname, Configuration.YAML)
-        # import shutil; shutil.copy(fname, RESOURCES_DIR + "yaml/tabs-issue-spaces.yml")
         self.assertFilesEqual(RESOURCES_DIR + "yaml/tabs-issue-spaces.yml", fname)
 
     def test_merge_removal(self):

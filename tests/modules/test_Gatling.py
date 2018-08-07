@@ -192,7 +192,12 @@ class TestGatlingExecutor(BZTestCase):
                               }]},
                              {"url": "/",
                               "think-time": 2,
-                              "follow-redirects": True}]
+                              "follow-redirects": True},
+                             {"url": "/reserve.php",
+                              "method": "POST",
+                              "body": u"Body Content 2",
+                              }
+                             ]
             }
         })
         self.obj.prepare()
