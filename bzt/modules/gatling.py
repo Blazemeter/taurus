@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import codecs
 import os
 import re
 import subprocess
@@ -323,7 +324,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         simulation = "TaurusSimulation_%s" % id(self)
         file_name = self.engine.create_artifact(simulation, ".scala")
         gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation)
-        with open(file_name, 'wt') as script:
+        with codecs.open(file_name, 'wt', encoding='utf-8') as script:
             script.write(gen_script.gen_test_case())
 
         return simulation, file_name

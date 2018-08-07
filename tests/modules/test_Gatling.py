@@ -1,3 +1,4 @@
+# coding=utf-8
 import logging
 import os
 import shutil
@@ -195,7 +196,7 @@ class TestGatlingExecutor(BZTestCase):
                               "follow-redirects": True},
                              {"url": "/reserve.php",
                               "method": "POST",
-                              "body": u"Body Content 2",
+                              "body": u"Body Content 日本語",
                               }
                              ]
             }
