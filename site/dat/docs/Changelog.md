@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.12.2<sup>next</sup>
+- bump up default chromedriver version to 2.40
+- Use Google Iowa as default Cloud location, instead of Sandbox
+
+## 1.12.1<sup>11 jul 2018</sup>
+- set `LC_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
+- support SSL certificates for proxies with `settings.proxy.ssl-cert` option
+- limit max variety for error messages with `max-error-variety` option
+- add Authorization Manager support for JMeter YAML scripting
+- add Once Only Controller support for JMeter YAML scripting
+- use special JMeter plugin for `set-variables`
+- do not crash if tool reported negative response time, warn the user about it and proceed
+- fix empty results read handling for Apiritif tests
+- fix JMeter installation under proxy
+- remove whole disabled node (and also its hashTree, i.e. included elements)
+- support conversion of variable parametrized LoopController
+- improve check of conversion controllers (supported/unsupported, disabled, included, etc.)
+- fix `AssertionError: monitoring` error for cloud tests
+- handle log verbosity flag from config better
+- use newer `hdrpy` lib to improve datapoint export performance
+- recognize JUnit test methods inherited from abstract class, filter out abstract class
+- don't fail if slave log is delayed for Locust.io distributed test
+- proxy2jmx - fixed download jmx file for new BlazeMeter API
+- extract all Java helper classes into separate repo
+- send Taurus `engine-loop` monitoring KPI to BlazeMeter
+- send `settings.env` into cloud test config
+- support 'tags' in Robot Executor (thanks to @ddhoot09)
+- use Sandbox as default location for BlazeMeter Cloud
+- handle `body-file` option on JMeter level instead of Taurus level
+- fix failure when `settings.env` variables are used in non-JMeter load settings
+
 ## 1.12.0<sup>4 jun 2018</sup>
 - new frame management support was incorporated. Frames by id, name, relative parent and relative top (Selenium IDE and SideeX style)
 - drag and drop support added to Nose Request (Selenium)
@@ -27,6 +58,13 @@
 - fix `swagger2yaml` crash when an optional field is missing
 - for cloud test, if no sandbox location found and `default-location` is not valid, use first location by default
 - fix Gatling YAML scripts with CSV delimiter in `data-sources`
+- use `TAURUS\_DISABLE\_DOWNLOADS` env var to disable automated tool install
+- use more scope options for JMeter extractors
+- handle nested CSV sources in jmx2yaml
+- ignore KPI items from BlazeMeter cloud API if they have zero samples
+- add `properties` support for JUnit executor
+- add selective JUnit test running
+- use nice table for `-locations` and for final stats reporter
 
 
 ## 1.11.1<sup>26 apr 2018</sup>

@@ -13,7 +13,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-import selenium_taurus_extras
+from bzt.resources import selenium_taurus_extras
 
 _vars = {}
 _tpl = selenium_taurus_extras.Template(_vars)
@@ -24,7 +24,7 @@ class TestRequests(unittest.TestCase):
     def setUp(self):
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
-        profile.set_preference('webdriver.log.file', '<somewhere>/webdriver.log')
+        profile.set_preference('webdriver.log.file', '<somewhere>webdriver.log')
         self.driver = webdriver.Firefox(profile, firefox_options=options)
         self.driver.implicitly_wait(3.5)
         self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)

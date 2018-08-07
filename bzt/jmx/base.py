@@ -23,6 +23,7 @@ from cssselect import GenericTranslator
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario, BetterDict
+from bzt.requests_model import has_variable_pattern
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types
 
 
@@ -43,6 +44,7 @@ class JMX(object):
     TEST_PLAN_SEL = "jmeterTestPlan>hashTree>hashTree"
     THR_GROUP_SEL = TEST_PLAN_SEL + ">hashTree[type=tg]"
     THR_TIMER = "kg.apc.jmeter.timers.VariableThroughputTimer"
+    SET_VAR_ACTION = "kg.apc.jmeter.control.sampler.SetVariablesAction"
 
     def __init__(self, original=None, test_plan_name="BZT Generated Test Plan"):
         self.log = logging.getLogger(self.__class__.__name__)
@@ -195,8 +197,7 @@ class JMX(object):
             "url": False
         }
 
-        flags=BetterDict()
-        flags.merge(defaults)
+        flags = BetterDict.from_dict(defaults)
         if flag_overrides:
             flags.merge(flag_overrides)
 
@@ -236,8 +237,7 @@ class JMX(object):
             "threadCounts": True,
             "url": True
         }
-        flags = BetterDict()
-        flags.merge(default_flags)
+        flags = BetterDict.from_dict(default_flags)
         flags.merge(user_flags)
 
         if is_full:
@@ -258,6 +258,44 @@ class JMX(object):
         """
         return etree.Element("elementProp", name=name, elementType="Arguments",
                              guiclass="ArgumentsPanel", testclass="Arguments")
+
+    @staticmethod
+    def get_auth_manager(authorizations, clear_flag):
+        mgr = etree.Element("AuthManager", guiclass="AuthPanel", testclass="AuthManager",
+                            testname="HTTP Authorization Manager")
+
+        if clear_flag:
+            mgr.append(JMX._bool_prop("AuthManager.clearEachIteration", True))
+
+        auth_coll = JMX._collection_prop("AuthManager.auth_list")
+        mgr.append(auth_coll)
+
+        for authorization in authorizations:
+            auth_element = JMX._element_prop(name="", element_type="Authorization")
+
+            conf_url = authorization.get("url", "")
+            conf_name = authorization.get("name", "")
+            conf_pass = authorization.get("password", "")
+            conf_domain = authorization.get("domain", "")
+            conf_realm = authorization.get("realm", "")
+            conf_mech = authorization.get("mechanism", "").upper()
+
+            if not (conf_name and conf_pass and (conf_url or conf_domain)):
+                logging.warning("Wrong authorization: %s" % authorization)
+                continue
+
+            auth_element.append(JMX._string_prop("Authorization.url", conf_url))
+            auth_element.append(JMX._string_prop("Authorization.username", conf_name))
+            auth_element.append(JMX._string_prop("Authorization.password", conf_pass))
+            auth_element.append(JMX._string_prop("Authorization.domain", conf_domain))
+            auth_element.append(JMX._string_prop("Authorization.realm", conf_realm))
+
+            if conf_mech == "KERBEROS":  # optional prop
+                auth_element.append(JMX._string_prop("Authorization.mechanism", "KERBEROS"))
+
+            auth_coll.append(auth_element)
+
+        return mgr
 
     @staticmethod
     def _get_http_request(url, label, method, timeout, body, keepalive, files=(), encoding=None, follow_redirects=True,
@@ -302,20 +340,7 @@ class JMX(object):
         if encoding is not None:
             proxy.append(JMX._string_prop("HTTPSampler.contentEncoding", encoding))
 
-        if files:
-            proxy.append(JMX._bool_prop("HTTPSampler.DO_MULTIPART_POST", True))
-            proxy.append(JMX._bool_prop("HTTPSampler.BROWSER_COMPATIBLE_MULTIPART", True))
-
-            files_prop = JMX._element_prop("HTTPsampler.Files", "HTTPFileArgs")
-            files_coll = JMX._collection_prop("HTTPFileArgs.files")
-            for file_dict in files:
-                file_elem = JMX._element_prop(file_dict['path'], "HTTPFileArg")
-                file_elem.append(JMX._string_prop("File.path", file_dict['path']))
-                file_elem.append(JMX._string_prop("File.paramname", file_dict["param"]))
-                file_elem.append(JMX._string_prop("File.mimetype", file_dict['mime-type']))
-                files_coll.append(file_elem)
-            files_prop.append(files_coll)
-            proxy.append(files_prop)
+        proxy.extend(JMX.get_files_elements(files))
 
         if use_random_host_ip and host_ips:
             if len(host_ips) > 1:
@@ -325,6 +350,34 @@ class JMX(object):
             proxy.append(JMX._string_prop("HTTPSampler.ipSource", expr))
 
         return proxy
+
+    @staticmethod
+    def get_files_elements(files):
+        if not files:
+            return []
+
+        # check if it's multipart
+        if len(files) > 1 or files[0].get("param", "") or not has_variable_pattern(files[0].get("path", "")):
+            elements = [
+                JMX._bool_prop("HTTPSampler.DO_MULTIPART_POST", True),
+                JMX._bool_prop("HTTPSampler.BROWSER_COMPATIBLE_MULTIPART", True)]
+        else:
+            elements = []
+
+        files_prop = JMX._element_prop("HTTPsampler.Files", "HTTPFileArgs")
+        elements.append(files_prop)
+
+        files_coll = JMX._collection_prop("HTTPFileArgs.files")
+        for file_dict in files:
+            file_elem = JMX._element_prop(file_dict.get("path", ""), "HTTPFileArg")
+            file_elem.append(JMX._string_prop("File.path", file_dict.get("path", "")))
+            file_elem.append(JMX._string_prop("File.paramname", file_dict.get("param", "")))
+            file_elem.append(JMX._string_prop("File.mimetype", file_dict.get("mime-type", "")))
+            files_coll.append(file_elem)
+        files_prop.append(files_coll)
+
+        return elements
+
 
     @staticmethod
     def __add_body_from_string(args, body, proxy):
@@ -565,6 +618,35 @@ class JMX(object):
         shaper_collection.append(coll_prop)
 
     @staticmethod
+    def get_set_var_action(udv_dict, testname="Variables from Taurus"):
+        """
+        :type testname: str
+        :type udv_dict: dict[str,str]
+        :rtype: etree.Element
+        """
+
+        udv_element = etree.Element(JMX.SET_VAR_ACTION, guiclass=JMX.SET_VAR_ACTION+"Gui",
+                                    testclass=JMX.SET_VAR_ACTION, testname=testname)
+        arg_element = etree.Element("elementProp", name="SetVariablesAction", guiclass="ArgumentsPanel",
+                                    testclass="Arguments", testname="User Defined Variables", elementType="Arguments")
+        udv_element.append(arg_element)
+        udv_collection_prop = JMX._collection_prop("Arguments.arguments")
+        arg_element.append(udv_collection_prop)
+
+        for var_name in sorted(udv_dict.keys(), key=str):
+            udv_element_prop = JMX._element_prop(name=str(var_name), element_type="Argument")
+            udv_collection_prop.append(udv_element_prop)
+
+            udv_arg_name_prop = JMX._string_prop("Argument.name", var_name)
+            udv_arg_value_prop = JMX._string_prop("Argument.value", udv_dict[var_name])
+            udv_arg_meta_prop = JMX._string_prop("Argument.metadata", "=")
+            udv_element_prop.append(udv_arg_name_prop)
+            udv_element_prop.append(udv_arg_value_prop)
+            udv_element_prop.append(udv_arg_meta_prop)
+
+        return udv_element
+
+    @staticmethod
     def add_user_def_vars_elements(udv_dict, testname="Variables from Taurus"):
         """
         :type testname: str
@@ -789,14 +871,15 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_extractor(varname, headers, regexp, template, match_no, default='NOT_FOUND'):
+    def _get_extractor(varname, headers, regexp, template, match_no, default='NOT_FOUND', scope='', from_var=''):
         """
-
         :type varname: str
         :type regexp: str
         :type template: str|int
         :type match_no: int
         :type default: str
+        :type scope: str
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
         if isinstance(template, int):
@@ -816,21 +899,22 @@ class JMX(object):
         element.append(JMX._string_prop("RegexExtractor.useHeaders", headers))
         element.append(JMX._string_prop("RegexExtractor.refname", varname))
         element.append(JMX._string_prop("RegexExtractor.regex", regexp))
-        element.append(JMX._string_prop("Sample.scope", "parent"))
         element.append(JMX._string_prop("RegexExtractor.template", template))
         element.append(JMX._string_prop("RegexExtractor.default", default))
         element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
+        element.extend(JMX.get_scope_props(scope, from_var))
         return element
 
     @staticmethod
-    def _get_boundary_extractor(varname, subject, left, right, match_no, defvalue='NOT_FOUND'):
+    def _get_boundary_extractor(varname, subject, left, right, match_no, defvalue='NOT_FOUND', scope='', from_var=''):
         """
-
         :type varname: str
         :type regexp: str
         :type template: str|int
         :type match_no: int
         :type default: str
+        :type scope: str
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
 
@@ -854,16 +938,18 @@ class JMX(object):
         element.append(JMX._string_prop("BoundaryExtractor.rboundary", right))
         element.append(JMX._string_prop("RegexExtractor.default", defvalue))
         element.append(JMX._string_prop("RegexExtractor.match_number", match_no))
+        element.extend(JMX.get_scope_props(scope, from_var))
         return element
 
     @staticmethod
-    def _get_jquerycss_extractor(varname, selector, attribute, match_no, default="NOT_FOUND"):
+    def _get_jquerycss_extractor(varname, selector, attribute, match_no, default="NOT_FOUND", scope='', from_var=''):
         """
-
         :type varname: str
         :type regexp: str
         :type match_no: int
         :type default: str
+        :type scope: str
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
 
@@ -874,6 +960,7 @@ class JMX(object):
         element.append(JMX._string_prop("HtmlExtractor.attribute", attribute))
         element.append(JMX._string_prop("HtmlExtractor.match_number", match_no))
         element.append(JMX._string_prop("HtmlExtractor.default", default))
+        element.extend(JMX.get_scope_props(scope, from_var))
         return element
 
     @staticmethod
@@ -897,6 +984,15 @@ class JMX(object):
         return element
 
     @staticmethod
+    def get_scope_props(scope, from_variable):
+        props = []
+        if scope:
+            props.append(JMX._string_prop("Sample.scope", scope))
+            if scope == "variable":
+                props.append(JMX._string_prop("Scope.variable", from_variable))
+        return props
+
+    @staticmethod
     def _get_internal_json_extractor(varname, jsonpath, default, scope, from_variable, match_no, concat):
         """
         :type varname: str
@@ -915,10 +1011,7 @@ class JMX(object):
         if default:
             element.append(JMX._string_prop("JSONPostProcessor.defaultValues", default))
 
-        if scope:
-            element.append(JMX._string_prop("Sample.scope", scope))
-            if scope == "variable":
-                element.append(JMX._string_prop("Scope.variable", from_variable))
+        element.extend(JMX.get_scope_props(scope, from_variable))
 
         if concat:
             element.append(JMX._bool_prop("JSONPostProcessor.compute_concat", True))
@@ -951,7 +1044,8 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_xpath_extractor(varname, xpath, default, validate_xml, ignore_whitespace, match_no, use_namespaces, use_tolerant_parser):
+    def _get_xpath_extractor(varname, xpath, default, validate_xml, ignore_whitespace, match_no, use_namespaces,
+                             use_tolerant_parser, scope, from_var):
         """
         :type varname: str
         :type xpath: str
@@ -959,6 +1053,8 @@ class JMX(object):
         :type validate_xml: bool
         :type ignore_whitespace: bool
         :type use_tolerant_parser: bool
+        :type scope: str
+        :type from_var: str
         :rtype: lxml.etree.Element
         """
         element = etree.Element("XPathExtractor",
@@ -973,6 +1069,9 @@ class JMX(object):
         element.append(JMX._string_prop("XPathExtractor.matchNumber", match_no))
         element.append(JMX._bool_prop("XPathExtractor.namespace", use_namespaces))
         element.append(JMX._bool_prop("XPathExtractor.tolerant", use_tolerant_parser))
+
+        element.extend(JMX.get_scope_props(scope, from_var))
+
         return element
 
     @staticmethod
@@ -1127,6 +1226,18 @@ class JMX(object):
         controller = etree.Element("IfController", guiclass="IfControllerPanel", testclass="IfController",
                                    testname="If Controller")
         controller.append(JMX._string_prop("IfController.condition", condition))
+        return controller
+
+    @staticmethod
+    def _get_once_controller():
+        """
+        Generates Once Only Controller
+
+        :return: etree element, OnceOnlyController
+        """
+        controller = etree.Element("OnceOnlyController", guiclass="OnceOnlyControllerGui",
+                                   testclass="OnceOnlyController", testname="Once Only Controller")
+
         return controller
 
     @staticmethod

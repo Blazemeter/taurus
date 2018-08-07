@@ -29,15 +29,17 @@ from collections import defaultdict, OrderedDict, Counter, namedtuple
 from functools import wraps
 from ssl import SSLError
 
+import requests
 import yaml
 from requests.exceptions import ReadTimeout
+from terminaltables import SingleTable, AsciiTable
 from urwid import Pile, Text
 
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone, \
-    TAURUS_ARTIFACTS_DIR
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
+from bzt.engine import Singletone, TAURUS_ARTIFACTS_DIR
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
@@ -125,6 +127,7 @@ CLOUD_CONFIG_FILTER_RULES = {
 
 CLOUD_CONFIG_FILTER_RULES['modules']['!cloud'] = CLOUD_CONFIG_FILTER_RULES['modules']['!blazemeter']
 NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
+NOTE_SIZE_LIMIT = 2048
 
 
 def send_with_retry(method):
@@ -191,6 +194,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
 
     :type _test: bzt.bza.Test
     :type _master: bzt.bza.Master
+    :type _session: bzt.bza.Session
     """
 
     def __init__(self):
@@ -237,6 +241,10 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self._user.address = self.settings.get("address", self._user.address).rstrip("/")
         self._user.data_address = self.settings.get("data-address", self._user.data_address).rstrip("/")
         self._user.timeout = dehumanize_time(self.settings.get("timeout", self._user.timeout))
+        if isinstance(self._user.http_session, requests.Session):
+            self.log.debug("Installing http client")
+            self._user.http_session = self.engine.get_http_client()
+            self._user.http_request = self._user.http_session.request
 
         # direct data feeding case
         sess_id = self.parameters.get("session-id")
@@ -460,7 +468,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             note = self._session['note'] + '\n' + note
         note = note.strip()
         if note:
-            self._session.set({'note': note})
+            self._session.set({'note': note[:NOTE_SIZE_LIMIT]})
 
     def append_note_to_master(self, note):
         self._master.fetch()
@@ -468,7 +476,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             note = self._master['note'] + '\n' + note
         note = note.strip()
         if note:
-            self._master.set({'note': note})
+            self._master.set({'note': note[:NOTE_SIZE_LIMIT]})
 
     def check(self):
         """
@@ -625,6 +633,8 @@ class MonitoringBuffer(object):
                         value *= 100
                     elif field == 'bytes-recv' or field.lower().startswith('net'):
                         field = 'Network I/O'
+                    elif field == 'engine-loop':
+                        field = 'Busy Taurus'
                     else:
                         continue  # maybe one day BZA will accept all other metrics...
 
@@ -1154,7 +1164,7 @@ class BaseCloudTest(object):
 class CloudTaurusTest(BaseCloudTest):
     def prepare_locations(self, executors, engine_config):
         available_locations = {}
-        is_taurus4 = self.cloud_mode == 'taurusCloud'
+        is_taurus4 = True
         workspace = Workspace(self._project, {'id': self._project['workspaceId']})
         for loc in workspace.locations(include_private=is_taurus4):
             available_locations[loc['id']] = loc
@@ -1171,8 +1181,7 @@ class CloudTaurusTest(BaseCloudTest):
                 self._check_locations(engine_config[CloudProvisioning.LOC], available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
-                executor.execution[CloudProvisioning.LOC] = BetterDict()
-                executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
+                executor.execution[CloudProvisioning.LOC] = BetterDict.from_dict({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
@@ -1184,7 +1193,7 @@ class CloudTaurusTest(BaseCloudTest):
 
         for location_id in sorted(available_locations):
             location = available_locations[location_id]
-            if not location_id.startswith('harbor-') and location['sandbox']:
+            if location['sandbox'] and not location.get('purposes', {}).get('functional', False):
                 return location_id
 
         if available_locations:
@@ -1304,8 +1313,7 @@ class CloudCollectionTest(BaseCloudTest):
             else:
                 if not global_locations:
                     default_loc = self._get_default_location(available_locations)
-                    executor.execution[CloudProvisioning.LOC] = BetterDict()
-                    executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
+                    executor.execution[CloudProvisioning.LOC] = BetterDict.from_dict({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
@@ -1329,6 +1337,7 @@ class CloudCollectionTest(BaseCloudTest):
                 raise TaurusConfigError("Invalid location requested: %s" % location)
 
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
+        self.log.warning("Using collection-based tests is deprecated in Taurus, will be removed in future versions")
         if self.launch_existing_test:
             return
 
@@ -1430,7 +1439,7 @@ class MasterProvisioning(Provisioning):
             config += to_json(self.engine.config.get('scenarios'))
             config += to_json(executor.settings)
             for rfile in executor_rfiles:
-                if not os.path.exists(self.engine.find_file(rfile)):  # TODO: what about files started from 'http://'?
+                if not os.path.exists(self.engine.find_file(rfile)):
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
                 if to_json(rfile) not in config:  # TODO: might be check is needed to improve
                     additional_files.append(rfile)
@@ -1445,7 +1454,7 @@ class MasterProvisioning(Provisioning):
 
     def _fix_filenames(self, old_names):
         # check for concurrent base names
-        old_full_names = [get_full_path(self.engine.find_file(x)) for x in old_names]
+        old_full_names = [self.engine.find_file(x) for x in old_names]
         rbases = [os.path.basename(get_full_path(rfile)) for rfile in old_full_names]
         rpaths = [get_full_path(rfile, step_up=1) for rfile in old_full_names]
         while rbases:
@@ -1580,14 +1589,16 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def __dump_locations_if_needed(self):
         if self.settings.get("dump-locations", False):
-            self.log.warning("Dumping available locations instead of running the test")
             locations = {}
             for loc in self._workspaces.locations(include_private=True):
                 locations[loc['id']] = loc
 
+            data = [("ID", "Name")]
             for location_id in sorted(locations):
                 location = locations[location_id]
-                self.log.info("Location: %s\t%s", location_id, location['title'])
+                data.append((location_id, location['title']))
+            table = SingleTable(data) if sys.stdout.isatty() else AsciiTable(data)
+            self.log.warning("Dumping available locations instead of running the test:\n%s", table.table)
             raise NormalShutdown("Done listing locations")
 
     def _filter_reporting(self):
@@ -1609,6 +1620,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.user.address = self.settings.get("address", self.user.address)
         self.user.token = self.settings.get("token", self.user.token)
         self.user.timeout = dehumanize_time(self.settings.get("timeout", self.user.timeout))
+        if isinstance(self.user.http_session, requests.Session):
+            self.log.debug("Installing http client")
+            self.user.http_session = self.engine.get_http_client()
+            self.user.http_request = self.user.http_session.request
         if not self.user.token:
             raise TaurusConfigError("You must provide API token to use cloud provisioning")
 
@@ -1714,7 +1729,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 if not os.path.exists(cloud_dir):
                     os.makedirs(cloud_dir)
                 dest = os.path.join(cloud_dir, log['filename'])
-                dwn = ExceptionalDownloader()
+                dwn = ExceptionalDownloader(self.engine.get_http_client())
                 with ProgressBarContext() as pbar:
                     try:
                         dwn.get(log['dataUrl'], dest, reporthook=pbar.download_callback)
@@ -1804,6 +1819,10 @@ class ResultsFromBZA(ResultsProvider):
                         self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
                         continue
 
+                    if kpi['n'] <= 0:
+                        self.log.warning("Skipping empty KPI item got from API: %s", kpi)
+                        continue
+
                     kpiset = self.__get_kpiset(aggr, kpi, label_str)
                     point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
@@ -1814,7 +1833,7 @@ class ResultsFromBZA(ResultsProvider):
                 if err_diff:
                     for label in err_diff:
                         point_label = '' if label == 'ALL' else label
-                        kpiset = point[DataPoint.CURRENT].get(point_label, KPISet(), force_set=True)
+                        kpiset = point[DataPoint.CURRENT].setdefault(point_label, KPISet())
                         kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
                     self.prev_errors = self.cur_errors
 
@@ -1871,6 +1890,8 @@ class ResultsFromBZA(ResultsProvider):
         kpiset[KPISet.FAILURES] = kpi['ec']
         kpiset[KPISet.CONCURRENCY] = kpi['na']
         kpiset[KPISet.SAMPLE_COUNT] = kpi['n']
+        assert kpi['n'] >= kpi['ec']
+        kpiset[KPISet.SUCCESSES] = kpi['n'] - kpi['ec']
         kpiset.sum_rt += kpi['t_avg'] * kpi['n'] / 1000.0
         kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0
         perc_map = {'90line': 90.0, "95line": 95.0, "99line": 99.0}

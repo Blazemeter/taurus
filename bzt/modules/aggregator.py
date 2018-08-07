@@ -17,17 +17,20 @@ limitations under the License.
 """
 import collections
 import copy
+import difflib
 import logging
 import re
 from abc import abstractmethod
 from collections import Counter
 
-from hdrpy import HdrHistogram
+import yaml
+from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems
-from bzt.utils import BetterDict, dehumanize_time, JSONConvertable
+from bzt.utils import dehumanize_time, JSONConvertable
+from hdrpy import HdrHistogram
 
 
 class RespTimesCounter(JSONConvertable):
@@ -37,6 +40,8 @@ class RespTimesCounter(JSONConvertable):
         self.high = high
         self.sign_figures = sign_figures
         self.histogram = HdrHistogram(low, high, sign_figures)
+        self._cached_perc = None
+        self._cached_stdev = None
 
     def __bool__(self):
         return len(self) > 0
@@ -45,25 +50,36 @@ class RespTimesCounter(JSONConvertable):
         return self.histogram.total_count
 
     def add(self, item, count=1):
+        self._cached_perc = None
+        self._cached_stdev = None
         self.histogram.record_value(item, count)
 
     def merge(self, other):
+        self._cached_perc = None
+        self._cached_stdev = None
         self.histogram.add(other.histogram)
 
     def get_percentiles_dict(self, percentiles):
-        return self.histogram.get_percentile_to_value_dict(percentiles)
+        if self._cached_perc is None or set(self._cached_perc.keys()) != set(percentiles):
+            self._cached_perc = self.histogram.get_percentile_to_value_dict(percentiles)
+        return self._cached_perc
 
     def get_counts(self):
         return self.histogram.get_value_counts()
 
+    def get_stdev(self, mean):
+        if self._cached_stdev is None:
+            self._cached_stdev = self.histogram.get_stddev(mean)
+        return self._cached_stdev
+
     def __json__(self):
         return {
             float(rt) / 1000: count
-            for rt, count in iteritems(self.histogram.get_value_counts())
+            for rt, count in iteritems(self.get_counts())
         }
 
 
-class KPISet(BetterDict):
+class KPISet(dict):
     """
     Main entity in results, contains all KPIs for single label,
     capable of merging other KPISet's into it to compose cumulative results
@@ -92,7 +108,7 @@ class KPISet(BetterDict):
         self.sum_cn = 0
         self.perc_levels = perc_levels
         self.rtimes_len = rt_dist_maxlen
-        self._concurrencies = BetterDict()  # NOTE: shouldn't it be Counter?
+        self._concurrencies = Counter()
         # scalars
         self[KPISet.SAMPLE_COUNT] = 0
         self[KPISet.CONCURRENCY] = 0
@@ -107,7 +123,7 @@ class KPISet(BetterDict):
         self[KPISet.ERRORS] = []
         self[KPISet.RESP_TIMES] = RespTimesCounter(1, 60 * 30 * 1000, 3)  # is maximum value of 30 minutes enough?
         self[KPISet.RESP_CODES] = Counter()
-        self[KPISet.PERCENTILES] = BetterDict()
+        self[KPISet.PERCENTILES] = {}
 
     def __deepcopy__(self, memo):
         mycopy = KPISet(self.perc_levels)
@@ -135,7 +151,7 @@ class KPISet(BetterDict):
         return {
             "cnt": cnt,
             "msg": error,
-            "tag": tag, # just one more string qualifier
+            "tag": tag,  # just one more string qualifier
             "rc": ret_c,
             "type": errtype,
             "urls": urls,
@@ -221,6 +237,7 @@ class KPISet(BetterDict):
                 str(float(perc)): value / 1000.0
                 for perc, value in iteritems(resp_times.get_percentiles_dict(self.perc_levels))
             }
+            self[self.STDEV_RESP_TIME] = resp_times.get_stdev(self[self.AVG_RESP_TIME])
 
         return self
 
@@ -252,6 +269,7 @@ class KPISet(BetterDict):
             # using existing percentiles
             # FIXME: it's not valid to overwrite, better take average
             self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
+        self[self.STDEV_RESP_TIME] = src[self.STDEV_RESP_TIME]  # we rely on recalculate() fixing it afterwards
 
         self[self.RESP_CODES].update(src[self.RESP_CODES])
 
@@ -282,7 +300,7 @@ class KPISet(BetterDict):
         return inst
 
 
-class DataPoint(BetterDict):
+class DataPoint(dict):
     """
     Represents an aggregate data point
 
@@ -305,8 +323,8 @@ class DataPoint(BetterDict):
         self.perc_levels = perc_levels
         self[self.SOURCE_ID] = None
         self[self.TIMESTAMP] = ts
-        self[self.CUMULATIVE] = BetterDict()
-        self[self.CURRENT] = BetterDict()
+        self[self.CUMULATIVE] = {}
+        self[self.CURRENT] = {}
         self[self.SUBRESULTS] = []
 
     def __deepcopy__(self, memo):
@@ -323,7 +341,7 @@ class DataPoint(BetterDict):
         :return:
         """
         for label, val in iteritems(src):
-            dest = dst.get(label, KPISet(self.perc_levels), force_set=True)
+            dest = dst.setdefault(label, KPISet(self.perc_levels))
             if not isinstance(val, KPISet):
                 val = KPISet.from_dict(val)
                 val.perc_levels = self.perc_levels
@@ -357,6 +375,10 @@ class DataPoint(BetterDict):
             self.recalculate()
 
 
+yaml.add_representer(KPISet, SafeRepresenter.represent_dict)
+yaml.add_representer(DataPoint, SafeRepresenter.represent_dict)
+
+
 class ResultsProvider(object):
     """
     :type listeners: list[AggregatorListener]
@@ -364,7 +386,7 @@ class ResultsProvider(object):
 
     def __init__(self):
         super(ResultsProvider, self).__init__()
-        self.cumulative = BetterDict()
+        self.cumulative = {}
         self.track_percentiles = [0.0, 50.0, 90.0, 95.0, 99.0, 99.9, 100.0]
         self.listeners = []
         self.buffer_len = 2
@@ -373,6 +395,20 @@ class ResultsProvider(object):
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
         self.rtimes_len = None
+        self.known_errors = set()
+        self.max_error_count = 100
+
+    def _fold_error(self, error):
+        if not error or error in self.known_errors or self.max_error_count <= 0:
+            return error
+
+        size = len(self.known_errors)
+        threshold = (size / float(self.max_error_count)) ** 2
+        matches = difflib.get_close_matches(error, self.known_errors, 1, 1 - threshold)
+        if matches:
+            error = matches[0]
+        self.known_errors.add(error)
+        return error
 
     def add_listener(self, listener):
         """
@@ -388,7 +424,7 @@ class ResultsProvider(object):
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.get(label, KPISet(self.track_percentiles, self.rtimes_len), force_set=True)
+            cumul = self.cumulative.setdefault(label, KPISet(self.track_percentiles, self.rtimes_len))
             cumul.merge_kpis(data)
             cumul.recalculate()
 
@@ -462,6 +498,8 @@ class ResultsReader(ResultsProvider):
 
                 if t_stamp not in self.buffer:
                     self.buffer[t_stamp] = []
+
+                error = self._fold_error(error)
                 self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
             else:
                 raise TaurusInternalException("Unsupported results from %s reader: %s" % (self, result))
@@ -481,10 +519,7 @@ class ResultsReader(ResultsProvider):
             if self.generalize_labels:
                 label = self.__generalize_label(label)
 
-            if label in current:
-                label = current[label]
-            else:
-                label = current.get(label, KPISet(self.track_percentiles), force_set=True)
+            label = current.setdefault(label, KPISet(self.track_percentiles))
 
             # empty means overall
             label.add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
@@ -503,7 +538,7 @@ class ResultsReader(ResultsProvider):
         """
         self.__process_readers(final_pass)
 
-        self.log.debug("Buffer len: %s", len(self.buffer))
+        self.log.debug("Buffer len: %s; Known errors count: %s", len(self.buffer), len(self.known_errors))
         if not self.buffer:
             return
 
@@ -569,7 +604,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.generalize_labels = False
         self.ignored_labels = ["ignore"]
         self.underlings = []
-        self.buffer = BetterDict()
+        self.buffer = {}
         self.rtimes_len = 1000
 
     def prepare(self):
@@ -611,6 +646,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         debug_str = 'Buffer scaling setup: percentile %s from %s selected'
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
         self.rtimes_len = self.settings.get("rtimes-len", self.rtimes_len)
+        self.max_error_count = self.settings.get("max-error-variety", self.max_error_count)
 
     def add_underling(self, underling):
         """
@@ -627,6 +663,9 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.buffer_multiplier = self.buffer_multiplier
             underling.buffer_scale_idx = self.buffer_scale_idx
             underling.rtimes_len = self.rtimes_len
+
+            underling.max_error_count = self.max_error_count
+            underling.known_errors = self.known_errors  # share error set between underlings
 
         self.underlings.append(underling)
 
@@ -658,7 +697,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
                         self.log.debug("Putting datapoint %s into %s", tstamp, mints)
                         data[DataPoint.TIMESTAMP] = mints
                         tstamp = mints
-                self.buffer.get(tstamp, [], force_set=True).append(data)
+                self.buffer.setdefault(tstamp, []).append(data)
 
     def _calculate_datapoints(self, final_pass=False):
         """

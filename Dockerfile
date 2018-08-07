@@ -85,5 +85,6 @@ RUN mkdir /bzt-configs \
   && mkdir /tmp/artifacts
 
 ENV LANG en_US.UTF-8
+ENV LC_ALL en_US.UTF-8
 WORKDIR /bzt-configs
 ENTRYPOINT ["sh", "-c", "bzt -l /tmp/artifacts/bzt.log \"$@\"", "ignored"]

@@ -1,7 +1,7 @@
 execution:
 - executor: apiritif
   concurrency: 30
-  ramp-up: 3m
+  ramp-up: 20m
   #iterations: 10000
   #hold-for: 1m
   #steps: 5

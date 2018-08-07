@@ -15,8 +15,25 @@ class TestEngine(BZTestCase):
         self.obj = EngineEmul()
         self.paths = local_paths_config()
 
+    def test_find_file(self):
+        self.sniff_log(self.obj.log)
+
+        config = RESOURCES_DIR + "json/get-post.json"
+        configs = [config, self.paths]
+        self.obj.configure(configs)
+        self.assertEqual(2, len(self.obj.file_search_paths))
+
+        self.obj.find_file(config)
+        self.assertEqual("", self.log_recorder.warn_buff.getvalue())
+
+        self.obj.find_file("reporting.json")
+        self.assertIn("Guessed location", self.log_recorder.warn_buff.getvalue())
+
+        self.obj.find_file("definitely_missed.file")
+        self.assertIn("Could not find", self.log_recorder.warn_buff.getvalue())
+
     def test_missed_config(self):
-        configs = ['difinitely_missed.file']
+        configs = ['definitely_missed.file']
         try:
             self.obj.configure(configs)
             self.fail()
@@ -77,7 +94,8 @@ class TestEngine(BZTestCase):
             },
             "modules": {
                 "local": "bzt.modules.provisioning.Local",
-                "jmeter": "tests.modules.jmeter.MockJMeterExecutor",
+                "jmeter": {"class": "tests.modules.jmeter.MockJMeterExecutor",
+                           "protocol-handlers": {"http": "bzt.jmx.http.HTTPProtocolHandler"}},
             }})
         self.obj.prepare()
 
@@ -274,3 +292,26 @@ class TestScenarioExecutor(BZTestCase):
             self.assertEqual(1, len(results))
         else:
             self.assertEqual(2, len(results))
+
+    def test_get_load_str(self):
+        self.executor.execution.merge({
+            "concurrency": "2",
+            "hold-for": "3",
+            "ramp-up": "4",
+            "iterations": "5",
+            "throughput": "6",
+            "steps": "7",
+        })
+        load = self.executor.get_load()
+        self.assertEquals(2, load.concurrency)
+        self.assertEquals(3, load.hold)
+        self.assertEquals(4, load.ramp_up)
+        self.assertEquals(5, load.iterations)
+        self.assertEquals(6, load.throughput)
+        self.assertEquals(7, load.steps)
+
+    def test_get_load_str_fail(self):
+        self.executor.execution.merge({
+            "concurrency": "2VU",
+        })
+        self.assertRaises(TaurusConfigError, self.executor.get_load)

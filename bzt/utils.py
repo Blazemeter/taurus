@@ -38,19 +38,22 @@ import sys
 import tarfile
 import tempfile
 import time
+import traceback
 import webbrowser
 import zipfile
-import ipaddress
-import psutil
-
 from abc import abstractmethod
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, OrderedDict
 from contextlib import contextmanager
 from math import log
-from progressbar import ProgressBar, Percentage, Bar, ETA
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
-from urwid import BaseScreen
+from distutils.version import LooseVersion
 from webbrowser import GenericBrowser
+
+import ipaddress
+import psutil
+import requests
+from progressbar import ProgressBar, Percentage, Bar, ETA
+from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import stream_decode, file_type, etree, parse, deunicode
@@ -88,6 +91,19 @@ def get_files_recursive(dir_name, exclude_mask=''):
         for _file in files:
             if not fnmatch.fnmatch(_file, exclude_mask):
                 yield os.path.join(root, _file)
+
+
+def parse_java_version(versions):
+    if versions:
+        version = versions[0]
+
+        if LooseVersion(version) > LooseVersion("6"):  # start of openjdk naming
+            major = re.findall("^([\d]*)", version)
+        else:
+            major = re.findall("\.([\d]*)", version)
+
+        if major:
+            return major[0]
 
 
 def run_once(func):
@@ -174,6 +190,18 @@ class BetterDict(defaultdict):
     Wrapper for defaultdict that able to deep merge other dicts into itself
     """
 
+    @classmethod
+    def from_dict(cls, orig):
+        """
+        # https://stackoverflow.com/questions/50013768/how-can-i-convert-nested-dictionary-to-defaultdict/50013806
+        """
+        if isinstance(orig, dict):
+            return cls(lambda: None, {k: cls.from_dict(v) for k, v in orig.items()})
+        elif isinstance(orig, list):
+            return [cls.from_dict(e) for e in orig]
+        else:
+            return orig
+
     def get(self, key, default=defaultdict, force_set=False):
         """
         Change get with setdefault
@@ -249,6 +277,7 @@ class BetterDict(defaultdict):
                     self[key] = val
             else:
                 self[key] = val
+        return self
 
     def __merge_list_elements(self, left, right, key):
         for index, righty in enumerate(right):
@@ -271,8 +300,7 @@ class BetterDict(defaultdict):
         """
         for idx, obj in enumerate(values):
             if isinstance(obj, dict):
-                values[idx] = BetterDict()
-                values[idx].merge(obj)
+                values[idx] = BetterDict.from_dict(obj)
             elif isinstance(obj, list):
                 self.__ensure_list_type(obj)
 
@@ -310,6 +338,9 @@ class BetterDict(defaultdict):
                     self.get(key).filter(rules[key])
                     if not self.get(key):  # clear empty
                         del self[key]
+
+    def __repr__(self):
+        return dict(self).__repr__()
 
 
 def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
@@ -537,15 +568,13 @@ def ensure_is_dict(container, key, default_key=None):
     if (isinstance(container, dict) and key not in container) \
             or (isinstance(container, list) and not container[key]):
         if default_key:
-            container[key] = BetterDict()
-            container[key][default_key] = None
+            container[key] = BetterDict.from_dict({default_key: None})
         else:
             container[key] = BetterDict()
     elif not isinstance(container[key], dict):
         if default_key:
             val = container[key]
-            container[key] = BetterDict()
-            container[key][default_key] = val
+            container[key] = BetterDict.from_dict({default_key: val})
         else:
             container[key] = BetterDict()
 
@@ -909,17 +938,117 @@ def shutdown_process(process_obj, log_obj):
             log_obj.debug("Failed to terminate process: %s", exc)
 
 
+class HTTPClient(object):
+    def __init__(self):
+        self.session = requests.Session()
+        self.log = logging.getLogger(self.__class__.__name__)
+        self.proxy_settings = None
+
+    def add_proxy_settings(self, proxy_settings):
+        if proxy_settings and proxy_settings.get("address"):
+            self.proxy_settings = proxy_settings
+            proxy_addr = proxy_settings.get("address")
+            self.log.info("Using proxy %r", proxy_addr)
+            proxy_url = parse.urlsplit(proxy_addr)
+            self.log.debug("Using proxy settings: %s", proxy_url)
+            username = proxy_settings.get("username")
+            pwd = proxy_settings.get("password")
+            scheme = proxy_url.scheme if proxy_url.scheme else 'http'
+            if username and pwd:
+                proxy_uri = "%s://%s:%s@%s" % (scheme, username, pwd, proxy_url.netloc)
+            else:
+                proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
+            self.session.proxies = {"https": proxy_uri, "http": proxy_uri}
+
+        self.session.verify = proxy_settings.get('ssl-cert', True)
+        self.session.cert = proxy_settings.get('ssl-client-cert', None)
+
+    def get_proxy_jvm_args(self):
+        if not self.proxy_settings:
+            return ''
+        if not self.proxy_settings.get("address"):
+            return ''
+
+        props = OrderedDict()
+
+        proxy_url = parse.urlsplit(self.proxy_settings.get("address"))
+        username = self.proxy_settings.get("username")
+        pwd = self.proxy_settings.get("password")
+        for protocol in ["http", "https"]:
+            props[protocol + '.proxyHost'] = proxy_url.hostname
+            props[protocol + '.proxyPort'] = proxy_url.port or 80
+            if username and pwd:
+                props[protocol + '.proxyUser'] = username
+                props[protocol + '.proxyPass'] = pwd
+
+        jvm_args = " ".join(("-D%s=%s" % (key, value)) for key, value in iteritems(props))
+        return jvm_args
+
+    def download_file(self, url, filename, reporthook=None, data=None):
+        try:
+            with self.session.get(url, stream=True, data=data) as conn:
+                if not conn.ok:
+                    raise ValueError("Status code %s", conn.status_code)
+                total = int(conn.headers.get('content-length', 0))
+                block_size = 1024
+                count = 0
+                with open(filename, 'wb') as f:
+                    for chunk in conn.iter_content(chunk_size=block_size):
+                        if chunk:
+                            f.write(chunk)
+                            count += 1
+                            if reporthook:
+                                reporthook(count, block_size, total)
+        except requests.exceptions.RequestException as exc:
+            resp = exc.response
+            self.log.debug("File download resulted in exception: %s", traceback.format_exc())
+            msg = "Unsuccessful download from %s" % url
+            if resp is not None:
+                msg += ": %s - %s" % (resp.status_code, resp.reason)
+            raise TaurusNetworkError(msg)
+        except BaseException:
+            self.log.debug("File download resulted in exception: %s", traceback.format_exc())
+            raise TaurusNetworkError("Unsuccessful download from %s" % url)
+
+    def request(self, method, url, *args, **kwargs):
+        self.log.debug('Making HTTP request %s %s', method, url)
+        try:
+            return self.session.request(method, url, *args, **kwargs)
+        except requests.exceptions.RequestException as exc:
+            resp = exc.response
+            self.log.debug("Request resulted in exception: %s", traceback.format_exc())
+            msg = "Request to %s failed" % url
+            if resp is not None:
+                msg += ": %s - %s" % (resp.status_code, resp.reason)
+            raise TaurusNetworkError(msg)
+
+
 class ExceptionalDownloader(request.FancyURLopener, object):
+    def __init__(self, http_client=None):
+        """
+
+        :type http_client: HTTPClient
+        """
+        super(ExceptionalDownloader, self).__init__()
+        self.http_client = http_client
+
     def http_error_default(self, url, fp, errcode, errmsg, headers):
         fp.close()
         raise TaurusNetworkError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
 
     def get(self, url, filename=None, reporthook=None, data=None, suffix=""):
+        if os.getenv("TAURUS_DISABLE_DOWNLOADS", ""):
+            raise TaurusInternalException("Downloads are disabled by TAURUS_DISABLE_DOWNLOADS env var")
+
         fd = None
         try:
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
-            response = self.retrieve(url, filename, reporthook, data)
+            if self.http_client is not None:
+                self.http_client.download_file(url, filename, reporthook, data)
+                result = [filename]
+            else:
+                result = self.retrieve(url, filename, reporthook, data)
         except BaseException:
             if fd:
                 os.close(fd)
@@ -928,7 +1057,7 @@ class ExceptionalDownloader(request.FancyURLopener, object):
 
         if fd:
             os.close(fd)
-        return response
+        return result
 
 
 class RequiredTool(object):
@@ -936,13 +1065,18 @@ class RequiredTool(object):
     Abstract required tool
     """
 
-    def __init__(self, tool_name, tool_path, download_link=""):
+    def __init__(self, tool_name, tool_path, download_link="", http_client=None):
+        self.http_client = http_client
         self.tool_name = tool_name
-        self.tool_path = tool_path
+        self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
         self.log = logging.getLogger('')
+        self.version = None
+
+    def _get_version(self, output):
+        return
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
@@ -955,7 +1089,7 @@ class RequiredTool(object):
         with ProgressBarContext() as pbar:
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
-            downloader = ExceptionalDownloader()
+            downloader = ExceptionalDownloader(self.http_client)
             self.log.info("Downloading %s", self.download_link)
             downloader.get(self.download_link, self.tool_path, reporthook=pbar.download_callback)
 
@@ -970,7 +1104,7 @@ class RequiredTool(object):
         else:
             links = self.mirror_manager.mirrors()
 
-        downloader = ExceptionalDownloader()
+        downloader = ExceptionalDownloader(self.http_client)
         sock_timeout = socket.getdefaulttimeout()
         socket.setdefaulttimeout(5)
         for link in links:
@@ -988,15 +1122,25 @@ class RequiredTool(object):
 
 
 class JavaVM(RequiredTool):
-    def __init__(self, parent_logger, tool_path='java', download_link=''):
-        super(JavaVM, self).__init__("JavaVM", tool_path, download_link)
+    def __init__(self, parent_logger, tool_path='java', download_link='', http_client=None):
+        super(JavaVM, self).__init__("JavaVM", tool_path, download_link, http_client=http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
+
+    def _get_version(self, output):
+        versions = re.findall("version\ \"([_\d\.]*)", output)
+        version = parse_java_version(versions)
+
+        if not version:
+            self.log.warning("Tool version parsing error: %s", output)
+
+        return version
 
     def check_if_installed(self):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = sync_run(cmd)
+            self.version = self._get_version(output)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except (CalledProcessError, OSError) as exc:
@@ -1130,9 +1274,15 @@ class Node(RequiredTool):
 
 
 class MirrorsManager(object):
-    def __init__(self, base_link, parent_logger):
+    def __init__(self, base_link, parent_logger, http_client=None):
+        """
+
+        :type base_link: str
+        :type http_client: HTTPClient
+        """
         self.base_link = base_link
         self.log = parent_logger.getChild(self.__class__.__name__)
+        self.http_client = http_client
         self.page_source = None
 
     @abstractmethod
@@ -1141,15 +1291,16 @@ class MirrorsManager(object):
 
     def mirrors(self):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
-        downloader = ExceptionalDownloader()
+        downloader = ExceptionalDownloader(self.http_client)
         try:
             tmp_file = downloader.get(self.base_link)[0]
             with open(tmp_file) as fds:
                 self.page_source = fds.read()
         except BaseException:
+            self.log.debug("Exception: %s", traceback.format_exc())
             self.log.error("Can't fetch %s", self.base_link)
-        mirrors = self._parse_mirrors()
-        return (mirror for mirror in mirrors)
+        return self._parse_mirrors()
+
 
 
 @contextmanager
@@ -1319,7 +1470,7 @@ class PythonGenerator(object):
     @staticmethod
     def gen_statement(statement, indent=None):
         if indent is None:
-            indent = PythonGenerator.INDENT_STEP*2
+            indent = PythonGenerator.INDENT_STEP * 2
 
         statement_elem = etree.Element("statement", indent=str(indent))
         statement_elem.text = statement
@@ -1402,3 +1553,4 @@ def get_host_ips(filter_loopbacks=True):
 
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
+

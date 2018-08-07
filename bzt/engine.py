@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import codecs
 import copy
 import datetime
 import hashlib
@@ -29,7 +30,6 @@ import threading
 import time
 import traceback
 import uuid
-import codecs
 from abc import abstractmethod
 from collections import namedtuple, defaultdict
 from distutils.version import LooseVersion
@@ -41,9 +41,9 @@ from yaml.representer import SafeRepresenter
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestsParser
-from bzt.six import build_opener, install_opener, urlopen, numeric_types
-from bzt.six import string_types, text_type, PY2, UserDict, parse, ProxyHandler, reraise
-from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name
+from bzt.six import numeric_types
+from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
+from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import str_representer, Environment
 
@@ -93,6 +93,8 @@ class Engine(object):
         self.logging_level_down = lambda: None
         self.logging_level_up = lambda: None
 
+        self._http_client = None
+
     def configure(self, user_configs, read_config_files=True):
         """
         Load configuration files
@@ -115,7 +117,7 @@ class Engine(object):
         self.config['included-configs'] = all_includes
 
         self.config.merge({"version": bzt.VERSION})
-        self._set_up_proxy()
+        self.get_http_client()
 
         if self.config.get(SETTINGS).get("check-updates", True):
             install_id = self.config.get("install-id", self._generate_id())
@@ -197,7 +199,7 @@ class Engine(object):
         calls `shutdown` in any case
         """
         self.log.info("Starting...")
-        exc_info = None
+        exc_info = exc_value = None
         try:
             self._startup()
             self.logging_level_down()
@@ -217,9 +219,11 @@ class Engine(object):
                     self.stopping_reason = exc
                 if not exc_info:
                     exc_info = sys.exc_info()
+                if not exc_value:
+                    exc_value = exc
 
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)
 
     def _check_modules_list(self):
         stop = False
@@ -260,7 +264,7 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         self.log.debug("Current stop reason: %s", self.stopping_reason)
-        exc_info = None
+        exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
             try:
@@ -270,10 +274,12 @@ class Engine(object):
                 self.log.debug("%s:\n%s", exc, traceback.format_exc())
                 if not exc_info:
                     exc_info = sys.exc_info()
+                if not exc_value:
+                    exc_value = exc
 
         self.config.dump()
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)
 
     def post_process(self):
         """
@@ -281,7 +287,7 @@ class Engine(object):
         """
         self.log.info("Post-processing...")
         # :type exception: BaseException
-        exc_info = None
+        exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         # services are last because of shellexec which is "final-final" action
         for module in modules:
@@ -297,10 +303,12 @@ class Engine(object):
                         self.stopping_reason = exc
                     if not exc_info:
                         exc_info = sys.exc_info()
+                    if not exc_value:
+                        exc_value = exc
         self.config.dump()
 
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)
 
     def create_artifact(self, prefix, suffix):
         """
@@ -437,17 +445,16 @@ class Engine(object):
         """
         Try to find file or dir in search_path if it was specified. Helps finding files
         in non-CLI environments or relative to config path
+        Return path is full and mustn't treat with abspath/etc.
         :param filename: file basename to find
         :type filename: str
         """
         if not filename:
             return filename
-        filename = os.path.expanduser(filename)
-        if os.path.exists(filename):
-            return filename
-        elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
+
+        if filename.lower().startswith("http://") or filename.lower().startswith("https://"):
             parsed_url = parse.urlparse(filename)
-            downloader = ExceptionalDownloader()
+            downloader = ExceptionalDownloader(self.get_http_client())
             self.log.info("Downloading %s", filename)
             tmp_f_name, http_msg = downloader.get(filename)
             cd_header = http_msg.get('Content-Disposition', '')
@@ -459,12 +466,16 @@ class Engine(object):
             self.log.debug("Moving %s to %s", tmp_f_name, dest)
             shutil.move(tmp_f_name, dest)
             return dest
-        elif self.file_search_paths:
-            for dirname in self.file_search_paths:
+        else:
+            filename = os.path.expanduser(filename)     # expanding of '~' is required for check of existence
+
+            # check filename 'as is' and all combinations of file_search_path/filename
+            for dirname in [""] + self.file_search_paths:
                 location = os.path.join(dirname, filename)
                 if os.path.exists(location):
-                    self.log.warning("Guessed location from search paths for %s: %s", filename, location)
-                    return location
+                    if dirname:
+                        self.log.warning("Guessed location from search paths for %s: %s", filename, location)
+                    return get_full_path(location)
 
         self.log.warning("Could not find location at path: %s", filename)
         return filename
@@ -590,36 +601,22 @@ class Engine(object):
         self.prepared.append(self.aggregator)
         self.aggregator.prepare()
 
-    def _set_up_proxy(self):
-        proxy_settings = self.config.get("settings").get("proxy")
-        if proxy_settings and proxy_settings.get("address"):
-            proxy_url = parse.urlsplit(proxy_settings.get("address"))
-            self.log.debug("Using proxy settings: %s", proxy_url)
-            username = proxy_settings.get("username")
-            pwd = proxy_settings.get("password")
-            scheme = proxy_url.scheme if proxy_url.scheme else 'http'
-            if username and pwd:
-                proxy_uri = "%s://%s:%s@%s" % (scheme, username, pwd, proxy_url.netloc)
-            else:
-                proxy_uri = "%s://%s" % (scheme, proxy_url.netloc)
-            proxy_handler = ProxyHandler({"https": proxy_uri, "http": proxy_uri})
-            opener = build_opener(proxy_handler)
-            install_opener(opener)
+    def get_http_client(self):
+        if self._http_client is None:
+            self._http_client = HTTPClient()
+            self._http_client.add_proxy_settings(self.config.get("settings").get("proxy"))
+        return self._http_client
 
     def _check_updates(self, install_id):
         try:
             params = (bzt.VERSION, install_id)
-            req = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
-            self.log.debug("Requesting updates info: %s", req)
-            response = urlopen(req, timeout=10)
-            resp = response.read()
+            addr = "http://gettaurus.org/updates/?version=%s&installID=%s" % params
+            self.log.debug("Requesting updates info: %s", addr)
+            client = self.get_http_client()
+            response = client.request('GET', addr, timeout=10)
 
-            if not isinstance(resp, str):
-                resp = resp.decode()
-
-            self.log.debug("Taurus updates info: %s", resp)
-
-            data = json.loads(resp)
+            data = response.json()
+            self.log.debug("Taurus updates info: %s", data)
             mine = LooseVersion(bzt.VERSION)
             latest = LooseVersion(data['latest'])
             if mine < latest or data['needsUpgrade']:
@@ -642,6 +639,7 @@ class Engine(object):
 
         for varname in envs:
             if envs[varname]:
+                envs[varname] = str(envs[varname])
                 envs[varname] = os.path.expandvars(envs[varname])
 
         for varname in envs:
@@ -680,8 +678,8 @@ class Configuration(BetterDict):
     JSON = "JSON"
     YAML = "YAML"
 
-    def __init__(self):
-        super(Configuration, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(Configuration, self).__init__(*args, **kwargs)
         self.log = logging.getLogger('')
         self.dump_filename = None
         self.tab_replacement_spaces = 0
@@ -974,7 +972,7 @@ class ScenarioExecutor(EngineModule):
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
         self.provisioning = None
-        self.execution = BetterDict()
+        self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
         self.__scenario = None
         self.label = None
         self.widget = None
@@ -990,14 +988,25 @@ class ScenarioExecutor(EngineModule):
         else:
             return False
 
-    def get_script_path(self, scenario=None):
+    def get_script_path(self, required=False, scenario=None):
         """
+        :type required: bool
         :type scenario: Scenario
         """
         if scenario is None:
             scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
-        return self.engine.find_file(script)
+
+        if required:
+            exc = TaurusConfigError("You must provide script for %s" % self)
+            script = scenario.get(Scenario.SCRIPT, exc)
+        else:
+            script = scenario.get(Scenario.SCRIPT)
+
+        if script:
+            script = self.engine.find_file(script)
+            scenario[Scenario.SCRIPT] = script
+
+        return script
 
     def get_scenario(self, name=None, cache_scenario=True):
         """
@@ -1022,15 +1031,14 @@ class ScenarioExecutor(EngineModule):
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
-                    scenario = BetterDict()
-                    scenario.merge({Scenario.SCRIPT: label})
+                    scenario = BetterDict.from_dict({Scenario.SCRIPT: label})
                 else:
                     scenario = label
 
-                path = self.get_script_path(Scenario(self.engine, scenario))
-                if path is not None:
+                path = self.get_script_path(scenario=Scenario(self.engine, scenario))
+                if path:
                     label = os.path.basename(path)
-                if path is None or label in scenarios:
+                if not path or label in scenarios:
                     hash_str = str(hashlib.md5(to_json(scenario).encode()).hexdigest())
                     label = 'autogenerated_' + hash_str[-10:]
 
@@ -1054,18 +1062,31 @@ class ScenarioExecutor(EngineModule):
         """
         Helper method to read load specification
         """
+
+        def eval_int(value):
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                return value
+
+        def eval_float(value):
+            try:
+                return int(value)
+            except (ValueError, TypeError):
+                return value
+
         prov_type = self.engine.config.get(Provisioning.PROV)
 
         ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type)
-        throughput = self.execution[ScenarioExecutor.THRPT].get(prov_type, 0)
+        throughput = eval_float(self.execution[ScenarioExecutor.THRPT].get(prov_type, 0))
 
         ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type)
-        concurrency = self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0)
+        concurrency = eval_int(self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0))
 
-        iterations = self.execution.get("iterations", None)
+        iterations = eval_int(self.execution.get("iterations", None))
 
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
-        steps = self.execution.get(ScenarioExecutor.STEPS, None)
+        steps = eval_int(self.execution.get(ScenarioExecutor.STEPS, None))
         hold = dehumanize_time(self.execution.get(ScenarioExecutor.HOLD_FOR, 0))
         if ramp_up is None:
             duration = hold

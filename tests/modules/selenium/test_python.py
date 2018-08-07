@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 import time
 
 from bzt import TaurusConfigError
@@ -342,8 +343,6 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"storeString(${Title} ${Basic} by ${By})": "Final"},
                             "go(http:\\blazemeter.com)",
                             "echoString(${red_pill})"
-
-
                         ],
                     },
                         {"label": "empty"}
@@ -383,17 +382,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-
-        with open(RESOURCES_DIR + "selenium/generated_from_requests.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminator and exclude specific build path
-        gen_contents = [line.rstrip() for line in gen_contents if 'webdriver' not in line]
-        sample_contents = [line.rstrip() for line in sample_contents if 'webdriver' not in line]
-
-        self.assertEqual(gen_contents, sample_contents)
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests.py",
+                              (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\'), "<somewhere>")
 
     def test_headless_default(self):
         self.configure({
@@ -508,17 +498,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-
-        with open(RESOURCES_DIR + "selenium/generated_from_requests_remote.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminator
-        gen_contents = [line.rstrip() for line in gen_contents]
-        sample_contents = [line.rstrip() for line in sample_contents]
-
-        self.assertEqual(gen_contents, sample_contents)
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests_remote.py")
 
     def test_build_script_appium_browser(self):
         self.configure({
@@ -555,17 +535,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        with open(self.obj.script) as generated:
-            gen_contents = generated.readlines()
-
-        with open(RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py") as sample:
-            sample_contents = sample.readlines()
-
-        # strip line terminator
-        gen_contents = [line.rstrip() for line in gen_contents]
-        sample_contents = [line.rstrip() for line in sample_contents]
-
-        self.assertEqual(gen_contents, sample_contents)
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py")
 
 
 class TestApiritifScriptGenerator(BZTestCase):
@@ -573,6 +543,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         super(TestApiritifScriptGenerator, self).setUp()
         self.obj = ApiritifNoseExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -1173,14 +1144,21 @@ class TestApiritifScriptGenerator(BZTestCase):
 
     def test_load_reader(self):
         reader = ApiritifLoadReader(self.obj.log)
-        items = list(reader._read())
+
+        # add empty reader
+        with tempfile.NamedTemporaryFile() as f_name:
+            reader.register_file(f_name.name)
+            items = list(reader._read())
+
         self.assertEqual(len(items), 0)
+        self.assertFalse(reader.read_records)
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         items = list(reader._read())
         self.assertEqual(len(items), 2)
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         reader.register_file(RESOURCES_DIR + "jmeter/jtl/tranctl.jtl")
         items = list(reader._read())
+        self.assertTrue(reader.read_records)
         self.assertEqual(len(items), 4)
 
     def test_func_reader(self):
@@ -1214,7 +1192,7 @@ class TestApiritifScriptGenerator(BZTestCase):
                 "scenario": {
                     "default-address": "http://blazedemo.com",
                     "variables": {
-                      "product_id": "5b6c",
+                        "product_id": "5b6c",
                     },
                     "requests": [{
                         "url": "/",
@@ -1297,6 +1275,15 @@ class TestPyTestExecutor(BZTestCase):
             report = [json.loads(line) for line in fds.readlines() if line]
         self.assertEqual(4, len(report))
         self.assertEqual(["PASSED", "FAILED", "FAILED", "SKIPPED"], [item["status"] for item in report])
+
+        failed_item = report[1]
+        assertions = failed_item["assertions"]
+        self.assertEqual(1, len(assertions))
+        assertion = assertions[0]
+        self.assertEqual('assert (2 + (2 * 2)) == 8', assertion['error_msg'])
+        self.assertTrue(assertion['failed'])
+        self.assertEqual('AssertionError: assert (2 + (2 * 2)) == 8', assertion['name'])
+        self.assertIsNotNone(assertion.get('error_trace'))
 
     def test_iterations(self):
         self.obj.execution.merge({

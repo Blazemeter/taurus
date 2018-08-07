@@ -25,7 +25,6 @@ class TestSwagger2YAML(BZTestCase):
     def setUp(self):
         super(TestSwagger2YAML, self).setUp()
         self.engine = EngineEmul()
-        self.maxDiff = None
 
     def _get_swagger2yaml(self, path, file_name=None):
         return Swagger2YAML(FakeOptions(file_name=file_name), RESOURCES_DIR + path)
@@ -235,3 +234,13 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(len(config["scenarios"]["/tests"]["requests"]), 2)
         self.assertEqual(len(config["scenarios"]["/tests/1"]["requests"]), 4)
         self.assertEqual(len(config["scenarios"]["/tests/1/start"]["requests"]), 1)
+
+    def test_json(self):
+        obj = SwaggerConverter(logging.getLogger(''))
+        config = obj.convert_path(RESOURCES_DIR + "/swagger/non-yaml.json")
+
+    def test_no_host(self):
+        obj = SwaggerConverter(logging.getLogger(''))
+        config = obj.convert_path(RESOURCES_DIR + "/swagger/no-host.json")
+        self.assertEqual(config["settings"]["env"]["default-address"], "http://HOST")
+

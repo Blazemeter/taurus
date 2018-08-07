@@ -13,11 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import logging
+import traceback
 import mimetypes
 import re
 
 from bzt import TaurusConfigError, TaurusInternalException
-from bzt.utils import ensure_is_dict, dehumanize_time, get_full_path
+from bzt.utils import ensure_is_dict, dehumanize_time
 
 VARIABLE_PATTERN = re.compile("\${.+\}")
 
@@ -52,7 +54,7 @@ class HTTPRequest(Request):
         msg = "Option 'url' is mandatory for request but not found in %s" % config
         self.url = self.config.get("url", TaurusConfigError(msg))
         self.label = self.config.get("label", self.url)
-        self.method = self.config.get("method", "GET")
+        self.method = self.config.get("method", "GET").upper()
 
         # TODO: add method to join dicts/lists from scenario/request level?
         self.headers = self.config.get("headers", {})
@@ -70,6 +72,9 @@ class HTTPRequest(Request):
             if body:
                 self.log.warning('body and body-file fields are found, only first will take effect')
             else:
+                if self.method in ("PUT", "POST") and has_variable_pattern(body_file):
+                    return
+
                 body_file_path = self.engine.find_file(body_file)
                 with open(body_file_path) as fhd:
                     body = fhd.read()
@@ -82,22 +87,21 @@ class HierarchicHTTPRequest(HTTPRequest):
         super(HierarchicHTTPRequest, self).__init__(config, scenario, engine)
         self.upload_files = self.config.get("upload-files", [])
 
-        method = self.config.get("method")
-        if method == "PUT" and len(self.upload_files) > 1:
+        if self.method == "PUT" and len(self.upload_files) > 1:
             self.upload_files = self.upload_files[:1]
 
         for file_dict in self.upload_files:
             param = file_dict.get("param", None)
 
-            if method == "PUT":
+            if self.method == "PUT":
                 file_dict["param"] = ""
-            if method == "POST" and not param:
+            if self.method == "POST" and not param:
                 raise TaurusConfigError("Items from upload-files must specify parameter name")
 
             path_exc = TaurusConfigError("Items from upload-files must specify path to file")
             path = str(file_dict.get("path", path_exc))
             if not has_variable_pattern(path):  # exclude variables
-                path = get_full_path(self.engine.find_file(path))  # prepare full path for jmx
+                path = self.engine.find_file(path)  # prepare full path for jmx
             else:
                 msg = "Path '%s' contains variable and can't be expanded. Don't use relative paths in 'upload-files'!"
                 self.log.warning(msg % path)
@@ -122,6 +126,18 @@ class IfBlock(Request):
         then_clause = [repr(req) for req in self.then_clause]
         else_clause = [repr(req) for req in self.else_clause]
         return "IfBlock(condition=%s, then=%s, else=%s)" % (self.condition, then_clause, else_clause)
+
+
+class OnceBlock(Request):
+    NAME = "once"
+
+    def __init__(self, requests, config):
+        super(OnceBlock, self).__init__(config)
+        self.requests = requests
+
+    def __repr__(self):
+        requests = [repr(req) for req in self.requests]
+        return "OnceBlock(requests=%s)" % requests
 
 
 class LoopBlock(Request):
@@ -206,6 +222,10 @@ class RequestsParser(object):
             else_clause = req.get("else", [])
             else_requests = self.__parse_requests(else_clause)
             return IfBlock(condition, then_requests, else_requests, req)
+        elif 'once' in req:
+            do_block = req.get("once", TaurusConfigError("operation list is mandatory for 'once' blocks"))
+            do_requests = self.__parse_requests(do_block)
+            return OnceBlock(do_requests, req)
         elif 'loop' in req:
             loops = req.get("loop")
             do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'loop' blocks"))
@@ -259,7 +279,11 @@ class RequestsParser(object):
             req = ensure_is_dict(raw_requests, key, "url")
             if not require_url and "url" not in req:
                 req["url"] = None
-            requests.append(self.__parse_request(req))
+            try:
+                requests.append(self.__parse_request(req))
+            except BaseException as exc:
+                logging.debug("%s\n%s" % (exc, traceback.format_exc()))
+                raise TaurusConfigError("Wrong request:\n %s" % req)
         return requests
 
     def extract_requests(self, require_url=True):
@@ -309,6 +333,7 @@ class ResourceFilesCollector(RequestVisitor):
 
     def visit_hierarchichttprequest(self, request):
         files = []
+
         body_file = request.config.get('body-file')
         if body_file and not has_variable_pattern(body_file):
             files.append(body_file)

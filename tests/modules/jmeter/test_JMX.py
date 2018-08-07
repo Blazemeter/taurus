@@ -265,7 +265,7 @@ class TestJMX(BZTestCase):
         self.assertEqual("true", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
         res = JMX._get_extractor('test_name', 'http-code', 'regexp', 1, 1, 'error')
         self.assertEqual("code", res.find(".//stringProp[@name='RegexExtractor.useHeaders']").text)
-        self.assertEqual("parent", res.find(".//stringProp[@name='Sample.scope']").text)
+        self.assertIsNone(res.find(".//stringProp[@name='Sample.scope']"))
 
     def test_int_udv(self):
         res = JMX()

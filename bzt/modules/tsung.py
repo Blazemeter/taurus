@@ -23,7 +23,7 @@ import traceback
 import copy
 
 from bzt import TaurusConfigError, ToolError, TaurusInternalException
-from bzt.engine import FileLister, Scenario, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import FileLister, ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
@@ -140,8 +140,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         return self.widget
 
     def resource_files(self):
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
+        script = self.get_script_path()
         if script:
             return [script]
         else:
@@ -428,7 +427,6 @@ class Tsung(RequiredTool):
 
     def __init__(self, tool_path, parent_logger):
         super(Tsung, self).__init__("Tsung", tool_path)
-        self.tool_path = tool_path
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
@@ -446,7 +444,7 @@ class Tsung(RequiredTool):
         if not self.tool_path:
             return None
 
-        abspath = os.path.abspath(os.path.expanduser(self.tool_path))
+        abspath = os.path.abspath(self.tool_path)
         if os.path.exists(abspath):
             return abspath
 

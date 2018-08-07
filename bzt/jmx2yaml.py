@@ -33,13 +33,13 @@ from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
 from bzt.utils import get_full_path
+from bzt.requests_model import has_variable_pattern
 
 INLINE_JSR223_MAX_LEN = 10
 
 KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "HTTPSamplerProxy",
               "ThreadGroup",
-              "kg.apc.jmeter.timers.VariableThroughputTimer",
               "kg.apc.jmeter.threads.SteppingThreadGroup",
               "DNSCacheManager",
               "HeaderManager",
@@ -59,6 +59,7 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "CSVDataSet",
               "GenericController",
               "ResultCollector",
+              "OnceOnlyController",
               "Arguments",
               "IfController",
               "LoopController",
@@ -72,7 +73,12 @@ KNOWN_TAGS = ["hashTree", "jmeterTestPlan", "TestPlan", "ResultCollector",
               "BeanShellPreProcessor",
               "BeanShellPostProcessor",
               "JSONPostProcessor",
+              "AuthManager",
+              JMX.SET_VAR_ACTION,
+              JMX.THR_TIMER,
               ]
+
+LOWER_KNOWN_TAGS = [tag.lower() for tag in KNOWN_TAGS]
 
 
 class JMXasDict(JMX):
@@ -89,7 +95,6 @@ class JMXasDict(JMX):
 
     def load(self, original):
         super(JMXasDict, self).load(original)
-        self._clean_disabled_elements(self.tree)
         self._clean_jmx_tree(self.tree)
         self._get_global_objects()
 
@@ -477,7 +482,60 @@ class JMXasDict(JMX):
         self.log.debug('Got %s for base settings in %s (%s)', base_settings, element.tag, element.get("testname"))
         return base_settings
 
-    def _get_data_sources(self, element):
+    def _get_authorization(self, element):
+        authorization = {}
+        hashtree = element.getnext()
+        if hashtree is not None and hashtree.tag == "hashTree":
+            auth_mgrs = [element for element in hashtree.iterchildren() if element.tag == "AuthManager"]
+
+            num_auth_mgrs = len(auth_mgrs)
+            if not num_auth_mgrs:
+                return {}
+            elif num_auth_mgrs > 1:
+                self.log.warning('Found %s Authorization Manager elements, only first one will be used')
+
+            auth_mgr = auth_mgrs[0]
+
+            clear_flag = self._get_bool_prop(auth_mgr, "AuthManager.clearEachIteration")
+            if clear_flag:
+                authorization['clear'] = clear_flag
+
+            auth_list = []
+
+            selector = ".//collectionProp[@name='AuthManager.auth_list']"
+            auth_collection = auth_mgr.find(selector)
+
+            if auth_collection is None or not auth_collection.findall(".//elementProp"):
+                self.log.warning("Authorizations collection not found in %s, skipping", auth_mgr.tag)
+                return {}
+
+            for line in auth_collection.findall(".//elementProp"):
+                auth_element = {}
+
+                props = {
+                    "url": line.find("stringProp[@name='Authorization.url']"),
+                    "name": line.find("stringProp[@name='Authorization.username']"),
+                    "password": line.find("stringProp[@name='Authorization.password']"),
+                    "domain": line.find("stringProp[@name='Authorization.domain']"),
+                    "realm": line.find("stringProp[@name='Authorization.realm']"),
+                    "mechanism": line.find("stringProp[@name='Authorization.mechanism']")}
+
+                for key in props:
+                    if props[key] is not None:
+                        text = props[key].text
+                        if text:
+                            auth_element[key] = text
+
+                auth_list.append(auth_element)
+
+            authorization["list"] = auth_list
+            msg = "Got %s for authorization in %s (%s)"
+            self.log.debug(msg, authorization, auth_mgr.tag, auth_mgr.get("testname"))
+            return {"authorization": authorization}
+
+        return {}
+
+    def _get_data_sources(self, element, recursive=False):
         """
         data-sources option
         :param element:
@@ -486,7 +544,12 @@ class JMXasDict(JMX):
         data_sources = []
         hashtree = element.getnext()
         if hashtree is not None and hashtree.tag == "hashTree":
-            data_sources_elements = [element for element in hashtree.iterchildren() if element.tag == "CSVDataSet"]
+            if recursive:
+                elements = hashtree.iterdescendants()
+            else:
+                elements = hashtree.iterchildren()
+
+            data_sources_elements = [elem for elem in elements if elem.tag == "CSVDataSet"]
             for data_source in data_sources_elements:
                 self.log.debug("datasource file: %s", data_source.get("testname"))
                 if data_source is not None:
@@ -760,7 +823,7 @@ class JMXasDict(JMX):
                         self.log.warning("No queries declared for JSONPath extractor")
                         continue
                     def_values = self._get_string_prop(extractor_element, 'JSONPostProcessor.defaultValues')
-                    def_values_iter = iter(def_values.split(';') if def_values is not None else None)
+                    def_values_iter = iter(def_values.split(';') if def_values is not None else [])
                     for var, query in zip(variables.split(';'), queries.split(';')):
                         extractor = {"jsonpath": query}
                         try:
@@ -1076,13 +1139,16 @@ class JMXasDict(JMX):
         if hashtree is not None and hashtree.tag == "hashTree":
             arguments = [element for element in hashtree.iterchildren() if element.tag == "Arguments"]
             for argument in arguments:
-                for element in argument.find(".//collectionProp").findall(".//elementProp"):
-                    var_name = self._get_string_prop(element, 'Argument.name')
-                    var_value = self._get_string_prop(element, 'Argument.value')
-                    if var_name and var_value:
-                        variables[var_name] = var_value
+                self.__parse_argument_element(argument, variables)
 
         return {"variables": variables} if variables else {}
+
+    def __parse_argument_element(self, argument, variables):
+        for element in argument.find(".//collectionProp").findall(".//elementProp"):
+            var_name = self._get_string_prop(element, 'Argument.name')
+            var_value = self._get_string_prop(element, 'Argument.value')
+            if var_name and var_value:
+                variables[var_name] = var_value
 
     def _get_jsr223_processors(self, element):
         """
@@ -1216,6 +1282,13 @@ class JMXasDict(JMX):
                 hash_tree = next(children)
                 if_block = self.__extract_if_controller(elem, hash_tree)
                 requests.append(if_block)
+            elif elem.tag == 'OnceOnlyController':
+                hash_tree = next(children)
+                once_block = self.__extract_once_controller(hash_tree)
+                requests.append(once_block)
+            elif elem.tag == JMX.SET_VAR_ACTION:
+                set_variables_block = self.__extract_set_variables(elem)
+                requests.append(set_variables_block)
             elif elem.tag == 'LoopController':
                 hash_tree = next(children)
                 loop_block = self.__extract_loop_controller(elem, hash_tree)
@@ -1235,7 +1308,7 @@ class JMXasDict(JMX):
             elif elem.tag == 'HTTPSamplerProxy':
                 request = self._get_request_settings(elem)
                 requests.append(request)
-            elif elem.tag:
+            elif elem.tag == "hashTree":    # structure isn't recognized, just extract requests from hashTree
                 subrequests = self.__extract_requests(elem)
                 requests.extend(subrequests)
         return requests
@@ -1245,19 +1318,35 @@ class JMXasDict(JMX):
         requests = self.__extract_requests(ht_element)
         return {'if': condition, 'then': requests}
 
+    def __extract_set_variables(self, action):
+        variables = {}
+        self.__parse_argument_element(action, variables)
+        return {"set-variables": variables} if variables else {}
+
+    def __extract_once_controller(self, ht_element):
+        requests = self.__extract_requests(ht_element)
+        return {'once': requests}
+
     def __extract_loop_controller(self, controller, ht_element):
         # NOTE: we can't rely on LoopController.continue_forever , as it's for some reason always `true` on 4.0
         # NOTE: LoopController.loops may be either stringProp or intProp, depending on version
 
         strprop = controller.find(".//stringProp[@name='LoopController.loops']")
         if strprop is not None and strprop.text:
-            iterations = int(strprop.text)
+            iterations = strprop.text
         else:
             intprop = controller.find(".//intProp[@name='LoopController.loops']")
             if intprop is not None and intprop.text:
-                iterations = int(intprop.text)
+                iterations = intprop.text
             else:
                 self.log.warning("LoopController.loops has non-numeric value, resetting to 1")
+                iterations = 1
+        if not has_variable_pattern(iterations):
+            try:
+                iterations = int(iterations)
+            except ValueError:
+                msg = "Wrong iterations value in %s Loop Controller: %s, replace with default (1)"
+                self.log.warning(msg, controller.get("testname"), iterations)
                 iterations = 1
 
         loops = 'forever' if iterations == -1 else iterations
@@ -1313,7 +1402,8 @@ class JMXasDict(JMX):
         global_tg_settings = self._get_global_tg_scenario()
         tg_settings = {"requests": []}
         tg_settings.update(default_tg_settings)
-        tg_settings.update(self._get_data_sources(tg_etree_element))
+        tg_settings.update(self._get_authorization(tg_etree_element))
+        tg_settings.update(self._get_data_sources(tg_etree_element, recursive=True))
         tg_settings.update(self._get_headers(tg_etree_element))
         tg_settings.update(self._get_store_cache(tg_etree_element))
         tg_settings.update(self._get_store_cookie(tg_etree_element))
@@ -1410,43 +1500,36 @@ class JMXasDict(JMX):
                     if override:
                         tg_dict[default_key] = defaults[default_key]
 
-    @staticmethod
-    def _remove_element(element):
-        sibling = element.getnext()
-        if sibling is not None and sibling.tag == "hashTree":
-            sibling.getparent().remove(sibling)
-        element.getparent().remove(element)
-
-    def _clean_disabled_elements(self, element):
-        """
-        Removes all disabled elements
-        :param element:
-        :return:
-        """
-        for subelement in element.iter():
-            if subelement.tag.endswith("prop"):
-                continue
-            if subelement.get("enabled") == 'false':
-                self.log.info("Removing disabled element %s (%s)", subelement.tag, subelement.get("testname"))
-                self._remove_element(subelement)
-                self._clean_disabled_elements(element)
-                return
-
     def _clean_jmx_tree(self, element):
         """
-        Removes all unknown elements
+        Removes all unknown and disabled elements
         :return:
         """
         for subelement in element.findall('./'):
-            if subelement.tag.lower().endswith("prop"):
-                continue
-            if subelement.tag not in KNOWN_TAGS and not subelement.tag.endswith("Controller"):
-                self.log.warning("Removing unknown element: %s (%s)", subelement.tag, subelement.get("testname"))
-                self._remove_element(subelement)
+            tag = subelement.tag.lower()
+            if tag == 'hashtree':
+                self._clean_jmx_tree(subelement)    # look inside
+            else:
+                unknown = tag not in LOWER_KNOWN_TAGS
+                disabled = subelement.get("enabled") == "false"
+                if disabled:
+                    self.log.info("Removing disabled element: %s (%s)", subelement.tag, subelement.get("testname"))
+                elif unknown:
+                    self.log.warning("Removing unknown element: %s (%s)", subelement.tag, subelement.get("testname"))
+                else:
+                    continue
+
+                sibling = subelement.getnext()
+                subelement.getparent().remove(subelement)
+                next_is_hashtree = sibling is not None and sibling.tag.lower() == "hashtree"
+
+                # remove correspond hashtree
+                if next_is_hashtree and (not tag.endswith("controller") or disabled):
+                    sibling.getparent().remove(sibling)
+
+                # start from the beginning
                 self._clean_jmx_tree(element)
-                return
-            if subelement.tag.lower() == 'hashtree':
-                self._clean_jmx_tree(subelement)
+                break
 
     def _record_additional_file(self, base_filename, extension, content):
         filename = base_filename + extension
@@ -1547,8 +1630,7 @@ class JMX2YAML(object):
             self.log.error("Error while processing jmx file: %s", self.src_file)
             raise
 
-        exporter = Configuration()
-        exporter.merge(jmx_as_dict)
+        exporter = Configuration.from_dict(jmx_as_dict)
 
         if self.options.file_name:
             self.dst_file = self.options.file_name

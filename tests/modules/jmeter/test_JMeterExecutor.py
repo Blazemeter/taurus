@@ -5,39 +5,39 @@ import os
 import shutil
 import sys
 import time
-from unittest import skipUnless
+from unittest import skipUnless, skipIf
+from distutils.version import LooseVersion
 
 import yaml
 
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.jmx import JMX
-from bzt.jmx.tools import JMeterScenarioBuilder
+from bzt.jmx.tools import ProtocolHandler
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
-from tests.modules.jmeter import MockJMeterExecutor
+from tests.modules.jmeter import MockJMeterExecutor, MockHTTPClient
+
+_jvm = JavaVM(logging.getLogger(''))
+_jvm.check_if_installed()
+java_version = _jvm.version
+java10 = LooseVersion(java_version) >= LooseVersion("10")
 
 
 def get_jmeter():
     path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
     obj = MockJMeterExecutor()
-    obj.settings.merge({'path': path, 'force-ctg': False})
+    obj.settings.merge({
+        'path': path, 'force-ctg': False, 'protocol-handlers': {
+            'http': 'bzt.jmx.http.HTTPProtocolHandler'
+        }
+    })
     return obj
-
-
-def get_jmeter_executor_vars():
-    return (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
-            JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER)
-
-
-def set_jmeter_executor_vars(jmeter_vars):
-    (JMeterExecutor.JMETER_DOWNLOAD_LINK, JMeterExecutor.JMETER_VER,
-     JMeterExecutor.MIRRORS_SOURCE, JMeterExecutor.CMDRUNNER, JMeterExecutor.PLUGINS_MANAGER) = jmeter_vars
 
 
 class TestJMeterExecutor(BZTestCase):
@@ -120,12 +120,17 @@ class TestJMeterExecutor(BZTestCase):
                 {"requests": [{
                     "url": "http://localhost",
                     "extract-regexp": {
-                        "test_name": "???"}}]}})
+                        "varname": {
+                            "regexp": "???",
+                            "scope": "variable",
+                            "from-variable": "RESULT"}
+                    }}]}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         self.assertEqual("body", xml_tree.findall(".//stringProp[@name='RegexExtractor.useHeaders']")[0].text)
         self.assertEqual("???", xml_tree.findall(".//stringProp[@name='RegexExtractor.regex']")[0].text)
-        self.assertEqual("parent", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
+        self.assertEqual("variable", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
+        self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
 
     def test_boundary_extractors(self):
         self.obj.execution.merge(
@@ -133,13 +138,19 @@ class TestJMeterExecutor(BZTestCase):
                 {"requests": [{
                     "url": "http://localhost",
                     "extract-boundary": {
-                        "varname": {"left": "foo", "right": "bar"}}}]}})
+                        "varname": {
+                            "left": "foo",
+                            "right": "bar",
+                            "scope": "variable",
+                            "from-variable": "RESULT"}}}]}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         self.assertEqual("false", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.useHeaders']")[0].text)
         self.assertEqual("foo", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.lboundary']")[0].text)
         self.assertEqual("bar", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.rboundary']")[0].text)
         self.assertEqual("varname", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.refname']")[0].text)
+        self.assertEqual("variable", xml_tree.findall(".//stringProp[@name='Sample.scope']")[0].text)
+        self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
 
     def test_boundary_extractors_exc(self):
         self.obj.execution.merge(
@@ -206,7 +217,13 @@ class TestJMeterExecutor(BZTestCase):
                         }, {
                             'url': 'http://second.com',
                             'body': 'body2',
-                            'body-file': body_file2}]}}})
+                            'body-file': body_file2
+                        }, {
+                            'url': 'https://the third.com',
+                            'method': 'post',
+                            'body-file': '${J_VAR}'
+                        }
+                    ]}}})
         res_files = self.obj.get_resource_files()
         scenario = self.obj.get_scenario()
         body_files = [req.get('body-file') for req in scenario.get('requests')]
@@ -215,7 +232,15 @@ class TestJMeterExecutor(BZTestCase):
         self.assertIn(body_file2, res_files)
         self.assertFalse(body_fields[0])
         self.assertEqual(body_fields[1], 'body2')
-        self.assertEqual(body_files, [body_file1, body_file2])
+        self.assertEqual(body_files, [body_file1, body_file2, '${J_VAR}'])
+
+        self.obj.prepare()
+
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        elements = xml_tree.findall(".//HTTPSamplerProxy/elementProp[@name='HTTPsampler.Files']")
+        self.assertEqual(1, len(elements))
+        self.assertEqual("${J_VAR}", elements[0].find(".//stringProp[@name='File.path']").text)
+        self.assertIsNone(elements[0].find(".//stringProp[@name='File.paramname']").text)
 
     def test_datasources_with_delimiter(self):
         self.obj.execution.merge({"scenario":
@@ -293,6 +318,60 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, os.path.join('*', end_str))
 
+    @skipIf(java10, "Disabled on Java 10")
+    def test_install_jmeter_3_0(self):
+        path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        self.obj.mock_install = False
+
+        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        self.assertFalse(os.path.exists(path))
+
+        jmeter_res_dir = RESOURCES_DIR + "/jmeter/"
+        http_client = MockHTTPClient()
+        http_client.add_response('GET', 'https://jmeter.apache.org/download_jmeter.cgi',
+                                 file=jmeter_res_dir + "unicode_file")
+        http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.0.zip',
+                                 file=jmeter_res_dir + "jmeter-dist-3.0.zip")
+        url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
+              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeterExecutor.PLUGINS_MANAGER_VERSION)
+
+        http_client.add_response('GET', url, file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+        http_client.add_response('GET',
+                                 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
+                                 file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+
+        self.obj.engine.get_http_client = lambda: http_client
+        jmeter_ver = JMeterExecutor.JMETER_VER
+        try:
+            JMeterExecutor.JMETER_VER = '3.0'
+
+            self.obj.settings.merge({"path": path})
+            self.configure({
+                "execution": [{"scenario": {"requests": ["http://localhost"]}}],
+                "settings": {
+                    "proxy": {
+                        "address": "http://myproxy.com:8080",
+                        "username": "user",
+                        "password": "pass"}}})
+            self.obj.prepare()
+            jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
+            self.assertNotIn('httpclient-4.5.jar', jars)
+            self.assertIn('httpclient-4.5.2.jar', jars)
+
+            self.assertTrue(os.path.exists(path))
+
+            # start again..
+            self.tearDown()
+            self.setUp()
+
+            self.obj.settings.merge({"path": path})
+            self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
+
+            self.obj.prepare()
+        finally:
+            JMeterExecutor.JMETER_VER = jmeter_ver
+
+    @skipIf(java10, "Disabled on Java 10")
     def test_install_jmeter_2_13(self):
         path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
         self.obj.mock_install = False
@@ -300,15 +379,22 @@ class TestJMeterExecutor(BZTestCase):
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
 
-        jmeter_vars = get_jmeter_executor_vars()
-        set_jmeter_executor_vars(jmeter_vars)
+        jmeter_res_dir = RESOURCES_DIR + "/jmeter/"
+        http_client = MockHTTPClient()
+        http_client.add_response('GET', 'https://jmeter.apache.org/download_jmeter.cgi',
+                                 file=jmeter_res_dir + "unicode_file")
+        http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-2.13.zip',
+                                 file=jmeter_res_dir + "jmeter-dist-2.13.zip")
+        url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
+              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeterExecutor.PLUGINS_MANAGER_VERSION)
+        http_client.add_response('GET', url, file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+        http_client.add_response('GET',
+                                 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
+                                 file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+
+        jmeter_ver = JMeterExecutor.JMETER_VER
+        self.obj.engine.get_http_client = lambda: http_client
         try:
-            jmeter_res_dir = "file:///" + RESOURCES_DIR + "/jmeter/"
-            JMeterExecutor.MIRRORS_SOURCE = jmeter_res_dir + "unicode_file"
-            JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_res_dir + "jmeter-dist-{version}.zip"
-            JMeterExecutor.PLUGINS_MANAGER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.CMDRUNNER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.PLUGINS = ['Alice', 'Bob']
             JMeterExecutor.JMETER_VER = '2.13'
 
             self.obj.settings.merge({"path": path})
@@ -338,50 +424,21 @@ class TestJMeterExecutor(BZTestCase):
 
             self.obj.prepare()
         finally:
-            set_jmeter_executor_vars(jmeter_vars)
+            JMeterExecutor.JMETER_VER = jmeter_ver
 
-    def test_install_jmeter_3_0(self):
+    def test_install_disabled(self):
         path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
         self.obj.mock_install = False
 
         shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
         self.assertFalse(os.path.exists(path))
-
-        jmeter_vars = get_jmeter_executor_vars()
         try:
-            jmeter_res_dir = "file:///" + RESOURCES_DIR + "/jmeter/"
-            JMeterExecutor.MIRRORS_SOURCE = jmeter_res_dir + "unicode_file"
-            JMeterExecutor.JMETER_DOWNLOAD_LINK = jmeter_res_dir + "jmeter-dist-{version}.zip"
-            JMeterExecutor.PLUGINS_MANAGER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.CMDRUNNER = jmeter_res_dir + "jmeter-plugins-manager.jar"
-            JMeterExecutor.PLUGINS = ['Alice', 'Bob']
-            JMeterExecutor.JMETER_VER = '3.0'
-
+            os.environ["TAURUS_DISABLE_DOWNLOADS"] = "true"
             self.obj.settings.merge({"path": path})
-            self.configure({
-                "execution": [{"scenario": {"requests": ["http://localhost"]}}],
-                "settings": {
-                    "proxy": {
-                        "address": "http://myproxy.com:8080",
-                        "username": "user",
-                        "password": "pass"}}})
-            self.obj.prepare()
-            jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
-            self.assertNotIn('httpclient-4.5.jar', jars)
-            self.assertIn('httpclient-4.5.2.jar', jars)
-
-            self.assertTrue(os.path.exists(path))
-
-            # start again..
-            self.tearDown()
-            self.setUp()
-
-            self.obj.settings.merge({"path": path})
-            self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
-
-            self.obj.prepare()
+            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}],})
+            self.assertRaises(TaurusInternalException, self.obj.prepare)
         finally:
-            set_jmeter_executor_vars(jmeter_vars)
+            os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
 
     def test_think_time_bug(self):
         self.configure({
@@ -740,8 +797,7 @@ class TestJMeterExecutor(BZTestCase):
 
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
-        self.obj.settings['properties'] = BetterDict()
-        self.obj.settings['properties'].merge({"a": 1})
+        self.obj.settings['properties'] = BetterDict.from_dict({"a": 1})
 
         self.obj.prepare()
         self.obj.startup()
@@ -896,6 +952,15 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': {'think-time': 0.75}}})
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
+    def test_wrong_loop(self):
+        # https://groups.google.com/forum/#!topic/codename-taurus/iaT6O2UhfBE
+        self.configure({
+            'execution': {
+                'scenario': {
+                    'requests': [{"loop": "forever", "do": "bla-bla"}]}}})
+
+        self.assertRaises(TaurusConfigError, self.obj.prepare)
+
     def test_variable_csv_file(self):
         self.obj.execution.merge({
             "scenario": {
@@ -917,20 +982,22 @@ class TestJMeterExecutor(BZTestCase):
         modified_xml_tree = etree.fromstring(open(target_jmx, "rb").read())
         jq_css_extractors = modified_xml_tree.findall(".//HtmlExtractor")
         self.assertEqual(2, len(jq_css_extractors))
-        simplified_extractor = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name1']")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name1")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text,
+        simply_form = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name1']")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name1")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.expr']").text,
                          "input[name~=my_input]")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, None)
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "0")
-        self.assertEqual(simplified_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NOT_FOUND")
-        full_form_extractor = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name2']")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name2")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.expr']").text,
-                         "input[name=JMeter]")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
-        self.assertEqual(full_form_extractor.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.attribute']").text, None)
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "0")
+        self.assertEqual(simply_form.find(".//stringProp[@name='HtmlExtractor.default']").text, "NOT_FOUND")
+
+        full_form = modified_xml_tree.find(".//HtmlExtractor[@testname='Get name2']")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.refname']").text, "name2")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.expr']").text, "input[name=JMeter]")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.attribute']").text, "value")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.match_number']").text, "1")
+        self.assertEqual(full_form.find(".//stringProp[@name='HtmlExtractor.default']").text, "NV_JMETER")
+        self.assertEqual("variable", full_form.find(".//stringProp[@name='Sample.scope']").text)
+        self.assertEqual("CSS_RESULT", full_form.find(".//stringProp[@name='Scope.variable']").text)
 
     def test_xpath_extractor(self):
         self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))
@@ -957,6 +1024,8 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.validate']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.whitespace']").text, "true")
         self.assertEqual(full_form.find(".//boolProp[@name='XPathExtractor.tolerant']").text, "true")
+        self.assertEqual("variable", full_form.find(".//stringProp[@name='Sample.scope']").text)
+        self.assertEqual("XPATH_RESULT", full_form.find(".//stringProp[@name='Scope.variable']").text)
 
     def test_xpath_assertion(self):
         self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))
@@ -1132,7 +1201,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(st_tg_concurrency.text, "123")
 
     def test_smart_time(self):
-        s_t = JMeterScenarioBuilder.smart_time
+        s_t = ProtocolHandler.safe_time
         self.assertEqual(s_t('1m'), 60 * 1000.0)
         self.assertEqual(s_t('${VAR}'), '${VAR}')
 
@@ -1578,6 +1647,112 @@ class TestJMeterExecutor(BZTestCase):
         forever = xml_tree.find(".//LoopController/boolProp[@name='LoopController.continue_forever']")
         self.assertEqual(forever.text, "true")
 
+    def test_auth_manager_multi_form(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "authorization": [{
+                        "url": "http://blazedemo.com/",
+                        "name": "user1",
+                        "password": "pass1"
+                    }, {
+                        "domain": "my_domain",
+                        "name": "user2",
+                        "password": "pass2",
+                        "realm": "secret_zone",
+                        "mechanism": "kerberos"
+                    }, {
+                        "url": "localhost",
+                        "name": "user3",
+                        "password": "pass3",
+                        "mechanism": "digest"
+                    }, {
+                        # no url/domain, must be skipped
+                        "name": "user4",
+                        "password": "pass4"
+                    }],
+                    "requests": ["empty"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        auth_mgr = xml_tree.findall(".//hashTree[@type='tg']/AuthManager")
+        self.assertEqual(1, len(auth_mgr))
+        clear = auth_mgr[0].find("boolProp[@name='AuthManager.clearEachIteration']")
+        self.assertIsNone(clear)
+        collection = auth_mgr[0].findall("collectionProp[@name='AuthManager.auth_list']/elementProp")
+        self.assertEqual(3, len(collection))
+        self.assertEqual(["http://blazedemo.com/", "user1", "pass1", None, None, None], self.get_auth(collection[0]))
+        self.assertEqual([None, "user2", "pass2", "my_domain", "secret_zone", "KERBEROS"], self.get_auth(collection[1]))
+        self.assertEqual(["localhost", "user3", "pass3", None, None, None], self.get_auth(collection[2]))
+
+    @staticmethod
+    def get_auth(element):
+        props = [
+            element.find("stringProp[@name='Authorization.url']"),
+            element.find("stringProp[@name='Authorization.username']"),
+            element.find("stringProp[@name='Authorization.password']"),
+            element.find("stringProp[@name='Authorization.domain']"),
+            element.find("stringProp[@name='Authorization.realm']"),
+            element.find("stringProp[@name='Authorization.mechanism']")]
+        for i in range(len(props)):
+            if props[i] is not None:
+                props[i] = props[i].text
+        return props
+
+    def test_auth_manager_short_form(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "authorization": {
+                        "url": "http://blazedemo.com/",
+                        "name": "user1",
+                        "password": "pass1"
+                    },
+                    "requests": ["empty"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        auth_mgr = xml_tree.findall(".//hashTree[@type='tg']/AuthManager")
+        self.assertEqual(1, len(auth_mgr))
+        clear = auth_mgr[0].find("boolProp[@name='AuthManager.clearEachIteration']")
+        self.assertIsNone(clear)
+        collection = auth_mgr[0].findall("collectionProp[@name='AuthManager.auth_list']/elementProp")
+        self.assertEqual(1, len(collection))
+        url = collection[0].findall("stringProp[@name='Authorization.url']")
+        self.assertEqual(url[0].text, "http://blazedemo.com/")
+
+    def test_auth_manager_full_form(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    "authorization": {
+                        "clear": True,
+                        "list": [{
+                            "url": "http://blazedemo.com/",
+                            "name": "user1",
+                            "password": "pass1"
+                        }]},
+                    "requests": ["empty"]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        auth_mgr = xml_tree.findall(".//hashTree[@type='tg']/AuthManager")
+        self.assertEqual(1, len(auth_mgr))
+        clear = auth_mgr[0].find("boolProp[@name='AuthManager.clearEachIteration']")
+        self.assertEqual("true", clear.text)
+        collection = auth_mgr[0].findall("collectionProp[@name='AuthManager.auth_list']/elementProp")
+        self.assertEqual(1, len(collection))
+        url = collection[0].findall("stringProp[@name='Authorization.url']")
+        self.assertEqual(url[0].text, "http://blazedemo.com/")
+
+    def test_request_once(self):
+        self.configure({
+            "execution": {
+                "scenario": {
+                    "requests": [{
+                        "once": ["http://blazedemo.com/"]}]}}})
+        self.obj.prepare()
+        xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
+        controller = xml_tree.find(".//OnceOnlyController")
+        self.assertIsNotNone(controller)
+
     def test_request_logic_loop_forever(self):
         self.configure({
             'execution': {
@@ -1869,9 +2044,10 @@ class TestJMeterExecutor(BZTestCase):
                         "set-variables": {"foo": "bar"}}]}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
-        self.assertIsNotNone(xml_tree.find(".//JSR223PreProcessor"))
-        input = xml_tree.find(".//JSR223PreProcessor/stringProp[@name='script']")
-        self.assertEqual(input.text, "vars.put('foo', 'bar');")
+        set_var_action = xml_tree.find(".//" + JMX.SET_VAR_ACTION)
+        self.assertIsNotNone(set_var_action)
+        self.assertEqual("foo", set_var_action.find(".//stringProp[@name='Argument.name']").text)
+        self.assertEqual("bar", set_var_action.find(".//stringProp[@name='Argument.value']").text)
 
     def test_request_null_headers(self):
         self.configure({

@@ -49,14 +49,14 @@ execution:
 - executor: ab
   concurrency: 20
   iterations: 1000
-  headers:
-    Content-Type: text/plain
   scenario: complex
   
 
 scenarios:
   complex:  
     keepalive: false
+    headers:
+      Content-Type: text/plain
     requests:
     - url: http://blazedemo.com/
       headers:

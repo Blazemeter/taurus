@@ -25,7 +25,7 @@ from collections import OrderedDict
 from urwid import Pile, Text
 
 from bzt import AutomatedShutdown, TaurusConfigError
-from bzt.engine import Reporter, Service
+from bzt.engine import Reporter
 from bzt.modules.aggregator import KPISet, DataPoint, AggregatorListener, ResultsProvider
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.six import string_types, viewvalues, iteritems
@@ -78,9 +78,11 @@ class PassFailStatus(Reporter, AggregatorListener, WidgetProvider):
             if isinstance(crit, DataCriterion):
                 if crit.selector == DataPoint.CUMULATIVE:
                     if crit.is_triggered and crit.fail:
+                        self.log.warning("%s", crit)
                         raise AutomatedShutdown("%s" % crit)
                 else:
                     if crit.is_triggered and not crit.stop and crit.fail:
+                        self.log.warning("%s", crit)
                         raise AutomatedShutdown("%s" % crit)
 
     def check(self):
@@ -356,8 +358,7 @@ class DataCriterion(FailCriterion):
         :type crit_config: str
         :rtype: dict
         """
-        res = BetterDict()
-        res.merge({
+        res = BetterDict.from_dict({
             "subject": None,
             "condition": None,
             "threshold": None,

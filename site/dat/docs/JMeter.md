@@ -327,14 +327,15 @@ scenarios:
           match-no: 1  # if multiple values has matched, which match use (0=random)
           template: 1  # which capture group to take, integer or template string
           subject: body  #  subject for search
+          scope: all  # check main and sub-samples
       extract-jsonpath:   
         varname:
           jsonpath: $.jsonpath[0]  # jsonpath expression
           default: NOT_FOUND  # default value to use when jsonpath not found
           from-variable: JM_VAR # JMeter variable for search
-          concat: false # \
-          scope: all    # - see below
-          match-no: 4   # /
+          concat: false   # \
+          scope: variable # - see below
+          match-no: 4     # /
     - url: http://blazedemo.com/${varname}/${page_title}
       extract-css-jquery:
         extractor2:
@@ -342,6 +343,7 @@ scenarios:
           attribute: value
           match-no: 1
           default: NOT_FOUND
+          scope: children   # check sub-samples
     - url: http://blazedemo.com/${varname}/${extractor2}.xml
       extract-xpath:
         destination:
@@ -362,9 +364,7 @@ scenarios:
            default: DEFVAL  # default value, if nothing is matched
 ```
 
-Parameters of jsonpath exractor `concat`, `scope` and `match-num` work only on JMeter >= 3.0
-If several results are found they will be concatenated with ',' if `concat`.
-You can choose `scope` for applying expressions. Possible targets are:
+You can choose `scope` for applying expressions. Possible value for targets are:
   - `all` - main sample and sub-samples
   - `children` - sub-samples
   - `variable` for search in JMeter variables
@@ -377,6 +377,10 @@ Possible subjects for regexp are:
   - `headers`
   - `http-code`
   - `url`
+
+Parameters of jsonpath exractor `concat`, `scope` and `match-num` work only on JMeter >= 3.0
+If several results are found they will be concatenated with ',' if `concat`.
+
 
 ##### Assertions
 
@@ -520,6 +524,7 @@ scenarios:
 
 Taurus allows to control execution flow with the following constructs:
 - `if` blocks
+- `once` blocks
 - `loop` blocks
 - `while` blocks
 - `foreach` blocks
@@ -587,6 +592,17 @@ scenarios:
       then:
         - https://example.com/${username}
 ```
+
+##### Once blocks
+`once` blocks is executed only once (per thread).
+```yaml
+scenarios:
+  loop_example:
+    requests:
+    - once:
+      - http://blazedemo.com/
+```
+They're correspond to JMeter's `Once Only Controllers`.
 
 ##### Loop Blocks
 
@@ -757,7 +773,54 @@ scenarios:
 This example will set initial value of `${foo}` to be "BAR", but after first iteration it will be
 changed to "BAZ".
 
-You can consider this block to be a syntactic sugar over JSR223 blocks, because that's exactly how it works.
+#### HTTP Authorization
+See [RFC2617](https://tools.ietf.org/html/rfc2617) for http authorization details
+
+You can use three follow forms for such purposes:
+```yaml
+scenarios:
+  simply:
+    authorization:
+      url: auth_server_addr
+      name: my_username
+      password: my_pass
+
+```
+It's the shortest form for quick setup. You can use several authorizations:
+
+```yaml
+scenarios:
+  multi_auth:
+    authorization:    
+    - url: auth_server_addr1
+      name: username1
+      password: pass1
+    - url: auth_server_addr2
+      name: username2
+      password: pass2
+```
+If you want to reset authorization for each test iteration you have to use `clear` flag and full form:
+```yaml
+scenarios:
+  full_auth:
+    authorization:
+      clear: true   # false by default
+      list:
+      - url: auth_server_addr1
+        name: username1
+        password: pass1
+      - url: auth_server_addr2
+        name: username2
+        password: pass2
+```
+Possible authorization params and their value are:
+* url: link to the resource you want to access
+* username & password: your credential
+* domain: non-standard parameter, can be used instead of url
+* realm: protected space
+* mechanism: digest (default) or kerberos.
+Required of them are username & password and one of url & domain.
+For implementation of authorization Taurus uses JMeter HTTP Authorization Manager.  
 
 ## User cookies
 Taurus allows you to set up some user cookies with follow syntax:
@@ -853,3 +916,28 @@ scenarios:
 ```
 
 You can read more on that [here](SoapUI.md).
+
+## Protocol Handlers
+
+JMX generator used by Taurus supports extensibility. It can be controlled with `protocol` option.
+
+`protocol` setting at request level specifies which protocol handler to use to generate corresponding JMX.
+`protocol` can also be specified at scenario level, which will apply it to all requests in the scenario.
+
+```yaml
+modules:
+  jmeter:
+    protocol-handlers:  # list of protocols supported by JMX generator
+      http: bzt.jmx.http.HTTPProtocolHandler
+    default-protocol: http  # default protocol used by JMX generator
+
+scenarios:
+  protocols-demo:
+    protocol: http  # default protocol
+    requests:
+    - url: http://blazedemo.com/
+    
+execution:
+- executor: jmeter
+  scenario: protocols-demo
+```

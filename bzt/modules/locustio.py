@@ -16,22 +16,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import json
+import math
+import os
 import sys
 import time
 from collections import OrderedDict, Counter
-from imp import find_module
-from subprocess import STDOUT
+from subprocess import STDOUT, CalledProcessError
 
-import os
 from bzt import ToolError, TaurusConfigError
-from bzt.six import PY3, iteritems
-
 from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
-from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader
+from bzt.six import iteritems, communicate
+from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader, shell_exec
 from bzt.utils import shutdown_process, RequiredTool, dehumanize_time
 
 
@@ -51,6 +50,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.scenario = self.get_scenario()
         self.__setup_script()
         self.engine.existing_artifact(self.script)
+
+        # path to taurus dir. It's necessary for bzt usage inside tools/helpers
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         self.is_master = self.execution.get("master", self.is_master)
 
@@ -77,6 +79,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.start_time = time.time()
         load = self.get_load()
         concurrency = load.concurrency or 1
+
+        if self.is_master:
+            concurrency = math.ceil(concurrency / float(self.expected_slaves))
+
         if load.ramp_up:
             hatch = concurrency / float(load.ramp_up)
         else:
@@ -84,9 +90,10 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
         wrapper = os.path.join(get_full_path(__file__, step_up=2), "resources", "locustio-taurus-wrapper.py")
 
-        self.env.add_path({"PYTHONPATH": self.engine.artifacts_dir})
-        self.env.add_path({"PYTHONPATH": os.getcwd()})
         self.env.set({"LOCUST_DURATION": dehumanize_time(load.duration)})
+
+        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+        self.env.add_path({"PYTHONPATH": self.engine.artifacts_dir})
 
         self.log_file = self.engine.create_artifact("locust", ".log")
         args = [sys.executable, wrapper, '-f', self.script]
@@ -94,7 +101,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         args += ["--no-web", "--only-summary", ]
         args += ["--clients=%d" % concurrency, "--hatch-rate=%f" % hatch]
         if load.iterations:
-            args.append("--num-request=%d" % load.iterations)
+            num_requests = load.iterations * concurrency
+            args.append("--num-request=%d" % num_requests)
+            self.env.set({"LOCUST_NUMREQUESTS": num_requests})
 
         if self.is_master:
             args.extend(["--master", '--expect-slaves=%s' % self.expected_slaves])
@@ -128,8 +137,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         return False
 
     def resource_files(self):
-        self.scenario = self.get_scenario()
-        script = self.scenario.get(Scenario.SCRIPT)
+        script = self.get_script_path()
         if script:
             return [script]
         else:
@@ -184,21 +192,19 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
 class LocustIO(RequiredTool):
     def __init__(self, parent_logger):
-        super(LocustIO, self).__init__("LocustIO", "")
+        super(LocustIO, self).__init__("LocustIO", "locust")
         self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
+        self.log.debug('Checking LocustIO: %s' % self.tool_path)
         try:
-            find_module("locust")
-            self.already_installed = True
-        except ImportError:
-            self.log.error("LocustIO is not installed, see http://docs.locust.io/en/latest/installation.html")
+            stdout, stderr = communicate(shell_exec([self.tool_path, '--version']))
+            self.log.debug("Locustio check stdout/stderr: %s, %s", stdout, stderr)
+        except (CalledProcessError, OSError, AttributeError):
             return False
         return True
 
     def install(self):
-        if PY3:
-            raise ToolError("LocustIO is not currently compatible with Python 3.x")
         msg = "Unable to locate locustio package. Please install it like this: pip install locustio"
         raise ToolError(msg)
 
@@ -218,7 +224,10 @@ class SlavesReader(ResultsProvider):
         self.read_buffer = ""
 
     def _calculate_datapoints(self, final_pass=False):
-        self.read_buffer += self.file.get_bytes(size=1024 * 1024, last_pass=final_pass)
+        read = self.file.get_bytes(size=1024 * 1024, last_pass=final_pass)
+        if not read or not read.strip():
+            return
+        self.read_buffer += read
         while "\n" in self.read_buffer:
             _line = self.read_buffer[:self.read_buffer.index("\n") + 1]
             self.read_buffer = self.read_buffer[len(_line):]
@@ -286,6 +295,7 @@ class SlavesReader(ResultsProvider):
                     KPISet.inc_list(kpiset[KPISet.ERRORS], ("msg", err['error']), new_err)
                     kpiset[KPISet.FAILURES] += err['occurences']
 
+            kpiset[KPISet.SUCCESSES] = kpiset[KPISet.SAMPLE_COUNT] - kpiset[KPISet.FAILURES]
             point[DataPoint.CURRENT][item['name']] = kpiset
             overall.merge_kpis(kpiset)
 

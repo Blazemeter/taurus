@@ -135,7 +135,7 @@ class TestGatlingExecutor(BZTestCase):
         script_path = RESOURCES_DIR + "gatling/bs"
         self.obj.execution.merge({"scenario": {"script": script_path}})
         res_files = self.obj.resource_files()
-        self.assertEqual(res_files, [script_path])
+        self.assertPathsEqual(res_files, [script_path])
 
     def test_resource_files_collection_local(self):
         script = "LocalBasicSimulation.scala"
@@ -197,7 +197,8 @@ class TestGatlingExecutor(BZTestCase):
         })
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
-        self.assertEqualFiles(RESOURCES_DIR + "gatling/generated1.scala", scala_file)
+        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated1.scala", scala_file,
+                              self.obj.get_scenario().get('simulation'), "SIMNAME")
 
     def test_requests_def_addr_is_none(self):
         self.obj.execution.merge({
@@ -242,7 +243,8 @@ class TestGatlingExecutor(BZTestCase):
         })
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
-        self.assertEqualFiles(RESOURCES_DIR + "gatling/generated3.scala", scala_file)
+        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated3.scala", scala_file,
+                              self.obj.get_scenario().get('simulation'), "SIMNAME")
 
     def test_requests_4(self):
         self.obj.execution.merge({
@@ -260,7 +262,8 @@ class TestGatlingExecutor(BZTestCase):
         })
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
-        self.assertEqualFiles(RESOURCES_DIR + "gatling/generated4.scala", scala_file)
+        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated4.scala", scala_file,
+                              self.obj.get_scenario().get('simulation'), "SIMNAME")
 
     def test_requests_5(self):
         self.obj.execution.merge({
@@ -276,20 +279,6 @@ class TestGatlingExecutor(BZTestCase):
             }
         })
         self.assertRaises(TaurusConfigError, self.obj.prepare)
-
-    def assertEqualFiles(self, name1, name2):
-        def without_id(lines):
-            id_mark = 'TaurusSimulation'
-            id_pos = lines.find(id_mark)
-            space_pos = lines.find(' ', id_pos)
-            return lines[:id_pos + len(id_mark)] + lines[space_pos:]
-
-        with open(name1, 'rt') as file1:
-            with open(name2, 'rt') as file2:
-                lines1 = without_id(file1.read())
-                lines2 = without_id(file2.read())
-        self.maxDiff = None
-        self.assertEqual(lines1, lines2)
 
     def test_fail_on_zero_results(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "gatling/bs/BasicSimulation.scala"}})
@@ -428,7 +417,8 @@ class TestGatlingExecutor(BZTestCase):
         })
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
-        self.assertEqualFiles(RESOURCES_DIR + "gatling/generated_data_sources.scala", scala_file)
+        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated_data_sources.scala", scala_file,
+                              self.obj.get_scenario().get('simulation'), "SIMNAME")
         self.assertTrue(os.path.exists(os.path.join(self.obj.engine.artifacts_dir, 'test1.csv')))
 
     def test_resource_files_data_sources(self):
