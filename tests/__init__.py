@@ -144,6 +144,8 @@ class BZTestCase(TestCase):
             self.log_recorder.close()
 
     def assertFilesEqual(self, expected, actual, replace_str="", replace_with=""):
+        # import shutil; shutil.copy(actual, expected)
+
         with open(expected) as exp, open(actual) as act:
             act_lines = [x.replace(replace_str, replace_with).rstrip() for x in act.readlines()]
             exp_lines = [x.replace(replace_str, replace_with).rstrip() for x in exp.readlines()]

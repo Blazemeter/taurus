@@ -1,3 +1,4 @@
+# coding=utf-8
 import logging
 import os
 import shutil
@@ -192,7 +193,12 @@ class TestGatlingExecutor(BZTestCase):
                               }]},
                              {"url": "/",
                               "think-time": 2,
-                              "follow-redirects": True}]
+                              "follow-redirects": True},
+                             {"url": "/reserve.php",
+                              "method": "POST",
+                              "body": u"Body Content 日本語",
+                              }
+                             ]
             }
         })
         self.obj.prepare()

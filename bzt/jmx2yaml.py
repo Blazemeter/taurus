@@ -32,6 +32,7 @@ from bzt import TaurusInternalException
 from bzt.cli import CLI
 from bzt.engine import Configuration, ScenarioExecutor
 from bzt.jmx import JMX
+from bzt.six import string_types
 from bzt.utils import get_full_path
 from bzt.requests_model import has_variable_pattern
 
@@ -1209,7 +1210,7 @@ class JMXasDict(JMX):
     def _get_content_type(headers):
         for header in headers:
             if header.lower() == 'content-type':
-                if isinstance(headers[header], str):
+                if isinstance(headers[header], string_types):
                     return headers[header].lower()
                 else:
                     return headers[header]
@@ -1237,7 +1238,7 @@ class JMXasDict(JMX):
                 scenario_json = self._get_content_type(tg_scenario_settings['headers']) == 'application/json'
 
             for request in requests:
-                if not ('body' in request and isinstance(request['body'], str)):
+                if not ('body' in request and isinstance(request['body'], string_types)):
                     continue
                 request_content_header = 'headers' in request and self._get_content_type(request['headers'])
 
