@@ -40,6 +40,8 @@ class RespTimesCounter(JSONConvertable):
         self.high = high
         self.sign_figures = sign_figures
         self.histogram = HdrHistogram(low, high, sign_figures)
+        self._cached_perc = None
+        self._cached_stdev = None
 
     def __bool__(self):
         return len(self) > 0
@@ -48,24 +50,32 @@ class RespTimesCounter(JSONConvertable):
         return self.histogram.total_count
 
     def add(self, item, count=1):
+        self._cached_perc = None
+        self._cached_stdev = None
         self.histogram.record_value(item, count)
 
     def merge(self, other):
+        self._cached_perc = None
+        self._cached_stdev = None
         self.histogram.add(other.histogram)
 
     def get_percentiles_dict(self, percentiles):
-        return self.histogram.get_percentile_to_value_dict(percentiles)
+        if self._cached_perc is None or set(self._cached_perc.keys()) != set(percentiles):
+            self._cached_perc = self.histogram.get_percentile_to_value_dict(percentiles)
+        return self._cached_perc
 
     def get_counts(self):
         return self.histogram.get_value_counts()
 
-    def get_stdev(self):
-        return self.histogram.get_stddev()
+    def get_stdev(self, mean):
+        if self._cached_stdev is None:
+            self._cached_stdev = self.histogram.get_stddev(mean)
+        return self._cached_stdev
 
     def __json__(self):
         return {
             float(rt) / 1000: count
-            for rt, count in iteritems(self.histogram.get_value_counts())
+            for rt, count in iteritems(self.get_counts())
         }
 
 
@@ -227,7 +237,7 @@ class KPISet(dict):
                 str(float(perc)): value / 1000.0
                 for perc, value in iteritems(resp_times.get_percentiles_dict(self.perc_levels))
             }
-            self[self.STDEV_RESP_TIME] = resp_times.get_stdev()
+            self[self.STDEV_RESP_TIME] = resp_times.get_stdev(self[self.AVG_RESP_TIME])
 
         return self
 
@@ -259,7 +269,7 @@ class KPISet(dict):
             # using existing percentiles
             # FIXME: it's not valid to overwrite, better take average
             self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
-        self[self.STDEV_RESP_TIME] = self[self.RESP_TIMES].get_stdev()
+        self[self.STDEV_RESP_TIME] = src[self.STDEV_RESP_TIME]  # we rely on recalculate() fixing it afterwards
 
         self[self.RESP_CODES].update(src[self.RESP_CODES])
 
@@ -285,7 +295,6 @@ class KPISet(dict):
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
         inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
-        inst[inst.STDEV_RESP_TIME] = inst[inst.RESP_TIMES].get_stdev()
         for error in inst[KPISet.ERRORS]:
             error['urls'] = Counter(error['urls'])
         return inst
