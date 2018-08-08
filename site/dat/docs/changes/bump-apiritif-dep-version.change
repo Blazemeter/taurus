@@ -1,0 +1,6 @@
+Bump Apiritif version to 0.6.7
+
+It brings the following changes:
+- fixes unicode support for CSV/LDJSON-based reports
+- fixes multiprocessing errors
+- supports `CONNECT` and `OPTIONS` HTTP methods
