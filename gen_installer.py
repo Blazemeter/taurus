@@ -1,8 +1,13 @@
+import configparser
 import os
+import re
 import subprocess
 import sys
+import zipfile
+
+import requests
+
 import bzt
-import configparser
 
 
 def run_cmd(label, cmdline, **kwargs):
@@ -10,15 +15,37 @@ def run_cmd(label, cmdline, **kwargs):
     subprocess.run(cmdline, check=True, **kwargs)
 
 
-def generate_pynsist_config(dependencies, wheel_dir, cfg_location):
+def generate_bzt_win():
+    print("Generating bzt_win.py")
+    with open('bzt_win.py', 'w') as fds:
+        fds.write("""
+import os, sys
+
+def main():
+    sys.exit(os.system("cmd /k bzt --help"))
+""")
+
+
+def extract_bzt_version(bzt_dist):
+    matches = re.findall(r'(\d+\.[\d\.]+)', bzt_dist)
+    if not matches:
+        raise ValueError("Can't extract version from string %r" % bzt_dist)
+    version = matches[0]
+    print("Building installer for bzt %s" % version)
+    return version
+
+
+def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
     print("Generating pynsist config")
     cfg = configparser.ConfigParser()
     cfg['Application'] = {
         'name': 'Taurus',
-        'version': bzt.VERSION,
-        'entry_point': 'bzt.cli:main',
+        'version': bzt_version,
+        'publisher': 'CA BlazeMeter',
+        'entry_point': 'bzt_win:main',
         'console': 'true',
         'icon': 'site/img/taurus.ico',
+        'license_file': 'LICENSE',
     }
 
     cfg['Command bzt'] = {
@@ -35,7 +62,7 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location):
 
     cfg['Python'] = {
         'bitness': 64,
-        'version': '3.5.4',
+        'version': '3.6.2',
     }
 
     wheels_list = ["%s==%s" % (package_name, version) for package_name, version in dependencies]
@@ -75,16 +102,33 @@ def extract_all_dependencies(wheel_dir):
     return packages
 
 
+def download_tkinter(archive_url):
+    print("Downloading tkinter archive")
+    local_filename = archive_url.split('/')[-1]
+    r = requests.get(archive_url, stream=True)
+    with open(local_filename, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=1024):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+    print("Unpacking tkinter libs")
+    with zipfile.ZipFile(local_filename) as z:
+        z.extractall()
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: %s <bzt-wheel>" % sys.argv[0])
         sys.exit(1)
     bzt_dist = sys.argv[1]
+    tkinter_link = "https://github.com/mu-editor/mu_tkinter/releases/download/0.3/pynsist_tkinter_3.6_64bit.zip"
     pynsist_config = "installer-gen.cfg"
     wheel_dir = "build/wheels"
+    bzt_version = extract_bzt_version(bzt_dist)
+    generate_bzt_win()
+    download_tkinter(tkinter_link)
     fetch_all_wheels(bzt_dist, wheel_dir)
     dependencies = extract_all_dependencies(wheel_dir)
-    generate_pynsist_config(dependencies, wheel_dir, pynsist_config)
+    generate_pynsist_config(dependencies, wheel_dir, pynsist_config, bzt_version)
     run_pynsist(pynsist_config)
 
 
