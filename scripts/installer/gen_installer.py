@@ -3,11 +3,10 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import zipfile
 
 import requests
-
-import bzt
 
 
 def run_cmd(label, cmdline, **kwargs):
@@ -15,28 +14,8 @@ def run_cmd(label, cmdline, **kwargs):
     subprocess.run(cmdline, check=True, **kwargs)
 
 
-def generate_bzt_win():
-    print("Generating bzt_win.py")
-    with open('bzt_win.py', 'w') as fds:
-        fds.write("""
-import os, sys
-
-def main():
-    sys.exit(os.system("cmd /k bzt --help"))
-""")
-
-
-def generate_bzt_preamble():
-    print("Generating preamble for bzt launcher")
-    with open('bzt_preamble.py', 'w') as fds:
-        fds.write("""
-import os
-os.environ["TCL_LIBRARY"] = os.path.join(installdir, "Lib")
-""")
-
-
 def extract_bzt_version(bzt_dist):
-    matches = re.findall(r'(\d+\.[\d\.]+)', bzt_dist)
+    matches = re.findall(r'(\d+\.[\d.]+)', bzt_dist)
     if not matches:
         raise ValueError("Can't extract version from string %r" % bzt_dist)
     version = matches[0]
@@ -51,7 +30,7 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
         'name': 'Taurus',
         'version': bzt_version,
         'publisher': 'CA BlazeMeter',
-        'entry_point': 'bzt_win:main',
+        'entry_point': 'scripts.installer.bzt_win:main',
         'console': 'true',
         'icon': 'site/img/taurus.ico',
         'license_file': 'LICENSE',
@@ -59,7 +38,7 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
 
     cfg['Command bzt'] = {
         'entry_point': 'bzt.cli:main',
-        'extra_preamble': 'bzt_preamble.py',
+        'extra_preamble': 'scripts/installer/bzt_preamble.py',
     }
 
     cfg['Command jmx2yaml'] = {
@@ -83,7 +62,12 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
         'files': '\n'.join([
             'README.md',
             'lib',
+            'build/nsis/tmp/chrome-loader.exe',
         ])
+    }
+
+    cfg['Build'] = {
+        'installer_name': "TaurusInstaller_%s_x64.exe" % bzt_version
     }
 
     with open(cfg_location, 'w') as fds:
@@ -91,7 +75,7 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
 
 
 def run_pynsist(cfg_location):
-    run_cmd("Running pynsist", ["pynsist", cfg_location])
+    run_cmd("Running pynsist", ['pynsist', cfg_location])
 
 
 def fetch_all_wheels(for_package, wheel_dir):
@@ -112,16 +96,16 @@ def extract_all_dependencies(wheel_dir):
     return packages
 
 
-def download_tkinter(archive_url):
+def download_tkinter(archive_url, archive_filename):
     print("Downloading tkinter archive")
-    local_filename = archive_url.split('/')[-1]
+    archive_filename = archive_url.split('/')[-1]
     r = requests.get(archive_url, stream=True)
-    with open(local_filename, 'wb') as f:
+    with open(archive_filename, 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:  # filter out keep-alive new chunks
                 f.write(chunk)
     print("Unpacking tkinter libs")
-    with zipfile.ZipFile(local_filename) as z:
+    with zipfile.ZipFile(archive_filename) as z:
         z.extractall()
 
 
@@ -134,9 +118,8 @@ def main():
     pynsist_config = "installer-gen.cfg"
     wheel_dir = "build/wheels"
     bzt_version = extract_bzt_version(bzt_dist)
-    generate_bzt_win()
-    generate_bzt_preamble()
-    download_tkinter(tkinter_link)
+    tkinter_archive = tempfile.NamedTemporaryFile(prefix="tkinter-libs", suffix=".zip")
+    download_tkinter(tkinter_link, tkinter_archive.name)
     fetch_all_wheels(bzt_dist, wheel_dir)
     dependencies = extract_all_dependencies(wheel_dir)
     generate_pynsist_config(dependencies, wheel_dir, pynsist_config, bzt_version)
