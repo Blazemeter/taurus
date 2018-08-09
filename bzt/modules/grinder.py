@@ -21,12 +21,13 @@ import subprocess
 import time
 
 from bzt import TaurusConfigError, ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
+from bzt.engine import ScenarioExecutor, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
+from bzt.modules.java import TaurusJavaHelper
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator, TaurusJavaHelperJar
+from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary, FileReader
 
 
@@ -133,14 +134,13 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         scenario = self.get_scenario()
         self.exec_id = self.label
         self.script = self.get_script_path()
-        if self.script:
-            self.script = os.path.abspath(self.engine.find_file(self.script))
-        elif "requests" in scenario:
-            self.script = self.__scenario_from_requests()
-        else:
-            msg = "There must be a script file or requests for its generation "
-            msg += "to run Grinder tool (%s)" % self.execution.get('scenario')
-            raise TaurusConfigError(msg)
+        if not self.script:
+            if "requests" in scenario:
+                self.script = self.__scenario_from_requests()
+            else:
+                msg = "There must be a script file or requests for its generation "
+                msg += "to run Grinder tool (%s)" % self.execution.get('scenario')
+                raise TaurusConfigError(msg)
 
         self.properties_file = self.engine.create_artifact("grinder", ".properties")
 
@@ -159,7 +159,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         # add logback configurations used by worker processes (logback-worker.xml)
         res_dir = os.path.join(get_full_path(__file__, step_up=2), 'resources')
         self.env.add_path({"CLASSPATH": res_dir}, finish=True)
-        self.env.add_path({"CLASSPATH": TaurusJavaHelperJar(self.log).tool_path}, finish=True)
+        self.env.add_path({"CLASSPATH": TaurusJavaHelper().tool_path}, finish=True)
         self.env.add_path({"CLASSPATH": self.settings.get("path", None)}, finish=True)
 
         self.cmd_line = ["java", "net.grinder.Grinder", self.properties_file]
@@ -235,7 +235,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         download_link = self.settings.get("download-link", "")
         required_tools = [TclLibrary(self.log),
                           JavaVM(self.log),
-                          TaurusJavaHelperJar(self.log),
+                          TaurusJavaHelper(),
                           Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link=download_link)]
 
         for tool in required_tools:
@@ -255,7 +255,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def resource_files(self):
         resource_files = []
-        script_file_path = self.get_scenario().get(Scenario.SCRIPT)
+        script_file_path = self.get_script_path()
         if script_file_path:
             resource_files.append(script_file_path)
 
@@ -423,7 +423,7 @@ class DataLogReader(ResultsReader):
         return url, error_msg
 
 
-class Grinder(RequiredTool):
+class Grinder(RequiredTool):        # todo: take it from maven and convert to JarTool(?)
     def __init__(self, tool_path, parent_logger, version, download_link):
         super(Grinder, self).__init__("Grinder", tool_path, download_link=download_link)
         self.log = parent_logger.getChild(self.__class__.__name__)

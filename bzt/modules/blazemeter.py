@@ -38,8 +38,8 @@ from urwid import Pile, Text
 from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
-from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service, Singletone, \
-    TAURUS_ARTIFACTS_DIR
+from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
+from bzt.engine import Singletone, TAURUS_ARTIFACTS_DIR
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
@@ -127,6 +127,7 @@ CLOUD_CONFIG_FILTER_RULES = {
 
 CLOUD_CONFIG_FILTER_RULES['modules']['!cloud'] = CLOUD_CONFIG_FILTER_RULES['modules']['!blazemeter']
 NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
+NOTE_SIZE_LIMIT = 2048
 
 
 def send_with_retry(method):
@@ -467,7 +468,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             note = self._session['note'] + '\n' + note
         note = note.strip()
         if note:
-            self._session.set({'note': note})
+            self._session.set({'note': note[:NOTE_SIZE_LIMIT]})
 
     def append_note_to_master(self, note):
         self._master.fetch()
@@ -475,7 +476,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
             note = self._master['note'] + '\n' + note
         note = note.strip()
         if note:
-            self._master.set({'note': note})
+            self._master.set({'note': note[:NOTE_SIZE_LIMIT]})
 
     def check(self):
         """
@@ -1180,8 +1181,7 @@ class CloudTaurusTest(BaseCloudTest):
                 self._check_locations(engine_config[CloudProvisioning.LOC], available_locations)
             else:
                 default_loc = self._get_default_location(available_locations)
-                executor.execution[CloudProvisioning.LOC] = BetterDict()
-                executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
+                executor.execution[CloudProvisioning.LOC] = BetterDict.from_dict({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
@@ -1313,8 +1313,7 @@ class CloudCollectionTest(BaseCloudTest):
             else:
                 if not global_locations:
                     default_loc = self._get_default_location(available_locations)
-                    executor.execution[CloudProvisioning.LOC] = BetterDict()
-                    executor.execution[CloudProvisioning.LOC].merge({default_loc: 1})
+                    executor.execution[CloudProvisioning.LOC] = BetterDict.from_dict({default_loc: 1})
 
             executor.get_load()  # we need it to resolve load settings into full form
 
@@ -1338,6 +1337,7 @@ class CloudCollectionTest(BaseCloudTest):
                 raise TaurusConfigError("Invalid location requested: %s" % location)
 
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
+        self.log.warning("Using collection-based tests is deprecated in Taurus, will be removed in future versions")
         if self.launch_existing_test:
             return
 
@@ -1439,7 +1439,7 @@ class MasterProvisioning(Provisioning):
             config += to_json(self.engine.config.get('scenarios'))
             config += to_json(executor.settings)
             for rfile in executor_rfiles:
-                if not os.path.exists(self.engine.find_file(rfile)):  # TODO: what about files started from 'http://'?
+                if not os.path.exists(self.engine.find_file(rfile)):
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
                 if to_json(rfile) not in config:  # TODO: might be check is needed to improve
                     additional_files.append(rfile)
@@ -1454,7 +1454,7 @@ class MasterProvisioning(Provisioning):
 
     def _fix_filenames(self, old_names):
         # check for concurrent base names
-        old_full_names = [get_full_path(self.engine.find_file(x)) for x in old_names]
+        old_full_names = [self.engine.find_file(x) for x in old_names]
         rbases = [os.path.basename(get_full_path(rfile)) for rfile in old_full_names]
         rpaths = [get_full_path(rfile, step_up=1) for rfile in old_full_names]
         while rbases:
@@ -1833,7 +1833,7 @@ class ResultsFromBZA(ResultsProvider):
                 if err_diff:
                     for label in err_diff:
                         point_label = '' if label == 'ALL' else label
-                        kpiset = point[DataPoint.CURRENT].get(point_label, KPISet(), force_set=True)
+                        kpiset = point[DataPoint.CURRENT].setdefault(point_label, KPISet())
                         kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
                     self.prev_errors = self.cur_errors
 

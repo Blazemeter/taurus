@@ -82,8 +82,11 @@ def get_stacktrace(exc):
     return traceback.format_exc(exc).rstrip()
 
 
-def reraise(exc_info):
-    raise exc_info[0], exc_info[1], exc_info[2]
+def reraise(exc_info, exc=None):
+    exc_type, exc_value, exc_tb = exc_info
+    if exc is not None:
+        exc_value = exc
+    raise exc_type, exc_value, exc_tb
 
 
 def stream_decode(string):

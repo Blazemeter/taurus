@@ -51,8 +51,8 @@ class ShellExecutor(Service):
             else:
                 working_dir = cwd
 
-            env = BetterDict()
-            env.merge({k: os.environ.get(k) for k in os.environ.keys()})
+            # todo: move it to new env
+            env = BetterDict.from_dict({k: os.environ.get(k) for k in os.environ.keys()})
             env.merge(self.settings.get('env'))
             env.merge(task_config.get('env'))
             env.merge({"PYTHONPATH": working_dir})

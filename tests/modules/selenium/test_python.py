@@ -543,6 +543,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         super(TestApiritifScriptGenerator, self).setUp()
         self.obj = ApiritifNoseExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -1274,6 +1275,15 @@ class TestPyTestExecutor(BZTestCase):
             report = [json.loads(line) for line in fds.readlines() if line]
         self.assertEqual(4, len(report))
         self.assertEqual(["PASSED", "FAILED", "FAILED", "SKIPPED"], [item["status"] for item in report])
+
+        failed_item = report[1]
+        assertions = failed_item["assertions"]
+        self.assertEqual(1, len(assertions))
+        assertion = assertions[0]
+        self.assertEqual('assert (2 + (2 * 2)) == 8', assertion['error_msg'])
+        self.assertTrue(assertion['failed'])
+        self.assertEqual('AssertionError: assert (2 + (2 * 2)) == 8', assertion['name'])
+        self.assertIsNotNone(assertion.get('error_trace'))
 
     def test_iterations(self):
         self.obj.execution.merge({

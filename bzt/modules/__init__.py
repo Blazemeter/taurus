@@ -20,7 +20,7 @@ import os
 import time
 
 from bzt import ToolError
-from bzt.engine import ScenarioExecutor, Scenario, FileLister, SelfDiagnosable
+from bzt.engine import ScenarioExecutor, FileLister, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader, LoadSamplesReader
@@ -121,8 +121,7 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
         self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, **kwargs)
 
     def resource_files(self):
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT)
+        script = self.get_script_path()
         if script:
             return [script]
         else:

@@ -1,0 +1,214 @@
+{
+	"swagger": "2.0",
+	"info": {
+		"version": "v1",
+		"title": "barcodeapi"
+	},
+	"host": "api.cloudmersive.com",
+	"schemes": ["https"],
+	"paths": {
+		"/barcode/lookup/ean": {
+			"post": {
+				"tags": ["BarcodeLookup"],
+				"summary": "Lookup a barcode value and return product data",
+				"operationId": "BarcodeLookup_EanLookup",
+				"consumes": ["application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"],
+					"produces": ["application/json",
+					"text/json",
+					"application/xml",
+					"text/xml"],
+				"parameters": [{
+					"name": "value",
+					"in": "body",
+					"description": "Barcode value",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"$ref": "#/definitions/BarcodeLookupResponse"
+						}
+					}
+				}
+			}
+		},
+		"/barcode/generate/qrcode": {
+			"post": {
+				"tags": ["GenerateBarcode"],
+				"summary": "Generate a QR code barcode as a PNG file, a type of 2D barcode which can encode free-form text information",
+				"operationId": "GenerateBarcode_QRCode",
+				"consumes": ["application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"],
+				"produces": ["image/png"],
+				"parameters": [{
+					"name": "value",
+					"in": "body",
+					"description": "QR code text to convert into the QR code barcode",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Image in image/png format"
+					}
+				}
+			}
+		},
+		"/barcode/generate/upc-a": {
+			"post": {
+				"tags": ["GenerateBarcode"],
+				"summary": "Validate and generate a UPC-A barcode as a PNG file, a type of 1D barcode",
+				"operationId": "GenerateBarcode_UPCA",
+				"consumes": ["application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"],
+				"produces": ["image/png"],
+				"parameters": [{
+					"name": "value",
+					"in": "body",
+					"description": "UPC-A barcode value to generate from",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Image in image/png format"
+					}
+				}
+			}
+		},
+		"/barcode/generate/upc-e": {
+			"post": {
+				"tags": ["GenerateBarcode"],
+				"summary": "Validates and generate a UPC-E barcode as a PNG file, a type of 1D barcode",
+				"operationId": "GenerateBarcode_UPCE",
+				"consumes": ["application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"],
+				"produces": ["image/png"],
+				"parameters": [{
+					"name": "value",
+					"in": "body",
+					"description": "UPC-E barcode value to generate from",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Image in image/png format"
+					}
+				}
+			}
+		},
+		"/barcode/generate/ean-13": {
+			"post": {
+				"tags": ["GenerateBarcode"],
+				"summary": "Validates and generate a EAN-13 barcode as a PNG file, a type of 1D barcode",
+				"operationId": "GenerateBarcode_EAN13",
+				"consumes": ["application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"],
+				"produces": ["image/png"],
+				"parameters": [{
+					"name": "value",
+					"in": "body",
+					"description": "Barcode value to generate from",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Image in image/png format"
+					}
+				}
+			}
+		},
+		"/barcode/generate/ean-8": {
+			"post": {
+				"tags": ["GenerateBarcode"],
+				"summary": "Validates and generate a EAN-8 barcode as a PNG file, a type of 1D barcode",
+				"operationId": "GenerateBarcode_EAN8",
+				"consumes": ["application/json",
+					"text/json",
+					"application/xml",
+					"text/xml",
+					"application/x-www-form-urlencoded"],
+				"produces": ["image/png"],
+				"parameters": [{
+					"name": "value",
+					"in": "body",
+					"description": "Barcode value to generate from",
+					"required": true,
+					"schema": {
+						"type": "string"
+					}
+				}],
+				"responses": {
+					"200": {
+						"description": "Image in image/png format"
+					}
+				}
+			}
+		}
+	},
+	"definitions": {
+		"BarcodeLookupResponse": {
+			"type": "object",
+			"properties": {
+				"Successful": {
+					"type": "boolean"
+				},
+				"Matches": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/ProductMatch"
+					}
+				}
+			}
+		},
+		"ProductMatch": {
+			"type": "object",
+			"properties": {
+				"EAN": {
+					"type": "string"
+				},
+				"Title": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"securityDefinitions": {
+		"Apikey": {
+			"type": "apiKey",
+			"description": "API Key Authentication",
+			"name": "Apikey",
+			"in": "header"
+		}
+	}
+}

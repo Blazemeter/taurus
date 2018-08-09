@@ -13,8 +13,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import logging
 import os
-import sys, platform
+import platform
+import sys
+import traceback
 from abc import abstractmethod
 
 VERSION = "1.12.1"
@@ -55,8 +58,6 @@ class ToolError(TaurusException):
         :type message: str
         :type diagnostics: list[str]
         """
-        if diagnostics:
-            message += "\n" + "\n".join(line for line in diagnostics)
         super(ToolError, self).__init__(message)
         self.diagnostics = diagnostics
 

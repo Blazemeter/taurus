@@ -29,7 +29,11 @@ class SIMNAME extends Simulation {
       .disableFollowRedirect
   ).pause(1).exec(
     http("/").get("/")
-  ).pause(2)
+  ).pause(2).exec(
+    http("/reserve.php").post("/reserve.php")
+      .body(StringBody("""Body Content 日本語"""))
+      .disableFollowRedirect
+  ).pause(1)
 
   if (iterationLimit == null)
     testScenario = testScenario.forever{execution}

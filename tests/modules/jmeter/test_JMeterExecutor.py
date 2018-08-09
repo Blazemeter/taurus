@@ -5,7 +5,8 @@ import os
 import shutil
 import sys
 import time
-from unittest import skipUnless
+from unittest import skipUnless, skipIf
+from distutils.version import LooseVersion
 
 import yaml
 
@@ -18,9 +19,14 @@ from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
 from tests.modules.jmeter import MockJMeterExecutor, MockHTTPClient
+
+_jvm = JavaVM(logging.getLogger(''))
+_jvm.check_if_installed()
+java_version = _jvm.version
+java10 = LooseVersion(java_version) >= LooseVersion("10")
 
 
 def get_jmeter():
@@ -312,6 +318,60 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, os.path.join('*', end_str))
 
+    @skipIf(java10, "Disabled on Java 10")
+    def test_install_jmeter_3_0(self):
+        path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
+        self.obj.mock_install = False
+
+        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
+        self.assertFalse(os.path.exists(path))
+
+        jmeter_res_dir = RESOURCES_DIR + "/jmeter/"
+        http_client = MockHTTPClient()
+        http_client.add_response('GET', 'https://jmeter.apache.org/download_jmeter.cgi',
+                                 file=jmeter_res_dir + "unicode_file")
+        http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.0.zip',
+                                 file=jmeter_res_dir + "jmeter-dist-3.0.zip")
+        url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
+              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeterExecutor.PLUGINS_MANAGER_VERSION)
+
+        http_client.add_response('GET', url, file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+        http_client.add_response('GET',
+                                 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
+                                 file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+
+        self.obj.engine.get_http_client = lambda: http_client
+        jmeter_ver = JMeterExecutor.JMETER_VER
+        try:
+            JMeterExecutor.JMETER_VER = '3.0'
+
+            self.obj.settings.merge({"path": path})
+            self.configure({
+                "execution": [{"scenario": {"requests": ["http://localhost"]}}],
+                "settings": {
+                    "proxy": {
+                        "address": "http://myproxy.com:8080",
+                        "username": "user",
+                        "password": "pass"}}})
+            self.obj.prepare()
+            jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
+            self.assertNotIn('httpclient-4.5.jar', jars)
+            self.assertIn('httpclient-4.5.2.jar', jars)
+
+            self.assertTrue(os.path.exists(path))
+
+            # start again..
+            self.tearDown()
+            self.setUp()
+
+            self.obj.settings.merge({"path": path})
+            self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
+
+            self.obj.prepare()
+        finally:
+            JMeterExecutor.JMETER_VER = jmeter_ver
+
+    @skipIf(java10, "Disabled on Java 10")
     def test_install_jmeter_2_13(self):
         path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
         self.obj.mock_install = False
@@ -325,9 +385,9 @@ class TestJMeterExecutor(BZTestCase):
                                  file=jmeter_res_dir + "unicode_file")
         http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-2.13.zip',
                                  file=jmeter_res_dir + "jmeter-dist-2.13.zip")
-        http_client.add_response('GET',
-                                 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/1.1/jmeter-plugins-manager-1.1.jar',
-                                 file=jmeter_res_dir + "jmeter-plugins-manager.jar")
+        url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
+              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeterExecutor.PLUGINS_MANAGER_VERSION)
+        http_client.add_response('GET', url, file=jmeter_res_dir + "jmeter-plugins-manager.jar")
         http_client.add_response('GET',
                                  'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
                                  file=jmeter_res_dir + "jmeter-plugins-manager.jar")
@@ -352,57 +412,6 @@ class TestJMeterExecutor(BZTestCase):
                 'commons-jexl-1.1.jar', 'httpclient-4.2.6.jar']
             for old_jar in old_jars:
                 self.assertNotIn(old_jar, jars)
-
-            self.assertTrue(os.path.exists(path))
-
-            # start again..
-            self.tearDown()
-            self.setUp()
-
-            self.obj.settings.merge({"path": path})
-            self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
-
-            self.obj.prepare()
-        finally:
-            JMeterExecutor.JMETER_VER = jmeter_ver
-
-    def test_install_jmeter_3_0(self):
-        path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
-        self.obj.mock_install = False
-
-        shutil.rmtree(os.path.dirname(os.path.dirname(path)), ignore_errors=True)
-        self.assertFalse(os.path.exists(path))
-
-        jmeter_res_dir = RESOURCES_DIR + "/jmeter/"
-        http_client = MockHTTPClient()
-        http_client.add_response('GET', 'https://jmeter.apache.org/download_jmeter.cgi',
-                                 file=jmeter_res_dir + "unicode_file")
-        http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.0.zip',
-                                 file=jmeter_res_dir + "jmeter-dist-3.0.zip")
-        http_client.add_response('GET',
-                                 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/1.1/jmeter-plugins-manager-1.1.jar',
-                                 file=jmeter_res_dir + "jmeter-plugins-manager.jar")
-        http_client.add_response('GET',
-                                 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
-                                 file=jmeter_res_dir + "jmeter-plugins-manager.jar")
-
-        self.obj.engine.get_http_client = lambda: http_client
-        jmeter_ver = JMeterExecutor.JMETER_VER
-        try:
-            JMeterExecutor.JMETER_VER = '3.0'
-
-            self.obj.settings.merge({"path": path})
-            self.configure({
-                "execution": [{"scenario": {"requests": ["http://localhost"]}}],
-                "settings": {
-                    "proxy": {
-                        "address": "http://myproxy.com:8080",
-                        "username": "user",
-                        "password": "pass"}}})
-            self.obj.prepare()
-            jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
-            self.assertNotIn('httpclient-4.5.jar', jars)
-            self.assertIn('httpclient-4.5.2.jar', jars)
 
             self.assertTrue(os.path.exists(path))
 
@@ -788,8 +797,7 @@ class TestJMeterExecutor(BZTestCase):
 
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
-        self.obj.settings['properties'] = BetterDict()
-        self.obj.settings['properties'].merge({"a": 1})
+        self.obj.settings['properties'] = BetterDict.from_dict({"a": 1})
 
         self.obj.prepare()
         self.obj.startup()

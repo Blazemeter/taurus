@@ -1,7 +1,8 @@
-#! /usr/bin/env python2
+#! /usr/bin/env python
 import csv
 import json
 import os
+import sys
 import time
 from collections import OrderedDict
 
@@ -17,17 +18,26 @@ class LocustStarter(object):
         super(LocustStarter, self).__init__()
         self.fhd = None
         self.writer = None
-        if os.getenv("LOCUST_DURATION"):
-            self.locust_start_time = time.time()
-            self.locust_duration = float(os.getenv("LOCUST_DURATION"))
-        else:
-            self.locust_start_time = None
-            self.locust_duration = None
+        self.locust_start_time = None
 
-    def __check_duration(self):
-        if self.locust_duration is not None:
-            if time.time() - self.locust_start_time >= self.locust_duration:
-                raise StopLocust('Duration limit reached')
+        self.locust_duration = sys.maxsize
+        self.num_requests = sys.maxsize
+
+        if os.getenv("LOCUST_DURATION"):
+            self.locust_duration = float(os.getenv("LOCUST_DURATION"))
+
+        if os.getenv("LOCUST_NUMREQUESTS"):
+            self.num_requests = float(os.getenv("LOCUST_NUMREQUESTS"))
+
+    def __check_limits(self):
+        if self.locust_start_time is None:
+            self.locust_start_time = time.time()
+
+        if time.time() - self.locust_start_time >= self.locust_duration:
+            raise StopLocust('Duration limit reached')
+
+        if self.num_requests <= 0:
+            raise StopLocust('Request limit reached')
 
     @staticmethod
     def __getrec(request_type, name, response_time, response_length, exc=None):
@@ -54,20 +64,26 @@ class LocustStarter(object):
         ])
 
     def __on_request_success(self, request_type, name, response_time, response_length):
+        self.num_requests -= 1
         self.writer.writerow(self.__getrec(request_type, name, response_time, response_length))
         self.fhd.flush()
-        self.__check_duration()
+        self.__check_limits()
 
     def __on_request_failure(self, request_type, name, response_time, exception):
+        self.num_requests -= 1
         self.writer.writerow(self.__getrec(request_type, name, response_time, 0, exception))
         self.fhd.flush()
-        self.__check_duration()
+        self.__check_limits()
 
     def __on_slave_report(self, client_id, data):
         if data['stats'] or data['errors']:
+            for item in data['stats']:
+                self.num_requests -= item['num_requests']
+
             data['client_id'] = client_id
             self.fhd.write("%s\n" % json.dumps(data))
             self.fhd.flush()
+        self.__check_limits()
 
     def execute(self):
         if os.getenv("SLAVES_LDJSON"):

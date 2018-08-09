@@ -199,7 +199,7 @@ class Engine(object):
         calls `shutdown` in any case
         """
         self.log.info("Starting...")
-        exc_info = None
+        exc_info = exc_value = None
         try:
             self._startup()
             self.logging_level_down()
@@ -219,9 +219,11 @@ class Engine(object):
                     self.stopping_reason = exc
                 if not exc_info:
                     exc_info = sys.exc_info()
+                if not exc_value:
+                    exc_value = exc
 
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)
 
     def _check_modules_list(self):
         stop = False
@@ -262,7 +264,7 @@ class Engine(object):
         """
         self.log.info("Shutting down...")
         self.log.debug("Current stop reason: %s", self.stopping_reason)
-        exc_info = None
+        exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
             try:
@@ -272,10 +274,12 @@ class Engine(object):
                 self.log.debug("%s:\n%s", exc, traceback.format_exc())
                 if not exc_info:
                     exc_info = sys.exc_info()
+                if not exc_value:
+                    exc_value = exc
 
         self.config.dump()
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)
 
     def post_process(self):
         """
@@ -283,7 +287,7 @@ class Engine(object):
         """
         self.log.info("Post-processing...")
         # :type exception: BaseException
-        exc_info = None
+        exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         # services are last because of shellexec which is "final-final" action
         for module in modules:
@@ -299,10 +303,12 @@ class Engine(object):
                         self.stopping_reason = exc
                     if not exc_info:
                         exc_info = sys.exc_info()
+                    if not exc_value:
+                        exc_value = exc
         self.config.dump()
 
         if exc_info:
-            reraise(exc_info)
+            reraise(exc_info, exc_value)
 
     def create_artifact(self, prefix, suffix):
         """
@@ -439,15 +445,14 @@ class Engine(object):
         """
         Try to find file or dir in search_path if it was specified. Helps finding files
         in non-CLI environments or relative to config path
+        Return path is full and mustn't treat with abspath/etc.
         :param filename: file basename to find
         :type filename: str
         """
         if not filename:
             return filename
-        filename = os.path.expanduser(filename)
-        if os.path.exists(filename):
-            return filename
-        elif filename.lower().startswith("http://") or filename.lower().startswith("https://"):
+
+        if filename.lower().startswith("http://") or filename.lower().startswith("https://"):
             parsed_url = parse.urlparse(filename)
             downloader = ExceptionalDownloader(self.get_http_client())
             self.log.info("Downloading %s", filename)
@@ -461,12 +466,16 @@ class Engine(object):
             self.log.debug("Moving %s to %s", tmp_f_name, dest)
             shutil.move(tmp_f_name, dest)
             return dest
-        elif self.file_search_paths:
-            for dirname in self.file_search_paths:
+        else:
+            filename = os.path.expanduser(filename)     # expanding of '~' is required for check of existence
+
+            # check filename 'as is' and all combinations of file_search_path/filename
+            for dirname in [""] + self.file_search_paths:
                 location = os.path.join(dirname, filename)
                 if os.path.exists(location):
-                    self.log.warning("Guessed location from search paths for %s: %s", filename, location)
-                    return location
+                    if dirname:
+                        self.log.warning("Guessed location from search paths for %s: %s", filename, location)
+                    return get_full_path(location)
 
         self.log.warning("Could not find location at path: %s", filename)
         return filename
@@ -669,8 +678,8 @@ class Configuration(BetterDict):
     JSON = "JSON"
     YAML = "YAML"
 
-    def __init__(self):
-        super(Configuration, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(Configuration, self).__init__(*args, **kwargs)
         self.log = logging.getLogger('')
         self.dump_filename = None
         self.tab_replacement_spaces = 0
@@ -963,7 +972,7 @@ class ScenarioExecutor(EngineModule):
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
         self.provisioning = None
-        self.execution = BetterDict()
+        self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
         self.__scenario = None
         self.label = None
         self.widget = None
@@ -979,14 +988,25 @@ class ScenarioExecutor(EngineModule):
         else:
             return False
 
-    def get_script_path(self, scenario=None):
+    def get_script_path(self, required=False, scenario=None):
         """
+        :type required: bool
         :type scenario: Scenario
         """
         if scenario is None:
             scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
-        return self.engine.find_file(script)
+
+        if required:
+            exc = TaurusConfigError("You must provide script for %s" % self)
+            script = scenario.get(Scenario.SCRIPT, exc)
+        else:
+            script = scenario.get(Scenario.SCRIPT)
+
+        if script:
+            script = self.engine.find_file(script)
+            scenario[Scenario.SCRIPT] = script
+
+        return script
 
     def get_scenario(self, name=None, cache_scenario=True):
         """
@@ -1011,15 +1031,14 @@ class ScenarioExecutor(EngineModule):
             if isinstance(label, dict) or is_script:
                 self.log.debug("Extract %s into scenarios" % label)
                 if isinstance(label, string_types):
-                    scenario = BetterDict()
-                    scenario.merge({Scenario.SCRIPT: label})
+                    scenario = BetterDict.from_dict({Scenario.SCRIPT: label})
                 else:
                     scenario = label
 
-                path = self.get_script_path(Scenario(self.engine, scenario))
-                if path is not None:
+                path = self.get_script_path(scenario=Scenario(self.engine, scenario))
+                if path:
                     label = os.path.basename(path)
-                if path is None or label in scenarios:
+                if not path or label in scenarios:
                     hash_str = str(hashlib.md5(to_json(scenario).encode()).hexdigest())
                     label = 'autogenerated_' + hash_str[-10:]
 

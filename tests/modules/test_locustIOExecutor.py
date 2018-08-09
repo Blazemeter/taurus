@@ -2,16 +2,14 @@ import logging
 import os
 import sys
 import time
-import unittest
 
 try:
     import unittest.mock as mock
 except ImportError:
     import mock
 
-from bzt import six, ToolError
+from bzt import ToolError
 from bzt.modules.jmeter import JTLReader
-from bzt.six import PY2
 from bzt.utils import dehumanize_time
 from tests import BZTestCase, RESOURCES_DIR
 
@@ -31,8 +29,6 @@ class TestLocustIOExecutor(BZTestCase):
         self.obj.engine.config['provisioning'] = 'local'
 
     def test_simple(self):
-        if six.PY3:
-            logging.warning("No locust available for python 3")
         self.obj.execution.merge({
             "concurrency": 1,
             "iterations": 10,
@@ -52,9 +48,6 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertFalse(self.obj.has_results())
 
     def test_locust_widget(self):
-        if six.PY3:
-            logging.warning("No locust available for python 3")
-
         self.obj.execution.merge({
             "concurrency": 1,
             "iterations": 10,
@@ -74,9 +67,6 @@ class TestLocustIOExecutor(BZTestCase):
         self.obj.shutdown()
 
     def test_locust_fractional_hatch_rate(self):
-        if six.PY3:
-            logging.warning("No locust available for python 3")
-
         test_concurrency, test_ramp_up = 4, "60s"
         expected_hatch_rate = test_concurrency / dehumanize_time(test_ramp_up)
 
@@ -102,9 +92,6 @@ class TestLocustIOExecutor(BZTestCase):
             self.assertEqual(hatch[0], "%f" % expected_hatch_rate)
 
     def test_locust_master(self):
-        if six.PY3:
-            logging.warning("No locust available for python 3")
-
         self.obj.execution.merge({
             "concurrency": 1,
             "iterations": 10,
@@ -131,9 +118,6 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertFalse(self.obj.has_results())
 
     def test_locust_slave_results(self):
-        if six.PY3:
-            logging.warning("No locust available for python 3")
-
         obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves.ldjson", 2, logging.getLogger(""))
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(107, len(points))
@@ -142,9 +126,6 @@ class TestLocustIOExecutor(BZTestCase):
             self.assertGreater(point[DataPoint.CURRENT][''][KPISet.BYTE_COUNT], 0)
 
     def test_locust_slave_results_errors(self):
-        if six.PY3:
-            logging.warning("No locust available for python 3")
-
         obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves2.ldjson", 2, logging.getLogger(""))
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(60, len(points))
@@ -153,17 +134,11 @@ class TestLocustIOExecutor(BZTestCase):
             self.assertGreaterEqual(point[DataPoint.CURRENT][''][KPISet.FAILURES], 70)
 
     def test_locust_delayed_slave(self):
-        if six.PY3:
-            logging.warning("No locust available for python 3")
-
         obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves-none.ldjson", 2, logging.getLogger(""))
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(0, len(points))
 
     def test_locust_resource_files(self):
-        if six.PY3:
-            logging.warning("No locust available for python 3")
-
         self.obj.execution.merge({
             "concurrency": 1,
             "iterations": 10,
@@ -177,9 +152,6 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertEqual(1, len(resource_files))
 
     def test_resource_files_requests(self):
-        if six.PY3:
-            logging.warning("No locust available for python 3")
-
         self.obj.execution.merge({
             "concurrency": 1,
             "iterations": 10,
@@ -195,9 +167,6 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertEqual(0, len(resource_files))
 
     def test_fail_on_zero_results(self):
-        if six.PY3:
-            logging.warning("No locust available for python 3")
-
         self.obj.execution.merge({
             "concurrency": 1,
             "iterations": 10,
@@ -322,7 +291,6 @@ class TestLocustIOExecutor(BZTestCase):
             expected = "timeStamp,label,method,elapsed,bytes,responseCode,responseMessage,success,allThreads,Latency"
             self.assertEqual(header_line, expected)
 
-    @unittest.skipUnless(PY2, "Locust is having issues with py3")
     def test_jtl_quoting_issue(self):
         self.obj.execution.merge({
             "concurrency": 1,
@@ -344,7 +312,7 @@ class TestLocustIOExecutor(BZTestCase):
         kpi_path = os.path.join(self.obj.engine.artifacts_dir, "kpi.jtl")
         self.assertTrue(os.path.exists(kpi_path))
 
-        reader = JTLReader(kpi_path, self.obj.log, None)
+        reader = JTLReader(kpi_path, self.obj.log)
         for point in reader.datapoints():
             pass
 

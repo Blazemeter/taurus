@@ -1,3 +1,4 @@
+# coding=utf-8
 import logging
 import os
 import shutil
@@ -135,7 +136,7 @@ class TestGatlingExecutor(BZTestCase):
         script_path = RESOURCES_DIR + "gatling/bs"
         self.obj.execution.merge({"scenario": {"script": script_path}})
         res_files = self.obj.resource_files()
-        self.assertEqual(res_files, [script_path])
+        self.assertPathsEqual(res_files, [script_path])
 
     def test_resource_files_collection_local(self):
         script = "LocalBasicSimulation.scala"
@@ -192,7 +193,12 @@ class TestGatlingExecutor(BZTestCase):
                               }]},
                              {"url": "/",
                               "think-time": 2,
-                              "follow-redirects": True}]
+                              "follow-redirects": True},
+                             {"url": "/reserve.php",
+                              "method": "POST",
+                              "body": u"Body Content 日本語",
+                              }
+                             ]
             }
         })
         self.obj.prepare()

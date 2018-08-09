@@ -1,9 +1,9 @@
-apiritif>=0.6.5
+apiritif>=0.6.7
 astunparse
 colorama; sys_platform == 'windows'
 colorlog
 cssselect
-hdrpy>=0.3.2
+hdrpy>=0.3.3
 ipaddress; python_version < '3.0'
 lxml>=3.8.0,!=4.2.0
 nose
@@ -17,3 +17,4 @@ selenium
 Appium-Python-Client
 urwid
 terminaltables>=3.1.0
+gevent!=1.3.5

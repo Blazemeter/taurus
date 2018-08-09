@@ -2,6 +2,7 @@
 import logging
 import os
 import sys
+import time
 import unittest
 
 from bzt.modules.aggregator import DataPoint, KPISet
@@ -211,3 +212,11 @@ class TestJTLReader(BZTestCase):
     def test_jtl_csv_sniffer_unicode_crash(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/quote-guessing-crash.jtl")
         list(self.obj.datapoints(final_pass=True))
+
+    def test_stdev_performance(self):
+        start = time.time()
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/slow-stdev.jtl")
+        res = list(self.obj.datapoints(final_pass=True))
+        elapsed = time.time() - start
+        logging.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
+        self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go

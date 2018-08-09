@@ -58,7 +58,7 @@ class TestTools(BZTestCase):
     def test_merging(self):
         dst = DataPoint(0)
         src = DataPoint(0)
-        src[DataPoint.CUMULATIVE].get('', KPISet(), force_set=True)
+        src[DataPoint.CUMULATIVE].setdefault('', KPISet())
         src[DataPoint.CUMULATIVE][''].sum_rt = 0.5
 
         src[DataPoint.CUMULATIVE][''][KPISet.SAMPLE_COUNT] = 1

@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import codecs
 import os
 import re
 import subprocess
@@ -25,6 +26,7 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
+from bzt.six import string_types
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
@@ -85,7 +87,7 @@ class GatlingScriptBuilder(object):
                                         level=3)
 
             if req.body is not None:
-                if isinstance(req.body, str):
+                if isinstance(req.body, string_types):
                     exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
                     exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
                 else:
@@ -268,7 +270,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         jar_files = []
         files = self.execution.get('files', [])
         for candidate in files:
-            candidate = get_full_path(self.engine.find_file(candidate))
+            candidate = self.engine.find_file(candidate)
             if os.path.isfile(candidate) and candidate.lower().endswith('.jar'):
                 jar_files.append(candidate)
             elif os.path.isdir(candidate):
@@ -322,7 +324,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         simulation = "TaurusSimulation_%s" % id(self)
         file_name = self.engine.create_artifact(simulation, ".scala")
         gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation)
-        with open(file_name, 'wt') as script:
+        with codecs.open(file_name, 'w', encoding='utf-8') as script:
             script.write(gen_script.gen_test_case())
 
         return simulation, file_name
@@ -497,12 +499,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def resource_files(self):
         files = []
-        scenario = self.get_scenario()
-        script = scenario.get(Scenario.SCRIPT, None)
+        script = self.get_script_path()
         if script:
             files.append(script)
         else:
-            for source in scenario.get_data_sources():
+            data_sources = self.get_scenario().get_data_sources()
+            for source in data_sources:
                 source_path = self.engine.find_file(source["path"])
                 files.append(source_path)
         files.extend(self.get_additional_classpath())

@@ -137,7 +137,6 @@ class TestConfiguration(BZTestCase):
         obj.load([RESOURCES_DIR + "yaml/tabs-issue.yml"])
         fname = tempfile.mkstemp()[1]
         obj.dump(fname, Configuration.YAML)
-        # import shutil; shutil.copy(fname, RESOURCES_DIR + "yaml/tabs-issue-spaces.yml")
         self.assertFilesEqual(RESOURCES_DIR + "yaml/tabs-issue-spaces.yml", fname)
 
     def test_merge_removal(self):
@@ -216,3 +215,14 @@ class TestConfiguration(BZTestCase):
             dump = json.loads(fds.read())
         self.assertEqual(dump["foo"], "inf")
         self.assertEqual(dehumanize_time(dump["foo"]), float("inf"))
+
+    def test_overwrite_execution_locations(self):
+        obj = Configuration()
+        obj.merge({
+            "execution": [{"locations": {"us-central1-a": 1}}],
+        })
+        obj.merge({
+            "$execution": [{"~locations": {"harbor-1": 1}}],
+        })
+        logging.info(obj)
+        self.assertEqual(obj, {"execution": [{"locations": {"harbor-1": 1}}]})

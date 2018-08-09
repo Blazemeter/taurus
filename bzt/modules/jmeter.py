@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import codecs
 import copy
 import csv
 import fnmatch
@@ -59,7 +60,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     """
     MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
     JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
-    PLUGINS_MANAGER_VERSION = "1.1"
+    PLUGINS_MANAGER_VERSION = "1.3"
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
                       '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar'
@@ -203,13 +204,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if not isinstance(self.engine.provisioning, Local):
             return scenario_obj
 
-        if Scenario.SCRIPT in scenario_obj and scenario_obj[Scenario.SCRIPT] is not None:
-            script_path = self.engine.find_file(scenario_obj[Scenario.SCRIPT])
-            with open(script_path) as fds:
+        script = self.get_script_path(required=False, scenario=scenario_obj)
+        if script:
+            with open(script) as fds:
                 script_content = fds.read()
             if "con:soapui-project" in script_content:
                 self.log.info("SoapUI project detected")
-                scenario_name, merged_scenario = self._extract_scenario_from_soapui(scenario_obj, script_path)
+                scenario_name, merged_scenario = self._extract_scenario_from_soapui(scenario_obj, script)
                 self.engine.config["scenarios"].merge({scenario_name: merged_scenario})
                 self.execution[Scenario.SCRIPT] = scenario_name
                 return super(JMeterExecutor, self).get_scenario(name=scenario_name)
@@ -233,8 +234,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.log.info("Scenario name '%s' is already taken, renaming to '%s'", scenario_name, new_name)
             scenario_name = new_name
 
-        merged_scenario = BetterDict()
-        merged_scenario.merge(conv_scenario)
+        merged_scenario = BetterDict.from_dict(conv_scenario)
         merged_scenario.merge(base_scenario.data)
         for field in [Scenario.SCRIPT, "test-case"]:
             if field in merged_scenario:
@@ -754,7 +754,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 jmx.save(self.original_jmx)
                 scenario[Scenario.SCRIPT] = self.original_jmx
 
-        script = self.get_scenario().get(Scenario.SCRIPT, None)
+        script = self.get_script_path()
         if script:
             resource_files.append(script)
 
@@ -910,17 +910,17 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def get_error_diagnostics(self):
         diagnostics = []
         if self.stdout_file is not None:
-            with open(self.stdout_file.name) as fds:
+            with codecs.open(self.stdout_file.name, encoding='utf-8') as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("JMeter STDOUT:\n" + contents)
         if self.stderr_file is not None:
-            with open(self.stderr_file.name) as fds:
+            with codecs.open(self.stderr_file.name, encoding='utf-8') as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("JMeter STDERR:\n" + contents)
         if self.jmeter_log is not None and os.path.exists(self.jmeter_log):
-            with open(self.jmeter_log) as fds:
+            with codecs.open(self.jmeter_log, encoding='utf-8') as fds:
                 log_contents = fds.read().strip()
                 trimmed_log = self.__trim_jmeter_log(log_contents)
                 if trimmed_log:
@@ -967,8 +967,6 @@ class JTLReader(ResultsReader):
             ltc = int(row["Latency"]) / 1000.0
             if "Connect" in row:
                 cnn = int(row["Connect"]) / 1000.0
-                if cnn < ltc:  # this is generally bad idea...
-                    ltc -= cnn  # fixing latency included into connect time
             else:
                 cnn = None
 
@@ -1461,6 +1459,8 @@ class JMeter(RequiredTool):
     """
 
     def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, http_client):
+        if jmeter_download_link is not None:
+            jmeter_download_link = jmeter_download_link.format(version=jmeter_version)
         super(JMeter, self).__init__("JMeter", tool_path, jmeter_download_link, http_client=http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
@@ -1555,6 +1555,7 @@ class JMeter(RequiredTool):
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
+                    self.log.debug("Error details: %s", traceback.format_exc())
                     raise TaurusNetworkError("Error while downloading %s: %s" % (_file, exc))
 
     def __install_plugins_manager(self, plugins_manager_path):

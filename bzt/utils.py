@@ -46,6 +46,7 @@ from collections import defaultdict, Counter, OrderedDict
 from contextlib import contextmanager
 from math import log
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
+from distutils.version import LooseVersion
 from webbrowser import GenericBrowser
 
 import ipaddress
@@ -90,6 +91,19 @@ def get_files_recursive(dir_name, exclude_mask=''):
         for _file in files:
             if not fnmatch.fnmatch(_file, exclude_mask):
                 yield os.path.join(root, _file)
+
+
+def parse_java_version(versions):
+    if versions:
+        version = versions[0]
+
+        if LooseVersion(version) > LooseVersion("6"):  # start of openjdk naming
+            major = re.findall("^([\d]*)", version)
+        else:
+            major = re.findall("\.([\d]*)", version)
+
+        if major:
+            return major[0]
 
 
 def run_once(func):
@@ -176,6 +190,18 @@ class BetterDict(defaultdict):
     Wrapper for defaultdict that able to deep merge other dicts into itself
     """
 
+    @classmethod
+    def from_dict(cls, orig):
+        """
+        # https://stackoverflow.com/questions/50013768/how-can-i-convert-nested-dictionary-to-defaultdict/50013806
+        """
+        if isinstance(orig, dict):
+            return cls(lambda: None, {k: cls.from_dict(v) for k, v in orig.items()})
+        elif isinstance(orig, list):
+            return [cls.from_dict(e) for e in orig]
+        else:
+            return orig
+
     def get(self, key, default=defaultdict, force_set=False):
         """
         Change get with setdefault
@@ -251,6 +277,7 @@ class BetterDict(defaultdict):
                     self[key] = val
             else:
                 self[key] = val
+        return self
 
     def __merge_list_elements(self, left, right, key):
         for index, righty in enumerate(right):
@@ -273,8 +300,7 @@ class BetterDict(defaultdict):
         """
         for idx, obj in enumerate(values):
             if isinstance(obj, dict):
-                values[idx] = BetterDict()
-                values[idx].merge(obj)
+                values[idx] = BetterDict.from_dict(obj)
             elif isinstance(obj, list):
                 self.__ensure_list_type(obj)
 
@@ -312,6 +338,9 @@ class BetterDict(defaultdict):
                     self.get(key).filter(rules[key])
                     if not self.get(key):  # clear empty
                         del self[key]
+
+    def __repr__(self):
+        return dict(self).__repr__()
 
 
 def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
@@ -539,15 +568,13 @@ def ensure_is_dict(container, key, default_key=None):
     if (isinstance(container, dict) and key not in container) \
             or (isinstance(container, list) and not container[key]):
         if default_key:
-            container[key] = BetterDict()
-            container[key][default_key] = None
+            container[key] = BetterDict.from_dict({default_key: None})
         else:
             container[key] = BetterDict()
     elif not isinstance(container[key], dict):
         if default_key:
             val = container[key]
-            container[key] = BetterDict()
-            container[key][default_key] = val
+            container[key] = BetterDict.from_dict({default_key: val})
         else:
             container[key] = BetterDict()
 
@@ -605,12 +632,6 @@ class MultiPartForm(object):
         if mimetype is None:
             mimetype = mimetypes.guess_type(filename)[0] or default
 
-        # if isinstance(fieldname, six.u()):
-        # fieldname = fieldname.encode()
-
-        # if isinstance(body, str):
-        # body = body.encode()
-
         self.files.append((fieldname, filename, mimetype, body))
 
     def add_file(self, fieldname, filename, file_handle=None, mimetype=None):
@@ -656,8 +677,6 @@ class MultiPartForm(object):
         # then return CR+LF separated data
         flattened = list(itertools.chain(*parts))
         flattened.append('--' + self.boundary + '--')
-        # flattened.append('')
-        # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in flattened)
         return flattened
 
     def form_as_bytes(self):
@@ -677,7 +696,6 @@ class MultiPartForm(object):
         res_bytes = b("\r\n").join(result_list)
         res_bytes += b("\r\n")
         return res_bytes
-        # return b'\r\n'.join(x.encode() if isinstance(x, str) else x for x in self.__convert_to_list())
 
 
 def to_json(obj, indent=True):
@@ -1041,11 +1059,15 @@ class RequiredTool(object):
     def __init__(self, tool_name, tool_path, download_link="", http_client=None):
         self.http_client = http_client
         self.tool_name = tool_name
-        self.tool_path = tool_path
+        self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
         self.log = logging.getLogger('')
+        self.version = None
+
+    def _get_version(self, output):
+        return
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
@@ -1095,11 +1117,21 @@ class JavaVM(RequiredTool):
         super(JavaVM, self).__init__("JavaVM", tool_path, download_link, http_client=http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
 
+    def _get_version(self, output):
+        versions = re.findall("version\ \"([_\d\.]*)", output)
+        version = parse_java_version(versions)
+
+        if not version:
+            self.log.warning("Tool version parsing error: %s", output)
+
+        return version
+
     def check_if_installed(self):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
             output = sync_run(cmd)
+            self.version = self._get_version(output)
             self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except (CalledProcessError, OSError) as exc:
@@ -1258,8 +1290,8 @@ class MirrorsManager(object):
         except BaseException:
             self.log.debug("Exception: %s", traceback.format_exc())
             self.log.error("Can't fetch %s", self.base_link)
-        mirrors = self._parse_mirrors()
-        return (mirror for mirror in mirrors)
+        return self._parse_mirrors()
+
 
 
 @contextmanager
@@ -1513,15 +1545,3 @@ def get_host_ips(filter_loopbacks=True):
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
 
-
-class TaurusJavaHelperJar(RequiredTool):
-    VERSION = "1.1"
-    DWN_LINK = "http://search.maven.org/remotecontent?filepath=com/blazemeter/taurus-java-helpers/" \
-               "%s/taurus-java-helpers-%s.jar" % (VERSION, VERSION)
-    INSTALL_PATH = "~/.bzt/java-helper/%s/taurus-java-helpers.jar" % VERSION
-
-    def __init__(self, log):
-        super(TaurusJavaHelperJar, self).__init__("TaurusJavaHelperJar",
-                                                  os.path.expanduser(self.INSTALL_PATH),
-                                                  self.DWN_LINK)
-        self.log = log

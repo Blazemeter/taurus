@@ -15,7 +15,7 @@ from bzt.cli import CLI
 from bzt.engine import SelfDiagnosable
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.six import u
-from bzt.utils import run_once, EXE_SUFFIX
+from bzt.utils import run_once, EXE_SUFFIX, get_full_path
 
 TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
 
@@ -72,7 +72,7 @@ def random_sample(ts, label='', conc=1):
 
 def random_datapoint(n):
     point = DataPoint(n)
-    overall = point[DataPoint.CURRENT].get('', KPISet(), force_set=True)
+    overall = point[DataPoint.CURRENT].setdefault('', KPISet())
     overall[KPISet.CONCURRENCY] = r(100)
     overall[KPISet.SAMPLE_COUNT] = int(100 * r(1000)) + 1
     overall[KPISet.SUCCESSES] = int(overall[KPISet.SAMPLE_COUNT] * random())
@@ -92,7 +92,7 @@ def random_datapoint(n):
     overall.sum_rt = overall[KPISet.AVG_RESP_TIME] * overall[KPISet.SAMPLE_COUNT]
     overall.sum_cn = overall[KPISet.AVG_CONN_TIME] * overall[KPISet.SAMPLE_COUNT]
     overall.sum_lt = overall[KPISet.AVG_LATENCY] * overall[KPISet.SAMPLE_COUNT]
-    cumul = point[DataPoint.CUMULATIVE].get('', KPISet(), force_set=True)
+    cumul = point[DataPoint.CUMULATIVE].setdefault('', KPISet())
     cumul.merge_kpis(overall)
     cumul.recalculate()
 
@@ -144,6 +144,8 @@ class BZTestCase(TestCase):
             self.log_recorder.close()
 
     def assertFilesEqual(self, expected, actual, replace_str="", replace_with=""):
+        # import shutil; shutil.copy(actual, expected)
+
         with open(expected) as exp, open(actual) as act:
             act_lines = [x.replace(replace_str, replace_with).rstrip() for x in act.readlines()]
             exp_lines = [x.replace(replace_str, replace_with).rstrip() for x in exp.readlines()]
@@ -152,6 +154,16 @@ class BZTestCase(TestCase):
                 logging.info("Replacements are: %s => %s", replace_str, replace_with)
                 msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
                 raise AssertionError(msg + "\n".join(diff))
+
+    def assertPathsEqual(self, p1, p2):
+        if not isinstance(p1, list):
+            p1 = [p1]
+
+        if not isinstance(p2, list):
+            p2 = [p2]
+
+        for num in range(len(p1)):
+            self.assertEqual(get_full_path(p1[num]), get_full_path(p2[num]))
 
 
 def local_paths_config():
