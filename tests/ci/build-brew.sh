@@ -110,11 +110,25 @@ brew install --build-from-source "${FORMULA}" &&
         cat ${FORMULA} &&
         echo ">>>>>>>> end of formula <<<<<<<<"
 
-# next steps:
+# steps to first deploy:
 #  1. fork the Homebrew/homebrew-core
-#  2. add remote rep to fork
-#  3. add formula, create branch and commit
-#  4. push to rep, make PR
+#  2. clone the fork to local machine
+#  3. run this script
+#  4. add formula from build/brew/bzt.rb to home-core/Formula
+#  5. create branch `bzt` and commit 'bzt <version>'
+#  6. push to fork, make PR
 #  (see https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request.html)
 #
-# use 'brew bump-formula-pr' for existing formula
+# steps to upgrade:
+# 1. go to master branch, remove others (include origin/bzt).
+# 2. update repo from <homebrew>/master
+# 4. run script and provide new bzt version as param (e.q. './build-brew.sh 2.2.2')
+# 5. use follow: source=build/brew/bzt.rb destination=home-core/Formula/bzt.rb
+# 6. copy all 'resource's except of bzt itself (it's poet mistake)
+# 7. update url and sha256 of `class Bzt`
+# 8. don't touch anything else!
+# 9. create branch `bzt` and commit 'bzt <version>'
+# 10. push to origin repo, make PR
+#
+# Looks like 'brew bump-formula-pr' can handle only trivial cases.
+
