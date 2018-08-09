@@ -26,6 +26,15 @@ def main():
 """)
 
 
+def generate_bzt_preamble():
+    print("Generating preamble for bzt launcher")
+    with open('bzt_preamble.py', 'w') as fds:
+        fds.write("""
+import os
+os.environ["TCL_LIBRARY"] = os.path.join(installdir, "Lib")
+""")
+
+
 def extract_bzt_version(bzt_dist):
     matches = re.findall(r'(\d+\.[\d\.]+)', bzt_dist)
     if not matches:
@@ -50,6 +59,7 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
 
     cfg['Command bzt'] = {
         'entry_point': 'bzt.cli:main',
+        'extra_preamble': 'bzt_preamble.py',
     }
 
     cfg['Command jmx2yaml'] = {
@@ -62,7 +72,7 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
 
     cfg['Python'] = {
         'bitness': 64,
-        'version': '3.6.2',
+        'version': '3.6.3',
     }
 
     wheels_list = ["%s==%s" % (package_name, version) for package_name, version in dependencies]
@@ -125,6 +135,7 @@ def main():
     wheel_dir = "build/wheels"
     bzt_version = extract_bzt_version(bzt_dist)
     generate_bzt_win()
+    generate_bzt_preamble()
     download_tkinter(tkinter_link)
     fetch_all_wheels(bzt_dist, wheel_dir)
     dependencies = extract_all_dependencies(wheel_dir)
