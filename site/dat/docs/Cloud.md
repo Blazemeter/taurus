@@ -231,6 +231,23 @@ scenarios:
 
 In shellexec service, the `run-at` parameter allows to set where commands will be executed. Surprisingly, `local` means the cloud worker will execute it, `cloud` means the controlling CLI will execute it.
 
+## Using Separate Pass/Fail Criteria for Cloud
+
+If you want to use separate pass/fail criteria for cloud execution vs local execution, use `run-at` parameter to distinguish. For example:
+
+```yaml
+reporting:
+- module: passfail
+  run-at: cloud
+  criteria:
+  - avg-rt>100ms
+  
+- module: passfail
+  run-at: local
+  criteria:
+  - avg-rt>5s
+```
+
 
 ## Installing Python Package Dependencies
 

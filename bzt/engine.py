@@ -541,6 +541,10 @@ class Engine(object):
             assert isinstance(instance, Reporter)
             self.reporters.append(instance)
 
+        for reporter in self.reporters[:]:
+            if not reporter.should_run():
+                self.reporters.remove(reporter)
+
         # prepare reporters
         for module in self.reporters:
             self.prepared.append(module)
@@ -890,6 +894,17 @@ class EngineModule(object):
         """
         pass
 
+    def _should_run(self):
+        """
+        Returns True if provisioning matches run-at
+        """
+        prov = self.engine.config.get(Provisioning.PROV)
+        runat = self.parameters.get("run-at", None)
+        if runat is not None and prov != runat:
+            self.log.debug("Should not run because of non-matching prov: %s != %s", prov, runat)
+            return False
+        return True
+
 
 class Provisioning(EngineModule):
     """
@@ -1138,6 +1153,9 @@ class Reporter(EngineModule):
 
     REP = "reporting"
 
+    def should_run(self):
+        return self._should_run()
+
 
 class Service(EngineModule):
     """
@@ -1148,12 +1166,7 @@ class Service(EngineModule):
     SERV = "services"
 
     def should_run(self):
-        prov = self.engine.config.get(Provisioning.PROV)
-        runat = self.parameters.get("run-at", "local")  # weird to have "local" hardcoded here
-        if prov != runat:
-            self.log.debug("Should not run because of non-matching prov: %s != %s", prov, runat)
-            return False
-        return True
+        return self._should_run()
 
 
 class Aggregator(EngineModule):
