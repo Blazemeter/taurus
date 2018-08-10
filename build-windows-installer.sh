@@ -26,7 +26,11 @@ x86_64-w64-mingw32-gcc -std=c99 -o "$BUILD_DIR"/tmp/chrome-loader.exe bzt/resour
 
 # set up python3 virtualenv
 virtualenv venv --python=python3
+
+# this is a workaround for venv bug: https://github.com/pypa/virtualenv/issues/1029
+set +u
 source venv/bin/activate
+set -u
 
 # setup packages needed for build
 python -m pip install -U pip-custom-platform wheel
