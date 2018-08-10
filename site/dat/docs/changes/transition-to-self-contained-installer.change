@@ -1,0 +1,9 @@
+Move to self-contained installer
+
+Features:
+- all dependencies are bundled in the installer
+- doesn't depend on network connection
+- doesn't need C++ compiler to be installed
+- doesn't need global Python to be installed
+- bundles Python 3.6
+

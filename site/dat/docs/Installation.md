@@ -3,23 +3,28 @@
 ## Windows
 
 There are two ways two install Taurus on Windows. The recommended way is to use the prebuilt installer
-that will install Python and latest Taurus on your PC. However, if you already have Python installed,
+that will install latest Taurus on your PC. However, if you already have Python installed,
 you can install Taurus manually with pip, Python package manager.
 
 The installation process was tried on all supported Windows versions (7, 8, 10).
 
 ### Installing Taurus With Prebuilt Installer
 
-Download an [installer](/msi/TaurusInstaller_TAURUS_VERSION_x64.exe) and run it on your system. It will install the following components:
-- Python 3
-- PyLauncher, needed to launch Python programs
-- Taurus
+<div class="alert alert-danger">
+Taurus is changing from network installation scheme to self-contained installers with 1.12.2.
+
+It is highly recommended to uninstall previously installed Taurus through the 'Add or Remove programs' interface
+before installing Taurus 1.12.2+.
+</div>
+
+Download an [installer](/msi/TaurusInstaller_TAURUS_VERSION_x64.exe) and run it on your system. It will install
+local Python 3.6 and Taurus with all its dependencies.
 
 Notes:
-- Installed Python will be added to PATH as `py` command
-- Installed `pip` is not added to PATH, but you can run it with `py -m pip install --upgrade bzt`.
+- You can use `/S` option of the installer to perform silent installation.
 
-After installation is finished, you can run Taurus with `bzt` from command prompt.
+After the installation is finished, you can run Taurus with `bzt` from command prompt. Also, you'll have 'Taurus'
+shortcut in the Start menu.
 
 ### Installing Taurus Manually
 
