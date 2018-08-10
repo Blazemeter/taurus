@@ -3,7 +3,6 @@ FROM ubuntu:16.04
 ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 WORKDIR /tmp
-WORKDIR /tmp
 ADD https://dl-ssl.google.com/linux/linux_signing_key.pub /tmp
 ADD https://deb.nodesource.com/setup_8.x /tmp
 RUN apt-get -y update \
