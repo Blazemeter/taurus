@@ -2,13 +2,12 @@
 BUILD_NUMBER=$2
 
 apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer zip
-pip install "pynsist<2"
 
 # build source distribution
 ./build-sdist.sh
 
 # build a windows installer
-./build-windows-installer.sh ./dist/bzt-*.tar.gz
+./build-windows-installer.sh ./dist/bzt-*.whl
 
 
 if [ "$1" = "false" ]; then
