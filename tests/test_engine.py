@@ -171,8 +171,9 @@ class TestEngine(BZTestCase):
         self.assertEquals(2, len(self.obj.services))
         self.assertEquals(None, self.obj.services[0].parameters['run-at'])
         self.assertEquals("mock", self.obj.services[1].parameters['run-at'])
-        self.assertEquals(1, len(self.obj.reporters))
+        self.assertEquals(2, len(self.obj.reporters))
         self.assertEquals("mock", self.obj.reporters[0].parameters['run-at'])
+        self.assertEquals(None, self.obj.reporters[1].parameters['run-at'])
 
 
 class TestScenarioExecutor(BZTestCase):

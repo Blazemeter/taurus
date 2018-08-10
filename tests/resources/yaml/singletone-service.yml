@@ -13,6 +13,7 @@ reporting:
   module: mock
 - run-at: cloud
   module: mock
+- module: mock
 
 modules:
   singletone-mock:
