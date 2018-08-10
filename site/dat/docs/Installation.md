@@ -10,6 +10,13 @@ The installation process was tried on all supported Windows versions (7, 8, 10).
 
 ### Installing Taurus With Prebuilt Installer
 
+<div class="alert alert-danger">
+Taurus is changing from network installation scheme to self-contained installers with 1.12.2.
+
+It is highly recommended to uninstall previously installed Taurus through the 'Add or Remove programs' interface
+before installing Taurus 1.12.2+.
+</div>
+
 Download an [installer](/msi/TaurusInstaller_TAURUS_VERSION_x64.exe) and run it on your system. It will install
 local Python 3.6 and Taurus with all its dependencies.
 
@@ -18,14 +25,6 @@ Notes:
 
 After the installation is finished, you can run Taurus with `bzt` from command prompt. Also, you'll have 'Taurus'
 shortcut in the Start menu.
-
-<div class="alert alert-danger">
-Taurus is changing from network installation scheme to self-contained installers with 1.12.2.
-
-It is recommended to uninstall previously installed Taurus through the 'Add or Remove programs' interface
-before installing Taurus 1.12.2+.
-</div>
-
 
 ### Installing Taurus Manually
 

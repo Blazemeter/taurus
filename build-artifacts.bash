@@ -2,7 +2,6 @@
 BUILD_NUMBER=$2
 
 apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer zip
-pip install "pynsist<2"
 
 # build source distribution
 ./build-sdist.sh
