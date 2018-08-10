@@ -8,7 +8,7 @@ pip install "pynsist<2"
 ./build-sdist.sh
 
 # build a windows installer
-./build-windows-installer.sh ./dist/bzt-*.tar.gz
+./build-windows-installer.sh ./dist/bzt-*.whl
 
 
 if [ "$1" = "false" ]; then
