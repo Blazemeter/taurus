@@ -1,9 +1,18 @@
 provisioning: mock
 services:
-- run-at: local
-  module: singletone-mock
+- module: singletone-mock
+- module: singletone-mock
+
+- run-at: mock
+  module: mock
 - run-at: cloud
-  module: singletone-mock
+  module: mock
+
+reporting:
+- run-at: mock
+  module: mock
+- run-at: cloud
+  module: mock
 
 modules:
   singletone-mock:
