@@ -61,7 +61,7 @@ class EngineEmul(Engine):
         return super(EngineEmul, self).prepare()
 
 
-class ModuleMock(ScenarioExecutor, Provisioning, Reporter, FileLister, HavingInstallableTools, SelfDiagnosable):
+class ModuleMock(ScenarioExecutor, Provisioning, Reporter, Service, FileLister, HavingInstallableTools, SelfDiagnosable):
     """ mock """
 
     def __init__(self):

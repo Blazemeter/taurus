@@ -104,6 +104,7 @@ class TestZipFolder(BZTestCase):
         obj = Service()
         obj.engine = EngineEmul()
         obj.engine.config[Provisioning.PROV] = 'cloud'
+        obj.parameters['run-at'] = 'local'
         self.assertFalse(obj.should_run())
         obj.parameters['run-at'] = 'cloud'
         self.assertTrue(obj.should_run())
