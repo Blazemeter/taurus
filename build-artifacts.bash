@@ -7,6 +7,7 @@ apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer zip
 ./build-sdist.sh
 
 # build a windows installer
+pip3 install virtualenv
 ./build-windows-installer.sh ./dist/bzt-*.whl
 
 
