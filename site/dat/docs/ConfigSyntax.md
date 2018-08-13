@@ -111,12 +111,50 @@ settings:
   verbose: false  # whenever you run bzt with -v option, it sets debug=true, 
                   # some modules might use it for debug features,
                   # setting this through config also switches CLI verbosity
-  env: # set environment variables to set
+  env: # set environment variables, see below for more explanation
     VARNAME1: VARVALUE1
     VARNAME2: VARVALUE2
 ```
 
 There is special handling in Taurus for env variable named `TAURUS\_DISABLE\_DOWNLOADS`. Setting it to any value will make Taurus to raise error instead of downloading any tool from Internet.
+
+## Environment Variable Access
+
+Env variables that you specify under `settings.env` are replaced throughout config with `${varname}` syntax. This helps with parameterizing config files, when you want to use same value throughout config file and control its value from single place. 
+
+Consider example config file:
+
+```yaml
+settings:
+  env:
+    BASE_DIR: /home/theuser/bigproject
+    
+execution:
+- scenario: ${BASE_DIR}/recorded.jmx
+
+modules:
+  jmeter:
+    properties:
+      CSV_PATH: ${BASE_DIR}/items.csv
+```
+
+Upon Taurus startup, it will be evaluated into:
+
+```yaml
+execution:
+- scenario: /home/theuser/bigproject/recorded.jmx
+
+modules:
+  jmeter:
+    properties:
+      CSV_PATH: /home/theuser/bigproject/items.csv
+```
+
+Now, you can change single value in config and have all corresponding places changed. For example, you can use parameter for command-line `-o settings.env.BASE_DIR=/tmp/experiment_checkout` and have the value changed without modifications of YAML config. 
+
+Please note that mapping keys are not subject for variable evaluation, so you can't use `${varname}` inside property name. Only string values of configuration items are processed. 
+
+Also remember that env variables are passed to all processes that Taurus spawn, so you can access these params from inside your custom scripts (JMX/Python/Java/JavaScript etc.)
 
 ## Human-Readable Time Specifications
 All time specifications in Taurus configs, including timeouts and durations, are _always_ expressed in unit of _seconds_.
@@ -232,7 +270,3 @@ included-configs:  # it must be a list of string values
 - additional-local-file.yml  # to add local file just set its path
 - http://central.host/mystorage/remote.yml  # you can also download config from http/https location
 ```
-
-## Environment Variable Access
-
-Any string value you access in configuration file is subject to environment variables evaluating. Any string pattern like `${varname}` replaced with corresponding environment variable value. Only variables that are listed under `settings.env` are processed. 
