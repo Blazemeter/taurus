@@ -1,4 +1,5 @@
 # coding=utf-8
+import json
 import logging
 import os
 import sys
@@ -7,6 +8,8 @@ import unittest
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
+from bzt.six import PY2
+from bzt.utils import to_json
 from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul
 
@@ -217,6 +220,40 @@ class TestJTLReader(BZTestCase):
         start = time.time()
         self.configure(RESOURCES_DIR + "/jmeter/jtl/slow-stdev.jtl")
         res = list(self.obj.datapoints(final_pass=True))
+        txt = to_json(res)
+        self.assertNotIn('"perc": {},', txt)
         elapsed = time.time() - start
         logging.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
         self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go
+
+    def test_kpiset_trapped_getitem(self):
+        def new():
+            subj = KPISet()
+            subj.perc_levels = (100.0,)
+            subj[KPISet.RESP_TIMES].add(100)
+            subj[KPISet.RESP_TIMES].add(10)
+            subj[KPISet.RESP_TIMES].add(1)
+            return subj
+
+        def enc_dec_iter(vals):
+            return json.loads(to_json([x for x in vals]))
+
+        exp = [[u'avg_ct', 0],
+               [u'rt', {u'0.001': 1, u'0.01': 1, u'0.1': 1}],
+               [u'errors', []],
+               [u'stdev_rt', 58],
+               [u'avg_lt', 0],
+               [u'rc', {}],
+               [u'bytes', 0],
+               [u'perc', {u'100.0': 0.1}],
+               [u'succ', 0],
+               [u'throughput', 0],
+               [u'concurrency', 0],
+               [u'avg_rt', 0],
+               [u'fail', 0]]
+
+        self.assertEqual(exp, enc_dec_iter(new().viewitems()))
+        self.assertEqual(exp, enc_dec_iter(new().items()))
+        if PY2:
+            self.assertEqual(exp, enc_dec_iter(new().iteritems()))
+        self.assertEqual('{"100.0": 0.1}', to_json(new().get(KPISet.PERCENTILES), indent=None))
