@@ -24,7 +24,7 @@ import time
 from collections import Counter, OrderedDict
 from datetime import datetime
 
-from terminaltables import SingleTable, AsciiTable
+from terminaltables import AsciiTable
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Reporter
@@ -33,7 +33,12 @@ from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener
 from bzt.modules.passfail import PassFailStatus
 from bzt.six import etree, iteritems, string_types
-from bzt.utils import get_full_path
+from bzt.utils import get_full_path, is_windows
+
+if is_windows():
+    from terminaltables import AsciiTable as SingleTable
+else:
+    from terminaltables import SingleTable
 
 
 class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):

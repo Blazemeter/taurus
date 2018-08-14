@@ -2,7 +2,8 @@
 
 ## 1.12.2<sup>next</sup>
 - bump up default chromedriver version to 2.40
-- Use Google Iowa as default Cloud location, instead of Sandbox
+- use Google Iowa as default Cloud location, instead of Sandbox
+- fix reporting tables on Windows platform not displayed
 
 ## 1.12.1<sup>11 jul 2018</sup>
 - set `LC_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
