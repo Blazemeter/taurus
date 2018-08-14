@@ -464,14 +464,15 @@ class ResultsReader(ResultsProvider):
         (re.compile(r"\b\d{2,}\b"), "N")
     ]
 
-    def __init__(self, perc_levels=()):
+    def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
         self.generalize_labels = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
         self.min_timestamp = 0
-        self.track_percentiles = perc_levels
+        if perc_levels is not None:
+            self.track_percentiles = perc_levels
 
     def __process_readers(self, final_pass=False):
         """
@@ -542,7 +543,7 @@ class ResultsReader(ResultsProvider):
         if not self.buffer:
             return
 
-        if self.cumulative and self.track_percentiles:
+        if self.cumulative and self.track_percentiles and self.buffer_scale_idx is not None:
             old_len = self.buffer_len
             chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
             self.buffer_len = round(chosen_timing * self.buffer_multiplier)
