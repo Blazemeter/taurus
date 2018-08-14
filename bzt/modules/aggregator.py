@@ -48,6 +48,7 @@ class RespTimesCounter(JSONConvertable):
         new.histogram = self.histogram  # dangerous, but histogram is unable to copy itself, atm
         new._cached_perc = self._cached_perc
         new._cached_stdev = self._cached_stdev
+        return new
 
     def __bool__(self):
         return len(self) > 0
@@ -137,8 +138,12 @@ class KPISet(dict):
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
         mycopy.rtimes_len = self.rtimes_len
-        for key, val in iteritems(self):
-            mycopy[key] = copy.deepcopy(val, memo)
+        mycopy.perc_levels = self.perc_levels
+        mycopy._concurrencies = copy.deepcopy(self._concurrencies)
+        for key in self:
+            if key in (self.PERCENTILES, self.STDEV_RESP_TIME, self.CONCURRENCY):
+                continue
+            mycopy[key] = copy.deepcopy(self[key], memo)
         return mycopy
 
     @staticmethod
