@@ -28,7 +28,7 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.six import iteritems
+from bzt.six import iteritems, PY3
 from bzt.utils import dehumanize_time, JSONConvertable
 from hdrpy import HdrHistogram
 
@@ -232,6 +232,31 @@ class KPISet(dict):
                 self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
         return super(KPISet, self).__getitem__(key)
+
+    def get(self, k):
+        self.__getitem__(k)
+        return super(KPISet, self).get(k)
+
+    def items(self):
+        for item in super(KPISet, self).items():
+            yield (item[0], self.__getitem__(item[0]))
+
+    def iteritems(self):
+        if PY3:
+            raise TaurusInternalException("Invalid call")
+
+        for item in super(KPISet, self).iteritems():
+            yield (item[0], self.__getitem__(item[0]))
+
+    def viewitems(self):
+        for item in super(KPISet, self).viewitems():
+            yield (item[0], self.__getitem__(item[0]))
+
+    def viewvalues(self):
+        raise TaurusInternalException("Invalid call")
+
+    def values(self):
+        raise TaurusInternalException("Invalid call")
 
     def recalculate(self):  # FIXME: get rid of it at all?
         """
