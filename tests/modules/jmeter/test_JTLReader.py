@@ -216,7 +216,12 @@ class TestJTLReader(BZTestCase):
     def test_stdev_performance(self):
         start = time.time()
         self.configure(RESOURCES_DIR + "/jmeter/jtl/slow-stdev.jtl")
-        res = list(self.obj.datapoints(final_pass=True))
+        res = [x[DataPoint.CURRENT][''][KPISet.STDEV_RESP_TIME] for x in self.obj.datapoints(final_pass=True)]
+        logging.debug("Values: %s", res)
         elapsed = time.time() - start
         logging.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
         self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go
+        exp = [2214.4798867972772, 720.7704268609725, 606.834452578833, 828.4089170237546, 585.8142211763571,
+               622.922628329711, 552.9488620851849, 693.3748292117727, 487.61621818581966, 424.71180222446503,
+               251.2251128133865]
+        self.assertEqual(exp, res)
