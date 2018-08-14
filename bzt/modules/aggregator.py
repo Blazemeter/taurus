@@ -217,6 +217,18 @@ class KPISet(dict):
         if not found:
             values.append(copy.deepcopy(value))
 
+    def __getitem__(self, key):
+        if key == self.STDEV_RESP_TIME and self[self.RESP_TIMES]:
+            self[self.STDEV_RESP_TIME] = self[self.RESP_TIMES].get_stdev(self[self.AVG_RESP_TIME])
+
+        if key == self.PERCENTILES and self[self.RESP_TIMES]:
+            self[self.PERCENTILES] = {
+                str(float(perc)): value / 1000.0
+                for perc, value in iteritems(self[self.RESP_TIMES].get_percentiles_dict(self.perc_levels))
+            }
+
+        return super(KPISet, self).__getitem__(key)
+
     def recalculate(self):
         """
         Recalculate averages, stdev and percentiles
@@ -230,14 +242,6 @@ class KPISet(dict):
 
         if len(self._concurrencies):
             self[self.CONCURRENCY] = sum(self._concurrencies.values())
-
-        resp_times = self[self.RESP_TIMES]
-        if resp_times:
-            self[self.PERCENTILES] = {
-                str(float(perc)): value / 1000.0
-                for perc, value in iteritems(resp_times.get_percentiles_dict(self.perc_levels))
-            }
-            self[self.STDEV_RESP_TIME] = resp_times.get_stdev(self[self.AVG_RESP_TIME])
 
         return self
 
