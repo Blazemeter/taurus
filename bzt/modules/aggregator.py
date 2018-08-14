@@ -320,18 +320,18 @@ class KPISet(dict):
         :rtype: KPISet
         """
         inst = KPISet()
+        inst.perc_levels = [float(x) for x in obj[inst.PERCENTILES].keys()]
         for key, val in iteritems(obj):
             if key == inst.RESP_TIMES:
                 if isinstance(val, dict):
                     for value, count in iteritems(val):
-                        inst[inst.RESP_TIMES].add(value, count)
+                        inst[inst.RESP_TIMES].add(int(value * 1000), count)
             else:
                 inst[key] = val
 
         inst.sum_cn = obj[inst.AVG_CONN_TIME] * obj[inst.SAMPLE_COUNT]
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
-        inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
         for error in inst[KPISet.ERRORS]:
             error['urls'] = Counter(error['urls'])
         return inst
