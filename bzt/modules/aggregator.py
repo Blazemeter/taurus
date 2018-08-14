@@ -218,18 +218,22 @@ class KPISet(dict):
             values.append(copy.deepcopy(value))
 
     def __getitem__(self, key):
-        if key == self.STDEV_RESP_TIME and self[self.RESP_TIMES]:
-            self[self.STDEV_RESP_TIME] = self[self.RESP_TIMES].get_stdev(self[self.AVG_RESP_TIME])
+        if key != self.RESP_TIMES and self[self.RESP_TIMES]:
+            rtimes = self[self.RESP_TIMES]
+            if key == self.STDEV_RESP_TIME:
+                self[self.STDEV_RESP_TIME] = rtimes.get_stdev(self[self.AVG_RESP_TIME])
+            elif key == self.PERCENTILES:
+                percs = {str(float(perc)): value / 1000.0 for perc, value in
+                         iteritems(rtimes.get_percentiles_dict(self.perc_levels))}
+                self[self.PERCENTILES] = percs
 
-        if key == self.PERCENTILES and self[self.RESP_TIMES]:
-            self[self.PERCENTILES] = {
-                str(float(perc)): value / 1000.0
-                for perc, value in iteritems(self[self.RESP_TIMES].get_percentiles_dict(self.perc_levels))
-            }
+        if key == self.CONCURRENCY:
+            if len(self._concurrencies):
+                self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
         return super(KPISet, self).__getitem__(key)
 
-    def recalculate(self):
+    def recalculate(self):  # FIXME: get rid of it at all?
         """
         Recalculate averages, stdev and percentiles
 
@@ -239,9 +243,6 @@ class KPISet(dict):
             self[self.AVG_CONN_TIME] = self.sum_cn / self[self.SAMPLE_COUNT]
             self[self.AVG_LATENCY] = self.sum_lt / self[self.SAMPLE_COUNT]
             self[self.AVG_RESP_TIME] = self.sum_rt / self[self.SAMPLE_COUNT]
-
-        if len(self._concurrencies):
-            self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
         return self
 
@@ -273,7 +274,6 @@ class KPISet(dict):
             # using existing percentiles
             # FIXME: it's not valid to overwrite, better take average
             self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
-        self[self.STDEV_RESP_TIME] = src[self.STDEV_RESP_TIME]  # we rely on recalculate() fixing it afterwards
 
         self[self.RESP_CODES].update(src[self.RESP_CODES])
 
@@ -468,14 +468,15 @@ class ResultsReader(ResultsProvider):
         (re.compile(r"\b\d{2,}\b"), "N")
     ]
 
-    def __init__(self, perc_levels=()):
+    def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
         self.generalize_labels = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
         self.min_timestamp = 0
-        self.track_percentiles = perc_levels
+        if perc_levels is not None:
+            self.track_percentiles = perc_levels
 
     def __process_readers(self, final_pass=False):
         """
@@ -546,7 +547,7 @@ class ResultsReader(ResultsProvider):
         if not self.buffer:
             return
 
-        if self.cumulative and self.track_percentiles:
+        if self.cumulative and self.track_percentiles and self.buffer_scale_idx is not None:
             old_len = self.buffer_len
             chosen_timing = self.cumulative[''][KPISet.PERCENTILES][self.buffer_scale_idx]
             self.buffer_len = round(chosen_timing * self.buffer_multiplier)
