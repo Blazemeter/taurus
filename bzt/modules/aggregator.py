@@ -43,6 +43,11 @@ class RespTimesCounter(JSONConvertable):
         self._cached_perc = None
         self._cached_stdev = None
 
+    def __deepcopy__(self, memo):
+        new=RespTimesCounter(self.low, self.high, self.sign_figures)
+        new._cached_perc=self._cached_perc
+        new._cached_stdev=self._cached_stdev
+
     def __bool__(self):
         return len(self) > 0
 
@@ -70,6 +75,8 @@ class RespTimesCounter(JSONConvertable):
     def get_stdev(self, mean):
         if self._cached_stdev is None:
             self._cached_stdev = self.histogram.get_stddev(mean)
+        else:
+            logging.debug("Cache hit %s", id(self))
         return self._cached_stdev
 
     def __json__(self):
@@ -234,8 +241,7 @@ class KPISet(dict):
         return super(KPISet, self).__getitem__(key)
 
     def get(self, k):
-        self.__getitem__(k)
-        return super(KPISet, self).get(k)
+        return self.__getitem__(k)
 
     def items(self):
         for item in super(KPISet, self).items():
