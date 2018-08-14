@@ -256,8 +256,8 @@ class TestJTLReader(BZTestCase):
                [u'avg_rt', 0],
                [u'fail', 0]]
 
-        self.assertEqual(exp, enc_dec_iter(new().viewitems()))
         self.assertEqual(exp, enc_dec_iter(new().items()))
         if PY2:
+            self.assertEqual(exp, enc_dec_iter(new().viewitems()))
             self.assertEqual(exp, enc_dec_iter(new().iteritems()))
         self.assertEqual('{"100.0": 0.1}', to_json(new().get(KPISet.PERCENTILES), indent=None))

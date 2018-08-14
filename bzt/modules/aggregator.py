@@ -44,9 +44,10 @@ class RespTimesCounter(JSONConvertable):
         self._cached_stdev = None
 
     def __deepcopy__(self, memo):
-        new=RespTimesCounter(self.low, self.high, self.sign_figures)
-        new._cached_perc=self._cached_perc
-        new._cached_stdev=self._cached_stdev
+        new = RespTimesCounter(self.low, self.high, self.sign_figures)
+        new.histogram = self.histogram  # dangerous, but histogram is unable to copy itself, atm
+        new._cached_perc = self._cached_perc
+        new._cached_stdev = self._cached_stdev
 
     def __bool__(self):
         return len(self) > 0
@@ -75,8 +76,6 @@ class RespTimesCounter(JSONConvertable):
     def get_stdev(self, mean):
         if self._cached_stdev is None:
             self._cached_stdev = self.histogram.get_stddev(mean)
-        else:
-            logging.debug("Cache hit %s", id(self))
         return self._cached_stdev
 
     def __json__(self):
@@ -255,6 +254,9 @@ class KPISet(dict):
             yield (item[0], self.__getitem__(item[0]))
 
     def viewitems(self):
+        if PY3:
+            raise TaurusInternalException("Invalid call")
+
         for item in super(KPISet, self).viewitems():
             yield (item[0], self.__getitem__(item[0]))
 
