@@ -45,9 +45,15 @@ class RespTimesCounter(JSONConvertable):
 
     def __deepcopy__(self, memo):
         new = RespTimesCounter(self.low, self.high, self.sign_figures)
-        new.histogram.counts = copy.deepcopy(self.histogram.counts, memo)
         new._cached_perc = self._cached_perc
         new._cached_stdev = self._cached_stdev
+
+        # TODO: maybe hdrpy can encapsulate this itself
+        new.histogram.counts = copy.deepcopy(self.histogram.counts, memo)
+        new.histogram.total_count = self.histogram.total_count
+        new.histogram.min_value = self.histogram.min_value
+        new.histogram.max_value= self.histogram.max_value
+
         return new
 
     def __bool__(self):
