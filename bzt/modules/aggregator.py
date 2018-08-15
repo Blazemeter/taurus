@@ -334,7 +334,7 @@ class KPISet(dict):
         inst = KPISet()
 
         assert inst.PERCENTILES in obj
-        inst.perc_levels = obj[inst.PERCENTILES].keys()
+        inst.perc_levels = [float(x) for x in obj[inst.PERCENTILES].keys()]
 
         for key, val in iteritems(obj):
             if key == inst.RESP_TIMES:

@@ -15,7 +15,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_summary_labels(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict.from_dict({"summary-labels": True, "percentiles": False, "summary": False, "test-duration": False})
+        obj.parameters = BetterDict.from_dict({"summary-labels": True, "percentiles": False, "summary": False,
+                                               "test-duration": False})
         self.sniff_log(obj.log)
 
         obj.startup()
@@ -37,7 +38,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_failed_labels(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict.from_dict({"failed-labels": True, "percentiles": False, "summary": False, "test-duration": False})
+        obj.parameters = BetterDict.from_dict({"failed-labels": True, "percentiles": False, "summary": False,
+                                               "test-duration": False})
         self.sniff_log(obj.log)
 
         obj.startup()
@@ -49,8 +51,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_percentiles(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict.from_dict({"failed-labels": False, "percentiles": True, "summary": False, "test-duration": False,
-                                               "summary-labels": False})
+        obj.parameters = BetterDict.from_dict({"failed-labels": False, "percentiles": True, "summary": False,
+                                               "test-duration": False, "summary-labels": False})
         self.sniff_log(obj.log)
 
         obj.startup()
@@ -76,8 +78,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_samples_count(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict.from_dict({"failed-labels": False, "percentiles": False, "summary": True, "test-duration": False,
-                                               "summary-labels": False})
+        obj.parameters = BetterDict.from_dict({"failed-labels": False, "percentiles": False, "summary": True,
+                                               "test-duration": False, "summary-labels": False})
         self.sniff_log(obj.log)
         obj.aggregated_second(self.__get_datapoint())
         obj.startup()
@@ -175,6 +177,7 @@ class TestFinalStatusReporter(BZTestCase):
              KPISet.CONCURRENCY: 0,
              KPISet.AVG_RESP_TIME: 0.0005440536804127192,
              KPISet.FAILURES: 29656})
+        assert cumul_data[""][KPISet.PERCENTILES]
         cumul_data["http://192.168.1.1/somequery"] = KPISet.from_dict(
             {KPISet.AVG_CONN_TIME: 9.609548856969457e-06,
              KPISet.RESP_TIMES: Counter(
