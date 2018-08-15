@@ -63,6 +63,7 @@ class RespTimesCounter(JSONConvertable):
         return self.histogram.total_count
 
     def add(self, item, count=1):
+        item = round(item * 1000.0, 3)
         self._cached_perc = None
         self._cached_stdev = None
         self.histogram.record_value(item, count)
@@ -82,12 +83,12 @@ class RespTimesCounter(JSONConvertable):
 
     def get_stdev(self, mean):
         if self._cached_stdev is None:
-            self._cached_stdev = self.histogram.get_stddev(mean)
+            self._cached_stdev = self.histogram.get_stddev(mean) / 1000.0  # is this correct to divide?
         return self._cached_stdev
 
     def __json__(self):
         return {
-            float(rt) / 1000: count
+            rt / 1000.0: count
             for rt, count in iteritems(self.get_counts())
         }
 
@@ -201,8 +202,7 @@ class KPISet(dict):
         else:
             self[self.SUCCESSES] += 1
 
-        rtime_s = round(r_time * 1000, 3)
-        self[self.RESP_TIMES].add(rtime_s, 1)
+        self[self.RESP_TIMES].add(r_time, 1)
 
         if byte_count is not None:
             self[self.BYTE_COUNT] += byte_count
@@ -339,7 +339,7 @@ class KPISet(dict):
             if key == inst.RESP_TIMES:
                 if isinstance(val, dict):
                     for value, count in iteritems(val):
-                        inst[inst.RESP_TIMES].add(int(value * 1000), count)
+                        inst[inst.RESP_TIMES].add(value, count)
             else:
                 inst[key] = val
 
