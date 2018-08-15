@@ -334,7 +334,7 @@ class BZMock(object):
             resp = resp.pop(0)
 
         data = kwargs['data']
-        logging.debug("Emulated %s %s %s: %s", method, url, data, resp)
+        logging.debug("Emulated %s %s %s: %s", method, url, ("%s" % data)[:4096], resp)
         self.requests.append({"method": method, "url": url, "data": data})
         if isinstance(resp, BaseException):
             raise resp

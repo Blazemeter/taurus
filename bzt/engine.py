@@ -837,8 +837,11 @@ if PY2:
     yaml.add_representer(text_type, SafeRepresenter.represent_unicode)
 yaml.add_representer(str, str_representer)
 
-# dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
-encoder.FLOAT_REPR = lambda o: format(o, '.3g')
+if PY2:
+    # dirty hack from http://stackoverflow.com/questions/1447287/format-floats-with-standard-json-module
+    encoder.FLOAT_REPR = lambda o: format(o, '.3g')
+else:
+    pass  # TODO: how to implement it?
 
 
 class EngineModule(object):
