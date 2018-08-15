@@ -242,10 +242,6 @@ class KPISet(dict):
                          iteritems(rtimes.get_percentiles_dict(self.perc_levels))}
                 self[self.PERCENTILES] = percs
 
-        if key == self.CONCURRENCY:
-            if len(self._concurrencies):
-                self[self.CONCURRENCY] = sum(self._concurrencies.values())
-
         return super(KPISet, self).__getitem__(key)
 
     def get(self, k, no_recalc=False):
@@ -288,6 +284,9 @@ class KPISet(dict):
             self[self.AVG_CONN_TIME] = self.sum_cn / self[self.SAMPLE_COUNT]
             self[self.AVG_LATENCY] = self.sum_lt / self[self.SAMPLE_COUNT]
             self[self.AVG_RESP_TIME] = self.sum_rt / self[self.SAMPLE_COUNT]
+
+        if len(self._concurrencies):
+            self[self.CONCURRENCY] = sum(self._concurrencies.values())
 
         return self
 
