@@ -1,4 +1,5 @@
 # coding=utf-8
+import json
 import logging
 import os
 import sys
@@ -7,6 +8,8 @@ import unittest
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
+from bzt.six import PY2
+from bzt.utils import to_json
 from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul
 
@@ -216,12 +219,53 @@ class TestJTLReader(BZTestCase):
     def test_stdev_performance(self):
         start = time.time()
         self.configure(RESOURCES_DIR + "/jmeter/jtl/slow-stdev.jtl")
-        res = [x[DataPoint.CURRENT][''][KPISet.STDEV_RESP_TIME] for x in self.obj.datapoints(final_pass=True)]
-        logging.debug("Values: %s", res)
+        res = list(self.obj.datapoints(final_pass=True))
+        lst_json = to_json(res)
+
+        export_file = EngineEmul().create_artifact("lst", ".json")
+        with open(export_file, "w") as fhd:
+            fhd.write(lst_json)
+
+        self.assertFilesEqual(RESOURCES_DIR + "json/stdev-performance.json", export_file,
+                              "140468325803792", str(id(self.obj)))
+
+        self.assertNotIn('"perc": {},', lst_json)
+
         elapsed = time.time() - start
         logging.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
         self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go
-        exp = [2214.4798867972772, 720.7704268609725, 606.834452578833, 828.4089170237546, 585.8142211763571,
-               622.922628329711, 552.9488620851849, 693.3748292117727, 487.61621818581966, 424.71180222446503,
-               251.2251128133865]
-        self.assertEqual(exp, res)
+        exp = [2210.0, 721, 607, 828, 586, 623, 553, 693, 488, 425, 251]
+        self.assertEqual(exp, [x[DataPoint.CURRENT][''][KPISet.STDEV_RESP_TIME] for x in json.loads(lst_json)])
+
+    def test_kpiset_trapped_getitem(self):
+        def new():
+            subj = KPISet()
+            subj.perc_levels = (100.0,)
+            subj[KPISet.RESP_TIMES].add(100)
+            subj[KPISet.RESP_TIMES].add(10)
+            subj[KPISet.RESP_TIMES].add(1)
+            subj.recalculate()
+            return subj
+
+        def enc_dec_iter(vals):
+            return json.loads(to_json([x for x in vals]))
+
+        exp = [[u'avg_ct', 0],
+               [u'rt', {u'0.001': 1, u'0.01': 1, u'0.1': 1}],
+               [u'errors', []],
+               [u'stdev_rt', 58],
+               [u'avg_lt', 0],
+               [u'rc', {}],
+               [u'bytes', 0],
+               [u'perc', {u'100.0': 0.1}],
+               [u'succ', 0],
+               [u'throughput', 0],
+               [u'concurrency', 0],
+               [u'avg_rt', 0],
+               [u'fail', 0]]
+
+        self.assertEqual(exp, enc_dec_iter(new().items()))
+        if PY2:
+            self.assertEqual(exp, enc_dec_iter(new().viewitems()))
+            self.assertEqual(exp, enc_dec_iter(new().iteritems()))
+        self.assertEqual('{"100.0": 0.1}', to_json(new().get(KPISet.PERCENTILES), indent=None))
