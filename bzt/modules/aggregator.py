@@ -45,7 +45,7 @@ class RespTimesCounter(JSONConvertable):
 
     def __deepcopy__(self, memo):
         new = RespTimesCounter(self.low, self.high, self.sign_figures)
-        new.histogram = self.histogram  # dangerous, but histogram is unable to copy itself, atm
+        new.histogram.counts = copy.deepcopy(self.histogram.counts, memo)
         new._cached_perc = self._cached_perc
         new._cached_stdev = self._cached_stdev
         return new
@@ -139,11 +139,9 @@ class KPISet(dict):
         mycopy.sum_cn = self.sum_cn
         mycopy.rtimes_len = self.rtimes_len
         mycopy.perc_levels = self.perc_levels
-        mycopy._concurrencies = copy.deepcopy(self._concurrencies)
+        mycopy._concurrencies = copy.deepcopy(self._concurrencies, memo)
         for key in self:
-            if key in (self.PERCENTILES, self.STDEV_RESP_TIME, self.CONCURRENCY):
-                continue
-            mycopy[key] = copy.deepcopy(self[key], memo)
+            mycopy[key] = copy.deepcopy(self.get(key, no_recalc=True), memo)
         return mycopy
 
     @staticmethod
@@ -229,10 +227,10 @@ class KPISet(dict):
             values.append(copy.deepcopy(value))
 
     def __getitem__(self, key):
-        if key != self.RESP_TIMES and self[self.RESP_TIMES]:
-            rtimes = self[self.RESP_TIMES]
+        rtimes = self.get(self.RESP_TIMES, no_recalc=True)
+        if key != self.RESP_TIMES and rtimes:
             if key == self.STDEV_RESP_TIME:
-                self[self.STDEV_RESP_TIME] = rtimes.get_stdev(self[self.AVG_RESP_TIME])
+                self[self.STDEV_RESP_TIME] = rtimes.get_stdev(self.get(self.AVG_RESP_TIME, no_recalc=True))
             elif key == self.PERCENTILES:
                 percs = {str(float(perc)): value / 1000.0 for perc, value in
                          iteritems(rtimes.get_percentiles_dict(self.perc_levels))}
@@ -244,8 +242,11 @@ class KPISet(dict):
 
         return super(KPISet, self).__getitem__(key)
 
-    def get(self, k):
-        return self.__getitem__(k)
+    def get(self, k, no_recalc=False):
+        if no_recalc:
+            return super(KPISet, self).get(k)
+        else:
+            return self.__getitem__(k)
 
     def items(self):
         for item in super(KPISet, self).items():
@@ -309,8 +310,8 @@ class KPISet(dict):
         if src[self.RESP_TIMES]:
             self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
         elif not self[self.PERCENTILES]:
-            # using existing percentiles
-            # FIXME: it's not valid to overwrite, better take average
+            # using existing percentiles, in case we have no source data to recalculate them
+            # TODO: it's not valid to overwrite, better take average
             self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
 
         self[self.RESP_CODES].update(src[self.RESP_CODES])
@@ -325,7 +326,10 @@ class KPISet(dict):
         :rtype: KPISet
         """
         inst = KPISet()
-        inst.perc_levels = [float(x) for x in obj[inst.PERCENTILES].keys()]
+
+        assert inst.PERCENTILES in obj
+        inst.perc_levels = obj[inst.PERCENTILES].keys()
+
         for key, val in iteritems(obj):
             if key == inst.RESP_TIMES:
                 if isinstance(val, dict):
