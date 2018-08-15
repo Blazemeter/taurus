@@ -88,7 +88,7 @@ class RespTimesCounter(JSONConvertable):
 
     def __json__(self):
         return {
-            rt / 1000.0: count
+            rt / 1000.0: int(count)  # because hdrpy returns int64, which is unrecognized by json serializer
             for rt, count in iteritems(self.get_counts())
         }
 

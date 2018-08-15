@@ -266,7 +266,7 @@ class TestJTLReader(BZTestCase):
                u'perc': {u'100.0': 0.1},
                u'rc': {},
                u'rt': {u'0.001': 1, u'0.01': 1, u'0.1': 1},
-               u'stdev_rt': 0.058,
+               u'stdev_rt': 0.058 if PY2 else 0.05802585630561603,
                u'succ': 0,
                u'throughput': 0}
 
