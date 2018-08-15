@@ -220,13 +220,22 @@ class TestJTLReader(BZTestCase):
         start = time.time()
         self.configure(RESOURCES_DIR + "/jmeter/jtl/slow-stdev.jtl")
         res = list(self.obj.datapoints(final_pass=True))
-        txt = to_json(res)
-        self.assertNotIn('"perc": {},', txt)
+        lst_json = to_json(res)
+
+        export_file = EngineEmul().create_artifact("lst", ".json")
+        with open(export_file, "w") as fhd:
+            fhd.write(lst_json)
+
+        self.assertFilesEqual(RESOURCES_DIR + "json/stdev-performance.json", export_file,
+                              "140468325803792", str(id(self.obj)))
+
+        self.assertNotIn('"perc": {},', lst_json)
+
         elapsed = time.time() - start
         logging.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
         self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go
         exp = [2210.0, 721, 607, 828, 586, 623, 553, 693, 488, 425, 251]
-        self.assertEqual(exp, [x[DataPoint.CURRENT][''][KPISet.STDEV_RESP_TIME] for x in json.loads(txt)])
+        self.assertEqual(exp, [x[DataPoint.CURRENT][''][KPISet.STDEV_RESP_TIME] for x in json.loads(lst_json)])
 
     def test_kpiset_trapped_getitem(self):
         def new():
@@ -235,6 +244,7 @@ class TestJTLReader(BZTestCase):
             subj[KPISet.RESP_TIMES].add(100)
             subj[KPISet.RESP_TIMES].add(10)
             subj[KPISet.RESP_TIMES].add(1)
+            subj.recalculate()
             return subj
 
         def enc_dec_iter(vals):
