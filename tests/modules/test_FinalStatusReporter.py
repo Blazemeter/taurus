@@ -1,3 +1,4 @@
+import unittest
 import os
 import time
 from collections import Counter
@@ -9,6 +10,7 @@ from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
 from tests import BZTestCase, random_datapoint
 from tests.mocks import EngineEmul
+from bzt.six import PY3
 
 
 class TestFinalStatusReporter(BZTestCase):
@@ -35,6 +37,7 @@ class TestFinalStatusReporter(BZTestCase):
 
         self.assertIn(expected, self.log_recorder.info_buff.getvalue())
 
+    @unittest.skipIf(PY3, "py2 only")
     def test_long_kpi(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
