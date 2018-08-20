@@ -37,7 +37,7 @@ from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
 from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.linter import ConfigurationLinter
-from bzt.six import HTTPError, string_types, get_stacktrace
+from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
 from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url
 
 
@@ -465,16 +465,16 @@ class ConfigOverrider(object):
         for index, part in enumerate(parts[:-1]):
             self.__ensure_list_capacity(pointer, part, parts[index + 1])
 
-            if isinstance(part, int):
+            if isinstance(part, integer_types):
                 if part < 0:
-                    if isinstance(parts[index + 1], int):
+                    if isinstance(parts[index + 1], integer_types):
                         pointer.append([])
                     else:
                         pointer.append(BetterDict())
                     pointer = pointer[-1]
                 else:
                     pointer = pointer[part]
-            elif isinstance(parts[index + 1], int) and isinstance(pointer, dict):
+            elif isinstance(parts[index + 1], integer_types) and isinstance(pointer, dict):
                 pointer = pointer.get(part, [], force_set=True)
             else:
                 pointer = pointer.get(part, force_set=True)
@@ -520,10 +520,10 @@ class ConfigOverrider(object):
         :type pointer: list
         :type part: int
         """
-        if isinstance(pointer, list) and isinstance(part, int):
+        if isinstance(pointer, list) and isinstance(part, integer_types):
             while len(pointer) <= part:
                 self.log.debug("Len %s less than %s", len(pointer), part)
-                if isinstance(next_part, int):
+                if isinstance(next_part, integer_types):
                     pointer.append([])
                 else:
                     pointer.append(BetterDict())

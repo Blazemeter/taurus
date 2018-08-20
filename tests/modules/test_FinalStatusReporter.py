@@ -35,6 +35,19 @@ class TestFinalStatusReporter(BZTestCase):
 
         self.assertIn(expected, self.log_recorder.info_buff.getvalue())
 
+    def test_long_kpi(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict.from_dict({"dump-xml": obj.engine.create_artifact("status", ".xml")})
+
+        datapoint = random_datapoint(time.time())
+        datapoint[datapoint.CUMULATIVE][""]["stdev_rt"] = 0l
+        obj.aggregated_second(datapoint)
+        obj.startup()
+        obj.shutdown()
+
+        obj.post_process()
+
     def test_log_messages_failed_labels(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
@@ -116,6 +129,7 @@ class TestFinalStatusReporter(BZTestCase):
         obj.aggregated_second(random_datapoint(time.time()))
         obj.startup()
         obj.shutdown()
+
         obj.post_process()
         self.assertIn("XML", self.log_recorder.info_buff.getvalue())
 
