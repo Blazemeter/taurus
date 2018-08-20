@@ -2204,20 +2204,52 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(stop.text, "true")
 
     def test_data_sources_varnames(self):
+        origin = [{
+            "url": "http://example.com:8080/some${where}",
+            "label": "food${type}",
+            "method": "${method}"
+        }, {
+            "url": "some_url",
+            "method": "get"
+        }]
+
         self.configure({
             'execution': {
                 'scenario': {
                     "data-sources": [{
                         "path": RESOURCES_DIR + "test1.csv",
                         "variable-names": "a,b,c"}],
-                    "requests": [
-                        "http://example.com/${test1}"]}}})
+                    "requests": origin}}})
+
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
         dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
         self.assertIsNotNone(dataset)
         varnames = dataset.find('stringProp[@name="variableNames"]')
         self.assertEqual(varnames.text, "a,b,c")
+
+        samplers = xml_tree.findall('.//HTTPSamplerProxy')
+        self.assertEqual(2, len(samplers))
+
+        protocol = samplers[0].find('stringProp[@name="HTTPSampler.protocol"]').text
+        domain = samplers[0].find('stringProp[@name="HTTPSampler.domain"]').text
+        port = samplers[0].find('stringProp[@name="HTTPSampler.port"]').text
+        path = samplers[0].find('stringProp[@name="HTTPSampler.path"]').text
+        method = samplers[0].find('stringProp[@name="HTTPSampler.method"]').text
+        label = samplers[0].attrib["testname"]
+
+        self.assertEqual(protocol, "http")
+        self.assertEqual(domain, "example.com")
+        self.assertEqual(port, "8080")
+        self.assertEqual(path, "/some${where}")
+        self.assertEqual(method, origin[0]["method"])
+        self.assertEqual(label, origin[0]["label"])
+
+        url = samplers[1].find('stringProp[@name="HTTPSampler.path"]').text
+        method = samplers[1].find('stringProp[@name="HTTPSampler.method"]').text
+
+        self.assertEqual(url, origin[1]["url"])
+        self.assertEqual(method, origin[1]["method"].upper())
 
     def test_func_mode_jmeter_2_13(self):
         self.obj.engine.aggregator.is_functional = True
