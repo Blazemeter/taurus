@@ -29,11 +29,11 @@ from yaml.representer import SafeRepresenter
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems, PY3
-from bzt.utils import dehumanize_time, JSONConvertable
+from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
 
 
-class RespTimesCounter(JSONConvertable):
+class RespTimesCounter(JSONConvertible):
     def __init__(self, low, high, sign_figures):
         super(RespTimesCounter, self).__init__()
         self.low = low

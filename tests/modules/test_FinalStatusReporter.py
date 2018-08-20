@@ -1,3 +1,4 @@
+import unittest
 import os
 import time
 from collections import Counter
@@ -9,6 +10,7 @@ from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
 from tests import BZTestCase, random_datapoint
 from tests.mocks import EngineEmul
+from bzt.six import PY3
 
 
 class TestFinalStatusReporter(BZTestCase):
@@ -34,6 +36,20 @@ class TestFinalStatusReporter(BZTestCase):
                     "+----------------------------------+--------+---------+--------+-----------+\n")
 
         self.assertIn(expected, self.log_recorder.info_buff.getvalue())
+
+    @unittest.skipIf(PY3, "py2 only")
+    def test_long_kpi(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict.from_dict({"dump-xml": obj.engine.create_artifact("status", ".xml")})
+
+        datapoint = random_datapoint(time.time())
+        datapoint[datapoint.CUMULATIVE][""]["stdev_rt"] = long(0)
+        obj.aggregated_second(datapoint)
+        obj.startup()
+        obj.shutdown()
+
+        obj.post_process()
 
     def test_log_messages_failed_labels(self):
         obj = FinalStatus()
@@ -116,6 +132,7 @@ class TestFinalStatusReporter(BZTestCase):
         obj.aggregated_second(random_datapoint(time.time()))
         obj.startup()
         obj.shutdown()
+
         obj.post_process()
         self.assertIn("XML", self.log_recorder.info_buff.getvalue())
 
