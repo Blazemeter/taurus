@@ -2205,7 +2205,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_data_sources_varnames(self):
         origin = [{
-            "url": "http://example.com/${test1}",
+            "url": "http://example.com:8080/some${where}",
             "label": "food${type}",
             "method": "${method}"
         }, {
@@ -2231,11 +2231,17 @@ class TestJMeterExecutor(BZTestCase):
         samplers = xml_tree.findall('.//HTTPSamplerProxy')
         self.assertEqual(2, len(samplers))
 
-        url = samplers[0].find('stringProp[@name="HTTPSampler.path"]').text
+        protocol = samplers[0].find('stringProp[@name="HTTPSampler.protocol"]').text
+        domain = samplers[0].find('stringProp[@name="HTTPSampler.domain"]').text
+        port = samplers[0].find('stringProp[@name="HTTPSampler.port"]').text
+        path = samplers[0].find('stringProp[@name="HTTPSampler.path"]').text
         method = samplers[0].find('stringProp[@name="HTTPSampler.method"]').text
         label = samplers[0].attrib["testname"]
 
-        #self.assertEqual(url, origin[0]["url"])
+        self.assertEqual(protocol, "http")
+        self.assertEqual(domain, "example.com")
+        self.assertEqual(port, "8080")
+        self.assertEqual(path, "/some${where}")
         self.assertEqual(method, origin[0]["method"])
         self.assertEqual(label, origin[0]["label"])
 
