@@ -2204,20 +2204,35 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(stop.text, "true")
 
     def test_data_sources_varnames(self):
+        origin = {
+            "url": "http://example.com/${test1}",
+            "label": "food${type}",
+            "method": "${method}"}
+
         self.configure({
             'execution': {
                 'scenario': {
                     "data-sources": [{
                         "path": RESOURCES_DIR + "test1.csv",
                         "variable-names": "a,b,c"}],
-                    "requests": [
-                        "http://example.com/${test1}"]}}})
+                    "requests": [origin]}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
         dataset = xml_tree.find('.//hashTree[@type="tg"]/CSVDataSet')
         self.assertIsNotNone(dataset)
         varnames = dataset.find('stringProp[@name="variableNames"]')
         self.assertEqual(varnames.text, "a,b,c")
+
+        samplers = xml_tree.findall('.//HTTPSamplerProxy')
+        self.assertEqual(1, len(samplers))
+
+        url = samplers[0].find('stringProp[@name="HTTPSampler.path"]').text
+        method = samplers[0].find('stringProp[@name="HTTPSampler.method"]').text
+        label = samplers[0].attrib["testname"]
+
+        self.assertEqual(url, origin["url"])
+        self.assertEqual(method, origin["method"])
+        self.assertEqual(label, origin["label"])
 
     def test_func_mode_jmeter_2_13(self):
         self.obj.engine.aggregator.is_functional = True
