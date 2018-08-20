@@ -44,7 +44,7 @@ class TestFinalStatusReporter(BZTestCase):
         obj.parameters = BetterDict.from_dict({"dump-xml": obj.engine.create_artifact("status", ".xml")})
 
         datapoint = random_datapoint(time.time())
-        datapoint[datapoint.CUMULATIVE][""]["stdev_rt"] = 0l
+        datapoint[datapoint.CUMULATIVE][""]["stdev_rt"] = long(0)
         obj.aggregated_second(datapoint)
         obj.startup()
         obj.shutdown()
