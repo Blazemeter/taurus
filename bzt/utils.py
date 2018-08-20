@@ -764,7 +764,7 @@ class ComplexEncoder(json.JSONEncoder):
         :param obj:
         :rtype: bool
         """
-        dumpable_types = (cls.TYPES, JSONDumpable)
+        dumpable_types = tuple(cls.TYPES + (JSONDumpable,))
         return isinstance(obj, dumpable_types)
 
     @staticmethod
