@@ -365,11 +365,11 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     :type args: basestring or list
     :return:
     """
-    if stdout and not isinstance(stdout, int) and not isinstance(stdout, file_type):
+    if stdout and not isinstance(stdout, integer_types) and not isinstance(stdout, file_type):
         logging.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
-    if stderr and not isinstance(stderr, int) and not isinstance(stderr, file_type):
+    if stderr and not isinstance(stderr, integer_types) and not isinstance(stderr, file_type):
         logging.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
@@ -717,7 +717,7 @@ class JSONDumpable(object):
     pass
 
 
-class JSONConvertable(object):
+class JSONConvertible(object):
     @abstractmethod
     def __json__(self):
         "Convert class instance into JSON-dumpable structure (e.g. dict)"
@@ -728,6 +728,7 @@ class ComplexEncoder(json.JSONEncoder):
     """
     Magic class to help serialize in JSON any object.
     """
+    # todo: should we add complex type?
     TYPES = (dict, list, tuple, text_type, string_types, integer_types, float, bool, type(None))
 
     def default(self, obj):  # pylint: disable=method-hidden
@@ -750,23 +751,25 @@ class ComplexEncoder(json.JSONEncoder):
                 else:
                     res[key] = val
             return res
-        elif self.__convertable(obj):
+        elif ComplexEncoder.__convertible(obj):
             return obj.__json__()
         else:
             return None
 
-    def __dumpable(self, obj):
+    @classmethod
+    def __dumpable(cls, obj):
         """
         Re
 
         :param obj:
         :rtype: bool
         """
-        dumpable_types = tuple(self.TYPES + (JSONDumpable,))
+        dumpable_types = tuple(cls.TYPES + (JSONDumpable,))
         return isinstance(obj, dumpable_types)
 
-    def __convertable(self, obj):
-        return isinstance(obj, JSONConvertable)
+    @staticmethod
+    def __convertible(obj):
+        return isinstance(obj, JSONConvertible)
 
     @classmethod
     def of_basic_type(cls, val):

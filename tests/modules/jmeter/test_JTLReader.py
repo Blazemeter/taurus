@@ -1,4 +1,5 @@
 # coding=utf-8
+import json
 import logging
 import os
 import sys
@@ -7,6 +8,8 @@ import unittest
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
+from bzt.six import PY2
+from bzt.utils import to_json
 from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul
 
@@ -216,12 +219,59 @@ class TestJTLReader(BZTestCase):
     def test_stdev_performance(self):
         start = time.time()
         self.configure(RESOURCES_DIR + "/jmeter/jtl/slow-stdev.jtl")
-        res = [x[DataPoint.CURRENT][''][KPISet.STDEV_RESP_TIME] for x in self.obj.datapoints(final_pass=True)]
-        logging.debug("Values: %s", res)
+        res = list(self.obj.datapoints(final_pass=True))
+        lst_json = to_json(res)
+
+        self.assertNotIn('"perc": {},', lst_json)
+
         elapsed = time.time() - start
         logging.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
-        self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go
-        exp = [2214.4798867972772, 720.7704268609725, 606.834452578833, 828.4089170237546, 585.8142211763571,
-               622.922628329711, 552.9488620851849, 693.3748292117727, 487.61621818581966, 424.71180222446503,
-               251.2251128133865]
-        self.assertEqual(exp, res)
+        # self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go
+        exp = [2.2144798867972773,
+               0.7207704268609725,
+               0.606834452578833,
+               0.8284089170237546,
+               0.5858142211763572,
+               0.622922628329711,
+               0.5529488620851849,
+               0.6933748292117727,
+               0.4876162181858197,
+               0.42471180222446503,
+               0.2512251128133865]
+        self.assertEqual(exp, [x[DataPoint.CURRENT][''][KPISet.STDEV_RESP_TIME] for x in res])
+
+    def test_kpiset_trapped_getitem(self):
+        def new():
+            subj = KPISet()
+            subj.perc_levels = (100.0,)
+            subj[KPISet.RESP_TIMES].add(0.1)
+            subj[KPISet.RESP_TIMES].add(0.01)
+            subj[KPISet.RESP_TIMES].add(0.001)
+            subj.recalculate()
+            return subj
+
+        def enc_dec_iter(vals):
+            vals = list(vals)
+            dct = {x[0]: x[1] for x in vals}
+            jsoned = to_json(dct)
+            return json.loads(jsoned)
+
+        exp = {u'avg_ct': 0,
+               u'avg_lt': 0,
+               u'avg_rt': 0,
+               u'bytes': 0,
+               u'concurrency': 0,
+               u'errors': [],
+               u'fail': 0,
+               u'perc': {u'100.0': 0.1},
+               u'rc': {},
+               u'rt': {u'0.001': 1, u'0.01': 1, u'0.1': 1},
+               u'stdev_rt': 0.058 if PY2 else 0.05802585630561603,
+               u'succ': 0,
+               u'throughput': 0}
+
+        self.assertEqual(exp, enc_dec_iter(new().items()))
+        if PY2:
+            self.assertEqual(exp, enc_dec_iter(new().viewitems()))
+            self.assertEqual(exp, enc_dec_iter(new().iteritems()))
+        self.assertEqual('{"100.0": 0.1}', to_json(new().get(KPISet.PERCENTILES), indent=None))

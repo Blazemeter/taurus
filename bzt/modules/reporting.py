@@ -32,7 +32,7 @@ from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener, Result
 from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener
 from bzt.modules.passfail import PassFailStatus
-from bzt.six import etree, iteritems, string_types
+from bzt.six import etree, iteritems, string_types, integer_types
 from bzt.utils import get_full_path, is_windows
 
 if is_windows():
@@ -291,7 +291,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
     def __val_to_str(self, kpi_val):
         if isinstance(kpi_val, float):
             return '%.5f' % kpi_val
-        elif isinstance(kpi_val, int):
+        elif isinstance(kpi_val, integer_types):
             return '%d' % kpi_val
         elif isinstance(kpi_val, string_types):
             return kpi_val

@@ -1,3 +1,4 @@
+import unittest
 import os
 import time
 from collections import Counter
@@ -9,13 +10,15 @@ from bzt.modules.reporting import FinalStatus
 from bzt.utils import BetterDict
 from tests import BZTestCase, random_datapoint
 from tests.mocks import EngineEmul
+from bzt.six import PY3
 
 
 class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_summary_labels(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict.from_dict({"summary-labels": True, "percentiles": False, "summary": False, "test-duration": False})
+        obj.parameters = BetterDict.from_dict({"summary-labels": True, "percentiles": False, "summary": False,
+                                               "test-duration": False})
         self.sniff_log(obj.log)
 
         obj.startup()
@@ -34,10 +37,25 @@ class TestFinalStatusReporter(BZTestCase):
 
         self.assertIn(expected, self.log_recorder.info_buff.getvalue())
 
+    @unittest.skipIf(PY3, "py2 only")
+    def test_long_kpi(self):
+        obj = FinalStatus()
+        obj.engine = EngineEmul()
+        obj.parameters = BetterDict.from_dict({"dump-xml": obj.engine.create_artifact("status", ".xml")})
+
+        datapoint = random_datapoint(time.time())
+        datapoint[datapoint.CUMULATIVE][""]["stdev_rt"] = long(0)
+        obj.aggregated_second(datapoint)
+        obj.startup()
+        obj.shutdown()
+
+        obj.post_process()
+
     def test_log_messages_failed_labels(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict.from_dict({"failed-labels": True, "percentiles": False, "summary": False, "test-duration": False})
+        obj.parameters = BetterDict.from_dict({"failed-labels": True, "percentiles": False, "summary": False,
+                                               "test-duration": False})
         self.sniff_log(obj.log)
 
         obj.startup()
@@ -49,8 +67,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_percentiles(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict.from_dict({"failed-labels": False, "percentiles": True, "summary": False, "test-duration": False,
-                                               "summary-labels": False})
+        obj.parameters = BetterDict.from_dict({"failed-labels": False, "percentiles": True, "summary": False,
+                                               "test-duration": False, "summary-labels": False})
         self.sniff_log(obj.log)
 
         obj.startup()
@@ -76,8 +94,8 @@ class TestFinalStatusReporter(BZTestCase):
     def test_log_messages_samples_count(self):
         obj = FinalStatus()
         obj.engine = EngineEmul()
-        obj.parameters = BetterDict.from_dict({"failed-labels": False, "percentiles": False, "summary": True, "test-duration": False,
-                                               "summary-labels": False})
+        obj.parameters = BetterDict.from_dict({"failed-labels": False, "percentiles": False, "summary": True,
+                                               "test-duration": False, "summary-labels": False})
         self.sniff_log(obj.log)
         obj.aggregated_second(self.__get_datapoint())
         obj.startup()
@@ -114,6 +132,7 @@ class TestFinalStatusReporter(BZTestCase):
         obj.aggregated_second(random_datapoint(time.time()))
         obj.startup()
         obj.shutdown()
+
         obj.post_process()
         self.assertIn("XML", self.log_recorder.info_buff.getvalue())
 
@@ -175,6 +194,7 @@ class TestFinalStatusReporter(BZTestCase):
              KPISet.CONCURRENCY: 0,
              KPISet.AVG_RESP_TIME: 0.0005440536804127192,
              KPISet.FAILURES: 29656})
+        assert cumul_data[""][KPISet.PERCENTILES]
         cumul_data["http://192.168.1.1/somequery"] = KPISet.from_dict(
             {KPISet.AVG_CONN_TIME: 9.609548856969457e-06,
              KPISet.RESP_TIMES: Counter(

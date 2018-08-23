@@ -28,12 +28,12 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.six import iteritems
-from bzt.utils import dehumanize_time, JSONConvertable
+from bzt.six import iteritems, PY3
+from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
 
 
-class RespTimesCounter(JSONConvertable):
+class RespTimesCounter(JSONConvertible):
     def __init__(self, low, high, sign_figures):
         super(RespTimesCounter, self).__init__()
         self.low = low
@@ -43,6 +43,19 @@ class RespTimesCounter(JSONConvertable):
         self._cached_perc = None
         self._cached_stdev = None
 
+    def __deepcopy__(self, memo):
+        new = RespTimesCounter(self.low, self.high, self.sign_figures)
+        new._cached_perc = self._cached_perc
+        new._cached_stdev = self._cached_stdev
+
+        # TODO: maybe hdrpy can encapsulate this itself
+        new.histogram.counts = copy.deepcopy(self.histogram.counts, memo)
+        new.histogram.total_count = self.histogram.total_count
+        new.histogram.min_value = self.histogram.min_value
+        new.histogram.max_value= self.histogram.max_value
+
+        return new
+
     def __bool__(self):
         return len(self) > 0
 
@@ -50,6 +63,7 @@ class RespTimesCounter(JSONConvertable):
         return self.histogram.total_count
 
     def add(self, item, count=1):
+        item = round(item * 1000.0, 3)
         self._cached_perc = None
         self._cached_stdev = None
         self.histogram.record_value(item, count)
@@ -69,12 +83,12 @@ class RespTimesCounter(JSONConvertable):
 
     def get_stdev(self, mean):
         if self._cached_stdev is None:
-            self._cached_stdev = self.histogram.get_stddev(mean)
+            self._cached_stdev = self.histogram.get_stddev(mean) / 1000.0  # is this correct to divide?
         return self._cached_stdev
 
     def __json__(self):
         return {
-            float(rt) / 1000: count
+            rt / 1000.0: int(count)  # because hdrpy returns int64, which is unrecognized by json serializer
             for rt, count in iteritems(self.get_counts())
         }
 
@@ -131,8 +145,10 @@ class KPISet(dict):
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
         mycopy.rtimes_len = self.rtimes_len
-        for key, val in iteritems(self):
-            mycopy[key] = copy.deepcopy(val, memo)
+        mycopy.perc_levels = self.perc_levels
+        mycopy._concurrencies = copy.deepcopy(self._concurrencies, memo)
+        for key in self:
+            mycopy[key] = copy.deepcopy(self.get(key, no_recalc=True), memo)
         return mycopy
 
     @staticmethod
@@ -186,8 +202,7 @@ class KPISet(dict):
         else:
             self[self.SUCCESSES] += 1
 
-        rtime_s = round(r_time * 1000, 3)
-        self[self.RESP_TIMES].add(rtime_s, 1)
+        self[self.RESP_TIMES].add(r_time, 1)
 
         if byte_count is not None:
             self[self.BYTE_COUNT] += byte_count
@@ -217,7 +232,49 @@ class KPISet(dict):
         if not found:
             values.append(copy.deepcopy(value))
 
-    def recalculate(self):
+    def __getitem__(self, key):
+        rtimes = self.get(self.RESP_TIMES, no_recalc=True)
+        if key != self.RESP_TIMES and rtimes:
+            if key == self.STDEV_RESP_TIME:
+                self[self.STDEV_RESP_TIME] = rtimes.get_stdev(self.get(self.AVG_RESP_TIME, no_recalc=True))
+            elif key == self.PERCENTILES:
+                percs = {str(float(perc)): value / 1000.0 for perc, value in
+                         iteritems(rtimes.get_percentiles_dict(self.perc_levels))}
+                self[self.PERCENTILES] = percs
+
+        return super(KPISet, self).__getitem__(key)
+
+    def get(self, k, no_recalc=False):
+        if no_recalc:
+            return super(KPISet, self).get(k)
+        else:
+            return self.__getitem__(k)
+
+    def items(self):
+        for item in super(KPISet, self).items():
+            yield (item[0], self.__getitem__(item[0]))
+
+    def iteritems(self):
+        if PY3:
+            raise TaurusInternalException("Invalid call")
+
+        for item in super(KPISet, self).iteritems():
+            yield (item[0], self.__getitem__(item[0]))
+
+    def viewitems(self):
+        if PY3:
+            raise TaurusInternalException("Invalid call")
+
+        for item in super(KPISet, self).viewitems():
+            yield (item[0], self.__getitem__(item[0]))
+
+    def viewvalues(self):
+        raise TaurusInternalException("Invalid call")
+
+    def values(self):
+        raise TaurusInternalException("Invalid call")
+
+    def recalculate(self):  # FIXME: get rid of it at all?
         """
         Recalculate averages, stdev and percentiles
 
@@ -230,14 +287,6 @@ class KPISet(dict):
 
         if len(self._concurrencies):
             self[self.CONCURRENCY] = sum(self._concurrencies.values())
-
-        resp_times = self[self.RESP_TIMES]
-        if resp_times:
-            self[self.PERCENTILES] = {
-                str(float(perc)): value / 1000.0
-                for perc, value in iteritems(resp_times.get_percentiles_dict(self.perc_levels))
-            }
-            self[self.STDEV_RESP_TIME] = resp_times.get_stdev(self[self.AVG_RESP_TIME])
 
         return self
 
@@ -266,10 +315,9 @@ class KPISet(dict):
         if src[self.RESP_TIMES]:
             self[self.RESP_TIMES].merge(src[self.RESP_TIMES])
         elif not self[self.PERCENTILES]:
-            # using existing percentiles
-            # FIXME: it's not valid to overwrite, better take average
+            # using existing percentiles, in case we have no source data to recalculate them
+            # TODO: it's not valid to overwrite, better take average
             self[self.PERCENTILES] = copy.deepcopy(src[self.PERCENTILES])
-        self[self.STDEV_RESP_TIME] = src[self.STDEV_RESP_TIME]  # we rely on recalculate() fixing it afterwards
 
         self[self.RESP_CODES].update(src[self.RESP_CODES])
 
@@ -283,6 +331,10 @@ class KPISet(dict):
         :rtype: KPISet
         """
         inst = KPISet()
+
+        assert inst.PERCENTILES in obj
+        inst.perc_levels = [float(x) for x in obj[inst.PERCENTILES].keys()]
+
         for key, val in iteritems(obj):
             if key == inst.RESP_TIMES:
                 if isinstance(val, dict):
@@ -294,7 +346,6 @@ class KPISet(dict):
         inst.sum_cn = obj[inst.AVG_CONN_TIME] * obj[inst.SAMPLE_COUNT]
         inst.sum_lt = obj[inst.AVG_LATENCY] * obj[inst.SAMPLE_COUNT]
         inst.sum_rt = obj[inst.AVG_RESP_TIME] * obj[inst.SAMPLE_COUNT]
-        inst.perc_levels = [float(x) for x in inst[inst.PERCENTILES].keys()]
         for error in inst[KPISet.ERRORS]:
             error['urls'] = Counter(error['urls'])
         return inst
