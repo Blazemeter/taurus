@@ -124,10 +124,13 @@ def main():
     tkinter_link = "https://github.com/mu-editor/mu_tkinter/releases/download/0.3/pynsist_tkinter_3.6_64bit.zip"
     pynsist_config = "installer-gen.cfg"
     wheel_dir = "build/wheels"
+    additional_packages = ['pip', 'setuptools', 'wheel']
     bzt_version = extract_bzt_version(bzt_dist)
     tkinter_archive = tempfile.NamedTemporaryFile(prefix="tkinter-libs", suffix=".zip")
     download_tkinter(tkinter_link, tkinter_archive.name)
     fetch_all_wheels(bzt_dist, wheel_dir)
+    for pkg in additional_packages:
+        fetch_all_wheels(pkg, wheel_dir)
     dependencies = extract_all_dependencies(wheel_dir)
     generate_pynsist_config(dependencies, wheel_dir, pynsist_config, bzt_version)
     run_pynsist(pynsist_config)
