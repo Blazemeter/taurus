@@ -1,7 +1,9 @@
 #!python3.6
-import os, sys
+import os, subprocess, sys
 sys.path.insert(0, 'pkgs')
 os.environ["PATH"] += os.pathsep + os.path.join(os.path.dirname(sys.executable), 'Scripts')
 
 def main():
-    sys.exit(os.system("cmd /k bzt --help"))
+    args = sys.argv[1:]
+    process = subprocess.run(args)
+    sys.exit(process.returncode)

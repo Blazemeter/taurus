@@ -49,9 +49,17 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
         'entry_point': 'bzt.soapui2yaml:main',
     }
 
+    cfg['Command bzt-pip'] = {
+        'entry_point': 'pip._internal:main'
+    }
+
+    cfg['Command bzt-run'] = {
+        'entry_point': 'scripts.installer.bzt_run:main'
+    }
+
     cfg['Python'] = {
         'bitness': 64,
-        'version': '3.6.3',
+        'version': '3.6.5',
     }
 
     wheels_list = ["%s==%s" % (package_name, version) for package_name, version in dependencies]
@@ -98,7 +106,6 @@ def extract_all_dependencies(wheel_dir):
 
 def download_tkinter(archive_url, archive_filename):
     print("Downloading tkinter archive")
-    archive_filename = archive_url.split('/')[-1]
     r = requests.get(archive_url, stream=True)
     with open(archive_filename, 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024):
