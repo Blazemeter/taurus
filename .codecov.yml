@@ -5,3 +5,4 @@ codecov:
 ignore:
   - bzt/resources/.*
   - tests/resources/.*
+  - scripts/installer/.*
