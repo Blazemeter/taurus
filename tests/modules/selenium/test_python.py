@@ -320,6 +320,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             "clickByXPath(//div[3]/form/select[1]//option[3])",
                             "clickByXPath(//div[3]/form/select[2]//option[6])",
                             "switchWindow(0)",
+                            "openWindow(some.url)",
                             "switchWindow('win_ser_local')",
                             "switchWindow('win_ser_1')",
                             "switchWindow('that_window')",
