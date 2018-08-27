@@ -605,6 +605,10 @@ from bzt.resources import selenium_taurus_extras
             if atype == "switch":
                 cmd = 'self.wnd_mng.switch(_tpl.apply(%r))' % selector
                 action_elements.append(self.gen_statement(cmd, indent=indent))
+            elif atype == "open":
+                script = "window.open('%s');" % selector
+                cmd = 'self.driver.execute_script(_tpl.apply(%r))' % script
+                action_elements.append(self.gen_statement(cmd, indent=indent))
             elif atype == "close":
                 if selector:
                     cmd = 'self.wnd_mng.close(_tpl.apply(%r))' % selector
@@ -693,13 +697,12 @@ from bzt.resources import selenium_taurus_extras
             action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
 
         elif atype == "script" and tag == "eval":
-            action_elements.append(self.gen_statement('self.driver.execute_script(_tpl.apply(%r))' %
-                                                      selector, indent=indent))
+            cmd = 'self.driver.execute_script(_tpl.apply(%r))' % selector
+            action_elements.append(self.gen_statement(cmd, indent=indent))
         elif atype == 'go':
             if selector and not param:
-                action_elements.append(self.gen_statement(
-                    "self.driver.get(_tpl.apply(%r))" % selector.strip(), indent=indent
-                ))
+                cmd = "self.driver.get(_tpl.apply(%r))" % selector.strip()
+                action_elements.append(self.gen_statement(cmd, indent=indent))
         elif atype == "editcontent":
             element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
             editable_error = "The element (By.%s, %r) " \
@@ -763,7 +766,7 @@ from bzt.resources import selenium_taurus_extras
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'script',
                             'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
-                            'storeText', 'storeValue', 'store'
+                            'storeText', 'storeValue', 'store', 'open'
                            ])
 
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Eval|ByIdx|String"

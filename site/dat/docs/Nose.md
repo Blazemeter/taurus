@@ -41,7 +41,7 @@ Supported features:
   - request method GET (only)
   - selenium commands:
     - go(url) Redirect to another website
-    - window handler (switchWindow, closeWindow)
+    - window handler (openWindow, switchWindow, closeWindow)
     - frame handler (switchFrame, switchFrameBy*<sup>1</sup>)
     - keysBy* Send keystrokes to element
     - typeBy* Assign the value to element, cleaning it previously
@@ -148,7 +148,8 @@ scenarios:
     - url: /  # url to open, only get method is supported
       actions:  # holds list of actions to perform
       - waitByCSS(body)
-      - clickByID(mySubmitButton)   # link is open in new window (#1)
+      - clickByID(mySubmitButton)
+      - openWindow(http://blazedemo.by) # new window is created (#1)
       - switchWindow(1)     # switch to the second window (#0)
       - closeWindow()      # close the second window (#1)
       - pauseFor(5s)
