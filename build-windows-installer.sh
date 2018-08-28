@@ -28,7 +28,7 @@ curl -kL https://raw.github.com/saghul/pythonz/master/pythonz-install | bash
 /usr/local/pythonz/bin/pythonz install 3.6.3
 
 # set up python3 virtualenv
-virtualenv venv --python=`/usr/local/pythonz/bin/pythonz locate 3.6.3`
+virtualenv venv --python=$(/usr/local/pythonz/bin/pythonz locate 3.6.3)
 
 # this is a workaround for venv bug: https://github.com/pypa/virtualenv/issues/1029
 set +u
