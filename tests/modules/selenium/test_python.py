@@ -6,7 +6,7 @@ import time
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
-from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor, ApiritifLoadReader, \
+from bzt.modules.python.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor, ApiritifLoadReader, \
     ApiritifFuncReader
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import EngineEmul
