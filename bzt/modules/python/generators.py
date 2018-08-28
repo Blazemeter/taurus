@@ -19,18 +19,15 @@ import json
 import math
 import string
 import re
-from collections import OrderedDict
-
 import astunparse
 
-from bzt import TaurusConfigError
-from bzt import TaurusInternalException
+from collections import OrderedDict
+
+from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest
-from bzt.six import parse
-from bzt.six import string_types, iteritems, text_type
-from bzt.utils import PythonGenerator, dehumanize_time
-from bzt.utils import ensure_is_dict
+from bzt.six import parse, string_types, iteritems, text_type
+from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict
 from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunction
 from .jmeter_functions import TimeFunction, RandomFunction, RandomStringFunction, Base64EncodeFunction
 

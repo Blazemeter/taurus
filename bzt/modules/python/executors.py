@@ -29,8 +29,7 @@ from bzt.modules.aggregator import ResultsReader
 from bzt.modules.functional import FunctionalResultsReader
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types, text_type
-from bzt.utils import FileReader
-from bzt.utils import get_full_path
+from bzt.utils import FileReader, get_full_path, RESOURCES_DIR, BZT_DIR
 from .generators import ApiritifScriptGenerator, SeleniumScriptBuilder
 from .tools import TaurusPytestRunner, TaurusRobotRunner, Robot
 
@@ -74,7 +73,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         # todo: requred tools?
 
         # path to taurus dir. It's necessary for bzt usage inside tools/helpers
-        self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
+        self.env.add_path({"PYTHONPATH": get_full_path(BZT_DIR, step_up=1)})
 
         self.reporting_setup()  # no prefix/suffix because we don't fully control report file names
 
@@ -237,7 +236,7 @@ class ApiritifFuncReader(FunctionalResultsReader):
 class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(PyTestExecutor, self).__init__()
-        self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "pytest_runner.py")
+        self.runner_path = os.path.join(RESOURCES_DIR, "pytest_runner.py")
         self._tailer = FileReader('', file_opener=lambda _: None, parent_logger=self.log)
         self._additional_args = []
 
@@ -312,7 +311,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
 class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(RobotExecutor, self).__init__()
-        self.runner_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "robot_runner.py")
+        self.runner_path = os.path.join(RESOURCES_DIR, "robot_runner.py")
         self.variables_file = None
         self.tags = None
 
