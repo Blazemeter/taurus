@@ -45,17 +45,21 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         self.scenario = self.get_scenario()
         self.tool_path = self.install_required_tools()
 
-        config_params = ('verbose = true',
-                         'csv = true',
-                         'timestamp = false',
-                         'fullurl = true',
-                         'display-id = true',
-                         'show-logfile = false',
-                         'logging = false')
+        if self.env.get("SIEGERC"):
+          with open( self.env.get("SIEGERC"), 'r') as rc_file:
+            config_params = rc_file.readlines()
+        else:
+          config_params = ('verbose = true',
+                           'csv = true',
+                           'timestamp = false',
+                           'fullurl = true',
+                           'display-id = true',
+                           'show-logfile = false',
+                           'logging = false')
 
         self.__rc_name = self.engine.create_artifact("siegerc", "")
-        with open(self.__rc_name, 'w') as rc_file:
-            rc_file.writelines('\n'.join(config_params))
+        with open(self.__rc_name, 'w') as rc_artifact_file:
+            rc_artifact_file.writelines('\n'.join(config_params))
 
         self.__url_name = self.get_script_path()
 
