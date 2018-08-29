@@ -166,7 +166,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
 
     def prepare(self):
         if self.env is None:
-            self.env = Environment(self.log, self.engine.env.get())   # for backward compatibility with taurus-server
+            self.env = Environment(self.engine.env.get())   # for backward compatibility with taurus-server
 
         self.install_required_tools()
         for driver in self.webdrivers:
@@ -333,7 +333,6 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 class ChromeDriver(RequiredTool):
     def __init__(self, tool_path, parent_logger, download_link):
         super(ChromeDriver, self).__init__("ChromeDriver", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)
@@ -364,7 +363,6 @@ class ChromeDriver(RequiredTool):
 class GeckoDriver(RequiredTool):
     def __init__(self, tool_path, parent_logger, download_link):
         super(GeckoDriver, self).__init__("GeckoDriver", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)

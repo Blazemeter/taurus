@@ -185,6 +185,11 @@ def dehumanize_time(str_time):
     return result
 
 
+class LoggedObj(object):
+    def __init__(self):
+        self.log = logging.root.getChild(self.__class__.__name__)
+
+
 class BetterDict(defaultdict):
     """
     Wrapper for defaultdict that able to deep merge other dicts into itself
@@ -385,10 +390,10 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
                             bufsize=0, preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
 
 
-class Environment(object):
-    def __init__(self, parent_log, data=None):
+class Environment(LoggedObj):
+    def __init__(self, data=None):
+        super(Environment, self).__init__()
         self.data = {}
-        self.log = parent_log.getChild(self.__class__.__name__)
         if data is not None:
             self.set(data)
 
@@ -1054,19 +1059,19 @@ class ExceptionalDownloader(request.FancyURLopener, object):
         return result
 
 
-class RequiredTool(object):
+class RequiredTool(LoggedObj):
     """
     Abstract required tool
     """
 
     def __init__(self, tool_name, tool_path, download_link="", http_client=None):
+        super(RequiredTool, self).__init__()
         self.http_client = http_client
         self.tool_name = tool_name
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
-        self.log = logging.getLogger('')
         self.version = None
 
     def _get_version(self, output):
@@ -1547,4 +1552,3 @@ def get_host_ips(filter_loopbacks=True):
 
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
-

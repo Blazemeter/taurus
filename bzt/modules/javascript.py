@@ -270,7 +270,6 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
 class NPM(RequiredTool):
     def __init__(self, parent_logger):
         super(NPM, self).__init__("NPM", "")
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.executable = None
 
     def check_if_installed(self):
@@ -306,8 +305,7 @@ class NPMPackage(RequiredTool):
         self.tools_dir = tools_dir
         self.node_tool = node_tool
         self.npm_tool = npm_tool
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.env = Environment(self.log, dict(os.environ))
+        self.env = Environment(dict(os.environ))
         self.env.add_path({"NODE_PATH": os.path.join(tools_dir, "node_modules")})
 
     def check_if_installed(self):

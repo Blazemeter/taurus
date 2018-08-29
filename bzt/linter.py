@@ -1,6 +1,7 @@
 import traceback
 
 from bzt.six import iteritems, text_type, string_types
+from bzt.utils import LoggedObj
 
 
 def dameraulevenshtein(seq1, seq2):
@@ -104,14 +105,13 @@ class ConfigWarning(object):
         return "at path '%s': %s" % (self.path, self.message)
 
 
-class ConfigurationLinter(object):
-    def __init__(self, config, ignored_warnings, parent_log):
+class ConfigurationLinter(LoggedObj):
+    def __init__(self, config, ignored_warnings):
         """
-
         :type config: dict
         :type ignored_warnings: list[str]
         """
-        self.log = parent_log.getChild(self.__class__.__name__)
+        super(ConfigurationLinter, self).__init__()
         self._subscriptions = {}
         self._warnings = []
         self._config = config
@@ -195,7 +195,6 @@ class Checker(object):
         :type linter: ConfigurationLinter
         """
         self.linter = linter
-        self.log = linter.log.getChild(self.__class__.__name__)
 
     def check_for_typos(self, cpath, key, variants):
         edits, suggestion = most_similar_string(key, variants)

@@ -45,14 +45,14 @@ from bzt.six import numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
-from bzt.utils import str_representer, Environment
+from bzt.utils import str_representer, Environment, LoggedObj
 
 TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
 
 SETTINGS = "settings"
 
 
-class Engine(object):
+class Engine(LoggedObj):
     """
     Core entity of the technology, used to coordinate whole process
 
@@ -64,21 +64,20 @@ class Engine(object):
     """
     ARTIFACTS_DIR = "%Y-%m-%d_%H-%M-%S.%f"
 
-    def __init__(self, parent_logger):
+    def __init__(self):
         """
 
         :type parent_logger: logging.Logger
         """
+        super(Engine, self).__init__()
         self.file_search_paths = []
         self.services = []
         self.__artifacts = []
         self.reporters = []
         self.artifacts_dir = None
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.env = Environment(self.log, dict(os.environ))
-        self.shared_env = Environment(self.log)
+        self.env = Environment(dict(os.environ))
+        self.shared_env = Environment()
         self.config = Configuration()
-        self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
         self.provisioning = Provisioning()
         self.aggregator = Aggregator(is_functional=False)
@@ -188,7 +187,7 @@ class Engine(object):
         if cwd is None:
             cwd = self.default_cwd
 
-        env = Environment(self.log, env.get())
+        env = Environment(env.get())
         env.set(self.shared_env.get())
 
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=env.get())
@@ -435,7 +434,6 @@ class Engine(object):
         classobj = self.__load_module(alias)
         instance = classobj()
         assert isinstance(instance, EngineModule)
-        instance.log = self.log.getChild(alias)
         instance.engine = self
         settings = self.config.get("modules")
         instance.settings = settings.get(alias)
@@ -506,7 +504,6 @@ class Engine(object):
         self.log.debug("User configs list: %s", user_configs)
         self.config.load(user_configs)
         user_config = Configuration()
-        user_config.log = self.log.getChild(Configuration.__name__)
         user_config.tab_replacement_spaces = self.config.tab_replacement_spaces
         user_config.warn_on_tab_replacement = False
         user_config.load(user_configs, self.__config_loaded)
@@ -684,7 +681,7 @@ class Configuration(BetterDict):
 
     def __init__(self, *args, **kwargs):
         super(Configuration, self).__init__(*args, **kwargs)
-        self.log = logging.getLogger('')
+        self.log = logging.root.getChild(self.__class__.__name__)
         self.dump_filename = None
         self.tab_replacement_spaces = 0
         self.warn_on_tab_replacement = True
@@ -844,7 +841,7 @@ else:
     pass  # TODO: how to implement it?
 
 
-class EngineModule(object):
+class EngineModule(LoggedObj):
     """
     Base class for any BZT engine module
 
@@ -853,7 +850,7 @@ class EngineModule(object):
     """
 
     def __init__(self):
-        self.log = logging.getLogger('')
+        super(EngineModule, self).__init__()
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()

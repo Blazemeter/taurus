@@ -38,10 +38,10 @@ from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
-from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url
+from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url, LoggedObj
 
 
-class CLI(object):
+class CLI(LoggedObj):
     """
     'cli' means 'tool' in hebrew, did you know that?
 
@@ -52,15 +52,15 @@ class CLI(object):
     CLI_SETTINGS = "cli"
 
     def __init__(self, options):
+        super(CLI, self).__init__()
         self.signal_count = 0
         self.options = options
         self.setup_logging(options)
-        self.log = logging.getLogger('')
         self.log.info("Taurus CLI Tool v%s", bzt.VERSION)
         self.log.debug("Command-line options: %s", self.options)
         self.log.debug("Python: %s %s", platform.python_implementation(), platform.python_version())
         self.log.debug("OS: %s", platform.uname())
-        self.engine = Engine(self.log)
+        self.engine = Engine()
         self.exit_code = 0
 
     @staticmethod
@@ -86,8 +86,7 @@ class CLI(object):
             fmt_verbose = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
             fmt_regular = Formatter("%(asctime)s %(levelname)s: %(message)s", "%H:%M:%S")
 
-        logger = logging.getLogger('')
-        logger.setLevel(logging.DEBUG)
+        logging.root.setLevel(logging.DEBUG)
 
         # log everything to file
         if options.log is None:
@@ -100,7 +99,7 @@ class CLI(object):
             file_handler = logging.FileHandler(options.log)
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(fmt_file)
-            logger.addHandler(file_handler)
+            logging.root.addHandler(file_handler)
 
         # log something to console
         if options.verbose:
@@ -113,9 +112,7 @@ class CLI(object):
             CLI.console_handler.setLevel(logging.INFO)
             CLI.console_handler.setFormatter(fmt_regular)
 
-        logger.addHandler(CLI.console_handler)
-
-        logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
+        logging.root.addHandler(CLI.console_handler)
 
     def __close_log(self):
         """
@@ -177,7 +174,7 @@ class CLI(object):
             self.engine.config.merge(cli_aliases.get(alias, err))
 
         if self.options.option:
-            overrider = ConfigOverrider(self.log)
+            overrider = ConfigOverrider()
             overrider.apply_overrides(self.options.option, self.engine.config)
 
         if self.__is_verbose():
@@ -187,12 +184,8 @@ class CLI(object):
         self.engine.eval_env()  # yacky, I don't like having it here, but how to apply it after aliases and artif dir?
 
     def __is_verbose(self):
-        settings = self.engine.config.get(SETTINGS, force_set=True)
-        settings.get('verbose', bool(self.options.verbose))  # respect value from config
-        if self.options.verbose:  # force verbosity if cmdline asked for it
-            settings['verbose'] = True
-
-        return settings.get('verbose', False)
+        conf_verbose = self.engine.config.get(SETTINGS).get("verbose")
+        return bool(self.options.verbose or conf_verbose)
 
     def __lint_config(self):
         settings = self.engine.config.get(CLI.CLI_SETTINGS).get("linter")
@@ -200,14 +193,14 @@ class CLI(object):
         self.warn_on_unfamiliar_fields = settings.get("warn-on-unfamiliar-fields", True)
         config_copy = copy.deepcopy(self.engine.config)
         ignored_warnings = settings.get("ignored-warnings", [])
-        self.linter = ConfigurationLinter(config_copy, ignored_warnings, self.log)
+        self.linter = ConfigurationLinter(config_copy, ignored_warnings)
         self.linter.register_checkers()
         self.linter.lint()
         warnings = self.linter.get_warnings()
         for warning in warnings:
             self.log.warning(str(warning))
 
-        if settings.get("lint-and-exit", False):
+        if settings.get("lint-and-exit"):
             if warnings:
                 raise TaurusConfigError("Errors were found in the configuration")
             else:
@@ -245,11 +238,12 @@ class CLI(object):
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
 
+            self.__configure(configs)
+
             if not self.engine.config.get(SETTINGS).get('verbose', False, force_set=True):
                 self.engine.logging_level_down = self._level_down_logging
                 self.engine.logging_level_up = self._level_up_logging
 
-            self.__configure(configs)
             self.__move_log_to_artifacts()
             self.__lint_config()
 
@@ -427,14 +421,7 @@ if (!startTime) {
             return []
 
 
-class ConfigOverrider(object):
-    def __init__(self, logger):
-        """
-        :type logger: logging.Logger
-        """
-        super(ConfigOverrider, self).__init__()
-        self.log = logger.getChild(self.__class__.__name__)
-
+class ConfigOverrider(LoggedObj):
     def apply_overrides(self, options, dest):
         """
         Apply overrides
