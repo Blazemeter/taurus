@@ -51,7 +51,7 @@ class FrameManager:
 
     def __init__(self, driver):
         self.driver = driver
-    
+
     def switch(self, frame_name=None):
         try:
             if not frame_name or frame_name == "relative=top":
