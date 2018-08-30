@@ -1,15 +1,9 @@
 from tests import BZTestCase
 
 from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener, FunctionalSample
-from tests.mocks import MockFunctionalReader
+from tests.mocks import MockFunctionalReader, MockFunctionalListeners
 
 
-class MockListener(FunctionalAggregatorListener):
-    def __init__(self):
-        self.results = []
-
-    def aggregated_results(self, result, cumulative_results):
-        self.results.append(result)
 
 
 class TestFunctionalAggregator(BZTestCase):
@@ -54,7 +48,7 @@ class TestFunctionalAggregator(BZTestCase):
         obj.post_process()
 
     def test_listeners(self):
-        listener = MockListener()
+        listener = MockFunctionalListener()
         obj = FunctionalAggregator()
         obj.prepare()
         obj.add_underling(self.get_reader())
