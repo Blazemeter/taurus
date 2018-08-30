@@ -15,7 +15,7 @@ from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, urlopen, urlencode, b, stream_decode
+from bzt.six import iteritems, urlopen, urlencode, b, stream_decode, integer_types
 from bzt.utils import dehumanize_time, BetterDict
 
 
@@ -500,10 +500,10 @@ class MonitoringWidget(Pile, MonitoringListener, PrioritizedWidget):
                 for metric, value in iteritems(metrics):
                     if value[0] is None:
                         rendered = 'N/A'
+                    elif isinstance(value[0], integer_types):
+                        rendered = "{:,}".format(value[0])
                     elif isinstance(value[0], float):
                         rendered = "{:.3f}".format(value[0])
-                    elif isinstance(value[0], int):
-                        rendered = "{:,}".format(value[0])
                     else:
                         rendered = value[0]
                     values = (' ' * (maxwidth - len(metric)), metric, rendered)

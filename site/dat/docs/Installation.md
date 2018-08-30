@@ -26,6 +26,15 @@ Notes:
 After the installation is finished, you can run Taurus with `bzt` from command prompt. Also, you'll have 'Taurus'
 shortcut in the Start menu.
 
+If you want to install additional Python packages along with Taurus (for example Locust, Molotov or others),
+you should utilize the following command line utilities provided by the installer:
+- `bzt-pip` is a wrapper for pip that can be used to install packages, for example `bzt-pip install locust`
+- `bzt-run` can be used to launch packages that were installed with `bzt-pip`, for example `bzt-run locust locustfile.py`
+
+Notes:
+- You need to install fresh `setuptools` and `wheel` before installing everything else with `bzt-pip`, so the command is
+  `bzt-pip install setuptools wheel`.
+
 ### Installing Taurus Manually
 
 ####  Install Taurus System Dependencies

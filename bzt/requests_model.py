@@ -54,7 +54,9 @@ class HTTPRequest(Request):
         msg = "Option 'url' is mandatory for request but not found in %s" % config
         self.url = self.config.get("url", TaurusConfigError(msg))
         self.label = self.config.get("label", self.url)
-        self.method = self.config.get("method", "GET").upper()
+        self.method = self.config.get("method", "GET")
+        if not has_variable_pattern(self.method):
+            self.method = self.method.upper()
 
         # TODO: add method to join dicts/lists from scenario/request level?
         self.headers = self.config.get("headers", {})

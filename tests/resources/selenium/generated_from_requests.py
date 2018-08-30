@@ -59,6 +59,7 @@ class TestRequests(unittest.TestCase):
             self.driver.find_element(By.XPATH, _tpl.apply('//div[3]/form/select[1]//option[3]')).click()
             self.driver.find_element(By.XPATH, _tpl.apply('//div[3]/form/select[2]//option[6]')).click()
             self.wnd_mng.switch(_tpl.apply('0'))
+            self.driver.execute_script(_tpl.apply("window.open('some.url');"))
             self.wnd_mng.switch(_tpl.apply('win_ser_local'))
             self.wnd_mng.switch(_tpl.apply('win_ser_1'))
             self.wnd_mng.switch(_tpl.apply('that_window'))

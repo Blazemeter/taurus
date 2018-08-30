@@ -206,7 +206,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         script = self.get_script_path(required=False, scenario=scenario_obj)
         if script:
-            with open(script) as fds:
+            with codecs.open(script, encoding="UTF-8") as fds:
                 script_content = fds.read()
             if "con:soapui-project" in script_content:
                 self.log.info("SoapUI project detected")
