@@ -1,8 +1,7 @@
 import json
 import time
 
-from bzt.modules.dotnet.nunit import NUnitExecutor
-from bzt.modules.dotnet.xunit import XUnitExecutor
+from bzt.modules.dotnet import NUnitExecutor, XUnitExecutor
 from bzt.utils import is_windows
 from tests import RESOURCES_DIR
 from tests.modules.selenium import SeleniumTestCase
