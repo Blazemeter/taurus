@@ -1389,7 +1389,7 @@ class TestJMeterExecutor(BZTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    # 'force-parent-sample' is True by default
+                    'force-parent-sample': True,
                     'script': RESOURCES_DIR + '/jmeter/jmx/transactions.jmx'}}})
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
@@ -1397,6 +1397,19 @@ class TestJMeterExecutor(BZTestCase):
         props = jmx.get(selector)
         self.assertEqual(len(props), 2)
         self.assertTrue(all(prop.text == 'true' for prop in props))
+
+    def test_force_parent_sample_default(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    # 'force-parent-sample' is False by default
+                    'script': RESOURCES_DIR + '/jmeter/jmx/transactions.jmx'}}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        selector = 'TransactionController > boolProp[name="TransactionController.parent"]'
+        props = jmx.get(selector)
+        self.assertEqual(len(props), 2)
+        self.assertTrue(all(prop.text == 'false' for prop in props))
 
     def test_disable_force_parent_sample(self):
         self.configure({
