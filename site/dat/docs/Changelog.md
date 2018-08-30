@@ -1,9 +1,37 @@
 # Changelog
 
 ## 1.12.2<sup>next</sup>
+- Windows installer is now self-contained, can be used without network connection (**needs to uninstall older versions first!**)
+- remove `BetterDict` usage from `DataPoint` and `KPISet` - impactful internal change
+- fix nested dict merge operations with prefix flags (`~`, `$` etc)
+- restore `stdev` KPI reporting
+- add JSON representers for `KPISet` and `DataPoint`
+- make percentiles and standard deviation be calculated only when queried, this postpones heavy calculation into a "lazy" model
 - bump up default chromedriver version to 2.40
 - use Google Iowa as default Cloud location, instead of Sandbox
 - fix reporting tables on Windows platform not displayed
+- bump Apiritif version to 0.6.7 (fixes unicode support for CSV/LDJSON-based reports, fixes multiprocessing errors, supports `CONNECT` and `OPTIONS` HTTP methods)
+- make Java version checks more robust
+- support JUnit 5
+- add support for `concurrency` for JUnit executor
+- add "open window" action for Selenium YAML scripting
+- make java-related tools auto-install more robust
+- fix Taurus crash when retrieving JMeter diagnostics on Python 2
+- fix handling of JMeter script encodings
+- fix Final Stats Reporter crashing on `long` data type
+- do not send multiline `note` to BZA
+- don't change PYTHONPATH unless really needed in Python executors
+- fix a few Swagger2YAML converter crashes
+- fix handling of string `body` in Gatling script generator
+- handle `download-link` and `version` for JMeter to support nightly builds
+- don't subtract connect time from latency when reading JMeter results
+- handle iterations limit for LocustIO executor
+- support running LocustIO installed with Python 3
+- bump up Plugins Manager version to 1.3
+- handle log verbosity flag from config even better
+- read pytest assertion details when available
+- add ability to specify separate pass/fail criteria for cloud
+
 
 ## 1.12.1<sup>11 jul 2018</sup>
 - set `LC_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
