@@ -203,8 +203,8 @@ scenarios:
     concurrent-pool-size: 4  # concurrent pool size for resources download, 4 by default
     use-dns-cache-mgr: true  # use DNS Cache Manager to test resources
                              # behind dns load balancers. True by default.
-    force-parent-sample: true  # generate only parent sample for transaction controllers.
-                               # True by default
+    force-parent-sample: false  # generate only parent sample for transaction controllers.
+                               # False by default
     content-encoding: utf-8  # global content encoding, applied to all requests.
                              # Unset by default
     follow-redirects: true  # follow redirects for all HTTP requests
@@ -679,7 +679,7 @@ scenarios:
   transaction_example:
     requests:
     - transaction: Customer Session
-      force-parent-sample: false  # True by default
+      force-parent-sample: false  # False by default
       include-timers: true  # add timers and pre-/post-processors execution time to samples
       do:
       - http://example.com/shop
