@@ -1,9 +1,7 @@
 from tests import BZTestCase
 
-from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener, FunctionalSample
-from tests.mocks import MockFunctionalReader, MockFunctionalListeners
-
-
+from bzt.modules.functional import FunctionalAggregator, FunctionalSample
+from tests.mocks import MockFunctionalReader, MockFunctionalListener
 
 
 class TestFunctionalAggregator(BZTestCase):

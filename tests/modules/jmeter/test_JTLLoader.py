@@ -1,7 +1,7 @@
 from bzt import TaurusConfigError
 from bzt.modules.jmeter import JTLLoaderExecutor, FuncJTLReader, JTLReader
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from modules import FunctionalAggregator
+from bzt.modules.functional import FunctionalAggregator
 
 from tests import BZTestCase, close_reader_file, RESOURCES_DIR
 from tests.mocks import EngineEmul, MockReader, MockFunctionalListener
