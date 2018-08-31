@@ -593,7 +593,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def __force_tran_parent_sample(self, jmx):
         scenario = self.get_scenario()
-        if scenario.get("force-parent-sample", True):
+        if scenario.get("force-parent-sample", False):
             self.log.debug("Enforcing parent sample for transaction controller")
             jmx.set_text('TransactionController > boolProp[name="TransactionController.parent"]', 'true')
 

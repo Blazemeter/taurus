@@ -1,1 +1,0 @@
-- make percentiles and standard deviation be calculated only when queried, this postpones heavy calculation into a "lazy" model

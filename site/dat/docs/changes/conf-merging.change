@@ -1,3 +1,0 @@
-- remove `BetterDict` usage from `DataPoin` and `KPISet` - impactful internal change
-- fix nested dict merge operations with prefix flags (`~`, `$` etc)
-- add JSON representers for `KPISet` and `DataPoint`

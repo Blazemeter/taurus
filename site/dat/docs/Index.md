@@ -48,3 +48,4 @@
 
   1. [Changelog](Changelog.md)
   1. [Developer Guide](DeveloperGuide.md)
+  1. [Latest Developer Snapshots](DeveloperGuide.md#Python-Egg-Snapshots)
