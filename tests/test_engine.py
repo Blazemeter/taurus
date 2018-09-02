@@ -3,8 +3,8 @@ import os
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor
-from bzt.six import string_types, communicate
-from bzt.utils import BetterDict, is_windows
+from bzt.six import string_types
+from bzt.utils import BetterDict, is_windows, communicate
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR
 from tests.mocks import EngineEmul
 
