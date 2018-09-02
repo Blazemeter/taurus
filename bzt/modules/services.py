@@ -23,7 +23,6 @@ import subprocess
 import time
 import zipfile
 
-from bzt.six import communicate
 
 try:
     from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
@@ -34,7 +33,7 @@ from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalExce
 from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
-from bzt.utils import replace_in_config, JavaVM, Node
+from bzt.utils import replace_in_config, JavaVM, Node, communicate
 
 
 class Unpacker(Service):

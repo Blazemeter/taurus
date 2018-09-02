@@ -92,18 +92,6 @@ def stream_decode(string):
         return string
 
 
-def unicode_decode(string):
-    return string
-
-
-def communicate(proc):
-    stdout, stderr = proc.communicate()
-    if stderr:
-        stderr = str(stderr, sys.stderr.encoding or sys.getfilesystemencoding())
-    stdout = str(stdout, sys.stdout.encoding or sys.getfilesystemencoding())
-    return stdout, stderr
-
-
 def deunicode(string):
     """
     If string is unicode - convert it to basic string. Otherwise - leave it.
