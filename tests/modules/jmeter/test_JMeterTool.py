@@ -1,5 +1,6 @@
 from . import MockJMeter
 from tests import BZTestCase, RESOURCES_DIR
+from bzt.six import PY3
 
 
 class TestJMeterTool(BZTestCase):
@@ -32,3 +33,15 @@ class TestJMeterTool(BZTestCase):
         self.obj.install_for_jmx(RESOURCES_DIR + "/jmeter/jmx/really_wrong_name.jmx")
 
         self.assertIn(jmx_file + " not found", self.log_recorder.warn_buff.getvalue())
+
+    def test_pmgr(self):
+        out = '\xf1\xe5\xedoutput'
+        err = '\xf1\xe5\xederror'
+
+        if PY3:     # Popen.communicate returns bytes here
+            out = out.encode()
+            err = err.encode()
+
+        self.obj.reaction = [{'output': out, 'error': err}]
+        self.obj.install_for_jmx(RESOURCES_DIR + "/jmeter/jmx/http.jmx")
+        self.assertNotIn("Failed to detect plugins", self.log_recorder.warn_buff.getvalue())
