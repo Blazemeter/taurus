@@ -74,7 +74,7 @@ def unicode_decode(string, errors="strict"):
         return string
 
 
-def communicate(proc):
+def communicate(proc):  # todo: replace usage of it with sync_run()
     out, err = proc.communicate()
     out = unicode_decode(out, errors="ignore")
     err = unicode_decode(err, errors="ignore")
