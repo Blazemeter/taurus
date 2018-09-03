@@ -499,11 +499,12 @@ Each jsr223 element can define the following fields:
 - `script-text` - inline code, specified directly in config file
 - `parameters` - string of parameters to pass to script, empty by default
 - `execute` - whether to execute script before or after the request
+- `compile-cache` - don't recompile scripts every time, turned on by default
 
 If `execute` field is set to `after` - Taurus will generate a JSR223 PostProcessor, if set to `before` - a PreProcessor.
 By default it's set to `after`.
 
-Full form:
+Long form:
 ```yaml
 scenarios:
   jsr-example:
@@ -514,6 +515,7 @@ scenarios:
         script-file: preproc.js
         parameters: foo bar
         execute: before
+        compile-cache: false
       - language: beanshell
         script-file: postproc.bsh
         execute: after
