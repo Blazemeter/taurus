@@ -1140,7 +1140,7 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_jsr223_element(language, script_file, parameters, execute, cache_key, script_text):
+    def _get_jsr223_element(language, script_file, parameters, execute, cache_key='true', script_text=None):
         if execute == "before":
             proc = "JSR223PreProcessor"
         else:
