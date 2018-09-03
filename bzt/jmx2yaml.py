@@ -1183,9 +1183,11 @@ class JMXasDict(JMX):
                     filename = self._get_string_prop(element, 'filename')
                     params = self._get_string_prop(element, 'parameters')
                     script = self._get_string_prop(element, 'script')
+                    cache_key = self._get_string_prop(element, 'cacheKey', default=True)
                     execute = "before" if element.tag in preprocessors else "after"
 
-                    jsr = {"language": language, "parameters": params, "execute": execute}
+                    jsr = {"language": language, "parameters": params,
+                           "execute": execute, "compilation-cache": cache_key}
                     if filename:
                         jsr["script-file"] = filename
                     elif script:
