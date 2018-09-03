@@ -374,7 +374,10 @@ class JMeterScenarioBuilder(JMX):
                 raise TaurusConfigError("jsr223 element must specify one of 'script-file' or 'script-text'")
             parameters = jsr.get("parameters", "")
             execute = jsr.get("execute", "after")
-            children.append(JMX._get_jsr223_element(lang, script_file, parameters, execute, script_text))
+
+            cache_key = str(jsr.get("compile-cache", True)).lower()
+
+            children.append(JMX._get_jsr223_element(lang, script_file, parameters, execute, script_text, cache_key))
             children.append(etree.Element("hashTree"))
 
     def __gen_requests(self, scenario):
