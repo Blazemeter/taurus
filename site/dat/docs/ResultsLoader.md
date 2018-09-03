@@ -1,6 +1,6 @@
-# Data Loader Executor
+# Results Loader Executor
 
-Taurus provides `external-data-loader` executor for cases, where you want to load test
+Taurus provides `external-results-loader` executor for cases, where you want to load test
 results from existing report files generated outside of Taurus control (JTL files from JMeter, `simulation.log` files
 from Gatling, etc).
 
@@ -9,7 +9,7 @@ For example, it can be used to quickly create BlazeMeter report for test data af
 Quick example:
 ```yaml
 execution:
-- executor: external-data-loader
+- executor: external-results-loader
   data-file: kpi.jtl  # required field
   errors-file: error.jtl  # optional field
 

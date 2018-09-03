@@ -10,14 +10,14 @@ from bzt.modules.jmeter import JTLReader, XMLJTLReader
 from bzt.modules.pbench import PBenchKPIReader
 
 
-class ExternalReportAnalyzer(ScenarioExecutor, AggregatorListener):
+class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
     AB_HEADER = "starttime\tseconds\tctime\tdtime\tttime\twait"
     PBENCH_FORMAT = re.compile("^[0-9]+\.[0-9]{3}\t[^\t]*\t([0-9]+\t){9}[0-9]+$")
     # PBENCH_FORMAT = re.compile(r'^([\d\.]+\s+\S+\s+\s+(\d+\s+){9}\d+)$', re.MULTILINE)
 
     def __init__(self):
         # TODO: document this executor
-        super(ExternalReportAnalyzer, self).__init__()
+        super(ExternalResultsLoader, self).__init__()
         self.data_file = None
         self.errors_file = None
         self.reader = None
@@ -25,9 +25,13 @@ class ExternalReportAnalyzer(ScenarioExecutor, AggregatorListener):
         self._prev_ts = -1
 
     def prepare(self):
-        self.data_file = self.execution.get("data-file", TaurusConfigError("Option is required for executor: data-file"))
+        exc = TaurusConfigError("Option is required for executor: data-file")
+        self.data_file = self.execution.get("data-file", exc)
+        self.data_file = self.engine.find_file(self.data_file)
         self.label = self.data_file
         self.errors_file = self.execution.get("errors-jtl", None)
+        if self.errors_file:
+            self.errors_file = self.engine.find_file(self.errors_file)
 
         self.reader = self._get_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):

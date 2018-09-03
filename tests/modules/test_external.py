@@ -1,6 +1,6 @@
 from bzt import TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
-from bzt.modules.external import ExternalReportAnalyzer
+from bzt.modules.external import ExternalResultsLoader
 from bzt.modules.jmeter import FuncJTLReader, JTLReader
 from bzt.modules.ab import TSVDataReader
 from bzt.modules.pbench import PBenchKPIReader
@@ -11,10 +11,10 @@ from tests import BZTestCase, RESOURCES_DIR, close_reader_file
 from tests.mocks import EngineEmul, MockReader
 
 
-class TestExternalReportAnalyzer(BZTestCase):
+class TestExternalResultsLoader(BZTestCase):
     def setUp(self):
-        super(TestExternalReportAnalyzer, self).setUp()
-        self.obj = ExternalReportAnalyzer()
+        super(TestExternalResultsLoader, self).setUp()
+        self.obj = ExternalResultsLoader()
         self.obj.engine = EngineEmul()
 
     def tearDown(self):
@@ -24,7 +24,7 @@ class TestExternalReportAnalyzer(BZTestCase):
             if isinstance(self.obj.reader, JTLReader):
                 close_reader_file(self.obj.reader.csvreader)
                 close_reader_file(self.obj.reader.errors_reader)
-        super(TestExternalReportAnalyzer, self).tearDown()
+        super(TestExternalResultsLoader, self).tearDown()
 
     def configure(self, config):
         self.obj.engine.config.merge(config)

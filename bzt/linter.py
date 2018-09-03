@@ -235,7 +235,7 @@ class ExecutionChecker(Checker):
         if not isinstance(execution, dict):
             return
         if "scenario" not in execution:
-            if "executor" not in execution or execution["executor"] != "jtl-loader":
+            if "executor" not in execution or execution["executor"] != "external-results-loader":
                 self.report(ConfigWarning.ERROR, 'no-scenario', cpath, "execution item doesn't specify scenario")
         for field in execution:
             if field not in known_fields:
