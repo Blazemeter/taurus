@@ -2359,6 +2359,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(script, jsr.find(".//stringProp[@name='filename']").text)
         self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
+        self.assertEqual("true", jsr.find(".//stringProp[@name='cacheKey']").text)
 
     def test_jsr223_exceptions_2(self):
         self.configure({
@@ -2387,10 +2388,12 @@ class TestJMeterExecutor(BZTestCase):
                             "language": "javascript",
                             "script-file": pre_script,
                             "execute": "before",
+                            "compile-cache": False
                         }, {
                             "language": "beanshell",
                             "script-file": post_script,
                             "execute": "after",
+                            "compile-cache": True
                         },
                             'vars.put("a", 1)']
                     }]
@@ -2407,11 +2410,13 @@ class TestJMeterExecutor(BZTestCase):
         pre = pre_procs[0]
         self.assertEqual(pre_script, pre.find(".//stringProp[@name='filename']").text)
         self.assertEqual("javascript", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual("false", pre.find(".//stringProp[@name='cacheKey']").text)
         self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
 
         pre = post_procs[0]
         self.assertEqual(post_script, pre.find(".//stringProp[@name='filename']").text)
         self.assertEqual("beanshell", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual("true", pre.find(".//stringProp[@name='cacheKey']").text)
         self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
 
         pre = post_procs[1]
