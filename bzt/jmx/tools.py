@@ -375,10 +375,9 @@ class JMeterScenarioBuilder(JMX):
             parameters = jsr.get("parameters", "")
             execute = jsr.get("execute", "after")
 
-            cache_key = jsr.get("compile-cache", True)
-            cache_key = str(cache_key).lower()
+            cache_key = str(jsr.get("compile-cache", True)).lower()
 
-            children.append(JMX._get_jsr223_element(lang, script_file, parameters, execute, cache_key, script_text))
+            children.append(JMX._get_jsr223_element(lang, script_file, parameters, execute, script_text, cache_key))
             children.append(etree.Element("hashTree"))
 
     def __gen_requests(self, scenario):
