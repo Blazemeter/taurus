@@ -1187,7 +1187,7 @@ class JMXasDict(JMX):
                     execute = "before" if element.tag in preprocessors else "after"
 
                     jsr = {"language": language, "parameters": params,
-                           "execute": execute, "compilation-cache": cache_key}
+                           "execute": execute, "compile-cache": cache_key}
                     if filename:
                         jsr["script-file"] = filename
                     elif script:
