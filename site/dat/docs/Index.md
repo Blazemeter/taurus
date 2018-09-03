@@ -28,6 +28,7 @@
     1. [Tsung Executor](Tsung.md)
     1. [Molotov Executor](Molotov.md)
     1. [Postman/Newman Executor](Postman.md)
+    1. [Results Loader Executor](ResultsLoader.md)
  1. [Cloud Provisioned Test Execution](Cloud.md)
  1. [Pass/Fail Criteria](PassFail.md)
  1. [Generating Test Reports](Reporting.md)

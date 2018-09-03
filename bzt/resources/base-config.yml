@@ -76,6 +76,8 @@ modules:
     class: bzt.modules.services.AppiumLoader
   virtual-display:
     class: bzt.modules.services.VirtualDisplay
+  external-results-loader:
+    class: bzt.modules.external.ExternalResultsLoader
 
   # online services integrations
   blazemeter:
