@@ -928,38 +928,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         return diagnostics
 
 
-class JTLLoaderExecutor(ScenarioExecutor):
-    """
-    Executor type that loads existing kpi.jtl and errors.jtl/trace.jtl
-    """
-
-    def __init__(self):
-        super(JTLLoaderExecutor, self).__init__()
-        self.kpi_jtl = None
-        self.log_jtl = None
-        self.reader = None
-
-    def prepare(self):
-        kpi_jtl = self.execution.get("kpi-jtl", None)
-        if kpi_jtl is None and not self.engine.is_functional_mode():
-            raise TaurusConfigError("Option is required for executor: kpi-jtl")
-        self.kpi_jtl = self.engine.find_file(kpi_jtl)
-
-        log_jtl = self.execution.get("errors-jtl", None)
-        if log_jtl:
-            self.log_jtl = self.engine.find_file(log_jtl)
-
-        if isinstance(self.engine.aggregator, ConsolidatingAggregator):
-            self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
-            self.engine.aggregator.add_underling(self.reader)
-        elif isinstance(self.engine.aggregator, FunctionalAggregator):
-            self.reader = FuncJTLReader(self.log_jtl, self.engine, self.log)
-            self.engine.aggregator.add_underling(self.reader)
-
-    def check(self):
-        return True
-
-
 class JTLReader(ResultsReader):
     """
     Class to read KPI JTL
@@ -1483,6 +1451,35 @@ class JTLErrorsReader(object):
         for child in elem:
             if child.tag == tag:
                 return child.text
+
+
+class XMLJTLReader(JTLErrorsReader, ResultsReader):
+    def __init__(self, filename, parent_logger):
+        super(XMLJTLReader, self).__init__(filename, parent_logger)
+        self.items = []
+
+    def _read(self, final_pass=False):
+        self.read_file()
+        while self.items:
+            yield self.items.pop(0)
+
+    def _parse_element(self, elem):
+        tstmp = int(int(elem.get("ts")) / 1000)
+        label = elem.get("lb")
+        rtm = int(elem.get("t")) / 1000.0
+        ltc = int(elem.get("lt")) / 1000.0 if "lt" in elem.attrib else 0
+        cnn = int(elem.get("ct")) / 1000.0 if "ct" in elem.attrib else 0
+        byte_count = int(elem.get("by")) if "by" in elem.attrib else 0
+        concur = int(elem.get("na")) if "na" in elem.attrib else 0
+        trname = ''
+
+        rcd = elem.get("rc")
+        message = self.get_failure_message(elem)
+        if message is None:
+            message = elem.get('rm')
+
+        error = message if elem.get("s") == "false" else None
+        self.items.append((tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count))
 
 
 class JMeter(RequiredTool):

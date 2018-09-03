@@ -76,8 +76,6 @@ modules:
     class: bzt.modules.services.AppiumLoader
   virtual-display:
     class: bzt.modules.services.VirtualDisplay
-  jtl-loader:
-    class: bzt.modules.jmeter.JMeterJTLLoaderExecutor
   external-data-loader:
     class: bzt.modules.external.ExternalReportAnalyzer
 

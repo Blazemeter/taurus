@@ -941,27 +941,3 @@ execution:
 - executor: jmeter
   scenario: protocols-demo
 ```
-
-## JTL Loader
-
-Taurus provides `jtl-loader` executor for cases, where you want to load test results from existing JTL files generated outside of Taurus control.
-
-```yaml
-execution:
-- executor: jtl-loader
-  kpi-jtl: kpi.jtl  # CSV JTL file, required
-  errors-jtl: error.jtl  # XML JTL file, optional
-```
-
-For example, you can use `jtl-loader` along with BlazeMeter reporter to turn existing JTL files into test reports:
-
-```yaml
-execution:
-- executor: jtl-loader
-  kpi-jtl: kpi.jtl
-
-reporting:
-- module: blazemeter
-  report-name: Test 1
-  test: Taurus JTL Loader Demo
-```
