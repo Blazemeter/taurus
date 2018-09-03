@@ -960,6 +960,7 @@ execution:
 - executor: jtl-loader
   kpi-jtl: kpi.jtl
 
+reporting:
 - module: blazemeter
   report-name: Test 1
   test: Taurus JTL Loader Demo
