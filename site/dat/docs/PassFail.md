@@ -1,7 +1,8 @@
 # Pass/Fail Criteria
 
-Every execution has pass/fail status and there is a way to set this status based on runtime criteria.
-Special `passfail` module offers this functionality. Another useful feature of pass/fail criteria
+Every load test you run should have pass/fail status. There is a way to set this status in Taurus, based on runtime criteria. Special `passfail` module offers this functionality. 
+
+Another useful feature of pass/fail module
 is _auto-stop_ functionality, allowing to interrupt failed tests automatically, sparing the time and
 resources.
 

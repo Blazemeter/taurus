@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.13.0<sup>next</sup>
+## 1.13.0<sup>4 sep 2018</sup>
 - Windows installer is now self-contained, can be used without network connection (**need to uninstall older versions first!**)
 - remove `BetterDict` usage from `DataPoint` and `KPISet` - impactful internal change
 - fix nested dict merge operations with prefix flags (`~`, `$` etc)
