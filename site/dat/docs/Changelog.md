@@ -1,7 +1,7 @@
 # Changelog
 
-## 1.12.2<sup>next</sup>
-- Windows installer is now self-contained, can be used without network connection (**needs to uninstall older versions first!**)
+## 1.13.0<sup>next</sup>
+- Windows installer is now self-contained, can be used without network connection (**need to uninstall older versions first!**)
 - remove `BetterDict` usage from `DataPoint` and `KPISet` - impactful internal change
 - fix nested dict merge operations with prefix flags (`~`, `$` etc)
 - restore `stdev` KPI reporting
@@ -20,7 +20,7 @@
 - fix handling of JMeter script encodings
 - fix Final Stats Reporter crashing on `long` data type
 - do not send multiline `note` to BZA
-- don't change PYTHONPATH unless really needed in Python executors
+- don't change `PYTHONPATH` unless really needed in Python executors
 - fix a few Swagger2YAML converter crashes
 - fix handling of string `body` in Gatling script generator
 - handle `download-link` and `version` for JMeter to support nightly builds
@@ -31,10 +31,13 @@
 - handle log verbosity flag from config even better
 - read pytest assertion details when available
 - add ability to specify separate pass/fail criteria for cloud
-
+- add `external-results-loader` executor
+- do not force 'Generate parent sample' for all transactions in JMeter
+- cache JSR223 scripts in JMeter by default
+- ship older LocustIO in Docker image (0.8.1)
 
 ## 1.12.1<sup>11 jul 2018</sup>
-- set `LC_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
+- set `LC\_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
 - support SSL certificates for proxies with `settings.proxy.ssl-cert` option
 - limit max variety for error messages with `max-error-variety` option
 - add Authorization Manager support for JMeter YAML scripting
@@ -67,7 +70,7 @@
 - storeTitle, storeString, storeTextBy*, storeTitle and storeValueBy* added to Nose Request (Selenium)
 - type command added to Nose Request (Selenium)
 - summary Labels added to Final Stats Reporting module 
-- built-in new support module for generated selenium script called selenium_taurus_extras
+- built-in new support module for generated selenium script called `selenium\_taurus\_extras`
 - services enhancing the Selenium executor can now be notified of test iteration progress
 - variable support added to Selenium (Nose)
 - new window management support was incorporated for selectWindow and closeWindow. Windows by name or sequential name incorporated (Selenium IDE and SideeX style)

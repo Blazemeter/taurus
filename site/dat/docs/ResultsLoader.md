@@ -1,10 +1,9 @@
-# Results Loader Executor
+# Existing Results Loader
 
 Taurus provides `external-results-loader` executor for cases, where you want to load test
-results from existing report files generated outside of Taurus control (JTL files from JMeter, `simulation.log` files
-from Gatling, etc).
+results from existing output files, those generated outside of Taurus (JTL files from JMeter, `simulation.log` files from Gatling, etc).
 
-For example, it can be used to quickly create BlazeMeter report for test data after the test.
+For example, it can be used to quickly generate online [BlazeMeter report](BlazemeterReporter.md) for test files that you obtained from standalone JMeter run.
 
 Quick example:
 ```yaml
@@ -19,8 +18,8 @@ reporting:
 ```
 
 List of supported formats:
-- `kpi.jtl`/`error.jtl` (JMeter)
-- `pbench-kpis.txt` (PBench)
+- `kpi.jtl`/`error.jtl` (JMeter CSV & XML files)
 - `simulation.log` (Gatling)
 - `grinder-bzt-kpi.log` (Grinder)
 - TSV files (Apache Benchmark)
+- `pbench-kpis.txt` (PBench)
