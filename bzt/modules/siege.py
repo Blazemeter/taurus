@@ -44,9 +44,10 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
     def prepare(self):
         self.scenario = self.get_scenario()
         self.tool_path = self.install_required_tools()
+        load = self.get_load()
 
-        if self.env.get("SIEGERC"):
-          with open( self.env.get("SIEGERC"), 'r') as rc_file:
+        if load.rc:
+          with open( load.rc, 'r') as rc_file:
             config_params = rc_file.readlines()
         else:
           config_params = ('verbose = true',
