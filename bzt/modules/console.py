@@ -211,6 +211,8 @@ class ConsoleStatusReporter(Reporter, AggregatorListener, Singletone):
 
         try:
             self.console.add_data(data)
+        except KeyboardInterrupt:
+            raise
         except BaseException as exc:
             self.log.warning("Failed to add datapoint to display: %s", exc)
             self.log.debug("%s", traceback.format_exc())
@@ -794,6 +796,7 @@ class LabelStatsTable(Columns):
 
     :type key: str
     """
+
     def __init__(self, key):
         self.labels = SampleLabelsNames()
         self.stats_table = StatsTable()

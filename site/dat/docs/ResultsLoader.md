@@ -5,7 +5,9 @@ results from existing output files, those generated outside of Taurus (JTL files
 
 For example, it can be used to quickly generate online [BlazeMeter report](BlazemeterReporter.md) for test files that you obtained from standalone JMeter run.
 
-Quick example:
+There is shorthand for running this directly from command-line: `bzt path/to/file.jtl -report`
+
+If you need to use some more options to loader, here's YAML config example:
 ```yaml
 execution:
 - executor: external-results-loader
@@ -17,7 +19,7 @@ reporting:
   test: Taurus Data Loader (JMeter)
 ```
 
-List of supported formats:
+List of supported file formats:
 - `kpi.jtl`/`error.jtl` (JMeter CSV & XML files)
 - `simulation.log` (Gatling)
 - `grinder-bzt-kpi.log` (Grinder)

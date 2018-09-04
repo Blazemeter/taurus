@@ -238,12 +238,16 @@ class CLI(object):
         """
         url_shorthands = []
         jmx_shorthands = []
+        jtl_shorthands = []
         try:
             url_shorthands = self.__get_url_shorthands(configs)
             configs.extend(url_shorthands)
 
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
+
+            jtl_shorthands = self.__get_jtl_shorthands(configs)
+            configs.extend(jtl_shorthands)
 
             if not self.engine.config.get(SETTINGS).get('verbose', False, force_set=True):
                 self.engine.logging_level_down = self._level_down_logging
@@ -259,7 +263,7 @@ class CLI(object):
             self.handle_exception(exc)
         finally:
             try:
-                for fname in url_shorthands + jmx_shorthands:
+                for fname in url_shorthands + jmx_shorthands + jtl_shorthands:
                     os.remove(fname)
                 self.engine.post_process()
             except BaseException as exc:
@@ -360,6 +364,36 @@ class CLI(object):
         else:
             return []
 
+    def __get_jtl_shorthands(self, configs):
+        """
+        Generate json file with execution, executor and scenario settings
+        :type configs: list
+        :return: list
+        """
+        jtls = []
+        for filename in configs[:]:
+            if filename.lower().endswith(".jtl"):
+                jtls.append(filename)
+                configs.remove(filename)
+
+        if jtls:
+            self.log.debug("Adding JTL shorthand config for: %s", jtls)
+            fds = NamedTemporaryFile(prefix="jtl_", suffix=".json")
+            fname = fds.name
+            fds.close()
+
+            config = Configuration()
+
+            for jtl in jtls:
+                piece = {"executor": "external-results-loader", "data-file": jtl}
+                config.get(ScenarioExecutor.EXEC, [], force_set=True).append(piece)
+
+            config.dump(fname, Configuration.JSON)
+
+            return [fname]
+        else:
+            return []
+
     def __get_url_shorthands(self, configs):
         """
         :type configs: list
@@ -439,7 +473,7 @@ class ConfigOverrider(object):
         """
         Apply overrides
         :type options: list[str]
-        :type dest: BetterDict
+        :type dest: Configuration
         """
         for option in options:
             name = option[:option.index('=')]
