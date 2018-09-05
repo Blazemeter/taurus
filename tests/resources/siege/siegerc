@@ -1,0 +1,9 @@
+verbose = true
+csv = true
+timestamp = false
+fullurl = true
+display-id = true
+show-logfile = false
+logging = false
+foo = baz
+
