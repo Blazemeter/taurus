@@ -46,10 +46,10 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         self.tool_path = self.install_required_tools()
 
         if self.execution.get("rc-file", None):
-          with open( self.execution.get("rc-file"), 'r') as rc_file:
-            config_params = rc_file.readlines()
+            with open( self.execution.get("rc-file"), 'r') as rc_file:
+                config_params = rc_file.readlines()
         else:
-          config_params = ('verbose = true',
+            config_params = ('verbose = true',
                            'csv = true',
                            'timestamp = false',
                            'fullurl = true',
