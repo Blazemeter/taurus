@@ -90,6 +90,7 @@ class TestSiegeExecutor(BZTestCase):
         self.obj.execution.merge({
             "concurrency": 2,
             "iterations": 3,
+            "rc-file": join(RESOURCES_DIR, "siege", "siegerc")}})
             "scenario": {
                 "requests": [
                     "http://blazedemo.com",
