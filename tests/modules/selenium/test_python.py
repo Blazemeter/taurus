@@ -1228,6 +1228,23 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.log.info(test_script)
         self.assertIn("class TestAPI(unittest.TestCase)", test_script)
 
+    def test_data_sources(self):
+        self.configure({
+            "execution": [{
+                "test-mode": "apiritif",
+                "scenario": {
+                    "data-sources": [
+                        "urls.csv"
+                    ],
+                    "requests": [
+                        "http://localhost:8000/${url}",
+                    ]
+                }
+            }]
+        })
+        self.obj.prepare()
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "/apiritif/test_codegen_data_sources.py")
+
 
 class TestPyTestExecutor(BZTestCase):
     def setUp(self):

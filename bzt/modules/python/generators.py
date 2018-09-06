@@ -766,7 +766,6 @@ log.setLevel(logging.DEBUG)
 
     def gen_classdef(self):
         class_body = []
-        class_body.append(self.gen_empty_line_stmt())
         class_body.extend(self.gen_test_methods())
 
         class_name = create_class_name(self.label)
