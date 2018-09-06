@@ -93,7 +93,6 @@ class TaurusReporter {
     }
 
     extractAssertions(item, sample) {
-        console.log('extracting assertions from item ', JSON.stringify(item));
         var assertions = [];
         for (var i = 0; i < item.assertions.length; i++) {
             var assertion = item.assertions[i];
