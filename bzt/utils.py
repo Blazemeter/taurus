@@ -100,6 +100,10 @@ def get_full_path(path, default=None, step_up=0):
     return res
 
 
+BZT_DIR = get_full_path(__file__, step_up=1)
+RESOURCES_DIR = os.path.join(BZT_DIR, "resources")
+
+
 def get_files_recursive(dir_name, exclude_mask=''):
     for root, _, files in os.walk(dir_name):
         for _file in files:

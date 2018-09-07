@@ -475,32 +475,30 @@ class TestConverter(BZTestCase):
             self.assertEqual(len(requests), 1)
             request = requests[0]
             self.assertIn("jsr223", request)
-            jsrs = request["jsr223"]
-            self.assertTrue(isinstance(jsrs, list))
-            self.assertEqual(len(jsrs), 5)
-            self.assertEqual(jsrs[0]["language"], "beanshell")
-            self.assertEqual(jsrs[0]["script-text"], "scripty")
-            self.assertEqual(jsrs[0]["parameters"], "parames")
-            self.assertNotIn('script-file', jsrs[0])
-            self.assertEqual(jsrs[1]["language"], "javascript")
-            self.assertEqual(jsrs[1]["script-text"], u'console.log("ПРИВЕТ");\nline("2");')
-            self.assertEqual(jsrs[1]["parameters"], "a b c")
-            self.assertNotIn('script-file', jsrs[1])
-            self.assertEqual(jsrs[2]["language"], "javascript")
-            self.assertEqual(jsrs[2]["script-file"], "script.js")
-            self.assertEqual(jsrs[2]["parameters"], None)
-            self.assertNotIn('script-text', jsrs[2])
-            self.assertEqual(jsrs[3]["language"], "beanshell")
-            self.assertEqual(jsrs[3]["execute"], "before")
-            self.assertEqual(jsrs[3]["parameters"], None)
-            self.assertEqual(jsrs[3]['script-text'], 'console.log("beanshell aka jsr223");')
-            self.assertNotIn('script-file', jsrs[3])
-            self.assertEqual(jsrs[4]["language"], "java")
-            self.assertEqual(jsrs[4]["execute"], "before")
-            self.assertEqual(jsrs[4]["parameters"], None)
-            self.assertIn('BlazeDemo.java', jsrs[4]['script-file'])
-            self.assertNotIn('script-text', jsrs[4])
-            self.assertTrue(os.path.exists(os.path.join(get_full_path(self.obj.dst_file, step_up=1), 'script.js')))
+            parsed_jsrs = request["jsr223"]
+            self.assertTrue(isinstance(parsed_jsrs, list))
+            self.assertEqual(len(parsed_jsrs), 5)
+
+            target = [{
+                'script-text': 'scripty', 'execute': 'before', 'compile-cache': 'false',
+                'language': 'beanshell', 'parameters': 'paramssss'
+            }, {
+                'script-text': u'console.log("\u041f\u0420\u0418\u0412\u0415\u0422");\nline("2");',
+                'execute': 'after', 'compile-cache': 'true', 'language': 'javascript', 'parameters': 'a b c'
+            }, {
+                'execute': 'after', 'compile-cache': 'true', 'language': 'javascript', 'parameters': None,
+                'script-file': 'script.js'
+            }, {
+                'script-text': 'console.log("beanshell aka jsr223");', 'execute': 'before',
+                'compile-cache': True, 'language': 'beanshell', 'parameters': None
+            }, {
+                'execute': 'before', 'compile-cache': 'true', 'language': 'java', 'parameters': None,
+                'script-file': 'tests/resources/BlazeDemo.java'}]
+
+            self.assertEqual(parsed_jsrs, target)
+
+            js_script = os.path.join(get_full_path(self.obj.dst_file, step_up=1), 'script.js')
+            self.assertTrue(os.path.exists(js_script))
         finally:
             os.remove(os.path.join(get_full_path(self.obj.dst_file, step_up=1), 'script.js'))
 

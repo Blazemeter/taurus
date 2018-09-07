@@ -1140,17 +1140,20 @@ class JMX(object):
         return element
 
     @staticmethod
-    def _get_jsr223_element(language, script_file, parameters, execute, script_text=None):
+    def _get_jsr223_element(language, script_file, parameters, execute, script_text=None, cache_key='true'):
         if execute == "before":
-            element = etree.Element("JSR223PreProcessor", guiclass="TestBeanGUI",
-                                    testclass="JSR223PreProcessor", testname="JSR223 PreProcessor")
+            proc = "JSR223PreProcessor"
         else:
-            element = etree.Element("JSR223PostProcessor", guiclass="TestBeanGUI",
-                                    testclass="JSR223PostProcessor", testname="JSR223 PostProcessor")
+            proc = "JSR223PostProcessor"
+
+        element = etree.Element(proc, guiclass="TestBeanGUI", testclass=proc, testname=proc)
+
         element.append(JMX._string_prop("filename", script_file if script_file else ''))
         element.append(JMX._string_prop("script", script_text if script_text else ''))
         element.append(JMX._string_prop("parameters", parameters))
         element.append(JMX._string_prop("scriptLanguage", language))
+        element.append(JMX._string_prop("cacheKey", cache_key))
+
         return element
 
     @staticmethod

@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import time
@@ -281,3 +282,32 @@ class TestNewmanExecutor(BZTestCase):
         obj.post_process()
         obj.engine.aggregator.post_process()
         self.assertTrue(obj.has_results())
+
+    def test_broken(self):
+        obj = NewmanExecutor()
+        obj.engine = EngineEmul()
+        obj.env = obj.engine.env
+        obj.engine.aggregator = ConsolidatingAggregator()
+        obj.engine.config.merge({"scenarios": {"newman": {
+            "script": RESOURCES_DIR + 'functional/postman.json',
+            "globals": {"a": 123},
+        }}})
+        obj.execution.merge({"scenario": "newman"})
+        obj.engine.aggregator.prepare()
+        obj.prepare()
+        obj.startup()
+        obj.engine.aggregator.startup()
+        while not obj.check():
+            obj.engine.aggregator.check()
+            time.sleep(obj.engine.check_interval)
+        obj.shutdown()
+        obj.engine.aggregator.shutdown()
+        obj.post_process()
+        obj.engine.aggregator.post_process()
+        self.assertTrue(obj.has_results())
+        with open(obj.report_file) as fds:
+            samples = [json.loads(line) for line in fds.readlines()]
+        self.assertEqual(1, len(samples))
+        sample = samples[0]
+        self.assertEqual(sample["status"], "FAILED")
+        self.assertEqual(sample["error_msg"], "expect response be 200")

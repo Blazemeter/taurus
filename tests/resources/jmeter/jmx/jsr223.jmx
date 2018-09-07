@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<jmeterTestPlan version="1.2" properties="2.9" jmeter="3.0 r1743807">
+<jmeterTestPlan version="1.2" properties="4.0" jmeter="4.0 r1823414">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="Test Plan" enabled="true">
       <stringProp name="TestPlan.comments"></stringProp>
@@ -32,8 +32,6 @@
           </elementProp>
           <stringProp name="HTTPSampler.domain"></stringProp>
           <stringProp name="HTTPSampler.port"></stringProp>
-          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
-          <stringProp name="HTTPSampler.response_timeout"></stringProp>
           <stringProp name="HTTPSampler.protocol"></stringProp>
           <stringProp name="HTTPSampler.contentEncoding"></stringProp>
           <stringProp name="HTTPSampler.path"></stringProp>
@@ -42,20 +40,21 @@
           <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
           <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
           <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
-          <boolProp name="HTTPSampler.monitor">false</boolProp>
           <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
+          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
+          <stringProp name="HTTPSampler.response_timeout"></stringProp>
         </HTTPSamplerProxy>
         <hashTree>
           <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="JSR223 PreProcessor" enabled="true">
-            <stringProp name="cacheKey"></stringProp>
+            <stringProp name="cacheKey">false</stringProp>
             <stringProp name="filename"></stringProp>
-            <stringProp name="parameters">parames</stringProp>
+            <stringProp name="parameters">paramssss</stringProp>
             <stringProp name="script">scripty</stringProp>
             <stringProp name="scriptLanguage">beanshell</stringProp>
           </JSR223PreProcessor>
           <hashTree/>
           <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="JSR223 PostProcessor" enabled="true">
-            <stringProp name="cacheKey"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
             <stringProp name="filename"></stringProp>
             <stringProp name="parameters">a b c</stringProp>
             <stringProp name="script">console.log(&quot;ПРИВЕТ&quot;);
@@ -67,7 +66,7 @@ line(&quot;2&quot;);</stringProp>
             <stringProp name="scriptLanguage">javascript</stringProp>
             <stringProp name="parameters"></stringProp>
             <stringProp name="filename"></stringProp>
-            <stringProp name="cacheKey"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
             <stringProp name="script">log.info(&quot;bye&quot;);
 line(&quot;2&quot;);
 line(&quot;3&quot;);
@@ -93,7 +92,7 @@ line(&quot;11&quot;);
             <stringProp name="scriptLanguage">java</stringProp>
             <stringProp name="parameters"></stringProp>
             <stringProp name="filename">tests/resources/BlazeDemo.java</stringProp>
-            <stringProp name="cacheKey"></stringProp>
+            <stringProp name="cacheKey">true</stringProp>
             <stringProp name="script"></stringProp>
           </JSR223PreProcessor>
           <hashTree/>
