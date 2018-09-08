@@ -24,6 +24,8 @@ class TestCLI(BZTestCase):
         self.obj = CLI(self)
         self.aliases = []
         self.obj.engine = EngineEmul()
+        #self.obj.log.warning('log_check')
+        self.assertTrue(os.path.exists(CLI.options.log))
 
     def test_perform_normal(self):
         ret = self.obj.perform([RESOURCES_DIR + "json/mock_normal.json"])

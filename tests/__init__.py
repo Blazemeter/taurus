@@ -32,7 +32,7 @@ def setup_test_logging():
         root.debug("Already set up logging")
 
 
-# setup_test_logging()
+setup_test_logging()
 logging.info("Bootstrapped test")
 
 
