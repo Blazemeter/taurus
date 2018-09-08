@@ -38,7 +38,7 @@ from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
-from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url
+from bzt.utils import is_int, BetterDict, get_full_path, is_url
 
 
 class CLI(object):
