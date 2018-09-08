@@ -22,10 +22,9 @@ class TestCLI(BZTestCase):
         self.option = []
         self.datadir = os.path.join(os.path.dirname(__file__), "..", "build", "acli")
         self.obj = CLI(self)
+        self.assertTrue(os.path.exists(self.log))
         self.aliases = []
         self.obj.engine = EngineEmul()
-        #self.obj.log.warning('log_check')
-        self.assertTrue(os.path.exists(CLI.options.log))
 
     def test_perform_normal(self):
         ret = self.obj.perform([RESOURCES_DIR + "json/mock_normal.json"])

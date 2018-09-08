@@ -64,7 +64,6 @@ class CLI(object):
         self.exit_code = 0
 
     @staticmethod
-    @run_once
     def setup_logging(options):
         """
         Setting up console and file logging, colored if possible
