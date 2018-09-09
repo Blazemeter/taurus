@@ -131,23 +131,26 @@ class CLI(LoggedObj):
         Close log handlers, copy log to artifacts dir, recreate file handlers
         :return:
         """
-        if self.options.log:
-            for handler in self.log.handlers:
-                if issubclass(handler.__class__, logging.FileHandler):
-                    self.log.debug("Closing log handler: %s", handler.baseFilename)
-                    handler.close()
-                    self.log.handlers.remove(handler)
+        def is_file_handler(handler):
+            return isinstance(handler, logging.FileHandler)
 
-            if os.path.exists(self.options.log):
-                self.engine.existing_artifact(self.options.log, move=True, target_filename="bzt.log")
-            self.options.log = os.path.join(self.engine.artifacts_dir, "bzt.log")
+        for handler in ROOT_LOGGER.handlers:
+            if is_file_handler(handler):
+                self.log.debug("Closing log handler: %s", handler.baseFilename)
+                handler.close()
 
-            file_handler = logging.FileHandler(self.options.log)
-            file_handler.setLevel(logging.DEBUG)
-            file_handler.setFormatter(Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s"))
+        ROOT_LOGGER.handlers = [handler for handler in ROOT_LOGGER.handlers if not is_file_handler(handler)]
 
-            self.log.addHandler(file_handler)
-            self.log.debug("Switched writing logs to %s", self.options.log)
+        if os.path.exists(self.options.log):
+            self.engine.existing_artifact(self.options.log, move=True, target_filename="bzt.log")
+        self.options.log = os.path.join(self.engine.artifacts_dir, "bzt.log")
+
+        file_handler = logging.FileHandler(self.options.log)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s"))
+
+        ROOT_LOGGER.addHandler(file_handler)
+        self.log.debug("Switched writing logs to %s", self.options.log)
 
     def __configure(self, configs):
         self.log.info("Starting with configs: %s", configs)
