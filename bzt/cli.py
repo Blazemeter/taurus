@@ -38,7 +38,7 @@ from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
-from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url, LoggedObj, ROOT_LOGGER
+from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url, LoggedObj, ROOT_LOGGER, is_file_handler
 
 
 class CLI(LoggedObj):
@@ -118,22 +118,19 @@ class CLI(LoggedObj):
         Close log handlers
         :return:
         """
-        if self.options.log:
-            # need to finalize the logger before finishing
-            for handler in self.log.handlers:
-                if issubclass(handler.__class__, logging.FileHandler):
-                    self.log.debug("Closing log handler: %s", handler.baseFilename)
-                    handler.close()
-                    self.log.handlers.remove(handler)
+        # need to finalize the logger before finishing
+        for handler in ROOT_LOGGER.handlers:
+            if is_file_handler(handler):
+                self.log.debug("Closing log handler: %s", handler.baseFilename)
+                handler.close()
+
+        ROOT_LOGGER.handlers = [handler for handler in ROOT_LOGGER.handlers if not is_file_handler(handler)]
 
     def __move_log_to_artifacts(self):
         """
         Close log handlers, copy log to artifacts dir, recreate file handlers
         :return:
         """
-        def is_file_handler(handler):
-            return isinstance(handler, logging.FileHandler)
-
         for handler in ROOT_LOGGER.handlers:
             if is_file_handler(handler):
                 self.log.debug("Closing log handler: %s", handler.baseFilename)
@@ -210,16 +207,16 @@ class CLI(LoggedObj):
 
     def _level_down_logging(self):
         target = logging.DEBUG if self.__is_verbose() else logging.INFO
-        for handler in self.log.handlers:
-            if issubclass(handler.__class__, logging.FileHandler):
+        for handler in ROOT_LOGGER.handlers:
+            if is_file_handler(handler):
                 if handler.level != target:
                     msg = "Leveling down log file verbosity to %s, use -v option to have DEBUG messages enabled"
                     self.log.debug(msg, logging.getLevelName(target))
                     handler.setLevel(target)
 
     def _level_up_logging(self):
-        for handler in self.log.handlers:
-            if issubclass(handler.__class__, logging.FileHandler):
+        for handler in ROOT_LOGGER.handlers:
+            if is_file_handler(handler):
                 if handler.level != logging.DEBUG:
                     handler.setLevel(logging.DEBUG)
                     self.log.debug("Leveled up log file verbosity")

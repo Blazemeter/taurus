@@ -132,6 +132,10 @@ def run_once(func):
     return wrapper
 
 
+def is_file_handler(handler):
+    return isinstance(handler, logging.FileHandler)
+
+
 def replace_in_config(config, samples, substitutes, log=None):
     def file_replacer(value, key, container):
         if value in samples:
