@@ -25,7 +25,7 @@ from bzt.jmx import JMX
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
 from bzt.requests_model import RequestVisitor, has_variable_pattern
 from bzt.six import etree, iteritems, numeric_types
-from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, guess_csv_dialect, load_class, LoggedObj
+from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, guess_csv_dialect, load_class
 
 
 class RequestCompiler(RequestVisitor):
