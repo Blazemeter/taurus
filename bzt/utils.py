@@ -1275,12 +1275,14 @@ class Node(RequiredTool):
 
 
 class MirrorsManager(LoggedObj):
+    # support deprecated logging interface
     def __init__(self, base_link, parent_logger=None, http_client=None):
         """
 
         :type base_link: str
         :type http_client: HTTPClient
         """
+        super(MirrorsManager, self).__init__()
         self.base_link = base_link
         self.http_client = http_client
         self.page_source = None
