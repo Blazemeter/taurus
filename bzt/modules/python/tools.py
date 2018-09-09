@@ -38,10 +38,9 @@ class TaurusRobotRunner(RequiredTool):
 
 
 class Robot(RequiredTool):
-    def __init__(self, python_executable, parent_logger):
+    def __init__(self, python_executable, parent_logger=None):  # support deprecated logging interface
         super(Robot, self).__init__("RobotFramework", "")
         self.python_executable = python_executable
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         self.log.debug('Checking Robot Framework: %s' % self.tool_path)

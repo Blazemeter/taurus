@@ -19,7 +19,7 @@ import mimetypes
 import re
 
 from bzt import TaurusConfigError, TaurusInternalException
-from bzt.utils import ensure_is_dict, dehumanize_time
+from bzt.utils import ensure_is_dict, dehumanize_time, ROOT_LOGGER
 
 VARIABLE_PATTERN = re.compile("\${.+\}")
 
@@ -49,7 +49,7 @@ class HTTPRequest(Request):
 
     def __init__(self, config, scenario, engine):
         self.engine = engine
-        self.log = self.engine.log.getChild(self.__class__.__name__)
+        self.log = ROOT_LOGGER.getChild(self.__class__.__name__)
         super(HTTPRequest, self).__init__(config, scenario)
         msg = "Option 'url' is mandatory for request but not found in %s" % config
         self.url = self.config.get("url", TaurusConfigError(msg))

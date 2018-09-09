@@ -151,7 +151,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         self.kpi_file = os.path.join(self.engine.artifacts_dir, self.exec_id + "-kpi.log")
 
-        self.reader = DataLogReader(self.kpi_file, self.log)
+        self.reader = DataLogReader(self.kpi_file)
         self.reader.report_by_url = self.settings.get("report-by-url", False)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -222,7 +222,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         :return: script
         """
         script = self.engine.create_artifact("grinder_requests", ".py")
-        builder = GrinderScriptBuilder(self.get_scenario(), self.log)
+        builder = GrinderScriptBuilder(self.get_scenario())
         builder.label = self.label
         builder.build_source_code()
         builder.save(script)
@@ -233,10 +233,10 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         grinder_path = get_full_path(grinder_path)
         self.settings["path"] = grinder_path
         download_link = self.settings.get("download-link", "")
-        required_tools = [TclLibrary(self.log),
-                          JavaVM(self.log),
+        required_tools = [TclLibrary(),
+                          JavaVM(),
                           TaurusJavaHelper(),
-                          Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link=download_link)]
+                          Grinder(grinder_path, version=GrinderExecutor.VERSION, download_link=download_link)]
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -285,10 +285,9 @@ class DataLogReader(ResultsReader):
     DELIMITER = ","
     DETAILS_REGEX = re.compile(r"worker\.(\S+) (.+) -> (\S+) (.+), (\d+) bytes")
 
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger=None):   # support deprecated logging interface
         super(DataLogReader, self).__init__()
         self.report_by_url = False
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.file = FileReader(filename=filename)
         self.idx = {}
         self.partial_buffer = ""
@@ -424,9 +423,8 @@ class DataLogReader(ResultsReader):
 
 
 class Grinder(RequiredTool):        # todo: take it from maven and convert to JarTool(?)
-    def __init__(self, tool_path, parent_logger, version, download_link):
+    def __init__(self, tool_path, parent_logger=None, version="", download_link=""):
         super(Grinder, self).__init__("Grinder", tool_path, download_link=download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
         self.mirror_manager = GrinderMirrorsManager(self.log, self.version)
 
@@ -455,9 +453,9 @@ class Grinder(RequiredTool):        # todo: take it from maven and convert to Ja
 
 
 class GrinderMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, grinder_version):
+    def __init__(self, parent_logger=None, grinder_version=""): # support deprecated logging interface
         self.grinder_version = grinder_version
-        super(GrinderMirrorsManager, self).__init__(GrinderExecutor.MIRRORS_SOURCE, parent_logger)
+        super(GrinderMirrorsManager, self).__init__(GrinderExecutor.MIRRORS_SOURCE)
 
     def _parse_mirrors(self):
         links = []
@@ -485,8 +483,8 @@ from net.grinder.plugin.http import HTTPRequest, HTTPPluginControl, HTTPUtilitie
 from HTTPClient import NVPair
 """
 
-    def __init__(self, scenario, parent_logger):
-        super(GrinderScriptBuilder, self).__init__(scenario, parent_logger)
+    def __init__(self, scenario, parent_logger=None):   # support deprecated logging interface
+        super(GrinderScriptBuilder, self).__init__(scenario)
         self.label = "BZT Requests"
 
     def build_source_code(self):

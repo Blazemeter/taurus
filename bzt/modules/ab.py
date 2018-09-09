@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import logging
 import time
 from math import ceil
 from subprocess import CalledProcessError
@@ -37,7 +36,6 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
 
     def __init__(self):
         super(ApacheBenchmarkExecutor, self).__init__()
-        self.log = logging.getLogger('')
         self.process = None
         self._tsv_file = None
         self.stdout_file = None
@@ -165,9 +163,8 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
 
 
 class TSVDataReader(ResultsReader):
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger=None):   # support deprecated logging interface
         super(TSVDataReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.file = FileReader(filename=filename)
         self.skipped_header = False
         self.concurrency = None
@@ -203,10 +200,8 @@ class TSVDataReader(ResultsReader):
 
 
 class ApacheBenchmark(RequiredTool):
-    def __init__(self, tool_path, parent_logger):
+    def __init__(self, tool_path, parent_logger=None):  # support deprecated logging interface
         super(ApacheBenchmark, self).__init__("ApacheBenchmark", tool_path)
-        self.tool_path = tool_path
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         self.log.debug('Checking ApacheBenchmark: %s' % self.tool_path)

@@ -290,7 +290,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         Initiate online test
         """
         super(BlazeMeterUploader, self).startup()
-        self._user.log = self.log.getChild(self.__class__.__name__)
+        self._user.log = self.log
 
         if not self._session:
             url = self._start_online()

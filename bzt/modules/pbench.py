@@ -107,7 +107,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def install_required_tools(self):
         self._prepare_pbench()
 
-        tool = PBench(self.log, self.pbench.path)
+        tool = PBench(tool_path=self.pbench.path)
         if not tool.check_if_installed():
             tool.install()
 
@@ -269,7 +269,7 @@ class PBenchTool(LoggedObj):
             self.log.info("Generating request schedule file: %s", self.schedule_file)
 
             with open(self.schedule_file, 'wb') as sfd:
-                scheduler = Scheduler(load, self.payload_file, self.log)
+                scheduler = Scheduler(load, self.payload_file)
                 self._write_schedule_file(load, scheduler, sfd)
 
             self.log.info("Done generating schedule file")
@@ -374,7 +374,7 @@ class PBenchTool(LoggedObj):
         pass
 
     def get_results_reader(self):
-        return PBenchKPIReader(self.kpi_file, self.log, self.stats_file)
+        return PBenchKPIReader(filename=self.kpi_file, stats_filename=self.stats_file)
 
     @abstractmethod
     def _get_additional_modules(self):
@@ -583,7 +583,7 @@ class PBenchKPIReader(ResultsReader):
     """
 
     # support deprecated logging interface
-    def __init__(self, filename, parent_logger, stats_filename):
+    def __init__(self, filename, parent_logger=None, stats_filename=""):
         super(PBenchKPIReader, self).__init__()
         self.file = FileReader(filename=filename)
         self.stats_reader = PBenchStatsReader(stats_filename, parent_logger)
@@ -693,7 +693,7 @@ class PBenchStatsReader(LoggedObj):
 
 
 class PBench(RequiredTool):
-    def __init__(self, parent_logger, tool_path):      # support deprecated logging interface
+    def __init__(self, parent_logger=None, tool_path=""):      # support deprecated logging interface
         super(PBench, self).__init__("PBench", tool_path)
 
     def check_if_installed(self):

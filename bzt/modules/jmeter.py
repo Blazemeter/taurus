@@ -934,7 +934,7 @@ class JTLReader(ResultsReader):
     :type errors_reader: JTLErrorsReader
     """
 
-    def __init__(self, filename, parent_logger=None, errors_filename=None):
+    def __init__(self, filename, parent_logger=None, errors_filename=None):     # support deprecated logging interface
         super(JTLReader, self).__init__()
         self.is_distributed = False
         self.csvreader = IncrementalCSVReader(self.log, filename)

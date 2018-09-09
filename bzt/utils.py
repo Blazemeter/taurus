@@ -60,7 +60,8 @@ from bzt.six import stream_decode, file_type, etree, parse, deunicode
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
-ROOT_LOGGING = logging.root
+ROOT_LOGGER = logging.root
+
 
 def sync_run(args, env=None):
     output = check_output(args, env=env, stderr=STDOUT)
@@ -191,7 +192,7 @@ def dehumanize_time(str_time):
 
 class LoggedObj(object):
     def __init__(self):
-        self.log = ROOT_LOGGING.getChild(self.__class__.__name__)
+        self.log = ROOT_LOGGER.getChild(self.__class__.__name__)
 
 
 class BetterDict(defaultdict):
@@ -200,7 +201,7 @@ class BetterDict(defaultdict):
     """
     def __init__(self, *args, **kwargs):
         super(BetterDict, self).__init__(*args, **kwargs)
-        self.log = ROOT_LOGGING.getChild(self.__class__.__name__)
+        self.log = ROOT_LOGGER.getChild(self.__class__.__name__)
 
     @classmethod
     def from_dict(cls, orig):
@@ -378,17 +379,17 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     :return:
     """
     if stdout and not isinstance(stdout, integer_types) and not isinstance(stdout, file_type):
-        ROOT_LOGGING.warning("stdout is not IOBase: %s", stdout)
+        ROOT_LOGGER.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
     if stderr and not isinstance(stderr, integer_types) and not isinstance(stderr, file_type):
-        ROOT_LOGGING.warning("stderr is not IOBase: %s", stderr)
+        ROOT_LOGGER.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
     if isinstance(args, string_types) and not shell:
         args = shlex.split(args, posix=not is_windows())
 
-    ROOT_LOGGING.debug("Executing shell: %s at %s", args, cwd or os.curdir)
+    ROOT_LOGGER.debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
     if is_windows():
         return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
@@ -1428,7 +1429,7 @@ class PythonGenerator(LoggedObj):
     IMPORTS = ''
     INDENT_STEP = 4
 
-    def __init__(self, scenario, parent_logger):
+    def __init__(self, scenario, parent_logger=None):   # support deprecated logging interface
         super(PythonGenerator, self).__init__()
         self.root = etree.Element("PythonCode")
         self.tree = etree.ElementTree(self.root)

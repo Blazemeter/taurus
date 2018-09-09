@@ -1,15 +1,16 @@
 from bzt.jmx.base import JMX
+from bzt.utils import LoggedObj
 
 
-class AbstractThreadGroup(object):
+class AbstractThreadGroup(LoggedObj):
     XPATH = None
     RAMP_UP_SEL = None
     CONCURRENCY_SEL = None
 
-    def __init__(self, element, logger):
+    def __init__(self, element, logger=None):   # support deprecated logging interface
+        super(AbstractThreadGroup, self).__init__()
         self.element = element
         self.gtype = self.__class__.__name__
-        self.log = logger.getChild(self.gtype)
 
     def get_testname(self):
         return self.element.get('testname')
@@ -171,11 +172,11 @@ class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
         rate_prop.text = str(rate)
 
 
-class ThreadGroupHandler(object):
+class ThreadGroupHandler(LoggedObj):
     CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup]
 
-    def __init__(self, logger):
-        self.log = logger.getChild(self.__class__.__name__)
+    def __init__(self, logger=None):    # support deprecated logging interface
+        super(ThreadGroup, self).__init__()
 
     def groups(self, jmx):
         """
@@ -184,7 +185,7 @@ class ThreadGroupHandler(object):
         for _class in self.CLASSES:
             for group in jmx.get(_class.XPATH):
                 if group.get("enabled") != "false":
-                    yield _class(group, self.log)
+                    yield _class(group)
 
     def convert(self, group, target, load, concurrency):
         """

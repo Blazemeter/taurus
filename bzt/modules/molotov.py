@@ -108,7 +108,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
     def install_required_tools(self):
         tool_path = self.settings.get('path', 'molotov')
-        tool = Molotov(tool_path, self.log)
+        tool = Molotov(tool_path)
         if not tool.check_if_installed():
             tool.install()
         return tool_path
@@ -132,9 +132,8 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
 
 class Molotov(RequiredTool):
-    def __init__(self, tool_path, parent_logger):
+    def __init__(self, tool_path, parent_logger=None):  # support deprecated logging interface
         super(Molotov, self).__init__("Molotov", tool_path)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         self.log.debug('Checking Molotov: %s' % self.tool_path)
@@ -154,10 +153,9 @@ class Molotov(RequiredTool):
 
 
 class MolotovReportReader(ResultsReader):
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger=None):   # support deprecated logging interface
         super(MolotovReportReader, self).__init__()
         self.is_distributed = False
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.ldjson_reader = LDJSONReader(filename, self.log)
         self.read_records = 0
         self._concurrency = 0

@@ -60,18 +60,18 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             count_error = TaurusConfigError("Slaves count required when starting in master mode")
             self.expected_slaves = int(self.execution.get("slaves", count_error))
             slaves_ldjson = self.engine.create_artifact("locust-slaves", ".ldjson")
-            self.reader = SlavesReader(slaves_ldjson, self.expected_slaves, self.log)
+            self.reader = SlavesReader(slaves_ldjson, self.expected_slaves)
             self.env.set({"SLAVES_LDJSON": slaves_ldjson})
         else:
             kpi_jtl = self.engine.create_artifact("kpi", ".jtl")
-            self.reader = JTLReader(kpi_jtl, self.log)
+            self.reader = JTLReader(kpi_jtl)
             self.env.set({"JTL": kpi_jtl})
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        tool = LocustIO(self.log)
+        tool = LocustIO()
         if not tool.check_if_installed():
             tool.install()
 
@@ -145,7 +145,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
     def __tests_from_requests(self):
         filename = self.engine.create_artifact("generated_locust", ".py")
-        locust_test = LocustIOScriptBuilder(self.scenario, self.log)
+        locust_test = LocustIOScriptBuilder(self.scenario)
         locust_test.build_source_code()
         locust_test.save(filename)
         return filename
@@ -191,9 +191,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
 
 class LocustIO(RequiredTool):
-    def __init__(self, parent_logger):
+    def __init__(self, parent_logger=None):     # support deprecated logging interface
         super(LocustIO, self).__init__("LocustIO", "locust")
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         self.log.debug('Checking LocustIO: %s' % self.tool_path)
@@ -210,14 +209,13 @@ class LocustIO(RequiredTool):
 
 
 class SlavesReader(ResultsProvider):
-    def __init__(self, filename, num_slaves, parent_logger):
+    def __init__(self, filename, num_slaves, parent_logger=None):   # support deprecated logging interface
         """
         :type filename: str
         :type num_slaves: int
         :type parent_logger: logging.Logger
         """
         super(SlavesReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.join_buffer = {}
         self.num_slaves = num_slaves
         self.file = FileReader(filename=filename)

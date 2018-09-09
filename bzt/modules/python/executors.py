@@ -51,9 +51,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             return
 
         if self.engine.is_functional_mode():
-            self.reader = ApiritifFuncReader(self.engine, self.log)
+            self.reader = ApiritifFuncReader(self.engine)
         else:
-            self.reader = ApiritifLoadReader(self.log)
+            self.reader = ApiritifLoadReader()
 
         if not self.register_reader:
             self.log.debug("Skipping reader registration for executor %s", self)
@@ -82,12 +82,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         test_mode = self.execution.get("test-mode", "apiritif")
         if test_mode == "apiritif":
             scenario = self.get_scenario()
-            builder = ApiritifScriptGenerator(scenario, self.label, self.log)
+            builder = ApiritifScriptGenerator(scenario, self.label)
             builder.verbose = self.__is_verbose()
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
-            builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
+            builder = SeleniumScriptBuilder(self.get_scenario(), wdlog=wdlog,
+                                            ignore_unknown_actions=ignore_unknown_actions)
 
         builder.build_source_code()
         builder.save(filename)
@@ -192,16 +193,15 @@ class NoseTester(ApiritifNoseExecutor):
 
 
 class ApiritifLoadReader(ResultsReader):
-    def __init__(self, parent_log):
+    def __init__(self, parent_log=None):    # support deprecated logging interface
         super(ApiritifLoadReader, self).__init__()
-        self.log = parent_log.getChild(self.__class__.__name__)
         self.filenames = []
         self.readers = []
         self.read_records = False
 
     def register_file(self, report_filename):
         self.filenames.append(report_filename)
-        reader = JTLReader(report_filename, self.log)
+        reader = JTLReader(report_filename)
         self.readers.append(reader)
 
     def _read(self, final_pass=False):
@@ -212,17 +212,16 @@ class ApiritifLoadReader(ResultsReader):
 
 
 class ApiritifFuncReader(FunctionalResultsReader):
-    def __init__(self, engine, parent_log):
+    def __init__(self, engine, parent_log=None):    # support deprecated logging interface
         super(ApiritifFuncReader, self).__init__()
         self.engine = engine
-        self.log = parent_log.getChild(self.__class__.__name__)
         self.filenames = []
         self.readers = []
         self.read_records = False
 
     def register_file(self, report_filename):
         self.filenames.append(report_filename)
-        reader = FuncSamplesReader(report_filename, self.engine, self.log)
+        reader = FuncSamplesReader(report_filename, self.engine)
         self.readers.append(reader)
 
     def read(self, last_pass=False):
@@ -352,7 +351,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
                 raise TaurusConfigError("`tags` is not a string or text")
 
     def install_required_tools(self):
-        self._check_tools([Robot(self.settings.get("interpreter", sys.executable), self.log),
+        self._check_tools([Robot(self.settings.get("interpreter", sys.executable)),
                            TaurusRobotRunner(self.runner_path, "")])
 
     def startup(self):

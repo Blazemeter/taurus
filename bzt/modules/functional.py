@@ -146,7 +146,7 @@ class FunctionalAggregatorListener(object):
         pass
 
 
-class TestReportReader(object):
+class TestReportReader(LoggedObj):
     SAMPLE_KEYS = [
         "test_case",  # str
         "test_suite",  # str
@@ -167,9 +167,8 @@ class TestReportReader(object):
     TEST_STATUSES = ("PASSED", "FAILED", "BROKEN", "SKIPPED")
     FAILING_TESTS_STATUSES = ("FAILED", "BROKEN")
 
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger=None):   # support deprecated logging interface
         super(TestReportReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.json_reader = LDJSONReader(filename, self.log)
 
     @staticmethod
@@ -205,9 +204,9 @@ class LoadSamplesReader(ResultsReader):
         "BROKEN": "500",
     }
 
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger=None):   # support deprecated logging interface
         super(LoadSamplesReader, self).__init__()
-        self.report_reader = TestReportReader(filename, parent_logger)
+        self.report_reader = TestReportReader(filename)
         self.read_records = 0
 
     def extract_sample(self, item):
@@ -233,8 +232,9 @@ class LoadSamplesReader(ResultsReader):
 class FuncSamplesReader(FunctionalResultsReader):
     FIELDS_EXTRACTED_TO_ARTIFACTS = ["requestBody", "responseBody", "requestCookiesRaw"]
 
-    def __init__(self, filename, engine, parent_logger):
-        self.report_reader = TestReportReader(filename, parent_logger)
+    def __init__(self, filename, engine, parent_logger=None):   # support deprecated logging interface
+        super(FuncSamplesReader, self).__init__()
+        self.report_reader = TestReportReader(filename)
         self.engine = engine
         self.read_records = 0
 
