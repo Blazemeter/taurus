@@ -38,7 +38,7 @@ from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
-from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url, LoggedObj
+from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url, LoggedObj, ROOT_LOGGER
 
 
 class CLI(LoggedObj):
@@ -86,21 +86,6 @@ class CLI(LoggedObj):
             fmt_verbose = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
             fmt_regular = Formatter("%(asctime)s %(levelname)s: %(message)s", "%H:%M:%S")
 
-        logging.root.setLevel(logging.DEBUG)
-
-        # log everything to file
-        if options.log is None:
-            tf = tempfile.NamedTemporaryFile(prefix="bzt_", suffix=".log", delete=False)
-            tf.close()
-            os.chmod(tf.name, 0o644)
-            options.log = tf.name
-
-        if options.log:
-            file_handler = logging.FileHandler(options.log)
-            file_handler.setLevel(logging.DEBUG)
-            file_handler.setFormatter(fmt_file)
-            logging.root.addHandler(file_handler)
-
         # log something to console
         if options.verbose:
             CLI.console_handler.setLevel(logging.DEBUG)
@@ -112,7 +97,21 @@ class CLI(LoggedObj):
             CLI.console_handler.setLevel(logging.INFO)
             CLI.console_handler.setFormatter(fmt_regular)
 
-        logging.root.addHandler(CLI.console_handler)
+        # log everything to file
+        if options.log is None:
+            tf = tempfile.NamedTemporaryFile(prefix="bzt_", suffix=".log", delete=False)
+            tf.close()
+            os.chmod(tf.name, 0o644)
+            options.log = tf.name
+
+        file_handler = logging.FileHandler(options.log)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(fmt_file)
+
+        ROOT_LOGGER.setLevel(logging.DEBUG)
+
+        ROOT_LOGGER.addHandler(file_handler)
+        ROOT_LOGGER.addHandler(CLI.console_handler)
 
     def __close_log(self):
         """
