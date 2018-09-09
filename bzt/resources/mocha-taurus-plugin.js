@@ -208,7 +208,7 @@ function runMocha() {
     var mochaConfig = {
         reporter: TaurusReporter,
         reporterOptions: {
-            reportStream: reportStream,
+            reportStream,
             totalTests: 0,
             passedTests: 0,
             failedTests: 0,

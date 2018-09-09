@@ -1389,7 +1389,7 @@ class TestJMeterExecutor(BZTestCase):
         self.configure({
             'execution': {
                 'scenario': {
-                    # 'force-parent-sample' is True by default
+                    'force-parent-sample': True,
                     'script': RESOURCES_DIR + '/jmeter/jmx/transactions.jmx'}}})
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
@@ -1397,6 +1397,19 @@ class TestJMeterExecutor(BZTestCase):
         props = jmx.get(selector)
         self.assertEqual(len(props), 2)
         self.assertTrue(all(prop.text == 'true' for prop in props))
+
+    def test_force_parent_sample_default(self):
+        self.configure({
+            'execution': {
+                'scenario': {
+                    # 'force-parent-sample' is False by default
+                    'script': RESOURCES_DIR + '/jmeter/jmx/transactions.jmx'}}})
+        self.obj.prepare()
+        jmx = JMX(self.obj.modified_jmx)
+        selector = 'TransactionController > boolProp[name="TransactionController.parent"]'
+        props = jmx.get(selector)
+        self.assertEqual(len(props), 2)
+        self.assertTrue(all(prop.text == 'false' for prop in props))
 
     def test_disable_force_parent_sample(self):
         self.configure({
@@ -2346,6 +2359,7 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(script, jsr.find(".//stringProp[@name='filename']").text)
         self.assertEqual("javascript", jsr.find(".//stringProp[@name='scriptLanguage']").text)
         self.assertEqual("first second", jsr.find(".//stringProp[@name='parameters']").text)
+        self.assertEqual("true", jsr.find(".//stringProp[@name='cacheKey']").text)
 
     def test_jsr223_exceptions_2(self):
         self.configure({
@@ -2374,10 +2388,12 @@ class TestJMeterExecutor(BZTestCase):
                             "language": "javascript",
                             "script-file": pre_script,
                             "execute": "before",
+                            "compile-cache": False
                         }, {
                             "language": "beanshell",
                             "script-file": post_script,
                             "execute": "after",
+                            "compile-cache": True
                         },
                             'vars.put("a", 1)']
                     }]
@@ -2394,11 +2410,13 @@ class TestJMeterExecutor(BZTestCase):
         pre = pre_procs[0]
         self.assertEqual(pre_script, pre.find(".//stringProp[@name='filename']").text)
         self.assertEqual("javascript", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual("false", pre.find(".//stringProp[@name='cacheKey']").text)
         self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
 
         pre = post_procs[0]
         self.assertEqual(post_script, pre.find(".//stringProp[@name='filename']").text)
         self.assertEqual("beanshell", pre.find(".//stringProp[@name='scriptLanguage']").text)
+        self.assertEqual("true", pre.find(".//stringProp[@name='cacheKey']").text)
         self.assertEqual(None, pre.find(".//stringProp[@name='parameters']").text)
 
         pre = post_procs[1]

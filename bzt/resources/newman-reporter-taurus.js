@@ -92,15 +92,15 @@ class TaurusReporter {
         return (folderOrEmpty + item.name);
     }
 
-    extractAssertions(item) {
+    extractAssertions(item, sample) {
         var assertions = [];
         for (var i = 0; i < item.assertions.length; i++) {
             var assertion = item.assertions[i];
             if (assertion.isFailed) {
                 /*eslint-disable camelcase */
-                if (!item.error_msg) {
-                    item.error_msg = assertion.message;
-                    item.error_trace = assertion.error.stack;
+                if (!sample.error_msg) {
+                    sample.error_msg = assertion.message;
+                    sample.error_trace = assertion.error.stack;
                 }
                 /*eslint-enable camelcase */
             }
@@ -126,7 +126,7 @@ class TaurusReporter {
             extras: {}
         };
         /*eslint-enable camelcase */
-        var assertions = this.extractAssertions(item);
+        var assertions = this.extractAssertions(item, sample);
         if (item.response) {
             var requestHeaders = item.request.headers.toObject(false, true);
             var responseHeaders = item.response.headers.toObject(false, true);
@@ -155,6 +155,7 @@ class TaurusReporter {
                 responseBodySize: 0,
                 requestCookiesSize: 0
             };
+            sample.assertions = assertions;
         }
 
         if (!item.passed) {

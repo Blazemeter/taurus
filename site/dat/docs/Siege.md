@@ -10,6 +10,7 @@
  - HEADER(`headers` in config file): set HTTP headers for request,
  - REPS(`iterations`): repeat requests N times,
  - TIME(`hold-for`): set execution time limit.
+ - SIEGERC(`rc-file`): the siege config file to use (default: `None`)
 
 Please keep in mind these rules when using Siege test executor:
  - You must specify at least one URL with `url` param in `requests` section or as url-file (`script`).
@@ -40,6 +41,7 @@ execution:
   concurrency: 100
   iterations: 5
   scenario: simplest
+  rc-file: path/to/my.siegerc
 
 scenarios: 
   simplest:

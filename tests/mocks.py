@@ -13,7 +13,7 @@ from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules import TransactionListener
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
-from bzt.modules.functional import FunctionalResultsReader
+from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregatorListener
 from bzt.six import b
 from bzt.utils import load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows
 from . import random_sample, TEST_DIR
@@ -220,6 +220,14 @@ class MockFunctionalReader(FunctionalResultsReader):
     def read(self, last_pass=False):
         while self.data:
             yield self.data.pop(0)
+
+
+class MockFunctionalListener(FunctionalAggregatorListener):
+    def __init__(self):
+        self.results = []
+
+    def aggregated_results(self, result, cumulative_results):
+        self.results.append(result)
 
 
 # noinspection PyUnusedLocal

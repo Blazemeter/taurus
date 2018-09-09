@@ -203,8 +203,8 @@ scenarios:
     concurrent-pool-size: 4  # concurrent pool size for resources download, 4 by default
     use-dns-cache-mgr: true  # use DNS Cache Manager to test resources
                              # behind dns load balancers. True by default.
-    force-parent-sample: true  # generate only parent sample for transaction controllers.
-                               # True by default
+    force-parent-sample: false  # generate only parent sample for transaction controllers.
+                               # False by default
     content-encoding: utf-8  # global content encoding, applied to all requests.
                              # Unset by default
     follow-redirects: true  # follow redirects for all HTTP requests
@@ -499,11 +499,12 @@ Each jsr223 element can define the following fields:
 - `script-text` - inline code, specified directly in config file
 - `parameters` - string of parameters to pass to script, empty by default
 - `execute` - whether to execute script before or after the request
+- `compile-cache` - don't recompile scripts every time, turned on by default
 
 If `execute` field is set to `after` - Taurus will generate a JSR223 PostProcessor, if set to `before` - a PreProcessor.
 By default it's set to `after`.
 
-Full form:
+Long form:
 ```yaml
 scenarios:
   jsr-example:
@@ -514,6 +515,7 @@ scenarios:
         script-file: preproc.js
         parameters: foo bar
         execute: before
+        compile-cache: false
       - language: beanshell
         script-file: postproc.bsh
         execute: after
@@ -679,7 +681,7 @@ scenarios:
   transaction_example:
     requests:
     - transaction: Customer Session
-      force-parent-sample: false  # True by default
+      force-parent-sample: false  # False by default
       include-timers: true  # add timers and pre-/post-processors execution time to samples
       do:
       - http://example.com/shop
