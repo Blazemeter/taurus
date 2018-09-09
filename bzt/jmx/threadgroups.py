@@ -176,7 +176,7 @@ class ThreadGroupHandler(LoggedObj):
     CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup]
 
     def __init__(self, logger=None):    # support deprecated logging interface
-        super(ThreadGroup, self).__init__()
+        super(ThreadGroupHandler, self).__init__()
 
     def groups(self, jmx):
         """
