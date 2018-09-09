@@ -100,6 +100,7 @@ class MonitoringListener(object):
 
 class MonitoringClient(LoggedObj):
     def __init__(self, parent_log=None, engine=None):   # support deprecated logging interface
+        super(MonitoringClient, self).__init__()
         self.engine = engine
         self._last_check = 0  # the last check was long time ago
 
@@ -182,7 +183,7 @@ class LocalClient(MonitoringClient):
 
         self.metrics = list(set(good_list))
 
-        self.monitor = LocalMonitor(self.log, self.metrics, self.engine)
+        self.monitor = LocalMonitor(metrics=self.metrics, engine=self.engine)
         self.interval = dehumanize_time(self.config.get("interval", self.engine.check_interval))
 
     def get_data(self):
