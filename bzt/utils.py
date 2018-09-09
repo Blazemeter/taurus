@@ -395,7 +395,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 
 
 class Environment(LoggedObj):
-    def __init__(self, data=None):
+    def __init__(self, parent_log=None, data=None):     # support deprecated logging interface
         super(Environment, self).__init__()
         self.data = {}
         if data is not None:

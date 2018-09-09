@@ -239,6 +239,9 @@ class CLI(LoggedObj):
             jmx_shorthands = self.__get_jmx_shorthands(configs)
             configs.extend(jmx_shorthands)
 
+            jtl_shorthands = self.__get_jtl_shorthands(configs)
+            configs.extend(jtl_shorthands)
+
             self.__configure(configs)
 
             if not self.engine.config.get(SETTINGS).get('verbose', False, force_set=True):
@@ -453,6 +456,9 @@ if (!startTime) {
 
 
 class ConfigOverrider(LoggedObj):
+    def __init__(self, logger=None):     # support deprecated logging interface
+        super(ConfigOverrider, self).__init__()
+
     def apply_overrides(self, options, dest):
         """
         Apply overrides

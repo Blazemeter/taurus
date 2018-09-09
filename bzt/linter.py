@@ -106,10 +106,11 @@ class ConfigWarning(object):
 
 
 class ConfigurationLinter(LoggedObj):
-    def __init__(self, config, ignored_warnings):
+    def __init__(self, config, ignored_warnings, parent_log=None):
         """
         :type config: dict
         :type ignored_warnings: list[str]
+        :type parent_log    # support deprecated logging interface
         """
         super(ConfigurationLinter, self).__init__()
         self._subscriptions = {}

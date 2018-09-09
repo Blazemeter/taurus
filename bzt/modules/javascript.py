@@ -305,7 +305,7 @@ class NPMPackage(RequiredTool):
         self.tools_dir = tools_dir
         self.node_tool = node_tool
         self.npm_tool = npm_tool
-        self.env = Environment(dict(os.environ))
+        self.env = Environment(data=dict(os.environ))
         self.env.add_path({"NODE_PATH": os.path.join(tools_dir, "node_modules")})
 
     def check_if_installed(self):

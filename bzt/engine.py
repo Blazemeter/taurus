@@ -64,10 +64,10 @@ class Engine(LoggedObj):
     """
     ARTIFACTS_DIR = "%Y-%m-%d_%H-%M-%S.%f"
 
-    def __init__(self):
+    def __init__(self, parent_logger=None):
         """
 
-        :type parent_logger: logging.Logger
+        :type parent_logger: logging.Logger   # support deprecated logging interface
         """
         super(Engine, self).__init__()
         self.file_search_paths = []
@@ -75,7 +75,7 @@ class Engine(LoggedObj):
         self.__artifacts = []
         self.reporters = []
         self.artifacts_dir = None
-        self.env = Environment(dict(os.environ))
+        self.env = Environment(data=dict(os.environ))
         self.shared_env = Environment()
         self.config = Configuration()
         self.modules = {}  # available modules
@@ -187,7 +187,7 @@ class Engine(LoggedObj):
         if cwd is None:
             cwd = self.default_cwd
 
-        env = Environment(env.get())
+        env = Environment(data=env.get())
         env.set(self.shared_env.get())
 
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=env.get())
