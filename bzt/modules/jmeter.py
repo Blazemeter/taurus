@@ -46,7 +46,7 @@ from bzt.six import communicate, PY2
 from bzt.six import iteritems, string_types, StringIO, etree, unicode_decode, numeric_types
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, LoggedObj
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -1203,15 +1203,15 @@ class FuncJTLReader(FunctionalResultsReader):
         return None
 
 
-class IncrementalCSVReader(object):
+class IncrementalCSVReader(LoggedObj):
     """
     JTL csv reader
     """
 
     def __init__(self, parent_logger, filename):
+        super(IncrementalCSVReader, self).__init__()
         self.buffer = StringIO()
         self.csv_reader = None
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
         self.file = FileReader(filename=filename)
@@ -1269,7 +1269,7 @@ class IncrementalCSVReader(object):
             self.read_speed = max(self.read_speed / 2, 1024 * 1024)
 
 
-class JTLErrorsReader(object):
+class JTLErrorsReader(LoggedObj):
     """
     Reader for errors.jtl, which is in XML max-verbose format
 
@@ -1279,10 +1279,9 @@ class JTLErrorsReader(object):
     assertionMessage = GenericTranslator().css_to_xpath("assertionResult>failureMessage")
     url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger=None):   # support deprecated logging interface
         # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
         self.file = FileReader(filename=filename)
         self.buffer = BetterDict()
@@ -1663,9 +1662,9 @@ class JMeter(RequiredTool):
         return False
 
 
-class JarCleaner(object):
-    def __init__(self, parent_logger):
-        self.log = parent_logger.getChild(self.__class__.__name__)
+class JarCleaner(LoggedObj):
+    def __init__(self, parent_logger=None):     # support deprecated logging interface
+        super(JarCleaner, self).__init__()
 
     @staticmethod
     def __extract_version(jar):

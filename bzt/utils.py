@@ -944,6 +944,7 @@ def shutdown_process(process_obj, log_obj):
 
 class HTTPClient(LoggedObj):
     def __init__(self):
+        super(HTTPClient, self).__init__()
         self.session = requests.Session()
         self.proxy_settings = None
 

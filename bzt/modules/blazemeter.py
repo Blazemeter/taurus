@@ -46,7 +46,7 @@ from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
-from bzt.utils import dehumanize_time, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
+from bzt.utils import dehumanize_time, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext, LoggedObj
 from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 
 TAURUS_TEST_TYPE = "taurus"
@@ -227,7 +227,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         self.send_interval = dehumanize_time(self.settings.get("send-interval", self.send_interval))
         self.send_monitoring = self.settings.get("send-monitoring", self.send_monitoring)
         monitoring_buffer_limit = self.settings.get("monitoring-buffer-limit", 500)
-        self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit, self.log)
+        self.monitoring_buffer = MonitoringBuffer(monitoring_buffer_limit)
         self.browser_open = self.settings.get("browser-open", self.browser_open)
         self.public_report = self.settings.get("public-report", self.public_report)
         self._dpoint_serializer.multi = self.settings.get("report-times-multiplier", self._dpoint_serializer.multi)
@@ -269,7 +269,7 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
                 wsp = self._user.accounts().workspaces()
                 if not wsp:
                     raise TaurusNetworkError("Your account has no active workspaces, please contact BlazeMeter support")
-                finder = ProjectFinder(self.parameters, self.settings, self._user, wsp, self.log)
+                finder = ProjectFinder(self.parameters, self.settings, self._user, wsp)
                 self._test = finder.resolve_external_test()
             else:
                 self._test = Test(self._user, {'id': None})
@@ -534,11 +534,11 @@ class BlazeMeterUploader(Reporter, AggregatorListener, MonitoringListener, Singl
         return "\n".join(lines)
 
 
-class MonitoringBuffer(object):
-    def __init__(self, size_limit, parent_log):
+class MonitoringBuffer(LoggedObj):
+    def __init__(self, size_limit, parent_log=None):        # support deprecated logging interface
+        super(MonitoringBuffer, self).__init__()
         self.size_limit = size_limit
         self.data = defaultdict(OrderedDict)
-        self.log = parent_log.getChild(self.__class__.__name__)
         # data :: dict(datasource -> dict(interval -> datapoint))
         # datapoint :: dict(metric -> value)
 
@@ -835,17 +835,16 @@ class DatapointSerializer(object):
         }
 
 
-class ProjectFinder(object):
+class ProjectFinder(LoggedObj):
     """
     :type user: User
     """
-
-    def __init__(self, parameters, settings, user, workspaces, parent_log):
+    # support deprecated logging interface
+    def __init__(self, parameters, settings, user, workspaces, parent_log=None):
         super(ProjectFinder, self).__init__()
         self.default_test_name = "Taurus Test"
         self.parameters = parameters
         self.settings = settings
-        self.log = parent_log.getChild(self.__class__.__name__)
         self.user = user
         self.workspaces = workspaces
         self.is_functional = False
@@ -1018,8 +1017,7 @@ class ProjectFinder(object):
                 test_class = CloudCollectionTest
 
         assert test_class is not None
-        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test,
-                            self.log)
+        router = test_class(self.user, test, project, test_name, default_location, launch_existing_test)
         router._workspaces = self.workspaces
         router.cloud_mode = self.settings.get("cloud-mode", None)
         router.dedicated_ips = self.settings.get("dedicated-ips", False)
@@ -1049,7 +1047,7 @@ class ProjectFinder(object):
             return project
 
 
-class BaseCloudTest(object):
+class BaseCloudTest(LoggedObj):
     """
     :type _user: bzt.bza.User
     :type _project: bzt.bza.Project
@@ -1057,10 +1055,10 @@ class BaseCloudTest(object):
     :type master: bzt.bza.Master
     :type cloud_mode: str
     """
-
-    def __init__(self, user, test, project, test_name, default_location, launch_existing_test, parent_log):
+    # support deprecated logging interface
+    def __init__(self, user, test, project, test_name, default_location, launch_existing_test, parent_log=None):
+        super(BaseCloudTest, self).__init__()
         self.default_test_name = "Taurus Test"
-        self.log = parent_log.getChild(self.__class__.__name__)
         self.default_location = default_location
         self._test_name = test_name
         self._last_status = None
@@ -1558,7 +1556,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if not self.launch_existing_test:
             self._filter_reporting()
 
-        finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces, self.log)
+        finder = ProjectFinder(self.parameters, self.settings, self.user, self._workspaces)
         finder.default_test_name = "Taurus Cloud Test"
         finder.is_functional = self.engine.is_functional_mode()
         self.router = finder.resolve_test_type()
@@ -1584,7 +1582,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.results_reader.log = self.log
             self.engine.aggregator.add_underling(self.results_reader)
         elif isinstance(self.engine.aggregator, FunctionalAggregator):
-            self.results_reader = FunctionalBZAReader(self.log)
+            self.results_reader = FunctionalBZAReader()
             self.engine.aggregator.add_underling(self.results_reader)
 
     def __dump_locations_if_needed(self):
@@ -1761,7 +1759,6 @@ class ResultsFromBZA(ResultsProvider):
         super(ResultsFromBZA, self).__init__()
         self.master = master
         self.min_ts = 0
-        self.log = logging.getLogger('')
         self.prev_errors = BetterDict()
         self.cur_errors = BetterDict()
         self.handle_errors = True
@@ -1922,10 +1919,9 @@ class ResultsFromBZA(ResultsProvider):
 
 
 class FunctionalBZAReader(FunctionalResultsReader):
-    def __init__(self, parent_log, master=None):
+    def __init__(self, parent_log=None, master=None):
         super(FunctionalBZAReader, self).__init__()
         self.master = master
-        self.log = parent_log.getChild(self.__class__.__name__)
 
     @staticmethod
     def extract_samples_from_group(group, group_summary):

@@ -234,9 +234,8 @@ class AppiumLoader(Service):
 
 
 class Appium(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
+    def __init__(self, tool_path, download_link, parent_logger=None):       # support deprecated logging interface
         super(Appium, self).__init__("Appium", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         cmd = [self.tool_path, '--version']
@@ -254,9 +253,8 @@ class Appium(RequiredTool):
 
 
 class AndroidEmulator(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
+    def __init__(self, tool_path, download_link, parent_logger=None):       # support deprecated logging interface
         super(AndroidEmulator, self).__init__("AndroidEmulator", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         cmd = [self.tool_path, '-list-avds']
