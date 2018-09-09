@@ -138,8 +138,7 @@ class CLI(LoggedObj):
 
         ROOT_LOGGER.handlers = [handler for handler in ROOT_LOGGER.handlers if not is_file_handler(handler)]
 
-        if os.path.exists(self.options.log):
-            self.engine.existing_artifact(self.options.log, move=True, target_filename="bzt.log")
+        self.engine.existing_artifact(self.options.log, move=True, target_filename="bzt.log")
         self.options.log = os.path.join(self.engine.artifacts_dir, "bzt.log")
 
         file_handler = logging.FileHandler(self.options.log)
