@@ -76,7 +76,7 @@ class CLI(LoggedObj):
             'ERROR': 'red',
             'CRITICAL': 'bold_red',
         }
-        fmt_file = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
+
         if sys.stdout.isatty():
             fmt_verbose = ColoredFormatter("%(log_color)s[%(asctime)s %(levelname)s %(name)s] %(message)s",
                                            log_colors=colors)
@@ -104,46 +104,47 @@ class CLI(LoggedObj):
             os.chmod(tf.name, 0o644)
             options.log = tf.name
 
-        file_handler = logging.FileHandler(options.log)
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(fmt_file)
+        file_handler = CLI.get_file_handler(options.log)
 
         ROOT_LOGGER.setLevel(logging.DEBUG)
 
         ROOT_LOGGER.addHandler(file_handler)
         ROOT_LOGGER.addHandler(CLI.console_handler)
 
-    def __close_log(self):
-        """
-        Close log handlers
-        :return:
-        """
-        # need to finalize the logger before finishing
+    @staticmethod
+    def get_file_handler(file_name):
+        file_fmt = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
+        file_handler = logging.FileHandler(file_name)
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(file_fmt)
+        return file_handler
+
+    def close_file_handlers(self):
         for handler in ROOT_LOGGER.handlers:
             if is_file_handler(handler):
                 self.log.debug("Closing log handler: %s", handler.baseFilename)
                 handler.close()
 
         ROOT_LOGGER.handlers = [handler for handler in ROOT_LOGGER.handlers if not is_file_handler(handler)]
+
+    def __close_log(self):
+        """
+        Close log handlers
+        :return:
+        """
+        self.close_file_handlers()
 
     def __move_log_to_artifacts(self):
         """
         Close log handlers, copy log to artifacts dir, recreate file handlers
         :return:
         """
-        for handler in ROOT_LOGGER.handlers:
-            if is_file_handler(handler):
-                self.log.debug("Closing log handler: %s", handler.baseFilename)
-                handler.close()
-
-        ROOT_LOGGER.handlers = [handler for handler in ROOT_LOGGER.handlers if not is_file_handler(handler)]
+        self.close_file_handlers()
 
         self.engine.existing_artifact(self.options.log, move=True, target_filename="bzt.log")
         self.options.log = os.path.join(self.engine.artifacts_dir, "bzt.log")
 
-        file_handler = logging.FileHandler(self.options.log)
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s"))
+        file_handler = CLI.get_file_handler(self.options.log)
 
         ROOT_LOGGER.addHandler(file_handler)
         self.log.debug("Switched writing logs to %s", self.options.log)
