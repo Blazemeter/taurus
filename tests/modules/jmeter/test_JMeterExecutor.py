@@ -793,7 +793,7 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual('true', writer.find('objProp/value/hostname').text)
 
     def test_distributed_props(self):
-        self.sniff_log(self.obj.log)
+        self.sniff_log()
 
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]

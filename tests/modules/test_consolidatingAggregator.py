@@ -175,7 +175,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.track_percentiles = [0.0, 50.0, 95.0, 99.0, 100.0]
         self.obj.prepare()
 
-        self.sniff_log(self.obj.log)
+        self.sniff_log()
 
         mock = MockReader()
         mock.data.append((1, "first", 1, -r(), r(), r(), 200, 'FAILx3', '', 0))
