@@ -59,14 +59,14 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        tools = [TclLibrary(self.log)]
-        self.node_tool = Node(self.log)
-        self.npm_tool = NPM(self.log)
-        self.mocha_tool = Mocha(self.tools_dir, self.node_tool, self.npm_tool, self.log)
+        tools = [TclLibrary()]
+        self.node_tool = Node()
+        self.npm_tool = NPM()
+        self.mocha_tool = Mocha(self.tools_dir, self.node_tool, self.npm_tool)
         tools.append(self.node_tool)
         tools.append(self.npm_tool)
         tools.append(self.mocha_tool)
-        tools.append(JSSeleniumWebdriverPackage(self.tools_dir, self.node_tool, self.npm_tool, self.log))
+        tools.append(JSSeleniumWebdriverPackage(self.tools_dir, self.node_tool, self.npm_tool))
         tools.append(TaurusMochaPlugin(self.plugin_path, ""))
 
         self._check_tools(tools)
@@ -122,15 +122,15 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
 
     def install_required_tools(self):
         tools = []
-        tools.append(TclLibrary(self.log))
-        self.node_tool = Node(self.log)
-        self.npm_tool = NPM(self.log)
-        self.wdio_tool = WDIO(self.tools_dir, self.node_tool, self.npm_tool, self.log)
+        tools.append(TclLibrary())
+        self.node_tool = Node()
+        self.npm_tool = NPM()
+        self.wdio_tool = WDIO(self.tools_dir, self.node_tool, self.npm_tool)
         tools.append(self.node_tool)
         tools.append(self.npm_tool)
         tools.append(self.wdio_tool)
         tools.append(TaurusWDIOPlugin(self.plugin_path, ""))
-        tools.append(WDIOMochaPlugin(self.tools_dir, self.node_tool, self.npm_tool, self.log))
+        tools.append(WDIOMochaPlugin(self.tools_dir, self.node_tool, self.npm_tool))
 
         self._check_tools(tools)
 
@@ -188,9 +188,9 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        self.node_tool = Node(self.log)
-        self.npm_tool = NPM(self.log)
-        self.newman_tool = Newman(self.tools_dir, self.node_tool, self.npm_tool, self.log)
+        self.node_tool = Node()
+        self.npm_tool = NPM()
+        self.newman_tool = Newman(self.tools_dir, self.node_tool, self.npm_tool)
 
         tools = [
             self.node_tool,
@@ -268,7 +268,7 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
 
 
 class NPM(RequiredTool):
-    def __init__(self, parent_logger):
+    def __init__(self, parent_logger=None):      # support deprecated logging interface
         super(NPM, self).__init__("NPM", "")
         self.executable = None
 
@@ -293,7 +293,8 @@ class NPM(RequiredTool):
 
 
 class NPMPackage(RequiredTool):
-    def __init__(self, tool_name, package_name, tools_dir, node_tool, npm_tool, parent_logger):
+    # support deprecated logging interface
+    def __init__(self, tool_name, package_name, tools_dir, node_tool, npm_tool, parent_logger=None):
         super(NPMPackage, self).__init__(tool_name, "")
 
         if "@" in package_name:
@@ -339,28 +340,32 @@ class NPMPackage(RequiredTool):
 
 
 class Mocha(NPMPackage):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+    # support deprecated logging interface
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger=None):
         super(Mocha, self).__init__("Mocha", MOCHA_NPM_PACKAGE_NAME,
-                                    tools_dir, node_tool, npm_tool, parent_logger)
+                                    tools_dir, node_tool, npm_tool)
 
 
 class JSSeleniumWebdriverPackage(NPMPackage):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+    # support deprecated logging interface
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger=None):
         super(JSSeleniumWebdriverPackage, self).__init__("selenium-webdriver npm package",
                                                          SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME,
-                                                         tools_dir, node_tool, npm_tool, parent_logger)
+                                                         tools_dir, node_tool, npm_tool)
 
 
 class WDIO(NPMPackage):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+    # support deprecated logging interface
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger=None):
         super(WDIO, self).__init__("WebdriverIO", WDIO_NPM_PACKAGE_NAME,
-                                   tools_dir, node_tool, npm_tool, parent_logger)
+                                   tools_dir, node_tool, npm_tool)
 
 
 class WDIOMochaPlugin(NPMPackage):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+    # support deprecated logging interface
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger=None):
         super(WDIOMochaPlugin, self).__init__("WebdriverIOMochaPlugin", WDIO_MOCHA_PLUGIN_NPM_PACKAGE_NAME,
-                                              tools_dir, node_tool, npm_tool, parent_logger)
+                                              tools_dir, node_tool, npm_tool)
 
 
 class TaurusMochaPlugin(RequiredTool):
@@ -380,9 +385,9 @@ class TaurusWDIOPlugin(RequiredTool):
 
 
 class Newman(NPMPackage):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
+    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger=None):
         super(Newman, self).__init__("Newman", NEWMAN_NPM_PACKAGE_NAME,
-                                     tools_dir, node_tool, npm_tool, parent_logger)
+                                     tools_dir, node_tool, npm_tool)
         self.entrypoint = "%s/node_modules/%s/bin/newman.js" % (self.tools_dir, NEWMAN_NPM_PACKAGE_NAME)
 
 
