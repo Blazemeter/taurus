@@ -168,7 +168,7 @@ class TSVDataReader(ResultsReader):
     def __init__(self, filename, parent_logger):
         super(TSVDataReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.skipped_header = False
         self.concurrency = None
         self.url_label = None

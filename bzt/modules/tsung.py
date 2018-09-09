@@ -166,8 +166,8 @@ class TsungStatsReader(ResultsReader):
         super(TsungStatsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.tsung_basedir = tsung_basedir
-        self.stats_file = FileReader(parent_logger=self.log, file_opener=self.open_stats)
-        self.log_file = FileReader(parent_logger=self.log, file_opener=self.open_log)
+        self.stats_file = FileReader(file_opener=self.open_stats)
+        self.log_file = FileReader(file_opener=self.open_log)
         self.delimiter = ";"
         self.partial_buffer = ""
         self.skipped_header = False

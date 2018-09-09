@@ -289,7 +289,7 @@ class DataLogReader(ResultsReader):
         super(DataLogReader, self).__init__()
         self.report_by_url = False
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.idx = {}
         self.partial_buffer = ""
         self.start_time = 0

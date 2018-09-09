@@ -188,7 +188,7 @@ class DataLogReader(ResultsReader):
     def __init__(self, filename, parent_logger):
         super(DataLogReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.concurrency = None
 
     def _read(self, last_pass=False):

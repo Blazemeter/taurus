@@ -486,7 +486,7 @@ class Scheduler(object):
         self.need_start_loop = None
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
-        self.payload_file = FileReader(filename=payload_filename, parent_logger=self.log)
+        self.payload_file = FileReader(filename=payload_filename)
         if not load.duration and not load.iterations:
             self.iteration_limit = 1
         else:
@@ -587,7 +587,7 @@ class PBenchKPIReader(ResultsReader):
     def __init__(self, filename, parent_logger, stats_filename):
         super(PBenchKPIReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.stats_reader = PBenchStatsReader(stats_filename, parent_logger)
 
     def _read(self, last_pass=False):
@@ -652,7 +652,7 @@ class PBenchStatsReader(object):
     def __init__(self, filename, parent_logger):
         super(PBenchStatsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.buffer = ''
         self.data = {}
         self.last_data = 0

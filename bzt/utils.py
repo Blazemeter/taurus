@@ -60,7 +60,7 @@ from bzt.six import stream_decode, file_type, etree, parse, deunicode
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
-
+ROOT_LOGGING = logging.root
 
 def sync_run(args, env=None):
     output = check_output(args, env=env, stderr=STDOUT)
@@ -191,13 +191,16 @@ def dehumanize_time(str_time):
 
 class LoggedObj(object):
     def __init__(self):
-        self.log = logging.root.getChild(self.__class__.__name__)
+        self.log = ROOT_LOGGING.getChild(self.__class__.__name__)
 
 
 class BetterDict(defaultdict):
     """
     Wrapper for defaultdict that able to deep merge other dicts into itself
     """
+    def __init__(self, *args, **kwargs):
+        super(BetterDict, self).__init__(*args, **kwargs)
+        self.log = ROOT_LOGGING.getChild(self.__class__.__name__)
 
     @classmethod
     def from_dict(cls, orig):
@@ -296,7 +299,7 @@ class BetterDict(defaultdict):
                     if isinstance(righty, BetterDict):
                         lefty.merge(righty)
                         continue
-                logging.warning("Overwriting the value of %r when merging configs", key)
+                self.log.warning("Overwriting the value of %r when merging configs", key)
                 left[index] = righty
             else:
                 left.insert(index, righty)
@@ -375,16 +378,17 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     :return:
     """
     if stdout and not isinstance(stdout, integer_types) and not isinstance(stdout, file_type):
-        logging.root.warning("stdout is not IOBase: %s", stdout)
+        ROOT_LOGGING.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
     if stderr and not isinstance(stderr, integer_types) and not isinstance(stderr, file_type):
-        logging.root.warning("stderr is not IOBase: %s", stderr)
+        ROOT_LOGGING.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
     if isinstance(args, string_types) and not shell:
         args = shlex.split(args, posix=not is_windows())
-    logging.root.debug("Executing shell: %s at %s", args, cwd or os.curdir)
+
+    ROOT_LOGGING.debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
     if is_windows():
         return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
@@ -468,6 +472,7 @@ class FileReader(LoggedObj):
     SYS_ENCODING = locale.getpreferredencoding()
 
     def __init__(self, filename="", file_opener=None, parent_logger=None):  # support deprecated logging interface
+        super(FileReader, self).__init__()
         self.fds = None
 
         if file_opener:
@@ -1510,8 +1515,7 @@ class LDJSONReader(LoggedObj):
     def __init__(self, filename, parent_log=None):      # support deprecated logging interface
         super(LDJSONReader, self).__init__()
         self.file = FileReader(filename=filename,
-                               file_opener=lambda f: open(f, 'rb', buffering=1),
-                               parent_logger=self.log)
+                               file_opener=lambda f: open(f, 'rb', buffering=1))
         self.partial_buffer = ""
 
     def read(self, last_pass=False):

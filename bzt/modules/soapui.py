@@ -20,14 +20,14 @@ import os
 
 from bzt import TaurusInternalException
 from bzt.six import etree, iteritems
-from bzt.utils import BetterDict
+from bzt.utils import BetterDict, LoggedObj
 
 
-class SoapUIScriptConverter(object):
+class SoapUIScriptConverter(LoggedObj):
     NAMESPACES = dict(con="http://eviware.com/soapui/config")
 
-    def __init__(self, parent_log):
-        self.log = parent_log.getChild(self.__class__.__name__)
+    def __init__(self, parent_log=None):    # support deprecated logging interface
+        super(SoapUIScriptConverter, self).__init__()
         self.tree = None
         self.interface = None
 

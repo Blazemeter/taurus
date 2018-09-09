@@ -18,7 +18,7 @@ from abc import abstractmethod
 from bzt.engine import Aggregator
 from bzt.modules.aggregator import ResultsReader
 from bzt.six import string_types
-from bzt.utils import BetterDict, iteritems, LDJSONReader
+from bzt.utils import BetterDict, iteritems, LDJSONReader, LoggedObj
 
 
 class FunctionalAggregator(Aggregator):
@@ -128,7 +128,7 @@ class ResultsTree(BetterDict):
         return self.get(suite_name, [])
 
 
-class FunctionalResultsReader(object):
+class FunctionalResultsReader(LoggedObj):
     @abstractmethod
     def read(self, last_pass=False):
         """Yields functional samples"""

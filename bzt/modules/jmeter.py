@@ -934,10 +934,9 @@ class JTLReader(ResultsReader):
     :type errors_reader: JTLErrorsReader
     """
 
-    def __init__(self, filename, parent_logger, errors_filename=None):
+    def __init__(self, filename, parent_logger=None, errors_filename=None):
         super(JTLReader, self).__init__()
         self.is_distributed = False
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
         if errors_filename:
@@ -1007,13 +1006,12 @@ class FuncJTLReader(FunctionalResultsReader):
 
     FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookiesRaw"]
 
-    def __init__(self, filename, engine, parent_logger):
+    def __init__(self, filename, engine, parent_logger=None):   # support deprecated logging interface
         super(FuncJTLReader, self).__init__()
         self.executor_label = "JMeter"
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',), recover=True)
         self.engine = engine
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.failed_processing = False
         self.read_records = 0
 
@@ -1216,7 +1214,7 @@ class IncrementalCSVReader(object):
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.read_speed = 1024 * 1024
 
     def read(self, last_pass=False):
@@ -1286,7 +1284,7 @@ class JTLErrorsReader(object):
         super(JTLErrorsReader, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.buffer = BetterDict()
         self.failed_processing = False
 

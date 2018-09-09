@@ -43,7 +43,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
     def __init__(self):
         super(ApiritifNoseExecutor, self).__init__()
-        self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
+        self._tailer = FileReader(file_opener=lambda _: None)
 
     def reporting_setup(self, prefix=None, suffix=None):
         if not self.reported:
@@ -122,7 +122,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         cmdline += [self.script]
         self.start_time = time.time()
         self._start_subprocess(cmdline)
-        self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
+        self._tailer = FileReader(filename=self.stdout_file)
 
     def has_results(self):
         if not self.reader:
@@ -237,7 +237,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(PyTestExecutor, self).__init__()
         self.runner_path = os.path.join(RESOURCES_DIR, "pytest_runner.py")
-        self._tailer = FileReader('', file_opener=lambda _: None, parent_logger=self.log)
+        self._tailer = FileReader('', file_opener=lambda _: None)
         self._additional_args = []
 
     def prepare(self):
@@ -288,7 +288,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         self._start_subprocess(cmdline)
 
         if self.__is_verbose():
-            self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
+            self._tailer = FileReader(filename=self.stdout_file)
 
     def check(self):
         self.__log_lines()

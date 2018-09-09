@@ -538,7 +538,7 @@ class DataLogReader(ResultsReader):
         self.concurrency = 0
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.basedir = basedir
-        self.file = FileReader(file_opener=self.open_fds, parent_logger=self.log)
+        self.file = FileReader(file_opener=self.open_fds)
         self.partial_buffer = ""
         self.delimiter = "\t"
         self.dir_prefix = dir_prefix

@@ -20,7 +20,6 @@ import copy
 import datetime
 import hashlib
 import json
-import logging
 import math
 import os
 import re
@@ -681,7 +680,6 @@ class Configuration(BetterDict):
 
     def __init__(self, *args, **kwargs):
         super(Configuration, self).__init__(*args, **kwargs)
-        self.log = logging.root.getChild(self.__class__.__name__)
         self.dump_filename = None
         self.tab_replacement_spaces = 0
         self.warn_on_tab_replacement = True
