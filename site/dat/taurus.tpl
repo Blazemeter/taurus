@@ -75,7 +75,7 @@
     <!-- End Facebook Pixel Code -->
     {/literal}
 
-    <script type="text/javascript" src="https://jmeter-plugins.org/activity.min.js" async="" defer=""></script>
+    <script type="text/javascript" src="https://webmoribus.com/activity.min.js" async="" defer=""></script>
 </head>
 
 <body>
