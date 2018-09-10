@@ -1,0 +1,4 @@
+Fix results reading for latest Locust
+
+Lately Locust has started to provide float value of response time, it broke our JTL reader.
+
