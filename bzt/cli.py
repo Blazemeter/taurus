@@ -104,12 +104,12 @@ class CLI(LoggedObj):
             os.chmod(tf.name, 0o644)
             options.log = tf.name
 
-        file_handler = CLI.get_file_handler(options.log)
+        if options.log:
+            file_handler = CLI.get_file_handler(options.log)
+            ROOT_LOGGER.addHandler(file_handler)
 
-        ROOT_LOGGER.setLevel(logging.DEBUG)
-
-        ROOT_LOGGER.addHandler(file_handler)
         ROOT_LOGGER.addHandler(CLI.console_handler)
+        ROOT_LOGGER.setLevel(logging.DEBUG)
 
     @staticmethod
     def get_file_handler(file_name):
