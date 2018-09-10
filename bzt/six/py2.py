@@ -93,17 +93,6 @@ def stream_decode(string):
     return string
 
 
-def unicode_decode(string):
-    if not isinstance(string, text_type):
-        return string.decode('utf-8')
-    else:
-        return string
-
-
-def communicate(proc):
-    return proc.communicate()
-
-
 def deunicode(string):
     """
     If string is unicode - convert it to basic string. Otherwise - leave it.

@@ -1,3 +1,4 @@
+import codecs
 import logging
 import os
 import re
@@ -21,12 +22,25 @@ class TestCLI(BZTestCase):
         self.option = []
         self.datadir = os.path.join(os.path.dirname(__file__), "..", "build", "acli")
         self.obj = CLI(self)
+        self.assertTrue(os.path.exists(self.log))
         self.aliases = []
         self.obj.engine = EngineEmul()
 
     def test_perform_normal(self):
         ret = self.obj.perform([RESOURCES_DIR + "json/mock_normal.json"])
         self.assertEquals(0, ret)
+
+    def test_unicode_logging(self):
+        """ check whether unicode symbols are logged correctly into file """
+        self.verbose = False
+        u_symbol = b'\xe3\x81\xbc'.decode(encoding='utf-8')  # U+307C, uniform for py2/3
+        self.obj.options.option = ['bo=%s' % u_symbol]
+
+        ret = self.obj.perform([RESOURCES_DIR + "json/mock_normal.json"])
+        self.assertEqual(0, ret)
+        log_file = os.path.join(self.obj.engine.artifacts_dir, "bzt.log")
+        log_content = codecs.open(log_file, encoding="utf-8").read()
+        self.assertIn(u_symbol, log_content)
 
     def test_perform_aliases(self):
         self.aliases = ['test']

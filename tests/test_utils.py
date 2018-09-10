@@ -9,10 +9,35 @@ from psutil import Popen
 from os.path import join
 
 from bzt import TaurusNetworkError
-from bzt.six import PY2
+from bzt.six import PY2, communicate
 from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
+
+
+class MockPopen(object):
+    def __init__(self, out, err):
+        self.out = out
+        self.err = err
+
+    def communicate(self):
+        return self.out, self.err
+
+
+class TestMisc(BZTestCase):
+    def test_communicate(self):
+        self.sniff_log(logging.root)
+
+        out = b'\xf1\xe5\xedoutput'     # on py2 bytes is just str synonym
+        err = b'\xf1\xe5\xederror'
+
+        obj = MockPopen(out, err)
+
+        output = communicate(obj)
+        if PY2:
+            output = output[0].decode(), output[1].decode()    # logging to file converts them to unicode
+
+        self.assertEqual(output, ("output", "error"))
 
 
 class TestJavaVM(BZTestCase):

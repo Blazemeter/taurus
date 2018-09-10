@@ -38,7 +38,8 @@ from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
-from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url, LoggedObj, ROOT_LOGGER, is_file_handler
+
+from bzt.utils import is_int, BetterDict, get_full_path, is_url, LoggedObj, ROOT_LOGGER, is_file_handler
 
 
 class CLI(LoggedObj):
@@ -64,7 +65,6 @@ class CLI(LoggedObj):
         self.exit_code = 0
 
     @staticmethod
-    @run_once
     def setup_logging(options):
         """
         Setting up console and file logging, colored if possible
@@ -114,7 +114,7 @@ class CLI(LoggedObj):
     @staticmethod
     def get_file_handler(file_name):
         file_fmt = Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s")
-        file_handler = logging.FileHandler(file_name)
+        file_handler = logging.FileHandler(filename=file_name, encoding="utf-8")
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(file_fmt)
         return file_handler
