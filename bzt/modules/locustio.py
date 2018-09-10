@@ -29,9 +29,9 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, Dat
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
-from bzt.six import iteritems
+from bzt.six import iteritems, communicate
 from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader, shell_exec
-from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, communicate
+from bzt.utils import shutdown_process, RequiredTool, dehumanize_time
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):

@@ -9,8 +9,8 @@ from psutil import Popen
 from os.path import join
 
 from bzt import TaurusNetworkError
-from bzt.six import PY2
-from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient, communicate
+from bzt.six import PY2, communicate
+from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 

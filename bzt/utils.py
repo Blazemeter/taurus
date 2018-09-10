@@ -67,20 +67,6 @@ def sync_run(args, env=None):
     return stream_decode(output).rstrip()
 
 
-def unicode_decode(string, errors="strict"):
-    if isinstance(string, binary_type):
-        return string.decode("utf-8", errors)
-    else:
-        return string
-
-
-def communicate(proc):  # todo: replace usage of it with sync_run()
-    out, err = proc.communicate()
-    out = unicode_decode(out, errors="ignore")
-    err = unicode_decode(err, errors="ignore")
-    return out, err
-
-
 def get_full_path(path, default=None, step_up=0):
     """
     Function expands '~' and adds cwd to path if it's not absolute (relative)
