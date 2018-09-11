@@ -1353,29 +1353,25 @@ class JTLErrorsReader(object):
         self._extract_common(elem, label, r_code, t_stamp, message)
 
     def _extract_common(self, elem, label, r_code, t_stamp, r_msg):
-        urls = elem.xpath(self.url_xpath)
-        if urls:
-            url_counts = Counter({urls[0].text: 1})
-        else:
-            url_counts = Counter()
-        errtype = KPISet.ERRTYPE_ERROR
+        failure = self.find_failure(elem, r_msg, r_code)
+        if failure:
+            f_msg, f_url, f_rc, f_tag, f_type = failure
 
-        failed_assertion = self.__get_failed_assertion(elem)
-        if failed_assertion is not None:
-            errtype = KPISet.ERRTYPE_ASSERT
+            if f_type == KPISet.ERRTYPE_ASSERT:
+                f_rc = r_code
+            if f_type == KPISet.ERRTYPE_SUBSAMPLE:
+                url_counts = Counter({f_url: 1})
+            else:
+                urls = elem.xpath(self.url_xpath)
+                if urls:
+                    url_counts = Counter({urls[0].text: 1})
+                else:
+                    url_counts = Counter()
 
-        message, is_embedded, embedded_url, embedded_rc, tag = self.get_failure_message(elem)
-        if message is None:
-            message = r_msg
-        if is_embedded:
-            errtype = KPISet.ERRTYPE_SUBSAMPLE
-            url_counts = Counter({embedded_url: 1})
-            r_code = embedded_rc
-
-        err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url_counts, tag)
-        buf = self.buffer.get(t_stamp, force_set=True)
-        KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", message), err_item)
-        KPISet.inc_list(buf.get('', [], force_set=True), ("msg", message), err_item)
+            err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
+            buf = self.buffer.get(t_stamp, force_set=True)
+            KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
+            KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
     def _extract_nonstandard(self, elem):
         t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
@@ -1385,9 +1381,55 @@ class JTLErrorsReader(object):
 
         self._extract_common(elem, label, r_code, t_stamp, message)
 
+    def find_failure(self, element, def_msg, def_rc, is_embedded=False):
+        """ (message, url, rc, tag, err_type) """
+        if element.tag not in ("httpSample", "sample", "assertionResult"):
+            self.log.warning("Wrong errors block: %s", element.tag)
+            return
+
+        if element.tag == "assertionResult":
+            if not self.__assertion_is_failed(element):
+                return
+
+            a_msg, a_name = self.__get_assertion_message(element)
+            if not a_msg:
+                a_msg = def_msg
+            return a_msg, None, def_rc, a_name, KPISet.ERRTYPE_ASSERT
+
+        r_code = element.get("rc")
+        if r_code.startswith("2"):
+            if element.get("s") == "false":     # has failed sub element, we should look deeper...
+                for child in element.iterchildren():
+                    if child.tag in ("httpSample", "sample", "assertionResult"):
+                        c_tuple = self.find_failure(child, def_msg=element.get("rm"), def_rc=r_code, is_embedded=True)
+                        if c_tuple:
+                            c_msg, c_url, c_rc, c_tag, c_err = c_tuple
+                            if not c_msg:
+                                c_msg = def_msg
+                            if not c_rc:
+                                c_rc = def_rc
+                            return c_msg, c_url, c_rc, c_tag, c_err
+        else:
+            msg = element.get("rm")
+            if not msg:
+                msg = def_msg
+            url = element.xpath(self.url_xpath)
+            if url:
+               url = url[0].text
+            else:
+               url = element.get("lb")
+            if not r_code:
+                r_code = def_rc
+            if is_embedded:
+                err_type = KPISet.ERRTYPE_SUBSAMPLE
+            else:
+                err_type = KPISet.ERRTYPE_ERROR
+            return msg, url, r_code, None, err_type
+
     def get_failure_message(self, element):
         """
         Returns failure message and flag of subsample originating error
+        (message, is_embedded, embedded_url, embedded_rc, tag)
         """
         failed_assertion = self.__get_failed_assertion(element)
         r_code = element.get('rc')

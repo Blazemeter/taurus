@@ -1105,6 +1105,16 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
         self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
 
+    def test_not_embedded_resources_fail_child_assert(self):
+        obj = JTLErrorsReader("/home/taras/Downloads/error.jtl",
+                              logging.getLogger(''))
+        obj.read_file()
+        values = obj.get_data(sys.maxsize)
+        self.assertEqual(values.get('')[0].get("msg"), "subsample assertion error")
+        self.assertEqual(values.get('')[1].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "subsample assertion error")
+        self.assertEqual(values.get('HTTP Request')[1].get("msg"), "NOT FOUND")
+
     def test_embedded_resources_fail_child_assert(self):
         obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-child-assert.jtl",
                               logging.getLogger(''))
