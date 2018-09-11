@@ -1392,26 +1392,25 @@ class JTLErrorsReader(object):
                 return
 
             a_msg, a_name = self.__get_assertion_message(element)
-            if not a_msg:
-                a_msg = def_msg
+            a_msg = a_msg if a_msg else def_msg
             return a_msg, None, def_rc, a_name, KPISet.ERRTYPE_ASSERT
 
         r_code = element.get("rc")
         if r_code.startswith("2"):
-            if element.get("s") == "false":     # has failed sub element, we should look deeper...
-                for child in element.iterchildren():
-                    c_tuple = self.find_failure(child, def_msg=element.get("rm"), def_rc=r_code, is_subresult=True)
-                    if c_tuple:
-                        c_msg, c_url, c_rc, c_tag, c_err = c_tuple
-                        if not c_msg:
-                            c_msg = def_msg
-                        if not c_rc:
-                            c_rc = def_rc
-                        return c_msg, c_url, c_rc, c_tag, c_err
+            if element.get("s") != "false":
+                return
+
+            # has failed sub element, we should look deeper...
+            for child in element.iterchildren():
+                c_tuple = self.find_failure(child, def_msg=element.get("rm"), def_rc=r_code, is_subresult=True)
+                if c_tuple:
+                    c_msg, c_url, c_rc, c_tag, c_err = c_tuple
+                    c_msg = c_msg if c_msg else def_msg
+                    c_rc = c_rc if c_rc else def_rc
+                    return c_msg, c_url, c_rc, c_tag, c_err
         else:
             msg = element.get("rm")
-            if not msg:
-                msg = def_msg
+            msg = msg if msg else def_msg
             url = element.xpath(self.url_xpath)
             url = url[0].text if url else element.get("lb")
             r_code = r_code if r_code else def_rc
