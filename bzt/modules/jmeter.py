@@ -1384,7 +1384,6 @@ class JTLErrorsReader(object):
     def find_failure(self, element, def_msg, def_rc=None, is_subresult=False):
         """ (message, url, rc, tag, err_type) """
         if element.tag not in ("httpSample", "sample", "assertionResult"):
-            self.log.debug("Wrong errors block: '%s', skipped", element.tag)
             return
 
         rc = element.get("rc")
