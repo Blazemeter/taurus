@@ -1105,41 +1105,31 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
         self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
 
-    def test_not_embedded_resources_fail_child_assert(self):
-        obj = JTLErrorsReader("/home/taras/Downloads/error.jtl",
-                              logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "subsample assertion error")
-        self.assertEqual(values.get('')[1].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "subsample assertion error")
-        self.assertEqual(values.get('HTTP Request')[1].get("msg"), "NOT FOUND")
-
     def test_embedded_resources_fail_child_assert(self):
         obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-child-assert.jtl",
                               logging.getLogger(''))
         obj.read_file()
         values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "subsample assertion error")
-        self.assertEqual(values.get('')[1].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "subsample assertion error")
-        self.assertEqual(values.get('HTTP Request')[1].get("msg"), "NOT FOUND")
+        self.assertEqual(1, len(values.get("")))
+        self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
 
     def test_resource_tc(self):
         obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource_tc.jtl", logging.getLogger(''))
         obj.read_file()
         values = obj.get_data(sys.maxsize)
+        self.assertEqual(4, len(values.get("")))
         self.assertEqual(values.get('')[0].get("msg"), "message")
         self.assertEqual(values.get('')[1].get("msg"), "FOUND")
         self.assertEqual(values.get('')[2].get("msg"), "second message")
         self.assertEqual(values.get('')[3].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('')[4].get("msg"), "Failed")
+        self.assertEqual(values.get('')[3].get("cnt"), 2)
 
         self.assertEqual(values.get('tc1')[0].get("msg"), "FOUND")
         self.assertEqual(values.get('tc3')[0].get("msg"), "message")
         self.assertEqual(values.get('tc3')[1].get("msg"), "second message")
         self.assertEqual(values.get('tc4')[0].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('tc5')[0].get("msg"), "Failed")
+        self.assertEqual(values.get('tc5')[0].get("msg"), "NOT FOUND")
 
     def test_embedded_resources_no_fail(self):
         obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-no-fail.jtl", logging.getLogger(''))
