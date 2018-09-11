@@ -1387,6 +1387,8 @@ class JTLErrorsReader(object):
             self.log.debug("Wrong errors block: '%s', skipped", element.tag)
             return
 
+        r_code = element.get("rc")
+
         if element.tag == "assertionResult":
             if not self.__assertion_is_failed(element):
                 return
@@ -1395,7 +1397,6 @@ class JTLErrorsReader(object):
             a_msg = a_msg if a_msg else def_msg
             return a_msg, None, def_rc, a_name, KPISet.ERRTYPE_ASSERT
 
-        r_code = element.get("rc")
         if r_code.startswith("2"):
             if element.get("s") != "false":
                 return
