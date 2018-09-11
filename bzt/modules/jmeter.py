@@ -1408,6 +1408,9 @@ class JTLErrorsReader(object):
                     c_msg = c_msg if c_msg else def_msg
                     c_rc = c_rc if c_rc else def_rc
                     return c_msg, c_url, c_rc, c_tag, c_err
+
+            if not is_subresult:
+                return def_msg, None, rc, None, KPISet.ERRTYPE_ERROR
         else:
             msg = element.get("rm")
             msg = msg if msg else def_msg
