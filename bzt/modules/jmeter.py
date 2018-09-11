@@ -1381,7 +1381,7 @@ class JTLErrorsReader(object):
 
         self._extract_common(elem, label, r_code, t_stamp, message)
 
-    def find_failure(self, element, def_msg, def_rc, is_embedded=False):
+    def find_failure(self, element, def_msg, def_rc=None, is_embedded=False):
         """ (message, url, rc, tag, err_type) """
         if element.tag not in ("httpSample", "sample", "assertionResult"):
             self.log.warning("Wrong errors block: %s", element.tag)
@@ -1425,33 +1425,6 @@ class JTLErrorsReader(object):
             else:
                 err_type = KPISet.ERRTYPE_ERROR
             return msg, url, r_code, None, err_type
-
-    def get_failure_message(self, element):
-        """
-        Returns failure message and flag of subsample originating error
-        (message, is_embedded, embedded_url, embedded_rc, tag)
-        """
-        failed_assertion = self.__get_failed_assertion(element)
-        r_code = element.get('rc')
-        if failed_assertion is not None:
-            assertion_message, assertion_name = self.__get_assertion_message(failed_assertion)
-            if assertion_message:
-                return assertion_message, False, None, r_code, assertion_name
-            else:
-                return element.get('rm'), False, None, r_code, None
-
-        if r_code and r_code.startswith("2"):
-            if element.get('s') == "false":
-                # FIXME: would work with HTTP only...
-                children = [elem for elem in element.iterchildren() if elem.tag == "httpSample" or elem.tag == "sample"]
-                for child in children:
-                    child_message, _, url, r_code, tag = self.get_failure_message(child)
-                    if child_message:
-                        return child_message, True, url, r_code, tag
-            return None, False, None, None, None
-        else:
-            url = element.xpath(self.url_xpath)
-            return element.get('rm'), False, url[0].text if url else element.get("lb"), r_code, None
 
     def __get_assertion_message(self, assertion_element):
         """
@@ -1516,12 +1489,11 @@ class XMLJTLReader(JTLErrorsReader, ResultsReader):
         trname = ''
 
         rcd = elem.get("rc")
-        message = self.get_failure_message(elem)
-        if message is None:
-            message = elem.get('rm')
-
-        error = message if elem.get("s") == "false" else None
-        self.items.append((tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count))
+        failure = self.find_failure(elem, def_msg=elem.get("rm"))
+        if failure:
+            message = failure[0]
+            error = message if elem.get("s") == "false" else None
+            self.items.append((tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count))
 
 
 class JMeter(RequiredTool):
