@@ -1381,10 +1381,10 @@ class JTLErrorsReader(object):
 
         self._extract_common(elem, label, r_code, t_stamp, message)
 
-    def find_failure(self, element, def_msg, def_rc=None, is_embedded=False):
+    def find_failure(self, element, def_msg, def_rc=None, is_subresult=False):
         """ (message, url, rc, tag, err_type) """
         if element.tag not in ("httpSample", "sample", "assertionResult"):
-            self.log.warning("Wrong errors block: %s", element.tag)
+            self.log.debug("Wrong errors block: '%s', skipped", element.tag)
             return
 
         if element.tag == "assertionResult":
@@ -1400,30 +1400,27 @@ class JTLErrorsReader(object):
         if r_code.startswith("2"):
             if element.get("s") == "false":     # has failed sub element, we should look deeper...
                 for child in element.iterchildren():
-                    if child.tag in ("httpSample", "sample", "assertionResult"):
-                        c_tuple = self.find_failure(child, def_msg=element.get("rm"), def_rc=r_code, is_embedded=True)
-                        if c_tuple:
-                            c_msg, c_url, c_rc, c_tag, c_err = c_tuple
-                            if not c_msg:
-                                c_msg = def_msg
-                            if not c_rc:
-                                c_rc = def_rc
-                            return c_msg, c_url, c_rc, c_tag, c_err
+                    c_tuple = self.find_failure(child, def_msg=element.get("rm"), def_rc=r_code, is_subresult=True)
+                    if c_tuple:
+                        c_msg, c_url, c_rc, c_tag, c_err = c_tuple
+                        if not c_msg:
+                            c_msg = def_msg
+                        if not c_rc:
+                            c_rc = def_rc
+                        return c_msg, c_url, c_rc, c_tag, c_err
         else:
             msg = element.get("rm")
             if not msg:
                 msg = def_msg
             url = element.xpath(self.url_xpath)
-            if url:
-               url = url[0].text
-            else:
-               url = element.get("lb")
-            if not r_code:
-                r_code = def_rc
-            if is_embedded:
+            url = url[0].text if url else element.get("lb")
+            r_code = r_code if r_code else def_rc
+
+            if is_subresult:
                 err_type = KPISet.ERRTYPE_SUBSAMPLE
             else:
                 err_type = KPISet.ERRTYPE_ERROR
+
             return msg, url, r_code, None, err_type
 
     def __get_assertion_message(self, assertion_element):

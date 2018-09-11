@@ -13,7 +13,7 @@ import yaml
 from bzt import ToolError, TaurusConfigError, TaurusInternalException
 from bzt.jmx import JMX
 from bzt.jmx.tools import ProtocolHandler
-from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
@@ -1126,10 +1126,15 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(values.get('')[3].get("cnt"), 2)
 
         self.assertEqual(values.get('tc1')[0].get("msg"), "FOUND")
+        self.assertEqual(values.get("tc1")[0].get("type"), KPISet.ERRTYPE_SUBSAMPLE)
         self.assertEqual(values.get('tc3')[0].get("msg"), "message")
+        self.assertEqual(values.get("tc3")[0].get("type"), KPISet.ERRTYPE_ERROR)
+        self.assertEqual(values.get("tc3")[1].get("type"), KPISet.ERRTYPE_ERROR)
         self.assertEqual(values.get('tc3')[1].get("msg"), "second message")
         self.assertEqual(values.get('tc4')[0].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get("tc4")[0].get("type"), KPISet.ERRTYPE_SUBSAMPLE)
         self.assertEqual(values.get('tc5')[0].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get("tc5")[0].get("type"), KPISet.ERRTYPE_SUBSAMPLE)
 
     def test_embedded_resources_no_fail(self):
         obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-no-fail.jtl", logging.getLogger(''))
