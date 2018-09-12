@@ -1,0 +1,1 @@
+recognize nested assertion results as ERRTYPE_ASSERT instead of ERRTYPE_SUBSAMPLES
