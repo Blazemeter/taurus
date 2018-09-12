@@ -1391,8 +1391,7 @@ class JTLErrorsReader(object):
 
         if element.tag == "assertionResult":
             if self.__assertion_is_failed(element):
-                msg, name = self.__get_assertion_message(element)
-                msg = msg if msg else def_msg
+                msg, name = self.__get_assertion_message(element, def_msg)
                 err_type = KPISet.ERRTYPE_ASSERT
 
         elif element.tag in ("httpSample", "sample") and rc:
@@ -1412,12 +1411,12 @@ class JTLErrorsReader(object):
                     err_type = KPISet.ERRTYPE_SUBSAMPLE
 
         if not is_subresult and msg is None:    # top level (exit from recursion) and no message
-                msg = def_msg                   # set default failure msg
+            msg = def_msg                       # set default failure msg
 
         rc = rc or def_rc
         return msg, url, rc, name, err_type
 
-    def __get_assertion_message(self, assertion_element):
+    def __get_assertion_message(self, assertion_element, default_message=None):
         """
         Returns assertion failureMessage if "failureMessage" element exists
         """
@@ -1430,7 +1429,7 @@ class JTLErrorsReader(object):
             name_elm = assertion_element.find("name")
             return msg, name_elm.text if name_elm is not None else None
 
-        return None, None
+        return default_message, None
 
     def __get_failed_assertion(self, element):
         """
