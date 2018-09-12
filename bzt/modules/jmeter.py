@@ -1382,48 +1382,42 @@ class JTLErrorsReader(object):
         self._extract_common(elem, label, r_code, t_stamp, message)
 
     def find_failure(self, element, def_msg, def_rc=None, is_subresult=False):
-        """ (message, url, rc, tag, err_type) """
-        if element.tag not in ("httpSample", "sample", "assertionResult"):
-            return
+        """ returns (message, url, rc, tag, err_type) """
 
         rc = element.get("rc")
 
+        msg = None
+        url = None
+        name = None
+        err_type = KPISet.ERRTYPE_ERROR
+
         if element.tag == "assertionResult":
-            if not self.__assertion_is_failed(element):
-                return
+            if self.__assertion_is_failed(element):
+                msg, name = self.__get_assertion_message(element)
+                msg = msg if msg else def_msg
+                err_type = KPISet.ERRTYPE_ASSERT
 
-            msg, name = self.__get_assertion_message(element)
-            msg = msg if msg else def_msg
-            return msg, None, def_rc, name, KPISet.ERRTYPE_ASSERT
+        elif element.tag in ("httpSample", "sample") and rc:
+            if rc.startswith("2"):
+                if element.get("s") == "false":     # has failed sub element, we should look deeper...
+                    for child in element.iterchildren():
+                        msg, url, rc, name, err_type = self.find_failure(
+                            child, def_msg=element.get("rm"), def_rc=rc, is_subresult=True)
+                        if msg:
+                            break
 
-        if rc.startswith("2"):
-            if element.get("s") != "false":
-                return
+            else:   # failed sub sample found
+                msg = element.get("rm") or def_msg
+                url = element.xpath(self.url_xpath)
+                url = url[0].text if url else element.get("lb")
+                if is_subresult:
+                    err_type = KPISet.ERRTYPE_SUBSAMPLE
 
-            # has failed sub element, we should look deeper...
-            for child in element.iterchildren():
-                c_tuple = self.find_failure(child, def_msg=element.get("rm"), def_rc=rc, is_subresult=True)
-                if c_tuple:
-                    c_msg, c_url, c_rc, c_tag, c_err = c_tuple
-                    c_msg = c_msg if c_msg else def_msg
-                    c_rc = c_rc if c_rc else def_rc
-                    return c_msg, c_url, c_rc, c_tag, c_err
+        if not is_subresult and msg is None:    # top level (exit from recursion) and no message
+                msg = def_msg                   # set default failure msg
 
-            if not is_subresult:
-                return def_msg, None, rc, None, KPISet.ERRTYPE_ERROR
-        else:
-            msg = element.get("rm")
-            msg = msg if msg else def_msg
-            url = element.xpath(self.url_xpath)
-            url = url[0].text if url else element.get("lb")
-            rc = rc if rc else def_rc
-
-            if is_subresult:
-                err_type = KPISet.ERRTYPE_SUBSAMPLE
-            else:
-                err_type = KPISet.ERRTYPE_ERROR
-
-            return msg, url, rc, None, err_type
+        rc = rc or def_rc
+        return msg, url, rc, name, err_type
 
     def __get_assertion_message(self, assertion_element):
         """

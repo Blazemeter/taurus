@@ -27,6 +27,13 @@ class TestFuncJTLReader(BZTestCase):
         close_reader_file(self.obj)
         super(TestFuncJTLReader, self).tearDown()
 
+    def test_embedded_resources_no_fail(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/resource-errors-no-fail.jtl")
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEqual(len(values.get('HTTP Request')), 1)
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "failed_resource_message")
+
     def test_functional_reader_pass(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/resource-errors-no-fail.jtl")
         samples = list(self.obj.read())
@@ -139,6 +146,51 @@ class TestJTLErrorsReader(BZTestCase):
         close_reader_file(self.obj)
         super(TestJTLErrorsReader, self).tearDown()
 
+    def test_embedded_resources_main_sample_fail_assert(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/resource-errors-main-assert.jtl")
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEqual(values.get('')[0].get("msg"), "Test failed")
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "Test failed")
+
+    def test_embedded_resources_fail_child_no_assert(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/resource-errors-child-no-assert.jtl")
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
+
+    def test_embedded_resources_fail_child_assert(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/resource-errors-child-assert.jtl")
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEqual(1, len(values.get("")))
+        self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
+
+    def test_resource_tc(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/resource_tc.jtl")
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEqual(4, len(values.get("")))
+        self.assertEqual(values.get('')[0].get("msg"), "message")
+        self.assertEqual(values.get('')[1].get("msg"), "FOUND")
+        self.assertEqual(values.get('')[2].get("msg"), "second message")
+        self.assertEqual(values.get('')[3].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get('')[3].get("cnt"), 2)
+
+        self.assertEqual(values.get('tc1')[0].get("msg"), "FOUND")
+        self.assertEqual(values.get("tc1")[0].get("type"), KPISet.ERRTYPE_SUBSAMPLE)
+        self.assertEqual(values.get('tc3')[0].get("msg"), "message")
+        self.assertEqual(values.get("tc3")[0].get("type"), KPISet.ERRTYPE_ERROR)
+        self.assertEqual(values.get("tc3")[1].get("type"), KPISet.ERRTYPE_ERROR)
+        self.assertEqual(values.get('tc3')[1].get("msg"), "second message")
+        self.assertEqual(values.get('tc4')[0].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get("tc4")[0].get("type"), KPISet.ERRTYPE_SUBSAMPLE)
+        self.assertEqual(values.get('tc5')[0].get("msg"), "NOT FOUND")
+        self.assertEqual(values.get("tc5")[0].get("type"), KPISet.ERRTYPE_SUBSAMPLE)
+
+
     def test_nonstandard_errors_unicode(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/nonstandard-unicode.jtl")
         self.obj.read_file(final_pass=True)
@@ -151,7 +203,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.obj.read_file(final_pass=True)
         values = self.obj.get_data(sys.maxsize)
         self.assertEquals(3, len(values))
-        self.assertEquals(KPISet.ERRTYPE_ASSERT, values[''][0]['type'])
+        self.assertEquals(KPISet.ERRTYPE_ERROR, values[''][0]['type'])
         self.assertEquals('Timeout Check', values[''][0]['tag'])
 
     def test_embedded_errors(self):
