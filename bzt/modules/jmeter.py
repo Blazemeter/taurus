@@ -1353,25 +1353,23 @@ class JTLErrorsReader(object):
         self._extract_common(elem, label, r_code, t_stamp, message)
 
     def _extract_common(self, elem, label, r_code, t_stamp, r_msg):
-        failure = self.find_failure(elem, r_msg, r_code)
-        if failure:
-            f_msg, f_url, f_rc, f_tag, f_type = failure
+        f_msg, f_url, f_rc, f_tag, f_type = self.find_failure(elem, r_msg, r_code)
 
-            if f_type == KPISet.ERRTYPE_ASSERT:
-                f_rc = r_code
-            if f_type == KPISet.ERRTYPE_SUBSAMPLE:
-                url_counts = Counter({f_url: 1})
+        if f_type == KPISet.ERRTYPE_ASSERT:
+            f_rc = r_code
+        if f_type == KPISet.ERRTYPE_SUBSAMPLE:
+            url_counts = Counter({f_url: 1})
+        else:
+            urls = elem.xpath(self.url_xpath)
+            if urls:
+                url_counts = Counter({urls[0].text: 1})
             else:
-                urls = elem.xpath(self.url_xpath)
-                if urls:
-                    url_counts = Counter({urls[0].text: 1})
-                else:
-                    url_counts = Counter()
+                url_counts = Counter()
 
-            err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
-            buf = self.buffer.get(t_stamp, force_set=True)
-            KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
-            KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
+        err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
+        buf = self.buffer.get(t_stamp, force_set=True)
+        KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
+        KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
     def _extract_nonstandard(self, elem):
         t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
@@ -1482,11 +1480,10 @@ class XMLJTLReader(JTLErrorsReader, ResultsReader):
         trname = ''
 
         rcd = elem.get("rc")
-        failure = self.find_failure(elem, def_msg=elem.get("rm"))
-        if failure:
-            message = failure[0]
-            error = message if elem.get("s") == "false" else None
-            self.items.append((tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count))
+        message = self.find_failure(elem, def_msg=elem.get("rm"))[0]
+
+        error = message if elem.get("s") == "false" else None
+        self.items.append((tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count))
 
 
 class JMeter(RequiredTool):
