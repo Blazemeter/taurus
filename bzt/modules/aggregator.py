@@ -17,12 +17,11 @@ limitations under the License.
 """
 import collections
 import copy
-import difflib
 import logging
-import re
 from abc import abstractmethod
 from collections import Counter
 
+import fuzzyset
 import yaml
 from yaml.representer import SafeRepresenter
 
@@ -446,18 +445,36 @@ class ResultsProvider(object):
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
         self.rtimes_len = None
-        self.known_errors = set()
+        self.known_errors = fuzzyset.FuzzySet()
         self.max_error_count = 100
+        self.known_labels = fuzzyset.FuzzySet()
+        self.max_label_count = 500
+
+    def _generalize_label(self, label):
+        if not label or label in self.known_labels.exact_set or self.max_label_count <= 0:
+            return label
+
+        size = len(self.known_labels)
+        threshold = (size / float(self.max_label_count)) ** 2
+        matches = self.known_labels.get(label)
+        if matches:
+            ratio, result = matches[0]
+            if ratio > (1 - threshold):
+                label = result
+        self.known_labels.add(label)
+        return label
 
     def _fold_error(self, error):
-        if not error or error in self.known_errors or self.max_error_count <= 0:
+        if not error or error in self.known_errors.exact_set or self.max_error_count <= 0:
             return error
 
         size = len(self.known_errors)
         threshold = (size / float(self.max_error_count)) ** 2
-        matches = difflib.get_close_matches(error, self.known_errors, 1, 1 - threshold)
+        matches = self.known_errors.get(error)
         if matches:
-            error = matches[0]
+            ratio, result = matches[0]
+            if ratio > (1 - threshold):
+                error = result
         self.known_errors.add(error)
         return error
 
@@ -508,12 +525,6 @@ class ResultsReader(ResultsProvider):
     Aggregator that reads samples one by one,
     supposed to be attached to every executor
     """
-    label_generalize_regexps = [
-        (re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"), "U"),
-        (re.compile(r"\b[0-9a-fA-F]{2,}\b"), "U"),
-        # (re.compile(r"\b[0-9a-fA-F]{32}\b"), "U"), # implied by previous, maybe prev is too wide
-        (re.compile(r"\b\d{2,}\b"), "N")
-    ]
 
     def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
@@ -569,7 +580,7 @@ class ResultsReader(ResultsProvider):
                 label = '[empty]'
 
             if self.generalize_labels:
-                label = self.__generalize_label(label)
+                label = self._generalize_label(label)
 
             label = current.setdefault(label, KPISet(self.track_percentiles))
 
@@ -636,12 +647,6 @@ class ResultsReader(ResultsProvider):
         """
         yield
 
-    def __generalize_label(self, label):
-        for regexp, replacement in self.label_generalize_regexps:
-            label = regexp.sub(replacement, label)
-
-        return label
-
 
 class ConsolidatingAggregator(Aggregator, ResultsProvider):
     """
@@ -653,7 +658,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
     def __init__(self):
         Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
-        self.generalize_labels = False
+        self.generalize_labels = 500
         self.ignored_labels = ["ignore"]
         self.underlings = []
         self.buffer = {}
@@ -717,7 +722,11 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.rtimes_len = self.rtimes_len
 
             underling.max_error_count = self.max_error_count
-            underling.known_errors = self.known_errors  # share error set between underlings
+            underling.max_label_count = self.generalize_labels
+
+            # share error set and label set between underlings
+            underling.known_errors = self.known_errors
+            underling.known_labels = self.known_labels
 
         self.underlings.append(underling)
 
