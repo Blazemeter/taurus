@@ -447,7 +447,9 @@ class ResultsProvider(object):
         self.buffer_scale_idx = None
         self.rtimes_len = None
         self.known_errors = set()
+        self.known_labels = set()
         self.max_error_count = 100
+        self.max_label_count = 100
 
     def _fold_error(self, error):
         if not error or error in self.known_errors or self.max_error_count <= 0:
@@ -637,9 +639,15 @@ class ResultsReader(ResultsProvider):
         yield
 
     def __generalize_label(self, label):
-        for regexp, replacement in self.label_generalize_regexps:
-            label = regexp.sub(replacement, label)
+        if not label or label in self.known_labels or self.max_label_count <= 0:
+            return label
 
+        size = len(self.known_labels)
+        threshold = (size / float(self.max_label_count)) ** 2
+        matches = difflib.get_close_matches(label, self.known_labels, 1, 1 - threshold)
+        if matches:
+            label = matches[0]
+        self.known_labels.add(label)
         return label
 
 
@@ -653,7 +661,8 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
     def __init__(self):
         Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
-        self.generalize_labels = False
+        self.generalize_labels = True
+        self.known_labels = set()
         self.ignored_labels = ["ignore"]
         self.underlings = []
         self.buffer = {}
@@ -673,6 +682,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         self.ignored_labels = self.settings.get("ignore-labels", self.ignored_labels)
         self.generalize_labels = self.settings.get("generalize-labels", self.generalize_labels)
+        self.max_label_count = self.settings.get("max-label-count", self.max_label_count)
 
         self.min_buffer_len = dehumanize_time(self.settings.get("min-buffer-len", self.min_buffer_len))
 
@@ -716,8 +726,11 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.buffer_scale_idx = self.buffer_scale_idx
             underling.rtimes_len = self.rtimes_len
 
+            # share error set and label set between underlings
             underling.max_error_count = self.max_error_count
-            underling.known_errors = self.known_errors  # share error set between underlings
+            underling.known_errors = self.known_errors
+            underling.max_label_count = self.max_label_count
+            underling.known_labels = self.known_labels
 
         self.underlings.append(underling)
 
