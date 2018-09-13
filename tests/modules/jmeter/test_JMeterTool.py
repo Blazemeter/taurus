@@ -1,5 +1,5 @@
-from . import MockJMeter
 from tests import BZTestCase, RESOURCES_DIR
+from tests.modules.jmeter import MockJMeter
 
 
 class TestJMeterTool(BZTestCase):

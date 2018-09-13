@@ -4,7 +4,7 @@ from bzt.jmx.http import HTTPProtocolHandler
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
 from tests import BZTestCase, RESOURCES_DIR
-from . import MockJMeterExecutor
+from tests.modules.jmeter import MockJMeterExecutor
 
 
 class TestScenarioBuilder(BZTestCase):

@@ -435,7 +435,7 @@ class TestJMeterExecutor(BZTestCase):
         try:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = "true"
             self.obj.settings.merge({"path": path})
-            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}],})
+            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}], })
             self.assertRaises(TaurusInternalException, self.obj.prepare)
         finally:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
@@ -666,8 +666,8 @@ class TestJMeterExecutor(BZTestCase):
 
         val_strings = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("100", val_strings[0].text)
-        self.assertEqual("100", val_strings[1].text)
+        self.assertEqual("100.0", val_strings[0].text)
+        self.assertEqual("100.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
     def test_add_cookies(self):
@@ -703,7 +703,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_add_shaper_ramp_up(self):
         self.configure(
-            {'execution': {'ramp-up': '1m', 'throughput': 10, 'hold-for': '2m', 'concurrency': 20,
+            {'execution': {'ramp-up': '1m', 'throughput': 9, 'hold-for': '2m', 'concurrency': 20,
                            'scenario': {'script': RESOURCES_DIR + '/jmeter/jmx/http.jmx'}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -717,14 +717,14 @@ class TestJMeterExecutor(BZTestCase):
 
         val_strings = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("1", val_strings[0].text)
-        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("0.05", val_strings[0].text)
+        self.assertEqual("9.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
         val_strings = coll_elements[1].findall(".//stringProp")
 
-        self.assertEqual("10", val_strings[0].text)
-        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("9.0", val_strings[0].text)
+        self.assertEqual("9.0", val_strings[1].text)
         self.assertEqual("120", val_strings[2].text)
 
     def test_user_def_vars_from_requests(self):
