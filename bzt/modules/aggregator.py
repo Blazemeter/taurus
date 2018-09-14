@@ -428,11 +428,14 @@ class DataPoint(dict):
 yaml.add_representer(KPISet, SafeRepresenter.represent_dict)
 yaml.add_representer(DataPoint, SafeRepresenter.represent_dict)
 
+log = logging.getLogger('')
+
 
 class ResultsProvider(object):
     """
     :type listeners: list[AggregatorListener]
     """
+
 
     def __init__(self):
         super(ResultsProvider, self).__init__()
@@ -448,35 +451,28 @@ class ResultsProvider(object):
         self.known_errors = fuzzyset.FuzzySet()
         self.max_error_count = 100
         self.known_labels = fuzzyset.FuzzySet()
-        self.max_label_count = 500
+        self.max_label_count = 100
+
+    @staticmethod
+    def _fuzzy_fold(key, dataset, limit):
+        if not key or key in dataset.exact_set or limit <= 0:
+            return key
+
+        size = len(dataset)
+        threshold = (size / float(limit)) ** 2
+        matches = dataset.get(key)
+        if matches:
+            ratio, result = matches[0]
+            if ratio > (1 - threshold):
+                key = result
+        dataset.add(key)
+        return key
 
     def _generalize_label(self, label):
-        if not label or label in self.known_labels.exact_set or self.max_label_count <= 0:
-            return label
-
-        size = len(self.known_labels)
-        threshold = (size / float(self.max_label_count)) ** 2
-        matches = self.known_labels.get(label)
-        if matches:
-            ratio, result = matches[0]
-            if ratio > (1 - threshold):
-                label = result
-        self.known_labels.add(label)
-        return label
+        return self._fuzzy_fold(label, self.known_labels, self.max_label_count)
 
     def _fold_error(self, error):
-        if not error or error in self.known_errors.exact_set or self.max_error_count <= 0:
-            return error
-
-        size = len(self.known_errors)
-        threshold = (size / float(self.max_error_count)) ** 2
-        matches = self.known_errors.get(error)
-        if matches:
-            ratio, result = matches[0]
-            if ratio > (1 - threshold):
-                error = result
-        self.known_errors.add(error)
-        return error
+        return self._fuzzy_fold(error, self.known_errors, self.max_error_count)
 
     def add_listener(self, listener):
         """
