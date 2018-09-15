@@ -27,14 +27,13 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types
-from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader
+from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, LoggedObj
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
-class GatlingScriptBuilder(object):
-    def __init__(self, load, scenario, parent_logger, class_name):
+class GatlingScriptBuilder(LoggedObj):
+    def __init__(self, load, scenario, parent_logger=None, class_name=""):  # support deprecated logging interface
         super(GatlingScriptBuilder, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
         self.scenario = scenario
         self.class_name = class_name
@@ -316,14 +315,14 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 raise TaurusConfigError(msg)
 
         self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
-        self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
+        self.reader = DataLogReader(self.engine.artifacts_dir, dir_prefix=self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
     def __generate_script(self):
         simulation = "TaurusSimulation_%s" % id(self)
         file_name = self.engine.create_artifact(simulation, ".scala")
-        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation)
+        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), class_name=simulation)
         with codecs.open(file_name, 'w', encoding='utf-8') as script:
             script.write(gen_script.gen_test_case())
 
@@ -474,14 +473,14 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.engine.existing_artifact(self.reader.file.name)
 
     def install_required_tools(self):
-        required_tools = [TclLibrary(self.log), JavaVM(self.log)]
+        required_tools = [TclLibrary(), JavaVM()]
         gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
         def_path = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}".format(version=gatling_version,
                                                                                 suffix=EXE_SUFFIX)
         gatling_path = get_full_path(self.settings.get("path", def_path))
         self.settings["path"] = gatling_path
         download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
-        required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
+        required_tools.append(Gatling(gatling_path, download_link=download_link, version=gatling_version))
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -533,12 +532,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 class DataLogReader(ResultsReader):
     """ Class to read KPI from data log """
 
-    def __init__(self, basedir, parent_logger, dir_prefix):
+    def __init__(self, basedir, parent_logger=None, dir_prefix=""):
         super(DataLogReader, self).__init__()
         self.concurrency = 0
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.basedir = basedir
-        self.file = FileReader(file_opener=self.open_fds, parent_logger=self.log)
+        self.file = FileReader(file_opener=self.open_fds)
         self.partial_buffer = ""
         self.delimiter = "\t"
         self.dir_prefix = dir_prefix
@@ -714,9 +712,8 @@ class Gatling(RequiredTool):
     Gatling tool
     """
 
-    def __init__(self, tool_path, parent_logger, download_link, version):
+    def __init__(self, tool_path, parent_logger=None, download_link="", version=""):
         super(Gatling, self).__init__("Gatling", tool_path, download_link.format(version=version))
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
 
     def check_if_installed(self):

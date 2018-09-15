@@ -45,7 +45,7 @@ from bzt.requests_model import ResourceFilesCollector, has_variable_pattern
 from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode, communicate
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary, LoggedObj
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -933,10 +933,9 @@ class JTLReader(ResultsReader):
     :type errors_reader: JTLErrorsReader
     """
 
-    def __init__(self, filename, parent_logger, errors_filename=None):
+    def __init__(self, filename, parent_logger=None, errors_filename=None):     # support deprecated logging interface
         super(JTLReader, self).__init__()
         self.is_distributed = False
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.csvreader = IncrementalCSVReader(self.log, filename)
         self.read_records = 0
         if errors_filename:
@@ -1006,13 +1005,12 @@ class FuncJTLReader(FunctionalResultsReader):
 
     FILE_EXTRACTED_FIELDS = ["requestBody", "responseBody", "requestCookiesRaw"]
 
-    def __init__(self, filename, engine, parent_logger):
+    def __init__(self, filename, engine, parent_logger=None):   # support deprecated logging interface
         super(FuncJTLReader, self).__init__()
         self.executor_label = "JMeter"
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',), recover=True)
         self.engine = engine
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.failed_processing = False
         self.read_records = 0
 
@@ -1204,18 +1202,18 @@ class FuncJTLReader(FunctionalResultsReader):
         return None
 
 
-class IncrementalCSVReader(object):
+class IncrementalCSVReader(LoggedObj):
     """
     JTL csv reader
     """
 
     def __init__(self, parent_logger, filename):
+        super(IncrementalCSVReader, self).__init__()
         self.buffer = StringIO()
         self.csv_reader = None
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.indexes = {}
         self.partial_buffer = ""
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.read_speed = 1024 * 1024
 
     def read(self, last_pass=False):
@@ -1270,7 +1268,7 @@ class IncrementalCSVReader(object):
             self.read_speed = max(self.read_speed / 2, 1024 * 1024)
 
 
-class JTLErrorsReader(object):
+class JTLErrorsReader(LoggedObj):
     """
     Reader for errors.jtl, which is in XML max-verbose format
 
@@ -1280,12 +1278,11 @@ class JTLErrorsReader(object):
     assertionMessage = GenericTranslator().css_to_xpath("assertionResult>failureMessage")
     url_xpath = GenericTranslator().css_to_xpath("java\\.net\\.URL")
 
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger=None):   # support deprecated logging interface
         # http://stackoverflow.com/questions/9809469/python-sax-to-lxml-for-80gb-xml/9814580#9814580
         super(JTLErrorsReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.parser = etree.XMLPullParser(events=('end',))
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.buffer = BetterDict()
         self.failed_processing = False
 
@@ -1489,11 +1486,11 @@ class JMeter(RequiredTool):
     JMeter tool
     """
 
+    # support deprecated logging interface
     def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, http_client):
         if jmeter_download_link is not None:
             jmeter_download_link = jmeter_download_link.format(version=jmeter_version)
         super(JMeter, self).__init__("JMeter", tool_path, jmeter_download_link, http_client=http_client)
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = jmeter_version
         self.mirror_manager = JMeterMirrorsManager(http_client, self.log, self.version)
         self.plugins = plugins
@@ -1667,9 +1664,9 @@ class JMeter(RequiredTool):
         return False
 
 
-class JarCleaner(object):
-    def __init__(self, parent_logger):
-        self.log = parent_logger.getChild(self.__class__.__name__)
+class JarCleaner(LoggedObj):
+    def __init__(self, parent_logger=None):     # support deprecated logging interface
+        super(JarCleaner, self).__init__()
 
     @staticmethod
     def __extract_version(jar):

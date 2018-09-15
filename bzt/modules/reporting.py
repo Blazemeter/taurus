@@ -33,7 +33,7 @@ from bzt.modules.blazemeter import BlazeMeterUploader, CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator, FunctionalAggregatorListener
 from bzt.modules.passfail import PassFailStatus
 from bzt.six import etree, iteritems, string_types, integer_types
-from bzt.utils import get_full_path, is_windows
+from bzt.utils import get_full_path, is_windows, LoggedObj
 
 if is_windows():
     from terminaltables import AsciiTable as SingleTable
@@ -515,7 +515,7 @@ def get_bza_report_info(engine, log):
     return result
 
 
-class XUnitFileWriter(object):
+class XUnitFileWriter(LoggedObj):
     REPORT_FILE_NAME = "xunit"
     REPORT_FILE_EXT = ".xml"
 
@@ -525,7 +525,6 @@ class XUnitFileWriter(object):
         """
         super(XUnitFileWriter, self).__init__()
         self.engine = engine
-        self.log = engine.log.getChild(self.__class__.__name__)
         self.test_suites = OrderedDict()
         bza_report_info = get_bza_report_info(engine, self.log)
         self.class_name = bza_report_info[0][1] if bza_report_info else "bzt-" + str(self.__hash__())

@@ -15,7 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import logging
 import os
 import re
 import time
@@ -28,7 +27,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import etree, parse, iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which, FileReader
+from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which, FileReader, LoggedObj
 
 
 class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -38,7 +37,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
 
     def __init__(self):
         super(TsungExecutor, self).__init__()
-        self.log = logging.getLogger('')
         self.process = None
         self.__out = None
         self.__err = None
@@ -70,7 +68,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
             msg = "Tsung artifacts basedir already exists, will not create: %s"
             self.log.warning(msg, self.tsung_artifacts_basedir)
 
-        self.reader = TsungStatsReader(self.tsung_artifacts_basedir, self.log)
+        self.reader = TsungStatsReader(self.tsung_artifacts_basedir)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -80,7 +78,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
     def __modify_user_tsung_config(self, user_config_path):
         modified_config_path = self.engine.create_artifact("tsung-config", ".xml")
         load = self.get_load()
-        tsung = Tsung(self.tool_path, self.log)
+        tsung = Tsung(self.tool_path)
         config = TsungConfig(tsung)
         config.load(user_config_path)
         config.apply_load_profile(load)
@@ -92,7 +90,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         config_file = self.engine.create_artifact("tsung-config", ".xml")
         scenario = self.get_scenario()
         load = self.get_load()
-        tsung = Tsung(self.tool_path, self.log)
+        tsung = Tsung(self.tool_path)
         config = TsungConfig(tsung)
         config.generate(scenario, load)
         config.save(config_file)
@@ -129,7 +127,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
 
     def install_required_tools(self):
         tool_path = self.settings.get('path', 'tsung')
-        tsung = Tsung(tool_path, self.log)
+        tsung = Tsung(tool_path)
         if not tsung.check_if_installed():
             tsung.install()
         return tool_path
@@ -162,12 +160,11 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
 
 
 class TsungStatsReader(ResultsReader):
-    def __init__(self, tsung_basedir, parent_logger):
+    def __init__(self, tsung_basedir, parent_logger=None):  # support deprecated logging interface
         super(TsungStatsReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.tsung_basedir = tsung_basedir
-        self.stats_file = FileReader(parent_logger=self.log, file_opener=self.open_stats)
-        self.log_file = FileReader(parent_logger=self.log, file_opener=self.open_log)
+        self.stats_file = FileReader(file_opener=self.open_stats)
+        self.log_file = FileReader(file_opener=self.open_log)
         self.delimiter = ";"
         self.partial_buffer = ""
         self.skipped_header = False
@@ -248,9 +245,9 @@ class TsungStatsReader(ResultsReader):
             yield tstamp, url, self.concurrency, etime, con_time, latency, rstatus, error, trname, rsize
 
 
-class TsungConfig(object):
+class TsungConfig(LoggedObj):
     def __init__(self, tsung_tool):
-        self.log = logging.getLogger(self.__class__.__name__)
+        super(TsungConfig, self).__init__()
         self.root = etree.Element("tsung", loglevel="notice", version="1.0", dumptraffic="protocol", backend="text")
         self.tree = etree.ElementTree(self.root)
         self.tsung_tool = tsung_tool
@@ -425,9 +422,8 @@ class Tsung(RequiredTool):
     INSTALLATION_DOCS = "http://gettaurus.org/docs/Tsung/#Tsung-Installation"
     DEFAULT_DTD_PATH = "/usr/share/tsung/tsung-1.0.dtd"
 
-    def __init__(self, tool_path, parent_logger):
+    def __init__(self, tool_path, parent_logger=None):  # support deprecated logging interface
         super(Tsung, self).__init__("Tsung", tool_path)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         self.log.debug('Checking Tsung at %s' % self.tool_path)

@@ -20,8 +20,7 @@ from subprocess import CalledProcessError
 from bzt import TaurusConfigError
 from bzt.engine import Service
 from bzt.six import iteritems
-from bzt.utils import ensure_is_dict
-from bzt.utils import shutdown_process, BetterDict, is_windows
+from bzt.utils import ensure_is_dict, LoggedObj, shutdown_process, BetterDict, is_windows
 
 ARTIFACTS_DIR_ENVVAR = "TAURUS_ARTIFACTS_DIR"
 
@@ -63,7 +62,7 @@ class ShellExecutor(Service):
             for name, value in iteritems(env):
                 env[str(name)] = str(value)
 
-            task = Task(task_config, self.log, working_dir, env)
+            task = Task(task_config, working_dir=working_dir, env=env)
             container.append(task)
             self.log.debug("Added %s task: %s", stage, stage_task)
 
@@ -110,12 +109,12 @@ class ShellExecutor(Service):
             task.shutdown()
 
 
-class Task(object):
+class Task(LoggedObj):
     """
     :type process: subprocess.Popen
     """
-    def __init__(self, config, parent_log, working_dir, env):
-        self.log = parent_log.getChild(self.__class__.__name__)
+    def __init__(self, config, parent_log=None, working_dir="", env=None):  # support deprecated logging interface
+        super(Task, self).__init__()
         self.working_dir = working_dir
         self.env = env
 

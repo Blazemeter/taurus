@@ -52,7 +52,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.configure(load={'concurrency': 76, 'steps': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)     # because no duration
-        self.sniff_log(self.obj.log)
+        self.sniff_log()
 
         self.obj.modify(self.jmx)
 
@@ -84,7 +84,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         self.configure(load={'concurrency': 71, 'ramp-up': 100, 'steps': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
-        self.sniff_log(self.obj.log)
+        self.sniff_log()
 
         self.obj.modify(self.jmx)
 

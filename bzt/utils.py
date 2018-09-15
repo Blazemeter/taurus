@@ -60,6 +60,7 @@ from bzt.six import stream_decode, file_type, etree, parse, deunicode
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
+ROOT_LOGGER = logging.root
 
 
 def sync_run(args, env=None):
@@ -131,6 +132,10 @@ def run_once(func):
     return wrapper
 
 
+def is_file_handler(handler):
+    return isinstance(handler, logging.FileHandler)
+
+
 def replace_in_config(config, samples, substitutes, log=None):
     def file_replacer(value, key, container):
         if value in samples:
@@ -189,10 +194,18 @@ def dehumanize_time(str_time):
     return result
 
 
+class LoggedObj(object):
+    def __init__(self):
+        self.log = ROOT_LOGGER.getChild(self.__class__.__name__)
+
+
 class BetterDict(defaultdict):
     """
     Wrapper for defaultdict that able to deep merge other dicts into itself
     """
+    def __init__(self, *args, **kwargs):
+        super(BetterDict, self).__init__(*args, **kwargs)
+        self.log = ROOT_LOGGER.getChild(self.__class__.__name__)
 
     @classmethod
     def from_dict(cls, orig):
@@ -291,7 +304,7 @@ class BetterDict(defaultdict):
                     if isinstance(righty, BetterDict):
                         lefty.merge(righty)
                         continue
-                logging.warning("Overwriting the value of %r when merging configs", key)
+                self.log.warning("Overwriting the value of %r when merging configs", key)
                 left[index] = righty
             else:
                 left.insert(index, righty)
@@ -370,16 +383,17 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     :return:
     """
     if stdout and not isinstance(stdout, integer_types) and not isinstance(stdout, file_type):
-        logging.warning("stdout is not IOBase: %s", stdout)
+        ROOT_LOGGER.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
     if stderr and not isinstance(stderr, integer_types) and not isinstance(stderr, file_type):
-        logging.warning("stderr is not IOBase: %s", stderr)
+        ROOT_LOGGER.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
     if isinstance(args, string_types) and not shell:
         args = shlex.split(args, posix=not is_windows())
-    logging.getLogger(__name__).debug("Executing shell: %s at %s", args, cwd or os.curdir)
+
+    ROOT_LOGGER.debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
     if is_windows():
         return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
@@ -389,10 +403,10 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
                             bufsize=0, preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
 
 
-class Environment(object):
-    def __init__(self, parent_log, data=None):
+class Environment(LoggedObj):
+    def __init__(self, parent_log=None, data=None):     # support deprecated logging interface
+        super(Environment, self).__init__()
         self.data = {}
-        self.log = parent_log.getChild(self.__class__.__name__)
         if data is not None:
             self.set(data)
 
@@ -459,15 +473,12 @@ class Environment(object):
             return copy.deepcopy(self.data)
 
 
-class FileReader(object):
+class FileReader(LoggedObj):
     SYS_ENCODING = locale.getpreferredencoding()
 
-    def __init__(self, filename="", file_opener=None, parent_logger=None):
+    def __init__(self, filename="", file_opener=None, parent_logger=None):  # support deprecated logging interface
+        super(FileReader, self).__init__()
         self.fds = None
-        if parent_logger:
-            self.log = parent_logger.getChild(self.__class__.__name__)
-        else:
-            self.log = logging.getLogger(self.__class__.__name__)
 
         if file_opener:
             self.file_opener = file_opener  # external method for opening of file
@@ -936,10 +947,10 @@ def shutdown_process(process_obj, log_obj):
             log_obj.debug("Failed to terminate process: %s", exc)
 
 
-class HTTPClient(object):
+class HTTPClient(LoggedObj):
     def __init__(self):
+        super(HTTPClient, self).__init__()
         self.session = requests.Session()
-        self.log = logging.getLogger(self.__class__.__name__)
         self.proxy_settings = None
 
     def add_proxy_settings(self, proxy_settings):
@@ -1058,19 +1069,19 @@ class ExceptionalDownloader(request.FancyURLopener, object):
         return result
 
 
-class RequiredTool(object):
+class RequiredTool(LoggedObj):
     """
     Abstract required tool
     """
 
     def __init__(self, tool_name, tool_path, download_link="", http_client=None):
+        super(RequiredTool, self).__init__()
         self.http_client = http_client
         self.tool_name = tool_name
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
-        self.log = logging.getLogger('')
         self.version = None
 
     def _get_version(self, output):
@@ -1120,9 +1131,9 @@ class RequiredTool(object):
 
 
 class JavaVM(RequiredTool):
-    def __init__(self, parent_logger, tool_path='java', download_link='', http_client=None):
+    # support deprecated logging interface
+    def __init__(self, parent_logger=None, tool_path='java', download_link='', http_client=None):
         super(JavaVM, self).__init__("JavaVM", tool_path, download_link, http_client=http_client)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def _get_version(self, output):
         versions = re.findall("version\ \"([_\d\.]*)", output)
@@ -1199,9 +1210,8 @@ class TclLibrary(RequiredTool):
     INIT_TCL = "init.tcl"
     FOLDER = "tcl"
 
-    def __init__(self, parent_logger):
+    def __init__(self, parent_logger=None):  # support deprecated logging interface
         super(TclLibrary, self).__init__("Python Tcl library environment variable", "")
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         """
@@ -1248,9 +1258,8 @@ class TclLibrary(RequiredTool):
 
 
 class Node(RequiredTool):
-    def __init__(self, parent_logger):
+    def __init__(self, parent_logger=None):     # support deprecated logging interface
         super(Node, self).__init__("Node.js", "")
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.executable = None
 
     def check_if_installed(self):
@@ -1271,15 +1280,16 @@ class Node(RequiredTool):
         raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
 
 
-class MirrorsManager(object):
-    def __init__(self, base_link, parent_logger, http_client=None):
+class MirrorsManager(LoggedObj):
+    # support deprecated logging interface
+    def __init__(self, base_link, parent_logger=None, http_client=None):
         """
 
         :type base_link: str
         :type http_client: HTTPClient
         """
+        super(MirrorsManager, self).__init__()
         self.base_link = base_link
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.http_client = http_client
         self.page_source = None
 
@@ -1419,14 +1429,14 @@ def is_piped(file_obj):
     return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
 
 
-class PythonGenerator(object):
+class PythonGenerator(LoggedObj):
     IMPORTS = ''
     INDENT_STEP = 4
 
-    def __init__(self, scenario, parent_logger):
+    def __init__(self, scenario, parent_logger=None):   # support deprecated logging interface
+        super(PythonGenerator, self).__init__()
         self.root = etree.Element("PythonCode")
         self.tree = etree.ElementTree(self.root)
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.scenario = scenario
 
     def add_imports(self):
@@ -1509,12 +1519,11 @@ def humanize_bytes(byteval):
     return '{:.4g}{}'.format(byteval / (1 << (order * 10)), _suffixes[order])
 
 
-class LDJSONReader(object):
-    def __init__(self, filename, parent_log):
-        self.log = parent_log.getChild(self.__class__.__name__)
+class LDJSONReader(LoggedObj):
+    def __init__(self, filename, parent_log=None):      # support deprecated logging interface
+        super(LDJSONReader, self).__init__()
         self.file = FileReader(filename=filename,
-                               file_opener=lambda f: open(f, 'rb', buffering=1),
-                               parent_logger=self.log)
+                               file_opener=lambda f: open(f, 'rb', buffering=1))
         self.partial_buffer = ""
 
     def read(self, last_pass=False):
@@ -1551,4 +1560,3 @@ def get_host_ips(filter_loopbacks=True):
 
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
-

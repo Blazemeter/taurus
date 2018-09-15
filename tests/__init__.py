@@ -123,9 +123,12 @@ class BZTestCase(TestCase):
         else:
             return self.func_results
 
-    def sniff_log(self, log):
+    def sniff_log(self, log=None):
         self.log_recorder = RecordingHandler()
-        self.captured_logger = log
+        if log:     # omit param to capture all logging
+            self.captured_logger = log
+        else:
+            self.captured_logger = logging.root
         self.captured_logger.addHandler(self.log_recorder)
 
     def tearDown(self):

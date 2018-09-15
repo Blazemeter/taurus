@@ -17,7 +17,7 @@ class TaskTestCase(BZTestCase):
         self.obj.engine = EngineEmul()
         self.obj.engine.config.merge({"provisioning": "local"})
         self.obj.engine.default_cwd = os.getcwd()
-        self.sniff_log(self.obj.log)
+        self.sniff_log()
 
 
 class TestBlockingTasks(TaskTestCase):

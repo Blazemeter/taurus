@@ -27,7 +27,7 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         super(NUnitExecutor, self).__init__()
         self.runner_dir = os.path.join(get_full_path(__file__, step_up=2), "resources", "NUnitRunner")
         self.runner_executable = os.path.join(self.runner_dir, "NUnitRunner.exe")
-        self.mono = Mono("mono", "", self.log)
+        self.mono = Mono("mono", "")
 
     def install_required_tools(self):
         if not is_windows():
@@ -67,9 +67,8 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
 
 
 class Mono(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
+    def __init__(self, tool_path, download_link, parent_logger=None):   # support deprecated logging interface
         super(Mono, self).__init__("Mono", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         try:

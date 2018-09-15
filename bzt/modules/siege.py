@@ -72,7 +72,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         self.stdout_file = open(out, 'w')
         self.stderr_file = open(self.engine.create_artifact("siege", ".err"), 'w')
 
-        self.reader = DataLogReader(out, self.log)
+        self.reader = DataLogReader(out)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -164,7 +164,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
 
     def install_required_tools(self):
         tool_path = self.settings.get('path', 'siege')
-        siege = Siege(tool_path, self.log)
+        siege = Siege(tool_path)
         if not siege.check_if_installed():
             siege.install()
         return tool_path
@@ -185,10 +185,9 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
 
 
 class DataLogReader(ResultsReader):
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger=None):   # support deprecated logging interface
         super(DataLogReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.concurrency = None
 
     def _read(self, last_pass=False):
@@ -221,9 +220,8 @@ class DataLogReader(ResultsReader):
 
 
 class Siege(RequiredTool):
-    def __init__(self, tool_path, parent_logger):
+    def __init__(self, tool_path, parent_logger=None):  # support deprecated logging interface
         super(Siege, self).__init__("Siege", tool_path)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         self.log.debug('Check Siege: %s' % self.tool_path)

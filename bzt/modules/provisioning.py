@@ -68,7 +68,7 @@ class Local(Provisioning):
         super(Local, self).prepare()
         for executor in self.executors:
             self.log.debug("Preparing executor: %s", executor)
-            executor.env = Environment(executor.log, self.engine.env.get())
+            executor.env = Environment(data=self.engine.env.get())
             executor.prepare()
             self.engine.prepared.append(executor)
 

@@ -16,7 +16,7 @@ from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
 from bzt.six import iteritems, urlopen, urlencode, b, stream_decode, integer_types
-from bzt.utils import dehumanize_time, BetterDict
+from bzt.utils import dehumanize_time, BetterDict, LoggedObj
 
 
 class Monitoring(Service, WidgetProvider, Singletone):
@@ -98,9 +98,9 @@ class MonitoringListener(object):
         pass
 
 
-class MonitoringClient(object):
-    def __init__(self, parent_log, engine):
-        self.log = parent_log.getChild(self.__class__.__name__)
+class MonitoringClient(LoggedObj):
+    def __init__(self, parent_log=None, engine=None):   # support deprecated logging interface
+        super(MonitoringClient, self).__init__()
         self.engine = engine
         self._last_check = 0  # the last check was long time ago
 
@@ -125,8 +125,8 @@ class LocalClient(MonitoringClient):
     AVAILABLE_METRICS = ['cpu', 'mem', 'disk-space', 'engine-loop', 'bytes-recv',
                          'bytes-sent', 'disk-read', 'disk-write', 'conn-all']
 
-    def __init__(self, parent_log, label, config, engine=None):
-        super(LocalClient, self).__init__(parent_log, engine)
+    def __init__(self, parent_log=None, label="", config=None, engine=None):    # support deprecated logging interface
+        super(LocalClient, self).__init__(engine=engine)
 
         self.config = config
 
@@ -183,7 +183,7 @@ class LocalClient(MonitoringClient):
 
         self.metrics = list(set(good_list))
 
-        self.monitor = LocalMonitor(self.log, self.metrics, self.engine)
+        self.monitor = LocalMonitor(metrics=self.metrics, engine=self.engine)
         self.interval = dehumanize_time(self.config.get("interval", self.engine.check_interval))
 
     def get_data(self):
@@ -203,12 +203,11 @@ class LocalClient(MonitoringClient):
         return self._cached_data
 
 
-class LocalMonitor(object):
-    def __init__(self, parent_logger, metrics, engine):
+class LocalMonitor(LoggedObj):
+    def __init__(self, parent_logger=None, metrics=None, engine=None):  # support deprecated logging interface
         if not engine:
             raise TaurusInternalException('Local monitor requires valid engine instance')
         self._informed_on_mem_issue = False
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.metrics = metrics
         self.engine = engine
         self._disk_counters = None
@@ -312,8 +311,8 @@ class LocalMonitor(object):
 
 
 class GraphiteClient(MonitoringClient):
-    def __init__(self, parent_log, label, config, engine):
-        super(GraphiteClient, self).__init__(parent_log, engine)
+    def __init__(self, parent_log=None, label="", config=None, engine=None):
+        super(GraphiteClient, self).__init__(engine=engine)
         self.config = config
         exc = TaurusConfigError('Graphite client requires address parameter')
         self.address = self.config.get("address", exc)
@@ -382,12 +381,12 @@ class GraphiteClient(MonitoringClient):
 
 
 class ServerAgentClient(MonitoringClient):
-    def __init__(self, parent_log, label, config, engine):
+    def __init__(self, parent_log=None, label="", config=None, engine=None):
         """
         :type parent_log: logging.Logger
         :type config: dict
         """
-        super(ServerAgentClient, self).__init__(parent_log, engine)
+        super(ServerAgentClient, self).__init__(engine=engine)
         self.host_label = label
         exc = TaurusConfigError('ServerAgent client requires address parameter')
         self.address = config.get("address", exc)

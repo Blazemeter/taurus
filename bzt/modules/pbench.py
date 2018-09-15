@@ -35,7 +35,7 @@ from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, Consolidati
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
-from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader
+from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader, LoggedObj
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time, get_full_path
 
 
@@ -107,7 +107,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def install_required_tools(self):
         self._prepare_pbench()
 
-        tool = PBench(self.log, self.pbench.path)
+        tool = PBench(tool_path=self.pbench.path)
         if not tool.check_if_installed():
             tool.install()
 
@@ -125,16 +125,15 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         return diagnostics
 
 
-class PBenchTool(object):
+class PBenchTool(LoggedObj):
     SSL_STR = "transport_t ssl_transport = transport_ssl_t { timeout = 1s }\n transport = ssl_transport"
 
-    def __init__(self, executor, base_logger):
+    def __init__(self, executor, base_logger):  # support deprecated logging interface
         """
         :param executor: ScenarioExecutor
         :type base_logger: logging.Logger
         """
         super(PBenchTool, self).__init__()
-        self.log = base_logger.getChild(self.__class__.__name__)
         self.executor = executor
         self.engine = executor.engine
         self.settings = executor.settings
@@ -270,7 +269,7 @@ class PBenchTool(object):
             self.log.info("Generating request schedule file: %s", self.schedule_file)
 
             with open(self.schedule_file, 'wb') as sfd:
-                scheduler = Scheduler(load, self.payload_file, self.log)
+                scheduler = Scheduler(load, self.payload_file)
                 self._write_schedule_file(load, scheduler, sfd)
 
             self.log.info("Done generating schedule file")
@@ -375,7 +374,7 @@ class PBenchTool(object):
         pass
 
     def get_results_reader(self):
-        return PBenchKPIReader(self.kpi_file, self.log, self.stats_file)
+        return PBenchKPIReader(filename=self.kpi_file, stats_filename=self.stats_file)
 
     @abstractmethod
     def _get_additional_modules(self):
@@ -476,17 +475,16 @@ class TaurusPBenchTool(PBenchTool):
         return res
 
 
-class Scheduler(object):
+class Scheduler(LoggedObj):
     REC_TYPE_SCHEDULE = 0
     REC_TYPE_LOOP_START = 1
     REC_TYPE_STOP = 2
 
-    def __init__(self, load, payload_filename, parent_logger):
+    def __init__(self, load, payload_filename, parent_logger=None):     # support deprecated logging interface
         super(Scheduler, self).__init__()
         self.need_start_loop = None
-        self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
-        self.payload_file = FileReader(filename=payload_filename, parent_logger=self.log)
+        self.payload_file = FileReader(filename=payload_filename)
         if not load.duration and not load.iterations:
             self.iteration_limit = 1
         else:
@@ -584,10 +582,10 @@ class PBenchKPIReader(ResultsReader):
     :type stats_reader: PBenchStatsReader
     """
 
-    def __init__(self, filename, parent_logger, stats_filename):
+    # support deprecated logging interface
+    def __init__(self, filename, parent_logger=None, stats_filename=""):
         super(PBenchKPIReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.stats_reader = PBenchStatsReader(stats_filename, parent_logger)
 
     def _read(self, last_pass=False):
@@ -646,13 +644,12 @@ class PBenchKPIReader(ResultsReader):
             yield point
 
 
-class PBenchStatsReader(object):
+class PBenchStatsReader(LoggedObj):
     MARKER = "\n},"
 
-    def __init__(self, filename, parent_logger):
+    def __init__(self, filename, parent_logger=None):   # support deprecated logging interface
         super(PBenchStatsReader, self).__init__()
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.file = FileReader(filename=filename, parent_logger=self.log)
+        self.file = FileReader(filename=filename)
         self.buffer = ''
         self.data = {}
         self.last_data = 0
@@ -696,9 +693,8 @@ class PBenchStatsReader(object):
 
 
 class PBench(RequiredTool):
-    def __init__(self, parent_logger, tool_path):
+    def __init__(self, parent_logger=None, tool_path=""):      # support deprecated logging interface
         super(PBench, self).__init__("PBench", tool_path)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         self.log.debug("Trying phantom: %s", self.tool_path)

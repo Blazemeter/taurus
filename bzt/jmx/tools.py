@@ -25,7 +25,7 @@ from bzt.jmx import JMX
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
 from bzt.requests_model import RequestVisitor, has_variable_pattern
 from bzt.six import etree, iteritems, numeric_types
-from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, guess_csv_dialect, load_class
+from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, guess_csv_dialect, load_class, LoggedObj
 
 
 class RequestCompiler(RequestVisitor):
@@ -69,15 +69,15 @@ class RequestCompiler(RequestVisitor):
         return self.jmx_builder.compile_set_variables_block(block)
 
 
-class LoadSettingsProcessor(object):
+class LoadSettingsProcessor(LoggedObj):
     TG = ThreadGroup.__name__
     CTG = ConcurrencyThreadGroup.__name__
 
     def __init__(self, executor):
-        self.log = executor.log.getChild(self.__class__.__name__)
+        super(LoadSettingsProcessor, self).__init__()
         self.load = executor.get_specific_load()
         self.tg = self._detect_thread_group(executor)
-        self.tg_handler = ThreadGroupHandler(self.log)
+        self.tg_handler = ThreadGroupHandler()
 
     def _detect_thread_group(self, executor):
         """

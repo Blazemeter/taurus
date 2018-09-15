@@ -47,9 +47,9 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
 
     def install_required_tools(self):
         tools = []
-        tools.append(TclLibrary(self.log))
-        tools.append(Ruby(self.settings.get("interpreter", "ruby"), "", self.log))
-        tools.append(RSpec("", "", self.log))
+        tools.append(TclLibrary())
+        tools.append(Ruby(self.settings.get("interpreter", "ruby"), ""))
+        tools.append(RSpec("", ""))
         tools.append(TaurusRSpecPlugin(self.plugin_path, ""))
         self._check_tools(tools)
 
@@ -78,9 +78,8 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
 
 
 class Ruby(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
+    def __init__(self, tool_path, download_link, parent_logger=None):   # support deprecated logging interface
         super(Ruby, self).__init__("Ruby", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         try:
@@ -95,9 +94,8 @@ class Ruby(RequiredTool):
 
 
 class RSpec(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
+    def __init__(self, tool_path, download_link, parent_logger=None):   # support deprecated logging interface
         super(RSpec, self).__init__("RSpec", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
 
     def check_if_installed(self):
         try:

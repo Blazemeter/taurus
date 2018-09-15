@@ -18,7 +18,6 @@ limitations under the License.
 import collections
 import copy
 import difflib
-import logging
 import re
 from abc import abstractmethod
 from collections import Counter
@@ -29,7 +28,7 @@ from yaml.representer import SafeRepresenter
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems, PY3
-from bzt.utils import dehumanize_time, JSONConvertible
+from bzt.utils import dehumanize_time, JSONConvertible, LoggedObj
 from hdrpy import HdrHistogram
 
 
@@ -430,7 +429,7 @@ yaml.add_representer(KPISet, SafeRepresenter.represent_dict)
 yaml.add_representer(DataPoint, SafeRepresenter.represent_dict)
 
 
-class ResultsProvider(object):
+class ResultsProvider(LoggedObj):
     """
     :type listeners: list[AggregatorListener]
     """
@@ -519,7 +518,6 @@ class ResultsReader(ResultsProvider):
         super(ResultsReader, self).__init__()
         self.generalize_labels = False
         self.ignored_labels = []
-        self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
         self.min_timestamp = 0
         if perc_levels is not None:

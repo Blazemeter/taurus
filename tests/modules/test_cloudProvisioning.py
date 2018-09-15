@@ -602,7 +602,7 @@ class TestCloudProvisioning(BZTestCase):
             }
         )
 
-        self.sniff_log(self.obj.log)
+        self.sniff_log()
 
         self.obj.settings["use-deprecated-api"] = False
         self.obj.prepare()
