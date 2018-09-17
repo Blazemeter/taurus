@@ -102,7 +102,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         args += ["--clients=%d" % concurrency, "--hatch-rate=%f" % hatch]
         if load.iterations:
             num_requests = load.iterations * concurrency
-            args.append("--num-request=%d" % num_requests)
             self.env.set({"LOCUST_NUMREQUESTS": num_requests})
 
         if self.is_master:

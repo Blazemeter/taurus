@@ -47,6 +47,8 @@ class LocustStarter(object):
             exc_message = str(exc)
             rcode = exc_message[:exc_message.index(' ')]
             rmsg = exc_message[exc_message.index(':') + 2:]
+        if isinstance(response_time, float):
+            response_time = int(round(response_time))
 
         return OrderedDict([
             ('timeStamp', "%d" % (time.time() * 1000)),

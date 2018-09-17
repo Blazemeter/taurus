@@ -42,8 +42,7 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern
-from bzt.six import communicate, PY2
-from bzt.six import iteritems, string_types, StringIO, etree, unicode_decode, numeric_types
+from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode, communicate
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -1353,29 +1352,23 @@ class JTLErrorsReader(object):
         self._extract_common(elem, label, r_code, t_stamp, message)
 
     def _extract_common(self, elem, label, r_code, t_stamp, r_msg):
-        urls = elem.xpath(self.url_xpath)
-        if urls:
-            url_counts = Counter({urls[0].text: 1})
+        f_msg, f_url, f_rc, f_tag, f_type = self.find_failure(elem, r_msg, r_code)
+
+        if f_type == KPISet.ERRTYPE_ASSERT:
+            f_rc = r_code
+        if f_type == KPISet.ERRTYPE_SUBSAMPLE:
+            url_counts = Counter({f_url: 1})
         else:
-            url_counts = Counter()
-        errtype = KPISet.ERRTYPE_ERROR
+            urls = elem.xpath(self.url_xpath)
+            if urls:
+                url_counts = Counter({urls[0].text: 1})
+            else:
+                url_counts = Counter()
 
-        failed_assertion = self.__get_failed_assertion(elem)
-        if failed_assertion is not None:
-            errtype = KPISet.ERRTYPE_ASSERT
-
-        message, is_embedded, embedded_url, embedded_rc, tag = self.get_failure_message(elem)
-        if message is None:
-            message = r_msg
-        if is_embedded:
-            errtype = KPISet.ERRTYPE_SUBSAMPLE
-            url_counts = Counter({embedded_url: 1})
-            r_code = embedded_rc
-
-        err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url_counts, tag)
+        err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
         buf = self.buffer.get(t_stamp, force_set=True)
-        KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", message), err_item)
-        KPISet.inc_list(buf.get('', [], force_set=True), ("msg", message), err_item)
+        KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
+        KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
     def _extract_nonstandard(self, elem):
         t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
@@ -1385,33 +1378,44 @@ class JTLErrorsReader(object):
 
         self._extract_common(elem, label, r_code, t_stamp, message)
 
-    def get_failure_message(self, element):
-        """
-        Returns failure message and flag of subsample originating error
-        """
-        failed_assertion = self.__get_failed_assertion(element)
-        r_code = element.get('rc')
-        if failed_assertion is not None:
-            assertion_message, assertion_name = self.__get_assertion_message(failed_assertion)
-            if assertion_message:
-                return assertion_message, False, None, r_code, assertion_name
-            else:
-                return element.get('rm'), False, None, r_code, None
+    def find_failure(self, element, def_msg, def_rc=None, is_subresult=False):
+        """ returns (message, url, rc, tag, err_type) """
 
-        if r_code and r_code.startswith("2"):
-            if element.get('s') == "false":
-                # FIXME: would work with HTTP only...
-                children = [elem for elem in element.iterchildren() if elem.tag == "httpSample" or elem.tag == "sample"]
-                for child in children:
-                    child_message, _, url, r_code, tag = self.get_failure_message(child)
-                    if child_message:
-                        return child_message, True, url, r_code, tag
-            return None, False, None, None, None
-        else:
-            url = element.xpath(self.url_xpath)
-            return element.get('rm'), False, url[0].text if url else element.get("lb"), r_code, None
+        rc = element.get("rc")
 
-    def __get_assertion_message(self, assertion_element):
+        msg = None
+        url = None
+        name = None
+        err_type = KPISet.ERRTYPE_ERROR
+
+        if element.tag == "assertionResult":
+            if self.__assertion_is_failed(element):
+                msg, name = self.__get_assertion_message(element, def_msg)
+                err_type = KPISet.ERRTYPE_ASSERT
+
+        elif element.tag in ("httpSample", "sample") and rc:
+            if rc.startswith("2"):
+                if element.get("s") == "false":     # has failed sub element, we should look deeper...
+                    for child in element.iterchildren():
+                        msg, url, rc, name, err_type = self.find_failure(
+                            child, def_msg=element.get("rm"), def_rc=rc, is_subresult=True)
+                        if msg:
+                            break
+
+            else:   # failed sub sample found
+                msg = element.get("rm") or def_msg
+                url = element.xpath(self.url_xpath)
+                url = url[0].text if url else element.get("lb")
+                if is_subresult:
+                    err_type = KPISet.ERRTYPE_SUBSAMPLE
+
+        if not is_subresult and msg is None:    # top level (exit from recursion) and no message
+            msg = def_msg                       # set default failure msg
+
+        rc = rc or def_rc
+        return msg, url, rc, name, err_type
+
+    def __get_assertion_message(self, assertion_element, default_message=None):
         """
         Returns assertion failureMessage if "failureMessage" element exists
         """
@@ -1424,7 +1428,7 @@ class JTLErrorsReader(object):
             name_elm = assertion_element.find("name")
             return msg, name_elm.text if name_elm is not None else None
 
-        return None, None
+        return default_message, None
 
     def __get_failed_assertion(self, element):
         """
@@ -1474,9 +1478,7 @@ class XMLJTLReader(JTLErrorsReader, ResultsReader):
         trname = ''
 
         rcd = elem.get("rc")
-        message = self.get_failure_message(elem)
-        if message is None:
-            message = elem.get('rm')
+        message = self.find_failure(elem, def_msg=elem.get("rm"))[0]
 
         error = message if elem.get("s") == "false" else None
         self.items.append((tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count))

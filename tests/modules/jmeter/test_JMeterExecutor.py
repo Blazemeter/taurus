@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import shutil
-import sys
 import time
 from unittest import skipUnless, skipIf
 from distutils.version import LooseVersion
@@ -16,7 +15,7 @@ from bzt.jmx.tools import ProtocolHandler
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
-from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
+from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
@@ -1088,55 +1087,6 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.shutdown()
 
         self.assertIn("JMeter stopped on Shutdown command", self.log_recorder.debug_buff.getvalue())
-
-    def test_embedded_resources_main_sample_fail_assert(self):
-        obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-main-assert.jtl",
-                              logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "Test failed")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "Test failed")
-
-    def test_embedded_resources_fail_child_no_assert(self):
-        obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-child-no-assert.jtl",
-                              logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
-
-    def test_embedded_resources_fail_child_assert(self):
-        obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-child-assert.jtl",
-                              logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "subsample assertion error")
-        self.assertEqual(values.get('')[1].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "subsample assertion error")
-        self.assertEqual(values.get('HTTP Request')[1].get("msg"), "NOT FOUND")
-
-    def test_resource_tc(self):
-        obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource_tc.jtl", logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "message")
-        self.assertEqual(values.get('')[1].get("msg"), "FOUND")
-        self.assertEqual(values.get('')[2].get("msg"), "second message")
-        self.assertEqual(values.get('')[3].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('')[4].get("msg"), "Failed")
-
-        self.assertEqual(values.get('tc1')[0].get("msg"), "FOUND")
-        self.assertEqual(values.get('tc3')[0].get("msg"), "message")
-        self.assertEqual(values.get('tc3')[1].get("msg"), "second message")
-        self.assertEqual(values.get('tc4')[0].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('tc5')[0].get("msg"), "Failed")
-
-    def test_embedded_resources_no_fail(self):
-        obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-no-fail.jtl", logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(len(values.get('HTTP Request')), 1)
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "failed_resource_message")
 
     def test_fail_on_zero_results(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()
