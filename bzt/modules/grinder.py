@@ -233,10 +233,11 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         grinder_path = get_full_path(grinder_path)
         self.settings["path"] = grinder_path
         download_link = self.settings.get("download-link", "")
+        grinder = Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link, self.engine.get_http_client())
         required_tools = [TclLibrary(self.log),
                           JavaVM(self.log),
                           TaurusJavaHelper(),
-                          Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link=download_link)]
+                          grinder]
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -424,8 +425,8 @@ class DataLogReader(ResultsReader):
 
 
 class Grinder(RequiredTool):        # todo: take it from maven and convert to JarTool(?)
-    def __init__(self, tool_path, parent_logger, version, download_link):
-        super(Grinder, self).__init__("Grinder", tool_path, download_link=download_link)
+    def __init__(self, tool_path, parent_logger, version, download_link, http_client):
+        super(Grinder, self).__init__("Grinder", tool_path, download_link, http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
         self.mirror_manager = GrinderMirrorsManager(self.log, self.version)
