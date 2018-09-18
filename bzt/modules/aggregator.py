@@ -18,7 +18,6 @@ limitations under the License.
 import collections
 import copy
 import logging
-import math
 from abc import abstractmethod
 from collections import Counter
 
@@ -28,55 +27,9 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.six import iteritems, PY3, text_type, operator
+from bzt.six import iteritems, PY3, text_type
 from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
-
-
-class FuzzySet(fuzzyset.FuzzySet):
-    def __get_close_matches(self, key, gram_size, score_cutoff=0.7):
-        lvalue = key.lower()
-        matches = collections.defaultdict(float)
-        grams = fuzzyset._gram_counter(lvalue, gram_size)
-        items = self.items[gram_size]
-        norm = math.sqrt(sum(x**2 for x in grams.values()))
-
-        for gram, occ in grams.items():
-            for idx, other_occ in self.match_dict.get(gram, ()):
-                matches[idx] += occ * other_occ
-
-        if not matches:
-            return None
-
-        # cosine similarity
-        results = [(match_score / (norm * items[idx][0]), items[idx][1])
-                   for idx, match_score in matches.items()]
-        results.sort(reverse=True, key=operator.itemgetter(0))
-
-        if self.use_levenshtein:
-            results = [(fuzzyset._distance(matched, lvalue), matched)
-                       for _, matched in results[:50]]
-            results.sort(reverse=True, key=operator.itemgetter(0))
-
-
-        results = [(score, lval)
-            for score, lval in results
-            if score > score_cutoff
-        ]
-
-        return [(score, self.exact_set[lval]) for score, lval in results
-                if score == results[0][0] or score >= score_cutoff]
-
-    def get_close_matches(self, key, score_cutoff=0.7):
-        lvalue = key.lower()
-        result = self.exact_set.get(lvalue)
-        if result:
-            return [(1, result)]
-        for i in range(self.gram_size_upper, self.gram_size_lower - 1, -1):
-            results = self.__get_close_matches(key, i, score_cutoff)
-            if results is not None:
-                return results
-        return None
 
 
 class RespTimesCounter(JSONConvertible):
@@ -475,8 +428,6 @@ class DataPoint(dict):
 yaml.add_representer(KPISet, SafeRepresenter.represent_dict)
 yaml.add_representer(DataPoint, SafeRepresenter.represent_dict)
 
-log = logging.getLogger('')
-
 
 class ResultsProvider(object):
     """
@@ -493,10 +444,10 @@ class ResultsProvider(object):
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
         self.rtimes_len = None
-        self.known_errors = FuzzySet()
+        self.known_errors = fuzzyset.FuzzySet()
         self.max_error_count = 100
-        self.known_labels = FuzzySet()
-        self.max_label_count = 100
+        self.known_labels = fuzzyset.FuzzySet()
+        self.generalize_labels = 100
 
     @staticmethod
     def _fuzzy_fold(key, dataset, limit):
@@ -507,19 +458,18 @@ class ResultsProvider(object):
             key = key.decode('utf-8')
 
         size = len(dataset)
-        tolerance = (size / float(limit)) ** 2
+        tolerance = (float(size) / (float(limit) - 1)) ** 2
         threshold = 1 - tolerance
-        log.info("THRESHOLD: %.3f", threshold)
-        matches = dataset.get_close_matches(key, threshold)
+        matches = dataset.get(key)
         if matches:
-            _, result = matches[0]
-            key = result
-        if key not in dataset.exact_set:
-            dataset.add(key)
+            score, result = matches[0]
+            if score >= threshold:
+               key = result
+        dataset.add(key)
         return key
 
     def _generalize_label(self, label):
-        return self._fuzzy_fold(label, self.known_labels, self.max_label_count)
+        return self._fuzzy_fold(label, self.known_labels, self.generalize_labels)
 
     def _fold_error(self, error):
         return self._fuzzy_fold(error, self.known_errors, self.max_error_count)
@@ -574,7 +524,6 @@ class ResultsReader(ResultsProvider):
 
     def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
-        self.generalize_labels = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
@@ -760,7 +709,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         underling.track_percentiles = self.track_percentiles
         if isinstance(underling, ResultsReader):
             underling.ignored_labels = self.ignored_labels
-            underling.generalize_labels = self.generalize_labels
             underling.min_buffer_len = self.min_buffer_len
             underling.max_buffer_len = self.max_buffer_len
             underling.buffer_multiplier = self.buffer_multiplier
@@ -768,7 +716,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.rtimes_len = self.rtimes_len
 
             underling.max_error_count = self.max_error_count
-            underling.max_label_count = self.generalize_labels
+            underling.generalize_labels = self.generalize_labels
 
             # share error set and label set between underlings
             underling.known_errors = self.known_errors

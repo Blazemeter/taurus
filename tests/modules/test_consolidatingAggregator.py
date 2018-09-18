@@ -26,9 +26,9 @@ def get_success_reader(offset=0):
 
 def get_success_reader_alot(offset=0):
     mock = MockReader()
-    for x in range(2, 100):
-        rnd = random() * math.pow(x, 2)
-        mock.data.append((x + offset, (random_string(1 + int(rnd))), 1, r(), r(), r(), 200, '', '', 0))
+    for x in range(2, 200):
+        rnd = int(random() * x)
+        mock.data.append((x + offset, (random_string(1 + rnd)), 1, r(), r(), r(), 200, '', '', 0))
     return mock
 
 
@@ -45,9 +45,9 @@ def get_fail_reader(offset=0):
 
 def get_fail_reader_alot(offset=0):
     mock = MockReader()
-    for x in range(2, 100):
-        rnd = random() * math.pow(x, 2)
-        mock.data.append((x + offset, "first", 1, r(), r(), r(), 200, (random_string(1 + int(rnd))), '', 0))
+    for x in range(2, 200):
+        rnd = int(random() * x)
+        mock.data.append((x + offset, "first", 1, r(), r(), r(), 200, (random_string(1 + rnd)), '', 0))
     return mock
 
 
@@ -132,31 +132,32 @@ class TestConsolidatingAggregator(BZTestCase):
     def test_labels_variety(self):
         self.obj.track_percentiles = [50]
         self.obj.prepare()
-        reader1 = get_fail_reader()
+        reader1 = get_success_reader()
         reader2 = get_success_reader_alot()
         self.obj.log.info(len(reader1.data) + len(reader2.data))
-        self.obj.generalize_labels = 9
-        self.obj.max_label_count = 9
+        self.obj.generalize_labels = 50
         self.obj.add_underling(reader1)
         self.obj.add_underling(reader2)
         self.obj.shutdown()
         self.obj.post_process()
         cum_dict = self.obj.cumulative
+        expected = (self.obj.generalize_labels + 1) * 1.10  # due to randomness, it it can go a bit higher than limit
         labels = list(cum_dict.keys())
-        self.assertLessEqual(len(labels), self.obj.max_label_count + 1)
+        self.assertLessEqual(len(labels), expected)
 
     def test_errors_variety(self):
         self.obj.track_percentiles = [50]
         self.obj.prepare()
         reader1 = get_fail_reader()
         reader2 = get_fail_reader_alot()
-        self.obj.max_error_count = 9
+        self.obj.max_error_count = 50
         self.obj.add_underling(reader1)
         self.obj.add_underling(reader2)
         self.obj.shutdown()
         self.obj.post_process()
+        expected = self.obj.max_error_count * 1.10  # due to randomness, it it can go a bit higher than limit
         cum_dict = self.obj.cumulative
-        self.assertLessEqual(len(cum_dict['']['errors']), self.obj.max_error_count)
+        self.assertLessEqual(len(cum_dict['']['errors']), expected)
 
     def test_uniq_errors(self):
         self.obj.track_percentiles = [50]
