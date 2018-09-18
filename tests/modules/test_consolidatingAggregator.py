@@ -10,17 +10,25 @@ from tests.mocks import MockReader
 
 def get_success_reader(offset=0):
     mock = MockReader()
-    mock.data.append((1 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((2 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((2 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((3 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((3 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((4 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((4 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((5 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((1 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((2 + offset, "second", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((2 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((3 + offset, "second", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((3 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((4 + offset, "third", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((4 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((6 + offset, "second", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((6 + offset, "third", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((6 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((5 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    return mock
+
+
+def get_success_reader_alot(offset=0):
+    mock = MockReader()
+    for x in range(2, 100):
+        rnd = random() * math.pow(x, 2)
+        mock.data.append((x + offset, (random_string(1 + int(rnd))), 1, r(), r(), r(), 200, '', '', 0))
     return mock
 
 
@@ -120,6 +128,22 @@ class TestConsolidatingAggregator(BZTestCase):
             data = cum_dict[label]
             total_errors_count = sum(err['cnt'] for err in data['errors'])
             self.assertEqual(data['fail'], total_errors_count)
+
+    def test_labels_variety(self):
+        self.obj.track_percentiles = [50]
+        self.obj.prepare()
+        reader1 = get_fail_reader()
+        reader2 = get_success_reader_alot()
+        self.obj.log.info(len(reader1.data) + len(reader2.data))
+        self.obj.generalize_labels = 9
+        self.obj.max_label_count = 9
+        self.obj.add_underling(reader1)
+        self.obj.add_underling(reader2)
+        self.obj.shutdown()
+        self.obj.post_process()
+        cum_dict = self.obj.cumulative
+        labels = list(cum_dict.keys())
+        self.assertLessEqual(len(labels), self.obj.max_label_count + 1)
 
     def test_errors_variety(self):
         self.obj.track_percentiles = [50]

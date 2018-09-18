@@ -18,6 +18,7 @@ limitations under the License.
 import collections
 import copy
 import logging
+import math
 from abc import abstractmethod
 from collections import Counter
 
@@ -27,9 +28,55 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.six import iteritems, PY3, text_type
+from bzt.six import iteritems, PY3, text_type, operator
 from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
+
+
+class FuzzySet(fuzzyset.FuzzySet):
+    def __get_close_matches(self, key, gram_size, score_cutoff=0.7):
+        lvalue = key.lower()
+        matches = collections.defaultdict(float)
+        grams = fuzzyset._gram_counter(lvalue, gram_size)
+        items = self.items[gram_size]
+        norm = math.sqrt(sum(x**2 for x in grams.values()))
+
+        for gram, occ in grams.items():
+            for idx, other_occ in self.match_dict.get(gram, ()):
+                matches[idx] += occ * other_occ
+
+        if not matches:
+            return None
+
+        # cosine similarity
+        results = [(match_score / (norm * items[idx][0]), items[idx][1])
+                   for idx, match_score in matches.items()]
+        results.sort(reverse=True, key=operator.itemgetter(0))
+
+        if self.use_levenshtein:
+            results = [(fuzzyset._distance(matched, lvalue), matched)
+                       for _, matched in results[:50]]
+            results.sort(reverse=True, key=operator.itemgetter(0))
+
+
+        results = [(score, lval)
+            for score, lval in results
+            if score > score_cutoff
+        ]
+
+        return [(score, self.exact_set[lval]) for score, lval in results
+                if score == results[0][0] or score >= score_cutoff]
+
+    def get_close_matches(self, key, score_cutoff=0.7):
+        lvalue = key.lower()
+        result = self.exact_set.get(lvalue)
+        if result:
+            return [(1, result)]
+        for i in range(self.gram_size_upper, self.gram_size_lower - 1, -1):
+            results = self.__get_close_matches(key, i, score_cutoff)
+            if results is not None:
+                return results
+        return None
 
 
 class RespTimesCounter(JSONConvertible):
@@ -435,8 +482,6 @@ class ResultsProvider(object):
     """
     :type listeners: list[AggregatorListener]
     """
-
-
     def __init__(self):
         super(ResultsProvider, self).__init__()
         self.cumulative = {}
@@ -448,9 +493,9 @@ class ResultsProvider(object):
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
         self.rtimes_len = None
-        self.known_errors = fuzzyset.FuzzySet()
+        self.known_errors = FuzzySet()
         self.max_error_count = 100
-        self.known_labels = fuzzyset.FuzzySet()
+        self.known_labels = FuzzySet()
         self.max_label_count = 100
 
     @staticmethod
@@ -462,13 +507,15 @@ class ResultsProvider(object):
             key = key.decode('utf-8')
 
         size = len(dataset)
-        threshold = (size / float(limit)) ** 2
-        matches = dataset.get(key)
+        tolerance = (size / float(limit)) ** 2
+        threshold = 1 - tolerance
+        log.info("THRESHOLD: %.3f", threshold)
+        matches = dataset.get_close_matches(key, threshold)
         if matches:
-            ratio, result = matches[0]
-            if ratio > (1 - threshold):
-                key = result
-        dataset.add(key)
+            _, result = matches[0]
+            key = result
+        if key not in dataset.exact_set:
+            dataset.add(key)
         return key
 
     def _generalize_label(self, label):
