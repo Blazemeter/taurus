@@ -49,10 +49,12 @@ class TestBlockingTasks(TaskTestCase):
         with open(file_name, "w+") as _file:
             _file.write(buf)
 
+        self.sniff_log(self.obj.log)
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
         self.obj.startup()
         self.obj.shutdown()
+        self.assertIn(buf, self.log_recorder.debug_buff.getvalue())
 
     def test_nonbackground_prepare(self):
         task = {"command": "echo hello", "background": True}
