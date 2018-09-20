@@ -1,5 +1,6 @@
 import os
 import time
+import tempfile
 from subprocess import CalledProcessError
 
 from bzt.engine import Service
@@ -27,6 +28,27 @@ class TestBlockingTasks(TaskTestCase):
             task = "dir .. && cd .."
         else:
             task = "ls .. && cd .."
+        self.obj.parameters.merge({"prepare": [task]})
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.shutdown()
+
+    def test_long_buf(self):
+        """ subprocess (tast) became blocked and blocks parent (shellexec)
+        if exchange buffer (PIPE) is full because of wait() """
+        fd, file_name = tempfile.mkstemp()
+        os.close(fd)
+        if is_windows():
+            task = "type "
+            buf_len = 2 ** 10 * 4    # 4K
+        else:
+            task = "tail "
+            buf_len = 2 ** 10 * 64  # 64K
+        task += file_name
+        buf = '*' * (buf_len + 1)
+        with open(file_name, "w+") as _file:
+            _file.write(buf)
+
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
         self.obj.startup()
