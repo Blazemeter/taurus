@@ -190,7 +190,7 @@ class Task(object):
         if not self.ignore_failure and self.ret_code != 0:
             if self.out != subprocess.PIPE:
                 self.log.warning("Output for %s:\n%s", self, stdout)
-            raise CalledProcessError(self.ret_code, self.command)
+            raise CalledProcessError(self.ret_code, self)
         return True
 
     def shutdown(self):
