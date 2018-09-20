@@ -49,7 +49,6 @@ class TestBlockingTasks(TaskTestCase):
         with open(file_name, "w+") as _file:
             _file.write(buf)
 
-        self.sniff_log(self.obj.log)
         self.obj.parameters.merge({"prepare": [task]})
         self.obj.prepare()
         self.obj.startup()
