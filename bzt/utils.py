@@ -51,11 +51,12 @@ from webbrowser import GenericBrowser
 import ipaddress
 import psutil
 import requests
+import requests.adapters
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import stream_decode, file_type, etree, parse, deunicode
+from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
@@ -935,9 +936,59 @@ def shutdown_process(process_obj, log_obj):
             log_obj.debug("Failed to terminate process: %s", exc)
 
 
+class LocalFileAdapter(requests.adapters.BaseAdapter):
+    """
+    Protocol Adapter to allow HTTPClient to GET file:// URLs
+    """
+
+    @staticmethod
+    def _chkpath(method, path):
+        """Return an HTTP status for the given filesystem path."""
+        if method.lower() in ('put', 'delete'):
+            return 501, "Not Implemented"  # TODO
+        elif method.lower() not in ('get', 'head'):
+            return 405, "Method Not Allowed"
+        elif os.path.isdir(path):
+            return 400, "Path Not A File"
+        elif not os.path.isfile(path):
+            return 404, "File Not Found"
+        elif not os.access(path, os.R_OK):
+            return 403, "Access Denied"
+        else:
+            return 200, "OK"
+
+    def send(self, req, **kwargs):  # pylint: disable=unused-argument
+        """Return the file specified by the given request
+        """
+        path = os.path.normcase(os.path.normpath(url2pathname(req.path_url)))
+        response = requests.Response()
+
+        response.status_code, response.reason = self._chkpath(req.method, path)
+        if response.status_code == 200 and req.method.lower() != 'head':
+            try:
+                response.raw = open(path, 'rb')
+            except (OSError, IOError) as err:
+                response.status_code = 500
+                response.reason = str(err)
+
+        if isinstance(req.url, bytes):
+            response.url = req.url.decode('utf-8')
+        else:
+            response.url = req.url
+
+        response.request = req
+        response.connection = self
+
+        return response
+
+    def close(self):
+        pass
+
+
 class HTTPClient(object):
     def __init__(self):
         self.session = requests.Session()
+        self.session.mount('file://', LocalFileAdapter())
         self.log = logging.getLogger(self.__class__.__name__)
         self.proxy_settings = None
 
@@ -981,21 +1032,25 @@ class HTTPClient(object):
         jvm_args = " ".join(("-D%s=%s" % (key, value)) for key, value in iteritems(props))
         return jvm_args
 
+    @staticmethod
+    def _save_file_from_connection(conn, filename, reporthook=None):
+        if not conn.ok:
+            raise TaurusNetworkError("Connection failed, status code %s", conn.status_code)
+        total = int(conn.headers.get('content-length', 0))
+        block_size = 1024
+        count = 0
+        with open(filename, 'wb') as f:
+            for chunk in conn.iter_content(chunk_size=block_size):
+                if chunk:
+                    f.write(chunk)
+                    count += 1
+                    if reporthook:
+                        reporthook(count, block_size, total)
+
     def download_file(self, url, filename, reporthook=None, data=None, timeout=None):
         try:
             with self.session.get(url, stream=True, data=data, timeout=timeout) as conn:
-                if not conn.ok:
-                    raise ValueError("Status code %s", conn.status_code)
-                total = int(conn.headers.get('content-length', 0))
-                block_size = 1024
-                count = 0
-                with open(filename, 'wb') as f:
-                    for chunk in conn.iter_content(chunk_size=block_size):
-                        if chunk:
-                            f.write(chunk)
-                            count += 1
-                            if reporthook:
-                                reporthook(count, block_size, total)
+                self._save_file_from_connection(conn, filename)
         except requests.exceptions.RequestException as exc:
             resp = exc.response
             self.log.debug("File download resulted in exception: %s", traceback.format_exc())
