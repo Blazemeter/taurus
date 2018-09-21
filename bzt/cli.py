@@ -38,7 +38,7 @@ from bzt.engine import Engine, Configuration, ScenarioExecutor
 from bzt.engine import SETTINGS
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
-from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url
+from bzt.utils import is_int, BetterDict, get_full_path, is_url
 
 
 class CLI(object):
@@ -64,7 +64,6 @@ class CLI(object):
         self.exit_code = 0
 
     @staticmethod
-    @run_once
     def setup_logging(options):
         """
         Setting up console and file logging, colored if possible
@@ -97,7 +96,7 @@ class CLI(object):
             options.log = tf.name
 
         if options.log:
-            file_handler = logging.FileHandler(options.log)
+            file_handler = logging.FileHandler(options.log, encoding="utf-8")
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(fmt_file)
             logger.addHandler(file_handler)
@@ -146,7 +145,7 @@ class CLI(object):
                 self.engine.existing_artifact(self.options.log, move=True, target_filename="bzt.log")
             self.options.log = os.path.join(self.engine.artifacts_dir, "bzt.log")
 
-            file_handler = logging.FileHandler(self.options.log)
+            file_handler = logging.FileHandler(self.options.log, encoding="utf-8")
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s"))
 
