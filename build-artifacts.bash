@@ -1,6 +1,6 @@
 #!/bin/bash -xe
 BUILD_NUMBER=$2
-
+apt-get update -y
 apt-get install -y --force-yes gcc-mingw-w64-x86-64 nsis composer zip
 apt-get install -y libssl-dev libncurses5-dev libsqlite3-dev libreadline-dev libtk8.5 libgdm-dev libdb4o-cil-dev libpcap-dev
 
