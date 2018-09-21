@@ -21,7 +21,7 @@ from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
-from tests.modules.jmeter import MockJMeterExecutor, MockHTTPClient
+from . import MockJMeterExecutor, MockHTTPClient
 
 _jvm = JavaVM(logging.getLogger(''))
 _jvm.check_if_installed()

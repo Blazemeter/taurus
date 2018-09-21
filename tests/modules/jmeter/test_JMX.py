@@ -1,8 +1,8 @@
 # coding=utf-8
+from . import MockJMeterExecutor
 from bzt.engine import Provisioning
 from bzt.jmx import JMX, LoadSettingsProcessor
 from tests import BZTestCase, RESOURCES_DIR
-from tests.modules.jmeter import MockJMeterExecutor
 
 
 class TestLoadSettingsProcessor(BZTestCase):
