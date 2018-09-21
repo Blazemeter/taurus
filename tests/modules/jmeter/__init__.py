@@ -19,7 +19,7 @@ class MockHTTPClient(HTTPClient):
     def add_response(self, method, url, text=None, file=None):
         self.responses_dict[(method, url)] = MockResponse(text, file)
 
-    def download_file(self, url, filename, reporthook=None, data=None):
+    def download_file(self, url, filename, reporthook=None, data=None, timeout=None):
         key = ('GET', url)
         resp = self.responses_dict[key]
         with open(filename, 'wb') as fdsto:

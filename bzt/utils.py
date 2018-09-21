@@ -1092,7 +1092,7 @@ class ExceptionalDownloader(object):
         try:
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
-            self.http_client.download_file(url, filename, reporthook, data, timeout=timeout)
+            self.http_client.download_file(url, filename, reporthook=reporthook, data=data, timeout=timeout)
             result = filename
         except BaseException:
             if fd:
