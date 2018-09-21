@@ -63,7 +63,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
                       '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar'
-    JMETER_VER = "4.0"
+    JMETER_VER = "5.0"
     UDP_PORT_NUMBER = None
 
     def __init__(self):

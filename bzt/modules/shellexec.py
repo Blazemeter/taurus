@@ -164,20 +164,21 @@ class Task(object):
         if self.is_background:
             self.log.debug("Task started, PID: %d", self.process.pid)
         else:
-            self.process.wait()
-            self.check()
-            self.process = None
+            self.check(sync=True)
 
-    def check(self):
-        if not self.process or self.ret_code is not None:
+    def check(self, sync=False):
+        if not self.process or self.ret_code is not None:   # finished task
             return
 
         self.ret_code = self.process.poll()
-        if self.ret_code is None:
+
+        if self.ret_code is None and not sync:
             self.log.debug('Task: %s is not finished yet', self)
             return False
 
         stdout, stderr = self.process.communicate()
+        self.ret_code = self.process.poll()
+
         if stdout and (self.out == subprocess.PIPE):
             self.log.debug("Output for %s:\n%s", self, stdout)
 
@@ -199,9 +200,10 @@ class Task(object):
         """
         self.check()
 
-        if self.ret_code is None:
+        if self.process and self.ret_code is None:
             self.log.info("Background task was not completed, shutting it down: %s", self)
             shutdown_process(self.process, self.log)
+
         self.process = None
 
     def __repr__(self):
