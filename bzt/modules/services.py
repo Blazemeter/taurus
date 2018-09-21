@@ -31,15 +31,11 @@ from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node
 
-try:
-    if not is_windows():
+if not is_windows():
+    try:
         from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
-    else:
-        class Display(object):
-            def __init__(self, args, **kwargs):
-                raise TaurusInternalException("Virtual Display don't work on Windows")
-except ImportError:
-    from pyvirtualdisplay import Display
+    except ImportError:
+        from pyvirtualdisplay import Display
 
 
 class Unpacker(Service):
