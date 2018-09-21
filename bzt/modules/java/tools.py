@@ -103,9 +103,9 @@ class TestNG(JarTool):
     VERSION = "6.8.5"
     REMOTE_PATH = "org/testng/testng/{version}/testng-{version}.jar"
 
-    def __init__(self, tool_path=""):
+    def __init__(self, http_client, tool_path=""):
         tool_file = "testng-{version}.jar"
-        super(TestNG, self).__init__("TestNG", tool_path, tool_file)
+        super(TestNG, self).__init__("TestNG", tool_path, tool_file, http_client)
 
 
 class Hamcrest(JarTool):

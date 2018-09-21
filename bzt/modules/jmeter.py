@@ -1704,7 +1704,7 @@ class JarCleaner(object):
 class JMeterMirrorsManager(MirrorsManager):
     def __init__(self, http_client, parent_logger, jmeter_version):
         self.jmeter_version = str(jmeter_version)
-        super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger, http_client)
+        super(JMeterMirrorsManager, self).__init__(http_client, JMeterExecutor.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
         links = []

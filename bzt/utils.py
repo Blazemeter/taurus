@@ -1315,7 +1315,7 @@ class Node(RequiredTool):
 
 
 class MirrorsManager(object):
-    def __init__(self, base_link, parent_logger, http_client):
+    def __init__(self, http_client, base_link, parent_logger):
         """
 
         :type base_link: str

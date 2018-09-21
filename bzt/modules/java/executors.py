@@ -284,7 +284,7 @@ class TestNGTester(JavaTestRunner):
     __test__ = False  # Hello, nosetests discovery mechanism
 
     def install_required_tools(self):
-        self._add_jar_tool(TestNG(self.settings.get("path")))
+        self._add_jar_tool(TestNG(self.engine.get_http_client(), self.settings.get("path")))
         super(TestNGTester, self).install_required_tools()
 
     def detected_testng_xml(self):
