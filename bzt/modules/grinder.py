@@ -430,7 +430,7 @@ class Grinder(RequiredTool):        # todo: take it from maven and convert to Ja
         super(Grinder, self).__init__("Grinder", tool_path, download_link, http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
-        self.mirror_manager = GrinderMirrorsManager(self.log, self.version)
+        self.mirror_manager = GrinderMirrorsManager(self.log, self.version, http_client)
 
     def check_if_installed(self):
         self.log.debug("Trying grinder: %s", self.tool_path)
@@ -457,9 +457,9 @@ class Grinder(RequiredTool):        # todo: take it from maven and convert to Ja
 
 
 class GrinderMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, grinder_version):
+    def __init__(self, http_client, parent_logger, grinder_version):
         self.grinder_version = grinder_version
-        super(GrinderMirrorsManager, self).__init__(GrinderExecutor.MIRRORS_SOURCE, parent_logger)
+        super(GrinderMirrorsManager, self).__init__(GrinderExecutor.MIRRORS_SOURCE, parent_logger, http_client)
 
     def _parse_mirrors(self):
         links = []

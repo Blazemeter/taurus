@@ -982,9 +982,9 @@ class HTTPClient(object):
         jvm_args = " ".join(("-D%s=%s" % (key, value)) for key, value in iteritems(props))
         return jvm_args
 
-    def download_file(self, url, filename, reporthook=None, data=None):
+    def download_file(self, url, filename, reporthook=None, data=None, timeout=None):
         try:
-            with self.session.get(url, stream=True, data=data) as conn:
+            with self.session.get(url, stream=True, data=data, timeout=timeout) as conn:
                 if not conn.ok:
                     raise ValueError("Status code %s", conn.status_code)
                 total = int(conn.headers.get('content-length', 0))
@@ -1021,8 +1021,8 @@ class HTTPClient(object):
             raise TaurusNetworkError(msg)
 
 
-class ExceptionalDownloader(request.FancyURLopener, object):
-    def __init__(self, http_client=None):
+class ExceptionalDownloader(object):
+    def __init__(self, http_client):
         """
 
         :type http_client: HTTPClient
@@ -1030,11 +1030,7 @@ class ExceptionalDownloader(request.FancyURLopener, object):
         super(ExceptionalDownloader, self).__init__()
         self.http_client = http_client
 
-    def http_error_default(self, url, fp, errcode, errmsg, headers):
-        fp.close()
-        raise TaurusNetworkError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
-
-    def get(self, url, filename=None, reporthook=None, data=None, suffix=""):
+    def get(self, url, filename=None, reporthook=None, data=None, suffix="", timeout=5.0):
         if os.getenv("TAURUS_DISABLE_DOWNLOADS", ""):
             raise TaurusInternalException("Downloads are disabled by TAURUS_DISABLE_DOWNLOADS env var")
 
@@ -1042,11 +1038,8 @@ class ExceptionalDownloader(request.FancyURLopener, object):
         try:
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
-            if self.http_client is not None:
-                self.http_client.download_file(url, filename, reporthook, data)
-                result = [filename]
-            else:
-                result = self.retrieve(url, filename, reporthook, data)
+            self.http_client.download_file(url, filename, reporthook, data, timeout=timeout)
+            result = filename
         except BaseException:
             if fd:
                 os.close(fd)
@@ -1103,19 +1096,15 @@ class RequiredTool(object):
             links = self.mirror_manager.mirrors()
 
         downloader = ExceptionalDownloader(self.http_client)
-        sock_timeout = socket.getdefaulttimeout()
-        socket.setdefaulttimeout(5)
         for link in links:
             self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
-                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)[0]
+                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
                     self.log.error("Error while downloading %s: %s" % (link, exc))
-                finally:
-                    socket.setdefaulttimeout(sock_timeout)
         raise TaurusInternalException("%s download failed: No more links to try" % self.tool_name)
 
 
@@ -1272,7 +1261,7 @@ class Node(RequiredTool):
 
 
 class MirrorsManager(object):
-    def __init__(self, base_link, parent_logger, http_client=None):
+    def __init__(self, base_link, parent_logger, http_client):
         """
 
         :type base_link: str
@@ -1291,7 +1280,7 @@ class MirrorsManager(object):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
         downloader = ExceptionalDownloader(self.http_client)
         try:
-            tmp_file = downloader.get(self.base_link)[0]
+            tmp_file = downloader.get(self.base_link)
             with open(tmp_file) as fds:
                 self.page_source = fds.read()
         except BaseException:
