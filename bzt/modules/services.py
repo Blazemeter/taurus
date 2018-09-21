@@ -25,16 +25,17 @@ import zipfile
 
 from bzt.six import communicate
 
-try:
-    from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
-except ImportError:
-    from pyvirtualdisplay import Display
-
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import Service, HavingInstallableTools, Singletone
 from bzt.six import get_stacktrace, urlopen, URLError
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
 from bzt.utils import replace_in_config, JavaVM, Node
+
+if not is_windows():
+    try:
+        from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
+    except ImportError:
+        from pyvirtualdisplay import Display
 
 
 class Unpacker(Service):
