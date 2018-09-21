@@ -32,7 +32,6 @@ import re
 import shlex
 import shutil
 import signal
-import socket
 import stat
 import sys
 import tarfile
@@ -57,7 +56,7 @@ from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import stream_decode, file_type, etree, parse, deunicode
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
 
