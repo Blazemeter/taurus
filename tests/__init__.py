@@ -11,29 +11,15 @@ from logging import Handler
 from random import random
 from unittest.case import TestCase
 
-from bzt.cli import CLI
 from bzt.engine import SelfDiagnosable
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.six import u
-from bzt.utils import run_once, EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path
 
 TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
 
-
-@run_once
-def setup_test_logging():
-    """ set up test logging for convenience in IDE """
-    root = logging.getLogger('')
-    if not root.handlers:
-        CLI.log = None
-        CLI.verbose = True
-        CLI.setup_logging(CLI)
-    else:
-        root.debug("Already set up logging")
-
-
-#setup_test_logging()
-logging.info("Bootstrapped test")
+ROOT_LOGGER = logging.getLogger("")
+ROOT_LOGGER.info("Bootstrapped test")
 
 
 def __dir__():
@@ -45,7 +31,6 @@ def __dir__():
 root_dir = __dir__() + '/../'
 os.chdir(root_dir)
 
-ROOT_LOGGER = logging.getLogger("")
 RESOURCES_DIR = os.path.join(__dir__(), 'resources') + os.path.sep
 BUILD_DIR = __dir__() + "/../build/tmp/"
 TEST_DIR = __dir__() + "/../build/test/"
@@ -139,7 +124,7 @@ class BZTestCase(TestCase):
                     diags = self.obj.get_error_diagnostics()
                     if diags:
                         for line in diags:
-                            logging.info(line)
+                            ROOT_LOGGER.info(line)
             except BaseException:
                 pass
         if self.captured_logger:
@@ -154,7 +139,7 @@ class BZTestCase(TestCase):
             exp_lines = [x.replace(replace_str, replace_with).rstrip() for x in exp.readlines()]
             diff = list(difflib.unified_diff(exp_lines, act_lines))
             if diff:
-                logging.info("Replacements are: %s => %s", replace_str, replace_with)
+                ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
                 msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
                 raise AssertionError(msg + "\n".join(diff))
 

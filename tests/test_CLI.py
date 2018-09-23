@@ -4,8 +4,6 @@ import os
 import re
 import shutil
 
-from collections import namedtuple
-
 from bzt import TaurusException
 from tests import BZTestCase, RESOURCES_DIR
 
@@ -17,21 +15,15 @@ from tests.mocks import EngineEmul, ModuleMock
 class TestCLI(BZTestCase):
     def setUp(self):
         super(TestCLI, self).setUp()
+        self.logger = self.log
+        self.log = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
+        self.verbose = False
+        self.quiet = False
+        self.no_system_configs = True
         self.option = []
-
-        log_file = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
-
-        CLIValues = namedtuple('Vals', 'log verbose quiet no_system_configs option datadir')
-        values = CLIValues(
-            log=log_file,
-            verbose=False,
-            quiet=False,
-            no_system_configs=True,
-            option=self.option,
-            datadir=os.path.join(os.path.dirname(__file__), "..", "build", "acli"))
-
-        self.obj = CLI(values)
-        self.assertTrue(os.path.exists(log_file))
+        self.datadir = os.path.join(os.path.dirname(__file__), "..", "build", "acli")
+        self.obj = CLI(self)
+        self.assertTrue(os.path.exists(self.log))
 
         self.aliases = []
         self.obj.engine = EngineEmul()
