@@ -72,7 +72,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def test_samples_count_testcase(self):
@@ -87,7 +87,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def test_no_test_in_name(self):
@@ -102,7 +102,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def test_from_extension(self):
@@ -111,7 +111,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.get_widget()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         results = list(self.obj.runner.reader._read(final_pass=True))
         self.assertEquals(1, len(results))
@@ -127,7 +127,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.get_widget()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         results = list(self.obj.runner.reader._read(final_pass=True))
         self.assertEquals(1, len(results))
@@ -139,7 +139,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.get_widget()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv"))
         lines = reader.get_lines(last_pass=True)

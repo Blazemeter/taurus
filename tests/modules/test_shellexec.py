@@ -124,7 +124,7 @@ class TestNonBlockingTasks(TaskTestCase):
         self.obj.startup()
         for _x in range(0, 3):
             self.obj.check()
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         self.assertIn("Task: sleep 5 && pwd is not finished yet", self.log_recorder.debug_buff.getvalue())

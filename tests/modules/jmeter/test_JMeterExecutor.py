@@ -181,7 +181,7 @@ class TestJMeterExecutor(BZTestCase):
             self.obj.startup()
             while not self.obj.check():
                 self.obj.log.debug("Check...")
-                time.sleep(1)
+                time.sleep(self.obj.engine.check_interval)
             self.obj.shutdown()
             self.obj.post_process()
         except:
@@ -2559,7 +2559,7 @@ class TestJMeterExecutor(BZTestCase):
             self.obj.startup()
             while not self.obj.check():
                 self.obj.log.debug("Check...")
-                time.sleep(1)
+                time.sleep(self.obj.engine.check_interval)
             self.obj.shutdown()
             self.obj.post_process()
         except:
@@ -2618,7 +2618,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.env.set({'TEST_MODE': 'log'})
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         diagnostics = self.obj.get_error_diagnostics()

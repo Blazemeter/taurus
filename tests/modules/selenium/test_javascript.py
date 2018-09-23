@@ -89,7 +89,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
         self.assertTrue(exists(self.obj.runner.report_file))
@@ -115,7 +115,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertTrue(exists(self.obj.runner.report_file))
         duration = time.time() - self.obj.start_time
@@ -140,7 +140,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertTrue(exists(self.obj.runner.report_file))
         lines = open(self.obj.runner.report_file).readlines()

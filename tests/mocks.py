@@ -44,6 +44,7 @@ class EngineEmul(Engine):
                 "check-updates": False,
                 "artifacts-dir": get_uniq_name(directory=directory, prefix=prefix)}})
 
+        self.check_interval = 0.1
         self.create_artifacts_dir()
         self.prepare_exc = None
         self.was_finalize = False
