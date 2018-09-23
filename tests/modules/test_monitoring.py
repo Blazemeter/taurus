@@ -146,10 +146,19 @@ class TestMonitoring(BZTestCase):
         self.assertEqual({'mem', 'cpu', 'engine-loop'}, set(obj.clients[0].metrics))
         self.assertTrue(isinstance(obj.clients[0].monitor, LocalMonitor))
 
+        obj.prepare()
+        self.assertEqual(1, len(obj.clients))
+        self.assertEqual({'mem', 'cpu', 'engine-loop'}, set(obj.clients[0].metrics))
+        self.assertTrue(isinstance(obj.clients[0].monitor, LocalMonitor))
+
         data1 = obj.clients[0].get_data()
+        obj.clients[0].interval = 1     # take cached data
         data2 = obj.clients[0].get_data()
-        for item1, item2 in zip(data1, data2):
+        obj.clients[0].interval = 0     # throw cache
+        data3 = obj.clients[0].get_data()
+        for item1, item2, item3 in zip(data1, data2, data3):
             self.assertEqual(item1, item2)
+            self.assertNotEqual(item2, item3)
 
         metrics = []
         for element in data1:
