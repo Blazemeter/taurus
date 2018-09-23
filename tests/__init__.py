@@ -32,7 +32,7 @@ def setup_test_logging():
         root.debug("Already set up logging")
 
 
-setup_test_logging()
+#setup_test_logging()
 logging.info("Bootstrapped test")
 
 
@@ -45,6 +45,7 @@ def __dir__():
 root_dir = __dir__() + '/../'
 os.chdir(root_dir)
 
+ROOT_LOGGER = logging.getLogger("")
 RESOURCES_DIR = os.path.join(__dir__(), 'resources') + os.path.sep
 BUILD_DIR = __dir__() + "/../build/tmp/"
 TEST_DIR = __dir__() + "/../build/test/"
@@ -115,6 +116,7 @@ class BZTestCase(TestCase):
         self.log_recorder = None
         self.func_args = []
         self.func_results = None
+        self.log = ROOT_LOGGER
 
     def func_mock(self, *args, **kwargs):
         self.func_args.append({'args': args, 'kargs': kwargs})
@@ -124,9 +126,10 @@ class BZTestCase(TestCase):
             return self.func_results
 
     def sniff_log(self, log):
-        self.log_recorder = RecordingHandler()
-        self.captured_logger = log
-        self.captured_logger.addHandler(self.log_recorder)
+        if not self.captured_logger:
+            self.log_recorder = RecordingHandler()
+            self.captured_logger = log
+            self.captured_logger.addHandler(self.log_recorder)
 
     def tearDown(self):
         exc, _, _ = sys.exc_info()

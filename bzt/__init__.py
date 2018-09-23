@@ -13,11 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import logging
 import os
 import platform
 import sys
-import traceback
 from abc import abstractmethod
 
 VERSION = "1.13.0"
