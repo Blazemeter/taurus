@@ -229,17 +229,18 @@ class TestJMeterExecutor(BZTestCase):
         body_fields = [req.get('body') for req in scenario.get('requests')]
         self.assertIn(body_file1, res_files)
         self.assertIn(body_file2, res_files)
-        self.assertFalse(body_fields[0])
-        self.assertEqual(body_fields[1], 'body2')
+        self.assertEqual(body_fields, [{}, 'body2', {}])
         self.assertEqual(body_files, [body_file1, body_file2, '${J_VAR}'])
 
         self.obj.prepare()
 
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         elements = xml_tree.findall(".//HTTPSamplerProxy/elementProp[@name='HTTPsampler.Files']")
-        self.assertEqual(1, len(elements))
-        self.assertEqual("${J_VAR}", elements[0].find(".//stringProp[@name='File.path']").text)
+        self.assertEqual(2, len(elements))
+        self.assertEqual(body_file1, elements[0].find(".//stringProp[@name='File.path']").text)
         self.assertIsNone(elements[0].find(".//stringProp[@name='File.paramname']").text)
+        self.assertEqual("${J_VAR}", elements[1].find(".//stringProp[@name='File.path']").text)
+        self.assertIsNone(elements[1].find(".//stringProp[@name='File.paramname']").text)
 
     def test_datasources_with_delimiter(self):
         self.obj.execution.merge({"scenario":
