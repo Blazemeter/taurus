@@ -28,6 +28,11 @@ class TestCLI(BZTestCase):
         self.aliases = []
         self.obj.engine = EngineEmul()
 
+    def tearDown(self):
+        self.obj.close_log()
+        self.log = self.logger
+        super(BZTestCase, self).tearDown()
+
     def test_perform_normal(self):
         ret = self.obj.perform([RESOURCES_DIR + "json/mock_normal.json"])
         self.assertEquals(0, ret)

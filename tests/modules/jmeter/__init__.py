@@ -1,5 +1,4 @@
-import logging
-
+from tests import ROOT_LOGGER
 from tests.mocks import EngineEmul
 from bzt.modules.jmeter import JMeter, JMeterExecutor
 from bzt.utils import get_full_path, HTTPClient
@@ -40,7 +39,7 @@ class MockJMeter(JMeter):
         if http_client is None:
             http_client = MockHTTPClient()
 
-        super(MockJMeter, self).__init__(tool_path=jmeter_path, parent_logger=logging.getLogger(''),
+        super(MockJMeter, self).__init__(tool_path=jmeter_path, parent_logger=ROOT_LOGGER,
                                          jmeter_version=jmeter_version, jmeter_download_link=None, plugins=[],
                                          http_client=http_client)
         self.has_ctg = has_ctg

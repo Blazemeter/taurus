@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import shutil
 import time
@@ -16,7 +15,7 @@ from bzt.modules.java.executors import JavaTestRunner
 from bzt.modules.java.tools import JavaC, JarTool
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import ToolError
-from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
@@ -424,7 +423,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
             diagnostics = "\n".join(exc.diagnostics)
             self.assertIn("Nothing to test", diagnostics)
         except BaseException as exc:
-            logging.debug(traceback.format_exc())
+            ROOT_LOGGER.debug(traceback.format_exc())
             self.fail("Unexpected exception %s, expected ToolError" % exc)
         self.obj.shutdown()
 

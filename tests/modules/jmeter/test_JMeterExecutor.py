@@ -1,6 +1,5 @@
 # coding=utf-8
 import json
-import logging
 import os
 import shutil
 import time
@@ -19,10 +18,10 @@ from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
-from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
+from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 from tests.modules.jmeter import MockJMeterExecutor, MockHTTPClient
 
-_jvm = JavaVM(logging.getLogger(''))
+_jvm = JavaVM(ROOT_LOGGER)
 _jvm.check_if_installed()
 java_version = _jvm.version
 java10 = LooseVersion(java_version) >= LooseVersion("10")

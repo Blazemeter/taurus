@@ -110,7 +110,7 @@ class BZTestCase(TestCase):
         else:
             return self.func_results
 
-    def sniff_log(self, log):
+    def sniff_log(self, log=ROOT_LOGGER):
         if not self.captured_logger:
             self.log_recorder = RecordingHandler()
             self.captured_logger = log
