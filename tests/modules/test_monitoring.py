@@ -54,7 +54,7 @@ class TestMonitoring(BZTestCase):
             obj.clients[0].socket.recv_data += b("%s\t%s\n" % (random.random(), random.random()))
             obj.check()
             logging.debug("Criteria state: %s", criteria)
-            time.sleep(1)
+            time.sleep(obj.engine.check_interval)
 
         obj.shutdown()
         obj.post_process()
