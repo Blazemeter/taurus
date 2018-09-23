@@ -212,9 +212,11 @@ class TestJMeterExecutor(BZTestCase):
                     "requests": [
                         {
                             'url': 'http://first.com',
+                            'method': 'put',
                             'body-file': body_file1
                         }, {
                             'url': 'http://second.com',
+                            'method': 'post',
                             'body': 'body2',
                             'body-file': body_file2
                         }, {

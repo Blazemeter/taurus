@@ -65,18 +65,15 @@ class HTTPRequest(Request):
         self.timeout = self.config.get('timeout', None)
         self.think_time = self.config.get('think-time', None)
         self.follow_redirects = self.config.get('follow-redirects', None)
-        self.body = self.__get_body()
+        self.body = self._get_body()
 
-    def __get_body(self):
-        body = self.config.get('body', None)
-        body_file = self.config.get('body-file', None)
+    def _get_body(self):
+        body = self.config.get('body')
+        body_file = self.config.get('body-file')
         if body_file:
             if body:
                 self.log.warning('body and body-file fields are found, only first will take effect')
             else:
-                if self.method in ("PUT", "POST") and has_variable_pattern(body_file):
-                    return
-
                 body_file_path = self.engine.find_file(body_file)
                 with open(body_file_path) as fhd:
                     body = fhd.read()
@@ -113,6 +110,12 @@ class HierarchicHTTPRequest(HTTPRequest):
             mime = mimetypes.guess_type(file_dict["path"])[0] or "application/octet-stream"
             file_dict.get("mime-type", mime, force_set=True)
         self.content_encoding = self.config.get('content-encoding', None)
+
+    def _get_body(self):
+        body = self.config.get('body')
+        body_file = self.config.get('body-file')
+        if body or not body_file or self.method not in ("PUT", "POST"):
+            return super(HierarchicHTTPRequest, self)._get_body()
 
 
 class IfBlock(Request):
@@ -337,7 +340,7 @@ class ResourceFilesCollector(RequestVisitor):
         files = []
 
         body_file = request.config.get('body-file')
-        if body_file and not has_variable_pattern(body_file):
+        if body_file:
             files.append(body_file)
 
         uploads = request.config.get('upload-files', [])
