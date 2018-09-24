@@ -25,7 +25,7 @@ class MockHTTPClient(HTTPClient):
         with open(filename, 'wb') as fdsto:
             with open(resp.file, 'rb') as fdsfrom:
                 fdsto.write(fdsfrom.read())
-        return filename
+        return filename, {}
 
     def request(self, method, url, *args, **kwargs):
         key = (method, url)
