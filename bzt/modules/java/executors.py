@@ -45,10 +45,11 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self._full_install = True
 
     def install_required_tools(self):
-        self._add_jar_tool(SeleniumServer(self.settings.get("selenium-server")))
-        self._add_jar_tool(Hamcrest(self.settings.get("hamcrest-core")))
-        self._add_jar_tool(Json(self.settings.get("json-jar")))
-        self._add_jar_tool(TaurusJavaHelper())
+        http = self.engine.get_http_client()
+        self._add_jar_tool(SeleniumServer(http, self.settings.get("selenium-server")))
+        self._add_jar_tool(Hamcrest(http, self.settings.get("hamcrest-core")))
+        self._add_jar_tool(Json(http, self.settings.get("json-jar")))
+        self._add_jar_tool(TaurusJavaHelper(http))
 
         if self._full_install or self._java_scripts:
             self._tools.append(JavaC())
@@ -200,17 +201,18 @@ class JUnitTester(JavaTestRunner):
 
             path = os.path.join(path, "{tool_file}")
 
-        self._add_jar_tool(JUnitJupiterApi(path))
-        self._add_jar_tool(JUnitJupiterEngine(path))
-        self._add_jar_tool(JUnitPlatformCommons(path))
-        self._add_jar_tool(JUnitPlatformEngine(path))
-        self._add_jar_tool(JUnitPlatformLauncher(path))
-        self._add_jar_tool(JUnitPlatformRunner(path))
-        self._add_jar_tool(JUnitPlatformSuiteApi(path))
-        self._add_jar_tool(JUnitVintageEngine(path))
-        self._add_jar_tool(ApiGuardian(path))
-        self._add_jar_tool(OpenTest4j(path))
-        self._add_jar_tool(JUnit(path))
+        http = self.engine.get_http_client()
+        self._add_jar_tool(JUnitJupiterApi(http, path))
+        self._add_jar_tool(JUnitJupiterEngine(http, path))
+        self._add_jar_tool(JUnitPlatformCommons(http, path))
+        self._add_jar_tool(JUnitPlatformEngine(http, path))
+        self._add_jar_tool(JUnitPlatformLauncher(http, path))
+        self._add_jar_tool(JUnitPlatformRunner(http, path))
+        self._add_jar_tool(JUnitPlatformSuiteApi(http, path))
+        self._add_jar_tool(JUnitVintageEngine(http, path))
+        self._add_jar_tool(ApiGuardian(http, path))
+        self._add_jar_tool(OpenTest4j(http, path))
+        self._add_jar_tool(JUnit(http, path))
 
         super(JUnitTester, self).install_required_tools()
 
@@ -282,7 +284,7 @@ class TestNGTester(JavaTestRunner):
     __test__ = False  # Hello, nosetests discovery mechanism
 
     def install_required_tools(self):
-        self._add_jar_tool(TestNG(self.settings.get("path")))
+        self._add_jar_tool(TestNG(self.engine.get_http_client(), self.settings.get("path")))
         super(TestNGTester, self).install_required_tools()
 
     def detected_testng_xml(self):

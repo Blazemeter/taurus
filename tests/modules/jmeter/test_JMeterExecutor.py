@@ -20,7 +20,7 @@ from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
-from tests.modules.jmeter import MockJMeterExecutor, MockHTTPClient
+from . import MockJMeterExecutor, MockHTTPClient
 
 _jvm = JavaVM(logging.getLogger(''))
 _jvm.check_if_installed()
@@ -437,7 +437,7 @@ class TestJMeterExecutor(BZTestCase):
         try:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = "true"
             self.obj.settings.merge({"path": path})
-            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}],})
+            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}], })
             self.assertRaises(TaurusInternalException, self.obj.prepare)
         finally:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
@@ -668,8 +668,8 @@ class TestJMeterExecutor(BZTestCase):
 
         val_strings = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("100", val_strings[0].text)
-        self.assertEqual("100", val_strings[1].text)
+        self.assertEqual("100.0", val_strings[0].text)
+        self.assertEqual("100.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
     def test_add_cookies(self):
@@ -705,7 +705,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_add_shaper_ramp_up(self):
         self.configure(
-            {'execution': {'ramp-up': '1m', 'throughput': 10, 'hold-for': '2m', 'concurrency': 20,
+            {'execution': {'ramp-up': '1m', 'throughput': 9, 'hold-for': '2m', 'concurrency': 20,
                            'scenario': {'script': RESOURCES_DIR + '/jmeter/jmx/http.jmx'}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -719,14 +719,14 @@ class TestJMeterExecutor(BZTestCase):
 
         val_strings = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("1", val_strings[0].text)
-        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("0.05", val_strings[0].text)
+        self.assertEqual("9.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
         val_strings = coll_elements[1].findall(".//stringProp")
 
-        self.assertEqual("10", val_strings[0].text)
-        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("9.0", val_strings[0].text)
+        self.assertEqual("9.0", val_strings[1].text)
         self.assertEqual("120", val_strings[2].text)
 
     def test_user_def_vars_from_requests(self):

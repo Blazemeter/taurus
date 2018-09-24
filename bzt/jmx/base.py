@@ -34,6 +34,13 @@ def cond_int(val):
     return val
 
 
+def cond_float(val):
+    if isinstance(val, numeric_types):
+        return float(val)
+
+    return val
+
+
 class JMX(object):
     """
     A class to manipulate and generate JMX test plans for JMeter
@@ -378,7 +385,6 @@ class JMX(object):
 
         return elements
 
-
     @staticmethod
     def __add_body_from_string(args, body, proxy):
         proxy.append(JMX._bool_prop("HTTPSampler.postBodyRaw", True))
@@ -609,8 +615,8 @@ class JMX(object):
         """
         shaper_collection = shaper_etree.find(".//collectionProp[@name='load_profile']")
         coll_prop = self._collection_prop("1817389797")
-        start_rps_prop = self._string_prop("49", cond_int(start_rps))
-        end_rps_prop = self._string_prop("1567", cond_int(end_rps))
+        start_rps_prop = self._string_prop("49", cond_float(start_rps))
+        end_rps_prop = self._string_prop("1567", cond_float(end_rps))
         duration_prop = self._string_prop("53", cond_int(duration))
         coll_prop.append(start_rps_prop)
         coll_prop.append(end_rps_prop)
@@ -625,7 +631,7 @@ class JMX(object):
         :rtype: etree.Element
         """
 
-        udv_element = etree.Element(JMX.SET_VAR_ACTION, guiclass=JMX.SET_VAR_ACTION+"Gui",
+        udv_element = etree.Element(JMX.SET_VAR_ACTION, guiclass=JMX.SET_VAR_ACTION + "Gui",
                                     testclass=JMX.SET_VAR_ACTION, testname=testname)
         arg_element = etree.Element("elementProp", name="SetVariablesAction", guiclass="ArgumentsPanel",
                                     testclass="Arguments", testname="User Defined Variables", elementType="Arguments")
