@@ -799,7 +799,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                     files.append(data_source)
                 elif isinstance(data_source, dict):
                     files.append(data_source['path'])
-        requests = scenario.get_requests(parser=HierarchicRequestParser, pure_body_file=True)
+        requests = scenario.get_requests(parser=HierarchicRequestParser)
         for req in requests:
             files.extend(self.res_files_from_request(req))
             self.resource_files_collector.clear_path_cache()

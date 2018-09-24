@@ -381,7 +381,7 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __gen_requests(self, scenario):
-        requests = scenario.get_requests(parser=HierarchicRequestParser, pure_body_file=True)
+        requests = scenario.get_requests(parser=HierarchicRequestParser)
         elements = []
         for compiled in self.compile_requests(requests):
             elements.extend(compiled)

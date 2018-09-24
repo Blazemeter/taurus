@@ -84,8 +84,8 @@ class HTTPRequest(Request):
 
 
 class HierarchicHTTPRequest(HTTPRequest):
-    def __init__(self, config, scenario, engine, pure_body_file=False):
-        super(HierarchicHTTPRequest, self).__init__(config, scenario, engine, pure_body_file=pure_body_file)
+    def __init__(self, config, scenario, engine):
+        super(HierarchicHTTPRequest, self).__init__(config, scenario, engine, pure_body_file=True)
         self.upload_files = self.config.get("upload-files", [])
 
         if self.method == "PUT" and len(self.upload_files) > 1:
@@ -213,29 +213,29 @@ class RequestParser(object):
         self.engine = engine
         self.scenario = scenario
 
-    def _parse_requests(self, raw_requests, require_url=True, pure_body_file=False):
+    def _parse_requests(self, raw_requests, require_url=True):
         requests = []
         for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
             req = ensure_is_dict(raw_requests, key, "url")
             if not require_url and "url" not in req:
                 req["url"] = None
             try:
-                requests.append(self._parse_request(req, pure_body_file=pure_body_file))
+                requests.append(self._parse_request(req))
             except BaseException as exc:
                 logging.debug("%s\n%s" % (exc, traceback.format_exc()))
                 raise TaurusConfigError("Wrong request:\n %s" % req)
         return requests
 
-    def _parse_request(self, req, pure_body_file=False):
-        return HTTPRequest(req, self.scenario, self.engine, pure_body_file=pure_body_file)
+    def _parse_request(self, req):
+        return HTTPRequest(req, self.scenario, self.engine)
 
-    def extract_requests(self, require_url=True, pure_body_file=False):
+    def extract_requests(self, require_url=True):
         requests = self.scenario.get("requests", [])
-        return self._parse_requests(requests, require_url=require_url, pure_body_file=pure_body_file)
+        return self._parse_requests(requests, require_url=require_url)
 
 
 class HierarchicRequestParser(RequestParser):
-    def _parse_request(self, req, pure_body_file=False):
+    def _parse_request(self, req):
         if 'if' in req:
             condition = req.get("if")
 
@@ -294,7 +294,7 @@ class HierarchicRequestParser(RequestParser):
             mapping = req.get('set-variables')
             return SetVariables(mapping, req)
         else:
-            return HierarchicHTTPRequest(req, self.scenario, self.engine, pure_body_file=pure_body_file)
+            return HierarchicHTTPRequest(req, self.scenario, self.engine)
 
 
 class ActionBlock(Request):
