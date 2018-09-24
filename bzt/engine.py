@@ -40,7 +40,7 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
-from bzt.requests_model import RequestsParser
+from bzt.requests_model import HierarchicRequestParser, RequestParser
 from bzt.six import numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
@@ -1232,7 +1232,7 @@ class Scenario(UserDict, object):
             headers = {}
         return headers
 
-    def get_requests(self, require_url=True, pure_body_file=False):
+    def get_requests(self, parser=RequestParser, require_url=True, pure_body_file=False):
         """
         Generator object to read requests
 
@@ -1240,7 +1240,7 @@ class Scenario(UserDict, object):
         :type pure_body_file: bool
         :rtype: list[bzt.requests_model.Request]
         """
-        requests_parser = RequestsParser(self, self.engine)
+        requests_parser = parser(self, self.engine)
         return requests_parser.extract_requests(require_url=require_url, pure_body_file=pure_body_file)
 
     def get_data_sources(self):

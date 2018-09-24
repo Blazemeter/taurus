@@ -41,7 +41,7 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
-from bzt.requests_model import ResourceFilesCollector, has_variable_pattern
+from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
 from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode, communicate
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
@@ -799,7 +799,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                     files.append(data_source)
                 elif isinstance(data_source, dict):
                     files.append(data_source['path'])
-        requests = scenario.get_requests(pure_body_file=True)
+        requests = scenario.get_requests(parser=HierarchicRequestParser, pure_body_file=True)
         for req in requests:
             files.extend(self.res_files_from_request(req))
             self.resource_files_collector.clear_path_cache()

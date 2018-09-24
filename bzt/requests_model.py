@@ -208,12 +208,34 @@ class IncludeScenarioBlock(Request):
         return "IncludeScenarioBlock(scenario_name=%r)" % self.scenario_name
 
 
-class RequestsParser(object):
+class RequestParser(object):
     def __init__(self, scenario, engine):
         self.engine = engine
         self.scenario = scenario
 
-    def __parse_request(self, req, pure_body_file=False):
+    def __parse_requests(self, raw_requests, require_url=True, pure_body_file=False):
+        requests = []
+        for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
+            req = ensure_is_dict(raw_requests, key, "url")
+            if not require_url and "url" not in req:
+                req["url"] = None
+            try:
+                requests.append(self._parse_request(req, pure_body_file=pure_body_file))
+            except BaseException as exc:
+                logging.debug("%s\n%s" % (exc, traceback.format_exc()))
+                raise TaurusConfigError("Wrong request:\n %s" % req)
+        return requests
+
+    def _parse_request(self, req, pure_body_file=False):
+        return HTTPRequest(req, self.scenario, self.engine, pure_body_file=pure_body_file)
+
+    def extract_requests(self, require_url=True, pure_body_file=False):
+        requests = self.scenario.get("requests", [])
+        return self.__parse_requests(requests, require_url=require_url, pure_body_file=pure_body_file)
+
+
+class HierarchicRequestParser(RequestParser):
+    def _parse_request(self, req, pure_body_file=False):
         if 'if' in req:
             condition = req.get("if")
 
@@ -273,23 +295,6 @@ class RequestsParser(object):
             return SetVariables(mapping, req)
         else:
             return HierarchicHTTPRequest(req, self.scenario, self.engine, pure_body_file=pure_body_file)
-
-    def __parse_requests(self, raw_requests, require_url=True, pure_body_file=False):
-        requests = []
-        for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
-            req = ensure_is_dict(raw_requests, key, "url")
-            if not require_url and "url" not in req:
-                req["url"] = None
-            try:
-                requests.append(self.__parse_request(req, pure_body_file=pure_body_file))
-            except BaseException as exc:
-                logging.debug("%s\n%s" % (exc, traceback.format_exc()))
-                raise TaurusConfigError("Wrong request:\n %s" % req)
-        return requests
-
-    def extract_requests(self, require_url=True, pure_body_file=False):
-        requests = self.scenario.get("requests", [])
-        return self.__parse_requests(requests, require_url=require_url, pure_body_file=pure_body_file)
 
 
 class ActionBlock(Request):
