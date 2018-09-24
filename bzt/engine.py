@@ -456,8 +456,13 @@ class Engine(object):
             parsed_url = parse.urlparse(filename)
             downloader = ExceptionalDownloader(self.get_http_client())
             self.log.info("Downloading %s", filename)
-            tmp_f_name = downloader.get(filename)
-            dest = os.path.basename(parsed_url.path)
+            tmp_f_name, headers = downloader.get(filename)
+            cd_header = headers.get('Content-Disposition', '')
+            dest = cd_header.split('filename=')[-1] if cd_header and 'filename=' in cd_header else ''
+            if dest.startswith('"') and dest.endswith('"') or dest.startswith("'") and dest.endswith("'"):
+                dest = dest[1:-1]
+            elif not dest:
+                dest = os.path.basename(parsed_url.path)
             fname, ext = os.path.splitext(dest) if dest else (parsed_url.hostname.replace(".", "_"), '.file')
             dest = self.create_artifact(fname, ext)
             self.log.debug("Moving %s to %s", tmp_f_name, dest)

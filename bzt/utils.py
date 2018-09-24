@@ -1048,9 +1048,11 @@ class HTTPClient(object):
                         reporthook(count, block_size, total)
 
     def download_file(self, url, filename, reporthook=None, data=None, timeout=None):
+        headers = None
         try:
             with self.session.get(url, stream=True, data=data, timeout=timeout) as conn:
-                self._save_file_from_connection(conn, filename)
+                self._save_file_from_connection(conn, filename, reporthook=reporthook)
+                headers = conn.headers
         except requests.exceptions.RequestException as exc:
             resp = exc.response
             self.log.debug("File download resulted in exception: %s", traceback.format_exc())
@@ -1061,6 +1063,8 @@ class HTTPClient(object):
         except BaseException:
             self.log.debug("File download resulted in exception: %s", traceback.format_exc())
             raise TaurusNetworkError("Unsuccessful download from %s" % url)
+
+        return filename, headers
 
     def request(self, method, url, *args, **kwargs):
         self.log.debug('Making HTTP request %s %s', method, url)
@@ -1092,8 +1096,7 @@ class ExceptionalDownloader(object):
         try:
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
-            self.http_client.download_file(url, filename, reporthook=reporthook, data=data, timeout=timeout)
-            result = filename
+            result = self.http_client.download_file(url, filename, reporthook=reporthook, data=data, timeout=timeout)
         except BaseException:
             if fd:
                 os.close(fd)
@@ -1154,7 +1157,7 @@ class RequiredTool(object):
             self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
                 try:
-                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)
+                    return downloader.get(link, reporthook=pbar.download_callback, suffix=suffix)[0]
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
