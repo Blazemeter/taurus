@@ -169,7 +169,11 @@ class LoadSettingsProcessor(object):
 
         etree_shaper = jmx.get_rps_shaper()
         if self.load.ramp_up:
-            jmx.add_rps_shaper_schedule(etree_shaper, 1, self.load.throughput, self.load.ramp_up)
+            if isinstance(self.load.throughput, numeric_types) and self.load.duration:
+                start_rps = self.load.throughput / float(self.load.duration)
+            else:
+                start_rps = 1
+            jmx.add_rps_shaper_schedule(etree_shaper, start_rps, self.load.throughput, self.load.ramp_up)
 
         if self.load.hold:
             jmx.add_rps_shaper_schedule(etree_shaper, self.load.throughput, self.load.throughput, self.load.hold)
