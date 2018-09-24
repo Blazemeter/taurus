@@ -47,7 +47,7 @@ class Request(object):
 class HTTPRequest(Request):
     NAME = "request"
 
-    def __init__(self, config, scenario, engine):
+    def __init__(self, config, scenario, engine, pure_body_file=False):
         self.engine = engine
         self.log = self.engine.log.getChild(self.__class__.__name__)
         super(HTTPRequest, self).__init__(config, scenario)
@@ -65,25 +65,27 @@ class HTTPRequest(Request):
         self.timeout = self.config.get('timeout', None)
         self.think_time = self.config.get('think-time', None)
         self.follow_redirects = self.config.get('follow-redirects', None)
-        self.body = self._get_body()
+        self.body = self._get_body(pure_body_file=pure_body_file)
 
-    def _get_body(self):
-        body = self.config.get('body')
+    def _get_body(self, pure_body_file=False):
+        # todo: if self.method not in ("PUT", "POST")?
+        body = self.config.get('body', None)
         body_file = self.config.get('body-file')
         if body_file:
             if body:
                 self.log.warning('body and body-file fields are found, only first will take effect')
             else:
-                body_file_path = self.engine.find_file(body_file)
-                with open(body_file_path) as fhd:
-                    body = fhd.read()
+                if not pure_body_file:
+                    body_file_path = self.engine.find_file(body_file)
+                    with open(body_file_path) as fhd:
+                        body = fhd.read()
 
         return body
 
 
 class HierarchicHTTPRequest(HTTPRequest):
-    def __init__(self, config, scenario, engine):
-        super(HierarchicHTTPRequest, self).__init__(config, scenario, engine)
+    def __init__(self, config, scenario, engine, pure_body_file=False):
+        super(HierarchicHTTPRequest, self).__init__(config, scenario, engine, pure_body_file=pure_body_file)
         self.upload_files = self.config.get("upload-files", [])
 
         if self.method == "PUT" and len(self.upload_files) > 1:
@@ -110,12 +112,6 @@ class HierarchicHTTPRequest(HTTPRequest):
             mime = mimetypes.guess_type(file_dict["path"])[0] or "application/octet-stream"
             file_dict.get("mime-type", mime, force_set=True)
         self.content_encoding = self.config.get('content-encoding', None)
-
-    def _get_body(self):
-        body = self.config.get('body')
-        body_file = self.config.get('body-file')
-        if body or not body_file or self.method not in ("PUT", "POST"):
-            return super(HierarchicHTTPRequest, self)._get_body()
 
 
 class IfBlock(Request):
@@ -217,7 +213,7 @@ class RequestsParser(object):
         self.engine = engine
         self.scenario = scenario
 
-    def __parse_request(self, req):
+    def __parse_request(self, req, pure_body_file=False):
         if 'if' in req:
             condition = req.get("if")
 
@@ -276,24 +272,24 @@ class RequestsParser(object):
             mapping = req.get('set-variables')
             return SetVariables(mapping, req)
         else:
-            return HierarchicHTTPRequest(req, self.scenario, self.engine)
+            return HierarchicHTTPRequest(req, self.scenario, self.engine, pure_body_file=pure_body_file)
 
-    def __parse_requests(self, raw_requests, require_url=True):
+    def __parse_requests(self, raw_requests, require_url=True, pure_body_file=False):
         requests = []
         for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
             req = ensure_is_dict(raw_requests, key, "url")
             if not require_url and "url" not in req:
                 req["url"] = None
             try:
-                requests.append(self.__parse_request(req))
+                requests.append(self.__parse_request(req, pure_body_file=pure_body_file))
             except BaseException as exc:
                 logging.debug("%s\n%s" % (exc, traceback.format_exc()))
                 raise TaurusConfigError("Wrong request:\n %s" % req)
         return requests
 
-    def extract_requests(self, require_url=True):
+    def extract_requests(self, require_url=True, pure_body_file=False):
         requests = self.scenario.get("requests", [])
-        return self.__parse_requests(requests, require_url=require_url)
+        return self.__parse_requests(requests, require_url=require_url, pure_body_file=pure_body_file)
 
 
 class ActionBlock(Request):

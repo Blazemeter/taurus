@@ -1232,15 +1232,16 @@ class Scenario(UserDict, object):
             headers = {}
         return headers
 
-    def get_requests(self, require_url=True):
+    def get_requests(self, require_url=True, pure_body_file=False):
         """
         Generator object to read requests
 
         :type require_url: bool
+        :type pure_body_file: bool
         :rtype: list[bzt.requests_model.Request]
         """
         requests_parser = RequestsParser(self, self.engine)
-        return requests_parser.extract_requests(require_url=require_url)
+        return requests_parser.extract_requests(require_url=require_url, pure_body_file=pure_body_file)
 
     def get_data_sources(self):
         data_sources = self.get(self.FIELD_DATA_SOURCES, [])
