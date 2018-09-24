@@ -40,7 +40,7 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
-from bzt.requests_model import HierarchicRequestParser, RequestParser
+from bzt.requests_model import RequestParser
 from bzt.six import numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
