@@ -213,7 +213,7 @@ class RequestParser(object):
         self.engine = engine
         self.scenario = scenario
 
-    def __parse_requests(self, raw_requests, require_url=True, pure_body_file=False):
+    def _parse_requests(self, raw_requests, require_url=True, pure_body_file=False):
         requests = []
         for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
             req = ensure_is_dict(raw_requests, key, "url")
@@ -231,7 +231,7 @@ class RequestParser(object):
 
     def extract_requests(self, require_url=True, pure_body_file=False):
         requests = self.scenario.get("requests", [])
-        return self.__parse_requests(requests, require_url=require_url, pure_body_file=pure_body_file)
+        return self._parse_requests(requests, require_url=require_url, pure_body_file=pure_body_file)
 
 
 class HierarchicRequestParser(RequestParser):
@@ -241,23 +241,23 @@ class HierarchicRequestParser(RequestParser):
 
             # TODO: apply some checks to `condition`?
             then_clause = req.get("then", TaurusConfigError("'then' clause is mandatory for 'if' blocks"))
-            then_requests = self.__parse_requests(then_clause)
+            then_requests = self._parse_requests(then_clause)
             else_clause = req.get("else", [])
-            else_requests = self.__parse_requests(else_clause)
+            else_requests = self._parse_requests(else_clause)
             return IfBlock(condition, then_requests, else_requests, req)
         elif 'once' in req:
             do_block = req.get("once", TaurusConfigError("operation list is mandatory for 'once' blocks"))
-            do_requests = self.__parse_requests(do_block)
+            do_requests = self._parse_requests(do_block)
             return OnceBlock(do_requests, req)
         elif 'loop' in req:
             loops = req.get("loop")
             do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'loop' blocks"))
-            do_requests = self.__parse_requests(do_block)
+            do_requests = self._parse_requests(do_block)
             return LoopBlock(loops, do_requests, req)
         elif 'while' in req:
             condition = req.get("while")
             do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'while' blocks"))
-            do_requests = self.__parse_requests(do_block)
+            do_requests = self._parse_requests(do_block)
             return WhileBlock(condition, do_requests, req)
         elif 'foreach' in req:
             iteration_str = req.get("foreach")
@@ -267,12 +267,12 @@ class HierarchicRequestParser(RequestParser):
                 raise TaurusConfigError(msg % iteration_str)
             loop_var, input_var = match.groups()
             do_block = req.get("do", TaurusConfigError("'do' field is mandatory for 'foreach' blocks"))
-            do_requests = self.__parse_requests(do_block)
+            do_requests = self._parse_requests(do_block)
             return ForEachBlock(input_var, loop_var, do_requests, req)
         elif 'transaction' in req:
             name = req.get('transaction')
             do_block = req.get('do', TaurusConfigError("'do' field is mandatory for transaction blocks"))
-            do_requests = self.__parse_requests(do_block)
+            do_requests = self._parse_requests(do_block)
             include_timers = req.get('include-timers')
             return TransactionBlock(name, do_requests, include_timers, req, self.scenario)
         elif 'include-scenario' in req:
