@@ -481,7 +481,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         gatling_path = get_full_path(self.settings.get("path", def_path))
         self.settings["path"] = gatling_path
         download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
-        required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
+        gatling = Gatling(gatling_path, self.log, download_link, gatling_version, self.engine.get_http_client())
+        required_tools.append(gatling)
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -714,8 +715,8 @@ class Gatling(RequiredTool):
     Gatling tool
     """
 
-    def __init__(self, tool_path, parent_logger, download_link, version):
-        super(Gatling, self).__init__("Gatling", tool_path, download_link.format(version=version))
+    def __init__(self, tool_path, parent_logger, download_link, version, http_client):
+        super(Gatling, self).__init__("Gatling", tool_path, download_link.format(version=version), http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
 

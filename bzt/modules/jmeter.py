@@ -1577,12 +1577,11 @@ class JMeter(RequiredTool):
     def __download_additions(self, tools):
         downloader = ExceptionalDownloader(self.http_client)
         with ProgressBarContext() as pbar:
-            for tool in tools:
-                url = tool[0]
+            for url, path in tools:
                 _file = os.path.basename(url)
                 self.log.info("Downloading %s from %s", _file, url)
                 try:
-                    downloader.get(url, tool[1], reporthook=pbar.download_callback)
+                    downloader.get(url, path, reporthook=pbar.download_callback)
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
@@ -1705,7 +1704,7 @@ class JarCleaner(object):
 class JMeterMirrorsManager(MirrorsManager):
     def __init__(self, http_client, parent_logger, jmeter_version):
         self.jmeter_version = str(jmeter_version)
-        super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger, http_client)
+        super(JMeterMirrorsManager, self).__init__(http_client, JMeterExecutor.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
         links = []

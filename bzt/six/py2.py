@@ -57,6 +57,7 @@ URLError = urllib2.URLError
 BaseHTTPServer = BaseHTTPServer
 socketserver = socketserver
 SimpleHTTPRequestHandler = BaseHTTPServer.BaseHTTPRequestHandler
+url2pathname = urllib.url2pathname
 
 viewvalues = operator.methodcaller("viewvalues")
 

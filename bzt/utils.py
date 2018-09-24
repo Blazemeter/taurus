@@ -32,7 +32,6 @@ import re
 import shlex
 import shutil
 import signal
-import socket
 import stat
 import sys
 import tarfile
@@ -52,12 +51,13 @@ from webbrowser import GenericBrowser
 import ipaddress
 import psutil
 import requests
+import requests.adapters
 from progressbar import ProgressBar, Percentage, Bar, ETA
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import stream_decode, file_type, etree, parse, deunicode
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, request
+from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
 
@@ -936,9 +936,59 @@ def shutdown_process(process_obj, log_obj):
             log_obj.debug("Failed to terminate process: %s", exc)
 
 
+class LocalFileAdapter(requests.adapters.BaseAdapter):
+    """
+    Protocol Adapter to allow HTTPClient to GET file:// URLs
+    """
+
+    @staticmethod
+    def _chkpath(method, path):
+        """Return an HTTP status for the given filesystem path."""
+        if method.lower() in ('put', 'delete'):
+            return 501, "Not Implemented"  # TODO
+        elif method.lower() not in ('get', 'head'):
+            return 405, "Method Not Allowed"
+        elif os.path.isdir(path):
+            return 400, "Path Not A File"
+        elif not os.path.isfile(path):
+            return 404, "File Not Found"
+        elif not os.access(path, os.R_OK):
+            return 403, "Access Denied"
+        else:
+            return 200, "OK"
+
+    def send(self, req, **kwargs):  # pylint: disable=unused-argument
+        """Return the file specified by the given request
+        """
+        path = os.path.normcase(os.path.normpath(url2pathname(req.path_url)))
+        response = requests.Response()
+
+        response.status_code, response.reason = self._chkpath(req.method, path)
+        if response.status_code == 200 and req.method.lower() != 'head':
+            try:
+                response.raw = open(path, 'rb')
+            except (OSError, IOError) as err:
+                response.status_code = 500
+                response.reason = str(err)
+
+        if isinstance(req.url, bytes):
+            response.url = req.url.decode('utf-8')
+        else:
+            response.url = req.url
+
+        response.request = req
+        response.connection = self
+
+        return response
+
+    def close(self):
+        pass
+
+
 class HTTPClient(object):
     def __init__(self):
         self.session = requests.Session()
+        self.session.mount('file://', LocalFileAdapter())
         self.log = logging.getLogger(self.__class__.__name__)
         self.proxy_settings = None
 
@@ -982,21 +1032,27 @@ class HTTPClient(object):
         jvm_args = " ".join(("-D%s=%s" % (key, value)) for key, value in iteritems(props))
         return jvm_args
 
-    def download_file(self, url, filename, reporthook=None, data=None):
+    @staticmethod
+    def _save_file_from_connection(conn, filename, reporthook=None):
+        if not conn.ok:
+            raise TaurusNetworkError("Connection failed, status code %s", conn.status_code)
+        total = int(conn.headers.get('content-length', 0))
+        block_size = 1024
+        count = 0
+        with open(filename, 'wb') as f:
+            for chunk in conn.iter_content(chunk_size=block_size):
+                if chunk:
+                    f.write(chunk)
+                    count += 1
+                    if reporthook:
+                        reporthook(count, block_size, total)
+
+    def download_file(self, url, filename, reporthook=None, data=None, timeout=None):
+        headers = None
         try:
-            with self.session.get(url, stream=True, data=data) as conn:
-                if not conn.ok:
-                    raise ValueError("Status code %s", conn.status_code)
-                total = int(conn.headers.get('content-length', 0))
-                block_size = 1024
-                count = 0
-                with open(filename, 'wb') as f:
-                    for chunk in conn.iter_content(chunk_size=block_size):
-                        if chunk:
-                            f.write(chunk)
-                            count += 1
-                            if reporthook:
-                                reporthook(count, block_size, total)
+            with self.session.get(url, stream=True, data=data, timeout=timeout) as conn:
+                self._save_file_from_connection(conn, filename, reporthook=reporthook)
+                headers = conn.headers
         except requests.exceptions.RequestException as exc:
             resp = exc.response
             self.log.debug("File download resulted in exception: %s", traceback.format_exc())
@@ -1007,6 +1063,8 @@ class HTTPClient(object):
         except BaseException:
             self.log.debug("File download resulted in exception: %s", traceback.format_exc())
             raise TaurusNetworkError("Unsuccessful download from %s" % url)
+
+        return filename, headers
 
     def request(self, method, url, *args, **kwargs):
         self.log.debug('Making HTTP request %s %s', method, url)
@@ -1021,8 +1079,8 @@ class HTTPClient(object):
             raise TaurusNetworkError(msg)
 
 
-class ExceptionalDownloader(request.FancyURLopener, object):
-    def __init__(self, http_client=None):
+class ExceptionalDownloader(object):
+    def __init__(self, http_client):
         """
 
         :type http_client: HTTPClient
@@ -1030,11 +1088,7 @@ class ExceptionalDownloader(request.FancyURLopener, object):
         super(ExceptionalDownloader, self).__init__()
         self.http_client = http_client
 
-    def http_error_default(self, url, fp, errcode, errmsg, headers):
-        fp.close()
-        raise TaurusNetworkError("Unsuccessful download from %s: %s - %s" % (url, errcode, errmsg))
-
-    def get(self, url, filename=None, reporthook=None, data=None, suffix=""):
+    def get(self, url, filename=None, reporthook=None, data=None, suffix="", timeout=5.0):
         if os.getenv("TAURUS_DISABLE_DOWNLOADS", ""):
             raise TaurusInternalException("Downloads are disabled by TAURUS_DISABLE_DOWNLOADS env var")
 
@@ -1042,11 +1096,7 @@ class ExceptionalDownloader(request.FancyURLopener, object):
         try:
             if not filename:
                 fd, filename = tempfile.mkstemp(suffix)
-            if self.http_client is not None:
-                self.http_client.download_file(url, filename, reporthook, data)
-                result = [filename]
-            else:
-                result = self.retrieve(url, filename, reporthook, data)
+            result = self.http_client.download_file(url, filename, reporthook=reporthook, data=data, timeout=timeout)
         except BaseException:
             if fd:
                 os.close(fd)
@@ -1103,8 +1153,6 @@ class RequiredTool(object):
             links = self.mirror_manager.mirrors()
 
         downloader = ExceptionalDownloader(self.http_client)
-        sock_timeout = socket.getdefaulttimeout()
-        socket.setdefaulttimeout(5)
         for link in links:
             self.log.info("Downloading: %s", link)
             with ProgressBarContext() as pbar:
@@ -1114,8 +1162,6 @@ class RequiredTool(object):
                     raise
                 except BaseException as exc:
                     self.log.error("Error while downloading %s: %s" % (link, exc))
-                finally:
-                    socket.setdefaulttimeout(sock_timeout)
         raise TaurusInternalException("%s download failed: No more links to try" % self.tool_name)
 
 
@@ -1272,7 +1318,7 @@ class Node(RequiredTool):
 
 
 class MirrorsManager(object):
-    def __init__(self, base_link, parent_logger, http_client=None):
+    def __init__(self, http_client, base_link, parent_logger):
         """
 
         :type base_link: str
@@ -1291,7 +1337,7 @@ class MirrorsManager(object):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
         downloader = ExceptionalDownloader(self.http_client)
         try:
-            tmp_file = downloader.get(self.base_link)[0]
+            tmp_file = downloader.get(self.base_link)
             with open(tmp_file) as fds:
                 self.page_source = fds.read()
         except BaseException:

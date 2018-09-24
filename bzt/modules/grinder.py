@@ -159,7 +159,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         # add logback configurations used by worker processes (logback-worker.xml)
         res_dir = os.path.join(get_full_path(__file__, step_up=2), 'resources')
         self.env.add_path({"CLASSPATH": res_dir}, finish=True)
-        self.env.add_path({"CLASSPATH": TaurusJavaHelper().tool_path}, finish=True)
+        self.env.add_path({"CLASSPATH": TaurusJavaHelper(self.engine.get_http_client()).tool_path}, finish=True)
         self.env.add_path({"CLASSPATH": self.settings.get("path", None)}, finish=True)
 
         self.cmd_line = ["java", "net.grinder.Grinder", self.properties_file]
@@ -233,10 +233,12 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         grinder_path = get_full_path(grinder_path)
         self.settings["path"] = grinder_path
         download_link = self.settings.get("download-link", "")
+        http_client = self.engine.get_http_client()
+        grinder = Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link, http_client)
         required_tools = [TclLibrary(self.log),
                           JavaVM(self.log),
-                          TaurusJavaHelper(),
-                          Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link=download_link)]
+                          TaurusJavaHelper(http_client),
+                          grinder]
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -424,11 +426,11 @@ class DataLogReader(ResultsReader):
 
 
 class Grinder(RequiredTool):        # todo: take it from maven and convert to JarTool(?)
-    def __init__(self, tool_path, parent_logger, version, download_link):
-        super(Grinder, self).__init__("Grinder", tool_path, download_link=download_link)
+    def __init__(self, tool_path, parent_logger, version, download_link, http_client):
+        super(Grinder, self).__init__("Grinder", tool_path, download_link, http_client)
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.version = version
-        self.mirror_manager = GrinderMirrorsManager(self.log, self.version)
+        self.mirror_manager = GrinderMirrorsManager(http_client, self.log, self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying grinder: %s", self.tool_path)
@@ -455,9 +457,9 @@ class Grinder(RequiredTool):        # todo: take it from maven and convert to Ja
 
 
 class GrinderMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, grinder_version):
+    def __init__(self, http_client, parent_logger, grinder_version):
         self.grinder_version = grinder_version
-        super(GrinderMirrorsManager, self).__init__(GrinderExecutor.MIRRORS_SOURCE, parent_logger)
+        super(GrinderMirrorsManager, self).__init__(http_client, GrinderExecutor.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
         links = []
