@@ -15,7 +15,7 @@ from bzt import TaurusNetworkError, TaurusInternalException, TaurusConfigError
 from bzt.engine import Service, Singletone
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.passfail import FailCriterion
-from bzt.six import iteritems, urlopen, urlencode, b, stream_decode, integer_types
+from bzt.six import iteritems, urlencode, b, stream_decode, integer_types
 from bzt.utils import dehumanize_time, BetterDict
 
 
@@ -344,8 +344,9 @@ class GraphiteClient(MonitoringClient):
         return url
 
     def _data_transfer(self):
-        str_data = urlopen(self.url, timeout=self.timeout)
-        return json.load(str_data)
+        http_client = self.engine.get_http_client()
+        response = http_client.request('GET', self.url, timeout=self.timeout)
+        return response.json()
 
     def _get_response(self):
         try:
