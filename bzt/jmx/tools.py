@@ -23,7 +23,7 @@ from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
 from bzt.jmx import JMX
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
-from bzt.requests_model import RequestVisitor, has_variable_pattern
+from bzt.requests_model import RequestVisitor, has_variable_pattern, HierarchicRequestParser
 from bzt.six import etree, iteritems, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, guess_csv_dialect, load_class
 
@@ -385,7 +385,7 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __gen_requests(self, scenario):
-        requests = scenario.get_requests()
+        requests = scenario.get_requests(parser=HierarchicRequestParser)
         elements = []
         for compiled in self.compile_requests(requests):
             elements.extend(compiled)

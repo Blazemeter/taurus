@@ -47,7 +47,7 @@ class Request(object):
 class HTTPRequest(Request):
     NAME = "request"
 
-    def __init__(self, config, scenario, engine):
+    def __init__(self, config, scenario, engine, pure_body_file=False):
         self.engine = engine
         self.log = self.engine.log.getChild(self.__class__.__name__)
         super(HTTPRequest, self).__init__(config, scenario)
@@ -65,28 +65,27 @@ class HTTPRequest(Request):
         self.timeout = self.config.get('timeout', None)
         self.think_time = self.config.get('think-time', None)
         self.follow_redirects = self.config.get('follow-redirects', None)
-        self.body = self.__get_body()
+        self.body = self._get_body(pure_body_file=pure_body_file)
 
-    def __get_body(self):
+    def _get_body(self, pure_body_file=False):
+        # todo: if self.method not in ("PUT", "POST")?
         body = self.config.get('body', None)
-        body_file = self.config.get('body-file', None)
+        body_file = self.config.get('body-file')
         if body_file:
             if body:
                 self.log.warning('body and body-file fields are found, only first will take effect')
             else:
-                if self.method in ("PUT", "POST") and has_variable_pattern(body_file):
-                    return
-
-                body_file_path = self.engine.find_file(body_file)
-                with open(body_file_path) as fhd:
-                    body = fhd.read()
+                if not pure_body_file:
+                    body_file_path = self.engine.find_file(body_file)
+                    with open(body_file_path) as fhd:
+                        body = fhd.read()
 
         return body
 
 
 class HierarchicHTTPRequest(HTTPRequest):
     def __init__(self, config, scenario, engine):
-        super(HierarchicHTTPRequest, self).__init__(config, scenario, engine)
+        super(HierarchicHTTPRequest, self).__init__(config, scenario, engine, pure_body_file=True)
         self.upload_files = self.config.get("upload-files", [])
 
         if self.method == "PUT" and len(self.upload_files) > 1:
@@ -209,34 +208,56 @@ class IncludeScenarioBlock(Request):
         return "IncludeScenarioBlock(scenario_name=%r)" % self.scenario_name
 
 
-class RequestsParser(object):
+class RequestParser(object):
     def __init__(self, scenario, engine):
         self.engine = engine
         self.scenario = scenario
 
-    def __parse_request(self, req):
+    def _parse_requests(self, raw_requests, require_url=True):
+        requests = []
+        for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
+            req = ensure_is_dict(raw_requests, key, "url")
+            if not require_url and "url" not in req:
+                req["url"] = None
+            try:
+                requests.append(self._parse_request(req))
+            except BaseException as exc:
+                logging.debug("%s\n%s" % (exc, traceback.format_exc()))
+                raise TaurusConfigError("Wrong request:\n %s" % req)
+        return requests
+
+    def _parse_request(self, req):
+        return HTTPRequest(req, self.scenario, self.engine)
+
+    def extract_requests(self, require_url=True):
+        requests = self.scenario.get("requests", [])
+        return self._parse_requests(requests, require_url=require_url)
+
+
+class HierarchicRequestParser(RequestParser):
+    def _parse_request(self, req):
         if 'if' in req:
             condition = req.get("if")
 
             # TODO: apply some checks to `condition`?
             then_clause = req.get("then", TaurusConfigError("'then' clause is mandatory for 'if' blocks"))
-            then_requests = self.__parse_requests(then_clause)
+            then_requests = self._parse_requests(then_clause)
             else_clause = req.get("else", [])
-            else_requests = self.__parse_requests(else_clause)
+            else_requests = self._parse_requests(else_clause)
             return IfBlock(condition, then_requests, else_requests, req)
         elif 'once' in req:
             do_block = req.get("once", TaurusConfigError("operation list is mandatory for 'once' blocks"))
-            do_requests = self.__parse_requests(do_block)
+            do_requests = self._parse_requests(do_block)
             return OnceBlock(do_requests, req)
         elif 'loop' in req:
             loops = req.get("loop")
             do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'loop' blocks"))
-            do_requests = self.__parse_requests(do_block)
+            do_requests = self._parse_requests(do_block)
             return LoopBlock(loops, do_requests, req)
         elif 'while' in req:
             condition = req.get("while")
             do_block = req.get("do", TaurusConfigError("'do' option is mandatory for 'while' blocks"))
-            do_requests = self.__parse_requests(do_block)
+            do_requests = self._parse_requests(do_block)
             return WhileBlock(condition, do_requests, req)
         elif 'foreach' in req:
             iteration_str = req.get("foreach")
@@ -246,12 +267,12 @@ class RequestsParser(object):
                 raise TaurusConfigError(msg % iteration_str)
             loop_var, input_var = match.groups()
             do_block = req.get("do", TaurusConfigError("'do' field is mandatory for 'foreach' blocks"))
-            do_requests = self.__parse_requests(do_block)
+            do_requests = self._parse_requests(do_block)
             return ForEachBlock(input_var, loop_var, do_requests, req)
         elif 'transaction' in req:
             name = req.get('transaction')
             do_block = req.get('do', TaurusConfigError("'do' field is mandatory for transaction blocks"))
-            do_requests = self.__parse_requests(do_block)
+            do_requests = self._parse_requests(do_block)
             include_timers = req.get('include-timers')
             return TransactionBlock(name, do_requests, include_timers, req, self.scenario)
         elif 'include-scenario' in req:
@@ -274,23 +295,6 @@ class RequestsParser(object):
             return SetVariables(mapping, req)
         else:
             return HierarchicHTTPRequest(req, self.scenario, self.engine)
-
-    def __parse_requests(self, raw_requests, require_url=True):
-        requests = []
-        for key in range(len(raw_requests)):  # pylint: disable=consider-using-enumerate
-            req = ensure_is_dict(raw_requests, key, "url")
-            if not require_url and "url" not in req:
-                req["url"] = None
-            try:
-                requests.append(self.__parse_request(req))
-            except BaseException as exc:
-                logging.debug("%s\n%s" % (exc, traceback.format_exc()))
-                raise TaurusConfigError("Wrong request:\n %s" % req)
-        return requests
-
-    def extract_requests(self, require_url=True):
-        requests = self.scenario.get("requests", [])
-        return self.__parse_requests(requests, require_url=require_url)
 
 
 class ActionBlock(Request):
@@ -337,7 +341,7 @@ class ResourceFilesCollector(RequestVisitor):
         files = []
 
         body_file = request.config.get('body-file')
-        if body_file and not has_variable_pattern(body_file):
+        if body_file:
             files.append(body_file)
 
         uploads = request.config.get('upload-files', [])
