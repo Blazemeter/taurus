@@ -27,16 +27,16 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
         self.obj.shutdown()
 
     def test_rspec_full(self):
-        script = RESOURCES_DIR + 'selenium/ruby/example_spec.rb'
         self.full_run({
             'execution': {
-                'scenario': {'script': script},
+                'scenario': {'script': RESOURCES_DIR + 'selenium/ruby/example_spec.rb'},
             },
         })
         self.assertTrue(os.path.exists(self.obj.runner.report_file))
         with open(self.obj.runner.stdout_file) as fds:
             stdout = fds.read()
-        self.assertIn('--test-suite ' + script, stdout)
+        self.assertIn('--test-suite', stdout)
+        self.assertIn('example_spec.rb', stdout)
 
     def test_rspec_hold(self):
         self.full_run({
