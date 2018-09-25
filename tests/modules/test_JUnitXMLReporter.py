@@ -1,4 +1,3 @@
-import logging
 import os
 import tempfile
 from collections import Counter
@@ -11,7 +10,7 @@ from bzt.modules.passfail import PassFailStatus, DataCriterion
 from bzt.modules.reporting import JUnitXMLReporter
 from bzt.six import etree
 from bzt.utils import BetterDict
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
 
@@ -223,7 +222,7 @@ class TestJUnitXML(BZTestCase):
         with open(obj.report_file_path, 'rb') as fds:
             f_contents = fds.read()
 
-        logging.info("File: %s", f_contents)
+        ROOT_LOGGER.info("File: %s", f_contents)
         xml_tree = etree.fromstring(f_contents)
         self.assertEqual('testsuites', xml_tree.tag)
         suite = xml_tree.getchildren()[0]
@@ -297,7 +296,7 @@ class TestJUnitXML(BZTestCase):
         with open(obj.report_file_path, 'rb') as fds:
             f_contents = fds.read()
 
-        logging.info("File: %s", f_contents)
+        ROOT_LOGGER.info("File: %s", f_contents)
         xml_tree = etree.fromstring(f_contents)
         self.assertEqual('testsuites', xml_tree.tag)
         suite = xml_tree.getchildren()[0]
@@ -343,7 +342,7 @@ class TestJUnitXML(BZTestCase):
         obj.engine = engine
         obj.parameters = BetterDict()
 
-        reader = FuncSamplesReader(RESOURCES_DIR + "functional/nose.ldjson", engine, logging.getLogger())
+        reader = FuncSamplesReader(RESOURCES_DIR + "functional/nose.ldjson", engine, ROOT_LOGGER)
         aggregator.add_underling(reader)
 
         aggregator.prepare()

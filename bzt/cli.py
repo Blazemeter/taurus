@@ -116,7 +116,7 @@ class CLI(object):
 
         logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
 
-    def __close_log(self):
+    def close_log(self):
         """
         Close log handlers
         :return:
@@ -277,7 +277,7 @@ class CLI(object):
         else:
             self.log.info("Done performing with code: %s", self.exit_code)
 
-        self.__close_log()
+        self.close_log()
 
         return self.exit_code
 

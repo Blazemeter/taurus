@@ -1,6 +1,5 @@
 # coding=utf-8
 import json
-import logging
 import os
 import shutil
 import time
@@ -19,10 +18,10 @@ from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
-from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
-from tests.modules.jmeter import MockJMeterExecutor, MockHTTPClient
+from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
+from . import MockJMeterExecutor, MockHTTPClient
 
-_jvm = JavaVM(logging.getLogger(''))
+_jvm = JavaVM(ROOT_LOGGER)
 _jvm.check_if_installed()
 java_version = _jvm.version
 java10 = LooseVersion(java_version) >= LooseVersion("10")
@@ -181,7 +180,7 @@ class TestJMeterExecutor(BZTestCase):
             self.obj.startup()
             while not self.obj.check():
                 self.obj.log.debug("Check...")
-                time.sleep(1)
+                time.sleep(self.obj.engine.check_interval)
             self.obj.shutdown()
             self.obj.post_process()
         except:
@@ -212,9 +211,11 @@ class TestJMeterExecutor(BZTestCase):
                     "requests": [
                         {
                             'url': 'http://first.com',
+                            'method': 'put',
                             'body-file': body_file1
                         }, {
                             'url': 'http://second.com',
+                            'method': 'post',
                             'body': 'body2',
                             'body-file': body_file2
                         }, {
@@ -229,17 +230,18 @@ class TestJMeterExecutor(BZTestCase):
         body_fields = [req.get('body') for req in scenario.get('requests')]
         self.assertIn(body_file1, res_files)
         self.assertIn(body_file2, res_files)
-        self.assertFalse(body_fields[0])
-        self.assertEqual(body_fields[1], 'body2')
+        self.assertEqual(body_fields, [{}, 'body2', {}])
         self.assertEqual(body_files, [body_file1, body_file2, '${J_VAR}'])
 
         self.obj.prepare()
 
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         elements = xml_tree.findall(".//HTTPSamplerProxy/elementProp[@name='HTTPsampler.Files']")
-        self.assertEqual(1, len(elements))
-        self.assertEqual("${J_VAR}", elements[0].find(".//stringProp[@name='File.path']").text)
+        self.assertEqual(2, len(elements))
+        self.assertEqual(body_file1, elements[0].find(".//stringProp[@name='File.path']").text)
         self.assertIsNone(elements[0].find(".//stringProp[@name='File.paramname']").text)
+        self.assertEqual("${J_VAR}", elements[1].find(".//stringProp[@name='File.path']").text)
+        self.assertIsNone(elements[1].find(".//stringProp[@name='File.paramname']").text)
 
     def test_datasources_with_delimiter(self):
         self.obj.execution.merge({"scenario":
@@ -434,7 +436,7 @@ class TestJMeterExecutor(BZTestCase):
         try:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = "true"
             self.obj.settings.merge({"path": path})
-            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}],})
+            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}], })
             self.assertRaises(TaurusInternalException, self.obj.prepare)
         finally:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
@@ -665,8 +667,8 @@ class TestJMeterExecutor(BZTestCase):
 
         val_strings = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("100", val_strings[0].text)
-        self.assertEqual("100", val_strings[1].text)
+        self.assertEqual("100.0", val_strings[0].text)
+        self.assertEqual("100.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
     def test_add_cookies(self):
@@ -702,7 +704,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_add_shaper_ramp_up(self):
         self.configure(
-            {'execution': {'ramp-up': '1m', 'throughput': 10, 'hold-for': '2m', 'concurrency': 20,
+            {'execution': {'ramp-up': '1m', 'throughput': 9, 'hold-for': '2m', 'concurrency': 20,
                            'scenario': {'script': RESOURCES_DIR + '/jmeter/jmx/http.jmx'}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -716,14 +718,14 @@ class TestJMeterExecutor(BZTestCase):
 
         val_strings = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("1", val_strings[0].text)
-        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("0.05", val_strings[0].text)
+        self.assertEqual("9.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
         val_strings = coll_elements[1].findall(".//stringProp")
 
-        self.assertEqual("10", val_strings[0].text)
-        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("9.0", val_strings[0].text)
+        self.assertEqual("9.0", val_strings[1].text)
         self.assertEqual("120", val_strings[2].text)
 
     def test_user_def_vars_from_requests(self):
@@ -2559,7 +2561,7 @@ class TestJMeterExecutor(BZTestCase):
             self.obj.startup()
             while not self.obj.check():
                 self.obj.log.debug("Check...")
-                time.sleep(1)
+                time.sleep(self.obj.engine.check_interval)
             self.obj.shutdown()
             self.obj.post_process()
         except:
@@ -2618,7 +2620,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.env.set({'TEST_MODE': 'log'})
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         diagnostics = self.obj.get_error_diagnostics()

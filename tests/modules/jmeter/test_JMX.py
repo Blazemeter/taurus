@@ -23,14 +23,14 @@ class TestLoadSettingsProcessor(BZTestCase):
 
     def test_keep_original(self):
         self.configure(jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
-        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)     # because no duration
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no duration
         self.sniff_log(self.obj.log)
         self.obj.modify(self.jmx)
         msg = "No iterations/concurrency/duration found, thread group modification is skipped"
         self.assertIn(msg, self.log_recorder.debug_buff.getvalue())
         groupset = self.get_groupset()
         groups = [group.gtype for group in groupset]
-        self.assertEqual(5, len(set(groups)))   # no one group was modified
+        self.assertEqual(5, len(set(groups)))  # no one group was modified
         self.assertEqual("", self.log_recorder.warn_buff.getvalue())
         res_values = {}
         for group in groupset:
@@ -51,7 +51,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         """ ThreadGroup: concurrency, steps """
         self.configure(load={'concurrency': 76, 'steps': 5},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
-        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)     # because no duration
+        self.assertEqual(LoadSettingsProcessor.TG, self.obj.tg)  # because no duration
         self.sniff_log(self.obj.log)
 
         self.obj.modify(self.jmx)
@@ -69,7 +69,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual('ThreadGroup', group.gtype)
             self.assertEqual("false", group.element.find(".//*[@name='LoopController.continue_forever']").text)
-            self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)   # no loop limit
+            self.assertEqual("-1", group.element.find(".//*[@name='LoopController.loops']").text)  # no loop limit
             res_values[group.get_testname()] = {'conc': group.get_concurrency(), 'on_error': group.get_on_error()}
 
         self.assertEqual(res_values,
@@ -148,7 +148,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         strings0 = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("1", strings0[0].text)
+        self.assertEqual("1.0", strings0[0].text)
         self.assertEqual("${__P(t)}", strings0[1].text)
         self.assertEqual("${__P(r)}", strings0[2].text)
 

@@ -41,7 +41,7 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
-from bzt.requests_model import ResourceFilesCollector, has_variable_pattern
+from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
 from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode, communicate
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
@@ -799,7 +799,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                     files.append(data_source)
                 elif isinstance(data_source, dict):
                     files.append(data_source['path'])
-        requests = scenario.get_requests()
+        requests = scenario.get_requests(parser=HierarchicRequestParser)
         for req in requests:
             files.extend(self.res_files_from_request(req))
             self.resource_files_collector.clear_path_cache()
@@ -1577,12 +1577,11 @@ class JMeter(RequiredTool):
     def __download_additions(self, tools):
         downloader = ExceptionalDownloader(self.http_client)
         with ProgressBarContext() as pbar:
-            for tool in tools:
-                url = tool[0]
+            for url, path in tools:
                 _file = os.path.basename(url)
                 self.log.info("Downloading %s from %s", _file, url)
                 try:
-                    downloader.get(url, tool[1], reporthook=pbar.download_callback)
+                    downloader.get(url, path, reporthook=pbar.download_callback)
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
@@ -1705,7 +1704,7 @@ class JarCleaner(object):
 class JMeterMirrorsManager(MirrorsManager):
     def __init__(self, http_client, parent_logger, jmeter_version):
         self.jmeter_version = str(jmeter_version)
-        super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger, http_client)
+        super(JMeterMirrorsManager, self).__init__(http_client, JMeterExecutor.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
         links = []

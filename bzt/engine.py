@@ -40,7 +40,7 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
-from bzt.requests_model import RequestsParser
+from bzt.requests_model import RequestParser
 from bzt.six import numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
@@ -456,10 +456,12 @@ class Engine(object):
             parsed_url = parse.urlparse(filename)
             downloader = ExceptionalDownloader(self.get_http_client())
             self.log.info("Downloading %s", filename)
-            tmp_f_name, http_msg = downloader.get(filename)
-            cd_header = http_msg.get('Content-Disposition', '')
+            tmp_f_name, headers = downloader.get(filename)
+            cd_header = headers.get('Content-Disposition', '')
             dest = cd_header.split('filename=')[-1] if cd_header and 'filename=' in cd_header else ''
-            if not dest:
+            if dest.startswith('"') and dest.endswith('"') or dest.startswith("'") and dest.endswith("'"):
+                dest = dest[1:-1]
+            elif not dest:
                 dest = os.path.basename(parsed_url.path)
             fname, ext = os.path.splitext(dest) if dest else (parsed_url.hostname.replace(".", "_"), '.file')
             dest = self.create_artifact(fname, ext)
@@ -1232,15 +1234,16 @@ class Scenario(UserDict, object):
             headers = {}
         return headers
 
-    def get_requests(self, require_url=True):
+    def get_requests(self, parser=RequestParser, require_url=True):
         """
         Generator object to read requests
 
         :type require_url: bool
+        :type parser: class
         :rtype: list[bzt.requests_model.Request]
         """
-        requests_parser = RequestsParser(self, self.engine)
-        return requests_parser.extract_requests(require_url=require_url)
+        requests_parser = parser(self, self.engine)
+        return requests_parser.extract_requests(require_url=require_url,)
 
     def get_data_sources(self):
         data_sources = self.get(self.FIELD_DATA_SOURCES, [])

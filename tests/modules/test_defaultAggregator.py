@@ -1,9 +1,8 @@
 import json
-import logging
 import time
 
 from bzt.utils import to_json
-from tests import BZTestCase, r, rc, err
+from tests import BZTestCase, r, rc, err, ROOT_LOGGER
 
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
 from tests.mocks import MockReader
@@ -66,7 +65,7 @@ class TestDefaultAggregator(BZTestCase):
                 pass
             after = time.time()
             res[cnt] = after - before
-            logging.info("Times: %s", res)
+            ROOT_LOGGER.info("Times: %s", res)
 
             while mock.results:
                 point = mock.results.pop(0)

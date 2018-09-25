@@ -1,4 +1,3 @@
-import logging
 import os
 import sys
 import time
@@ -11,7 +10,7 @@ except ImportError:
 from bzt import ToolError
 from bzt.modules.jmeter import JTLReader
 from bzt.utils import dehumanize_time
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
@@ -112,13 +111,13 @@ class TestLocustIOExecutor(BZTestCase):
             time.sleep(2)
             self.obj.check()
         except RuntimeError:
-            logging.warning("Do you use patched locust for non-GUI master?")
+            ROOT_LOGGER.warning("Do you use patched locust for non-GUI master?")
         self.obj.shutdown()
         self.obj.post_process()
         self.assertFalse(self.obj.has_results())
 
     def test_locust_slave_results(self):
-        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves.ldjson", 2, logging.getLogger(""))
+        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves.ldjson", 2, ROOT_LOGGER)
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(107, len(points))
         for point in points:
@@ -126,7 +125,7 @@ class TestLocustIOExecutor(BZTestCase):
             self.assertGreater(point[DataPoint.CURRENT][''][KPISet.BYTE_COUNT], 0)
 
     def test_locust_slave_results_errors(self):
-        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves2.ldjson", 2, logging.getLogger(""))
+        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves2.ldjson", 2, ROOT_LOGGER)
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(60, len(points))
         for point in points:
@@ -134,7 +133,7 @@ class TestLocustIOExecutor(BZTestCase):
             self.assertGreaterEqual(point[DataPoint.CURRENT][''][KPISet.FAILURES], 70)
 
     def test_locust_delayed_slave(self):
-        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves-none.ldjson", 2, logging.getLogger(""))
+        obj = SlavesReader(RESOURCES_DIR + "locust/locust-slaves-none.ldjson", 2, ROOT_LOGGER)
         points = [x for x in obj.datapoints(True)]
         self.assertEquals(0, len(points))
 
