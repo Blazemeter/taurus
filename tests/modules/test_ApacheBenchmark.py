@@ -1,9 +1,8 @@
-import logging
 import time
 import os
 
 from bzt.modules.ab import ApacheBenchmarkExecutor, TSVDataReader
-from tests import BZTestCase, RESOURCES_DIR, close_reader_file
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 from tests.mocks import EngineEmul
 from bzt.utils import EXE_SUFFIX
 from bzt import ToolError, TaurusConfigError
@@ -117,7 +116,7 @@ class TestApacheBenchExecutor(BZTestCase):
 class TestDataLogReader(BZTestCase):
     def test_read(self):
         log_path = os.path.abspath(RESOURCES_DIR + "ab/ab.tsv")
-        obj = TSVDataReader(log_path, logging.getLogger(""))
+        obj = TSVDataReader(log_path, ROOT_LOGGER)
         list_of_values = list(obj.datapoints(True))
 
         self.assertEqual(len(list_of_values), 3)

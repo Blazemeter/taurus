@@ -1,5 +1,4 @@
 # coding=utf-8
-import logging
 import os
 import shutil
 import time
@@ -10,7 +9,7 @@ from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt.six import u
 from bzt.utils import EXE_SUFFIX, get_full_path
-from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file
+from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
 
@@ -495,7 +494,7 @@ class TestGatlingExecutor(BZTestCase):
 class TestDataLogReader(BZTestCase):
     def test_read(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-0')
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-0')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 23)
         self.assertEqual(obj.guessed_gatling_version, "2.1")
@@ -503,7 +502,7 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_asserts(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-1')
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-1')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 3)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")
@@ -511,7 +510,7 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_220_format(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-220')
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-220')
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 4)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")
@@ -519,7 +518,7 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_labels_problematic(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-2')  # problematic one
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-2')  # problematic one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 5)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")
@@ -527,7 +526,7 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_labels_regular(self):
         log_path = RESOURCES_DIR + "gatling/"
-        obj = DataLogReader(log_path, logging.getLogger(''), 'gatling-3')  # regular one
+        obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-3')  # regular one
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 10)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")

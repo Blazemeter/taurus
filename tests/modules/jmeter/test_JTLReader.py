@@ -1,6 +1,5 @@
 # coding=utf-8
 import json
-import logging
 import os
 import sys
 import time
@@ -10,7 +9,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.jmeter import JTLErrorsReader, JTLReader, FuncJTLReader
 from bzt.six import PY2
 from bzt.utils import to_json
-from tests import BZTestCase, RESOURCES_DIR, close_reader_file
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
 
@@ -21,7 +20,7 @@ class TestFuncJTLReader(BZTestCase):
 
     def configure(self, jtl_file):
         engine = EngineEmul()
-        self.obj = FuncJTLReader(jtl_file, engine, logging.getLogger(''))
+        self.obj = FuncJTLReader(jtl_file, engine, ROOT_LOGGER)
 
     def tearDown(self):
         close_reader_file(self.obj)
@@ -133,7 +132,7 @@ class TestJTLErrorsReader(BZTestCase):
         self.obj = None
 
     def configure(self, jtl_file):
-        self.obj = JTLErrorsReader(jtl_file, logging.getLogger(''))
+        self.obj = JTLErrorsReader(jtl_file, ROOT_LOGGER)
 
     def tearDown(self):
         close_reader_file(self.obj)
@@ -235,7 +234,7 @@ class TestJTLReader(BZTestCase):
         self.obj = None
 
     def configure(self, jtl_file):
-        self.obj = JTLReader(jtl_file, logging.getLogger(''))
+        self.obj = JTLReader(jtl_file, ROOT_LOGGER)
 
     def tearDown(self):
         if self.obj:
@@ -278,7 +277,7 @@ class TestJTLReader(BZTestCase):
         self.assertNotIn('"perc": {},', lst_json)
 
         elapsed = time.time() - start
-        logging.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
+        ROOT_LOGGER.debug("Elapsed/per datapoint: %s / %s", elapsed, elapsed / len(res))
         # self.assertLess(elapsed, len(res))  # less than 1 datapoint per sec is a no-go
         exp = [2.2144798867972773,
                0.7207704268609725,

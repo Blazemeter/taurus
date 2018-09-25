@@ -1,11 +1,10 @@
 import json
-import logging
 import time
 
 from bzt import AutomatedShutdown
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.passfail import PassFailStatus, DataCriterion
-from tests import BZTestCase, random_datapoint, RESOURCES_DIR
+from tests import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
 
@@ -26,7 +25,7 @@ class TestPassFailStatus(BZTestCase):
 
         for n in range(0, 10):
             point = random_datapoint(n)
-            logging.info("%s: %s", n, point)
+            ROOT_LOGGER.info("%s: %s", n, point)
             self.obj.aggregated_second(point)
             try:
                 self.obj.check()
@@ -270,7 +269,6 @@ class TestPassFailStatus(BZTestCase):
             point = random_datapoint(n)
             rcs = point[DataPoint.CURRENT][''][KPISet.RESP_CODES]
             rcs['200'] = 5
-            # logging.debug("Datapoint %s: %s", n, point)
             self.obj.aggregated_second(point)
             try:
                 self.obj.check()

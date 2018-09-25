@@ -1,4 +1,3 @@
-import logging
 import random
 import time
 import unittest
@@ -7,7 +6,7 @@ from bzt.modules.monitoring import Monitoring, MonitoringListener, MonitoringCri
 from bzt.modules.monitoring import ServerAgentClient, GraphiteClient, LocalClient, LocalMonitor
 from bzt.six import PY3, b
 from bzt.utils import BetterDict
-from tests import BZTestCase
+from tests import BZTestCase, ROOT_LOGGER
 from tests.mocks import EngineEmul, SocketEmul
 
 
@@ -53,8 +52,8 @@ class TestMonitoring(BZTestCase):
         for _ in range(1, 10):
             obj.clients[0].socket.recv_data += b("%s\t%s\n" % (random.random(), random.random()))
             obj.check()
-            logging.debug("Criteria state: %s", criteria)
-            time.sleep(1)
+            ROOT_LOGGER.debug("Criteria state: %s", criteria)
+            time.sleep(obj.engine.check_interval)
 
         obj.shutdown()
         obj.post_process()
@@ -94,7 +93,7 @@ class TestMonitoring(BZTestCase):
 
     def test_local_with_engine(self):
         config = {'interval': '5m', 'metrics': ['cpu', 'engine-loop']}
-        obj = LocalClient(logging.getLogger(''), 'label', config, EngineEmul())
+        obj = LocalClient(ROOT_LOGGER, 'label', config, EngineEmul())
         obj.connect()
         data = obj.get_data()
         self.assertTrue(300, obj.interval)
@@ -104,7 +103,7 @@ class TestMonitoring(BZTestCase):
         # strange metrics, anyway full list of available ones will be used
         config = {'metrics': ['memory', 'disk']}
 
-        obj = LocalClient(logging.getLogger(''), 'label', config)
+        obj = LocalClient(ROOT_LOGGER, 'label', config)
         obj.engine = EngineEmul()
         obj.connect()
         data = obj.engine_resource_stats()
@@ -114,7 +113,7 @@ class TestMonitoring(BZTestCase):
 
     def test_all_metrics(self):
         config = {'interval': '1m', 'metrics': LocalClient.AVAILABLE_METRICS}
-        obj = LocalClient(logging.getLogger(''), 'label', config, EngineEmul())
+        obj = LocalClient(ROOT_LOGGER, 'label', config, EngineEmul())
         obj.connect()
         self.assertEqual(60, obj.interval)
         data = obj.get_data()
@@ -126,7 +125,7 @@ class TestMonitoring(BZTestCase):
 
     def test_local_without_engine(self):
         config = {'metrics': ['cpu']}
-        obj = LocalClient(logging.getLogger(''), 'label', config, EngineEmul())
+        obj = LocalClient(ROOT_LOGGER, 'label', config, EngineEmul())
         obj.connect()
         data = obj.get_data()
         self.assertEqual(obj.interval, obj.engine.check_interval)
@@ -146,10 +145,19 @@ class TestMonitoring(BZTestCase):
         self.assertEqual({'mem', 'cpu', 'engine-loop'}, set(obj.clients[0].metrics))
         self.assertTrue(isinstance(obj.clients[0].monitor, LocalMonitor))
 
+        obj.prepare()
+        self.assertEqual(1, len(obj.clients))
+        self.assertEqual({'mem', 'cpu', 'engine-loop'}, set(obj.clients[0].metrics))
+        self.assertTrue(isinstance(obj.clients[0].monitor, LocalMonitor))
+
         data1 = obj.clients[0].get_data()
+        obj.clients[0].interval = 1     # take cached data
         data2 = obj.clients[0].get_data()
-        for item1, item2 in zip(data1, data2):
+        obj.clients[0].interval = 0     # throw cache
+        data3 = obj.clients[0].get_data()
+        for item1, item2, item3 in zip(data1, data2, data3):
             self.assertEqual(item1, item2)
+            self.assertNotEqual(item2, item3)
 
         metrics = []
         for element in data1:
@@ -183,7 +191,7 @@ class TestMonitoring(BZTestCase):
 
     def test_psutil_potential_bugs(self):
         conf = {'metrics': ['cpu', 'mem', 'disks', 'conn-all']}
-        client = LocalClient(logging.getLogger(''), 'label', conf, EngineEmul())
+        client = LocalClient(ROOT_LOGGER, 'label', conf, EngineEmul())
         client.connect()
 
         import psutil
@@ -202,7 +210,7 @@ class TestMonitoring(BZTestCase):
 
 class LoggingMonListener(MonitoringListener):
     def monitoring_data(self, data):
-        logging.debug("Data: %s", data)
+        ROOT_LOGGER.debug("Data: %s", data)
 
 
 class ServerAgentClientEmul(ServerAgentClient):

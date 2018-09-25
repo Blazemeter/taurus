@@ -16,7 +16,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, A
 from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchTool
 from bzt.six import parse, b
 from bzt.utils import is_windows
-from tests import BZTestCase, RESOURCES_DIR, close_reader_file
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
 
@@ -31,7 +31,7 @@ def get_pbench():
 class DataPointLogger(AggregatorListener):
     def aggregated_second(self, data):
         current = data[DataPoint.CURRENT]['']
-        logging.info("DataPoint %s: VU:%s RPS:%s/%s RT:%s", data[DataPoint.TIMESTAMP],
+        ROOT_LOGGER.info("DataPoint %s: VU:%s RPS:%s/%s RT:%s", data[DataPoint.TIMESTAMP],
                      current[KPISet.CONCURRENCY], current[KPISet.SAMPLE_COUNT], current[KPISet.FAILURES],
                      current[KPISet.AVG_RESP_TIME])
 
@@ -92,7 +92,7 @@ class TestPBenchExecutor(TestPBench):
         self.obj.startup()
 
         while not self.obj.check():
-            logging.debug("Running...")
+            ROOT_LOGGER.debug("Running...")
             self.obj.engine.aggregator.check()
             time.sleep(0.1)
 
@@ -240,7 +240,7 @@ class MockByteFile(io.BytesIO):
 class TestScheduler(TestPBench):
     def get_scheduler(self, buf=None):
         filename = ''
-        scheduler = Scheduler(self.obj.get_load(), filename, logging.getLogger(""))
+        scheduler = Scheduler(self.obj.get_load(), filename, ROOT_LOGGER)
         scheduler.payload_file.fds = MockByteFile(buf)
         return scheduler
 
@@ -255,17 +255,16 @@ class TestScheduler(TestPBench):
         cur = 0
         currps = 0
         for item in scheduler.generate():
-            # logging.debug("Item: %s", item)
             if int(math.ceil(item[0])) != cur:
                 # self.assertLessEqual(currps, rps)
                 cur = int(math.ceil(item[0]))
-                logging.debug("RPS: %s", currps)
+                ROOT_LOGGER.debug("RPS: %s", currps)
                 currps = 0
 
             cnt += 1
             currps += 1
 
-        logging.debug("RPS: %s", currps)
+        ROOT_LOGGER.debug("RPS: %s", currps)
 
     def test_schedule_with_no_rampup(self):
         self.obj.execution.merge({"concurrency": 10, "ramp-up": None, "steps": 3, "hold-for": 10})
@@ -277,7 +276,7 @@ class TestScheduler(TestPBench):
         scheduler = self.get_scheduler(b("4 test\ntest\n"))
         items = list(scheduler.generate())
         for item in items:
-            logging.debug("Item: %s", item)
+            ROOT_LOGGER.debug("Item: %s", item)
         self.assertEqual(1, len(items))
 
     def test_schedule_concurrency(self):
@@ -311,19 +310,19 @@ class TestSchedulerSize(TestPBench):
         })
         self.obj.execution = self.obj.engine.config['execution']
         load = self.obj.get_load()
-        self.obj.pbench = TaurusPBenchTool(self.obj, logging.getLogger(''))
+        self.obj.pbench = TaurusPBenchTool(self.obj, ROOT_LOGGER)
         self.obj.pbench.generate_payload(self.obj.get_scenario())
         payload_count = len(self.obj.get_scenario().get('requests', []))
-        sch = Scheduler(load, self.obj.pbench.payload_file, logging.getLogger(''))
+        sch = Scheduler(load, self.obj.pbench.payload_file, ROOT_LOGGER)
         estimated_schedule_size = self.obj.pbench._estimate_schedule_size(load, payload_count)
-        logging.debug("Estimated schedule size: %s", estimated_schedule_size)
+        ROOT_LOGGER.debug("Estimated schedule size: %s", estimated_schedule_size)
         items = list(sch.generate())
         actual_schedule_size = len(items)
-        logging.debug("Actual schedule size: %s", actual_schedule_size)
+        ROOT_LOGGER.debug("Actual schedule size: %s", actual_schedule_size)
         if actual_schedule_size != 0:
             error = abs(estimated_schedule_size - actual_schedule_size)
             error_rel = error / float(actual_schedule_size)
-            logging.debug("Estimation error: %s", error)
+            ROOT_LOGGER.debug("Estimation error: %s", error)
             if error_rel >= 0.1:
                 self.fail("Estimation failed (error=%s) on config %s" % (error_rel, pprint.pformat(execution)))
 

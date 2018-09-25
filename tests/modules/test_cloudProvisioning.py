@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import shutil
 import tempfile
@@ -12,11 +11,10 @@ from bzt.bza import Master, Test, MultiTest
 from bzt.engine import ScenarioExecutor, Service
 from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
-from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader, \
-    FUNC_TEST_TYPE
-from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest
+from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
+from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, FUNC_TEST_TYPE
 from bzt.utils import get_full_path
-from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG
+from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
 from tests.mocks import EngineEmul, ModuleMock
 from tests.modules.test_blazemeter import BZMock
 
@@ -1723,7 +1721,7 @@ class TestFunctionalBZAReader(BZTestCase):
 
                 }}})
 
-        obj = FunctionalBZAReader(logging.getLogger(''))
+        obj = FunctionalBZAReader(ROOT_LOGGER)
         obj.master = Master(data={'id': 1})
         mock.apply(obj.master)
         samples = [x for x in obj.read(True)]

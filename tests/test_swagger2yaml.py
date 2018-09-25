@@ -1,11 +1,8 @@
-import logging
-import shutil
-
 import yaml
 
 from bzt.six import iteritems
 from bzt.swagger2yaml import SwaggerConverter, Swagger, Swagger2YAML, process
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
 
@@ -145,7 +142,7 @@ class TestSwagger2YAML(BZTestCase):
 
 class TestSwaggerConverter(BZTestCase):
     def test_minimal_json(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(ROOT_LOGGER)
         config = obj.convert_path(RESOURCES_DIR + "/swagger/petstore.json")
         self.assertIsNotNone(config)
         self.assertIsNotNone(config.get("execution"))
@@ -157,7 +154,7 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(21, len(scenario["requests"]))
 
     def test_minimal_yaml(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(ROOT_LOGGER)
         config = obj.convert_path(RESOURCES_DIR + "/swagger/petstore.yaml")
         self.assertIsNotNone(config)
         self.assertIsNotNone(config.get("execution"))
@@ -177,7 +174,7 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(inter_paths, ["/pets", "/pets/some_string", "/owners"])
 
     def test_query(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(ROOT_LOGGER)
         config = obj.convert_path(RESOURCES_DIR + "/swagger/petstore.yaml")
 
         scenario = config["scenarios"].get("Swagger-Petstore")
@@ -189,7 +186,7 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(requests[3]["url"], "${default-path}/owners?limit=1")
 
     def test_headers(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(ROOT_LOGGER)
         config = obj.convert_path(RESOURCES_DIR + "/swagger/petstore.yaml")
 
         scenario = config["scenarios"].get("Swagger-Petstore")
@@ -199,7 +196,7 @@ class TestSwaggerConverter(BZTestCase):
             self.assertIn("some_string", request["headers"].get("token"))
 
     def test_form_data(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(ROOT_LOGGER)
         config = obj.convert_path(RESOURCES_DIR + "/swagger/petstore.yaml")
 
         requests = config["scenarios"]["Swagger-Petstore"]["requests"]
@@ -208,11 +205,11 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(request["body"].get("name"), "some_string")
 
     def test_referenced_parameters(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(ROOT_LOGGER)
         config = obj.convert_path(RESOURCES_DIR + "/swagger/bzm-api.json")
 
     def test_scenarios_from_paths(self):
-        obj = SwaggerConverter(logging.getLogger(''), scenarios_from_paths=True)
+        obj = SwaggerConverter(ROOT_LOGGER, scenarios_from_paths=True)
         config = obj.convert_path(RESOURCES_DIR + "/swagger/bzm-api.json")
         self.assertEqual(len(config["scenarios"]), 5)
 
@@ -236,11 +233,11 @@ class TestSwaggerConverter(BZTestCase):
         self.assertEqual(len(config["scenarios"]["/tests/1/start"]["requests"]), 1)
 
     def test_json(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(ROOT_LOGGER)
         config = obj.convert_path(RESOURCES_DIR + "/swagger/non-yaml.json")
 
     def test_no_host(self):
-        obj = SwaggerConverter(logging.getLogger(''))
+        obj = SwaggerConverter(ROOT_LOGGER)
         config = obj.convert_path(RESOURCES_DIR + "/swagger/no-host.json")
         self.assertEqual(config["settings"]["env"]["default-address"], "http://HOST")
 

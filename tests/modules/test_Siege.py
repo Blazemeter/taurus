@@ -1,11 +1,10 @@
-import logging
 import time
 from os.path import join
 
 from bzt import ToolError, TaurusConfigError
 from bzt.modules.siege import SiegeExecutor, DataLogReader
 from bzt.utils import EXE_SUFFIX
-from tests import BZTestCase, RESOURCES_DIR, close_reader_file
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 from tests.mocks import EngineEmul
 from bzt.modules.aggregator import ConsolidatingAggregator
 
@@ -127,7 +126,7 @@ class TestSiegeExecutor(BZTestCase):
 class TestDataLogReader(BZTestCase):
     def test_read(self):
         log_path = join(RESOURCES_DIR, "siege", "siege.out")
-        obj = DataLogReader(log_path, logging.getLogger(''))
+        obj = DataLogReader(log_path, ROOT_LOGGER)
         list_of_values = list(obj.datapoints(True))
 
         self.assertEqual(len(list_of_values), 8)

@@ -13,7 +13,7 @@ from bzt.modules.provisioning import Local
 from bzt.modules.python import ApiritifNoseExecutor
 from bzt.six import BytesIO
 from bzt.utils import LDJSONReader, FileReader
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul, DummyListener
 from tests.modules.selenium import SeleniumTestCase
 
@@ -72,7 +72,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def test_samples_count_testcase(self):
@@ -87,7 +87,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def test_no_test_in_name(self):
@@ -102,7 +102,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
     def test_from_extension(self):
@@ -111,7 +111,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.get_widget()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         results = list(self.obj.runner.reader._read(final_pass=True))
         self.assertEquals(1, len(results))
@@ -127,7 +127,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.get_widget()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         results = list(self.obj.runner.reader._read(final_pass=True))
         self.assertEquals(1, len(results))
@@ -139,7 +139,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.get_widget()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv"))
         lines = reader.get_lines(last_pass=True)
@@ -277,7 +277,7 @@ class TestSeleniumStuff(SeleniumTestCase):
 
 class TestReportReader(BZTestCase):
     def test_report_reader(self):
-        reader = LoadSamplesReader(RESOURCES_DIR + "selenium/report.ldjson", logging.getLogger())
+        reader = LoadSamplesReader(RESOURCES_DIR + "selenium/report.ldjson", ROOT_LOGGER)
         items = list(reader._read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0][1], 'testFailure')
@@ -292,7 +292,7 @@ class TestReportReader(BZTestCase):
     def test_reader_buffering(self):
         first_part = b'{"a": 1, "b": 2}\n{"a": 2,'
         second_part = b'"b": 3}\n{"a": 3, "b": 4}\n'
-        reader = LDJSONReader("yip", logging.getLogger())
+        reader = LDJSONReader("yip", ROOT_LOGGER)
         buffer = BytesIO(first_part)
         reader.file.fds = buffer
         reader.file.fds.name = "yip"
@@ -305,7 +305,7 @@ class TestReportReader(BZTestCase):
         self.assertEqual(len(items), 2)
 
     def test_func_reader(self):
-        reader = FuncSamplesReader(RESOURCES_DIR + "selenium/report.ldjson", EngineEmul(), logging.getLogger())
+        reader = FuncSamplesReader(RESOURCES_DIR + "selenium/report.ldjson", EngineEmul(), ROOT_LOGGER)
         items = list(reader.read())
         self.assertEqual(4, len(items))
         self.assertEqual(items[0].test_case, 'testFailure')

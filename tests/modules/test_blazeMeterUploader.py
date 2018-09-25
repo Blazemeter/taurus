@@ -13,7 +13,7 @@ from bzt.modules.blazemeter import BlazeMeterUploader, ResultsFromBZA
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.six import HTTPError
 from bzt.six import iteritems, viewvalues
-from tests import BZTestCase, random_datapoint, RESOURCES_DIR
+from tests import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul, BZMock
 
 
@@ -329,7 +329,7 @@ class TestBlazeMeterUploader(BZTestCase):
         log_buff = self.log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
         self.assertIn(log_line, log_buff)
-        logging.warning("\n".join([x['url'] for x in mock.requests]))
+        ROOT_LOGGER.warning("\n".join([x['url'] for x in mock.requests]))
         self.assertEqual(14, len(mock.requests))
 
     def test_new_project_existing_test(self):
@@ -780,7 +780,7 @@ class TestMonitoringBuffer(BZTestCase):
     def test_harmonic(self):
         iterations = 50
         size_limit = 10
-        mon_buffer = MonitoringBuffer(size_limit, logging.getLogger(''))
+        mon_buffer = MonitoringBuffer(size_limit, ROOT_LOGGER)
         for i in range(iterations):
             cpu = math.sin(self.to_rad(float(i) / iterations * 180))
             mon = [{"ts": i, "source": "local", "cpu": cpu}]
@@ -790,7 +790,7 @@ class TestMonitoringBuffer(BZTestCase):
     def test_downsample_theorem(self):
         # Theorem: average interval size in monitoring buffer will always
         # be less or equal than ITERATIONS / BUFFER_LIMIT
-        mon_buffer = MonitoringBuffer(100, logging.getLogger(''))
+        mon_buffer = MonitoringBuffer(100, ROOT_LOGGER)
         for i in range(5000):
             mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
             mon_buffer.record_data(mon)
@@ -802,7 +802,7 @@ class TestMonitoringBuffer(BZTestCase):
                 self.assertLessEqual(avg_size, expected_size * 1.20)
 
     def test_sources(self):
-        mon_buffer = MonitoringBuffer(10, logging.getLogger(''))
+        mon_buffer = MonitoringBuffer(10, ROOT_LOGGER)
         for i in range(100):
             mon = [
                 {"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100},
@@ -815,7 +815,7 @@ class TestMonitoringBuffer(BZTestCase):
     def test_unpack(self):
         ITERATIONS = 200
         SIZE_LIMIT = 10
-        mon_buffer = MonitoringBuffer(SIZE_LIMIT, logging.getLogger(''))
+        mon_buffer = MonitoringBuffer(SIZE_LIMIT, ROOT_LOGGER)
         for i in range(ITERATIONS):
             mon = [{"ts": i, "source": "local", "cpu": 1}]
             mon_buffer.record_data(mon)
