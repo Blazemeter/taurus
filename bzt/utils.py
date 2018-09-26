@@ -1122,10 +1122,10 @@ class RequiredTool(object):
         self.mirror_manager = None
         self.version = None
 
-        self.tool_name = None
+        self.tool_name = self.__class__.__name__
 
         log = log or LOG
-        self.log = log
+        self.log = log.getChild(self.tool_name)
 
         env = env or Environment(self.log, dict(os.environ))
         self.env = env

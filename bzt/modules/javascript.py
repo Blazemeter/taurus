@@ -59,14 +59,14 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        tcl_lib = self.engine.instantiate_tool(TclLibrary, self)
-        self.node_tool = self.engine.instantiate_tool(Node, self)
-        self.npm_tool = self.engine.instantiate_tool(NPM, self)
-        self.mocha_tool = self.engine.instantiate_tool(
-            Mocha, self, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
-        web_driver = self.engine.instantiate_tool(
-            JSSeleniumWebdriver, self, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
-        mocha_plugin = self.engine.instantiate_tool(TaurusMochaPlugin, self, tool_path=self.plugin_path)
+        tcl_lib = self.get_tool(TclLibrary)
+        self.node_tool = self.get_tool(Node)
+        self.npm_tool = self.get_tool(NPM)
+        self.mocha_tool = self.get_tool(
+            Mocha, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
+        web_driver = self.get_tool(
+            JSSeleniumWebdriver, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
+        mocha_plugin = self.get_tool(TaurusMochaPlugin, tool_path=self.plugin_path)
 
         tools = [tcl_lib, self.node_tool, self.npm_tool, self.mocha_tool, web_driver, mocha_plugin]
         self._check_tools(tools)
@@ -121,16 +121,16 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        tcl_lib = self.engine.instantiate_tool(TclLibrary, self)
-        self.node_tool = self.engine.instantiate_tool(Node, self)
-        self.npm_tool = self.engine.instantiate_tool(NPM, self)
-        self.wdio_tool = self.engine.instantiate_tool(
+        tcl_lib = self.get_tool(TclLibrary)
+        self.node_tool = self.get_tool(Node)
+        self.npm_tool = self.get_tool(NPM)
+        self.wdio_tool = self.get_tool(
             WDIO, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
 
-        wdio_taurus_plugin = self.engine.instantiate_tool(TaurusWDIOPlugin, self, tool_path=self.plugin_path)
+        wdio_taurus_plugin = self.get_tool(TaurusWDIOPlugin, tool_path=self.plugin_path)
 
-        wdio_mocha_plugin = self.engine.instantiate_tool(
-            WDIOMochaPlugin, self, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
+        wdio_mocha_plugin = self.get_tool(
+            WDIOMochaPlugin, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
 
         tools = [tcl_lib, self.node_tool, self.npm_tool, self.wdio_tool, wdio_taurus_plugin, wdio_mocha_plugin]
 
@@ -190,12 +190,12 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        self.node_tool = self.engine.instantiate_tool(Node, self)
-        self.npm_tool = self.engine.instantiate_tool(NPM, self)
-        self.newman_tool = self.engine.instantiate_tool(
-            Newman, self, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
-        tcl_lib = self.engine.instantiate_tool(TclLibrary, self)
-        taurus_newman_plugin = self.engine.instantiate_tool(TaurusNewmanPlugin, self, tool_path=self.plugin_path)
+        self.node_tool = self.get_tool(Node)
+        self.npm_tool = self.get_tool(NPM)
+        self.newman_tool = self.get_tool(
+            Newman, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
+        tcl_lib = self.get_tool(TclLibrary)
+        taurus_newman_plugin = self.get_tool(TaurusNewmanPlugin, tool_path=self.plugin_path)
 
         tools = [
             self.node_tool,

@@ -441,19 +441,6 @@ class Engine(object):
         instance.settings = settings.get(alias)
         return instance
 
-    def instantiate_tool(self, tool, parent=None, **params):
-        if not parent:
-            parent = self
-
-        env = Environment(parent.log, parent.env.get())
-
-        instance = tool(env=env, **params)
-        assert isinstance(instance, RequiredTool)
-        instance.tool_name = tool.__name__
-        instance.log = parent.log.getChild(instance.tool_name)
-
-        return instance
-
     def find_file(self, filename):
         """
         Try to find file or dir in search_path if it was specified. Helps finding files
@@ -1020,6 +1007,14 @@ class ScenarioExecutor(EngineModule):
             return True
         else:
             return False
+
+    def get_tool(self, tool, **kwargs):
+        env = Environment(self.log, self.env.get())
+
+        instance = tool(env=env, log=self.log, **kwargs)
+        assert isinstance(instance, RequiredTool)
+
+        return instance
 
     def get_script_path(self, required=False, scenario=None):
         """

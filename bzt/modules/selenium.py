@@ -157,10 +157,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         geckodriver_link = self._get_geckodriver_link()
 
         http_client = self.engine.get_http_client()
-        self.webdrivers = [self.engine.instantiate_tool(
-            ChromeDriver, self, tool_path=chromedriver_path, download_link=chromedriver_link, http_client=http_client),
-                           self.engine.instantiate_tool(
-                               GeckoDriver, self, tool_path=geckodriver_path, download_link=geckodriver_link, http_client=http_client)]
+        self.webdrivers = [self.get_tool(
+            ChromeDriver, tool_path=chromedriver_path, download_link=chromedriver_link, http_client=http_client),
+                           self.get_tool(
+                               GeckoDriver, tool_path=geckodriver_path, download_link=geckodriver_link, http_client=http_client)]
 
         for tool in self.webdrivers:
             if not tool.check_if_installed():
