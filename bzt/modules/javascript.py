@@ -97,6 +97,7 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         self.node_tool = None
         self.npm_tool = None
         self.wdio_tool = None
+        self.wdio_taurus_plugin = None
 
     def prepare(self):
         super(WebdriverIOExecutor, self).prepare()
@@ -330,29 +331,17 @@ class NPMPackage(RequiredTool):
 class Mocha(NPMPackage):
     PACKAGE_NAME = "mocha@4.0.1"
 
-    def __init__(self, **kwargs):
-        super(Mocha, self).__init__(**kwargs)
-
 
 class JSSeleniumWebdriver(NPMPackage):
     PACKAGE_NAME = "selenium-webdriver@3.6.0"
-
-    def __init__(self, **kwargs):
-        super(JSSeleniumWebdriver, self).__init__(**kwargs)
 
 
 class WDIO(NPMPackage):
     PACKAGE_NAME = "webdriverio@4.8.0"
 
-    def __init__(self, **kwargs):
-        super(WDIO, self).__init__(**kwargs)
-
 
 class WDIOMochaPlugin(NPMPackage):
     PACKAGE_NAME = "wdio-mocha-framework@0.5.13"
-
-    def __init__(self, **kwargs):
-        super(WDIOMochaPlugin, self).__init__(**kwargs)
 
 
 class Newman(NPMPackage):
