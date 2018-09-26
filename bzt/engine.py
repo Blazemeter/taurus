@@ -1011,7 +1011,7 @@ class ScenarioExecutor(EngineModule):
     def get_tool(self, tool, **kwargs):
         env = Environment(self.log, self.env.get())
 
-        instance = tool(env=env, log=self.log, **kwargs)
+        instance = tool(env=env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
         assert isinstance(instance, RequiredTool)
 
         return instance
