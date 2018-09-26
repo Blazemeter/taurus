@@ -157,8 +157,10 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         geckodriver_link = self._get_geckodriver_link()
 
         http_client = self.engine.get_http_client()
-        self.webdrivers = [ChromeDriver(chromedriver_path, self.log, chromedriver_link, http_client),
-                           GeckoDriver(geckodriver_path, self.log, geckodriver_link, http_client)]
+        self.webdrivers = [self.engine.instantiate_tool(
+            ChromeDriver, self, tool_path=chromedriver_path, download_link=chromedriver_link, http_client=http_client),
+                           self.engine.instantiate_tool(
+                               GeckoDriver, self, tool_path=geckodriver_path, download_link=geckodriver_link, http_client=http_client)]
 
         for tool in self.webdrivers:
             if not tool.check_if_installed():
@@ -332,9 +334,8 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
 
 class ChromeDriver(RequiredTool):
-    def __init__(self, tool_path, parent_logger, download_link, http_client):
-        super(ChromeDriver, self).__init__("ChromeDriver", tool_path, download_link, http_client)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(ChromeDriver, self).__init__(**kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)
@@ -363,9 +364,8 @@ class ChromeDriver(RequiredTool):
 
 
 class GeckoDriver(RequiredTool):
-    def __init__(self, tool_path, parent_logger, download_link, http_client):
-        super(GeckoDriver, self).__init__("GeckoDriver", tool_path, download_link, http_client)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(GeckoDriver, self).__init__(**kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)

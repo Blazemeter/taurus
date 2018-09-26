@@ -45,7 +45,7 @@ from bzt.six import numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
-from bzt.utils import str_representer, Environment
+from bzt.utils import str_representer, Environment, RequiredTool
 
 TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
 
@@ -439,6 +439,19 @@ class Engine(object):
         instance.engine = self
         settings = self.config.get("modules")
         instance.settings = settings.get(alias)
+        return instance
+
+    def instantiate_tool(self, tool, parent=None, **params):
+        if not parent:
+            parent = self
+
+        env = Environment(parent.log, parent.env.get())
+
+        instance = tool(env=env, **params)
+        assert isinstance(instance, RequiredTool)
+        instance.tool_name = tool.__name__
+        instance.log = parent.log.getChild(instance.tool_name)
+
         return instance
 
     def find_file(self, filename):
