@@ -130,7 +130,7 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         script_file = os.path.basename(self.script)
         cmdline = [
             self.node_tool.executable,
-            self.wdio_taurus_plugin,
+            self.wdio_taurus_plugin.tool_path,
             "--report-file",
             self.report_file,
             "--wdio-config",
