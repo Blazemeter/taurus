@@ -156,7 +156,7 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
             cmdline += ['--hold-for', str(load.hold)]
 
         self.env.set({"NODE_PATH": self.wdio_tool.env.get("NODE_PATH")})
-        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
+        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)   # todo: change node_path in one place only
 
         self._start_subprocess(cmdline, cwd=script_dir)
 

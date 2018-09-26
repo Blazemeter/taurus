@@ -1113,14 +1113,13 @@ class RequiredTool(object):
     """
     Abstract required tool
     """
-
-    def __init__(self, log=None, tool_path="", download_link="", http_client=None, env=None):
+    def __init__(self, log=None, tool_path="", download_link="", http_client=None, env=None, version=None):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
-        self.version = None
+        self.version = version
 
         self.tool_name = self.__class__.__name__
 
