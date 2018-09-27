@@ -26,6 +26,17 @@ from bzt.utils import sync_run, get_full_path, is_windows, to_json, dehumanize_t
 
 
 class JavaScriptExecutor(SubprocessedExecutor, HavingInstallableTools):
+    def __init__(self):
+        super(JavaScriptExecutor, self).__init__()
+        self.tools_dir = None
+        self.node_tool = None
+        self.npm_tool = None
+
+    def prepare(self):
+        super(JavaScriptExecutor, self).prepare()
+        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
+        self.env.add_path({"NODE_PATH": os.path.join(self.tools_dir, "node_modules")})
+
     @abstractmethod
     def get_launch_cmdline(self, *args):
         pass
@@ -42,8 +53,6 @@ class MochaTester(JavaScriptExecutor):
     def __init__(self):
         super(MochaTester, self).__init__()
         self.tools_dir = "~/.bzt/selenium-taurus/mocha"
-        self.node_tool = None
-        self.npm_tool = None
         self.mocha_tool = None
         self.mocha_plugin = None
 
@@ -53,7 +62,6 @@ class MochaTester(JavaScriptExecutor):
         if not self.script:
             raise TaurusConfigError("Script not passed to runner %s" % self)
 
-        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
         self.install_required_tools()
         self.reporting_setup(suffix='.ldjson')
 
@@ -87,8 +95,6 @@ class MochaTester(JavaScriptExecutor):
         if load.hold:
             mocha_cmdline += ['--hold-for', str(load.hold)]
 
-        self.env.set({"NODE_PATH": self.mocha_tool.env.get("NODE_PATH")})
-
         self._start_subprocess(mocha_cmdline)
 
 
@@ -103,13 +109,13 @@ class WebdriverIOExecutor(JavaScriptExecutor):
     def __init__(self):
         super(WebdriverIOExecutor, self).__init__()
         self.tools_dir = "~/.bzt/selenium-taurus/wdio"
-        self.node_tool = None
-        self.npm_tool = None
         self.wdio_tool = None
         self.wdio_taurus_plugin = None
 
     def prepare(self):
         super(WebdriverIOExecutor, self).prepare()
+        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
+
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to executor %s" % self)
@@ -154,9 +160,6 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
 
-        self.env.set({"NODE_PATH": self.wdio_tool.env.get("NODE_PATH")})
-        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)   # todo: change node_path in one place only
-
         self._start_subprocess(cmdline, cwd=script_dir)
 
 
@@ -171,12 +174,12 @@ class NewmanExecutor(JavaScriptExecutor):
     def __init__(self):
         super(NewmanExecutor, self).__init__()
         self.tools_dir = "~/.bzt/newman"
-        self.node_tool = None
-        self.npm_tool = None
         self.newman_tool = None
 
     def prepare(self):
         super(NewmanExecutor, self).prepare()
+        self.env.add_path({"NODE_PATH": os.path.join(get_full_path(__file__, step_up=2), "resources")})
+
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to executor %s" % self)
@@ -238,9 +241,6 @@ class NewmanExecutor(JavaScriptExecutor):
         # if load.hold:
         #    cmdline += ['--hold-for', str(load.hold)]
 
-        self.env.set({"NODE_PATH": self.newman_tool.env.get("NODE_PATH")})
-        self.env.add_path({"NODE_PATH": os.path.join(get_full_path(__file__, step_up=2), "resources")})
-
         self._start_subprocess(cmdline, cwd=script_dir)
 
     def _dump_vars(self, key):
@@ -299,8 +299,6 @@ class NPMPackage(RequiredTool):
 
     def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
         super(NPMPackage, self).__init__(**kwargs)
-        self.env.add_path({"NODE_PATH": os.path.join(tools_dir, "node_modules")})
-
         self.package_name = self.PACKAGE_NAME   # todo: split package_name in the constants block
         if "@" in self.package_name:
             self.package_name, self.version = self.package_name.split("@")
