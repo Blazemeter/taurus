@@ -15,6 +15,7 @@ limitations under the License.
 """
 import os
 import traceback
+from abc import abstractmethod
 
 from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools
@@ -24,7 +25,13 @@ from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS
 from bzt.utils import sync_run, get_full_path, is_windows, to_json, dehumanize_time
 
 
-class MochaTester(SubprocessedExecutor, HavingInstallableTools):
+class JavaScriptExecutor(SubprocessedExecutor, HavingInstallableTools):
+    @abstractmethod
+    def get_launch_cmdline(self, *args):
+        pass
+
+
+class MochaTester(JavaScriptExecutor):
     """
     Mocha tests runner
 
@@ -38,6 +45,7 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
         self.node_tool = None
         self.npm_tool = None
         self.mocha_tool = None
+        self.mocha_plugin = None
 
     def prepare(self):
         super(MochaTester, self).prepare()
@@ -62,15 +70,16 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
         tools = [tcl_lib, self.node_tool, self.npm_tool, self.mocha_tool, web_driver, self.mocha_plugin]
         self._check_tools(tools)
 
+    def get_launch_cmdline(self, *args):
+        return [self.node_tool.executable, self.mocha_plugin.tool_path] + list(args)
+
     def startup(self):
-        mocha_cmdline = [
-            self.node_tool.executable,
-            self.mocha_plugin.tool_path,
+        mocha_cmdline = self.get_launch_cmdline(
             "--report-file",
             self.report_file,
             "--test-suite",
             self.script
-        ]
+        )
         load = self.get_load()
         if load.iterations:
             mocha_cmdline += ['--iterations', str(load.iterations)]
@@ -83,7 +92,7 @@ class MochaTester(SubprocessedExecutor, HavingInstallableTools):
         self._start_subprocess(mocha_cmdline)
 
 
-class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
+class WebdriverIOExecutor(JavaScriptExecutor):
     """
     WebdriverIO-based test runner
 
@@ -125,17 +134,18 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
 
         self._check_tools(tools)
 
+    def get_launch_cmdline(self, *args):
+        return [self.node_tool.executable, self.wdio_taurus_plugin.tool_path] + list(args)
+
     def startup(self):
         script_dir = get_full_path(self.script, step_up=1)
         script_file = os.path.basename(self.script)
-        cmdline = [
-            self.node_tool.executable,
-            self.wdio_taurus_plugin.tool_path,
+        cmdline = self.get_launch_cmdline(
             "--report-file",
             self.report_file,
             "--wdio-config",
             script_file,
-        ]
+        )
 
         load = self.get_load()
         if load.iterations:
@@ -150,7 +160,7 @@ class WebdriverIOExecutor(SubprocessedExecutor, HavingInstallableTools):
         self._start_subprocess(cmdline, cwd=script_dir)
 
 
-class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
+class NewmanExecutor(JavaScriptExecutor):
     """
     Newman-based test runner
 
@@ -193,18 +203,19 @@ class NewmanExecutor(SubprocessedExecutor, HavingInstallableTools):
 
         self._check_tools(tools)
 
+    def get_launch_cmdline(self, *args):
+        return [self.node_tool.executable, self.newman_tool.entrypoint] + list(args)
+
     def startup(self):
         script_dir = get_full_path(self.script, step_up=1)
         script_file = os.path.basename(self.script)
-        cmdline = [
-            self.node_tool.executable,
-            self.newman_tool.entrypoint,
+        cmdline = self.get_launch_cmdline(
             "run",
             script_file,
             "--reporters", "taurus",
             "--reporter-taurus-filename", self.report_file,
             "--suppress-exit-code", "--insecure",
-        ]
+        )
 
         scenario = self.get_scenario()
         timeout = scenario.get('timeout', None)
