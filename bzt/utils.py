@@ -1123,7 +1123,8 @@ class RequiredTool(object):
 
         self.tool_name = self.__class__.__name__
 
-        log = log or LOG
+        if not log or not isinstance(log, logging.Logger):  # browsermobproxy compatability
+            log = log or LOG
         self.log = log.getChild(self.tool_name)
 
         env = env or Environment(self.log, dict(os.environ))
