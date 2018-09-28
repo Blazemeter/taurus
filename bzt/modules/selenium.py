@@ -102,8 +102,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         pass    # for compatibility with taurus server
 
     def install_required_tools(self):
-        self.webdrivers = [self.get_tool(ChromeDriver, config=self.settings.get('chromedriver')),
-                           self.get_tool(GeckoDriver, config=self.settings.get('geckodriver'))]
+        self.webdrivers = [self._get_tool(ChromeDriver, config=self.settings.get('chromedriver')),
+                           self._get_tool(GeckoDriver, config=self.settings.get('geckodriver'))]
 
         for tool in self.webdrivers:
             if not tool.check_if_installed():

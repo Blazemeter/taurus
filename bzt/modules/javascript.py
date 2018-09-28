@@ -66,14 +66,14 @@ class MochaTester(JavaScriptExecutor):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        tcl_lib = self.get_tool(TclLibrary)
-        self.node_tool = self.get_tool(Node)
-        self.npm_tool = self.get_tool(NPM)
-        self.mocha_tool = self.get_tool(
+        tcl_lib = self._get_tool(TclLibrary)
+        self.node_tool = self._get_tool(Node)
+        self.npm_tool = self._get_tool(NPM)
+        self.mocha_tool = self._get_tool(
             Mocha, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
-        web_driver = self.get_tool(
+        web_driver = self._get_tool(
             JSSeleniumWebdriver, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
-        self.mocha_plugin = self.get_tool(TaurusMochaPlugin)
+        self.mocha_plugin = self._get_tool(TaurusMochaPlugin)
 
         tools = [tcl_lib, self.node_tool, self.npm_tool, self.mocha_tool, web_driver, self.mocha_plugin]
         self._check_tools(tools)
@@ -125,15 +125,15 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        tcl_lib = self.get_tool(TclLibrary)
-        self.node_tool = self.get_tool(Node)
-        self.npm_tool = self.get_tool(NPM)
-        self.wdio_tool = self.get_tool(
+        tcl_lib = self._get_tool(TclLibrary)
+        self.node_tool = self._get_tool(Node)
+        self.npm_tool = self._get_tool(NPM)
+        self.wdio_tool = self._get_tool(
             WDIO, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
 
-        self.wdio_taurus_plugin = self.get_tool(TaurusWDIOPlugin)
+        self.wdio_taurus_plugin = self._get_tool(TaurusWDIOPlugin)
 
-        wdio_mocha_plugin = self.get_tool(
+        wdio_mocha_plugin = self._get_tool(
             WDIOMochaPlugin, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
 
         tools = [tcl_lib, self.node_tool, self.npm_tool, self.wdio_tool, self.wdio_taurus_plugin, wdio_mocha_plugin]
@@ -189,12 +189,12 @@ class NewmanExecutor(JavaScriptExecutor):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        self.node_tool = self.get_tool(Node)
-        self.npm_tool = self.get_tool(NPM)
-        self.newman_tool = self.get_tool(
+        self.node_tool = self._get_tool(Node)
+        self.npm_tool = self._get_tool(NPM)
+        self.newman_tool = self._get_tool(
             Newman, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
-        tcl_lib = self.get_tool(TclLibrary)
-        taurus_newman_plugin = self.get_tool(TaurusNewmanPlugin)
+        tcl_lib = self._get_tool(TclLibrary)
+        taurus_newman_plugin = self._get_tool(TaurusNewmanPlugin)
 
         tools = [
             self.node_tool,
@@ -364,28 +364,16 @@ class Newman(NPMPackage):
 class TaurusMochaPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "mocha-taurus-plugin.js")
-
-        super(TaurusMochaPlugin, self).__init__(tool_path=tool_path, **kwargs)
-
-    def install(self):
-        raise ToolError("Automatic installation of Taurus mocha plugin isn't implemented")
+        super(TaurusMochaPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
 
 class TaurusWDIOPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "wdio-taurus-plugin.js")
-
-        super(TaurusWDIOPlugin, self).__init__(tool_path=tool_path, **kwargs)
-
-    def install(self):
-        raise ToolError("Automatic installation of Taurus WebdriverIO plugin isn't implemented")
+        super(TaurusWDIOPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
 
 class TaurusNewmanPlugin(RequiredTool):
     def __init__(self, **kwargs):
         tool_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "newman-reporter-taurus.js")
-
-        super(TaurusNewmanPlugin, self).__init__(tool_path=tool_path, **kwargs)
-
-    def install(self):
-        raise ToolError("Automatic installation of Taurus Newman Reporter isn't implemented")
+        super(TaurusNewmanPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)

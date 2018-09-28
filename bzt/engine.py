@@ -856,9 +856,18 @@ class EngineModule(object):
 
     def __init__(self):
         self.log = logging.getLogger('')
+        self.env = None
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
+
+    def _get_tool(self, tool, **kwargs):
+        env = Environment(self.log, self.env.get())
+
+        instance = tool(env=env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
+        assert isinstance(instance, RequiredTool)
+
+        return instance
 
     def prepare(self):
         """
@@ -999,7 +1008,6 @@ class ScenarioExecutor(EngineModule):
         self.reader = None
         self.delay = None
         self.start_time = None
-        self.env = None
         self.preprocess_args = lambda x: None
 
     def has_results(self):
@@ -1007,14 +1015,6 @@ class ScenarioExecutor(EngineModule):
             return True
         else:
             return False
-
-    def get_tool(self, tool, **kwargs):
-        env = Environment(self.log, self.env.get())
-
-        instance = tool(env=env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
-        assert isinstance(instance, RequiredTool)
-
-        return instance
 
     def get_script_path(self, required=False, scenario=None):
         """

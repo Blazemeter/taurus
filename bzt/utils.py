@@ -1113,17 +1113,19 @@ class RequiredTool(object):
     """
     Abstract required tool
     """
-    def __init__(self, log=None, tool_path="", download_link="", http_client=None, env=None, version=None):
+    def __init__(self, log=None, tool_path="", download_link="", http_client=None,
+                 env=None, version=None, installable=True):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
         self.version = version
+        self.installable = installable
 
         self.tool_name = self.__class__.__name__
 
-        if not log or not isinstance(log, logging.Logger):  # browsermobproxy compatability
+        if not log or not isinstance(log, logging.Logger):  # todo: remove browsermobproxy compatability later
             log = log or LOG
         self.log = log.getChild(self.tool_name)
 
@@ -1141,6 +1143,9 @@ class RequiredTool(object):
         return False
 
     def install(self):
+        if not self.installable:
+            raise ToolError("Automatic installation of %s isn't implemented" % self.tool_name)
+
         with ProgressBarContext() as pbar:
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
