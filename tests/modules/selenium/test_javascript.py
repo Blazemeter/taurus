@@ -5,9 +5,11 @@ import time
 from os.path import join, exists, dirname
 
 import bzt
-from bzt.modules import javascript
-from bzt.modules.javascript import WebdriverIOExecutor, NewmanExecutor, JavaScriptExecutor
+
+from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.javascript import WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.utils import get_full_path, is_windows
+
 from tests import BUILD_DIR, RESOURCES_DIR, BZTestCase
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
@@ -135,11 +137,11 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         if old_node_path:
             os.environ.pop("NODE_PATH")
 
-        orig_mocha_package = javascript.MOCHA_NPM_PACKAGE_NAME
-        orig_wd_package = javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME
+        orig_mocha_package = Mocha.PACKAGE_NAME
+        orig_wd_package = JSSeleniumWebdriver.PACKAGE_NAME
         try:
-            javascript.MOCHA_NPM_PACKAGE_NAME = mocha_link
-            javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = wd_link
+            Mocha.PACKAGE_NAME = mocha_link
+            JSSeleniumWebdriver.PACKAGE_NAME = wd_link
 
             self.obj.engine.config.merge({
                 "modules": {
@@ -158,8 +160,8 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             self.assertTrue(exists(join(dummy_installation_path, "node_modules", "selenium-webdriver")))
             self.assertTrue(exists(join(dummy_installation_path, "node_modules", "selenium-webdriver", "index.js")))
         finally:
-            javascript.MOCHA_NPM_PACKAGE_NAME = orig_mocha_package
-            javascript.SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = orig_wd_package
+            Mocha.PACKAGE_NAME = orig_mocha_package
+            JSSeleniumWebdriver.PACKAGE_NAME = orig_wd_package
             if old_node_path:
                 os.environ["NODE_PATH"] = old_node_path
 

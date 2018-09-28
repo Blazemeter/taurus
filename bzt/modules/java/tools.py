@@ -36,7 +36,7 @@ class JarTool(RequiredTool):
 
         local_path = local_path.format(tool_file=tool_file)
         download_link = self.URL.format(remote_addr=self.REMOTE_ADDR, remote_path=remote_path)
-        super(JarTool, self).__init__(tool_name=tool_name, tool_path=local_path, download_link=download_link,
+        super(JarTool, self).__init__(tool_name, tool_path=local_path, download_link=download_link,
                                       http_client=http_client)
 
 

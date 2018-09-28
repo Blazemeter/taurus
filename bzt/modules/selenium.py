@@ -61,14 +61,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     """
 
     SUPPORTED_RUNNERS = ["nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot"]
-
-    CHROMEDRIVER_DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
-    CHROMEDRIVER_VERSION = "2.40"
-
-    GECKODRIVER_DOWNLOAD_LINK = "https://github.com/mozilla/geckodriver/releases/download/v{version}/" \
-                                "geckodriver-v{version}-{arch}.{ext}"
-    GECKODRIVER_VERSION = "0.20.0"
-
     SELENIUM_TOOLS_DIR = "~/.bzt/selenium-taurus/tools"
 
     def __init__(self):
@@ -109,56 +101,9 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
     def get_virtual_display(self):
         pass    # for compatibility with taurus server
 
-    def _get_chromedriver_link(self):
-        settings = self.settings.get('chromedriver')
-        link = settings.get('download-link', SeleniumExecutor.CHROMEDRIVER_DOWNLOAD_LINK)
-        version = settings.get('version', SeleniumExecutor.CHROMEDRIVER_VERSION)
-        if is_windows():
-            arch = 'win32'  # no 64-bit windows builds, :(
-        elif is_mac():
-            arch = 'mac64'
-        else:
-            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
-        return link.format(version=version, arch=arch)
-
-    def _get_chromedriver_path(self):
-        base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        settings = self.settings.get('chromedriver')
-        version = settings.get('version', SeleniumExecutor.CHROMEDRIVER_VERSION)
-        filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
-        return os.path.join(base_dir, 'chromedriver', version, filename)
-
-    def _get_geckodriver_link(self):
-        settings = self.settings.get('geckodriver')
-        link = settings.get('download-link', SeleniumExecutor.GECKODRIVER_DOWNLOAD_LINK)
-        version = settings.get('version', SeleniumExecutor.GECKODRIVER_VERSION)
-        if is_windows():
-            arch = 'win64'  # no 32-bit windows builds, :(
-            ext = 'zip'
-        elif is_mac():
-            arch = 'macos'
-            ext = 'tar.gz'
-        else:
-            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
-            ext = 'tar.gz'
-        return link.format(version=version, arch=arch, ext=ext)
-
-    def _get_geckodriver_path(self):
-        base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
-        settings = self.settings.get('geckodriver')
-        version = settings.get('version', SeleniumExecutor.GECKODRIVER_VERSION)
-        filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
-        return os.path.join(base_dir, 'geckodriver', version, filename)
-
     def install_required_tools(self):
-        chromedriver_path = self._get_chromedriver_path()
-        chromedriver_link = self._get_chromedriver_link()
-        geckodriver_path = self._get_geckodriver_path()
-        geckodriver_link = self._get_geckodriver_link()
-
-        http_client = self.engine.get_http_client()
-        self.webdrivers = [ChromeDriver(chromedriver_path, self.log, chromedriver_link, http_client),
-                           GeckoDriver(geckodriver_path, self.log, geckodriver_link, http_client)]
+        self.webdrivers = [self._get_tool(ChromeDriver, config=self.settings.get('chromedriver')),
+                           self._get_tool(GeckoDriver, config=self.settings.get('geckodriver'))]
 
         for tool in self.webdrivers:
             if not tool.check_if_installed():
@@ -332,9 +277,27 @@ class SeleniumWidget(Pile, PrioritizedWidget):
 
 
 class ChromeDriver(RequiredTool):
-    def __init__(self, tool_path, parent_logger, download_link, http_client):
-        super(ChromeDriver, self).__init__("ChromeDriver", tool_path, download_link, http_client)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    DOWNLOAD_LINK = "https://chromedriver.storage.googleapis.com/{version}/chromedriver_{arch}.zip"
+    VERSION = "2.40"
+
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+        version = settings.get('version', self.VERSION)
+        base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
+        filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
+        tool_path = os.path.join(base_dir, 'chromedriver', version, filename)
+
+        link = settings.get('download-link', self.DOWNLOAD_LINK)
+
+        if is_windows():
+            arch = 'win32'  # no 64-bit windows builds, :(
+        elif is_mac():
+            arch = 'mac64'
+        else:
+            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
+        link = link.format(version=version, arch=arch)
+
+        super(ChromeDriver, self).__init__(tool_path=tool_path, version=version, download_link=link, **kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)
@@ -363,9 +326,31 @@ class ChromeDriver(RequiredTool):
 
 
 class GeckoDriver(RequiredTool):
-    def __init__(self, tool_path, parent_logger, download_link, http_client):
-        super(GeckoDriver, self).__init__("GeckoDriver", tool_path, download_link, http_client)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    DOWNLOAD_LINK = \
+        "https://github.com/mozilla/geckodriver/releases/download/v{version}/geckodriver-v{version}-{arch}.{ext}"
+    VERSION = "0.20.0"
+
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+        version = settings.get('version', self.VERSION)
+        base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
+        filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
+        tool_path = os.path.join(base_dir, 'geckodriver', version, filename)
+
+        link = settings.get('download-link', self.DOWNLOAD_LINK)
+
+        if is_windows():
+            arch = 'win64'  # no 32-bit windows builds, :(
+            ext = 'zip'
+        elif is_mac():
+            arch = 'macos'
+            ext = 'tar.gz'
+        else:
+            arch = 'linux32' if platform_bitness() == 32 else 'linux64'
+            ext = 'tar.gz'
+        link = link.format(version=version, arch=arch, ext=ext)
+
+        super(GeckoDriver, self).__init__(tool_path=tool_path, version=version, download_link=link, **kwargs)
 
     def check_if_installed(self):
         return os.path.exists(self.tool_path)

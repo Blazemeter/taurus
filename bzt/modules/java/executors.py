@@ -54,7 +54,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         if self._full_install or self._java_scripts:
             self._tools.append(JavaC())
 
-        self._tools.append(TclLibrary(self.log))
+        self._tools.append(self._get_tool(TclLibrary))
         self._tools.append(JavaVM(self.log))
 
         self._check_tools(self._tools)

@@ -21,17 +21,22 @@ from bzt import ToolError, TaurusConfigError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.six import string_types, iteritems
-from bzt.utils import TclLibrary, RequiredTool, Node, Environment, CALL_PROBLEMS
+from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS
 from bzt.utils import sync_run, get_full_path, is_windows, to_json, dehumanize_time
-
-MOCHA_NPM_PACKAGE_NAME = "mocha@4.0.1"
-SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME = "selenium-webdriver@3.6.0"
-WDIO_NPM_PACKAGE_NAME = "webdriverio@4.8.0"
-WDIO_MOCHA_PLUGIN_NPM_PACKAGE_NAME = "wdio-mocha-framework@0.5.13"
-NEWMAN_NPM_PACKAGE_NAME = "newman"
 
 
 class JavaScriptExecutor(SubprocessedExecutor, HavingInstallableTools):
+    def __init__(self):
+        super(JavaScriptExecutor, self).__init__()
+        self.tools_dir = None
+        self.node_tool = None
+        self.npm_tool = None
+
+    def prepare(self):
+        super(JavaScriptExecutor, self).prepare()
+        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
+        self.env.add_path({"NODE_PATH": os.path.join(self.tools_dir, "node_modules")})
+
     @abstractmethod
     def get_launch_cmdline(self, *args):
         pass
@@ -47,13 +52,9 @@ class MochaTester(JavaScriptExecutor):
 
     def __init__(self):
         super(MochaTester, self).__init__()
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
-                                        "resources",
-                                        "mocha-taurus-plugin.js")
         self.tools_dir = "~/.bzt/selenium-taurus/mocha"
-        self.node_tool = None
-        self.npm_tool = None
         self.mocha_tool = None
+        self.mocha_plugin = None
 
     def prepare(self):
         super(MochaTester, self).prepare()
@@ -61,25 +62,24 @@ class MochaTester(JavaScriptExecutor):
         if not self.script:
             raise TaurusConfigError("Script not passed to runner %s" % self)
 
-        self.tools_dir = get_full_path(self.settings.get("tools-dir", self.tools_dir))
         self.install_required_tools()
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        tools = [TclLibrary(self.log)]
-        self.node_tool = Node(self.log)
-        self.npm_tool = NPM(self.log)
-        self.mocha_tool = Mocha(self.tools_dir, self.node_tool, self.npm_tool, self.log)
-        tools.append(self.node_tool)
-        tools.append(self.npm_tool)
-        tools.append(self.mocha_tool)
-        tools.append(JSSeleniumWebdriverPackage(self.tools_dir, self.node_tool, self.npm_tool, self.log))
-        tools.append(TaurusMochaPlugin(self.plugin_path, ""))
+        tcl_lib = self._get_tool(TclLibrary)
+        self.node_tool = self._get_tool(Node)
+        self.npm_tool = self._get_tool(NPM)
+        self.mocha_tool = self._get_tool(
+            Mocha, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
+        web_driver = self._get_tool(
+            JSSeleniumWebdriver, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
+        self.mocha_plugin = self._get_tool(TaurusMochaPlugin)
 
+        tools = [tcl_lib, self.node_tool, self.npm_tool, self.mocha_tool, web_driver, self.mocha_plugin]
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
-        return [self.node_tool.executable, self.plugin_path] + list(args)
+        return [self.node_tool.executable, self.mocha_plugin.tool_path] + list(args)
 
     def startup(self):
         mocha_cmdline = self.get_launch_cmdline(
@@ -95,8 +95,6 @@ class MochaTester(JavaScriptExecutor):
         if load.hold:
             mocha_cmdline += ['--hold-for', str(load.hold)]
 
-        self.env.set({"NODE_PATH": self.mocha_tool.env.get("NODE_PATH")})
-
         self._start_subprocess(mocha_cmdline)
 
 
@@ -110,16 +108,14 @@ class WebdriverIOExecutor(JavaScriptExecutor):
 
     def __init__(self):
         super(WebdriverIOExecutor, self).__init__()
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
-                                        "resources",
-                                        "wdio-taurus-plugin.js")
         self.tools_dir = "~/.bzt/selenium-taurus/wdio"
-        self.node_tool = None
-        self.npm_tool = None
         self.wdio_tool = None
+        self.wdio_taurus_plugin = None
 
     def prepare(self):
         super(WebdriverIOExecutor, self).prepare()
+        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
+
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to executor %s" % self)
@@ -129,21 +125,23 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        tools = []
-        tools.append(TclLibrary(self.log))
-        self.node_tool = Node(self.log)
-        self.npm_tool = NPM(self.log)
-        self.wdio_tool = WDIO(self.tools_dir, self.node_tool, self.npm_tool, self.log)
-        tools.append(self.node_tool)
-        tools.append(self.npm_tool)
-        tools.append(self.wdio_tool)
-        tools.append(TaurusWDIOPlugin(self.plugin_path, ""))
-        tools.append(WDIOMochaPlugin(self.tools_dir, self.node_tool, self.npm_tool, self.log))
+        tcl_lib = self._get_tool(TclLibrary)
+        self.node_tool = self._get_tool(Node)
+        self.npm_tool = self._get_tool(NPM)
+        self.wdio_tool = self._get_tool(
+            WDIO, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
+
+        self.wdio_taurus_plugin = self._get_tool(TaurusWDIOPlugin)
+
+        wdio_mocha_plugin = self._get_tool(
+            WDIOMochaPlugin, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
+
+        tools = [tcl_lib, self.node_tool, self.npm_tool, self.wdio_tool, self.wdio_taurus_plugin, wdio_mocha_plugin]
 
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
-        return [self.node_tool.executable, self.plugin_path] + list(args)
+        return [self.node_tool.executable, self.wdio_taurus_plugin.tool_path] + list(args)
 
     def startup(self):
         script_dir = get_full_path(self.script, step_up=1)
@@ -162,9 +160,6 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
 
-        self.env.set({"NODE_PATH": self.wdio_tool.env.get("NODE_PATH")})
-        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
-
         self._start_subprocess(cmdline, cwd=script_dir)
 
 
@@ -178,16 +173,13 @@ class NewmanExecutor(JavaScriptExecutor):
 
     def __init__(self):
         super(NewmanExecutor, self).__init__()
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
-                                        "resources",
-                                        "newman-reporter-taurus.js")
         self.tools_dir = "~/.bzt/newman"
-        self.node_tool = None
-        self.npm_tool = None
         self.newman_tool = None
 
     def prepare(self):
         super(NewmanExecutor, self).prepare()
+        self.env.add_path({"NODE_PATH": os.path.join(get_full_path(__file__, step_up=2), "resources")})
+
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to executor %s" % self)
@@ -197,16 +189,19 @@ class NewmanExecutor(JavaScriptExecutor):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        self.node_tool = Node(self.log)
-        self.npm_tool = NPM(self.log)
-        self.newman_tool = Newman(self.tools_dir, self.node_tool, self.npm_tool, self.log)
+        self.node_tool = self._get_tool(Node)
+        self.npm_tool = self._get_tool(NPM)
+        self.newman_tool = self._get_tool(
+            Newman, tools_dir=self.tools_dir, node_tool=self.node_tool, npm_tool=self.npm_tool)
+        tcl_lib = self._get_tool(TclLibrary)
+        taurus_newman_plugin = self._get_tool(TaurusNewmanPlugin)
 
         tools = [
             self.node_tool,
             self.npm_tool,
             self.newman_tool,
-            TclLibrary(self.log),
-            TaurusNewmanPlugin(self.plugin_path, "")
+            tcl_lib,
+            taurus_newman_plugin
         ]
 
         self._check_tools(tools)
@@ -246,9 +241,6 @@ class NewmanExecutor(JavaScriptExecutor):
         # if load.hold:
         #    cmdline += ['--hold-for', str(load.hold)]
 
-        self.env.set({"NODE_PATH": self.newman_tool.env.get("NODE_PATH")})
-        self.env.add_path({"NODE_PATH": os.path.join(get_full_path(__file__, step_up=2), "resources")})
-
         self._start_subprocess(cmdline, cwd=script_dir)
 
     def _dump_vars(self, key):
@@ -278,9 +270,8 @@ class NewmanExecutor(JavaScriptExecutor):
 
 
 class NPM(RequiredTool):
-    def __init__(self, parent_logger):
-        super(NPM, self).__init__("NPM", "")
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(NPM, self).__init__(**kwargs)
         self.executable = None
 
     def check_if_installed(self):
@@ -304,21 +295,17 @@ class NPM(RequiredTool):
 
 
 class NPMPackage(RequiredTool):
-    def __init__(self, tool_name, package_name, tools_dir, node_tool, npm_tool, parent_logger):
-        super(NPMPackage, self).__init__(tool_name, "")
+    PACKAGE_NAME = ""
 
-        if "@" in package_name:
-            self.package_name, self.version = package_name.split("@")
-        else:
-            self.package_name = package_name
-            self.version = None
+    def __init__(self, tools_dir, node_tool, npm_tool, **kwargs):
+        super(NPMPackage, self).__init__(**kwargs)
+        self.package_name = self.PACKAGE_NAME   # todo: split package_name in the constants block
+        if "@" in self.package_name:
+            self.package_name, self.version = self.package_name.split("@")
 
         self.tools_dir = tools_dir
         self.node_tool = node_tool
         self.npm_tool = npm_tool
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.env = Environment(self.log, dict(os.environ))
-        self.env.add_path({"NODE_PATH": os.path.join(tools_dir, "node_modules")})
 
     def check_if_installed(self):
         try:
@@ -351,56 +338,42 @@ class NPMPackage(RequiredTool):
 
 
 class Mocha(NPMPackage):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
-        super(Mocha, self).__init__("Mocha", MOCHA_NPM_PACKAGE_NAME,
-                                    tools_dir, node_tool, npm_tool, parent_logger)
+    PACKAGE_NAME = "mocha@4.0.1"
 
 
-class JSSeleniumWebdriverPackage(NPMPackage):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
-        super(JSSeleniumWebdriverPackage, self).__init__("selenium-webdriver npm package",
-                                                         SELENIUM_WEBDRIVER_NPM_PACKAGE_NAME,
-                                                         tools_dir, node_tool, npm_tool, parent_logger)
+class JSSeleniumWebdriver(NPMPackage):
+    PACKAGE_NAME = "selenium-webdriver@3.6.0"
 
 
 class WDIO(NPMPackage):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
-        super(WDIO, self).__init__("WebdriverIO", WDIO_NPM_PACKAGE_NAME,
-                                   tools_dir, node_tool, npm_tool, parent_logger)
+    PACKAGE_NAME = "webdriverio@4.8.0"
 
 
 class WDIOMochaPlugin(NPMPackage):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
-        super(WDIOMochaPlugin, self).__init__("WebdriverIOMochaPlugin", WDIO_MOCHA_PLUGIN_NPM_PACKAGE_NAME,
-                                              tools_dir, node_tool, npm_tool, parent_logger)
-
-
-class TaurusMochaPlugin(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(TaurusMochaPlugin, self).__init__("TaurusMochaPlugin", tool_path, download_link)
-
-    def install(self):
-        raise ToolError("Automatic installation of Taurus mocha plugin isn't implemented")
-
-
-class TaurusWDIOPlugin(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(TaurusWDIOPlugin, self).__init__("Taurus WebdriverIO Plugin", tool_path, download_link)
-
-    def install(self):
-        raise ToolError("Automatic installation of Taurus WebdriverIO plugin isn't implemented")
+    PACKAGE_NAME = "wdio-mocha-framework@0.5.13"
 
 
 class Newman(NPMPackage):
-    def __init__(self, tools_dir, node_tool, npm_tool, parent_logger):
-        super(Newman, self).__init__("Newman", NEWMAN_NPM_PACKAGE_NAME,
-                                     tools_dir, node_tool, npm_tool, parent_logger)
-        self.entrypoint = "%s/node_modules/%s/bin/newman.js" % (self.tools_dir, NEWMAN_NPM_PACKAGE_NAME)
+    PACKAGE_NAME = "newman"
+
+    def __init__(self, **kwargs):
+        super(Newman, self).__init__(**kwargs)
+        self.entrypoint = "%s/node_modules/%s/bin/newman.js" % (self.tools_dir, self.PACKAGE_NAME)
+
+
+class TaurusMochaPlugin(RequiredTool):
+    def __init__(self, **kwargs):
+        tool_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "mocha-taurus-plugin.js")
+        super(TaurusMochaPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
+
+
+class TaurusWDIOPlugin(RequiredTool):
+    def __init__(self, **kwargs):
+        tool_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "wdio-taurus-plugin.js")
+        super(TaurusWDIOPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
 
 class TaurusNewmanPlugin(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(TaurusNewmanPlugin, self).__init__("Taurus Newman Reporter", tool_path, download_link)
-
-    def install(self):
-        raise ToolError("Automatic installation of Taurus Newman Reporter isn't implemented")
+    def __init__(self, **kwargs):
+        tool_path = os.path.join(get_full_path(__file__, step_up=2), "resources", "newman-reporter-taurus.js")
+        super(TaurusNewmanPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)

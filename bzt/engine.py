@@ -45,7 +45,7 @@ from bzt.six import numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
-from bzt.utils import str_representer, Environment
+from bzt.utils import str_representer, Environment, RequiredTool
 
 TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
 
@@ -991,6 +991,7 @@ class ScenarioExecutor(EngineModule):
 
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
+        self.env = None
         self.provisioning = None
         self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
         self.__scenario = None
@@ -999,8 +1000,16 @@ class ScenarioExecutor(EngineModule):
         self.reader = None
         self.delay = None
         self.start_time = None
-        self.env = None
         self.preprocess_args = lambda x: None
+
+    def _get_tool(self, tool, **kwargs):
+        env = Environment(self.log, self.env.get())
+
+        instance = tool(env=env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
+        assert isinstance(instance, RequiredTool)
+
+        return instance
+
 
     def has_results(self):
         if self.reader and self.reader.buffer:

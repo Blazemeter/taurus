@@ -60,6 +60,7 @@ from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathn
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
+LOG = logging.getLogger("")
 
 
 def sync_run(args, env=None):
@@ -1112,16 +1113,29 @@ class RequiredTool(object):
     """
     Abstract required tool
     """
-
-    def __init__(self, tool_name, tool_path, download_link="", http_client=None):
+    def __init__(self, log=None, tool_path="", download_link="", http_client=None,
+                 env=None, version=None, installable=True):
         self.http_client = http_client
-        self.tool_name = tool_name
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
-        self.log = logging.getLogger('')
-        self.version = None
+        self.version = version
+        self.installable = installable
+
+        self.tool_name = self.__class__.__name__
+
+        # for browsermobproxy compatability, remove it later
+        if not isinstance(log, logging.Logger):
+            log = None
+
+        if not log:
+            log = log or LOG
+
+        self.log = log.getChild(self.tool_name)
+
+        env = env or Environment(self.log, dict(os.environ))
+        self.env = env
 
     def _get_version(self, output):
         return
@@ -1134,6 +1148,9 @@ class RequiredTool(object):
         return False
 
     def install(self):
+        if not self.installable:
+            raise ToolError("Automatic installation of %s isn't implemented" % self.tool_name)
+
         with ProgressBarContext() as pbar:
             if not os.path.exists(os.path.dirname(self.tool_path)):
                 os.makedirs(os.path.dirname(self.tool_path))
@@ -1245,9 +1262,8 @@ class TclLibrary(RequiredTool):
     INIT_TCL = "init.tcl"
     FOLDER = "tcl"
 
-    def __init__(self, parent_logger):
-        super(TclLibrary, self).__init__("Python Tcl library environment variable", "")
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(TclLibrary, self).__init__(**kwargs)
 
     def check_if_installed(self):
         """
@@ -1294,9 +1310,8 @@ class TclLibrary(RequiredTool):
 
 
 class Node(RequiredTool):
-    def __init__(self, parent_logger):
-        super(Node, self).__init__("Node.js", "")
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(Node, self).__init__(**kwargs)
         self.executable = None
 
     def check_if_installed(self):
