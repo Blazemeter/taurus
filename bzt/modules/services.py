@@ -186,7 +186,7 @@ class AppiumLoader(Service):
         self.port = self.settings.get('port', 4723)
         self.tool_path = self.settings.get('path', 'appium')
 
-        required_tools = [Node(self.log),
+        required_tools = [Node(log=self.log),
                           JavaVM(self.log),
                           Appium(self.tool_path, "", self.log)]
 
