@@ -856,18 +856,9 @@ class EngineModule(object):
 
     def __init__(self):
         self.log = logging.getLogger('')
-        self.env = None
         self.engine = None
         self.settings = BetterDict()
         self.parameters = BetterDict()
-
-    def _get_tool(self, tool, **kwargs):
-        env = Environment(self.log, self.env.get())
-
-        instance = tool(env=env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
-        assert isinstance(instance, RequiredTool)
-
-        return instance
 
     def prepare(self):
         """
@@ -1000,6 +991,7 @@ class ScenarioExecutor(EngineModule):
 
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
+        self.env = None
         self.provisioning = None
         self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
         self.__scenario = None
@@ -1009,6 +1001,15 @@ class ScenarioExecutor(EngineModule):
         self.delay = None
         self.start_time = None
         self.preprocess_args = lambda x: None
+
+    def _get_tool(self, tool, **kwargs):
+        env = Environment(self.log, self.env.get())
+
+        instance = tool(env=env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
+        assert isinstance(instance, RequiredTool)
+
+        return instance
+
 
     def has_results(self):
         if self.reader and self.reader.buffer:
