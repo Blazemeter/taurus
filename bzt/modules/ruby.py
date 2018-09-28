@@ -47,7 +47,7 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
 
     def install_required_tools(self):
         tools = []
-        tools.append(TclLibrary(self.log))
+        tools.append(self._get_tool(TclLibrary))
         tools.append(Ruby(self.settings.get("interpreter", "ruby"), "", self.log))
         tools.append(RSpec("", "", self.log))
         tools.append(TaurusRSpecPlugin(self.plugin_path, ""))
