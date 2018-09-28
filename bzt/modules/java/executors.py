@@ -52,7 +52,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self._add_jar_tool(TaurusJavaHelper(http))
 
         if self._full_install or self._java_scripts:
-            self._tools.append(JavaC())
+            self._tools.append(self._get_tool(JavaC))
 
         self._tools.append(self._get_tool(TclLibrary))
         self._tools.append(self._get_tool(JavaVM))

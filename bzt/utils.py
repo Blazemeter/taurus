@@ -1183,7 +1183,6 @@ class RequiredTool(object):
 
 
 class JavaVM(RequiredTool):
-    #def __init__(self, parent_logger, tool_path='java', download_link='', http_client=None):
     def __init__(self, **kwargs):
         super(JavaVM, self).__init__(installable=False, **kwargs)
 

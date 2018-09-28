@@ -41,8 +41,8 @@ class JarTool(RequiredTool):
 
 
 class JavaC(RequiredTool):
-    def __init__(self, tool_path="javac"):
-        super(JavaC, self).__init__("JavaC", tool_path)
+    def __init__(self, **kwargs):
+        super(JavaC, self).__init__(tool_path="javac", installable=False, **kwargs)
 
     def _get_version(self, output):
         versions = re.findall("javac\ ([\d\._]*)", output)
@@ -64,9 +64,6 @@ class JavaC(RequiredTool):
         except (subprocess.CalledProcessError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
-
-    def install(self):
-        raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
 class SeleniumServer(JarTool):
