@@ -1184,7 +1184,7 @@ class RequiredTool(object):
 
 class JavaVM(RequiredTool):
     def __init__(self, **kwargs):
-        super(JavaVM, self).__init__(installable=False, **kwargs)
+        super(JavaVM, self).__init__(installable=False, tool_path="java", **kwargs)
 
     def _get_version(self, output):
         versions = re.findall("version\ \"([_\d\.]*)", output)
