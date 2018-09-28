@@ -1125,8 +1125,13 @@ class RequiredTool(object):
 
         self.tool_name = self.__class__.__name__
 
-        if not log or not isinstance(log, logging.Logger):  # todo: remove browsermobproxy compatability later
+        # for browsermobproxy compatability, remove it later
+        if not isinstance(log, logging.Logger):
+            log = None
+
+        if not log:
             log = log or LOG
+
         self.log = log.getChild(self.tool_name)
 
         env = env or Environment(self.log, dict(os.environ))
