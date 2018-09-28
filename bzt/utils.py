@@ -1183,9 +1183,9 @@ class RequiredTool(object):
 
 
 class JavaVM(RequiredTool):
-    def __init__(self, parent_logger, tool_path='java', download_link='', http_client=None):
-        super(JavaVM, self).__init__("JavaVM", tool_path, download_link, http_client=http_client)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    #def __init__(self, parent_logger, tool_path='java', download_link='', http_client=None):
+    def __init__(self, **kwargs):
+        super(JavaVM, self).__init__(installable=False, **kwargs)
 
     def _get_version(self, output):
         versions = re.findall("version\ \"([_\d\.]*)", output)
@@ -1207,9 +1207,6 @@ class JavaVM(RequiredTool):
         except (CalledProcessError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
-
-    def install(self):
-        raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
 
 
 class ProgressBarContext(ProgressBar):

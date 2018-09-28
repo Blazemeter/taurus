@@ -236,7 +236,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         http_client = self.engine.get_http_client()
         grinder = Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link, http_client)
         required_tools = [self._get_tool(TclLibrary),
-                          JavaVM(self.log),
+                          self._get_tool(JavaVM),
                           TaurusJavaHelper(http_client),
                           grinder]
 
