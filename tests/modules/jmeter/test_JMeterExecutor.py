@@ -14,11 +14,11 @@ from bzt.jmx.tools import ProtocolHandler
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
-from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader
+from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
-from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
+from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
 from . import MockJMeterExecutor, MockHTTPClient
 
 _jvm = JavaVM()
@@ -334,7 +334,7 @@ class TestJMeterExecutor(BZTestCase):
         http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.0.zip',
                                  file=jmeter_res_dir + "jmeter-dist-3.0.zip")
         url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
-              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeterExecutor.PLUGINS_MANAGER_VERSION)
+              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeter.PLUGINS_MANAGER_VERSION)
 
         http_client.add_response('GET', url, file=jmeter_res_dir + "jmeter-plugins-manager.jar")
         http_client.add_response('GET',
@@ -342,9 +342,9 @@ class TestJMeterExecutor(BZTestCase):
                                  file=jmeter_res_dir + "jmeter-plugins-manager.jar")
 
         self.obj.engine.get_http_client = lambda: http_client
-        jmeter_ver = JMeterExecutor.JMETER_VER
+        jmeter_ver = JMeter.VERSION
         try:
-            JMeterExecutor.JMETER_VER = '3.0'
+            JMeter.VERSION = '3.0'
 
             self.obj.settings.merge({"path": path})
             self.configure({
@@ -370,7 +370,7 @@ class TestJMeterExecutor(BZTestCase):
 
             self.obj.prepare()
         finally:
-            JMeterExecutor.JMETER_VER = jmeter_ver
+            JMeter.VERSION = jmeter_ver
 
     @skipIf(java10, "Disabled on Java 10")
     def test_install_jmeter_2_13(self):
@@ -387,16 +387,16 @@ class TestJMeterExecutor(BZTestCase):
         http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-2.13.zip',
                                  file=jmeter_res_dir + "jmeter-dist-2.13.zip")
         url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
-              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeterExecutor.PLUGINS_MANAGER_VERSION)
+              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeter.PLUGINS_MANAGER_VERSION)
         http_client.add_response('GET', url, file=jmeter_res_dir + "jmeter-plugins-manager.jar")
         http_client.add_response('GET',
                                  'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
                                  file=jmeter_res_dir + "jmeter-plugins-manager.jar")
 
-        jmeter_ver = JMeterExecutor.JMETER_VER
+        jmeter_ver = JMeter.VERSION
         self.obj.engine.get_http_client = lambda: http_client
         try:
-            JMeterExecutor.JMETER_VER = '2.13'
+            JMeter.VERSION = '2.13'
 
             self.obj.settings.merge({"path": path})
             self.configure({
@@ -425,7 +425,7 @@ class TestJMeterExecutor(BZTestCase):
 
             self.obj.prepare()
         finally:
-            JMeterExecutor.JMETER_VER = jmeter_ver
+            JMeter.VERSION = jmeter_ver
 
     def test_install_disabled(self):
         path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
@@ -2261,7 +2261,7 @@ class TestJMeterExecutor(BZTestCase):
                     "http://example.com/"]}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
+        self.assertEqual(JMeter.VERSION, self.obj.tool.version)
 
     def test_detect_ver_wrong(self):
         self.obj.execution.merge({
@@ -2269,7 +2269,7 @@ class TestJMeterExecutor(BZTestCase):
                 "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
+        self.assertEqual(JMeter.VERSION, self.obj.tool.version)
 
     def test_detect_ver_2_13(self):
         self.obj.execution.merge({
@@ -2284,7 +2284,7 @@ class TestJMeterExecutor(BZTestCase):
             'scenario': {
                 "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
+        self.assertEqual(JMeter.VERSION, self.obj.tool.version)
 
     def test_jsr223_block(self):
         script = RESOURCES_DIR + "/jmeter/jsr223_script.js"

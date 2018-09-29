@@ -57,13 +57,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     :type properties_file: str
     :type sys_properties_file: str
     """
-    MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
-    JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
-    PLUGINS_MANAGER_VERSION = "1.3"
-    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
-                      '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
-    CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar'
-    JMETER_VER = "5.0"
     UDP_PORT_NUMBER = None
 
     def __init__(self):
@@ -252,7 +245,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if index != -1:
                 return ver[:index]
 
-        return JMeterExecutor.JMETER_VER
+        return JMeter.VERSION
 
     def prepare(self):
         """
@@ -272,7 +265,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         is_jmx_generated = False
 
         self.original_jmx = self.get_script_path()
-        if self.settings.get("version", self.JMETER_VER, force_set=True) == "auto":
+        if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
             self.settings["version"] = self._get_tool_version(self.original_jmx)
         self.install_required_tools()
 
@@ -285,7 +278,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
-            version = LooseVersion(str(self.settings.get("version", self.JMETER_VER)))
+            version = LooseVersion(str(self.settings.get("version", JMeter.VERSION)))
             major = version.version[0]
             if major == 2:
                 flags["bytes"] = True
@@ -388,7 +381,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
 
         # fix for JMeter 4.0 bug where jmeter.bat requires JMETER_HOME to be set
-        jmeter_ver = str(self.settings.get("version", self.JMETER_VER))
+        jmeter_ver = str(self.settings.get("version", JMeter.VERSION))
         if is_windows() and jmeter_ver == "4.0":
             tool_path = self.tool.tool_path
             if os.path.exists(tool_path) and not os.path.isdir(tool_path):
@@ -567,7 +560,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_listener(log_lst, jmx)
 
     def __add_result_writers(self, jmx):
-        version = LooseVersion(str(self.settings.get('version', self.JMETER_VER)))
+        version = LooseVersion(str(self.settings.get('version', JMeter.VERSION)))
         flags = {}
         if version < LooseVersion("2.13"):
             flags['^connectTime'] = False
@@ -623,7 +616,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
-            version = LooseVersion(str(self.settings.get('version', self.JMETER_VER)))
+            version = LooseVersion(str(self.settings.get('version', JMeter.VERSION)))
             if version >= LooseVersion("3.2"):
                 self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
@@ -861,12 +854,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if not tool.check_if_installed():
                 tool.install()
 
-        jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER, force_set=True)
-        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/{version}/", force_set=True)
-        jmeter_path = get_full_path(jmeter_path)
-        download_link = self.settings.get("download-link", None)
-        plugins = self.settings.get("plugins", [])
-        self.tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, self.engine.get_http_client())
+        self.tool = self._get_tool(JMeter, config=self.settings)
 
         if self._need_to_install(self.tool):
             self.tool.install()
@@ -1488,16 +1476,28 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
+    PLUGINS_MANAGER_VERSION = "1.3"
+    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
+                      '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
+    CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar'
+    VERSION = "5.0"
 
-    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, http_client):
-        if jmeter_download_link is not None:
-            jmeter_download_link = jmeter_download_link.format(version=jmeter_version)
-        super(JMeter, self).__init__("JMeter", tool_path, jmeter_download_link, http_client=http_client)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.version = jmeter_version
-        self.mirror_manager = JMeterMirrorsManager(http_client, self.log, self.version)
-        self.plugins = plugins
-        self.tool_path = self.tool_path.format(version=self.version)
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+
+        version = settings.get("version", JMeter.VERSION)
+        jmeter_path = settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
+        jmeter_path = get_full_path(jmeter_path).format(version=version)
+
+        download_link = settings.get("download-link", None)
+        if download_link is not None:
+            download_link = download_link.format(version=version)
+
+        self.plugins = settings.get("plugins", [])
+
+        super(JMeter, self).__init__(tool_path=jmeter_path, download_link=download_link, version=version, **kwargs)
+
+        self.mirror_manager = JMeterMirrorsManager(self.http_client, self.log, self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
@@ -1635,13 +1635,13 @@ class JMeter(RequiredTool):
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
         self.log.info("Will install %s into %s", self.tool_name, dest)
-        plugins_manager_name = os.path.basename(JMeterExecutor.PLUGINS_MANAGER)
-        cmdrunner_name = os.path.basename(JMeterExecutor.CMDRUNNER)
+        plugins_manager_name = os.path.basename(self.PLUGINS_MANAGER)
+        cmdrunner_name = os.path.basename(self.CMDRUNNER)
         plugins_manager_path = os.path.join(dest, 'lib', 'ext', plugins_manager_name)
         cmdrunner_path = os.path.join(dest, 'lib', cmdrunner_name)
         direct_install_tools = [  # source link and destination
-            [JMeterExecutor.PLUGINS_MANAGER, plugins_manager_path],
-            [JMeterExecutor.CMDRUNNER, cmdrunner_path]]
+            [self.PLUGINS_MANAGER, plugins_manager_path],
+            [self.CMDRUNNER, cmdrunner_path]]
         plugins_manager_cmd = self._pmgr_path()
 
         self.__install_jmeter(dest)
@@ -1702,9 +1702,12 @@ class JarCleaner(object):
 
 
 class JMeterMirrorsManager(MirrorsManager):
+    MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
+    DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
+
     def __init__(self, http_client, parent_logger, jmeter_version):
         self.jmeter_version = str(jmeter_version)
-        super(JMeterMirrorsManager, self).__init__(http_client, JMeterExecutor.MIRRORS_SOURCE, parent_logger)
+        super(JMeterMirrorsManager, self).__init__(http_client, self.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
         links = []
@@ -1717,7 +1720,7 @@ class JMeterMirrorsManager(MirrorsManager):
                 option_elements = option_search_pattern.findall(select_element[0])
                 link_tail = "/jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
                 links = [link.strip('<option value="').strip('">') + link_tail for link in option_elements]
-        links.append(JMeterExecutor.JMETER_DOWNLOAD_LINK.format(version=self.jmeter_version))
+        links.append(self.DOWNLOAD_LINK.format(version=self.jmeter_version))
         self.log.debug('Total mirrors: %d', len(links))
         # place HTTPS links first, preserving the order of HTTP links
         sorted_links = sorted(links, key=lambda l: l.startswith("https"), reverse=True)
