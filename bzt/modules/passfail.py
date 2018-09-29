@@ -16,7 +16,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import fnmatch
-import logging
 import re
 import sys
 from abc import abstractmethod
@@ -186,11 +185,11 @@ class FailCriterion(object):
             if self.get_counting() >= self.window:
                 self.trigger()
 
-        logging.debug("%s %s: %s", tstmp, self, state)
+        self.owner.log.debug("%s %s: %s", tstmp, self, state)
 
     def trigger(self):
         if not self.is_triggered:
-            logging.warning("%s", self)
+            self.owner.log.warning("%s", self)
         self.is_triggered = True
 
     def check(self):
@@ -200,7 +199,7 @@ class FailCriterion(object):
         """
         if self.stop and self.is_triggered:
             if self.fail:
-                logging.info("Pass/Fail criterion triggered shutdown: %s", self)
+                self.owner.log.info("Pass/Fail criterion triggered shutdown: %s", self)
                 raise AutomatedShutdown("%s" % self)
             else:
                 return True
@@ -283,7 +282,7 @@ class DataCriterion(FailCriterion):
         """
         part = data[self.selector]
         if self.label not in part:
-            logging.debug("No label %s in %s", self.label, part.keys())
+            self.owner.log.debug("No label %s in %s", self.label, part.keys())
             return
 
         val = self.get_value(part[self.label])
