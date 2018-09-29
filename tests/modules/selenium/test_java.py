@@ -3,7 +3,6 @@ import os
 import shutil
 import time
 import traceback
-import logging
 from os import listdir
 from os.path import exists, join, dirname
 
@@ -19,9 +18,6 @@ from bzt.utils import ToolError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
-
-
-LOG = logging.getLogger("")
 
 
 class TestTestNGTester(BZTestCase):
