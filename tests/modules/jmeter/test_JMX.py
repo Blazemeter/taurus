@@ -9,6 +9,7 @@ class TestLoadSettingsProcessor(BZTestCase):
     def configure(self, jmx_file=None, load=None, settings=None, has_ctg=False):
         executor = MockJMeterExecutor(load, settings, has_ctg)
         executor.engine.config.merge({Provisioning.PROV: 'local'})
+        executor.install_required_tools()
         self.obj = LoadSettingsProcessor(executor)
         if jmx_file:
             self.jmx = JMX(jmx_file)
