@@ -6,7 +6,7 @@ from tests import BZTestCase, RESOURCES_DIR
 
 
 class TestLoadSettingsProcessor(BZTestCase):
-    def configure(self, jmx_file=None, load=None, settings=None, has_ctg=None):
+    def configure(self, jmx_file=None, load=None, settings=None, has_ctg=False):
         executor = MockJMeterExecutor(load, settings, has_ctg)
         executor.engine.config.merge({Provisioning.PROV: 'local'})
         self.obj = LoadSettingsProcessor(executor)
