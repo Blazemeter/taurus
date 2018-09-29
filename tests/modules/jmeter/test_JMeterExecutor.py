@@ -17,11 +17,11 @@ from bzt.modules.functional import FunctionalAggregator
 from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
-from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
+from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM, Environment
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 from . import MockJMeterExecutor, MockHTTPClient
 
-_jvm = JavaVM(ROOT_LOGGER)
+_jvm = JavaVM(log=ROOT_LOGGER, env=Environment(ROOT_LOGGER, os.environ))
 _jvm.check_if_installed()
 java_version = _jvm.version
 java10 = LooseVersion(java_version) >= LooseVersion("10")

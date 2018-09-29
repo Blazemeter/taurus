@@ -42,12 +42,13 @@ class TestMisc(BZTestCase):
 
 class TestJavaVM(BZTestCase):
     def test_missed_tool(self):
-        self.obj = JavaVM(ROOT_LOGGER, tool_path='java-not-found')
+        self.obj = JavaVM(log=ROOT_LOGGER)
+        self.obj.tool_path = 'java-not-found'
         self.assertEqual(False, self.obj.check_if_installed())
         self.assertRaises(ToolError, self.obj.install)
 
     def test_get_version(self):
-        self.obj = JavaVM(ROOT_LOGGER)
+        self.obj = JavaVM(log=ROOT_LOGGER)
 
         out1 = "openjdk version \"10.0.1\" 2018-04-17\nOpenJDK Runtime Environment (build " \
                "10.0.1+10-Ubuntu-3ubuntu1)\nOpenJDK 64-Bit Server VM (build 10.0.1+10-Ubuntu-3ubuntu1, mixed mode)"

@@ -47,7 +47,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self._add_jar_tool(SeleniumServer, local_path=self.settings.get("selenium-server"))
         self._add_jar_tool(Hamcrest, local_path=self.settings.get("hamcrest-core"))
         self._add_jar_tool(Json, local_path=self.settings.get("json-jar"))
-        self._add_jar_tool(TaurusJavaHelper)
+        self._add_jar_tool(TaurusJavaHelper)        # todo: should we add it to classpath like in grinder case?
 
         if self._full_install or self._java_scripts:
             self._tools.append(self._get_tool(JavaC))
