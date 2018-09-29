@@ -2671,4 +2671,5 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execute = lambda *args, **kwargs: None
         self.obj.startup()
         jmeter_home = self.obj.env.get("JMETER_HOME")
-        self.assertEqual(jmeter_home, get_full_path("~/.bzt/jmeter-taurus/4.0"))
+        self.assertEqual(jmeter_home, get_full_path(self.obj.settings.get("path"), step_up=2))
+        self.assertEqual(jmeter_home, get_full_path(RESOURCES_DIR))
