@@ -15,7 +15,7 @@ from bzt.modules.java import JUnitTester, TestNGTester
 from bzt.modules.java.executors import JavaTestRunner
 from bzt.modules.java.tools import JavaC, JarTool
 from bzt.modules.selenium import SeleniumExecutor
-from bzt.utils import ToolError, Environment
+from bzt.utils import ToolError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
@@ -107,7 +107,7 @@ class TestTestNGTester(BZTestCase):
 
 class TestJavaC(BZTestCase):
     def test_missed_tool(self):
-        self.obj = JavaC(env=Environment(LOG))
+        self.obj = JavaC()
         self.obj.tool_path = "javac-not-found"
         self.assertEqual(False, self.obj.check_if_installed())
         self.assertRaises(ToolError, self.obj.install)

@@ -391,10 +391,13 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 
 
 class Environment(object):
-    def __init__(self, parent_log, data=None):
+    def __init__(self, log=None, data=None):
         self.data = {}
-        self.log = parent_log.getChild(self.__class__.__name__)
-        if data is not None:
+
+        log = log or LOG
+        self.log = log.getChild(self.__class__.__name__)
+
+        if data:
             self.set(data)
 
     def set(self, env):

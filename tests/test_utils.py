@@ -42,7 +42,7 @@ class TestMisc(BZTestCase):
 
 class TestJavaVM(BZTestCase):
     def test_missed_tool(self):
-        self.obj = JavaVM(log=ROOT_LOGGER)
+        self.obj = JavaVM()
         self.obj.tool_path = 'java-not-found'
         self.assertEqual(False, self.obj.check_if_installed())
         self.assertRaises(ToolError, self.obj.install)
