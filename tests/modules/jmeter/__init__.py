@@ -32,7 +32,7 @@ class MockHTTPClient(HTTPClient):
 
 
 class MockJMeter(JMeter):
-    def __init__(self, has_ctg=False, reaction=None, **kwargs):
+    def __init__(self, has_ctg=None, reaction=None, **kwargs):
         kwargs["http_client"] = MockHTTPClient()
         super(MockJMeter, self).__init__(**kwargs)
 
@@ -52,9 +52,11 @@ class MockJMeter(JMeter):
 
 
 class MockJMeterExecutor(JMeterExecutor):
-    def __init__(self, load=None, settings=None, has_ctg=True):
+    def __init__(self, load=None, settings=None, has_ctg=None):
         super(MockJMeterExecutor, self).__init__()
         self.mock_install = True
+
+        if has_ctg is None: has_ctg = True
         self.has_ctg = has_ctg
 
         if load is None: load = {}
