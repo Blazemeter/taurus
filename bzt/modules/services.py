@@ -189,7 +189,7 @@ class AppiumLoader(Service):
         self.tool_path = self.settings.get('path', 'appium')
 
         required_tools = [Node(log=self.log),
-                          JavaVM(self.log),
+                          JavaVM(log=self.log),
                           Appium(self.tool_path, "", self.log)]
 
         for tool in required_tools:

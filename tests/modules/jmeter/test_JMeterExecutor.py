@@ -21,7 +21,7 @@ from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 from . import MockJMeterExecutor, MockHTTPClient
 
-_jvm = JavaVM(ROOT_LOGGER)
+_jvm = JavaVM()
 _jvm.check_if_installed()
 java_version = _jvm.version
 java10 = LooseVersion(java_version) >= LooseVersion("10")

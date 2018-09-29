@@ -53,6 +53,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.retcode = None
         self.stdout_file = None
         self.stderr_file = None
+        self.java_helper = None
 
     def __write_base_props(self, fds):
         """
@@ -159,7 +160,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         # add logback configurations used by worker processes (logback-worker.xml)
         res_dir = os.path.join(get_full_path(__file__, step_up=2), 'resources')
         self.env.add_path({"CLASSPATH": res_dir}, finish=True)
-        self.env.add_path({"CLASSPATH": TaurusJavaHelper(self.engine.get_http_client()).tool_path}, finish=True)
+        self.env.add_path({"CLASSPATH": self.java_helper.tool_path}, finish=True)
         self.env.add_path({"CLASSPATH": self.settings.get("path", None)}, finish=True)
 
         self.cmd_line = ["java", "net.grinder.Grinder", self.properties_file]
@@ -235,9 +236,10 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         download_link = self.settings.get("download-link", "")
         http_client = self.engine.get_http_client()
         grinder = Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link, http_client)
+        self.java_helper = self._get_tool(TaurusJavaHelper)
         required_tools = [self._get_tool(TclLibrary),
-                          JavaVM(self.log),
-                          TaurusJavaHelper(http_client),
+                          self._get_tool(JavaVM),
+                          self.java_helper,
                           grinder]
 
         for tool in required_tools:
