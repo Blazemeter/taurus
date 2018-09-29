@@ -861,12 +861,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if not tool.check_if_installed():
                 tool.install()
 
-        jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER, force_set=True)
-        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/{version}/", force_set=True)
-        jmeter_path = get_full_path(jmeter_path)
-        download_link = self.settings.get("download-link", None)
-        plugins = self.settings.get("plugins", [])
-        self.tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, self.engine.get_http_client())
+        self.tool = self._get_tool(JMeter, config=self.settings) #jmeter_path, self.log, jmeter_version, download_link, plugins, self.engine.get_http_client())
 
         if self._need_to_install(self.tool):
             self.tool.install()
@@ -1488,16 +1483,23 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
 
-    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, http_client):
-        if jmeter_download_link is not None:
-            jmeter_download_link = jmeter_download_link.format(version=jmeter_version)
-        super(JMeter, self).__init__("JMeter", tool_path, jmeter_download_link, http_client=http_client)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.version = jmeter_version
-        self.mirror_manager = JMeterMirrorsManager(http_client, self.log, self.version)
-        self.plugins = plugins
-        self.tool_path = self.tool_path.format(version=self.version)
+        version = settings.get("version", JMeterExecutor.JMETER_VER)
+        jmeter_path = settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
+        jmeter_path = get_full_path(jmeter_path).format(version=version)
+
+        download_link = settings.get("download-link", None)
+        if download_link is not None:
+            download_link = download_link.format(version=version)
+
+        self.plugins = settings.get("plugins", [])
+
+        super(JMeter, self).__init__(tool_path=jmeter_path, download_link=download_link, version=version, **kwargs)
+
+        self.mirror_manager = JMeterMirrorsManager(self.http_client, self.log, self.version)
+
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
