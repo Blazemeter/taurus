@@ -201,8 +201,8 @@ class TSVDataReader(ResultsReader):
 
 
 class ApacheBenchmark(RequiredTool):
-    def __init__(self, **kwargs):
-        settings = kwargs.get("config", {})
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
         tool_path = settings.get('path', 'ab')
 
         super(ApacheBenchmark, self).__init__(tool_path=tool_path, installable=False, **kwargs)
