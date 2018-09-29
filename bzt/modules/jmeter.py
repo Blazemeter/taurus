@@ -861,7 +861,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if not tool.check_if_installed():
                 tool.install()
 
-        self.tool = self._get_tool(JMeter, config=self.settings) #jmeter_path, self.log, jmeter_version, download_link, plugins, self.engine.get_http_client())
+        self.tool = self._get_tool(JMeter, config=self.settings)
 
         if self._need_to_install(self.tool):
             self.tool.install()
