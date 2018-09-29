@@ -1483,23 +1483,23 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
-    # #jmeter_path, self.log, jmeter_version, download_link, plugins, self.engine.get_http_client())
     def __init__(self, config=None, **kwargs):
         settings = config or {}
 
-        jmeter_version = settings.get("version", JMeterExecutor.JMETER_VER)
+        version = settings.get("version", JMeterExecutor.JMETER_VER)
         jmeter_path = settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
-        jmeter_path = get_full_path(jmeter_path)
-        download_link = settings.get("download-link", None)
-        plugins = settings.get("plugins", [])
+        jmeter_path = get_full_path(jmeter_path).format(version=version)
 
+        download_link = settings.get("download-link", None)
         if download_link is not None:
-            download_link = download_link.format(version=jmeter_version)
-        super(JMeter, self).__init__(tool_path=jmeter_path, download_link=download_link, **kwargs)
-        self.version = jmeter_version
+            download_link = download_link.format(version=version)
+
+        self.plugins = settings.get("plugins", [])
+
+        super(JMeter, self).__init__(tool_path=jmeter_path, download_link=download_link, version=version, **kwargs)
+
         self.mirror_manager = JMeterMirrorsManager(self.http_client, self.log, self.version)
-        self.plugins = plugins
-        self.tool_path = self.tool_path.format(version=self.version)
+
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
