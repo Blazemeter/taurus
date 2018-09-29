@@ -1132,12 +1132,14 @@ class RequiredTool(object):
         if not isinstance(log, logging.Logger):
             log = None
 
-        if not log:
+        if log is None:
             log = log or LOG
 
         self.log = log.getChild(self.tool_name)
 
-        env = env or Environment(self.log, dict(os.environ))
+        if env is None:
+            env = Environment(self.log, dict(os.environ))
+
         self.env = env
 
     def _get_version(self, output):
