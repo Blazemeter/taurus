@@ -1263,9 +1263,6 @@ class TclLibrary(RequiredTool):
     INIT_TCL = "init.tcl"
     FOLDER = "tcl"
 
-    def __init__(self, **kwargs):
-        super(TclLibrary, self).__init__(**kwargs)
-
     def check_if_installed(self):
         """
         Check if tcl is available
@@ -1312,8 +1309,7 @@ class TclLibrary(RequiredTool):
 
 class Node(RequiredTool):
     def __init__(self, **kwargs):
-        super(Node, self).__init__(**kwargs)
-        self.executable = None
+        super(Node, self).__init__(installable=False, **kwargs)
 
     def check_if_installed(self):
         node_candidates = ["node", "nodejs"]
@@ -1322,15 +1318,12 @@ class Node(RequiredTool):
                 self.log.debug("Trying %r", candidate)
                 output = sync_run([candidate, '--version'])
                 self.log.debug("%s output: %s", candidate, output)
-                self.executable = candidate
+                self.tool_path = candidate
                 return True
             except (CalledProcessError, OSError):
                 self.log.debug("%r is not installed", candidate)
                 continue
         return False
-
-    def install(self):
-        raise ToolError("Automatic installation of nodejs is not implemented. Install it manually")
 
 
 class MirrorsManager(object):
