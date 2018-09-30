@@ -27,9 +27,10 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         super(NUnitExecutor, self).__init__()
         self.runner_dir = os.path.join(get_full_path(__file__, step_up=2), "resources", "NUnitRunner")
         self.runner_executable = os.path.join(self.runner_dir, "NUnitRunner.exe")
-        self.mono = Mono("mono", "", self.log)
+        self.mono = None
 
     def install_required_tools(self):
+        self.mono = self._get_tool(Mono)
         if not is_windows():
             self.log.debug("Checking for Mono")
             if not self.mono.check_if_installed():
@@ -67,9 +68,8 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
 
 
 class Mono(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(Mono, self).__init__("Mono", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(Mono, self).__init__(installable=False, **kwargs)
 
     def check_if_installed(self):
         try:
@@ -78,6 +78,3 @@ class Mono(RequiredTool):
             return True
         except (CalledProcessError, OSError):
             return False
-
-    def install(self):
-        raise ToolError("%s is not operable or not available. Consider installing it" % self.tool_name)
