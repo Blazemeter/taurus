@@ -161,6 +161,7 @@ class TestTsungConfig(BZTestCase):
         super(TestTsungConfig, self).setUp()
         self.obj = TsungExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def test_servers(self):
         self.obj.execution.merge({
