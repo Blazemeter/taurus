@@ -155,12 +155,7 @@ class TestPBenchExecutor(TestPBench):
 
     def test_install_pbench(self):
         self.obj.settings.merge({"path": "/notexistent"})
-        # self.obj.execution = self.obj.engine.config['execution'][0]
-        try:
-            self.obj.prepare()
-            self.fail()
-        except ToolError as exc:
-            self.assertEquals("Please install PBench tool manually", str(exc))
+        self.assertRaises(ToolError, self.obj.prepare)
 
     def test_pbench_file_lister(self):
         self.obj.engine.config.merge(
