@@ -44,13 +44,13 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         self.__err = None
         self.__stats_file = None
         self.tsung_config = None
-        self.tool_path = None
+        self.tsung = None
         self.tsung_controller_id = None
         self.tsung_artifacts_basedir = None
 
     def prepare(self):
         scenario = self.get_scenario()
-        self.tool_path = self.install_required_tools()
+        self.install_required_tools()
 
         script = self.get_script_path()
         if script:
@@ -80,8 +80,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
     def __modify_user_tsung_config(self, user_config_path):
         modified_config_path = self.engine.create_artifact("tsung-config", ".xml")
         load = self.get_load()
-        tsung = Tsung(self.tool_path, self.log)
-        config = TsungConfig(tsung)
+        config = TsungConfig(self.tsung)
         config.load(user_config_path)
         config.apply_load_profile(load)
         config.apply_dumpstats()
@@ -92,15 +91,14 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         config_file = self.engine.create_artifact("tsung-config", ".xml")
         scenario = self.get_scenario()
         load = self.get_load()
-        tsung = Tsung(self.tool_path, self.log)
-        config = TsungConfig(tsung)
+        config = TsungConfig(self.tsung)
         config.generate(scenario, load)
         config.save(config_file)
         return config_file
 
     def startup(self):
         args = [
-            self.tool_path,
+            self.tsung.tool_path,
             '-f', self.tsung_config,
             '-l', self.tsung_artifacts_basedir,
             '-i', self.tsung_controller_id,
@@ -128,11 +126,9 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
             self.__err.close()
 
     def install_required_tools(self):
-        tool_path = self.settings.get('path', 'tsung')
-        tsung = Tsung(tool_path, self.log)
-        if not tsung.check_if_installed():
-            tsung.install()
-        return tool_path
+        self.tsung = self._get_tool(Tsung, config=self.settings)
+        if not self.tsung.check_if_installed():
+            self.tsung.install()
 
     def get_widget(self):
         if not self.widget:
@@ -425,9 +421,10 @@ class Tsung(RequiredTool):
     INSTALLATION_DOCS = "http://gettaurus.org/docs/Tsung/#Tsung-Installation"
     DEFAULT_DTD_PATH = "/usr/share/tsung/tsung-1.0.dtd"
 
-    def __init__(self, tool_path, parent_logger):
-        super(Tsung, self).__init__("Tsung", tool_path)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+        tool_path = settings.get("path", "tsung")
+        super(Tsung, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
         self.log.debug('Checking Tsung at %s' % self.tool_path)
@@ -436,9 +433,6 @@ class Tsung(RequiredTool):
         except OSError:
             return False
         return True
-
-    def install(self):
-        raise ToolError("You must install Tsung manually to use it, see %s" % self.INSTALLATION_DOCS)
 
     def get_tool_abspath(self):
         if not self.tool_path:
