@@ -36,11 +36,11 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.report_file_name = None
         self.stdout_file = None
         self.stderr_file = None
-        self.tool_path = None
+        self.molotov = None
         self.scenario = None
 
     def prepare(self):
-        self.tool_path = self.install_required_tools()
+        self.install_required_tools()
 
         self.stdout_file = open(self.engine.create_artifact("molotov", ".out"), 'w')
         self.stderr_file = open(self.engine.create_artifact("molotov", ".err"), 'w')
@@ -59,7 +59,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
     def startup(self):
         load = self.get_load()
 
-        cmdline = [self.tool_path]
+        cmdline = [self.molotov.tool_path]
 
         if load.concurrency is not None:
             cmdline += ['--workers', str(load.concurrency)]
@@ -107,11 +107,9 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
             self.stderr_file.close()
 
     def install_required_tools(self):
-        tool_path = self.settings.get('path', 'molotov')
-        tool = Molotov(tool_path, self.log)
-        if not tool.check_if_installed():
-            tool.install()
-        return tool_path
+        self.molotov = self._get_tool(Molotov, config=self.settings)
+        if not self.molotov.check_if_installed():
+            self.molotov.install()
 
     def get_error_diagnostics(self):
         diagnostics = []
@@ -132,9 +130,10 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
 
 class Molotov(RequiredTool):
-    def __init__(self, tool_path, parent_logger):
-        super(Molotov, self).__init__("Molotov", tool_path)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+        tool_path = settings.get('path', 'molotov')
+        super(Molotov, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
         self.log.debug('Checking Molotov: %s' % self.tool_path)
@@ -148,9 +147,6 @@ class Molotov(RequiredTool):
         except (CalledProcessError, OSError, AttributeError):
             return False
         return True
-
-    def install(self):
-        raise ToolError("You must install molotov tool (version 1.4 or greater) to use it")
 
 
 class MolotovReportReader(ResultsReader):

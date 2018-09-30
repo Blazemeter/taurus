@@ -71,7 +71,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        tool = LocustIO(self.log)
+        tool = self._get_tool(LocustIO)
         if not tool.check_if_installed():
             tool.install()
 
@@ -190,9 +190,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
 
 class LocustIO(RequiredTool):
-    def __init__(self, parent_logger):
-        super(LocustIO, self).__init__("LocustIO", "locust")
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(LocustIO, self).__init__(tool_path="locust", installable=False, **kwargs)
 
     def check_if_installed(self):
         self.log.debug('Checking LocustIO: %s' % self.tool_path)
@@ -202,10 +201,6 @@ class LocustIO(RequiredTool):
         except (CalledProcessError, OSError, AttributeError):
             return False
         return True
-
-    def install(self):
-        msg = "Unable to locate locustio package. Please install it like this: pip install locustio"
-        raise ToolError(msg)
 
 
 class SlavesReader(ResultsProvider):

@@ -50,6 +50,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.pbench = None
 
     def prepare(self):
+        self._prepare_pbench()
         self.install_required_tools()
         self._generate_files()
         self.reader = self.pbench.get_results_reader()
@@ -105,9 +106,8 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             return []
 
     def install_required_tools(self):
-        self._prepare_pbench()
+        tool = self._get_tool(PBench, tool_path=self.pbench.path)
 
-        tool = PBench(self.log, self.pbench.path)
         if not tool.check_if_installed():
             tool.install()
 
@@ -696,9 +696,8 @@ class PBenchStatsReader(object):
 
 
 class PBench(RequiredTool):
-    def __init__(self, parent_logger, tool_path):
-        super(PBench, self).__init__("PBench", tool_path)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(PBench, self).__init__(installable=False, **kwargs)
 
     def check_if_installed(self):
         self.log.debug("Trying phantom: %s", self.tool_path)
@@ -712,6 +711,3 @@ class PBench(RequiredTool):
         except (CalledProcessError, OSError):
             self.log.info("Phantom check failed")
             return False
-
-    def install(self):
-        raise ToolError("Please install PBench tool manually")
