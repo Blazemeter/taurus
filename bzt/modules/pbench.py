@@ -48,10 +48,12 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def __init__(self):
         super(PBenchExecutor, self).__init__()
         self.pbench = None
+        self.tool = None
 
     def prepare(self):
-        self._prepare_pbench()
         self.install_required_tools()
+
+        self._prepare_pbench()
         self._generate_files()
         self.reader = self.pbench.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -106,10 +108,10 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             return []
 
     def install_required_tools(self):
-        tool = self._get_tool(PBench, tool_path=self.pbench.path)
+        self.tool = self._get_tool(PBench, config=self.settings)
 
-        if not tool.check_if_installed():
-            tool.install()
+        if not self.tool.check_if_installed():
+            self.tool.install()
 
     def get_error_diagnostics(self):
         diagnostics = []
@@ -139,7 +141,7 @@ class PBenchTool(object):
         self.engine = executor.engine
         self.settings = executor.settings
         self.execution = executor.execution
-        self.path = get_full_path(self.settings.get("path"), default="phantom")
+        self.tool = executor.tool
         self.modules_path = get_full_path(self.settings.get("modules-path"), default="/usr/lib/phantom")
         self.kpi_file = None
         self.stats_file = None
@@ -276,7 +278,7 @@ class PBenchTool(object):
             self.log.info("Done generating schedule file")
 
     def check_config(self):
-        cmdline = [self.path, 'check', self.config_file]
+        cmdline = [self.tool.tool_path, 'check', self.config_file]
         self.log.debug("Check pbench config with command: %s", cmdline)
         out = open(self.engine.create_artifact('pbench_check', '.out'), 'wb')
         err = open(self.engine.create_artifact('pbench_check', '.err'), 'wb')
@@ -289,7 +291,7 @@ class PBenchTool(object):
             err.close()
 
     def start(self, config_file):
-        cmdline = [self.path, 'run', config_file]
+        cmdline = [self.tool.tool_path, 'run', config_file]
         self.stdout_file = open(self.executor.engine.create_artifact("pbench", ".out"), 'w')
         self.stderr_file = open(self.executor.engine.create_artifact("pbench", ".err"), 'w')
         try:
@@ -696,8 +698,13 @@ class PBenchStatsReader(object):
 
 
 class PBench(RequiredTool):
-    def __init__(self, **kwargs):
-        super(PBench, self).__init__(installable=False, **kwargs)
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+
+        # don't extend system-wide default
+        tool_path = get_full_path(settings.get("path"), default="phantom")
+
+        super(PBench, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
         self.log.debug("Trying phantom: %s", self.tool_path)
