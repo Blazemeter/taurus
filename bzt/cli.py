@@ -31,14 +31,12 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
-from bzt import TaurusException, ToolError
-from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from bzt.engine import Engine, Configuration, ScenarioExecutor
-from bzt.engine import SETTINGS
+from bzt import ManualShutdown, NormalShutdown, RCProvider, TaurusException, AutomatedShutdown
+from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, ToolError
+from bzt.engine import Engine, Configuration, ScenarioExecutor, SETTINGS
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
-from bzt.utils import is_int, BetterDict, get_full_path, is_url
+from bzt.utils import is_int, BetterDict, is_url, RESOURCES_DIR
 
 
 class CLI(object):
@@ -164,7 +162,7 @@ class CLI(object):
         else:
             self.log.debug("Adding personal config: %s", bzt_rc)
             self.log.info("No personal config found, creating one at %s", bzt_rc)
-            shutil.copy(os.path.join(get_full_path(__file__, step_up=1), 'resources', 'base-bzt-rc.yml'), bzt_rc)
+            shutil.copy(os.path.join(RESOURCES_DIR, 'base-bzt-rc.yml'), bzt_rc)
 
         merged_config = self.engine.configure([bzt_rc] + configs, not self.options.no_system_configs)
 
