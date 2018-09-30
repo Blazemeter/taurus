@@ -69,7 +69,7 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
 
 class Mono(RequiredTool):
     def __init__(self, **kwargs):
-        super(Mono, self).__init__(installable=False, **kwargs)
+        super(Mono, self).__init__(tool_path="mono", installable=False, **kwargs)
 
     def check_if_installed(self):
         try:
