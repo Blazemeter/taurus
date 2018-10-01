@@ -8,7 +8,9 @@ import unittest
 
 import apiritif
 
-vars = {}
+vars = {
+    
+}
 
 
 class TestAPI(unittest.TestCase):
