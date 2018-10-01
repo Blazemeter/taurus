@@ -25,7 +25,7 @@ from bzt.bza import BZAProxy
 from bzt.engine import Service, Singletone
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.selenium import AbstractSeleniumExecutor
-from bzt.utils import is_windows, is_linux, get_full_path, RESOURCES_DIR
+from bzt.utils import is_windows, is_linux, RESOURCES_DIR
 
 
 class Proxy2JMX(Service, Singletone):
