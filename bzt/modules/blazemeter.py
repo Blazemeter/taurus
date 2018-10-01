@@ -730,7 +730,7 @@ class DatapointSerializer(object):
                     "count": error['cnt'],
                     "rm": error['msg'],
                     "rc": error['rc'],
-                    "url": error['urls'].keys()[0] if error['urls'] else None,
+                    "url": list(error['urls'])[0] if error['urls'] else None,
                 })
             else:
                 report_item['assertions'].append({
