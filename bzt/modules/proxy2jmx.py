@@ -25,7 +25,7 @@ from bzt.bza import BZAProxy
 from bzt.engine import Service, Singletone
 from bzt.modules import SubprocessedExecutor
 from bzt.modules.selenium import AbstractSeleniumExecutor
-from bzt.utils import is_windows, is_linux, get_full_path
+from bzt.utils import is_windows, is_linux, get_full_path, RESOURCES_DIR
 
 
 class Proxy2JMX(Service, Singletone):
@@ -143,7 +143,7 @@ class Proxy2JMX(Service, Singletone):
             return
 
         # copy chrome-loader.exe from resources into artifacts/chrome-loader/chrome.exe
-        old_file = join(get_full_path(__file__, step_up=2), 'resources', 'chrome-loader.exe')
+        old_file = join(RESOURCES_DIR, 'chrome-loader.exe')
         new_file = join(loader_dir, 'chrome.exe')
         try:
             shutil.copy2(old_file, new_file)
@@ -198,12 +198,11 @@ def inject_loader(install_dir):
     """ move loader from installation dir to bzt resources
     (typically C:\Program Files\Taurus\chrome-loader.exe ->
     C:\Program Files\Common Files\Python\2.7\lib\site-packages\bzt\resources\chrome-loader.exe) """
-    res_dir = join(get_full_path(__file__, step_up=2), "resources")
     loader = 'chrome-loader.exe'
     try:
-        if not isfile(join(res_dir, loader)):
-            print('Move %s from "%s" to "%s"...' % (loader, install_dir, res_dir))
-            shutil.move(join(install_dir, loader), res_dir)
+        if not isfile(join(RESOURCES_DIR, loader)):
+            print('Move %s from "%s" to "%s"...' % (loader, install_dir, RESOURCES_DIR))
+            shutil.move(join(install_dir, loader), RESOURCES_DIR)
             print('Movement done')
     except:
         print('Movement failed')
@@ -213,12 +212,11 @@ def inject_loader(install_dir):
 def remove_loader():
     """ remove loader from bzt resources for correct bzt removal "
     (typically C:\Program Files\Common Files\Python\2.7\lib\site-packages\bzt\resources\chrome-loader.exe) """
-    res_dir = join(get_full_path(__file__, step_up=2), "resources")
     loader = 'chrome-loader.exe'
     try:
-        if isfile(join(res_dir, loader)):
-            print('Remove %s from "%s"...' % (loader, res_dir))
-            os.remove(join(res_dir, loader))
+        if isfile(join(RESOURCES_DIR, loader)):
+            print('Remove %s from "%s"...' % (loader, RESOURCES_DIR))
+            os.remove(join(RESOURCES_DIR, loader))
             print('Removal done')
     except:
         print('Removal failed')

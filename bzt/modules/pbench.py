@@ -29,13 +29,13 @@ from subprocess import CalledProcessError
 
 import psutil
 
-from bzt import resources, TaurusConfigError, ToolError, TaurusInternalException
+from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import ScenarioExecutor, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
-from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader
+from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader, RESOURCES_DIR
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time, get_full_path
 
 
@@ -161,7 +161,7 @@ class PBenchTool(object):
         self.stats_file = self.engine.create_artifact("pbench-additional", ".ldjson")
         self.config_file = self.engine.create_artifact('pbench', '.conf')
 
-        conf_path = os.path.join(get_full_path(resources.__file__, step_up=1), 'pbench.conf')
+        conf_path = os.path.join(RESOURCES_DIR, 'pbench.conf')
         with open(conf_path) as _fhd:
             tpl = _fhd.read()
 
