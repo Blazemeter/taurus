@@ -216,12 +216,12 @@ class TestJMeterExecutor(BZTestCase):
                     "requests": [
                         {
                             'url': 'http://zero.com',
-                            "method": "get",    # ignore because of method is GET
-                            'body-file': body_file0
+                            "method": "get",
+                            'body-file': body_file0     # ignore because method is GET
                         }, {
                             'url': 'http://first.com',
-                            "method": "${put_method}",  # handle as body-file
-                            'body-file': body_file1
+                            "method": "${put_method}",
+                            'body-file': body_file1     # handle as body-file
                         }, {
                             'url': 'http://second.com',
                             'method': 'post',
