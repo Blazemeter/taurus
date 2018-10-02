@@ -66,7 +66,10 @@ class HTTPProtocolHandler(ProtocolHandler):
 
         files = request.upload_files
         body_file = request.config.get("body-file")
-        if not body and not files and body_file and request.method in ("PUT", "POST"):
+        has_file_for_body = not (body or files) and body_file
+
+        # method can be put, post, or even variable
+        if has_file_for_body and request.method != "GET":
             files = [{"path": body_file}]
 
         http = JMX._get_http_request(request.url, request.label, request.method, timeout, body,

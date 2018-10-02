@@ -200,6 +200,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
 
     def test_body_file(self):
+        body_file0 = RESOURCES_DIR + "/jmeter/file-not-found"
         body_file1 = RESOURCES_DIR + "/jmeter/body-file.dat"
         body_file2 = RESOURCES_DIR + "/jmeter/jmx/http.jmx"
         self.configure({
@@ -208,20 +209,28 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': 'bf'}],
             'scenarios': {
                 'bf': {
+                    "variables": {
+                        "put_method": "put",
+                        "J_VAR": "some_value"
+                    },
                     "requests": [
                         {
+                            'url': 'http://zero.com',
+                            "method": "get",    # ignore because of method is GET
+                            'body-file': body_file0
+                        }, {
                             'url': 'http://first.com',
-                            'method': 'put',
+                            "method": "${put_method}",  # handle as body-file
                             'body-file': body_file1
                         }, {
                             'url': 'http://second.com',
                             'method': 'post',
-                            'body': 'body2',
+                            'body': 'body2',    # handle only 'body' as both are mentioned (body and body-file)
                             'body-file': body_file2
                         }, {
                             'url': 'https://the third.com',
                             'method': 'post',
-                            'body-file': '${J_VAR}'
+                            'body-file': '${J_VAR}'     # write variable as body-file
                         }
                     ]}}})
         res_files = self.obj.get_resource_files()
@@ -230,8 +239,8 @@ class TestJMeterExecutor(BZTestCase):
         body_fields = [req.get('body') for req in scenario.get('requests')]
         self.assertIn(body_file1, res_files)
         self.assertIn(body_file2, res_files)
-        self.assertEqual(body_fields, [{}, 'body2', {}])
-        self.assertEqual(body_files, [body_file1, body_file2, '${J_VAR}'])
+        self.assertEqual(body_fields, [{}, {}, 'body2', {}])
+        self.assertEqual(body_files, [body_file0, body_file1, body_file2, '${J_VAR}'])
 
         self.obj.prepare()
 
