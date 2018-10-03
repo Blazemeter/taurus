@@ -431,6 +431,7 @@ class Tsung(RequiredTool):
         try:
             shell_exec([self.tool_path, '-v'])
         except OSError:
+            self.log.warning("Info for tsung installation: %s", self.INSTALLATION_DOCS)
             return False
         return True
 

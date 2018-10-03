@@ -58,6 +58,7 @@ class MochaTester(JavaScriptExecutor):
 
     def prepare(self):
         super(MochaTester, self).prepare()
+        self.env.add_path({"NODE_PATH": "node_modules"}, finish=True)
         self.script = self.get_script_path()
         if not self.script:
             raise TaurusConfigError("Script not passed to runner %s" % self)
