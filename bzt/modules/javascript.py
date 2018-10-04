@@ -80,7 +80,7 @@ class MochaTester(JavaScriptExecutor):
         self._check_tools(tools)
 
     def get_launch_cmdline(self, *args):
-        return [self.node.executable, self.mocha_plugin.tool_path] + list(args)
+        return [self.node.tool_path, self.mocha_plugin.tool_path] + list(args)
 
     def startup(self):
         mocha_cmdline = self.get_launch_cmdline(
