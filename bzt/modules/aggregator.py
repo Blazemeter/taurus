@@ -451,14 +451,17 @@ class ResultsProvider(object):
 
     @staticmethod
     def _fuzzy_fold(key, dataset, limit):
-        if not key or key in dataset.exact_set or limit <= 0:
+        if not key or limit <= 0:
             return key
 
         if not isinstance(key, text_type):
             key = key.decode('utf-8')
 
+        if key.lower() in dataset.exact_set:
+            return key
+
         size = len(dataset)
-        tolerance = (float(size) / (float(limit) - 1)) ** 2
+        tolerance = (float(size) / float(limit)) ** 2
         threshold = 1 - tolerance
         matches = dataset.get(key)
         if matches:

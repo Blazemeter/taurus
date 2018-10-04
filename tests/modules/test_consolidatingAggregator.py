@@ -141,8 +141,9 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
         cum_dict = self.obj.cumulative
-        expected = (self.obj.generalize_labels + 1) * 1.10  # due to randomness, it it can go a bit higher than limit
+        expected = (self.obj.generalize_labels + 1)  # due to randomness, it it can go a bit higher than limit
         labels = list(cum_dict.keys())
+        self.assertGreaterEqual(len(labels), self.obj.generalize_labels / 2)  # assert that it's at least half full
         self.assertLessEqual(len(labels), expected)
 
     def test_errors_variety(self):
@@ -155,9 +156,10 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.add_underling(reader2)
         self.obj.shutdown()
         self.obj.post_process()
-        expected = self.obj.max_error_count * 1.10  # due to randomness, it it can go a bit higher than limit
+        expected = self.obj.max_error_count  # due to randomness, it it can go a bit higher than limit
         cum_dict = self.obj.cumulative
         self.assertLessEqual(len(cum_dict['']['errors']), expected)
+        self.assertGreaterEqual(len(cum_dict['']['errors']), self.obj.generalize_labels / 2)  # assert that it's at least half full
 
     def test_uniq_errors(self):
         self.obj.track_percentiles = [50]
