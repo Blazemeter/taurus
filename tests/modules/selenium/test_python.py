@@ -789,7 +789,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("params={'foo': 'bar'}", test_script)
+        self.assertIn("params={\n                'foo': 'bar',\n            }", test_script)
 
     def test_body_json(self):
         self.configure({
@@ -812,7 +812,7 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.obj.prepare()
         with open(self.obj.script) as fds:
             test_script = fds.read()
-        self.assertIn("json={'foo': 'bar'}", test_script)
+        self.assertIn("json={\n                'foo': 'bar',\n            }", test_script)
 
     def test_body_string(self):
         self.configure({

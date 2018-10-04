@@ -6,8 +6,6 @@ import shutil
 import time
 from io import BytesIO
 
-from nose.plugins import skip
-
 from bzt import TaurusException, NormalShutdown
 from bzt.bza import Master, Session
 from bzt.modules import ConsolidatingAggregator
@@ -63,7 +61,10 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.kpi_buffer[-1][DataPoint.CUMULATIVE][''][KPISet.ERRORS] = [
             {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111',
              'tag': None},
-            {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
+            {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'},
+            {'msg': 'Not Found', 'cnt': 10, 'type': KPISet.ERRTYPE_SUBSAMPLE, 'urls': {'/non': '404'},
+             KPISet.RESP_CODES: '404', 'tag': None}
+        ]
         obj.post_process()
         obj.log.info("Requests: %s", mock.requests)
 
@@ -87,6 +88,8 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEqual(total_item['assertions'],
                          [{'failureMessage': 'Forbidden', 'failures': 10, 'name': 'All Assertions'}])
         self.assertEqual(total_item['errors'], [{'m': 'Allowed', 'count': 20, 'rc': '222'}])
+        self.assertEqual(total_item['failedEmbeddedResources'],
+                         [{'url': '/non', 'count': 10, 'rc': '404', 'rm': 'Not Found'}])
 
     def test_no_notes_for_public_reporting(self):
         mock = BZMock()

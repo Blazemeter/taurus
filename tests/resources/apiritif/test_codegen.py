@@ -12,7 +12,9 @@ log = logging.getLogger('apiritif.http')
 log.addHandler(logging.StreamHandler(sys.stdout))
 log.setLevel(logging.DEBUG)
 
-vars = {}
+vars = {
+    
+}
 target = apiritif.http.target('https://jsonplaceholder.typicode.com')
 target.keep_alive(True)
 target.auto_assert_ok(True)
@@ -50,7 +52,13 @@ class TestWithExtractors(unittest.TestCase):
 
     def test_5_add_into_posts(self):
         with apiritif.transaction('add into posts'):
-            response = target.post('/posts', headers={'content-type': 'application/json'}, json={'body': 'bar', 'title': 'foo', 'userId': vars['userID']})
+            response = target.post('/posts', headers={
+                'content-type': 'application/json',
+            }, json={
+                'body': 'bar',
+                'title': 'foo',
+                'userId': vars['userID'],
+            })
         vars['addedID'] = response.extract_jsonpath('$.id', 'NOT_FOUND')
     
 
