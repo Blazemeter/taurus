@@ -51,7 +51,7 @@ class RespTimesCounter(JSONConvertible):
         new.histogram.counts = copy.deepcopy(self.histogram.counts, memo)
         new.histogram.total_count = self.histogram.total_count
         new.histogram.min_value = self.histogram.min_value
-        new.histogram.max_value= self.histogram.max_value
+        new.histogram.max_value = self.histogram.max_value
 
         return new
 
@@ -433,6 +433,7 @@ class ResultsProvider(object):
     """
     :type listeners: list[AggregatorListener]
     """
+
     def __init__(self):
         super(ResultsProvider, self).__init__()
         self.cumulative = {}
@@ -451,6 +452,12 @@ class ResultsProvider(object):
 
     @staticmethod
     def _fuzzy_fold(key, dataset, limit):
+        """
+        :type key: str
+        :type dataset: fuzzyset.FuzzySet
+        :type limit: int
+        :rtype: str
+        """
         if not key or limit <= 0:
             return key
 
@@ -467,7 +474,10 @@ class ResultsProvider(object):
         if matches:
             score, result = matches[0]
             if score >= threshold:
-               key = result
+                return result
+        elif tolerance >= 1.0:
+            return dataset.exact_set.values()[0]  # last resort for capping
+
         dataset.add(key)
         return key
 
