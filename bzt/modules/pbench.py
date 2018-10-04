@@ -29,25 +29,25 @@ from subprocess import CalledProcessError
 
 import psutil
 
-from bzt import resources, TaurusConfigError, ToolError, TaurusInternalException
+from bzt import TaurusConfigError, ToolError, TaurusInternalException
 from bzt.engine import ScenarioExecutor, FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
-from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader
+from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader, RESOURCES_DIR
 from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time, get_full_path
 
 
 class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
-    :type pbench: PBenchTool
+    :type generator: PBenchGenerator
     :type widget: ExecutorWidget
     """
 
     def __init__(self):
         super(PBenchExecutor, self).__init__()
-        self.pbench = None
+        self.generator = None
         self.tool = None
 
     def prepare(self):
@@ -55,30 +55,30 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self._prepare_pbench()
         self._generate_files()
-        self.reader = self.pbench.get_results_reader()
+        self.reader = self.generator.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
     def _prepare_pbench(self):
         if self.settings.get('enhanced', False):
             self.log.info("Using enhanced version for pbench tool")
-            self.pbench = TaurusPBenchTool(self, self.log)
+            self.generator = TaurusPBenchGenerator(self, self.log)
         else:
             self.log.info("Using stock version for pbench tool")
-            self.pbench = OriginalPBenchTool(self, self.log)
+            self.generator = OriginalPBenchGenerator(self, self.log)
 
     def _generate_files(self):
-        self.pbench.generate_payload(self.get_scenario())
-        self.pbench.generate_schedule(self.get_load())
-        self.pbench.generate_config(self.get_scenario(), self.get_load())
-        self.pbench.check_config()
+        self.generator.generate_payload(self.get_scenario())
+        self.generator.generate_schedule(self.get_load())
+        self.generator.generate_config(self.get_scenario(), self.get_load())
+        self.generator.check_config()
 
     def startup(self):
         self.start_time = time.time()
-        self.pbench.start(self.pbench.config_file)
+        self.generator.start(self.generator.config_file)
 
     def check(self):
-        retcode = self.pbench.process.poll()
+        retcode = self.generator.process.poll()
         if retcode is not None:
             if retcode != 0:
                 raise ToolError("Phantom-benchmark exit code: %s" % retcode, self.get_error_diagnostics())
@@ -92,13 +92,13 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         :return:
         """
         if not self.widget:
-            proto = "https" if self.pbench.use_ssl else 'http'
-            label = "Pbench: %s://%s:%s" % (proto, self.pbench.hostname, self.pbench.port)
+            proto = "https" if self.generator.use_ssl else 'http'
+            label = "Pbench: %s://%s:%s" % (proto, self.generator.hostname, self.generator.port)
             self.widget = ExecutorWidget(self, label)
         return self.widget
 
     def shutdown(self):
-        shutdown_process(self.pbench.process, self.log)
+        shutdown_process(self.generator.process, self.log)
 
     def resource_files(self):
         script = self.get_script_path()
@@ -115,19 +115,19 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.pbench is not None:
-            if self.pbench.stdout_file is not None:
-                with open(self.pbench.stdout_file.name) as fds:
+        if self.generator is not None:
+            if self.generator.stdout_file is not None:
+                with open(self.generator.stdout_file.name) as fds:
                     contents = fds.read().strip()
                     if contents.strip():
                         diagnostics.append("PBench STDOUT:\n" + contents)
-            if self.pbench.stderr_file is not None:
-                with open(self.pbench.stderr_file.name) as fds:
+            if self.generator.stderr_file is not None:
+                with open(self.generator.stderr_file.name) as fds:
                     diagnostics.append("PBench STDERR:\n" + fds.read())
         return diagnostics
 
 
-class PBenchTool(object):
+class PBenchGenerator(object):
     SSL_STR = "transport_t ssl_transport = transport_ssl_t { timeout = 1s }\n transport = ssl_transport"
 
     def __init__(self, executor, base_logger):
@@ -135,7 +135,7 @@ class PBenchTool(object):
         :param executor: ScenarioExecutor
         :type base_logger: logging.Logger
         """
-        super(PBenchTool, self).__init__()
+        super(PBenchGenerator, self).__init__()
         self.log = base_logger.getChild(self.__class__.__name__)
         self.executor = executor
         self.engine = executor.engine
@@ -156,12 +156,12 @@ class PBenchTool(object):
         self.stdout_file = None
         self.stderr_file = None
 
-    def generate_config(self, scenario, load, hostaliases=()):
+    def generate_config(self, scenario, load):
         self.kpi_file = self.engine.create_artifact("pbench-kpi", ".txt")
         self.stats_file = self.engine.create_artifact("pbench-additional", ".ldjson")
         self.config_file = self.engine.create_artifact('pbench', '.conf')
 
-        conf_path = os.path.join(get_full_path(resources.__file__, step_up=1), 'pbench.conf')
+        conf_path = os.path.join(RESOURCES_DIR, 'pbench.conf')
         with open(conf_path) as _fhd:
             tpl = _fhd.read()
 
@@ -173,10 +173,8 @@ class PBenchTool(object):
         threads = 1 if psutil.cpu_count() < 2 else (psutil.cpu_count() - 1)
         threads = int(self.execution.get("worker-threads", threads))
 
-        if self.hostname in hostaliases:
-            address = hostaliases[self.hostname]
-        else:
-            address = socket.gethostbyname(self.hostname)
+        address = socket.gethostbyname(self.hostname)
+
         params = {
             "modules_path": self.modules_path,
             "threads": threads,
@@ -384,7 +382,7 @@ class PBenchTool(object):
         pass
 
 
-class OriginalPBenchTool(PBenchTool):
+class OriginalPBenchGenerator(PBenchGenerator):
     NEWLINE = "\n"
 
     def _write_schedule_file(self, load, scheduler, sfd):
@@ -424,7 +422,7 @@ class OriginalPBenchTool(PBenchTool):
         return ""
 
 
-class TaurusPBenchTool(PBenchTool):
+class TaurusPBenchGenerator(PBenchGenerator):
     def _write_schedule_file(self, load, scheduler, sfd):
         prev_offset = 0
         accum_interval = 0.0

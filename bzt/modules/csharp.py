@@ -16,25 +16,27 @@ limitations under the License.
 import os
 from subprocess import check_output, CalledProcessError, STDOUT
 
-from bzt import TaurusConfigError, ToolError
+from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools
-from bzt.utils import get_full_path, is_windows, RequiredTool
+from bzt.utils import get_full_path, is_windows, RequiredTool, RESOURCES_DIR
 
 
 class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
     def __init__(self):
         super(NUnitExecutor, self).__init__()
-        self.runner_dir = os.path.join(get_full_path(__file__, step_up=2), "resources", "NUnitRunner")
+        self.runner_dir = os.path.join(RESOURCES_DIR, "NUnitRunner")
         self.runner_executable = os.path.join(self.runner_dir, "NUnitRunner.exe")
         self.mono = None
 
     def install_required_tools(self):
+        if is_windows():
+            return
+
         self.mono = self._get_tool(Mono)
-        if not is_windows():
-            self.log.debug("Checking for Mono")
-            if not self.mono.check_if_installed():
-                self.mono.install()
+        self.log.debug("Checking for Mono")
+        if not self.mono.check_if_installed():
+            self.mono.install()
 
     def prepare(self):
         super(NUnitExecutor, self).prepare()

@@ -45,7 +45,7 @@ from bzt.six import numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
-from bzt.utils import str_representer, Environment, RequiredTool
+from bzt.utils import str_representer, Environment, RequiredTool, RESOURCES_DIR
 
 TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
 
@@ -483,7 +483,7 @@ class Engine(object):
         return filename
 
     def _load_base_configs(self):
-        base_configs = [os.path.join(get_full_path(__file__, step_up=1), 'resources', 'base-config.yml')]
+        base_configs = [os.path.join(RESOURCES_DIR, 'base-config.yml')]
         machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
         if os.path.isdir(machine_dir):
             self.log.debug("Reading extension configs from: %s", machine_dir)

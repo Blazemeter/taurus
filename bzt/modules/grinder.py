@@ -28,7 +28,7 @@ from bzt.modules.java import TaurusJavaHelper
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary, FileReader
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary, FileReader, RESOURCES_DIR
 
 
 class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -152,8 +152,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.engine.aggregator.add_underling(self.reader)
 
         # add logback configurations used by worker processes (logback-worker.xml)
-        res_dir = os.path.join(get_full_path(__file__, step_up=2), 'resources')
-        self.env.add_path({"CLASSPATH": res_dir}, finish=True)
+        self.env.add_path({"CLASSPATH": RESOURCES_DIR}, finish=True)
         self.env.add_path({"CLASSPATH": self.java_helper.tool_path}, finish=True)
         self.env.add_path({"CLASSPATH": self.settings.get("path", None)}, finish=True)
 

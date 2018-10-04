@@ -1,5 +1,4 @@
 import io
-import logging
 import math
 import pprint
 import time
@@ -13,7 +12,7 @@ from os.path import join
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
-from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchTool
+from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchGenerator
 from bzt.six import parse, b
 from bzt.utils import is_windows
 from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
@@ -43,11 +42,11 @@ class TestPBench(BZTestCase):
         self.obj = get_pbench()
 
     def tearDown(self):
-        if self.obj.pbench:
-            if self.obj.pbench.stdout_file:
-                self.obj.pbench.stdout_file.close()
-            if self.obj.pbench.stderr_file:
-                self.obj.pbench.stderr_file.close()
+        if self.obj.generator:
+            if self.obj.generator.stdout_file:
+                self.obj.generator.stdout_file.close()
+            if self.obj.generator.stderr_file:
+                self.obj.generator.stderr_file.close()
 
         if self.obj.reader:
             close_reader_file(self.obj.reader)
@@ -127,7 +126,7 @@ class TestPBenchExecutor(TestPBench):
             open(RESOURCES_DIR + "yaml/phantom_improved_request.yml").read()))
         self.obj.execution = self.obj.engine.config['execution'][0]
         self.obj.prepare()
-        with open(self.obj.pbench.schedule_file) as fds:
+        with open(self.obj.generator.schedule_file) as fds:
             config = fds.readlines()
 
         get_requests = [req_str.split(" ")[1] for req_str in config if req_str.startswith("GET")]
@@ -165,7 +164,7 @@ class TestPBenchExecutor(TestPBench):
         })
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
-        self.assertEquals("/usr/lib/phantom", self.obj.pbench.modules_path)
+        self.assertEquals("/usr/lib/phantom", self.obj.generator.modules_path)
 
     def test_pbench_payload_relpath(self):
         """Verify that enhanced pbench preserves relative script path"""
@@ -296,11 +295,11 @@ class TestSchedulerSize(TestPBench):
         })
         self.obj.execution = self.obj.engine.config['execution']
         load = self.obj.get_load()
-        self.obj.pbench = TaurusPBenchTool(self.obj, ROOT_LOGGER)
-        self.obj.pbench.generate_payload(self.obj.get_scenario())
+        self.obj.generator = TaurusPBenchGenerator(self.obj, ROOT_LOGGER)
+        self.obj.generator.generate_payload(self.obj.get_scenario())
         payload_count = len(self.obj.get_scenario().get('requests', []))
-        sch = Scheduler(load, self.obj.pbench.payload_file, ROOT_LOGGER)
-        estimated_schedule_size = self.obj.pbench._estimate_schedule_size(load, payload_count)
+        sch = Scheduler(load, self.obj.generator.payload_file, ROOT_LOGGER)
+        estimated_schedule_size = self.obj.generator._estimate_schedule_size(load, payload_count)
         ROOT_LOGGER.debug("Estimated schedule size: %s", estimated_schedule_size)
         items = list(sch.generate())
         actual_schedule_size = len(items)

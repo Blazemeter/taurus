@@ -27,7 +27,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types
-from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader
+from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -196,7 +196,7 @@ class GatlingScriptBuilder(object):
         return feeds
 
     def gen_test_case(self):
-        template_path = os.path.join(get_full_path(__file__, step_up=2), 'resources', "gatling_script.tpl")
+        template_path = os.path.join(RESOURCES_DIR, "gatling_script.tpl")
 
         with open(template_path) as template_file:
             template_line = template_file.read()

@@ -26,16 +26,15 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
 
     @staticmethod
     def check_mocha_cmd(runner):
-        check_mocha = [runner.node_tool.executable, "-e", "require('mocha'); console.log('mocha is installed');"]
+        check_mocha = [runner.node.tool_path, "-e", "require('mocha'); console.log('mocha is installed');"]
         return check_mocha
 
     @staticmethod
     def install_mocha_cmd(runner):
-        package_name = runner.mocha_tool.package_name
-        if runner.mocha_tool.version:
-            package_name += "@" + runner.mocha_tool.version
-        install_mocha = [runner.npm_tool.executable, "install", package_name, "--prefix", runner.mocha_tool.tools_dir,
-                         '--no-save']
+        package_name = runner.mocha.package_name
+        if runner.mocha.version:
+            package_name += "@" + runner.mocha.version
+        install_mocha = [runner.npm.tool_path, "install", package_name, "--prefix", runner.mocha.tools_dir, '--no-save']
         return install_mocha
 
     def test_mocha_not_found(self):

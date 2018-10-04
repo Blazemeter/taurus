@@ -13,7 +13,10 @@ RUNNER_EXECUTABLE = "runner-mock" + (".bat" if is_windows() else ".sh")
 class TestNUnitExecutor(SeleniumTestCase):
     def setup_mock(self):
         self.assertIsInstance(self.obj.runner, NUnitExecutor)
-        self.obj.runner.mono.tool_path = None
+
+        if self.obj.runner.mono:
+            self.obj.runner.mono.tool_path = None
+
         self.obj.runner.runner_dir = RESOURCES_DIR + "selenium/nunit/bin/"
         self.obj.runner.runner_executable = RESOURCES_DIR + "selenium/nunit/bin/" + RUNNER_EXECUTABLE
 

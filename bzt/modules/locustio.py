@@ -23,7 +23,7 @@ import time
 from collections import OrderedDict, Counter
 from subprocess import STDOUT, CalledProcessError
 
-from bzt import ToolError, TaurusConfigError
+from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -31,7 +31,7 @@ from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems, communicate
 from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader, shell_exec
-from bzt.utils import shutdown_process, RequiredTool, dehumanize_time
+from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, RESOURCES_DIR
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -88,7 +88,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         else:
             hatch = concurrency
 
-        wrapper = os.path.join(get_full_path(__file__, step_up=2), "resources", "locustio-taurus-wrapper.py")
+        wrapper = os.path.join(RESOURCES_DIR, "locustio-taurus-wrapper.py")
 
         self.env.set({"LOCUST_DURATION": dehumanize_time(load.duration)})
 
