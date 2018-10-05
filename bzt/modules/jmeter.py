@@ -1500,8 +1500,8 @@ class JMeter(RequiredTool):
         self.mirror_manager = JMeterMirrorsManager(self.http_client, self.log, self.version)
 
         additional_jvm_props = self._get_jvm_props(settings)
-        for key, val in additional_jvm_props:
-            self.env.add_java_param({"JVM_ARGS": "-D%s=%s" % (key, val)})
+        for key in additional_jvm_props:
+            self.env.add_java_param({"JVM_ARGS": "-D%s=%s" % (key, additional_jvm_props[key])})
 
     def _get_jvm_props(self, settings):
         pm_props = {}
@@ -1509,10 +1509,10 @@ class JMeter(RequiredTool):
         if self.http_client:
             pm_props.update(self.http_client.get_proxy_props())
 
-        props = settings.get("system_properties", {})
+        props = settings.get("system-properties", {})
         props.update(settings.get("properties", {}))
 
-        pm_props.update({key: props[key] for key in props if key.startswith["jpgc"]})
+        pm_props.update({key: props[key] for key in props if key.startswith("jpgc")})
         return pm_props
 
     def check_if_installed(self):
