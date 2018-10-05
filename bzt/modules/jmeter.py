@@ -1499,6 +1499,22 @@ class JMeter(RequiredTool):
 
         self.mirror_manager = JMeterMirrorsManager(self.http_client, self.log, self.version)
 
+        additional_jvm_props = self._get_jvm_props(settings)
+        for key, val in additional_jvm_props:
+            self.env.add_java_param({"JVM_ARGS": "-D%s=%s" % (key, val)})
+
+    def _get_jvm_props(self, settings):
+        pm_props = {}
+
+        if self.http_client:
+            pm_props.update(self.http_client.get_proxy_props())
+
+        props = settings.get("system_properties", {})
+        props.update(settings.get("properties", {}))
+
+        pm_props.update({key: props[key] for key in props if key.startswith["jpgc"]})
+        return pm_props
+
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
         try:
@@ -1522,26 +1538,16 @@ class JMeter(RequiredTool):
             self.log.debug("JMeter check failed.")
             return False
 
-    def _pmgr_call(self, params, env=None):
-        cmd = [self._pmgr_path()] + params
-        proc = shell_exec(cmd, env=env)
-        return communicate(proc)
-
     def install_for_jmx(self, jmx_file):
         if not os.path.isfile(jmx_file):
             self.log.warning("Script %s not found" % jmx_file)
             return
 
-        env = None
-        if self.http_client:
-            env = os.environ.copy()
-            jvm_args = env.get('JVM_ARGS', '')
-            jvm_args = (jvm_args + ' ' + self.http_client.get_proxy_jvm_args()).strip()
-            self.log.debug('Passing JVM_ARGS: %r', jvm_args)
-            env['JVM_ARGS'] = jvm_args
+        cmd = [self._pmgr_path(), "install-for-jmx", jmx_file]
 
         try:
-            out, err = self._pmgr_call(["install-for-jmx", jmx_file], env=env)
+            proc = shell_exec(cmd, env=self.env)
+            out, err = communicate(proc)
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
         except KeyboardInterrupt:
             raise
@@ -1607,15 +1613,8 @@ class JMeter(RequiredTool):
         cmd = [plugins_manager_cmd, 'install', plugin_str]
         self.log.debug("Trying: %s", cmd)
 
-        env = os.environ.copy()
-        if self.http_client:
-            jvm_args = env.get('JVM_ARGS', '')
-            jvm_args = (jvm_args + ' ' + self.http_client.get_proxy_jvm_args()).strip()
-            self.log.debug('Passing JVM_ARGS: %r', jvm_args)
-            env['JVM_ARGS'] = jvm_args
-
         try:
-            proc = shell_exec(cmd, env=env)
+            proc = shell_exec(cmd, env=self.env)
             out, err = communicate(proc)
             self.log.debug("Install plugins: %s / %s", out, err)
             if proc.returncode is not None and proc.returncode != 0:
