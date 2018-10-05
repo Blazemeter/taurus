@@ -23,7 +23,7 @@ import time
 from collections import OrderedDict, Counter
 from subprocess import STDOUT, CalledProcessError
 
-from bzt import ToolError, TaurusConfigError
+from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, DataPoint, KPISet
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -31,7 +31,7 @@ from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems, communicate
 from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader, shell_exec
-from bzt.utils import shutdown_process, RequiredTool, dehumanize_time
+from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, RESOURCES_DIR
 
 
 class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -71,7 +71,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             self.engine.aggregator.add_underling(self.reader)
 
     def install_required_tools(self):
-        tool = LocustIO(self.log)
+        tool = self._get_tool(LocustIO)
         if not tool.check_if_installed():
             tool.install()
 
@@ -88,7 +88,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         else:
             hatch = concurrency
 
-        wrapper = os.path.join(get_full_path(__file__, step_up=2), "resources", "locustio-taurus-wrapper.py")
+        wrapper = os.path.join(RESOURCES_DIR, "locustio-taurus-wrapper.py")
 
         if load.duration:
             self.env.set({"LOCUST_DURATION": dehumanize_time(load.duration)})
@@ -191,9 +191,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
 
 class LocustIO(RequiredTool):
-    def __init__(self, parent_logger):
-        super(LocustIO, self).__init__("LocustIO", "locust")
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(LocustIO, self).__init__(tool_path="locust", installable=False, **kwargs)
 
     def check_if_installed(self):
         self.log.debug('Checking LocustIO: %s' % self.tool_path)
@@ -203,10 +202,6 @@ class LocustIO(RequiredTool):
         except (CalledProcessError, OSError, AttributeError):
             return False
         return True
-
-    def install(self):
-        msg = "Unable to locate locustio package. Please install it like this: pip install locustio"
-        raise ToolError(msg)
 
 
 class SlavesReader(ResultsProvider):

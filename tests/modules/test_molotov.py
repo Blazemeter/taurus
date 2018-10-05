@@ -1,4 +1,3 @@
-import logging
 import sys
 import time
 import unittest
@@ -8,7 +7,7 @@ from bzt import ToolError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.molotov import MolotovExecutor, MolotovReportReader
 from bzt.utils import EXE_SUFFIX, is_windows
-from tests import BZTestCase, RESOURCES_DIR, close_reader_file
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
 TOOL_NAME = 'molotov-mock' + EXE_SUFFIX
@@ -107,7 +106,7 @@ class TestMolotov(BZTestCase):
 class TestReportReader(BZTestCase):
     def test_read(self):
         log_path = join(RESOURCES_DIR, "molotov", "molotov-report.csv")
-        obj = MolotovReportReader(log_path, logging.getLogger(''))
+        obj = MolotovReportReader(log_path, ROOT_LOGGER)
         points = list(obj.datapoints(True))
 
         self.assertEqual(len(points), 3)

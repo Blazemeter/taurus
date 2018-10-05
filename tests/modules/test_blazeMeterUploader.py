@@ -6,14 +6,15 @@ import shutil
 import time
 from io import BytesIO
 
-from bzt import TaurusException
+from bzt import TaurusException, NormalShutdown
 from bzt.bza import Master, Session
-from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.modules import ConsolidatingAggregator
+from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener
 from bzt.modules.blazemeter import BlazeMeterUploader, ResultsFromBZA
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.six import HTTPError
 from bzt.six import iteritems, viewvalues
-from tests import BZTestCase, random_datapoint, RESOURCES_DIR
+from tests import BZTestCase, random_datapoint, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul, BZMock
 
 
@@ -58,8 +59,12 @@ class TestBlazeMeterUploader(BZTestCase):
         obj.engine.stopping_reason = ValueError('wrong value')
         obj.aggregated_second(random_datapoint(10))
         obj.kpi_buffer[-1][DataPoint.CUMULATIVE][''][KPISet.ERRORS] = [
-            {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111', 'tag': None},
-            {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'}]
+            {'msg': 'Forbidden', 'cnt': 10, 'type': KPISet.ERRTYPE_ASSERT, 'urls': [], KPISet.RESP_CODES: '111',
+             'tag': None},
+            {'msg': 'Allowed', 'cnt': 20, 'type': KPISet.ERRTYPE_ERROR, 'urls': [], KPISet.RESP_CODES: '222'},
+            {'msg': 'Not Found', 'cnt': 10, 'type': KPISet.ERRTYPE_SUBSAMPLE, 'urls': {'/non': '404'},
+             KPISet.RESP_CODES: '404', 'tag': None}
+        ]
         obj.post_process()
         obj.log.info("Requests: %s", mock.requests)
 
@@ -83,6 +88,8 @@ class TestBlazeMeterUploader(BZTestCase):
         self.assertEqual(total_item['assertions'],
                          [{'failureMessage': 'Forbidden', 'failures': 10, 'name': 'All Assertions'}])
         self.assertEqual(total_item['errors'], [{'m': 'Allowed', 'count': 20, 'rc': '222'}])
+        self.assertEqual(total_item['failedEmbeddedResources'],
+                         [{'url': '/non', 'count': 10, 'rc': '404', 'rm': 'Not Found'}])
 
     def test_no_notes_for_public_reporting(self):
         mock = BZMock()
@@ -329,7 +336,7 @@ class TestBlazeMeterUploader(BZTestCase):
         log_buff = self.log_recorder.info_buff.getvalue()
         log_line = "Public report link: https://a.blazemeter.com/app/?public-token=publicToken#/masters/master1/summary"
         self.assertIn(log_line, log_buff)
-        logging.warning("\n".join([x['url'] for x in mock.requests]))
+        ROOT_LOGGER.warning("\n".join([x['url'] for x in mock.requests]))
         self.assertEqual(14, len(mock.requests))
 
     def test_new_project_existing_test(self):
@@ -543,7 +550,10 @@ class TestResultsFromBZA(BZTestCase):
         mock.apply(obj.master)
 
         # set cumulative errors from BM
-        mock.mock_get.update(self.get_errors_mock({'ALL': {"Not found": {"count": 10, "rc": "404"}}}))
+        mock.mock_get.update(self.get_errors_mock({
+            'ALL': {"Not found": {"count": 10, "rc": "404"}},
+            # 'broken': {"Not found": {"count": 10, "rc": "404"}},
+        }))
 
         # frame [0, 1464248744)
         res1 = list(obj.datapoints(False))
@@ -772,6 +782,74 @@ class TestResultsFromBZA(BZTestCase):
         res = list(obj.datapoints(True))
         self.assertEqual(res, [])
 
+    def test_inconsistent(self):
+        self.skipTest("just keep this code for future troubleshooting")
+        agg = ConsolidatingAggregator()
+        obj = ResultsFromBZA(MasterFromLog(data={'id': 0}))
+        with open("/tmp/downloads/bzt.log") as fhd:
+            obj.master.loglines = fhd.readlines()
+
+        class Listener(AggregatorListener):
+            def aggregated_second(self, data):
+                for x in data[DataPoint.CURRENT].values():
+                    a = x[KPISet.FAILURES] / x[KPISet.SAMPLE_COUNT]
+                    obj.log.debug("TS: %s %s", data[DataPoint.TIMESTAMP], x[KPISet.SAMPLE_COUNT])
+
+        agg.add_underling(obj)
+        agg.add_listener(Listener())
+        agg.prepare()
+        agg.startup()
+        try:
+            while not agg.check():
+                pass  # 1537973736 fail, prev  1537973735 1537973734 1537973733
+        except NormalShutdown:
+            obj.log.warning("Shutting down")
+        agg.shutdown()
+        agg.post_process()
+
+        # res = list(obj.datapoints(False)) + list(obj.datapoints(True))
+        # for point in res:
+        #    obj.log.debug("TS: %s", point[DataPoint.TIMESTAMP])
+        #    for x in point[DataPoint.CURRENT].values():
+        #        a = x[KPISet.FAILURES] / x[KPISet.SAMPLE_COUNT]
+
+
+class MasterFromLog(Master):
+    loglines = []
+
+    def _extract(self, marker1):
+        while self.loglines:
+            line = self.loglines.pop(0)
+            if "Shutting down..." in line:
+                raise NormalShutdown()
+            if marker1 in line:
+                self.log.debug("Found: %s", line)
+                while self.loglines:
+                    line = self.loglines.pop(0)
+                    if "Response [200]" in line:
+                        self.log.debug("Found: %s", line)
+                        buf = "{"
+                        while self.loglines:
+                            line = self.loglines.pop(0)
+                            if len(line) < 5:
+                                pass
+                            if line.startswith("}"):
+                                return json.loads(buf + "}")['result']
+                            else:
+                                buf += line
+        # return []
+        raise AssertionError("Failed to find: %s", marker1)
+
+    def get_kpis(self, min_ts):
+        return self._extract("GET https://a.blazemeter.com/api/v4/data/kpis")
+
+    def get_aggregate_report(self):
+        return self._extract("GET https://a.blazemeter.com/api/v4/masters/18287767/reports/aggregatereport/data")
+
+    def get_errors(self):
+        return self._extract(
+            "GET https://a.blazemeter.com/api/v4/masters/18287767/reports/errorsreport/data?noDataError=false")
+
 
 class TestMonitoringBuffer(BZTestCase):
     def to_rad(self, deg):
@@ -780,7 +858,7 @@ class TestMonitoringBuffer(BZTestCase):
     def test_harmonic(self):
         iterations = 50
         size_limit = 10
-        mon_buffer = MonitoringBuffer(size_limit, logging.getLogger(''))
+        mon_buffer = MonitoringBuffer(size_limit, ROOT_LOGGER)
         for i in range(iterations):
             cpu = math.sin(self.to_rad(float(i) / iterations * 180))
             mon = [{"ts": i, "source": "local", "cpu": cpu}]
@@ -790,7 +868,7 @@ class TestMonitoringBuffer(BZTestCase):
     def test_downsample_theorem(self):
         # Theorem: average interval size in monitoring buffer will always
         # be less or equal than ITERATIONS / BUFFER_LIMIT
-        mon_buffer = MonitoringBuffer(100, logging.getLogger(''))
+        mon_buffer = MonitoringBuffer(100, ROOT_LOGGER)
         for i in range(5000):
             mon = [{"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100, "other": 0}]
             mon_buffer.record_data(mon)
@@ -802,7 +880,7 @@ class TestMonitoringBuffer(BZTestCase):
                 self.assertLessEqual(avg_size, expected_size * 1.20)
 
     def test_sources(self):
-        mon_buffer = MonitoringBuffer(10, logging.getLogger(''))
+        mon_buffer = MonitoringBuffer(10, ROOT_LOGGER)
         for i in range(100):
             mon = [
                 {"ts": i, "source": "local", "cpu": 1, "mem": 2, "bytes-recv": 100},
@@ -815,7 +893,7 @@ class TestMonitoringBuffer(BZTestCase):
     def test_unpack(self):
         ITERATIONS = 200
         SIZE_LIMIT = 10
-        mon_buffer = MonitoringBuffer(SIZE_LIMIT, logging.getLogger(''))
+        mon_buffer = MonitoringBuffer(SIZE_LIMIT, ROOT_LOGGER)
         for i in range(ITERATIONS):
             mon = [{"ts": i, "source": "local", "cpu": 1}]
             mon_buffer.record_data(mon)

@@ -1,4 +1,3 @@
-import logging
 import time
 import unittest
 from os import path
@@ -7,7 +6,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig, Tsung
 from bzt.six import etree
 from bzt.utils import EXE_SUFFIX, BetterDict, is_windows
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
 
@@ -162,6 +161,7 @@ class TestTsungConfig(BZTestCase):
         super(TestTsungConfig, self).setUp()
         self.obj = TsungExecutor()
         self.obj.engine = EngineEmul()
+        self.obj.env = self.obj.engine.env
 
     def test_servers(self):
         self.obj.execution.merge({
@@ -394,7 +394,7 @@ class TestTsungConfig(BZTestCase):
 class TestStatsReader(BZTestCase):
     def test_read(self):
         stats_basedir = get_res_path('stats')
-        obj = TsungStatsReader(stats_basedir, logging.getLogger(''))
+        obj = TsungStatsReader(stats_basedir, ROOT_LOGGER)
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 16)
 

@@ -28,19 +28,13 @@ from bzt.modules.java import TaurusJavaHelper
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
 from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
-from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary, FileReader
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary, FileReader, RESOURCES_DIR
 
 
 class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
     """
     Grinder executor module
     """
-    DOWNLOAD_LINK = "https://downloads.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
-                    "/grinder-{version}-binary.zip?r=&ts=" + str(int(time.time())) + "&use_mirror=autoselect"
-    VERSION = "3.11"
-    MIRRORS_SOURCE = "https://sourceforge.net/settings/mirror_choices?projectname=grinder&filename=The%20Grinder" \
-                     "%203/{version}/grinder-{version}-binary.zip&dialog=true".format(version=VERSION)
-
     def __init__(self):
         super(GrinderExecutor, self).__init__()
         self.script = None
@@ -53,6 +47,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.retcode = None
         self.stdout_file = None
         self.stderr_file = None
+        self.java_helper = None
 
     def __write_base_props(self, fds):
         """
@@ -157,9 +152,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.engine.aggregator.add_underling(self.reader)
 
         # add logback configurations used by worker processes (logback-worker.xml)
-        res_dir = os.path.join(get_full_path(__file__, step_up=2), 'resources')
-        self.env.add_path({"CLASSPATH": res_dir}, finish=True)
-        self.env.add_path({"CLASSPATH": TaurusJavaHelper().tool_path}, finish=True)
+        self.env.add_path({"CLASSPATH": RESOURCES_DIR}, finish=True)
+        self.env.add_path({"CLASSPATH": self.java_helper.tool_path}, finish=True)
         self.env.add_path({"CLASSPATH": self.settings.get("path", None)}, finish=True)
 
         self.cmd_line = ["java", "net.grinder.Grinder", self.properties_file]
@@ -229,14 +223,15 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         return script
 
     def install_required_tools(self):
-        grinder_path = self.settings.get("path", "~/.bzt/grinder-taurus/lib/grinder.jar")
-        grinder_path = get_full_path(grinder_path)
-        self.settings["path"] = grinder_path
-        download_link = self.settings.get("download-link", "")
-        required_tools = [TclLibrary(self.log),
-                          JavaVM(self.log),
-                          TaurusJavaHelper(),
-                          Grinder(grinder_path, self.log, GrinderExecutor.VERSION, download_link=download_link)]
+        grinder = self._get_tool(Grinder, config=self.settings)
+        self.settings["path"] = grinder.tool_path
+
+        self.java_helper = self._get_tool(TaurusJavaHelper)
+
+        required_tools = [self._get_tool(TclLibrary),
+                          self._get_tool(JavaVM),
+                          self.java_helper,
+                          grinder]
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -424,11 +419,20 @@ class DataLogReader(ResultsReader):
 
 
 class Grinder(RequiredTool):        # todo: take it from maven and convert to JarTool(?)
-    def __init__(self, tool_path, parent_logger, version, download_link):
-        super(Grinder, self).__init__("Grinder", tool_path, download_link=download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.version = version
-        self.mirror_manager = GrinderMirrorsManager(self.log, self.version)
+    VERSION = "3.11"
+
+    LOCAL_PATH = "~/.bzt/grinder-taurus/lib/grinder.jar"
+
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+        grinder_path = settings.get("path", self.LOCAL_PATH)
+        grinder_path = get_full_path(grinder_path)
+
+        download_link = settings.get("download-link", "")
+
+        super(Grinder, self).__init__(tool_path=grinder_path, download_link=download_link, **kwargs)
+        self.version = self.VERSION
+        self.mirror_manager = GrinderMirrorsManager(self.http_client, self.log, self.version)
 
     def check_if_installed(self):
         self.log.debug("Trying grinder: %s", self.tool_path)
@@ -455,9 +459,15 @@ class Grinder(RequiredTool):        # todo: take it from maven and convert to Ja
 
 
 class GrinderMirrorsManager(MirrorsManager):
-    def __init__(self, parent_logger, grinder_version):
+    MIRRORS_SOURCE = "https://sourceforge.net/settings/mirror_choices?projectname=grinder&filename=The%20Grinder" \
+                     "%203/{version}/grinder-{version}-binary.zip&dialog=true"
+    DOWNLOAD_LINK = "https://downloads.sourceforge.net/project/grinder/The%20Grinder%203/{version}" \
+                    "/grinder-{version}-binary.zip?r=&ts=" + str(int(time.time())) + "&use_mirror=autoselect"
+
+    def __init__(self, http_client, parent_logger, grinder_version):
         self.grinder_version = grinder_version
-        super(GrinderMirrorsManager, self).__init__(GrinderExecutor.MIRRORS_SOURCE, parent_logger)
+        base_link = self.MIRRORS_SOURCE.format(version=self.grinder_version)
+        super(GrinderMirrorsManager, self).__init__(http_client, base_link, parent_logger)
 
     def _parse_mirrors(self):
         links = []
@@ -470,7 +480,7 @@ class GrinderMirrorsManager(MirrorsManager):
             if li_elements:
                 links = [base_link.format(version=self.grinder_version, mirror=link.strip('<li id="').strip('">')) for
                          link in li_elements]
-        default_link = GrinderExecutor.DOWNLOAD_LINK.format(version=self.grinder_version)
+        default_link = self.DOWNLOAD_LINK.format(version=self.grinder_version)
         if default_link not in links:
             links.append(default_link)
         self.log.debug('Total mirrors: %d', len(links))

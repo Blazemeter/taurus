@@ -32,6 +32,9 @@ class TestEngine(BZTestCase):
         self.obj.find_file("definitely_missed.file")
         self.assertIn("Could not find", self.log_recorder.warn_buff.getvalue())
 
+        self.obj.find_file("http://localhost:8000/BlazeDemo.html")
+        self.assertIn("Downloading http://localhost:8000/BlazeDemo.html", self.log_recorder.info_buff.getvalue())
+
     def test_missed_config(self):
         configs = ['definitely_missed.file']
         try:

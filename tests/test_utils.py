@@ -26,7 +26,7 @@ class MockPopen(object):
 
 class TestMisc(BZTestCase):
     def test_communicate(self):
-        self.sniff_log(logging.root)
+        self.sniff_log()
 
         out = b'\xf1\xe5\xedoutput'     # on py2 bytes is just str synonym
         err = b'\xf1\xe5\xederror'
@@ -42,12 +42,13 @@ class TestMisc(BZTestCase):
 
 class TestJavaVM(BZTestCase):
     def test_missed_tool(self):
-        self.obj = JavaVM(logging.getLogger(''), tool_path='java-not-found')
+        self.obj = JavaVM()
+        self.obj.tool_path = 'java-not-found'
         self.assertEqual(False, self.obj.check_if_installed())
         self.assertRaises(ToolError, self.obj.install)
 
     def test_get_version(self):
-        self.obj = JavaVM(logging.getLogger(''))
+        self.obj = JavaVM()
 
         out1 = "openjdk version \"10.0.1\" 2018-04-17\nOpenJDK Runtime Environment (build " \
                "10.0.1+10-Ubuntu-3ubuntu1)\nOpenJDK 64-Bit Server VM (build 10.0.1+10-Ubuntu-3ubuntu1, mixed mode)"
@@ -60,7 +61,7 @@ class TestJavaVM(BZTestCase):
 
 class TestLogStreams(BZTestCase):
     def test_streams(self):
-        self.sniff_log(logging.getLogger(''))
+        self.sniff_log()
 
         print('test1')
 

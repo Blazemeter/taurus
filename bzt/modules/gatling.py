@@ -27,7 +27,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types
-from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader
+from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -196,7 +196,7 @@ class GatlingScriptBuilder(object):
         return feeds
 
     def gen_test_case(self):
-        template_path = os.path.join(get_full_path(__file__, step_up=2), 'resources', "gatling_script.tpl")
+        template_path = os.path.join(RESOURCES_DIR, "gatling_script.tpl")
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -215,10 +215,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     """
     Gatling executor module
     """
-    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
-                    "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "2.3.0"
-
     def __init__(self):
         super(GatlingExecutor, self).__init__()
         self.script = None
@@ -474,14 +470,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.engine.existing_artifact(self.reader.file.name)
 
     def install_required_tools(self):
-        required_tools = [TclLibrary(self.log), JavaVM(self.log)]
-        gatling_version = self.settings.get("version", GatlingExecutor.VERSION)
-        def_path = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}".format(version=gatling_version,
-                                                                                suffix=EXE_SUFFIX)
-        gatling_path = get_full_path(self.settings.get("path", def_path))
-        self.settings["path"] = gatling_path
-        download_link = self.settings.get("download-link", GatlingExecutor.DOWNLOAD_LINK)
-        required_tools.append(Gatling(gatling_path, self.log, download_link, gatling_version))
+        gatling = self._get_tool(Gatling, config=self.settings)
+        self.settings["path"] = gatling.tool_path
+
+        required_tools = [self._get_tool(TclLibrary), self._get_tool(JavaVM), gatling]
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -713,11 +705,18 @@ class Gatling(RequiredTool):
     """
     Gatling tool
     """
+    DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
+                    "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
+    VERSION = "2.3.0"
+    LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
-    def __init__(self, tool_path, parent_logger, download_link, version):
-        super(Gatling, self).__init__("Gatling", tool_path, download_link.format(version=version))
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.version = version
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+        version = settings.get("version", self.VERSION)
+        def_path = self.LOCAL_PATH.format(version=version, suffix=EXE_SUFFIX)
+        gatling_path = get_full_path(settings.get("path", def_path))
+        download_link = settings.get("download-link", self.DOWNLOAD_LINK).format(version=version)
+        super(Gatling, self).__init__(tool_path=gatling_path, download_link=download_link, version=version, **kwargs)
 
     def check_if_installed(self):
         self.log.debug("Trying Gatling: %s", self.tool_path)

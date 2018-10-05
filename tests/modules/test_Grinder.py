@@ -1,14 +1,13 @@
-import logging
 import re
 import shutil
 import time
 
 import os
 from bzt import ToolError
-from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
+from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 
 from bzt.modules.aggregator import DataPoint, KPISet
-from bzt.modules.grinder import GrinderExecutor, DataLogReader
+from bzt.modules.grinder import GrinderExecutor, DataLogReader, Grinder, GrinderMirrorsManager
 from bzt.modules.provisioning import Local
 from bzt.utils import EXE_SUFFIX, get_full_path
 from tests.mocks import EngineEmul
@@ -39,14 +38,14 @@ class TestGrinderExecutor(BZTestCase):
         path = os.path.abspath(BUILD_DIR + "grinder-taurus/lib/grinder.jar")
         shutil.rmtree(get_full_path(path, step_up=2), ignore_errors=True)
 
-        grinder_link = GrinderExecutor.DOWNLOAD_LINK
-        grinder_version = GrinderExecutor.VERSION
-        mirrors_source = GrinderExecutor.MIRRORS_SOURCE
+        grinder_link = GrinderMirrorsManager.DOWNLOAD_LINK
+        grinder_version = Grinder.VERSION
+        mirrors_source = GrinderMirrorsManager.MIRRORS_SOURCE
         try:
-            GrinderExecutor.DOWNLOAD_LINK = "file:///" + RESOURCES_DIR + \
+            GrinderMirrorsManager.DOWNLOAD_LINK = "file:///" + RESOURCES_DIR + \
                                             "grinder/grinder-{version}_{version}-binary.zip"
-            GrinderExecutor.VERSION = "3.11"
-            GrinderExecutor.MIRRORS_SOURCE = "file:///" + RESOURCES_DIR + "jmeter/unicode_file"
+            Grinder.VERSION = "3.11"
+            GrinderMirrorsManager.MIRRORS_SOURCE = "file:///" + RESOURCES_DIR + "jmeter/unicode_file"
 
             self.assertFalse(os.path.exists(path))
 
@@ -61,9 +60,9 @@ class TestGrinderExecutor(BZTestCase):
 
             self.assertTrue(os.path.exists(path))
         finally:
-            GrinderExecutor.DOWNLOAD_LINK = grinder_link
-            GrinderExecutor.VERSION = grinder_version
-            GrinderExecutor.MIRRORS_SOURCE = mirrors_source
+            GrinderMirrorsManager.DOWNLOAD_LINK = grinder_link
+            Grinder.VERSION = grinder_version
+            GrinderMirrorsManager.MIRRORS_SOURCE = mirrors_source
 
     def test_install_Grinder_link(self):
         path = os.path.abspath(BUILD_DIR + "grinder-taurus/lib/grinder.jar")
@@ -219,27 +218,27 @@ class TestGrinderExecutor(BZTestCase):
 class TestDataLogReader(BZTestCase):
     def test_read(self):
         log_path = RESOURCES_DIR + 'grinder/grinder-bzt-kpi.log'
-        obj = DataLogReader(log_path, logging.getLogger(''))
+        obj = DataLogReader(log_path, ROOT_LOGGER)
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 20)
         self.assertIn('Test #1', list_of_values[-1][DataPoint.CUMULATIVE])
 
     def test_read_empty_kpi(self):
         log_path = RESOURCES_DIR + 'grinder/grinder.sh'
-        obj = DataLogReader(log_path, logging.getLogger(''))
+        obj = DataLogReader(log_path, ROOT_LOGGER)
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 0)
 
     def test_read_test_names(self):
         log_path = RESOURCES_DIR + 'grinder/grinder-bzt-1-kpi.log'
-        obj = DataLogReader(log_path, logging.getLogger(''))
+        obj = DataLogReader(log_path, ROOT_LOGGER)
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 21)
         self.assertIn('requests_sample', list_of_values[-1][DataPoint.CUMULATIVE])
 
     def test_read_by_url(self):
         log_path = RESOURCES_DIR + 'grinder/grinder-bzt-kpi.log'
-        obj = DataLogReader(log_path, logging.getLogger(''))
+        obj = DataLogReader(log_path, ROOT_LOGGER)
         obj.report_by_url = True
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 20)
@@ -248,7 +247,7 @@ class TestDataLogReader(BZTestCase):
 
     def test_read_errors(self):
         log_path = RESOURCES_DIR + 'grinder/grinder-bzt-1-kpi.log'
-        obj = DataLogReader(log_path, logging.getLogger(''))
+        obj = DataLogReader(log_path, ROOT_LOGGER)
         list_of_values = list(obj.datapoints(True))
         self.assertEqual(len(list_of_values), 21)
 

@@ -1,5 +1,4 @@
 import io
-import logging
 import math
 import pprint
 import time
@@ -13,10 +12,10 @@ from os.path import join
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
-from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchTool
+from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchGenerator
 from bzt.six import parse, b
 from bzt.utils import is_windows
-from tests import BZTestCase, RESOURCES_DIR, close_reader_file
+from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
 
@@ -31,7 +30,7 @@ def get_pbench():
 class DataPointLogger(AggregatorListener):
     def aggregated_second(self, data):
         current = data[DataPoint.CURRENT]['']
-        logging.info("DataPoint %s: VU:%s RPS:%s/%s RT:%s", data[DataPoint.TIMESTAMP],
+        ROOT_LOGGER.info("DataPoint %s: VU:%s RPS:%s/%s RT:%s", data[DataPoint.TIMESTAMP],
                      current[KPISet.CONCURRENCY], current[KPISet.SAMPLE_COUNT], current[KPISet.FAILURES],
                      current[KPISet.AVG_RESP_TIME])
 
@@ -43,11 +42,11 @@ class TestPBench(BZTestCase):
         self.obj = get_pbench()
 
     def tearDown(self):
-        if self.obj.pbench:
-            if self.obj.pbench.stdout_file:
-                self.obj.pbench.stdout_file.close()
-            if self.obj.pbench.stderr_file:
-                self.obj.pbench.stderr_file.close()
+        if self.obj.generator:
+            if self.obj.generator.stdout_file:
+                self.obj.generator.stdout_file.close()
+            if self.obj.generator.stderr_file:
+                self.obj.generator.stderr_file.close()
 
         if self.obj.reader:
             close_reader_file(self.obj.reader)
@@ -92,7 +91,7 @@ class TestPBenchExecutor(TestPBench):
         self.obj.startup()
 
         while not self.obj.check():
-            logging.debug("Running...")
+            ROOT_LOGGER.debug("Running...")
             self.obj.engine.aggregator.check()
             time.sleep(0.1)
 
@@ -127,7 +126,7 @@ class TestPBenchExecutor(TestPBench):
             open(RESOURCES_DIR + "yaml/phantom_improved_request.yml").read()))
         self.obj.execution = self.obj.engine.config['execution'][0]
         self.obj.prepare()
-        with open(self.obj.pbench.schedule_file) as fds:
+        with open(self.obj.generator.schedule_file) as fds:
             config = fds.readlines()
 
         get_requests = [req_str.split(" ")[1] for req_str in config if req_str.startswith("GET")]
@@ -143,24 +142,9 @@ class TestPBenchExecutor(TestPBench):
         self.obj.execution = self.obj.engine.config['execution'][0]
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
-    def test_default_path(self):
-        del self.obj.settings["path"]
-        try:
-            self.obj.prepare()
-        except:
-            pass
-
-        self.assertEquals("phantom", self.obj.pbench.path)
-        self.assertEquals("/usr/lib/phantom", self.obj.pbench.modules_path)
-
     def test_install_pbench(self):
         self.obj.settings.merge({"path": "/notexistent"})
-        # self.obj.execution = self.obj.engine.config['execution'][0]
-        try:
-            self.obj.prepare()
-            self.fail()
-        except ToolError as exc:
-            self.assertEquals("Please install PBench tool manually", str(exc))
+        self.assertRaises(ToolError, self.obj.prepare)
 
     def test_pbench_file_lister(self):
         self.obj.engine.config.merge(
@@ -180,6 +164,7 @@ class TestPBenchExecutor(TestPBench):
         })
         self.obj.execution = self.obj.engine.config['execution']
         self.obj.prepare()
+        self.assertEquals("/usr/lib/phantom", self.obj.generator.modules_path)
 
     def test_pbench_payload_relpath(self):
         """Verify that enhanced pbench preserves relative script path"""
@@ -240,7 +225,7 @@ class MockByteFile(io.BytesIO):
 class TestScheduler(TestPBench):
     def get_scheduler(self, buf=None):
         filename = ''
-        scheduler = Scheduler(self.obj.get_load(), filename, logging.getLogger(""))
+        scheduler = Scheduler(self.obj.get_load(), filename, ROOT_LOGGER)
         scheduler.payload_file.fds = MockByteFile(buf)
         return scheduler
 
@@ -255,17 +240,16 @@ class TestScheduler(TestPBench):
         cur = 0
         currps = 0
         for item in scheduler.generate():
-            # logging.debug("Item: %s", item)
             if int(math.ceil(item[0])) != cur:
                 # self.assertLessEqual(currps, rps)
                 cur = int(math.ceil(item[0]))
-                logging.debug("RPS: %s", currps)
+                ROOT_LOGGER.debug("RPS: %s", currps)
                 currps = 0
 
             cnt += 1
             currps += 1
 
-        logging.debug("RPS: %s", currps)
+        ROOT_LOGGER.debug("RPS: %s", currps)
 
     def test_schedule_with_no_rampup(self):
         self.obj.execution.merge({"concurrency": 10, "ramp-up": None, "steps": 3, "hold-for": 10})
@@ -277,7 +261,7 @@ class TestScheduler(TestPBench):
         scheduler = self.get_scheduler(b("4 test\ntest\n"))
         items = list(scheduler.generate())
         for item in items:
-            logging.debug("Item: %s", item)
+            ROOT_LOGGER.debug("Item: %s", item)
         self.assertEqual(1, len(items))
 
     def test_schedule_concurrency(self):
@@ -311,19 +295,19 @@ class TestSchedulerSize(TestPBench):
         })
         self.obj.execution = self.obj.engine.config['execution']
         load = self.obj.get_load()
-        self.obj.pbench = TaurusPBenchTool(self.obj, logging.getLogger(''))
-        self.obj.pbench.generate_payload(self.obj.get_scenario())
+        self.obj.generator = TaurusPBenchGenerator(self.obj, ROOT_LOGGER)
+        self.obj.generator.generate_payload(self.obj.get_scenario())
         payload_count = len(self.obj.get_scenario().get('requests', []))
-        sch = Scheduler(load, self.obj.pbench.payload_file, logging.getLogger(''))
-        estimated_schedule_size = self.obj.pbench._estimate_schedule_size(load, payload_count)
-        logging.debug("Estimated schedule size: %s", estimated_schedule_size)
+        sch = Scheduler(load, self.obj.generator.payload_file, ROOT_LOGGER)
+        estimated_schedule_size = self.obj.generator._estimate_schedule_size(load, payload_count)
+        ROOT_LOGGER.debug("Estimated schedule size: %s", estimated_schedule_size)
         items = list(sch.generate())
         actual_schedule_size = len(items)
-        logging.debug("Actual schedule size: %s", actual_schedule_size)
+        ROOT_LOGGER.debug("Actual schedule size: %s", actual_schedule_size)
         if actual_schedule_size != 0:
             error = abs(estimated_schedule_size - actual_schedule_size)
             error_rel = error / float(actual_schedule_size)
-            logging.debug("Estimation error: %s", error)
+            ROOT_LOGGER.debug("Estimation error: %s", error)
             if error_rel >= 0.1:
                 self.fail("Estimation failed (error=%s) on config %s" % (error_rel, pprint.pformat(execution)))
 

@@ -15,6 +15,7 @@ from tests.mocks import EngineEmul, ModuleMock
 class TestCLI(BZTestCase):
     def setUp(self):
         super(TestCLI, self).setUp()
+        self.logger = self.log
         self.log = os.path.join(os.path.dirname(__file__), "..", "build", "bzt.log")
         self.verbose = False
         self.quiet = False
@@ -23,8 +24,14 @@ class TestCLI(BZTestCase):
         self.datadir = os.path.join(os.path.dirname(__file__), "..", "build", "acli")
         self.obj = CLI(self)
         self.assertTrue(os.path.exists(self.log))
+
         self.aliases = []
         self.obj.engine = EngineEmul()
+
+    def tearDown(self):
+        self.obj.close_log()
+        self.log = self.logger
+        super(BZTestCase, self).tearDown()
 
     def test_perform_normal(self):
         ret = self.obj.perform([RESOURCES_DIR + "json/mock_normal.json"])

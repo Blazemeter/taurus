@@ -23,7 +23,7 @@ from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
 from bzt.jmx import JMX
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
-from bzt.requests_model import RequestVisitor, has_variable_pattern
+from bzt.requests_model import RequestVisitor, has_variable_pattern, HierarchicRequestParser
 from bzt.six import etree, iteritems, numeric_types
 from bzt.utils import BetterDict, dehumanize_time, ensure_is_dict, guess_csv_dialect, load_class
 
@@ -169,7 +169,11 @@ class LoadSettingsProcessor(object):
 
         etree_shaper = jmx.get_rps_shaper()
         if self.load.ramp_up:
-            jmx.add_rps_shaper_schedule(etree_shaper, 1, self.load.throughput, self.load.ramp_up)
+            if isinstance(self.load.throughput, numeric_types) and self.load.duration:
+                start_rps = self.load.throughput / float(self.load.duration)
+            else:
+                start_rps = 1
+            jmx.add_rps_shaper_schedule(etree_shaper, start_rps, self.load.throughput, self.load.ramp_up)
 
         if self.load.hold:
             jmx.add_rps_shaper_schedule(etree_shaper, self.load.throughput, self.load.throughput, self.load.hold)
@@ -381,7 +385,7 @@ class JMeterScenarioBuilder(JMX):
             children.append(etree.Element("hashTree"))
 
     def __gen_requests(self, scenario):
-        requests = scenario.get_requests()
+        requests = scenario.get_requests(parser=HierarchicRequestParser)
         elements = []
         for compiled in self.compile_requests(requests):
             elements.extend(compiled)

@@ -1,6 +1,5 @@
 """ test """
 import datetime
-import logging
 import random
 import sys
 import tempfile
@@ -16,7 +15,7 @@ from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregatorListener
 from bzt.six import b
 from bzt.utils import load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows
-from . import random_sample, TEST_DIR
+from . import random_sample, TEST_DIR, ROOT_LOGGER
 
 try:
     from exceptions import KeyboardInterrupt
@@ -31,7 +30,7 @@ class MockFileReader(FileReader):
 
 class EngineEmul(Engine):
     def __init__(self):
-        super(EngineEmul, self).__init__(logging.getLogger(''))
+        super(EngineEmul, self).__init__(ROOT_LOGGER)
 
         directory = get_full_path(TEST_DIR)
         prefix = datetime.datetime.now().strftime(self.ARTIFACTS_DIR)
@@ -44,6 +43,7 @@ class EngineEmul(Engine):
                 "check-updates": False,
                 "artifacts-dir": get_uniq_name(directory=directory, prefix=prefix)}})
 
+        self.check_interval = 0.1
         self.create_artifacts_dir()
         self.prepare_exc = None
         self.was_finalize = False
@@ -53,7 +53,7 @@ class EngineEmul(Engine):
         fname = tempfile.mkstemp()[1]
         self.config.dump(fname, Configuration.JSON)
         with open(fname) as fh:
-            logging.debug("JSON:\n%s", fh.read())
+            ROOT_LOGGER.debug("JSON:\n%s", fh.read())
 
     def prepare(self):
         if self.prepare_exc:
@@ -195,7 +195,6 @@ class MockReader(ResultsReader, AggregatorListener):
         :return:
         """
         while self.data:
-            # logging.debug("Emul read: %s", self.data[0])
             yield self.data.pop(0)
 
     def aggregated_second(self, data):
@@ -208,7 +207,7 @@ class MockReader(ResultsReader, AggregatorListener):
         if self.results:
             if self.results[-1]["ts"] >= data["ts"]:
                 raise AssertionError("TS sequence wrong: %s>=%s" % (self.results[-1]["ts"], data["ts"]))
-        logging.info("Data: %s", data)
+        ROOT_LOGGER.info("Data: %s", data)
         self.results.append(data)
 
 
@@ -251,28 +250,28 @@ class SocketEmul(object):
         self.sent_data = b("")
 
     def connect(self, address):
-        logging.debug("Emulated connect to %s", address)
+        ROOT_LOGGER.debug("Emulated connect to %s", address)
 
     # noinspection PyUnusedLocal
     def recv(self, buf_size, flags=None):
         data = self.recv_data[:buf_size]
         self.recv_data = self.recv_data[buf_size + 1:]
-        logging.debug("Emulated recv: %s", data)
+        ROOT_LOGGER.debug("Emulated recv: %s", data)
         return data
 
     # noinspection PyUnusedLocal
     def send(self, data, flags=None):
         self.sent_data += data
-        logging.debug("Emulated send: %s", data)
+        ROOT_LOGGER.debug("Emulated send: %s", data)
 
     def setblocking(self, state):
-        logging.debug("Emulate setblocking=%s", state)
+        ROOT_LOGGER.debug("Emulate setblocking=%s", state)
 
     def fileno(self):
         return 0
 
     def close(self):
-        logging.debug("Emulated close")
+        ROOT_LOGGER.debug("Emulated close")
 
 
 class BZMock(object):
@@ -342,7 +341,7 @@ class BZMock(object):
             resp = resp.pop(0)
 
         data = kwargs['data']
-        logging.debug("Emulated %s %s %s: %s", method, url, ("%s" % data)[:4096], resp)
+        ROOT_LOGGER.debug("Emulated %s %s %s: %s", method, url, ("%s" % data)[:4096], resp)
         self.requests.append({"method": method, "url": url, "data": data})
         if isinstance(resp, BaseException):
             raise resp

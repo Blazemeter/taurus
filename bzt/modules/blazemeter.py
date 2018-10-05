@@ -730,7 +730,7 @@ class DatapointSerializer(object):
                     "count": error['cnt'],
                     "rm": error['msg'],
                     "rc": error['rc'],
-                    "url": error['urls'].keys()[0] if error['urls'] else None,
+                    "url": list(error['urls'])[0] if error['urls'] else None,
                 })
             else:
                 report_item['assertions'].append({
@@ -1810,21 +1810,7 @@ class ResultsFromBZA(ResultsProvider):
 
         for tstmp in timestamps:
             point = DataPoint(tstmp)
-            for label in data:
-                for kpi in label.get('kpis', []):
-                    if kpi['ts'] != tstmp:
-                        continue
-                    label_str = label.get('label')
-                    if label_str is None or label_str not in aggr:
-                        self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
-                        continue
-
-                    if kpi['n'] <= 0:
-                        self.log.warning("Skipping empty KPI item got from API: %s", kpi)
-                        continue
-
-                    kpiset = self.__get_kpiset(aggr, kpi, label_str)
-                    point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
+            self.__generate_kpisets(aggr, data, point, tstmp)
 
             if self.handle_errors:
                 self.handle_errors = False
@@ -1833,14 +1819,38 @@ class ResultsFromBZA(ResultsProvider):
                 if err_diff:
                     for label in err_diff:
                         point_label = '' if label == 'ALL' else label
-                        kpiset = point[DataPoint.CURRENT].setdefault(point_label, KPISet())
+                        if point_label not in point[DataPoint.CURRENT]:
+                            self.log.warning("Got inconsistent kpi/error data for label: %s", point_label)
+                            kpiset = KPISet()
+                            point[DataPoint.CURRENT][point_label] = kpiset
+                            kpiset[KPISet.SAMPLE_COUNT] = sum([item['count'] for item in err_diff[label].values()])
+                        else:
+                            kpiset = point[DataPoint.CURRENT][point_label]
                         kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
+                        assert kpiset[KPISet.SAMPLE_COUNT] > 0
                     self.prev_errors = self.cur_errors
 
             point.recalculate()
 
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
+
+    def __generate_kpisets(self, aggr, data, point, tstmp):
+        for label in data:
+            for kpi in label.get('kpis', []):
+                if kpi['ts'] != tstmp:
+                    continue
+                label_str = label.get('label')
+                if label_str is None or label_str not in aggr:
+                    self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
+                    continue
+
+                if kpi['n'] <= 0:
+                    self.log.warning("Skipping empty KPI item got from API: %s", kpi)
+                    continue
+
+                kpiset = self.__get_kpiset(aggr, kpi, label_str)
+                point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
     def __get_errors_from_bza(self):
         #
@@ -1890,7 +1900,7 @@ class ResultsFromBZA(ResultsProvider):
         kpiset[KPISet.FAILURES] = kpi['ec']
         kpiset[KPISet.CONCURRENCY] = kpi['na']
         kpiset[KPISet.SAMPLE_COUNT] = kpi['n']
-        assert kpi['n'] >= kpi['ec']
+        assert kpi['n'] > 0 and kpi['n'] >= kpi['ec']
         kpiset[KPISet.SUCCESSES] = kpi['n'] - kpi['ec']
         kpiset.sum_rt += kpi['t_avg'] * kpi['n'] / 1000.0
         kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0

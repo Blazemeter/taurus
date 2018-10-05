@@ -25,16 +25,17 @@ import zipfile
 
 from bzt.six import communicate
 
-try:
-    from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
-except ImportError:
-    from pyvirtualdisplay import Display
-
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
-from bzt.engine import Service, HavingInstallableTools, Singletone
-from bzt.six import get_stacktrace, urlopen, URLError
+from bzt.engine import Service, HavingInstallableTools, Singletone, ScenarioExecutor
+from bzt.six import get_stacktrace
 from bzt.utils import get_full_path, shutdown_process, shell_exec, RequiredTool, is_windows
-from bzt.utils import replace_in_config, JavaVM, Node
+from bzt.utils import replace_in_config, JavaVM, Node, Environment
+
+if not is_windows():
+    try:
+        from pyvirtualdisplay.smartdisplay import SmartDisplay as Display
+    except ImportError:
+        from pyvirtualdisplay import Display
 
 
 class Unpacker(Service):
@@ -87,6 +88,8 @@ class InstallChecker(Service, Singletone):
             return
 
         self.log.info("Checking installation needs for: %s", mod_name)
+        if isinstance(mod, ScenarioExecutor):
+            mod.env = Environment(mod.log, self.engine.env.get())
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
 
@@ -120,7 +123,7 @@ class AndroidEmulatorLoader(Service):
                 message += 'android-emulator.path config parameter or set ANDROID_HOME environment variable'
                 raise TaurusConfigError(message)
 
-        tool = AndroidEmulator(self.tool_path, "", self.log)
+        tool = AndroidEmulator(tool_path=self.tool_path, log=self.log)
         if not tool.check_if_installed():
             tool.install()
 
@@ -185,9 +188,9 @@ class AppiumLoader(Service):
         self.port = self.settings.get('port', 4723)
         self.tool_path = self.settings.get('path', 'appium')
 
-        required_tools = [Node(self.log),
-                          JavaVM(self.log),
-                          Appium(self.tool_path, "", self.log)]
+        required_tools = [Node(log=self.log),
+                          JavaVM(log=self.log),
+                          Appium(tool_path=self.tool_path, log=self.log)]
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -234,9 +237,8 @@ class AppiumLoader(Service):
 
 
 class Appium(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(Appium, self).__init__("Appium", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(Appium, self).__init__(installable=False, **kwargs)
 
     def check_if_installed(self):
         cmd = [self.tool_path, '--version']
@@ -249,14 +251,10 @@ class Appium(RequiredTool):
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
-    def install(self):
-        raise ToolError("Automatic installation of %s is not implemented. Install it manually" % self.tool_name)
-
 
 class AndroidEmulator(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(AndroidEmulator, self).__init__("AndroidEmulator", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(AndroidEmulator, self).__init__(installable=False, **kwargs)
 
     def check_if_installed(self):
         cmd = [self.tool_path, '-list-avds']
@@ -268,9 +266,6 @@ class AndroidEmulator(RequiredTool):
         except (subprocess.CalledProcessError, OSError) as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
-
-    def install(self):
-        raise ToolError("Automatic installation of %s is not implemented. Install it manually" % self.tool_name)
 
 
 class VirtualDisplay(Service, Singletone):

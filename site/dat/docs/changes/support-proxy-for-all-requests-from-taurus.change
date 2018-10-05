@@ -1,0 +1,3 @@
+Support proxy for all HTTP requests made from Taurus
+
+By using HTTPClient everywhere

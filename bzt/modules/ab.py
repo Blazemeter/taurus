@@ -21,7 +21,7 @@ import time
 from math import ceil
 from subprocess import CalledProcessError
 
-from bzt import TaurusConfigError, ToolError
+from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
@@ -42,12 +42,12 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         self._tsv_file = None
         self.stdout_file = None
         self.stderr_file = None
-        self.tool_path = None
+        self.tool = None
         self.scenario = None
 
     def prepare(self):
         self.scenario = self.get_scenario()
-        self.tool_path = self.install_required_tools()
+        self.install_required_tools()
 
         self._tsv_file = self.engine.create_artifact("ab", ".tsv")
 
@@ -78,7 +78,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         return None
 
     def startup(self):
-        args = [self.tool_path]
+        args = [self.tool.tool_path]
         load = self.get_load()
         load_iterations = load.iterations if load.iterations is not None else 1
         load_concurrency = load.concurrency if load.concurrency is not None else 1
@@ -143,11 +143,9 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
             self.stderr_file.close()
 
     def install_required_tools(self):
-        tool_path = self.settings.get('path', 'ab')
-        ab_tool = ApacheBenchmark(tool_path, self.log)
-        if not ab_tool.check_if_installed():
-            ab_tool.install()
-        return tool_path
+        self.tool = self._get_tool(ApacheBenchmark, config=self.settings)
+        if not self.tool.check_if_installed():
+            self.tool.install()
 
     def get_error_diagnostics(self):
         diagnostics = []
@@ -203,10 +201,11 @@ class TSVDataReader(ResultsReader):
 
 
 class ApacheBenchmark(RequiredTool):
-    def __init__(self, tool_path, parent_logger):
-        super(ApacheBenchmark, self).__init__("ApacheBenchmark", tool_path)
-        self.tool_path = tool_path
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+        tool_path = settings.get('path', 'ab')
+
+        super(ApacheBenchmark, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
         self.log.debug('Checking ApacheBenchmark: %s' % self.tool_path)
@@ -215,6 +214,3 @@ class ApacheBenchmark(RequiredTool):
         except (CalledProcessError, OSError):
             return False
         return True
-
-    def install(self):
-        raise ToolError("You must install ab tool at first")

@@ -38,12 +38,12 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         self.stderr_file = None
         self.__rc_name = None
         self.__url_name = None
-        self.tool_path = None
+        self.tool = None
         self.scenario = None
 
     def prepare(self):
         self.scenario = self.get_scenario()
-        self.tool_path = self.install_required_tools()
+        self.install_required_tools()
 
         self.__rc_name = self.execution.get("rc-file", None)
         if not self.__rc_name:
@@ -102,7 +102,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         return url_file_name
 
     def startup(self):
-        args = [self.tool_path]
+        args = [self.tool.tool_path]
         load = self.get_load()
 
         if load.iterations:
@@ -163,11 +163,9 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
             self.stderr_file.close()
 
     def install_required_tools(self):
-        tool_path = self.settings.get('path', 'siege')
-        siege = Siege(tool_path, self.log)
-        if not siege.check_if_installed():
-            siege.install()
-        return tool_path
+        self.tool = self._get_tool(Siege, config=self.settings)
+        if not self.tool.check_if_installed():
+            self.tool.install()
 
     def get_error_diagnostics(self):
         diagnostics = []
@@ -221,9 +219,10 @@ class DataLogReader(ResultsReader):
 
 
 class Siege(RequiredTool):
-    def __init__(self, tool_path, parent_logger):
-        super(Siege, self).__init__("Siege", tool_path)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+        tool_path = settings.get("path", "siege")
+        super(Siege, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
         self.log.debug('Check Siege: %s' % self.tool_path)
@@ -232,6 +231,3 @@ class Siege(RequiredTool):
         except OSError:
             return False
         return True
-
-    def install(self):
-        raise ToolError("You must install Siege tool at first")

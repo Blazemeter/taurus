@@ -1,12 +1,10 @@
-import logging
-
 from bzt.modules.soapui import SoapUIScriptConverter
-from tests import BZTestCase, RESOURCES_DIR
+from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 
 
 class TestSoapUIConverter(BZTestCase):
     def test_minimal(self):
-        obj = SoapUIScriptConverter(logging.getLogger(''))
+        obj = SoapUIScriptConverter(ROOT_LOGGER)
         config = obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
 
         self.assertIn("execution", config)
@@ -66,7 +64,7 @@ class TestSoapUIConverter(BZTestCase):
         self.assertEqual("$.baz", third_req["extract-jsonpath"]["something"]["jsonpath"])
 
     def test_find_test_case(self):
-        obj = SoapUIScriptConverter(logging.getLogger(''))
+        obj = SoapUIScriptConverter(ROOT_LOGGER)
         config = obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
 
         scenarios = config["scenarios"]
@@ -77,7 +75,7 @@ class TestSoapUIConverter(BZTestCase):
         self.assertEqual(target_scenario, found_scenario)
 
     def test_find_test_case_empty(self):
-        obj = SoapUIScriptConverter(logging.getLogger(''))
+        obj = SoapUIScriptConverter(ROOT_LOGGER)
         self.sniff_log(obj.log)
 
         config = obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
@@ -93,7 +91,7 @@ class TestSoapUIConverter(BZTestCase):
                       self.log_recorder.warn_buff.getvalue())
 
     def test_skip_if_no_requests(self):
-        obj = SoapUIScriptConverter(logging.getLogger(''))
+        obj = SoapUIScriptConverter(ROOT_LOGGER)
         self.sniff_log(obj.log)
 
         obj.convert_script(RESOURCES_DIR + "soapui/project.xml")
@@ -101,7 +99,7 @@ class TestSoapUIConverter(BZTestCase):
                       self.log_recorder.warn_buff.getvalue())
 
     def test_rest_service_name_as_base_address(self):
-        obj = SoapUIScriptConverter(logging.getLogger(''))
+        obj = SoapUIScriptConverter(ROOT_LOGGER)
         config = obj.convert_script(RESOURCES_DIR + "soapui/youtube-sample.xml")
         scenarios = config["scenarios"]
         scenario = scenarios["TestSuite-TestCase"]
@@ -110,7 +108,7 @@ class TestSoapUIConverter(BZTestCase):
             self.assertTrue(request["url"].startswith("http://gdata.youtube.com/"))
 
     def test_project_suite_case_level_properties(self):
-        obj = SoapUIScriptConverter(logging.getLogger(''))
+        obj = SoapUIScriptConverter(ROOT_LOGGER)
         config = obj.convert_script(RESOURCES_DIR + "soapui/flickr-sample.xml")
         scenarios = config["scenarios"]
         scenario = scenarios["TestSuite-TestCase"]
@@ -119,7 +117,7 @@ class TestSoapUIConverter(BZTestCase):
         self.assertIn("#TestCase#temp", scenario["variables"])
 
     def test_rest_parameters(self):
-        obj = SoapUIScriptConverter(logging.getLogger(''))
+        obj = SoapUIScriptConverter(ROOT_LOGGER)
         config = obj.convert_script(RESOURCES_DIR + "soapui/flickr-sample.xml")
         scenarios = config["scenarios"]
         scenario = scenarios["TestSuite-TestCase"]
@@ -130,7 +128,7 @@ class TestSoapUIConverter(BZTestCase):
         self.assertTrue(all(key in first["body"] for key in ["format", "method", "nojsoncallback", "api_key"]))
 
     def test_soap_conversion(self):
-        obj = SoapUIScriptConverter(logging.getLogger(''))
+        obj = SoapUIScriptConverter(ROOT_LOGGER)
         config = obj.convert_script(RESOURCES_DIR + "soapui/globalweather.xml")
         self.assertEqual(len(config["scenarios"]), 3)
         merged = config["scenarios"]["GWSOAPMerged-Test"]
@@ -151,7 +149,7 @@ class TestSoapUIConverter(BZTestCase):
         self.assertEqual(split2["requests"][0]["url"], "http://www.webservicex.com/globalweather.asmx")
 
     def test_rest_templated_params_interpolation(self):
-        obj = SoapUIScriptConverter(logging.getLogger(''))
+        obj = SoapUIScriptConverter(ROOT_LOGGER)
         config = obj.convert_script(RESOURCES_DIR + "soapui/gmaps-sample.xml")
         self.assertEqual(len(config["scenarios"]), 9)
         scenario = config["scenarios"]["Directions API TestSuite-Simple Tests"]

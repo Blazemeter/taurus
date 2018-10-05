@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import shutil
 import time
@@ -16,7 +15,7 @@ from bzt.modules.java.executors import JavaTestRunner
 from bzt.modules.java.tools import JavaC, JarTool
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import ToolError
-from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
@@ -40,7 +39,7 @@ class TestTestNGTester(BZTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
 
@@ -91,7 +90,7 @@ class TestTestNGTester(BZTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         samples = [
@@ -104,7 +103,8 @@ class TestTestNGTester(BZTestCase):
 
 class TestJavaC(BZTestCase):
     def test_missed_tool(self):
-        self.obj = JavaC(tool_path='javac-not-found')
+        self.obj = JavaC()
+        self.obj.tool_path = "javac-not-found"
         self.assertEqual(False, self.obj.check_if_installed())
         self.assertRaises(ToolError, self.obj.install)
 
@@ -190,7 +190,7 @@ class TestJUnitTester(BZTestCase):
         self.obj.engine.aggregator.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
@@ -271,7 +271,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
         self.assertTrue(exists(join(self.obj.runner.working_dir, "compiled.jar")))
@@ -301,7 +301,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.assertIsInstance(self.obj.runner, JUnitTester)
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
@@ -329,7 +329,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
@@ -360,7 +360,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
@@ -390,7 +390,7 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
 
         self.assertIsInstance(self.obj.runner, JavaTestRunner)
@@ -418,13 +418,13 @@ class TestSeleniumJUnitTester(SeleniumTestCase):
         self.obj.startup()
         try:
             while not self.obj.check():
-                time.sleep(1)
+                time.sleep(self.obj.engine.check_interval)
             self.fail()
         except ToolError as exc:
             diagnostics = "\n".join(exc.diagnostics)
             self.assertIn("Nothing to test", diagnostics)
         except BaseException as exc:
-            logging.debug(traceback.format_exc())
+            ROOT_LOGGER.debug(traceback.format_exc())
             self.fail("Unexpected exception %s, expected ToolError" % exc)
         self.obj.shutdown()
 
@@ -480,7 +480,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1.0)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         lines = open(self.obj.runner.report_file).readlines()
@@ -499,7 +499,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1.0)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         lines = open(self.obj.runner.report_file).readlines()
@@ -545,7 +545,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertTrue(exists(self.obj.runner.report_file))
         duration = time.time() - self.obj.start_time
@@ -564,7 +564,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertTrue(exists(self.obj.runner.report_file))
         lines = open(self.obj.runner.report_file).readlines()
@@ -579,7 +579,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertTrue(exists(self.obj.runner.report_file))
         lines = open(self.obj.runner.report_file).readlines()
@@ -593,7 +593,7 @@ class TestSeleniumTestNGRunner(SeleniumTestCase):
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.assertTrue(exists(self.obj.runner.report_file))
         lines = open(self.obj.runner.report_file).readlines()
