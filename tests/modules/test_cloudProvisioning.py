@@ -1882,7 +1882,7 @@ class TestResultsFromBZA(BZTestCase):
         self.assertEqual(res, [])
 
     def test_inconsistent(self):
-        # self.skipTest("just keep this code for future troubleshooting")
+        self.skipTest("just keep this code for future troubleshooting")
         agg = ConsolidatingAggregator()
         obj = ResultsFromBZA(MasterFromLog(data={'id': 0}))
         with open("/home/undera/bzt.log") as fhd:

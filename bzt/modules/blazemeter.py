@@ -1786,7 +1786,7 @@ class ResultsFromBZA(ResultsProvider):
                         diff[label] = {}
                     diff[label][msg] = {'count': delta, 'rc': self.cur_errors[label][msg]['rc']}
 
-        return diff
+        return {k: diff[k] for k in diff if diff[k]}  # clean from empty items
 
     def _calculate_datapoints(self, final_pass=False):
         if self.master is None:
@@ -1827,7 +1827,7 @@ class ResultsFromBZA(ResultsProvider):
                         else:
                             kpiset = point[DataPoint.CURRENT][point_label]
                         kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
-                        assert kpiset[KPISet.SAMPLE_COUNT] > 0
+                        assert kpiset[KPISet.SAMPLE_COUNT] > 0, point_label
                     self.prev_errors = self.cur_errors
 
             point.recalculate()
