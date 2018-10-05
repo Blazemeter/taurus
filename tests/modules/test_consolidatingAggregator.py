@@ -1,4 +1,3 @@
-import math
 from random import random, choice
 
 from apiritif import random_string
@@ -39,7 +38,7 @@ def get_success_reader_selected_labels(offset=0):
               'http://blazedemo.com/vacation.html',
               'http://blazedemo.com/confirmation.php',
               'http://blazedemo.com/another.php']
-    for x in range(2, 1000):
+    for x in range(2, 200):
         mock.data.append((x + offset, choice(labels), 1, r(), r(), r(), 200, '', '', 0))
     return mock
 

@@ -476,7 +476,7 @@ class ResultsProvider(object):
             if score >= threshold:
                 return result
         elif tolerance >= 1.0:
-            return next(dataset.exact_set.values())  # last resort for capping
+            return next(iter(dataset.exact_set.values()))  # last resort for capping
 
         dataset.add(key)
         return key
