@@ -56,6 +56,9 @@ class GatlingScriptBuilder(object):
 
         http_str = 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
 
+        if not self.scenario.get('store-cache', True):
+            http_str += self.indent('.disableCaching\n', level=2)
+
         scenario_headers = self.scenario.get_headers()
         for key in scenario_headers:
             http_str += self.indent('.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': scenario_headers[key]},

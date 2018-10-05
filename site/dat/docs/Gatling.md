@@ -90,7 +90,7 @@ If your scenario don't contains `script` parameter and contains at least one ele
 scala script for test. This script will be placed in `[artifact-dir](ConfigSyntax/#Top-Level-Settings)`:
 you can modify it and use with Gatling later.
 
-Following features are supported: request generation, `default-address`, `follow-redirect`, `headers`, `think-time`
+Following features are supported: request generation, `default-address`, `follow-redirect`, `headers`, `store-cache`, `think-time`
 on scenario and request levels, `body` of request and params that described in
 `[Load Configuration](#Load-Configuration)`.
 Some asserts can be added to request. Assert describes templates and area for search (`contains` and `subject`
@@ -113,6 +113,7 @@ scenarios:
     - path: buyouts.csv  # path to CSV file
       delimiter: ','  # optional, set to comma by default
       loop: true  # loop over data source file, true by default
+    store-cache: true  # cache HTTP responses, true by default
     default-address: blazedemo.com
     headers:
       HEADER_1: VALUE_1

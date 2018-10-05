@@ -285,6 +285,20 @@ class TestGatlingExecutor(BZTestCase):
         })
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
+    def test_requests_6(self):
+        self.obj.execution.merge({
+            "iterations": 5,
+            "scenario": {
+                "store-cache": False,
+                "default-address": "example.com",
+                "requests": ['/'],
+            }
+        })
+        self.obj.prepare()
+        scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
+        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated6.scala", scala_file,
+                              self.obj.get_scenario().get('simulation'), "SIMNAME")
+
     def test_fail_on_zero_results(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "gatling/bs/BasicSimulation.scala"}})
         self.obj.prepare()
