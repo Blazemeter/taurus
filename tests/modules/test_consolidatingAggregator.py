@@ -1,5 +1,5 @@
 import math
-from random import random
+from random import random, choice
 
 from apiritif import random_string
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
@@ -24,11 +24,23 @@ def get_success_reader(offset=0):
     return mock
 
 
-def get_success_reader_alot(offset=0):
+def get_success_reader_alot(prefix='', offset=0):
     mock = MockReader()
     for x in range(2, 200):
         rnd = int(random() * x)
-        mock.data.append((x + offset, (random_string(1 + rnd)), 1, r(), r(), r(), 200, '', '', 0))
+        mock.data.append((x + offset, prefix + random_string(1 + rnd), 1, r(), r(), r(), 200, '', '', 0))
+    return mock
+
+
+def get_success_reader_selected_labels(offset=0):
+    mock = MockReader()
+    labels = ['http://blazedemo.com/reserve.php',
+              'http://blazedemo.com/purchase.php',
+              'http://blazedemo.com/vacation.html',
+              'http://blazedemo.com/confirmation.php',
+              'http://blazedemo.com/another.php']
+    for x in range(2, 1000):
+        mock.data.append((x + offset, choice(labels), 1, r(), r(), r(), 200, '', '', 0))
     return mock
 
 
@@ -141,10 +153,37 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
         cum_dict = self.obj.cumulative
-        expected = (self.obj.generalize_labels + 1)  # due to randomness, it it can go a bit higher than limit
+        len_limit = (self.obj.generalize_labels + 1)  # due to randomness, it it can go a bit higher than limit
         labels = list(cum_dict.keys())
         self.assertGreaterEqual(len(labels), self.obj.generalize_labels / 2)  # assert that it's at least half full
-        self.assertLessEqual(len(labels), expected)
+        self.assertLessEqual(len(labels), len_limit)
+
+    def test_labels_constant_part(self):
+        self.obj.track_percentiles = [50]
+        self.obj.prepare()
+        reader = get_success_reader_alot(prefix='http://blazedemo.com/?r=')
+        self.obj.log.info(len(reader.data))
+        self.obj.generalize_labels = 50
+        self.obj.add_underling(reader)
+        self.obj.shutdown()
+        self.obj.post_process()
+        cum_dict = self.obj.cumulative
+        labels = list(cum_dict.keys())
+        self.assertGreaterEqual(len(labels), self.obj.generalize_labels / 2)  # assert that it's at least half full
+        self.assertLessEqual(len(labels), self.obj.generalize_labels)
+
+    def test_labels_aggressive_folding(self):
+        self.obj.track_percentiles = [50]
+        self.obj.prepare()
+        reader = get_success_reader_selected_labels()
+        self.obj.log.info(len(reader.data))
+        self.obj.generalize_labels = 50
+        self.obj.add_underling(reader)
+        self.obj.shutdown()
+        self.obj.post_process()
+        cum_dict = self.obj.cumulative
+        labels = list(cum_dict.keys())
+        self.assertEqual(len(labels), 6)
 
     def test_errors_variety(self):
         self.obj.track_percentiles = [50]
@@ -159,7 +198,7 @@ class TestConsolidatingAggregator(BZTestCase):
         expected = self.obj.max_error_count  # due to randomness, it it can go a bit higher than limit
         cum_dict = self.obj.cumulative
         self.assertLessEqual(len(cum_dict['']['errors']), expected)
-        self.assertGreaterEqual(len(cum_dict['']['errors']), self.obj.generalize_labels / 2)  # assert that it's at least half full
+        self.assertGreaterEqual(len(cum_dict['']['errors']), self.obj.max_error_count / 2)  # assert that it's at least half full
 
     def test_uniq_errors(self):
         self.obj.track_percentiles = [50]
