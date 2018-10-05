@@ -45,6 +45,7 @@ from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
+from bzt.requests_model import has_variable_pattern
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
 from bzt.utils import dehumanize_time, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
@@ -1439,6 +1440,9 @@ class MasterProvisioning(Provisioning):
             config += to_json(self.engine.config.get('scenarios'))
             config += to_json(executor.settings)
             for rfile in executor_rfiles:
+                if has_variable_pattern(rfile):
+                    continue
+
                 if not os.path.exists(self.engine.find_file(rfile)):
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
                 if to_json(rfile) not in config:  # TODO: might be check is needed to improve
@@ -1449,6 +1453,7 @@ class MasterProvisioning(Provisioning):
             raise TaurusConfigError("Following files can't be handled in cloud: %s" % additional_files)
 
         rfiles = list(set(rfiles))
+        rfiles = [x for x in rfiles if not has_variable_pattern(x)]
         self.log.debug("All resource files are: %s", rfiles)
         return rfiles
 
