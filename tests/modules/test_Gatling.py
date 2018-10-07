@@ -1,14 +1,15 @@
 # coding=utf-8
+import json
 import os
 import shutil
 import time
 
 from bzt import ToolError, TaurusConfigError
-from bzt.modules.aggregator import DataPoint
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt.six import u
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, to_json
 from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
@@ -523,6 +524,8 @@ class TestDataLogReader(BZTestCase):
         self.assertEqual(len(list_of_values), 5)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")
         self.assertIn('User-Login,Auth-POST', list_of_values[-1][DataPoint.CUMULATIVE].keys())
+        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
+        self.assertEqual(1, last_cumul['User-Login'][KPISet.SAMPLE_COUNT])
 
     def test_read_labels_regular(self):
         log_path = RESOURCES_DIR + "gatling/"
