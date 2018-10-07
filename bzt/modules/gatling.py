@@ -616,16 +616,20 @@ class DataLogReader(ResultsReader):
         r_time = int(fields[6]) / 1000.0
         latency = 0.0
         con_time = 0.0
-        if fields[7] == 'OK':
-            r_code = '200'
-        else:
-            _tmp_rc = fields[-1].split(" ")[-1]
-            r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
 
         if label in self._group_errors:
             error = ';'.join(self._group_errors.pop(label))
         else:
             error = None
+
+        if fields[7] == 'OK':
+            r_code = '200'
+        else:
+            _tmp_rc = fields[-1].split(" ")[-1]
+            r_code = _tmp_rc if _tmp_rc.isdigit() else 'N/A'
+            if not error:
+                error = "Unspecified"
+
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
 
     def __parse_request(self, fields):
