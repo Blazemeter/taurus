@@ -32,3 +32,12 @@ class TestJMeterTool(BZTestCase):
         self.obj.install_for_jmx(RESOURCES_DIR + "/jmeter/jmx/really_wrong_name.jmx")
 
         self.assertIn(jmx_file + " not found", self.log_recorder.warn_buff.getvalue())
+
+    def test_jvm_params(self):
+        self.sniff_log(self.obj.log)
+
+        jmx_file = RESOURCES_DIR + "/jmeter/jmx/really_wrong_name.jmx"
+        self.obj.install_for_jmx(RESOURCES_DIR + "/jmeter/jmx/really_wrong_name.jmx")
+
+        self.assertIn(jmx_file + " not found", self.log_recorder.warn_buff.getvalue())
+

@@ -11,7 +11,7 @@ class MockResponse(object):
 
 
 class MockHTTPClient(HTTPClient):
-    def __init__(self, responses_dict=None):
+    def __init__(self):
         super(MockHTTPClient, self).__init__()
         self.responses_dict = {}
 
@@ -42,7 +42,7 @@ class MockJMeter(JMeter):
     def ctg_plugin_installed(self):
         return self.has_ctg
 
-    def _pmgr_call(self, params, env=None):
+    def _pmgr_call(self, params):
         # replaces real pmgr call
         reaction = self.reaction.pop(0)
         if 'raise' in reaction:

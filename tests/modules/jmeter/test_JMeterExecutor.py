@@ -871,6 +871,28 @@ class TestJMeterExecutor(BZTestCase):
         self.assertTrue("any_prop=true" in sys_prop)
         self.assertFalse("sun.net.inetaddr.ttl=0" in sys_prop)
 
+    def test_jpgc_props(self):
+        self.configure({
+            'execution': {
+                'hold-for': 2,
+                'concurrency': 1,
+                'scenario': {'script': RESOURCES_DIR + '/jmeter/jmx/http.jmx'}},
+            'modules': {
+                'jmeter': {
+                    'system-properties': {'sys0': 'val_s0', 'jpgc.1': 'val_s1', 'jpgc.2': 'val_s2'},
+                    'properties': {'bzt0': 'val_p0', 'jpgc.2': 'val_p1'}}}})
+
+        self.obj.env.set({"JVM_ARGS": "-Dsettings_env=val_set_env"})
+
+        self.obj.prepare()
+        jvm_args = self.obj.tool.env.get('JVM_ARGS')
+
+        for val in ("sys0", "val_s0", "val_s2", "bzt0", "val_p0"):
+            self.assertNotIn(val, jvm_args)
+
+        for val in ("jpgc.1", "val_s1", "jpgc.2", "val_p1", "settings_env", "val_set_env"):
+            self.assertIn(val, jvm_args)
+
     def test_stepping_tg_ramp_no_proportion(self):
         self.configure({
             'execution': {
