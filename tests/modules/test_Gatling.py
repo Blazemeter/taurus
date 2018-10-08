@@ -521,9 +521,8 @@ class TestDataLogReader(BZTestCase):
         log_path = RESOURCES_DIR + "gatling/"
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-2')  # problematic one
         list_of_values = list(obj.datapoints(True))
-        self.assertEqual(len(list_of_values), 5)
+        self.assertEqual(len(list_of_values), 1)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")
-        self.assertIn('User-Login,Auth-POST', list_of_values[-1][DataPoint.CUMULATIVE].keys())
         last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
         self.assertEqual(1, last_cumul['User-Login'][KPISet.SAMPLE_COUNT])
 

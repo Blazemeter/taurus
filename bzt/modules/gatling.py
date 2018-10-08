@@ -537,7 +537,7 @@ class DataLogReader(ResultsReader):
         self.delimiter = "\t"
         self.dir_prefix = dir_prefix
         self.guessed_gatling_version = None
-        self._group_errors = defaultdict(set)
+        self._group_errors = defaultdict(lambda: defaultdict(set))
 
     def _extract_log_gatling_21(self, fields):
         """
@@ -598,10 +598,13 @@ class DataLogReader(ResultsReader):
         # [8] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
 
         if fields[0].strip() == "USER":
+            user_id = fields[2]
             if fields[3].strip() == "START":
                 self.concurrency += 1
+                self._group_errors[user_id].clear()
             elif fields[3].strip() == "END":
                 self.concurrency -= 1
+                self._group_errors.pop(user_id)
 
         if fields[0].strip() == "GROUP":
             return self.__parse_group(fields)
@@ -611,14 +614,17 @@ class DataLogReader(ResultsReader):
             return None
 
     def __parse_group(self, fields):
+        user_id = fields[2]
         label = fields[3]
+        if ',' in label:
+            return None  # skip nested groups for now
         t_stamp = int(fields[5]) / 1000.0
         r_time = int(fields[6]) / 1000.0
         latency = 0.0
         con_time = 0.0
 
-        if label in self._group_errors:
-            error = ';'.join(self._group_errors.pop(label))
+        if label in self._group_errors[user_id]:
+            error = ';'.join(self._group_errors[user_id].pop(label))
         else:
             error = None
 
@@ -627,8 +633,7 @@ class DataLogReader(ResultsReader):
         else:
             _tmp_rc = fields[-1].split(" ")[-1]
             r_code = _tmp_rc if _tmp_rc.isdigit() else 'N/A'
-            if not error:
-                error = "Unspecified"
+            assert error, label
 
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
 
@@ -640,10 +645,11 @@ class DataLogReader(ResultsReader):
         else:
             error = None
 
-        req_hierarchy = fields[3]
+        req_hierarchy = fields[3].split(',')[0]
         if req_hierarchy:
+            user_id = fields[2]
             if error:
-                self._group_errors[req_hierarchy].add(error)
+                self._group_errors[user_id][req_hierarchy].add(error)
             return None
 
         label = fields[4]
