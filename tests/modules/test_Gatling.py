@@ -1,5 +1,4 @@
 # coding=utf-8
-import json
 import os
 import shutil
 import time
@@ -9,7 +8,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt.six import u
-from bzt.utils import EXE_SUFFIX, get_full_path, to_json
+from bzt.utils import EXE_SUFFIX, get_full_path
 from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
