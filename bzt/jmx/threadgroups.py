@@ -158,6 +158,10 @@ class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):
         concurrency_prop = self.element.find(self.CONCURRENCY_SEL)
         concurrency_prop.text = str(concurrency)
 
+    def get_concurrency(self):
+        return super(AbstractDynamicThreadGroup, self).get_concurrency(True)
+
+
 
 class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
     XPATH = r'jmeterTestPlan>hashTree>hashTree>com\.blazemeter\.jmeter\.threads\.arrivals\.ArrivalsThreadGroup'
