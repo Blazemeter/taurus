@@ -184,7 +184,7 @@ class TestHTTPClient(BZTestCase):
         obj.add_proxy_settings({"address": "http://localhost:3128",
                                 "username": "me",
                                 "password": "too"})
-        jvm_args = obj.get_proxy_jvm_args()
+        jvm_args = obj.get_proxy_props()
         for protocol in ['http', 'https']:
             for key in ['proxyHost', 'proxyPort', 'proxyUser', 'proxyPass']:
                 combo_key = protocol + '.' + key

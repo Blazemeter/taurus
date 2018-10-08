@@ -1538,16 +1538,18 @@ class JMeter(RequiredTool):
             self.log.debug("JMeter check failed.")
             return False
 
+    def _pmgr_call(self, params):
+        cmd = [self._pmgr_path()] + params
+        proc = shell_exec(cmd, env=self.env.get())
+        return communicate(proc)
+
     def install_for_jmx(self, jmx_file):
         if not os.path.isfile(jmx_file):
             self.log.warning("Script %s not found" % jmx_file)
             return
 
-        cmd = [self._pmgr_path(), "install-for-jmx", jmx_file]
-
         try:
-            proc = shell_exec(cmd, env=self.env)
-            out, err = communicate(proc)
+            out, err = self._pmgr_call(["install-for-jmx", jmx_file])
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
         except KeyboardInterrupt:
             raise
@@ -1614,7 +1616,7 @@ class JMeter(RequiredTool):
         self.log.debug("Trying: %s", cmd)
 
         try:
-            proc = shell_exec(cmd, env=self.env)
+            proc = shell_exec(cmd, env=self.env.get())
             out, err = communicate(proc)
             self.log.debug("Install plugins: %s / %s", out, err)
             if proc.returncode is not None and proc.returncode != 0:
