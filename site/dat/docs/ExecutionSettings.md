@@ -149,4 +149,4 @@ modules:
   local:
     sequential: true
 ```
-Keep in mind: sequential execution doesn't work in the `[Сloud](Cloud.md#Cloud-Provisioning)` mode. And as modules start sequentially, `[Startup Delay](#Startup-Delay)` doesn't matter in this case.
+Keep in mind: as modules start sequentially, `[Startup Delay](#Startup-Delay)` doesn't matter in this case.

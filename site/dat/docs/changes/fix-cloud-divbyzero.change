@@ -1,1 +1,2 @@
 - fix `DivisionByZero` error happening for Cloud tests
+- don't fail cloud test on variable resource file name
