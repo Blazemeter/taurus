@@ -4,7 +4,7 @@ import shutil
 import time
 
 from bzt import ToolError, TaurusConfigError
-from bzt.modules.aggregator import DataPoint
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt.six import u
@@ -285,6 +285,20 @@ class TestGatlingExecutor(BZTestCase):
         })
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
+    def test_requests_6(self):
+        self.obj.execution.merge({
+            "iterations": 5,
+            "scenario": {
+                "store-cache": False,
+                "default-address": "example.com",
+                "requests": ['/'],
+            }
+        })
+        self.obj.prepare()
+        scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
+        self.assertFilesEqual(RESOURCES_DIR + "gatling/generated6.scala", scala_file,
+                              self.obj.get_scenario().get('simulation'), "SIMNAME")
+
     def test_fail_on_zero_results(self):
         self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "gatling/bs/BasicSimulation.scala"}})
         self.obj.prepare()
@@ -520,9 +534,10 @@ class TestDataLogReader(BZTestCase):
         log_path = RESOURCES_DIR + "gatling/"
         obj = DataLogReader(log_path, ROOT_LOGGER, 'gatling-2')  # problematic one
         list_of_values = list(obj.datapoints(True))
-        self.assertEqual(len(list_of_values), 5)
+        self.assertEqual(len(list_of_values), 1)
         self.assertEqual(obj.guessed_gatling_version, "2.2+")
-        self.assertIn('User-Login,Auth-POST', list_of_values[-1][DataPoint.CUMULATIVE].keys())
+        last_cumul = list_of_values[-1][DataPoint.CUMULATIVE]
+        self.assertEqual(1, last_cumul['User-Login'][KPISet.SAMPLE_COUNT])
 
     def test_read_labels_regular(self):
         log_path = RESOURCES_DIR + "gatling/"

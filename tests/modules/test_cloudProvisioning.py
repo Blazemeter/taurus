@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shutil
 import tempfile
 import time
@@ -10,7 +11,7 @@ from bzt import TaurusConfigError, TaurusException, NormalShutdown, AutomatedShu
 from bzt.bza import Master, Test, MultiTest
 from bzt.engine import ScenarioExecutor, Service
 from bzt.modules import FunctionalAggregator
-from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet
+from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, FUNC_TEST_TYPE
 from bzt.utils import get_full_path
@@ -1535,70 +1536,296 @@ class TestCloudTaurusTest(BZTestCase):
 
 
 class TestResultsFromBZA(BZTestCase):
-    def test_simple(self):
+    @staticmethod
+    def convert_kpi_errors(errors):
+        result = {}
+        for error in errors:
+            result[error['msg']] = {'count': error['cnt'], 'rc': error['rc']}
+        return result
+
+    @staticmethod
+    def get_errors_mock(errors, assertions=None):
+        # return mock of server response for errors specified in internal format (see __get_errors_from_BZA())
+        result = []
+        if not assertions:
+            assertions = {}
+        for _id in list(set(list(errors.keys()) + list(assertions.keys()))):  # unique keys from both dictionaries
+
+            errors_list = []
+            if errors.get(_id):
+                for msg in errors[_id]:
+                    errors_list.append({
+                        "m": msg,
+                        "count": errors[_id][msg]["count"],
+                        "rc": errors[_id][msg]["rc"]})
+
+            assertions_list = []
+            if assertions.get(_id):
+                for msg in assertions[_id]:
+                    assertions_list.append({
+                        "failureMessage": msg,
+                        "failures": assertions[_id][msg]["count"],
+                        "name": "All Assertions"})
+
+            result.append({
+                "_id": _id,
+                "name": _id,
+                "assertions": assertions_list,
+                "samplesNotCounted": 0,
+                "assertionsNotCounted": 0,
+                "otherErrorsCount": 0,
+                "errors": errors_list})
+        result.append({
+            "_id": "err_inconsistency",
+            "name": "err_inconsistency",
+            "assertions": [],
+            "samplesNotCounted": 0,
+            "assertionsNotCounted": 0,
+            "otherErrorsCount": 0,
+            "errors": []})
+        return {
+            "https://a.blazemeter.com/api/v4/masters/1/reports/errorsreport/data?noDataError=false": {
+                "api_version": 4,
+                "error": None,
+                "result": result}}
+
+    def test_get_errors(self):
         mock = BZMock()
         mock.mock_get.update({
-            'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {"result": [
-                {"id": "ALL", "name": "ALL"},
-                {"id": "e843ff89a5737891a10251cbb0db08e5", "name": "http://blazedemo.com/"}
-            ]},
+            'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {
+                "api_version": 4,
+                "error": None,
+                "result": [{
+                    "sessions": ["r-t-5746a8e38569a"],
+                    "id": "ALL",
+                    "name": "ALL"
+                }, {
+                    "sessions": ["r-t-5746a8e38569a"],
+                    "id": "e843ff89a5737891a10251cbb0db08e5",
+                    "name": "http://blazedemo.com/"}]},
+            'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=0&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                "api_version": 4,
+                "error": None,
+                "result": [{
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "label": "ALL",
+                    "kpis": [{
+                        "n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
+                        "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248743
+                    }, {"n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
+                        "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248744}]}]},
+            'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
+                "api_version": 4,
+                "error": None,
+                "result": [{
+                    "labelName": "ALL", "99line": 1050, "90line": 836, "95line": 912}, {
+                    "labelName": "http://blazedemo.com", "99line": 1050, "90line": 836, "95line": 912}]},
+            'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=1464248744&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                "api_version": 4,
+                "error": None,
+                "result": [{
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "label": "ALL",
+                    "kpis": [{
+                        "n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
+                        "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248744
+                    }, {"n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
+                        "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248745}]}]},
+            'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=1464248745&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                "api_version": 4,
+                "error": None,
+                "result": [{
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "label": "ALL",
+                    "kpis": [{
+                        "n": 1, "na": 1, "ec": 0, "p90": 0, "t_avg": 817, "lt_avg": 82,
+                        "by_avg": 0, "n_avg": 1, "ec_avg": 0, "ts": 1464248745}]}]}})
+
+        obj = ResultsFromBZA()
+        obj.master = Master(data={"id": 1})
+        mock.apply(obj.master)
+
+        # set cumulative errors from BM
+        mock.mock_get.update(self.get_errors_mock({
+            'ALL': {"Not found": {"count": 10, "rc": "404"}},
+            # 'broken': {"Not found": {"count": 10, "rc": "404"}},
+        }))
+
+        # frame [0, 1464248744)
+        res1 = list(obj.datapoints(False))
+        self.assertEqual(1, len(res1))
+        cumul = res1[0][DataPoint.CUMULATIVE]
+        cur = res1[0][DataPoint.CURRENT]
+        self.assertEqual(1, len(cumul.keys()))
+        self.assertEqual(1, len(cur.keys()))
+        errors_1 = {'Not found': {'count': 10, 'rc': u'404'}}
+        self.assertEqual(self.convert_kpi_errors(cumul[""]["errors"]), errors_1)  # all error data is written
+        self.assertEqual(self.convert_kpi_errors(cur[""]["errors"]), errors_1)  # to 'current' and 'cumulative'
+
+        # frame [1464248744, 1464248745)
+        res2 = list(obj.datapoints(False))
+        self.assertEqual(1, len(res2))
+        cumul = res2[0][DataPoint.CUMULATIVE]
+        cur = res2[0][DataPoint.CURRENT]
+        self.assertEqual(1, len(cumul.keys()))
+        self.assertEqual(1, len(cur.keys()))
+        self.assertEqual(self.convert_kpi_errors(cumul[""]["errors"]), errors_1)  # the same errors,
+        self.assertEqual(cur[""]["errors"], [])  # new errors not found
+
+        mock.mock_get.update(self.get_errors_mock({
+            "ALL": {
+                "Not found": {
+                    "count": 11, "rc": "404"},  # one more error
+                "Found": {
+                    "count": 2, "rc": "200"}},  # new error message (error ID)
+            "label1": {
+                "Strange behaviour": {
+                    "count": 666, "rc": "666"}}}, {  # new error label
+            "ALL": {"assertion_example": {"count": 33}}}))
+
+        res3 = list(obj.datapoints(True))  # let's add the last timestamp [1464248745]
+        self.assertEqual(1, len(res3))
+        cumul = res3[0][DataPoint.CUMULATIVE]
+        cur = res3[0][DataPoint.CURRENT]
+        errors_all_full = {
+            'Not found': {'count': 11, 'rc': '404'},
+            'Found': {'count': 2, 'rc': '200'},
+            'assertion_example': {'count': 33, 'rc': 'All Assertions'}}
+        errors_all_update = {
+            'Not found': {'count': 1, 'rc': '404'},
+            'Found': {'count': 2, 'rc': '200'},
+            'assertion_example': {'count': 33, 'rc': 'All Assertions'}}
+
+        errors_label1 = {'Strange behaviour': {'count': 666, 'rc': '666'}}
+        self.assertEqual(errors_label1, self.convert_kpi_errors(cumul["label1"]["errors"]))
+        self.assertEqual(errors_all_full, self.convert_kpi_errors(cumul[""]["errors"]))
+        self.assertEqual(errors_label1, self.convert_kpi_errors(cur["label1"]["errors"]))
+        self.assertEqual(errors_all_update, self.convert_kpi_errors(cur[""]["errors"]))
+
+    def test_datapoint(self):
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/data/labels?master_id=1': {
+                "api_version": 2,
+                "error": None,
+                "result": [{
+                    "sessions": ["r-t-5746a8e38569a"],
+                    "id": "ALL",
+                    "name": "ALL"
+                }, {
+                    "sessions": ["r-t-5746a8e38569a"],
+                    "id": "e843ff89a5737891a10251cbb0db08e5",
+                    "name": "http://blazedemo.com/"}]},
             'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=0&master_ids%5B%5D=1&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
                 "api_version": 2,
                 "error": None,
+                "result": [{
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "label": "ALL",
+                    "kpis": [{
+                        "n": 1,
+                        "na": 1,
+                        "ec": 0,
+                        "p90": 0,
+                        "t_avg": 817,
+                        "lt_avg": 82,
+                        "by_avg": 0,
+                        "n_avg": 1,
+                        "ec_avg": 0,
+                        "ts": 1464248743}]}]},
+            'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
+                "api_version": 2,
+                "error": None,
+                "result": [{
+                    "labelId": "ALL",
+                    "labelName": "ALL",
+                    "samples": 152,
+                    "avgResponseTime": 786,
+                    "90line": 836,
+                    "95line": 912,
+                    "99line": 1050,
+                    "minResponseTime": 531,
+                    "maxResponseTime": 1148,
+                    "avgLatency": 81,
+                    "geoMeanResponseTime": None,
+                    "stDev": 108,
+                    "duration": 119,
+                    "avgBytes": 0,
+                    "avgThroughput": 1.2773109243697,
+                    "medianResponseTime": 0,
+                    "errorsCount": 0,
+                    "errorsRate": 0,
+                    "hasLabelPassedThresholds": None
+                }, {
+                    "labelId": "e843ff89a5737891a10251cbb0db08e5",
+                    "labelName": "http://blazedemo.com/",
+                    "samples": 152,
+                    "avgResponseTime": 786,
+                    "90line": 836,
+                    "95line": 912,
+                    "99line": 1050,
+                    "minResponseTime": 531,
+                    "maxResponseTime": 1148,
+                    "avgLatency": 81,
+                    "geoMeanResponseTime": None,
+                    "stDev": 108,
+                    "duration": 119,
+                    "avgBytes": 0,
+                    "avgThroughput": 1.2773109243697,
+                    "medianResponseTime": 0,
+                    "errorsCount": 0,
+                    "errorsRate": 0,
+                    "hasLabelPassedThresholds": None}]}})
+
+        mock.mock_get.update(self.get_errors_mock({"ALL": {}}))
+
+        obj = ResultsFromBZA()
+        obj.master = Master(data={"id": 1})
+        mock.apply(obj.master)
+        res = list(obj.datapoints(True))
+        cumulative_ = res[0][DataPoint.CUMULATIVE]
+        total = cumulative_['']
+        percentiles_ = total[KPISet.PERCENTILES]
+        self.assertEquals(1.05, percentiles_['99.0'])
+
+    def test_no_kpis_on_cloud_crash(self):
+        mock = BZMock()
+        mock.mock_get.update({
+            'https://a.blazemeter.com/api/v4/data/labels?master_id=0': {
+                "api_version": 2,
+                "error": None,
+                "result": [
+                    {
+                        "sessions": [
+                            "r-t-5746a8e38569a"
+                        ],
+                        "id": "ALL",
+                        "name": "ALL"
+                    },
+                    {
+                        "sessions": [
+                            "r-t-5746a8e38569a"
+                        ],
+                        "id": "e843ff89a5737891a10251cbb0db08e5",
+                        "name": "http://blazedemo.com/"
+                    }
+                ]
+            },
+            'https://a.blazemeter.com/api/v4/data/kpis?interval=1&from=0&master_ids%5B%5D=0&kpis%5B%5D=t&kpis%5B%5D=lt&kpis%5B%5D=by&kpis%5B%5D=n&kpis%5B%5D=ec&kpis%5B%5D=ts&kpis%5B%5D=na&labels%5B%5D=ALL&labels%5B%5D=e843ff89a5737891a10251cbb0db08e5': {
+                "api_version": 2,
+                "error": None,
                 "result": [
                     {
                         "labelId": "ALL",
                         "labelName": "ALL",
-                        "label": "ALL",
-                        "kpis": [
-                            {
-                                "n": 15,
-                                "na": 2,
-                                "ec": 0,
-                                "ts": 1442497724,
-                                "t_avg": 558,
-                                "lt_avg": 25.7,
-                                "by_avg": 0,
-                                "n_avg": 15,
-                                "ec_avg": 0
-                            }, {
-                                "n": 7,
-                                "na": 4,
-                                "ec": 0,
-                                "ts": 1442497725,
-                                "t_avg": 88.1,
-                                "lt_avg": 11.9,
-                                "by_avg": 0,
-                                "n_avg": 7,
-                                "ec_avg": 0
-                            }]
-                    }, {
-                        "labelId": "e843ff89a5737891a10251cbb0db08e5",
-                        "labelName": "http://blazedemo.com/",
-                        "label": "http://blazedemo.com/",
-                        "kpis": [
-                            {
-                                "n": 15,
-                                "na": 2,
-                                "ec": 0,
-                                "ts": 1442497724,
-                                "t_avg": 558,
-                                "lt_avg": 25.7,
-                                "by_avg": 0,
-                                "n_avg": 15,
-                                "ec_avg": 0
-                            }, {
-                                "n": 7,
-                                "na": 4,
-                                "ec": 0,
-                                "ts": 1442497725,
-                                "t_avg": 88.1,
-                                "lt_avg": 11.9,
-                                "by_avg": 0,
-                                "n_avg": 7,
-                                "ec_avg": 0
-                            }]}]},
-            'https://a.blazemeter.com/api/v4/masters/1/reports/aggregatereport/data': {
+                    }
+                ]
+            },
+            'https://a.blazemeter.com/api/v4/masters/0/reports/aggregatereport/data': {
                 "api_version": 2,
                 "error": None,
                 "result": [
@@ -1622,7 +1849,8 @@ class TestResultsFromBZA(BZTestCase):
                         "errorsCount": 0,
                         "errorsRate": 0,
                         "hasLabelPassedThresholds": None
-                    }, {
+                    },
+                    {
                         "labelId": "e843ff89a5737891a10251cbb0db08e5",
                         "labelName": "http://blazedemo.com/",
                         "samples": 152,
@@ -1642,21 +1870,89 @@ class TestResultsFromBZA(BZTestCase):
                         "errorsCount": 0,
                         "errorsRate": 0,
                         "hasLabelPassedThresholds": None
-                    }]},
-            'https://a.blazemeter.com/api/v4/masters/1/reports/errorsreport/data?noDataError=false': {
-                'result': []}})
+                    }
+                ]
+            }
+        })
 
-        obj = ResultsFromBZA()
-        obj.master = Master(data={'id': 1})
+        obj = ResultsFromBZA(Master(data={'id': 0}))
         mock.apply(obj.master)
-        results = [x for x in obj.datapoints(True)]
-        self.assertEquals(2, len(results))
-        cumulative = results[-1][DataPoint.CUMULATIVE]['']
-        self.assertTrue(0 <= cumulative[KPISet.AVG_LATENCY] < 1)
-        self.assertEqual(cumulative[KPISet.CONCURRENCY], 4)
-        self.assertEqual(cumulative[KPISet.PERCENTILES]['90.0'], .836)
-        self.assertEqual(cumulative[KPISet.PERCENTILES]['95.0'], .912)
-        self.assertEqual(cumulative[KPISet.PERCENTILES]['99.0'], 1.050)
+
+        res = list(obj.datapoints(True))
+        self.assertEqual(res, [])
+
+    def test_inconsistent(self):
+        self.skipTest("just keep this code for future troubleshooting")
+        agg = ConsolidatingAggregator()
+        obj = ResultsFromBZA(MasterFromLog(data={'id': 0}))
+        with open("/home/undera/bzt.log") as fhd:
+            obj.master.loglines = fhd.readlines()
+
+        class Listener(AggregatorListener):
+            def aggregated_second(self, data):
+                for x in data[DataPoint.CURRENT].values():
+                    a = x[KPISet.FAILURES] / x[KPISet.SAMPLE_COUNT]
+                    obj.log.debug("TS: %s %s", data[DataPoint.TIMESTAMP], x[KPISet.SAMPLE_COUNT])
+
+        agg.add_underling(obj)
+        agg.add_listener(Listener())
+        agg.prepare()
+        agg.startup()
+        try:
+            while not agg.check():
+                pass  # 1537973736 fail, prev  1537973735 1537973734 1537973733
+        except NormalShutdown:
+            obj.log.warning("Shutting down")
+        agg.shutdown()
+        agg.post_process()
+
+        # res = list(obj.datapoints(False)) + list(obj.datapoints(True))
+        # for point in res:
+        #    obj.log.debug("TS: %s", point[DataPoint.TIMESTAMP])
+        #    for x in point[DataPoint.CURRENT].values():
+        #        a = x[KPISet.FAILURES] / x[KPISet.SAMPLE_COUNT]
+
+
+class MasterFromLog(Master):
+    loglines = []
+
+    def _extract(self, marker):
+        marker = marker.replace('/', '[/]')
+        marker = marker.replace('?', '[?]')
+        regexp = re.compile(marker)
+        while self.loglines:
+            line = self.loglines.pop(0)
+            if "Shutting down..." in line:
+                raise NormalShutdown()
+            match = regexp.search(line)
+            if match:
+                self.log.debug("Found: %s", line)
+                while self.loglines:
+                    line = self.loglines.pop(0)
+                    if "Response [200]" in line:
+                        self.log.debug("Found: %s", line)
+                        buf = "{"
+                        while self.loglines:
+                            line = self.loglines.pop(0)
+                            if len(line) < 5:
+                                pass
+                            if line.startswith("}"):
+                                self.log.debug("Result data: %s}", buf)
+                                return json.loads(buf + "}")['result']
+                            else:
+                                buf += line
+        # return []
+        raise AssertionError("Failed to find: %s", marker)
+
+    def get_kpis(self, min_ts):
+        return self._extract("GET https://a.blazemeter.com/api/v4/data/kpis")
+
+    def get_aggregate_report(self):
+        return self._extract("GET https://a.blazemeter.com/api/v4/masters/\d+/reports/aggregatereport/data")
+
+    def get_errors(self):
+        tpl = "GET https://a.blazemeter.com/api/v4/masters/\d+/reports/errorsreport/data?noDataError=false"
+        return self._extract(tpl)
 
 
 class TestFunctionalBZAReader(BZTestCase):

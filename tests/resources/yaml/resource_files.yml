@@ -7,6 +7,10 @@ execution:
 - executor: jmeter
   scenario:
     script: resources/jmeter/jmx/files_paths.jmx
+- executor: jmeter
+  scenario:
+    data-sources:
+    - ${variable}
 
 # 2, 3
 - executor: selenium

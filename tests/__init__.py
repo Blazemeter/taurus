@@ -11,14 +11,29 @@ from logging import Handler
 from random import random
 from unittest.case import TestCase
 
+from bzt.cli import CLI
 from bzt.engine import SelfDiagnosable
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.six import u
-from bzt.utils import EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, run_once
 
 TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
 
 ROOT_LOGGER = logging.getLogger("")
+
+
+@run_once
+def setup_test_logging():
+    """ set up test logging for convenience in IDE """
+    if not ROOT_LOGGER.handlers:
+        CLI.log = ''  # means no log file will be created
+        CLI.verbose = True
+        CLI.setup_logging(CLI)
+    else:
+        ROOT_LOGGER.debug("Already set up logging")
+
+
+setup_test_logging()
 ROOT_LOGGER.info("Bootstrapped test")
 
 

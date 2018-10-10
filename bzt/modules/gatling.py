@@ -20,6 +20,7 @@ import os
 import re
 import subprocess
 import time
+from collections import defaultdict
 
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
@@ -55,6 +56,9 @@ class GatlingScriptBuilder(object):
         default_address = self.scenario.get("default-address", "")
 
         http_str = 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
+
+        if not self.scenario.get('store-cache', True):
+            http_str += self.indent('.disableCaching\n', level=2)
 
         scenario_headers = self.scenario.get_headers()
         for key in scenario_headers:
@@ -215,6 +219,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     """
     Gatling executor module
     """
+
     def __init__(self):
         super(GatlingExecutor, self).__init__()
         self.script = None
@@ -535,6 +540,7 @@ class DataLogReader(ResultsReader):
         self.delimiter = "\t"
         self.dir_prefix = dir_prefix
         self.guessed_gatling_version = None
+        self._group_errors = defaultdict(lambda: defaultdict(set))
 
     def _extract_log_gatling_21(self, fields):
         """
@@ -595,35 +601,71 @@ class DataLogReader(ResultsReader):
         # [8] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
 
         if fields[0].strip() == "USER":
+            user_id = fields[2]
             if fields[3].strip() == "START":
                 self.concurrency += 1
+                self._group_errors[user_id].clear()
             elif fields[3].strip() == "END":
                 self.concurrency -= 1
+                self._group_errors.pop(user_id)
 
-        if fields[0].strip() != "REQUEST":
+        if fields[0].strip() == "GROUP":
+            return self.__parse_group(fields)
+        elif fields[0].strip() == "REQUEST":
+            return self.__parse_request(fields)
+        else:
             return None
 
-        # see LogFileDataWriter.ResponseMessageSerializer in gatling-core
-        req_name = fields[4]
-        req_hierarchy = fields[3]
-
-        label = req_hierarchy if req_hierarchy else req_name
-        t_stamp = int(fields[6]) / 1000.0
-
-        r_time = (int(fields[6]) - int(fields[5])) / 1000.0
+    def __parse_group(self, fields):
+        user_id = fields[2]
+        label = fields[3]
+        if ',' in label:
+            return None  # skip nested groups for now
+        t_stamp = int(fields[5]) / 1000.0
+        r_time = int(fields[6]) / 1000.0
         latency = 0.0
         con_time = 0.0
 
+        if label in self._group_errors[user_id]:
+            error = ';'.join(self._group_errors[user_id].pop(label))
+        else:
+            error = None
+
+        if fields[7] == 'OK':
+            r_code = '200'
+        else:
+            _tmp_rc = fields[-1].split(" ")[-1]
+            r_code = _tmp_rc if _tmp_rc.isdigit() else 'N/A'
+            assert error, label
+
+        return int(t_stamp), label, r_time, con_time, latency, r_code, error
+
+    def __parse_request(self, fields):
+        # see LogFileDataWriter.ResponseMessageSerializer in gatling-core
+
+        if len(fields) >= 9 and fields[8]:
+            error = fields[8]
+        else:
+            error = None
+
+        req_hierarchy = fields[3].split(',')[0]
+        if req_hierarchy:
+            user_id = fields[2]
+            if error:
+                self._group_errors[user_id][req_hierarchy].add(error)
+            return None
+
+        label = fields[4]
+        t_stamp = int(fields[6]) / 1000.0
+        r_time = (int(fields[6]) - int(fields[5])) / 1000.0
+        latency = 0.0
+        con_time = 0.0
         if fields[7] == 'OK':
             r_code = '200'
         else:
             _tmp_rc = fields[-1].split(" ")[-1]
             r_code = _tmp_rc if _tmp_rc.isdigit() else 'No RC'
 
-        if len(fields) >= 9 and fields[8]:
-            error = fields[8]
-        else:
-            error = None
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
 
     def _guess_gatling_version(self, fields):
