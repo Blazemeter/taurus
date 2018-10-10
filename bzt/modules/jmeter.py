@@ -64,6 +64,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.original_jmx = None
         self.modified_jmx = None
         self.jmeter_log = None
+        self.properties = BetterDict()
         self.properties_file = None
         self.sys_properties_file = None
         self.kpi_jtl = None
@@ -267,7 +268,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.original_jmx = self.get_script_path()
         if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
             self.settings["version"] = self._get_tool_version(self.original_jmx)
-        self.install_required_tools()
 
         if not self.original_jmx:
             if scenario.get("requests"):
@@ -275,6 +275,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 is_jmx_generated = True
             else:
                 raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
+
+        self.__set_jvm_properties()
+        self.__set_system_properties()
+        self.__set_jmeter_properties(scenario)
+
+        self.install_required_tools()
 
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
@@ -288,10 +294,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         modified = self.__get_modified_jmx(self.original_jmx, is_jmx_generated)
         self.modified_jmx = self.__save_modified_jmx(modified, self.original_jmx, is_jmx_generated)
-
-        self.__set_jmeter_properties(scenario)
-        self.__set_system_properties()
-        self.__set_jvm_properties()
 
         # check for necessary plugins and install them if needed
         if self.settings.get("detect-plugins", True):
@@ -317,6 +319,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         sys_props = self.settings.get("system-properties")
         if sys_props:
             self.log.debug("Additional system properties %s", sys_props)
+            self.properties.merge(sys_props)
             sys_props_file = self.engine.create_artifact("system", ".properties")
             JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
@@ -355,6 +358,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         if props:
             self.log.debug("Additional properties: %s", props)
+            self.properties.merge(props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
             JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
@@ -854,7 +858,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if not tool.check_if_installed():
                 tool.install()
 
-        self.tool = self._get_tool(JMeter, config=self.settings)
+        self.tool = self._get_tool(JMeter, config=self.settings, props=self.properties)
 
         if self._need_to_install(self.tool):
             self.tool.install()
@@ -1482,8 +1486,9 @@ class JMeter(RequiredTool):
     CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar'
     VERSION = "5.0"
 
-    def __init__(self, config=None, **kwargs):
+    def __init__(self, config=None, props=None, **kwargs):
         settings = config or {}
+        props = props or {}
 
         version = settings.get("version", JMeter.VERSION)
         jmeter_path = settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
@@ -1499,21 +1504,17 @@ class JMeter(RequiredTool):
 
         self.mirror_manager = JMeterMirrorsManager(self.http_client, self.log, self.version)
 
-        additional_jvm_props = self._get_jvm_props(settings)
+        additional_jvm_props = self._get_jvm_props(props)
         for key in additional_jvm_props:
             self.env.add_java_param({"JVM_ARGS": "-D%s=%s" % (key, additional_jvm_props[key])})
 
     def _get_jvm_props(self, settings):
-        pm_props = {}
+        props = {key: settings[key] for key in settings if key.startswith("jpgc.")}
 
         if self.http_client:
-            pm_props.update(self.http_client.get_proxy_props())
+            props.update(self.http_client.get_proxy_props())
 
-        props = settings.get("system-properties", {})
-        props.update(settings.get("properties", {}))
-
-        pm_props.update({key: props[key] for key in props if key.startswith("jpgc")})
-        return pm_props
+        return props
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)

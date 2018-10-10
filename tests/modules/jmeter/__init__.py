@@ -71,6 +71,6 @@ class MockJMeterExecutor(JMeterExecutor):
 
     def install_required_tools(self):
         if self.mock_install:
-            self.tool = self._get_tool(MockJMeter, config=self.settings, has_ctg=self.has_ctg)
+            self.tool = self._get_tool(MockJMeter, props=self.properties, config=self.settings, has_ctg=self.has_ctg)
         else:
             super(MockJMeterExecutor, self).install_required_tools()

@@ -876,7 +876,9 @@ class TestJMeterExecutor(BZTestCase):
             'execution': {
                 'hold-for': 2,
                 'concurrency': 1,
-                'scenario': {'script': RESOURCES_DIR + '/jmeter/jmx/http.jmx'}},
+                'scenario': {
+                    'script': RESOURCES_DIR + '/jmeter/jmx/http.jmx',
+                    "properties": {"jpgc.3": "scenario_prop"}}},
             'modules': {
                 'jmeter': {
                     'system-properties': {'sys0': 'val_s0', 'jpgc.1': 'val_s1', 'jpgc.2': 'val_s2'},
@@ -890,7 +892,7 @@ class TestJMeterExecutor(BZTestCase):
         for val in ("sys0", "val_s0", "val_s2", "bzt0", "val_p0"):
             self.assertNotIn(val, jvm_args)
 
-        for val in ("jpgc.1", "val_s1", "jpgc.2", "val_p1", "settings_env", "val_set_env"):
+        for val in ("jpgc.1", "val_s1", "jpgc.2", "val_p1", "settings_env", "val_set_env", "jpgc.3", "scenario_prop"):
             self.assertIn(val, jvm_args)
 
     def test_stepping_tg_ramp_no_proportion(self):
