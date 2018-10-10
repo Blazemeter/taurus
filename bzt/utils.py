@@ -41,7 +41,7 @@ import traceback
 import webbrowser
 import zipfile
 from abc import abstractmethod
-from collections import defaultdict, Counter, OrderedDict
+from collections import defaultdict, Counter
 from contextlib import contextmanager
 from math import log
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
@@ -1015,13 +1015,11 @@ class HTTPClient(object):
         self.session.verify = proxy_settings.get('ssl-cert', True)
         self.session.cert = proxy_settings.get('ssl-client-cert', None)
 
-    def get_proxy_jvm_args(self):
-        if not self.proxy_settings:
-            return ''
-        if not self.proxy_settings.get("address"):
-            return ''
+    def get_proxy_props(self):
+        props = {}
 
-        props = OrderedDict()
+        if not self.proxy_settings or not self.proxy_settings.get("address"):
+            return props
 
         proxy_url = parse.urlsplit(self.proxy_settings.get("address"))
         username = self.proxy_settings.get("username")
@@ -1033,8 +1031,7 @@ class HTTPClient(object):
                 props[protocol + '.proxyUser'] = username
                 props[protocol + '.proxyPass'] = pwd
 
-        jvm_args = " ".join(("-D%s=%s" % (key, value)) for key, value in iteritems(props))
-        return jvm_args
+        return props
 
     @staticmethod
     def _save_file_from_connection(conn, filename, reporthook=None):
