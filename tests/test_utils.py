@@ -30,6 +30,7 @@ class TestBetterDict(BZTestCase):
         a.merge({
             "nA": {
                 "nB": 444,
+                "nF": "vF",
                 "nC": {
                     "nDD": 4,
                     "nD": {
@@ -39,11 +40,19 @@ class TestBetterDict(BZTestCase):
         rules = {
             "nA": {
                 "nB": False,
+                "nF": True,
                 "!nC": {
                     "nD": {
                         "nE": True}}}}
         a.filter(rules)
-        self.assertEqual(a, {'nA': {'nB': 444, 'nC': {'nDD': 4}}})
+        result = {
+            "nA": {
+                "nF": "vF",
+                "nC": {
+                    "nDD": 4,
+                    "nD": {
+                        "nEE": "vEE"}}}}
+        self.assertEqual(a, result)
 
 
 class TestMisc(BZTestCase):

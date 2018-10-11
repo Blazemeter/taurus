@@ -327,6 +327,7 @@ class BetterDict(defaultdict):
                     cls.traverse(obj[idx], visitor)
 
     def filter(self, rules):
+        # white list: missed == False
         keys = set(self.keys())
         for key in keys:
             ikey = "!" + key
