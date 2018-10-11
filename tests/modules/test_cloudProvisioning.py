@@ -311,16 +311,21 @@ class TestCloudProvisioning(BZTestCase):
                         "cloud": 10},
                     "locations": {
                         "us-east-1": 1,
-                        "us-west": 2}}},
+                        "us-west": 2}},
+                "modules": {
+                    "jmeter": {
+                        "class": "bizarre_local_class",
+                        "version": "some_value"
+                    }
+                }
+            },
         )
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
         cloud_config = self.obj.router.prepare_cloud_config(self.obj.engine.config)
-        execution = cloud_config["execution"][0]
-        self.assertNotIn("throughput", execution)
-        self.assertNotIn("ramp-up", execution)
-        self.assertNotIn("hold-for", execution)
-        self.assertNotIn("steps", execution)
+        cloud_jmeter = cloud_config.get("modules").get("jmeter")
+        self.assertNotIn("class", cloud_jmeter)
+        self.assertIn("version", cloud_jmeter)
 
     def test_default_test_type_cloud(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
