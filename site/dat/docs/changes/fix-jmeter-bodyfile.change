@@ -1,3 +1,0 @@
-Allow JMeter to send binary files
-Split parser on two parts: for JMeter and for others
-Allow parser to choose appropriate request type

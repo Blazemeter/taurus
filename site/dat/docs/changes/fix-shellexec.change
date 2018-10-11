@@ -1,4 +1,0 @@
-fix hanging of shellexec due to wait()
-
-In case of filling buffer (PIPE) OS blocks writing process (task). If shellexec just wait for finish of task (wait())
-it stops taurus at all. communicate() handle that more carefully as it read buffers before internal wait() call.

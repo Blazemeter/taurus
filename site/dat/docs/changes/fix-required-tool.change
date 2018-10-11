@@ -1,3 +1,0 @@
-unify tools interfaces
-centralize filling of identical fields
-move tools features into them (download link, package name, tool path, version, chrome/gecko logic, etc.)

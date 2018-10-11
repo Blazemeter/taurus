@@ -121,7 +121,7 @@ class CLI(object):
         """
         if self.options.log:
             # need to finalize the logger before finishing
-            for handler in self.log.handlers:
+            for handler in self.log.handlers[:]:
                 if issubclass(handler.__class__, logging.FileHandler):
                     self.log.debug("Closing log handler: %s", handler.baseFilename)
                     handler.close()
@@ -133,7 +133,7 @@ class CLI(object):
         :return:
         """
         if self.options.log:
-            for handler in self.log.handlers:
+            for handler in self.log.handlers[:]:
                 if issubclass(handler.__class__, logging.FileHandler):
                     self.log.debug("Closing log handler: %s", handler.baseFilename)
                     handler.close()

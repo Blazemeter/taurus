@@ -1,3 +1,0 @@
-- bump up default JMeter to 5.0
-- less logging for JUnit executor
-- use `STATUS_BROKEN` instead of `STATUS_FAILED` in JUnit 4

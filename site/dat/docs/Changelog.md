@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.13.1<sup>next</sup>
+- bump up default JMeter to 5.0
+- fix `DivisionByZero` error happening for Cloud tests
+- fix hanging of shellexec commands due to `wait()` call used
+- use JMeter properties for configuration of PluginManagerCMD
+- in JMeter, allow starting throughput from float values less than 1.0
+- fix results reading for latest Locust
+- support proxy for all HTTP requests made from Taurus
+- support `store-cache` flag in Gatling
+- bump `astunparse` dependency version and fix tests
+- fix handling of subsample errors for BZA reports (Python 3)
+- don't fail cloud test on variable resource file name
+- fix logging unicode into file, filter broken output of third party tools
+- handle subsamples asserts as `ERRTYPE_ASSERT` instead of `ERRTYPE_SUBSAMPLE`
+- fix Gatling report reading when groups are used, limit to first level of group hierarchy
+- allow JMeter to send binary files via `body-file`
+- change Windows platform name in pip requirements
+- fix lost error message/trace for Postman scripts with assertions
+- refactor `RequiredTool` superclass, affects all underlying tool handling
+- less logging written for JUnit executor
+- use `STATUS_BROKEN` instead of `STATUS_FAILED` in JUnit 4
+- added `rc-file` as an executor option for Siege
+
+
 ## 1.13.0<sup>4 sep 2018</sup>
 - Windows installer is now self-contained, can be used without network connection (**need to uninstall older versions first!**)
 - remove `BetterDict` usage from `DataPoint` and `KPISet` - impactful internal change
