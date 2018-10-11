@@ -43,6 +43,20 @@ def get_success_reader_selected_labels(offset=0):
     return mock
 
 
+def random_url(target_len):
+    base = 'http://site.com/?'
+    return base + random_string(target_len - len(base))
+
+
+def get_success_reader_growing_labels(label_size=20, count=500):
+    mock = MockReader()
+    for x in range(2, count):
+        target_size = label_size + int(float(label_size) * float(x) / float(count))
+        label = random_url(target_size)
+        mock.data.append((x, label, 1, r(), r(), r(), 200, '', '', 0))
+    return mock
+
+
 def get_fail_reader(offset=0):
     mock = MockReader()
     mock.data.append((1 + offset, "first", 1, r(), r(), r(), 200, 'FAILx3', '', 0))
@@ -146,7 +160,7 @@ class TestConsolidatingAggregator(BZTestCase):
         reader1 = get_success_reader()
         reader2 = get_success_reader_alot()
         self.obj.log.info(len(reader1.data) + len(reader2.data))
-        self.obj.generalize_labels = 50
+        self.obj.generalize_labels = 25
         self.obj.add_underling(reader1)
         self.obj.add_underling(reader2)
         self.obj.shutdown()
@@ -162,7 +176,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.prepare()
         reader = get_success_reader_alot(prefix='http://blazedemo.com/?r=')
         self.obj.log.info(len(reader.data))
-        self.obj.generalize_labels = 50
+        self.obj.generalize_labels = 25
         self.obj.add_underling(reader)
         self.obj.shutdown()
         self.obj.post_process()
@@ -176,13 +190,28 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.prepare()
         reader = get_success_reader_selected_labels()
         self.obj.log.info(len(reader.data))
-        self.obj.generalize_labels = 50
+        self.obj.generalize_labels = 25
         self.obj.add_underling(reader)
         self.obj.shutdown()
         self.obj.post_process()
         cum_dict = self.obj.cumulative
         labels = list(cum_dict.keys())
         self.assertEqual(len(labels), 6)
+
+    def test_labels_aggressive_folding_2(self):
+        self.obj.track_percentiles = [50]
+        self.obj.prepare()
+        LABEL_COUNT = 25
+        reader = get_success_reader_growing_labels(label_size=int(LABEL_COUNT * 1.5), count=100)
+        self.obj.log.info(len(reader.data))
+        self.obj.generalize_labels = LABEL_COUNT
+        self.obj.add_underling(reader)
+        self.obj.shutdown()
+        self.obj.post_process()
+        cum_dict = self.obj.cumulative
+        labels = list(cum_dict.keys())
+        labels_count = len(labels)
+        self.assertLessEqual(len(labels), LABEL_COUNT)
 
     def test_errors_variety(self):
         self.obj.track_percentiles = [50]
