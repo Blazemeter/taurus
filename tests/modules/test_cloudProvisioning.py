@@ -315,7 +315,11 @@ class TestCloudProvisioning(BZTestCase):
                 "modules": {
                     "jmeter": {
                         "class": "bizarre_local_class",
-                        "version": "some_value"
+                        "version": "some_value"},
+                    "blazemeter": {
+                        "class": "bm_class",
+                        "strange_param": False
+
                     }
                 }
             },

@@ -10,7 +10,7 @@ from os.path import join
 
 from bzt import TaurusNetworkError
 from bzt.six import PY2, communicate
-from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient
+from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient, BetterDict
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 
@@ -22,6 +22,28 @@ class MockPopen(object):
 
     def communicate(self):
         return self.out, self.err
+
+
+class TestBetterDict(BZTestCase):
+    def test_filter(self):
+        a = BetterDict()
+        a.merge({
+            "nA": {
+                "nB": 444,
+                "nC": {
+                    "nDD": 4,
+                    "nD": {
+                        "nE": "vE",
+                        "nEE": "vEE"
+                    }}}})
+        rules = {
+            "nA": {
+                "nB": False,
+                "!nC": {
+                    "nD": {
+                        "nE": True}}}}
+        a.filter(rules)
+        self.assertEqual(a, {'nA': {'nB': 444, 'nC': {'nDD': 4}}})
 
 
 class TestMisc(BZTestCase):
