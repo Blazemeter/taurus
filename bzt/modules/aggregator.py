@@ -18,6 +18,7 @@ limitations under the License.
 import collections
 import copy
 import logging
+import math
 from abc import abstractmethod
 from collections import Counter
 
@@ -27,7 +28,7 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.six import iteritems, PY3, text_type
+from bzt.six import iteritems, PY3, text_type, operator
 from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
 
@@ -445,9 +446,9 @@ class ResultsProvider(object):
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
         self.rtimes_len = None
-        self.known_errors = fuzzyset.FuzzySet()
+        self.known_errors = fuzzyset.FuzzySet(use_levenshtein=False)
         self.max_error_count = 100
-        self.known_labels = fuzzyset.FuzzySet()
+        self.known_labels = fuzzyset.FuzzySet(use_levenshtein=False)
         self.generalize_labels = 100
 
     @staticmethod
@@ -472,8 +473,10 @@ class ResultsProvider(object):
         threshold = 1 - tolerance
         matches = dataset.get(key)
         if matches:
-            score, result = matches[0]
-            if score >= threshold:
+            matches = [(fuzzyset._distance(matched, key.lower()), score, matched)  # perform manual levenstein
+                       for score, matched in matches[:50]]
+            ld_distance, score, result = max(matches, key=operator.itemgetter(0))
+            if score >= threshold:  # TODO: count `ld_distance` too
                 return result
         elif tolerance >= 1.0:
             return next(iter(dataset.exact_set.values()))  # last resort for capping
