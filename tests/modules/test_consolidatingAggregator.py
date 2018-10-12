@@ -211,7 +211,8 @@ class TestConsolidatingAggregator(BZTestCase):
         cum_dict = self.obj.cumulative
         labels = list(cum_dict.keys())
         labels_count = len(labels)
-        self.assertLessEqual(len(labels), LABEL_COUNT)
+        self.assertLessEqual(labels_count, LABEL_COUNT)  # didn't overflow
+        self.assertGreaterEqual(labels_count, LABEL_COUNT * 0.25)  # at least a quorter-filled
 
     def test_errors_variety(self):
         self.obj.track_percentiles = [50]
