@@ -169,7 +169,7 @@ class TestConsolidatingAggregator(BZTestCase):
         len_limit = (self.obj.generalize_labels + 1)  # due to randomness, it it can go a bit higher than limit
         labels = list(cum_dict.keys())
         self.assertGreaterEqual(len(labels), self.obj.generalize_labels / 2)  # assert that it's at least half full
-        self.assertLessEqual(len(labels), len_limit)
+        self.assertLessEqual(len(labels), len_limit + 1)  # allow +1 label because '' is cumulative
 
     def test_labels_constant_part(self):
         self.obj.track_percentiles = [50]
@@ -183,7 +183,7 @@ class TestConsolidatingAggregator(BZTestCase):
         cum_dict = self.obj.cumulative
         labels = list(cum_dict.keys())
         self.assertGreaterEqual(len(labels), self.obj.generalize_labels / 2)  # assert that it's at least half full
-        self.assertLessEqual(len(labels), self.obj.generalize_labels)
+        self.assertLessEqual(len(labels), self.obj.generalize_labels + 1)  # allow +1 label because '' is cumulative
 
     def test_labels_aggressive_folding(self):
         self.obj.track_percentiles = [50]
@@ -206,12 +206,12 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.log.info(len(reader.data))
         self.obj.generalize_labels = LABEL_COUNT
         self.obj.add_underling(reader)
-        self.obj.shutdown()
-        self.obj.post_process()
+        for point in self.obj.datapoints():
+            last = point
         cum_dict = self.obj.cumulative
         labels = list(cum_dict.keys())
         labels_count = len(labels)
-        self.assertLessEqual(labels_count, LABEL_COUNT)  # didn't overflow
+        self.assertLessEqual(labels_count, LABEL_COUNT + 1)  # didn't overflow
         self.assertGreaterEqual(labels_count, LABEL_COUNT * 0.25)  # at least a quorter-filled
 
     def test_errors_variety(self):
