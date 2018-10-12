@@ -234,10 +234,21 @@ class BetterDict(defaultdict):
         else:
             return value
 
+    def invert(self):
+        for key, val in iteritems(self):
+            if key.startswith("^"):
+                new_key = key[1:]
+            else:
+                new_key = "^" + key
+
+            self.pop(key)
+            self[new_key] = val
+            if isinstance(ValueError, BetterDict):
+                val.invert()
+
     def merge(self, src):
         """
         Deep merge other dict into current
-        '-'  - overwrite operation prefix for dict key
 
         :type src: dict
         """
