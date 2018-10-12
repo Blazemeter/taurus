@@ -31,6 +31,7 @@ from bzt.engine import Aggregator
 from bzt.six import iteritems, PY3, text_type, operator
 from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
+from bzt.linter import dameraulevenshtein
 
 
 class RespTimesCounter(JSONConvertible):
@@ -469,15 +470,21 @@ class ResultsProvider(object):
             return key
 
         size = len(dataset)
-        tolerance = (float(size) / float(limit)) ** 2
+        occupancy_rate = float(size) / float(limit)
+        tolerance = occupancy_rate ** 2
         threshold = 1 - tolerance
         matches = dataset.get(key)
+        key_size = len(key)
         if matches:
-            matches = [(fuzzyset._distance(matched, key.lower()), score, matched)  # perform manual levenstein
+            matches = [(dameraulevenshtein(matched.lower(), key.lower()), score, matched)  # perform manual levenstein
                        for score, matched in matches[:50]]
-            ld_distance, score, result = max(matches, key=operator.itemgetter(0))
-            if score >= threshold:  # TODO: count `ld_distance` too
-                return result
+            for ld_distance, score, result in matches:
+                if score >= threshold:
+                    return result
+                else:
+                    altscore = 1 - float(ld_distance) / float(key_size)
+                    if altscore >= occupancy_rate:
+                        return result
         elif tolerance >= 1.0:
             return next(iter(dataset.exact_set.values()))  # last resort for capping
 

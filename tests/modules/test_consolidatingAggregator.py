@@ -44,14 +44,15 @@ def get_success_reader_selected_labels(offset=0):
 
 
 def random_url(target_len):
-    base = 'http://site.com/?'
+    base = 'http://site.com/?foo='
     return base + random_string(target_len - len(base))
 
 
-def get_success_reader_growing_labels(label_size=20, count=500):
+def get_success_reader_shrinking_labels(max_label_size=20, count=500):
     mock = MockReader()
+    half_size = max_label_size // 2
     for x in range(2, count):
-        target_size = label_size + int(float(label_size) * float(x) / float(count))
+        target_size = max_label_size - int(float(half_size) * float(x) / float(count))
         label = random_url(target_size)
         mock.data.append((x, label, 1, r(), r(), r(), 200, '', '', 0))
     return mock
@@ -201,8 +202,8 @@ class TestConsolidatingAggregator(BZTestCase):
     def test_labels_aggressive_folding_2(self):
         self.obj.track_percentiles = [50]
         self.obj.prepare()
-        LABEL_COUNT = 25
-        reader = get_success_reader_growing_labels(label_size=int(LABEL_COUNT * 1.5), count=100)
+        LABEL_COUNT = 50
+        reader = get_success_reader_shrinking_labels(max_label_size=int(LABEL_COUNT * 2), count=LABEL_COUNT)
         self.obj.log.info(len(reader.data))
         self.obj.generalize_labels = LABEL_COUNT
         self.obj.add_underling(reader)
