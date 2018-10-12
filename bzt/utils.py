@@ -1036,7 +1036,7 @@ class HTTPClient(object):
     @staticmethod
     def _save_file_from_connection(conn, filename, reporthook=None):
         if not conn.ok:
-            raise TaurusNetworkError("Connection failed, status code %s", conn.status_code)
+            raise TaurusNetworkError("Connection failed, status code %s" % conn.status_code)
         total = int(conn.headers.get('content-length', 0))
         block_size = 1024
         count = 0
