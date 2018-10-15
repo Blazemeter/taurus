@@ -234,19 +234,7 @@ class BetterDict(defaultdict):
         else:
             return value
 
-    def invert(self):
-        for key, val in iteritems(self):
-            if key.startswith("^"):
-                new_key = key[1:]
-            else:
-                new_key = "^" + key
-
-            self.pop(key)
-            self[new_key] = val
-            if isinstance(ValueError, BetterDict):
-                val.invert()
-
-    def merge(self, src, delete=False):
+    def merge(self, src, delete=False, filtering=False):
         """
         Deep merge other dict into current
 
@@ -278,25 +266,27 @@ class BetterDict(defaultdict):
             child_delete = (prefix == "!") ^ delete   # invert delete mode for children if prefix found
 
             if isinstance(val, dict):
-                self.__add_dict(key, val, delete=child_delete)
+                self.__add_dict(key, val, delete=child_delete, filtering=filtering)
             elif isinstance(val, list):
-                self.__add_list(key, val, merge_list_items, delete=child_delete)
-            else:
+                self.__add_list(key, val, merge_list_items, delete=child_delete, filtering=filtering)
+            elif not filtering:
                 self[key] = val
         return self
 
-    def __add_dict(self, key, val, delete):
+    def __add_dict(self, key, val, delete, filtering):
         dst = self.get(key, force_set=True)
         if isinstance(dst, BetterDict):
-            dst.merge(val, delete=delete)
-        elif isinstance(dst, Counter):
-            self[key] += val
-        elif isinstance(dst, dict):
-            raise TaurusInternalException("Mix of DictOfDict and dict is forbidden")
-        else:
-            self[key] = val
+            dst.merge(val, delete=delete, filtering=filtering)
 
-    def __add_list(self, key, val, merge_list_items, delete):
+        if not filtering:
+            if isinstance(dst, Counter):
+                self[key] += val
+            elif isinstance(dst, dict):
+                raise TaurusInternalException("Mix of DictOfDict and dict is forbidden")
+            else:
+                self[key] = val
+
+    def __add_list(self, key, val, merge_list_items, delete, filtering):
         self.__ensure_list_type(val)
         if key not in self:
             self[key] = []
@@ -309,7 +299,7 @@ class BetterDict(defaultdict):
                         lefty = left[index]
                         if isinstance(lefty, BetterDict):
                             if isinstance(righty, BetterDict):
-                                lefty.merge(righty, delete=delete)
+                                lefty.merge(righty, delete=delete, filtering=filtering)
                                 continue
                         logging.warning("Overwriting the value of %r when merging configs", key)
                         left[index] = righty
@@ -348,25 +338,6 @@ class BetterDict(defaultdict):
             for idx, val in enumerate(obj):
                 if not visitor(val, idx, obj):
                     cls.traverse(obj[idx], visitor)
-
-    def filter(self, rules):
-        # white list: missed == False
-        keys = set(self.keys())
-        for key in keys:
-            ikey = "!" + key
-            if ikey in rules:
-                if isinstance(rules.get(ikey), dict) and isinstance(self.get(key), BetterDict):
-                    inverted_rules = {x: True for x in self.get(key).keys() if x not in rules[ikey]}
-                    self.get(key).filter(inverted_rules)
-                    if not self.get(key):  # clear empty
-                        del self[key]
-            elif key not in rules:
-                del self[key]
-            else:
-                if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
-                    self.get(key).filter(rules[key])
-                    if not self.get(key):  # clear empty
-                        del self[key]
 
     def __repr__(self):
         return dict(self).__repr__()

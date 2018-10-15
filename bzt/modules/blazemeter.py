@@ -1093,7 +1093,7 @@ class BaseCloudTest(object):
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
-        config.filter(CLOUD_CONFIG_FILTER_RULES)
+        config.merge(CLOUD_CONFIG_FILTER_RULES)
         config['local-bzt-version'] = engine_config.get('version', 'N/A')
         for key in list(config.keys()):
             if not config[key]:
