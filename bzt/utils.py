@@ -246,34 +246,43 @@ class BetterDict(defaultdict):
             if isinstance(ValueError, BetterDict):
                 val.invert()
 
-    def merge(self, src):
+    def merge(self, src, invert_delete=False):
         """
         Deep merge other dict into current
 
         :type src: dict
+        :type invert_delete: bool
         """
         if not isinstance(src, dict):
             raise TaurusInternalException("Loaded object is not dict [%s]: %s" % (src.__class__, src))
 
         for key, val in iteritems(src):
+            prefix = ""
+            child_invert_delete = invert_delete
+            if key[0] in ("^", "~", "$", "!"):
+                prefix = key[0]
+                key = key[1:]
+
+            delete = (prefix == "^") ^ invert_delete
+
             merge_list_items = False
-            if key.startswith("^"):  # eliminate flag
+            if delete:  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
-                if key[1:] in self:
-                    self.pop(key[1:])
+                if key in self:
+                    self.pop(key)
                 continue
-            elif key.startswith("~"):  # overwrite flag
-                if key[1:] in self:
-                    self.pop(key[1:])
-                key = key[1:]
-            elif key.startswith("$"):
+            elif prefix == "~":  # overwrite flag
+                if key in self:
+                    self.pop(key)
+            elif prefix == "$":
                 merge_list_items = True
-                key = key[1:]
+            elif prefix == "!":
+                child_invert_delete = not invert_delete
 
             if isinstance(val, dict):
                 dst = self.get(key, force_set=True)
                 if isinstance(dst, BetterDict):
-                    dst.merge(val)
+                    dst.merge(val, invert_delete=child_invert_delete)
                 elif isinstance(dst, Counter):
                     self[key] += val
                 elif isinstance(dst, dict):
@@ -286,7 +295,7 @@ class BetterDict(defaultdict):
                     self[key] = []
                 if isinstance(self[key], list):
                     if merge_list_items:
-                        self.__merge_list_elements(self[key], val, key)
+                        self.__merge_list_elements(self[key], val, key, invert_delete=child_invert_delete)
                     else:
                         self[key].extend(val)
                 else:
@@ -295,13 +304,13 @@ class BetterDict(defaultdict):
                 self[key] = val
         return self
 
-    def __merge_list_elements(self, left, right, key):
+    def __merge_list_elements(self, left, right, key, invert_delete=False):
         for index, righty in enumerate(right):
             if index < len(left):
                 lefty = left[index]
                 if isinstance(lefty, BetterDict):
                     if isinstance(righty, BetterDict):
-                        lefty.merge(righty)
+                        lefty.merge(righty, invert_delete=invert_delete)
                         continue
                 logging.warning("Overwriting the value of %r when merging configs", key)
                 left[index] = righty
