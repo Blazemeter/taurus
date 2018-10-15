@@ -246,27 +246,26 @@ class BetterDict(defaultdict):
             if isinstance(ValueError, BetterDict):
                 val.invert()
 
-    def merge(self, src, invert_delete=False):
+    def merge(self, src, delete=False):
         """
         Deep merge other dict into current
 
         :type src: dict
-        :type invert_delete: bool
+        :type delete: bool
         """
         if not isinstance(src, dict):
             raise TaurusInternalException("Loaded object is not dict [%s]: %s" % (src.__class__, src))
 
         for key, val in iteritems(src):
             prefix = ""
-            child_invert_delete = invert_delete
-            if key[0] in ("^", "~", "$", "!"):
+            if key[0] in ("^", "~", "$", "!"):  # modificator found
                 prefix = key[0]
                 key = key[1:]
 
-            delete = (prefix == "^") ^ invert_delete
+            # ignore parent's delete param if modificator found
+            delete_flag = (prefix == "^") ^ (delete and (prefix not in ("^", "~", "$")))
 
-            merge_list_items = False
-            if delete:  # eliminate flag
+            if delete_flag:  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
                 if key in self:
                     self.pop(key)
@@ -274,48 +273,52 @@ class BetterDict(defaultdict):
             elif prefix == "~":  # overwrite flag
                 if key in self:
                     self.pop(key)
-            elif prefix == "$":
-                merge_list_items = True
-            elif prefix == "!":
-                child_invert_delete = not invert_delete
+
+            merge_list_items = prefix == "$"
+            child_delete = (prefix == "!") ^ delete   # invert delete mode for children if prefix found
 
             if isinstance(val, dict):
-                dst = self.get(key, force_set=True)
-                if isinstance(dst, BetterDict):
-                    dst.merge(val, invert_delete=child_invert_delete)
-                elif isinstance(dst, Counter):
-                    self[key] += val
-                elif isinstance(dst, dict):
-                    raise TaurusInternalException("Mix of DictOfDict and dict is forbidden")
-                else:
-                    self[key] = val
+                self.__add_dict(key, val, delete=child_delete)
             elif isinstance(val, list):
-                self.__ensure_list_type(val)
-                if key not in self:
-                    self[key] = []
-                if isinstance(self[key], list):
-                    if merge_list_items:
-                        self.__merge_list_elements(self[key], val, key, invert_delete=child_invert_delete)
-                    else:
-                        self[key].extend(val)
-                else:
-                    self[key] = val
+                self.__add_list(key, val, merge_list_items, delete=child_delete)
             else:
                 self[key] = val
         return self
 
-    def __merge_list_elements(self, left, right, key, invert_delete=False):
-        for index, righty in enumerate(right):
-            if index < len(left):
-                lefty = left[index]
-                if isinstance(lefty, BetterDict):
-                    if isinstance(righty, BetterDict):
-                        lefty.merge(righty, invert_delete=invert_delete)
-                        continue
-                logging.warning("Overwriting the value of %r when merging configs", key)
-                left[index] = righty
+    def __add_dict(self, key, val, delete):
+        dst = self.get(key, force_set=True)
+        if isinstance(dst, BetterDict):
+            dst.merge(val, delete=delete)
+        elif isinstance(dst, Counter):
+            self[key] += val
+        elif isinstance(dst, dict):
+            raise TaurusInternalException("Mix of DictOfDict and dict is forbidden")
+        else:
+            self[key] = val
+
+    def __add_list(self, key, val, merge_list_items, delete):
+        self.__ensure_list_type(val)
+        if key not in self:
+            self[key] = []
+        if isinstance(self[key], list):
+            if merge_list_items:
+                left = self[key]
+                right = val
+                for index, righty in enumerate(right):
+                    if index < len(left):
+                        lefty = left[index]
+                        if isinstance(lefty, BetterDict):
+                            if isinstance(righty, BetterDict):
+                                lefty.merge(righty, delete=delete)
+                                continue
+                        logging.warning("Overwriting the value of %r when merging configs", key)
+                        left[index] = righty
+                    else:
+                        left.insert(index, righty)
             else:
-                left.insert(index, righty)
+                self[key].extend(val)
+        else:
+            self[key] = val
 
     def __ensure_list_type(self, values):
         """

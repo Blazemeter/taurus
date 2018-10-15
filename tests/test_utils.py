@@ -25,9 +25,9 @@ class MockPopen(object):
 
 
 class TestBetterDict(BZTestCase):
-    def _merge_and_compare(self, first, second, result, invert_delete=False):
+    def _merge_and_compare(self, first, second, result, delete=False):
         sample = BetterDict().merge(first)
-        sample.merge(second, invert_delete=invert_delete)
+        sample.merge(second, delete=delete)
         result = BetterDict().merge(result)
         self.assertEqual(sample, result)
 
@@ -68,14 +68,24 @@ class TestBetterDict(BZTestCase):
 
         self._merge_and_compare(a, b, res)
 
-    def test_invert(self):
+    def test_invertion(self):
         a = {
             "A": {"B": "C", "D": "E"},
-            "B": {"A": "vA"}}
+            "B": {"A": "vA"},
+            "C": {
+                "J": [
+                    "D",
+                    {"E": {"nE": "vE"}}]}}
         b = {
             "!A": {"B": None},
-            "^B": "Y"}
-        res = {"A": {"D": "E"}}
+            "^B": "Y",
+            "!C": {
+                "$J": [
+                    "DD",
+                    {"E": {"nEE": "vEE"}}]}}
+        res = {"A": {"D": "E"},
+               "C": {
+                   "J": ["DD", {}]}}
         self._merge_and_compare(a, b, res)
 
     def test_filter(self):
