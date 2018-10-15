@@ -68,7 +68,7 @@ class TestBetterDict(BZTestCase):
 
         self._merge_and_compare(a, b, res)
 
-    def test_invertion(self):
+    def test_invert_delete(self):
         a = {
             "A": {"B": "C", "D": "E"},
             "B": {"A": "vA"},
@@ -85,38 +85,8 @@ class TestBetterDict(BZTestCase):
                     {"E": {"nEE": "vEE"}}]}}
         res = {"A": {"D": "E"},
                "C": {
-                   "J": ["DD", {}]}}
+                   "J": ["DD", {}]}}    # todo: should we remove empty dicts?
         self._merge_and_compare(a, b, res)
-
-    def test_filter(self):
-        a = BetterDict()
-        a.merge({
-            "nA": {
-                "nB": 444,
-                "nF": "vF",
-                "nC": {
-                    "nDD": 4,
-                    "nD": {
-                        "nE": "vE",
-                        "nEE": "vEE"
-                    }}}})
-        rules = {
-            "nA": {
-                "^nB": False,
-                "nF": True,
-                "^nC": {
-                    "nD": {
-                        "nE": True}}}}
-        a = BetterDict().merge(a)
-        a.merge(rules)
-        result = {
-            "nA": {
-                "nF": "vF",
-                "nC": {
-                    "nDD": 4,
-                    "nD": {
-                        "nEE": "vEE"}}}}
-        self.assertEqual(a, result)
 
 
 class TestMisc(BZTestCase):
