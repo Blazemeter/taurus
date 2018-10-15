@@ -18,7 +18,6 @@ limitations under the License.
 import collections
 import copy
 import logging
-import math
 from abc import abstractmethod
 from collections import Counter
 
@@ -28,10 +27,9 @@ from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.six import iteritems, PY3, text_type, operator
+from bzt.six import iteritems, PY3, text_type
 from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
-from bzt.linter import dameraulevenshtein
 
 
 class RespTimesCounter(JSONConvertible):
