@@ -447,9 +447,9 @@ class ResultsProvider(object):
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
         self.rtimes_len = None
-        self.known_errors = fuzzyset.FuzzySet(use_levenshtein=False)
+        self.known_errors = fuzzyset.FuzzySet(use_levenshtein=True)
         self.max_error_count = 100
-        self.known_labels = fuzzyset.FuzzySet(use_levenshtein=False)
+        self.known_labels = fuzzyset.FuzzySet(use_levenshtein=True)
         self.generalize_labels = 100
 
     @staticmethod
@@ -470,21 +470,13 @@ class ResultsProvider(object):
             return key
 
         size = len(dataset)
-        occupancy_rate = float(size) / float(limit)
-        tolerance = occupancy_rate ** 2
+        tolerance = (float(size) / float(limit)) ** 2
         threshold = 1 - tolerance
         matches = dataset.get(key)
-        key_size = len(key)
         if matches:
-            matches = [(dameraulevenshtein(matched.lower(), key.lower()), score, matched)  # perform manual levenstein
-                       for score, matched in matches[:50]]
-            for ld_distance, score, result in matches:
+            for score, result in matches:
                 if score >= threshold:
                     return result
-                else:
-                    altscore = 1 - float(ld_distance) / float(key_size)
-                    if altscore >= occupancy_rate:
-                        return result
         elif tolerance >= 1.0:
             return next(iter(dataset.exact_set.values()))  # last resort for capping
 
