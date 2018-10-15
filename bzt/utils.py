@@ -277,8 +277,7 @@ class BetterDict(defaultdict):
         dst = self.get(key, force_set=True)
         if isinstance(dst, BetterDict):
             dst.merge(val, delete=delete, filtering=filtering)
-
-        if not filtering:
+        elif not filtering:
             if isinstance(dst, Counter):
                 self[key] += val
             elif isinstance(dst, dict):
