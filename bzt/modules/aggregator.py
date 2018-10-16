@@ -19,6 +19,7 @@ import collections
 import copy
 import difflib
 import logging
+import math
 import re
 from abc import abstractmethod
 from collections import Counter
@@ -52,7 +53,7 @@ class RespTimesCounter(JSONConvertible):
         new.histogram.counts = copy.deepcopy(self.histogram.counts, memo)
         new.histogram.total_count = self.histogram.total_count
         new.histogram.min_value = self.histogram.min_value
-        new.histogram.max_value= self.histogram.max_value
+        new.histogram.max_value = self.histogram.max_value
 
         return new
 
@@ -64,6 +65,12 @@ class RespTimesCounter(JSONConvertible):
 
     def add(self, item, count=1):
         item = round(item * 1000.0, 3)
+        if item > self.high:
+            self.high = math.ceil(item / 1000.0) * 1000.0
+            logging.info("Growing on add hist to %s", self.high)
+            old = self.histogram
+            self.histogram = HdrHistogram(self.low, self.high, self.sign_figures)
+            self.histogram.add(old)
         self._cached_perc = None
         self._cached_stdev = None
         self.histogram.record_value(item, count)
@@ -71,6 +78,13 @@ class RespTimesCounter(JSONConvertible):
     def merge(self, other):
         self._cached_perc = None
         self._cached_stdev = None
+        if other.high > self.high:
+            self.high = other.high
+            logging.info("Growing on merge hist to %s", self.high)
+            old = self.histogram
+            self.histogram = HdrHistogram(self.low, self.high, self.sign_figures)
+            self.histogram.add(old)
+
         self.histogram.add(other.histogram)
 
     def get_percentiles_dict(self, percentiles):
@@ -135,16 +149,17 @@ class KPISet(dict):
         self[KPISet.BYTE_COUNT] = 0
         # vectors
         self[KPISet.ERRORS] = []
-        self[KPISet.RESP_TIMES] = RespTimesCounter(1, 60 * 30 * 1000, 3)  # is maximum value of 30 minutes enough?
+        if self.rtimes_len<=1000:
+            pass
+        self[KPISet.RESP_TIMES] = RespTimesCounter(1, self.rtimes_len, 3)
         self[KPISet.RESP_CODES] = Counter()
         self[KPISet.PERCENTILES] = {}
 
     def __deepcopy__(self, memo):
-        mycopy = KPISet(self.perc_levels)
+        mycopy = KPISet(self.perc_levels, self.rtimes_len)
         mycopy.sum_rt = self.sum_rt
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
-        mycopy.rtimes_len = self.rtimes_len
         mycopy.perc_levels = self.perc_levels
         mycopy._concurrencies = copy.deepcopy(self._concurrencies, memo)
         for key in self:
@@ -386,13 +401,13 @@ class DataPoint(dict):
 
     def __merge_kpis(self, src, dst, sid):
         """
-        :param src: KPISet
-        :param dst: KPISet
+        :param src: dict[str,KPISet]
+        :param dst: dict[str,KPISet]
         :param sid: int
         :return:
         """
         for label, val in iteritems(src):
-            dest = dst.setdefault(label, KPISet(self.perc_levels))
+            dest = dst.setdefault(label, KPISet(self.perc_levels, val.rtimes_len))
             if not isinstance(val, KPISet):
                 val = KPISet.from_dict(val)
                 val.perc_levels = self.perc_levels
@@ -475,7 +490,7 @@ class ResultsProvider(object):
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.setdefault(label, KPISet(self.track_percentiles, self.rtimes_len))
+            cumul = self.cumulative.setdefault(label, KPISet(self.track_percentiles, data[KPISet.RESP_TIMES].high))
             cumul.merge_kpis(data)
             cumul.recalculate()
 
@@ -571,11 +586,24 @@ class ResultsReader(ResultsProvider):
             if self.generalize_labels:
                 label = self.__generalize_label(label)
 
-            label = current.setdefault(label, KPISet(self.track_percentiles))
+            if label not in current:
+                if label in self.cumulative:
+                    rtimes_len = self.cumulative[label][KPISet.RESP_TIMES].high
+                else:
+                    rtimes_len = self.rtimes_len
+                current[label] = KPISet(self.track_percentiles, rtimes_len)
+
+            label = current[label]
 
             # empty means overall
             label.add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
-        overall = KPISet(self.track_percentiles)
+
+        if '' in self.cumulative:
+            rtimes_len = self.cumulative[''][KPISet.RESP_TIMES].high
+        else:
+            rtimes_len = self.rtimes_len
+
+        overall = KPISet(self.track_percentiles, rtimes_len)
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
         current[''] = overall
