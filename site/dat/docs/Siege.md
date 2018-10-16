@@ -67,9 +67,9 @@ Variables example:
 ```yaml
 scenarios:
   variables_usage:
+    variables:
+      HOST0: 'http://mainhost.com/'
     requests:
-    - variables:
-      - HOST0: 'http://mainhost.com/'
       - url: '$(HOST0)page1.html'
       - url: '$(HOST0)dir/page2.html'
 ```
