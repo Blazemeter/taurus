@@ -45,9 +45,11 @@ class RespTimesCounter(JSONConvertible):
         self.histogram = HdrHistogram(low, high, sign_figures)
         self._cached_perc = None
         self._cached_stdev = None
+        self.label = None
 
     def __deepcopy__(self, memo):
         new = RespTimesCounter(self.low, self.high, self.sign_figures)
+        new.label = self.label
         new._cached_perc = self._cached_perc
         new._cached_stdev = self._cached_stdev
 
@@ -101,11 +103,14 @@ class RespTimesCounter(JSONConvertible):
         }
 
     def __grow(self, newsize):
-        log.debug("Growing HDR from %s to %s", self.high, newsize)
+        log.debug("Growing HDR from %s to %s: %s", self.high, newsize, self.label)
         old = self.histogram
         self.high = newsize
         self.histogram = HdrHistogram(self.low, self.high, self.sign_figures)
         self.histogram.add(old)
+
+
+amap = collections.defaultdict(int)
 
 
 class KPISet(dict):
@@ -130,13 +135,12 @@ class KPISet(dict):
     ERRTYPE_ASSERT = 1
     ERRTYPE_SUBSAMPLE = 2
 
-    def __init__(self, perc_levels=(), rt_dist_maxlen=None):
+    def __init__(self, perc_levels=(), hist_max_rt=None, label=None):  # FIXME: label is only for debugging, remove
         super(KPISet, self).__init__()
         self.sum_rt = 0
         self.sum_lt = 0
         self.sum_cn = 0
         self.perc_levels = perc_levels
-        self.rtimes_len = rt_dist_maxlen
         self._concurrencies = Counter()
         # scalars
         self[KPISet.SAMPLE_COUNT] = 0
@@ -150,14 +154,13 @@ class KPISet(dict):
         self[KPISet.BYTE_COUNT] = 0
         # vectors
         self[KPISet.ERRORS] = []
-        if self.rtimes_len <= 1000:
-            pass
-        self[KPISet.RESP_TIMES] = RespTimesCounter(1, self.rtimes_len, 3)
+        self[KPISet.RESP_TIMES] = RespTimesCounter(1, hist_max_rt, 3)
+        self[KPISet.RESP_TIMES].label = label
         self[KPISet.RESP_CODES] = Counter()
         self[KPISet.PERCENTILES] = {}
 
     def __deepcopy__(self, memo):
-        mycopy = KPISet(self.perc_levels, self.rtimes_len)
+        mycopy = KPISet(self.perc_levels, self[KPISet.RESP_TIMES].high)
         mycopy.sum_rt = self.sum_rt
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
@@ -408,7 +411,7 @@ class DataPoint(dict):
         :return:
         """
         for label, val in iteritems(src):
-            dest = dst.setdefault(label, KPISet(self.perc_levels, val.rtimes_len))
+            dest = dst.setdefault(label, KPISet(self.perc_levels, val[KPISet.RESP_TIMES].high))
             if not isinstance(val, KPISet):
                 val = KPISet.from_dict(val)
                 val.perc_levels = self.perc_levels
@@ -491,7 +494,8 @@ class ResultsProvider(object):
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.setdefault(label, KPISet(self.track_percentiles, data[KPISet.RESP_TIMES].high))
+            cumul = self.cumulative.setdefault(label,
+                                               KPISet(self.track_percentiles, data[KPISet.RESP_TIMES].high, label))
             cumul.merge_kpis(data)
             cumul.recalculate()
 
@@ -588,25 +592,28 @@ class ResultsReader(ResultsProvider):
                 label = self.__generalize_label(label)
 
             if label not in current:
-                current[label] = KPISet(self.track_percentiles, self.__get_rtimes_len(label))
-
-            label = current[label]
+                current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label), label)
 
             # empty means overall
-            label.add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
+            current[label].add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
 
-        overall = KPISet(self.track_percentiles, self.__get_rtimes_len(''))
+        overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''), '')
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
         current[''] = overall
         return current
 
-    def __get_rtimes_len(self, label):
+    def __get_rtimes_max(self, label):
         if label in self.cumulative:
-            rtimes_len = self.cumulative[label][KPISet.RESP_TIMES].high
+            rtimes_max = self.cumulative[label][KPISet.RESP_TIMES].high
         else:
-            rtimes_len = self.rtimes_len
-        return rtimes_len
+            rtimes_max = self.rtimes_len
+
+        if label in amap and amap[label] < rtimes_max:
+            pass
+
+        amap[label] = rtimes_max
+        return rtimes_max
 
     def _calculate_datapoints(self, final_pass=False):
         """
@@ -724,7 +731,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         debug_str = 'Buffer scaling setup: percentile %s from %s selected'
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
-        self.rtimes_len = self.settings.get("rtimes-len", self.rtimes_len)
+        self.rtimes_len = self.settings.get("rtimes-len", self.rtimes_len)  # TODO: change name and document it
         self.max_error_count = self.settings.get("max-error-variety", self.max_error_count)
 
     def add_underling(self, underling):
