@@ -25,9 +25,9 @@ class MockPopen(object):
 
 
 class TestBetterDict(BZTestCase):
-    def _merge_and_compare(self, first, second, result, delete=False):
+    def _merge_and_compare(self, first, second, result, delete=False, filtering=False):
         sample = BetterDict().merge(first)
-        sample.merge(second, delete=delete)
+        sample.merge(second, delete=delete, filtering=filtering)
         result = BetterDict().merge(result)
         self.assertEqual(sample, result)
 
@@ -87,6 +87,18 @@ class TestBetterDict(BZTestCase):
                "C": {
                    "J": ["DD", {}]}}    # todo: should we remove empty dicts?
         self._merge_and_compare(a, b, res)
+
+    def test_filtering(self):
+        a = {
+            "A": {"B": "C", "D": "E"},
+            "B": {"nF": "vF", "nH": "vH"}}
+        b = {
+            "!A": {"B": None},
+            "!B": {"^nF": "wron_val"}}
+        res = {"A": {"D": "E"},
+               "C": {
+                   "J": ["DD", {}]}}    # todo: should we remove empty dicts?
+        self._merge_and_compare(a, b, res, filtering=True)
 
 
 class TestMisc(BZTestCase):

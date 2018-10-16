@@ -240,6 +240,7 @@ class BetterDict(defaultdict):
 
         :type src: dict
         :type delete: bool
+        :type filtering: bool
         """
         if not isinstance(src, dict):
             raise TaurusInternalException("Loaded object is not dict [%s]: %s" % (src.__class__, src))
@@ -251,9 +252,9 @@ class BetterDict(defaultdict):
                 key = key[1:]
 
             # ignore parent's delete param if modificator found
-            delete_flag = (prefix == "^") ^ (delete and (prefix not in ("^", "~", "$")))
+            delete_here = (prefix == "^") ^ (delete and not not prefix)
 
-            if delete_flag:  # eliminate flag
+            if delete_here:  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
                 if key in self:
                     self.pop(key)
