@@ -32,7 +32,8 @@ from bzt.engine import Aggregator
 from bzt.six import iteritems, PY3
 from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
-from tests import ROOT_LOGGER
+
+log = logging.getLogger('aggregator')
 
 
 class RespTimesCounter(JSONConvertible):
@@ -67,11 +68,7 @@ class RespTimesCounter(JSONConvertible):
     def add(self, item, count=1):
         item = round(item * 1000.0, 3)
         if item > self.high:
-            self.high = math.ceil(item / 1000.0) * 1000.0
-            ROOT_LOGGER.debug("Growing on add hist to %s", self.high)
-            old = self.histogram
-            self.histogram = HdrHistogram(self.low, self.high, self.sign_figures)
-            self.histogram.add(old)
+            self.__grow(math.ceil(item / 1000.0) * 1000.0)
         self._cached_perc = None
         self._cached_stdev = None
         self.histogram.record_value(item, count)
@@ -80,11 +77,7 @@ class RespTimesCounter(JSONConvertible):
         self._cached_perc = None
         self._cached_stdev = None
         if other.high > self.high:
-            self.high = other.high
-            ROOT_LOGGER.debug("Growing on merge hist to %s", self.high)
-            old = self.histogram
-            self.histogram = HdrHistogram(self.low, self.high, self.sign_figures)
-            self.histogram.add(old)
+            self.__grow(other.high)
 
         self.histogram.add(other.histogram)
 
@@ -106,6 +99,13 @@ class RespTimesCounter(JSONConvertible):
             rt / 1000.0: int(count)  # because hdrpy returns int64, which is unrecognized by json serializer
             for rt, count in iteritems(self.get_counts())
         }
+
+    def __grow(self, newsize):
+        log.debug("Growing HDR from %s to %s", self.high, newsize)
+        old = self.histogram
+        self.high = newsize
+        self.histogram = HdrHistogram(self.low, self.high, self.sign_figures)
+        self.histogram.add(old)
 
 
 class KPISet(dict):
@@ -150,7 +150,7 @@ class KPISet(dict):
         self[KPISet.BYTE_COUNT] = 0
         # vectors
         self[KPISet.ERRORS] = []
-        if self.rtimes_len<=1000:
+        if self.rtimes_len <= 1000:
             pass
         self[KPISet.RESP_TIMES] = RespTimesCounter(1, self.rtimes_len, 3)
         self[KPISet.RESP_CODES] = Counter()
