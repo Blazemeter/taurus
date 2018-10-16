@@ -588,27 +588,25 @@ class ResultsReader(ResultsProvider):
                 label = self.__generalize_label(label)
 
             if label not in current:
-                if label in self.cumulative:
-                    rtimes_len = self.cumulative[label][KPISet.RESP_TIMES].high
-                else:
-                    rtimes_len = self.rtimes_len
-                current[label] = KPISet(self.track_percentiles, rtimes_len)
+                current[label] = KPISet(self.track_percentiles, self.__get_rtimes_len(label))
 
             label = current[label]
 
             # empty means overall
             label.add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
 
-        if '' in self.cumulative:
-            rtimes_len = self.cumulative[''][KPISet.RESP_TIMES].high
-        else:
-            rtimes_len = self.rtimes_len
-
-        overall = KPISet(self.track_percentiles, rtimes_len)
+        overall = KPISet(self.track_percentiles, self.__get_rtimes_len(''))
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
         current[''] = overall
         return current
+
+    def __get_rtimes_len(self, label):
+        if label in self.cumulative:
+            rtimes_len = self.cumulative[label][KPISet.RESP_TIMES].high
+        else:
+            rtimes_len = self.rtimes_len
+        return rtimes_len
 
     def _calculate_datapoints(self, final_pass=False):
         """
