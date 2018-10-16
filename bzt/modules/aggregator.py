@@ -32,6 +32,7 @@ from bzt.engine import Aggregator
 from bzt.six import iteritems, PY3
 from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
+from tests import ROOT_LOGGER
 
 
 class RespTimesCounter(JSONConvertible):
@@ -67,7 +68,7 @@ class RespTimesCounter(JSONConvertible):
         item = round(item * 1000.0, 3)
         if item > self.high:
             self.high = math.ceil(item / 1000.0) * 1000.0
-            logging.info("Growing on add hist to %s", self.high)
+            ROOT_LOGGER.debug("Growing on add hist to %s", self.high)
             old = self.histogram
             self.histogram = HdrHistogram(self.low, self.high, self.sign_figures)
             self.histogram.add(old)
@@ -80,7 +81,7 @@ class RespTimesCounter(JSONConvertible):
         self._cached_stdev = None
         if other.high > self.high:
             self.high = other.high
-            logging.info("Growing on merge hist to %s", self.high)
+            ROOT_LOGGER.debug("Growing on merge hist to %s", self.high)
             old = self.histogram
             self.histogram = HdrHistogram(self.low, self.high, self.sign_figures)
             self.histogram.add(old)
