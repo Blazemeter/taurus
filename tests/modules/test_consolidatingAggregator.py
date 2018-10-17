@@ -1,5 +1,4 @@
-import math
-from random import random
+from random import random, choice
 
 from apiritif import random_string
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
@@ -10,17 +9,52 @@ from tests.mocks import MockReader
 
 def get_success_reader(offset=0):
     mock = MockReader()
-    mock.data.append((1 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((2 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((2 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((3 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((3 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((4 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((4 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((6 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
-    mock.data.append((5 + offset, "", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((1 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((2 + offset, "second", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((2 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((3 + offset, "second", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((3 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((4 + offset, "third", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((4 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((6 + offset, "second", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((6 + offset, "third", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((6 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    mock.data.append((5 + offset, "first", 1, r(), r(), r(), 200, None, '', 0))
+    return mock
+
+
+def get_success_reader_alot(prefix='', offset=0):
+    mock = MockReader()
+    for x in range(2, 200):
+        rnd = int(random() * x)
+        mock.data.append((x + offset, prefix + random_string(1 + rnd), 1, r(), r(), r(), 200, '', '', 0))
+    return mock
+
+
+def get_success_reader_selected_labels(offset=0):
+    mock = MockReader()
+    labels = ['http://blazedemo.com/reserve.php',
+              'http://blazedemo.com/purchase.php',
+              'http://blazedemo.com/vacation.html',
+              'http://blazedemo.com/confirmation.php',
+              'http://blazedemo.com/another.php']
+    for x in range(2, 200):
+        mock.data.append((x + offset, choice(labels), 1, r(), r(), r(), 200, '', '', 0))
+    return mock
+
+
+def random_url(target_len):
+    base = 'http://site.com/?foo='
+    return base + random_string(target_len - len(base))
+
+
+def get_success_reader_shrinking_labels(max_label_size=20, count=500):
+    mock = MockReader()
+    half_size = max_label_size // 2
+    for x in range(2, count):
+        target_size = max_label_size - int(float(half_size) * float(x) / float(count))
+        label = random_url(target_size)
+        mock.data.append((x, label, 1, r(), r(), r(), 200, '', '', 0))
     return mock
 
 
@@ -37,9 +71,9 @@ def get_fail_reader(offset=0):
 
 def get_fail_reader_alot(offset=0):
     mock = MockReader()
-    for x in range(2, 100):
-        rnd = random() * math.pow(x, 2)
-        mock.data.append((x + offset, "first", 1, r(), r(), r(), 200, (random_string(1 + int(rnd))), '', 0))
+    for x in range(2, 200):
+        rnd = int(random() * x)
+        mock.data.append((x + offset, "first", 1, r(), r(), r(), 200, (random_string(1 + rnd)), '', 0))
     return mock
 
 
@@ -121,18 +155,80 @@ class TestConsolidatingAggregator(BZTestCase):
             total_errors_count = sum(err['cnt'] for err in data['errors'])
             self.assertEqual(data['fail'], total_errors_count)
 
-    def test_errors_variety(self):
+    def test_labels_variety(self):
         self.obj.track_percentiles = [50]
         self.obj.prepare()
-        reader1 = get_fail_reader()
-        reader2 = get_fail_reader_alot()
-        self.obj.max_error_count = 9
+        reader1 = get_success_reader()
+        reader2 = get_success_reader_alot()
+        self.obj.log.info(len(reader1.data) + len(reader2.data))
+        self.obj.generalize_labels = 25
         self.obj.add_underling(reader1)
         self.obj.add_underling(reader2)
         self.obj.shutdown()
         self.obj.post_process()
         cum_dict = self.obj.cumulative
-        self.assertLessEqual(len(cum_dict['']['errors']), self.obj.max_error_count)
+        len_limit = (self.obj.generalize_labels + 1)  # due to randomness, it it can go a bit higher than limit
+        labels = list(cum_dict.keys())
+        self.assertGreaterEqual(len(labels), self.obj.generalize_labels / 2)  # assert that it's at least half full
+        self.assertLessEqual(len(labels), len_limit + 1)  # allow +1 label because '' is cumulative
+
+    def test_labels_constant_part(self):
+        self.obj.track_percentiles = [50]
+        self.obj.prepare()
+        reader = get_success_reader_alot(prefix='http://blazedemo.com/?r=')
+        self.obj.log.info(len(reader.data))
+        self.obj.generalize_labels = 25
+        self.obj.add_underling(reader)
+        self.obj.shutdown()
+        self.obj.post_process()
+        cum_dict = self.obj.cumulative
+        labels = list(cum_dict.keys())
+        self.assertGreaterEqual(len(labels), self.obj.generalize_labels / 2)  # assert that it's at least half full
+        self.assertLessEqual(len(labels), self.obj.generalize_labels + 1)  # allow +1 label because '' is cumulative
+
+    def test_labels_aggressive_folding(self):
+        self.obj.track_percentiles = [50]
+        self.obj.prepare()
+        reader = get_success_reader_selected_labels()
+        self.obj.log.info(len(reader.data))
+        self.obj.generalize_labels = 25
+        self.obj.add_underling(reader)
+        self.obj.shutdown()
+        self.obj.post_process()
+        cum_dict = self.obj.cumulative
+        labels = list(cum_dict.keys())
+        self.assertEqual(len(labels), 6)
+
+    def test_labels_aggressive_folding_2(self):
+        self.obj.track_percentiles = [50]
+        self.obj.prepare()
+        LABEL_COUNT = 50
+        reader = get_success_reader_shrinking_labels(max_label_size=int(LABEL_COUNT * 2), count=LABEL_COUNT)
+        self.obj.log.info(len(reader.data))
+        self.obj.generalize_labels = LABEL_COUNT
+        self.obj.add_underling(reader)
+        for point in self.obj.datapoints():
+            last = point
+        cum_dict = self.obj.cumulative
+        labels = list(cum_dict.keys())
+        labels_count = len(labels)
+        self.assertLessEqual(labels_count, LABEL_COUNT + 1)  # didn't overflow
+        self.assertGreaterEqual(labels_count, LABEL_COUNT * 0.25)  # at least a quorter-filled
+
+    def test_errors_variety(self):
+        self.obj.track_percentiles = [50]
+        self.obj.prepare()
+        reader1 = get_fail_reader()
+        reader2 = get_fail_reader_alot()
+        self.obj.max_error_count = 50
+        self.obj.add_underling(reader1)
+        self.obj.add_underling(reader2)
+        self.obj.shutdown()
+        self.obj.post_process()
+        expected = self.obj.max_error_count  # due to randomness, it it can go a bit higher than limit
+        cum_dict = self.obj.cumulative
+        self.assertLessEqual(len(cum_dict['']['errors']), expected)
+        self.assertGreaterEqual(len(cum_dict['']['errors']), self.obj.max_error_count / 2)  # assert that it's at least half full
 
     def test_uniq_errors(self):
         self.obj.track_percentiles = [50]

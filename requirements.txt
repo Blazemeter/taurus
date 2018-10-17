@@ -3,6 +3,7 @@ astunparse>=1.6.0
 colorama; sys_platform == 'win32'
 colorlog
 cssselect
+fuzzyset
 hdrpy>=0.3.3
 ipaddress; python_version < '3.0'
 lxml>=3.8.0,!=4.2.0
