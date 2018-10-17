@@ -111,7 +111,6 @@ class TestBetterDict(BZTestCase):
             "A": None,
             "!C": {"G": "H"}}
         res = {
-            "A": ["B", "BB"],
             "C": {"G": "GG"},
             "F": ["FF"]}
 
