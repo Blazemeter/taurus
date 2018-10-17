@@ -129,7 +129,7 @@ class KPISet(dict):
     ERRTYPE_ASSERT = 1
     ERRTYPE_SUBSAMPLE = 2
 
-    def __init__(self, perc_levels=(), hist_max_rt=None):
+    def __init__(self, perc_levels=(), hist_max_rt=1000.0):
         super(KPISet, self).__init__()
         self.sum_rt = 0
         self.sum_lt = 0
