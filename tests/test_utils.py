@@ -77,13 +77,13 @@ class TestBetterDict(BZTestCase):
                     "D",
                     {"E": {"nE": "vE"}}]}}
         b = {
-            "!A": {"B": None},
+            "!A": {"^D": "new_val"},
             "^B": "Y",
             "!C": {
                 "$J": [
                     "DD",
                     {"E": {"nEE": "vEE"}}]}}
-        res = {"A": {"D": "E"},
+        res = {"A": {"D": "new_val"},
                "C": {
                    "J": ["DD", {}]}}    # todo: should we remove empty dicts?
         self._merge_and_compare(a, b, res)
@@ -93,11 +93,10 @@ class TestBetterDict(BZTestCase):
             "A": {"B": "C", "D": "E"},
             "B": {"nF": "vF", "nH": "vH"}}
         b = {
-            "!A": {"B": None},
+            "A": {"B": "wrong_val", "^D": None},
             "!B": {"^nF": "wron_val"}}
-        res = {"A": {"D": "E"},
-               "C": {
-                   "J": ["DD", {}]}}    # todo: should we remove empty dicts?
+        res = {"A": {"B": "C"},
+               "B": {"nF": "vF"}}
         self._merge_and_compare(a, b, res, filtering=True)
 
 

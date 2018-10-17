@@ -242,19 +242,38 @@ class BetterDict(defaultdict):
         :type delete: bool
         :type filtering: bool
         """
+
         if not isinstance(src, dict):
             raise TaurusInternalException("Loaded object is not dict [%s]: %s" % (src.__class__, src))
 
+        src_keys = set()
+        dest_keys = set(self.keys())
+
         for key, val in iteritems(src):
+
             prefix = ""
+            delete_it = delete
+            child_delete = delete
+            merge_list_items = False
+
             if key[0] in ("^", "~", "$", "!"):  # modificator found
                 prefix = key[0]
                 key = key[1:]
 
-            # ignore parent's delete param if modificator found
-            delete_here = (prefix == "^") ^ (delete and not not prefix)
+                if prefix == "^":
+                    delete_it ^= delete_it
+                else:
+                    delete_it = False     # ignore parent's delete param if modificator found
 
-            if delete_here:  # eliminate flag
+                if prefix == "!":
+                    child_delete ^= child_delete    # invert delete mode for children if prefix found
+
+                if prefix == "$":
+                    merge_list_items = True
+
+            src_keys.add(key)
+
+            if delete_it:  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
                 if key in self:
                     self.pop(key)
@@ -263,15 +282,18 @@ class BetterDict(defaultdict):
                 if key in self:
                     self.pop(key)
 
-            merge_list_items = prefix == "$"
-            child_delete = (prefix == "!") ^ delete   # invert delete mode for children if prefix found
-
             if isinstance(val, dict):
                 self.__add_dict(key, val, delete=child_delete, filtering=filtering)
             elif isinstance(val, list):
                 self.__add_list(key, val, merge_list_items, delete=child_delete, filtering=filtering)
             elif not filtering:
                 self[key] = val
+
+        uniq_keys = dest_keys - src_keys
+        if delete:
+            for key in uniq_keys:
+                self.pop(key)
+
         return self
 
     def __add_dict(self, key, val, delete, filtering):
