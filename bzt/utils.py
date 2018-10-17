@@ -337,19 +337,19 @@ class BetterDict(defaultdict):
         keys = set(self.keys())
         for key in keys:
             ikey = "!" + key
-            if ikey in rules:
+            if key in rules:
+                if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
+                    self.get(key).filter(rules[key])
+                    if not self.get(key):  # clear empty
+                        del self[key]
+            elif ikey in rules:
                 if isinstance(rules.get(ikey), dict) and isinstance(self.get(key), BetterDict):
                     inverted_rules = {x: True for x in self.get(key).keys() if x not in rules[ikey]}
                     self.get(key).filter(inverted_rules)
                     if not self.get(key):  # clear empty
                         del self[key]
-            elif key not in rules:
-                del self[key]
             else:
-                if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
-                    self.get(key).filter(rules[key])
-                    if not self.get(key):  # clear empty
-                        del self[key]
+                del self[key]
 
     def __repr__(self):
         return dict(self).__repr__()
