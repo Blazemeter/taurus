@@ -17,18 +17,17 @@ limitations under the License.
 """
 import collections
 import copy
-import difflib
 import logging
-import re
 from abc import abstractmethod
 from collections import Counter
 
+import fuzzyset
 import yaml
 from yaml.representer import SafeRepresenter
 
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
-from bzt.six import iteritems, PY3
+from bzt.six import iteritems, PY3, text_type
 from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
 
@@ -52,7 +51,7 @@ class RespTimesCounter(JSONConvertible):
         new.histogram.counts = copy.deepcopy(self.histogram.counts, memo)
         new.histogram.total_count = self.histogram.total_count
         new.histogram.min_value = self.histogram.min_value
-        new.histogram.max_value= self.histogram.max_value
+        new.histogram.max_value = self.histogram.max_value
 
         return new
 
@@ -446,20 +445,47 @@ class ResultsProvider(object):
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
         self.rtimes_len = None
-        self.known_errors = set()
+        self.known_errors = fuzzyset.FuzzySet(use_levenshtein=True)
         self.max_error_count = 100
+        self.known_labels = fuzzyset.FuzzySet(use_levenshtein=True)
+        self.generalize_labels = 100
+
+    @staticmethod
+    def _fuzzy_fold(key, dataset, limit):
+        """
+        :type key: str
+        :type dataset: fuzzyset.FuzzySet
+        :type limit: int
+        :rtype: str
+        """
+        if not key or limit <= 0:
+            return key
+
+        if not isinstance(key, text_type):
+            key = key.decode('utf-8')
+
+        if key.lower() in dataset.exact_set:
+            return key
+
+        size = len(dataset)
+        tolerance = (float(size) / float(limit)) ** 2
+        threshold = 1 - tolerance
+        matches = dataset.get(key)
+        if matches:
+            for score, result in matches:
+                if score >= threshold:
+                    return result
+        elif tolerance >= 1.0:
+            return next(iter(dataset.exact_set.values()))  # last resort for capping
+
+        dataset.add(key)
+        return key
+
+    def _generalize_label(self, label):
+        return self._fuzzy_fold(label, self.known_labels, self.generalize_labels)
 
     def _fold_error(self, error):
-        if not error or error in self.known_errors or self.max_error_count <= 0:
-            return error
-
-        size = len(self.known_errors)
-        threshold = (size / float(self.max_error_count)) ** 2
-        matches = difflib.get_close_matches(error, self.known_errors, 1, 1 - threshold)
-        if matches:
-            error = matches[0]
-        self.known_errors.add(error)
-        return error
+        return self._fuzzy_fold(error, self.known_errors, self.max_error_count)
 
     def add_listener(self, listener):
         """
@@ -508,16 +534,9 @@ class ResultsReader(ResultsProvider):
     Aggregator that reads samples one by one,
     supposed to be attached to every executor
     """
-    label_generalize_regexps = [
-        (re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"), "U"),
-        (re.compile(r"\b[0-9a-fA-F]{2,}\b"), "U"),
-        # (re.compile(r"\b[0-9a-fA-F]{32}\b"), "U"), # implied by previous, maybe prev is too wide
-        (re.compile(r"\b\d{2,}\b"), "N")
-    ]
 
     def __init__(self, perc_levels=None):
         super(ResultsReader, self).__init__()
-        self.generalize_labels = False
         self.ignored_labels = []
         self.log = logging.getLogger(self.__class__.__name__)
         self.buffer = {}
@@ -569,7 +588,7 @@ class ResultsReader(ResultsProvider):
                 label = '[empty]'
 
             if self.generalize_labels:
-                label = self.__generalize_label(label)
+                label = self._generalize_label(label)
 
             label = current.setdefault(label, KPISet(self.track_percentiles))
 
@@ -636,12 +655,6 @@ class ResultsReader(ResultsProvider):
         """
         yield
 
-    def __generalize_label(self, label):
-        for regexp, replacement in self.label_generalize_regexps:
-            label = regexp.sub(replacement, label)
-
-        return label
-
 
 class ConsolidatingAggregator(Aggregator, ResultsProvider):
     """
@@ -653,7 +666,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
     def __init__(self):
         Aggregator.__init__(self, is_functional=False)
         ResultsProvider.__init__(self)
-        self.generalize_labels = False
+        self.generalize_labels = 500
         self.ignored_labels = ["ignore"]
         self.underlings = []
         self.buffer = {}
@@ -709,7 +722,6 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         underling.track_percentiles = self.track_percentiles
         if isinstance(underling, ResultsReader):
             underling.ignored_labels = self.ignored_labels
-            underling.generalize_labels = self.generalize_labels
             underling.min_buffer_len = self.min_buffer_len
             underling.max_buffer_len = self.max_buffer_len
             underling.buffer_multiplier = self.buffer_multiplier
@@ -717,7 +729,11 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.rtimes_len = self.rtimes_len
 
             underling.max_error_count = self.max_error_count
-            underling.known_errors = self.known_errors  # share error set between underlings
+            underling.generalize_labels = self.generalize_labels
+
+            # share error set and label set between underlings
+            underling.known_errors = self.known_errors
+            underling.known_labels = self.known_labels
 
         self.underlings.append(underling)
 
