@@ -151,7 +151,7 @@ class TestLogStreams(BZTestCase):
             sys.stdout.write('test3')
 
         with log_std_streams(logger=self.captured_logger, stdout_level=logging.DEBUG):
-            cmd = ['echo', 'test5']
+            cmd = ['echo', '"test5"']
             if is_windows():
                 cmd = ['cmd', '/c'] + cmd
             process = Popen(cmd)
