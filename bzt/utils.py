@@ -234,46 +234,24 @@ class BetterDict(defaultdict):
         else:
             return value
 
-    def merge(self, src, delete=False, filtering=False):
+    def merge(self, src):
         """
         Deep merge other dict into current
 
         :type src: dict
-        :type delete: bool
-        :type filtering: bool
         """
 
         if not isinstance(src, dict):
             raise TaurusInternalException("Loaded object is not dict [%s]: %s" % (src.__class__, src))
 
-        src_keys = set()
-        dest_keys = set(self.keys())
-
         for key, val in iteritems(src):
 
             prefix = ""
-            delete_it = delete
-            child_delete = delete
-            merge_list_items = False
-
-            if key[0] in ("^", "~", "$", "!"):  # modificator found
+            if key[0] in ("^", "~", "$"):  # modificator found
                 prefix = key[0]
                 key = key[1:]
 
-                if prefix == "^":
-                    delete_it ^= delete_it
-                else:
-                    delete_it = False     # ignore parent's delete param if modificator found
-
-                if prefix == "!":
-                    child_delete ^= child_delete    # invert delete mode for children if prefix found
-
-                if prefix == "$":
-                    merge_list_items = True
-
-            src_keys.add(key)
-
-            if delete_it:  # eliminate flag
+            if prefix == "^":  # eliminate flag
                 # TODO: improve logic - use val contents to see what to eliminate
                 if key in self:
                     self.pop(key)
@@ -283,32 +261,26 @@ class BetterDict(defaultdict):
                     self.pop(key)
 
             if isinstance(val, dict):
-                self.__add_dict(key, val, delete=child_delete, filtering=filtering)
+                self.__add_dict(key, val)
             elif isinstance(val, list):
-                self.__add_list(key, val, merge_list_items, delete=child_delete, filtering=filtering)
-            elif not filtering:
-                self[key] = val
-
-        uniq_keys = dest_keys - src_keys
-        if delete:
-            for key in uniq_keys:
-                self.pop(key)
-
-        return self
-
-    def __add_dict(self, key, val, delete, filtering):
-        dst = self.get(key, force_set=True)
-        if isinstance(dst, BetterDict):
-            dst.merge(val, delete=delete, filtering=filtering)
-        elif not filtering:
-            if isinstance(dst, Counter):
-                self[key] += val
-            elif isinstance(dst, dict):
-                raise TaurusInternalException("Mix of DictOfDict and dict is forbidden")
+                self.__add_list(key, val, merge_list_items=(prefix == "$"))
             else:
                 self[key] = val
 
-    def __add_list(self, key, val, merge_list_items, delete, filtering):
+        return self
+
+    def __add_dict(self, key, val):
+        dst = self.get(key, force_set=True)
+        if isinstance(dst, BetterDict):
+            dst.merge(val)
+        elif isinstance(dst, Counter):
+            self[key] += val
+        elif isinstance(dst, dict):
+            raise TaurusInternalException("Mix of DictOfDict and dict is forbidden")
+        else:
+            self[key] = val
+
+    def __add_list(self, key, val, merge_list_items):
         self.__ensure_list_type(val)
         if key not in self:
             self[key] = []
@@ -321,7 +293,7 @@ class BetterDict(defaultdict):
                         lefty = left[index]
                         if isinstance(lefty, BetterDict):
                             if isinstance(righty, BetterDict):
-                                lefty.merge(righty, delete=delete, filtering=filtering)
+                                lefty.merge(righty)
                                 continue
                         logging.warning("Overwriting the value of %r when merging configs", key)
                         left[index] = righty
@@ -361,6 +333,24 @@ class BetterDict(defaultdict):
                 if not visitor(val, idx, obj):
                     cls.traverse(obj[idx], visitor)
 
+    def filter(self, rules):
+        keys = set(self.keys())
+        for key in keys:
+            ikey = "!" + key
+            if ikey in rules:
+                if isinstance(rules.get(ikey), dict) and isinstance(self.get(key), BetterDict):
+                    inverted_rules = {x: True for x in self.get(key).keys() if x not in rules[ikey]}
+                    self.get(key).filter(inverted_rules)
+                    if not self.get(key):  # clear empty
+                        del self[key]
+            elif key not in rules:
+                del self[key]
+            else:
+                if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
+                    self.get(key).filter(rules[key])
+                    if not self.get(key):  # clear empty
+                        del self[key]
+
     def __repr__(self):
         return dict(self).__repr__()
 
@@ -384,6 +374,8 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     :param stdout:
     :param cwd:
     :param stdin:
+    :param shell:
+    :param env: dict
     :type args: basestring or list
     :return:
     """

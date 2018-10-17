@@ -25,9 +25,9 @@ class MockPopen(object):
 
 
 class TestBetterDict(BZTestCase):
-    def _merge_and_compare(self, first, second, result, delete=False, filtering=False):
+    def _merge_and_compare(self, first, second, result):
         sample = BetterDict().merge(first)
-        sample.merge(second, delete=delete, filtering=filtering)
+        sample.merge(second)
         result = BetterDict().merge(result)
         self.assertEqual(sample, result)
 
@@ -67,37 +67,6 @@ class TestBetterDict(BZTestCase):
             "C": ["D"]}
 
         self._merge_and_compare(a, b, res)
-
-    def test_invert_delete(self):
-        a = {
-            "A": {"B": "C", "D": "E"},
-            "B": {"A": "vA"},
-            "C": {
-                "J": [
-                    "D",
-                    {"E": {"nE": "vE"}}]}}
-        b = {
-            "!A": {"^D": "new_val"},
-            "^B": "Y",
-            "!C": {
-                "$J": [
-                    "DD",
-                    {"E": {"nEE": "vEE"}}]}}
-        res = {"A": {"D": "new_val"},
-               "C": {
-                   "J": ["DD", {}]}}    # todo: should we remove empty dicts?
-        self._merge_and_compare(a, b, res)
-
-    def test_filtering(self):
-        a = {
-            "A": {"B": "C", "D": "E"},
-            "B": {"nF": "vF", "nH": "vH"}}
-        b = {
-            "A": {"B": "wrong_val", "^D": None},
-            "!B": {"^nF": "wron_val"}}
-        res = {"A": {"B": "C"},
-               "B": {"nF": "vF"}}
-        self._merge_and_compare(a, b, res, filtering=True)
 
 
 class TestMisc(BZTestCase):
