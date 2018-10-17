@@ -619,7 +619,7 @@ class ResultsReader(ResultsProvider):
         if label in self.cumulative:
             rtimes_max = self.cumulative[label][KPISet.RESP_TIMES].high
         else:
-            rtimes_max = self.histogram_max
+            rtimes_max = self.histogram_max * 1000.0
         return rtimes_max
 
     def _calculate_datapoints(self, final_pass=False):
@@ -692,7 +692,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.ignored_labels = ["ignore"]
         self.underlings = []
         self.buffer = {}
-        self.histogram_max = 5000
+        self.histogram_max = 5.0
 
     def prepare(self):
         """
@@ -732,7 +732,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         debug_str = 'Buffer scaling setup: percentile %s from %s selected'
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
-        self.histogram_max = self.settings.get("rtimes-len", self.histogram_max)  # TODO: change name and document it
+        self.histogram_max = dehumanize_time(self.settings.get("histogram-initial", self.histogram_max))
         self.max_error_count = self.settings.get("max-error-variety", self.max_error_count)
 
     def add_underling(self, underling):

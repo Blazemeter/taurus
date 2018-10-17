@@ -242,7 +242,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.assertEqual(len(cum_dict['']['errors']), 3)
 
     def test_set_rtimes_len(self):
-        self.obj.settings['rtimes-len'] = 10000
+        self.obj.settings['histogram-initial'] = 10.0
         self.obj.prepare()
         reader = get_fail_reader()
         self.obj.add_underling(reader)
