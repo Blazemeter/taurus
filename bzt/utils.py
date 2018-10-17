@@ -333,19 +333,21 @@ class BetterDict(defaultdict):
                 if not visitor(val, idx, obj):
                     cls.traverse(obj[idx], visitor)
 
-    def filter(self, rules):
+    def filter(self, rules, invert=False):
         keys = set(self.keys())
+        if invert:
+            rules = {x: True for x in keys if x not in rules}
+
         for key in keys:
             ikey = "!" + key
             if key in rules:
                 if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
-                    self.get(key).filter(rules[key])
+                    self.get(key).filter(rules[key], invert=False)
                     if not self.get(key):  # clear empty
                         del self[key]
             elif ikey in rules:
                 if isinstance(rules.get(ikey), dict) and isinstance(self.get(key), BetterDict):
-                    inverted_rules = {x: True for x in self.get(key).keys() if x not in rules[ikey]}
-                    self.get(key).filter(inverted_rules)
+                    self.get(key).filter(rules[ikey], invert=True)
                     if not self.get(key):  # clear empty
                         del self[key]
             else:
