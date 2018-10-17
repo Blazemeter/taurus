@@ -146,7 +146,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.assertEqual(len(cum_dict['']['errors']), 3)
 
     def test_set_rtimes_len(self):
-        self.obj.settings['rtimes-len'] = 42
+        self.obj.settings['rtimes-len'] = 10000
         self.obj.prepare()
         reader = get_fail_reader()
         self.obj.add_underling(reader)
@@ -155,9 +155,9 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.check()
         for dp in listener.results:
             for kpiset in dp['cumulative'].values():
-                self.assertEqual(42, kpiset.rtimes_len)
+                self.assertEqual(10000, kpiset[KPISet.RESP_TIMES].high)
             for kpiset in dp['current'].values():
-                self.assertNotEqual(42, kpiset.rtimes_len)
+                self.assertEqual(10000, kpiset[KPISet.RESP_TIMES].high)
 
     def test_inf_values(self):
         self.obj.settings['max-buffer-len'] = "inf"
