@@ -227,7 +227,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.post_process()
         expected = self.obj.max_error_count  # due to randomness, it it can go a bit higher than limit
         self.assertLessEqual(len(self.obj.known_errors), expected)
-        self.assertGreaterEqual(self.obj.known_errors, self.obj.max_error_count / 2)  # assert that it's at least half full
+        self.assertGreaterEqual(len(self.obj.known_errors), self.obj.max_error_count / 2)  # assert that it's at least half full
 
     def test_uniq_errors(self):
         self.obj.track_percentiles = [50]
