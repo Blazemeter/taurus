@@ -18,6 +18,7 @@ limitations under the License.
 import collections
 import copy
 import logging
+import math
 from abc import abstractmethod
 from collections import Counter
 
@@ -30,6 +31,8 @@ from bzt.engine import Aggregator
 from bzt.six import iteritems, PY3, text_type
 from bzt.utils import dehumanize_time, JSONConvertible
 from hdrpy import HdrHistogram
+
+log = logging.getLogger('aggregator')
 
 
 class RespTimesCounter(JSONConvertible):
@@ -63,6 +66,8 @@ class RespTimesCounter(JSONConvertible):
 
     def add(self, item, count=1):
         item = round(item * 1000.0, 3)
+        if item > self.high:
+            self.__grow(math.ceil(item / 1000.0) * 1000.0)
         self._cached_perc = None
         self._cached_stdev = None
         self.histogram.record_value(item, count)
@@ -70,6 +75,9 @@ class RespTimesCounter(JSONConvertible):
     def merge(self, other):
         self._cached_perc = None
         self._cached_stdev = None
+        if other.high > self.high:
+            self.__grow(other.high)
+
         self.histogram.add(other.histogram)
 
     def get_percentiles_dict(self, percentiles):
@@ -90,6 +98,13 @@ class RespTimesCounter(JSONConvertible):
             rt / 1000.0: int(count)  # because hdrpy returns int64, which is unrecognized by json serializer
             for rt, count in iteritems(self.get_counts())
         }
+
+    def __grow(self, newsize):
+        log.debug("Growing HDR from %s to %s", self.high, newsize)
+        old = self.histogram
+        self.high = newsize
+        self.histogram = HdrHistogram(self.low, self.high, self.sign_figures)
+        self.histogram.add(old)
 
 
 class KPISet(dict):
@@ -114,13 +129,12 @@ class KPISet(dict):
     ERRTYPE_ASSERT = 1
     ERRTYPE_SUBSAMPLE = 2
 
-    def __init__(self, perc_levels=(), rt_dist_maxlen=None):
+    def __init__(self, perc_levels=(), hist_max_rt=1000.0):
         super(KPISet, self).__init__()
         self.sum_rt = 0
         self.sum_lt = 0
         self.sum_cn = 0
         self.perc_levels = perc_levels
-        self.rtimes_len = rt_dist_maxlen
         self._concurrencies = Counter()
         # scalars
         self[KPISet.SAMPLE_COUNT] = 0
@@ -134,16 +148,15 @@ class KPISet(dict):
         self[KPISet.BYTE_COUNT] = 0
         # vectors
         self[KPISet.ERRORS] = []
-        self[KPISet.RESP_TIMES] = RespTimesCounter(1, 60 * 30 * 1000, 3)  # is maximum value of 30 minutes enough?
+        self[KPISet.RESP_TIMES] = RespTimesCounter(1, hist_max_rt, 3)
         self[KPISet.RESP_CODES] = Counter()
         self[KPISet.PERCENTILES] = {}
 
     def __deepcopy__(self, memo):
-        mycopy = KPISet(self.perc_levels)
+        mycopy = KPISet(self.perc_levels, self[KPISet.RESP_TIMES].high)
         mycopy.sum_rt = self.sum_rt
         mycopy.sum_lt = self.sum_lt
         mycopy.sum_cn = self.sum_cn
-        mycopy.rtimes_len = self.rtimes_len
         mycopy.perc_levels = self.perc_levels
         mycopy._concurrencies = copy.deepcopy(self._concurrencies, memo)
         for key in self:
@@ -385,13 +398,13 @@ class DataPoint(dict):
 
     def __merge_kpis(self, src, dst, sid):
         """
-        :param src: KPISet
-        :param dst: KPISet
+        :param src: dict[str,KPISet]
+        :param dst: dict[str,KPISet]
         :param sid: int
         :return:
         """
         for label, val in iteritems(src):
-            dest = dst.setdefault(label, KPISet(self.perc_levels))
+            dest = dst.setdefault(label, KPISet(self.perc_levels, val[KPISet.RESP_TIMES].high))
             if not isinstance(val, KPISet):
                 val = KPISet.from_dict(val)
                 val.perc_levels = self.perc_levels
@@ -444,7 +457,7 @@ class ResultsProvider(object):
         self.max_buffer_len = float('inf')
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
-        self.rtimes_len = None
+        self.histogram_max = 1.0
         self.known_errors = fuzzyset.FuzzySet(use_levenshtein=True)
         self.max_error_count = 100
         self.known_labels = fuzzyset.FuzzySet(use_levenshtein=True)
@@ -501,7 +514,7 @@ class ResultsProvider(object):
         :param current: KPISet
         """
         for label, data in iteritems(current):
-            cumul = self.cumulative.setdefault(label, KPISet(self.track_percentiles, self.rtimes_len))
+            cumul = self.cumulative.setdefault(label, KPISet(self.track_percentiles, data[KPISet.RESP_TIMES].high))
             cumul.merge_kpis(data)
             cumul.recalculate()
 
@@ -590,15 +603,24 @@ class ResultsReader(ResultsProvider):
             if self.generalize_labels:
                 label = self._generalize_label(label)
 
-            label = current.setdefault(label, KPISet(self.track_percentiles))
+            if label not in current:
+                current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
 
             # empty means overall
-            label.add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
-        overall = KPISet(self.track_percentiles)
+            current[label].add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
+
+        overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
         for label in current.values():
             overall.merge_kpis(label, datapoint[DataPoint.SOURCE_ID])
         current[''] = overall
         return current
+
+    def __get_rtimes_max(self, label):
+        if label in self.cumulative:
+            rtimes_max = self.cumulative[label][KPISet.RESP_TIMES].high
+        else:
+            rtimes_max = self.histogram_max * 1000.0
+        return rtimes_max
 
     def _calculate_datapoints(self, final_pass=False):
         """
@@ -670,7 +692,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.ignored_labels = ["ignore"]
         self.underlings = []
         self.buffer = {}
-        self.rtimes_len = 1000
+        self.histogram_max = 5.0
 
     def prepare(self):
         """
@@ -710,7 +732,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
 
         debug_str = 'Buffer scaling setup: percentile %s from %s selected'
         self.log.debug(debug_str, self.buffer_scale_idx, self.track_percentiles)
-        self.rtimes_len = self.settings.get("rtimes-len", self.rtimes_len)
+        self.histogram_max = dehumanize_time(self.settings.get("histogram-initial", self.histogram_max))
         self.max_error_count = self.settings.get("max-error-variety", self.max_error_count)
 
     def add_underling(self, underling):
@@ -726,7 +748,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             underling.max_buffer_len = self.max_buffer_len
             underling.buffer_multiplier = self.buffer_multiplier
             underling.buffer_scale_idx = self.buffer_scale_idx
-            underling.rtimes_len = self.rtimes_len
+            underling.histogram_max = self.histogram_max
 
             underling.max_error_count = self.max_error_count
             underling.generalize_labels = self.generalize_labels

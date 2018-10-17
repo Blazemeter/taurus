@@ -124,7 +124,7 @@ The `consolidator` has several settings:
 ```yaml
 modules:
   consolidator:
-    generalize-labels: 100    # support up to this number of labels
+    generalize-labels: 500    # support up to this number of labels
     ignore-labels: # sample labels from this list 
       - ignore     # will be ignored by results reader
       
@@ -133,7 +133,7 @@ modules:
     min-buffer-len: 2s      # minimal length of buffer (default: 2s)
     max-buffer-len: 2h      # maximal length of buffer (default: infinity)
     
-    rtimes-len: 500         # size of storage for response time values (default: 1000)  
+    histogram-initial: 5s         # starting size of histograms to use, before auto-grow (default: 5s)  
     max-error-variety: 100  # max count of different error messages accepted (default: 100)
         
     percentiles:  # percentile levels to track, 
@@ -146,7 +146,6 @@ modules:
     - 99.9
     - 100.0
 ```
-`rtimes-len` allows to reduce memory consumption for heavy tests. On the other hand, you reduce the precision of distribution with that.
 
 ### Label and Error Folding
 

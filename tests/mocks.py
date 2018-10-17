@@ -207,7 +207,7 @@ class MockReader(ResultsReader, AggregatorListener):
         if self.results:
             if self.results[-1]["ts"] >= data["ts"]:
                 raise AssertionError("TS sequence wrong: %s>=%s" % (self.results[-1]["ts"], data["ts"]))
-        ROOT_LOGGER.info("Data: %s", data)
+        ROOT_LOGGER.info("Data: %s", to_json(data))
         self.results.append(data)
 
 
