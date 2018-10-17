@@ -1,0 +1,1 @@
+- use auto-growing histogram object to optimize CPU and memory usage

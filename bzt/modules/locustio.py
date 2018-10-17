@@ -90,7 +90,8 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
         wrapper = os.path.join(RESOURCES_DIR, "locustio-taurus-wrapper.py")
 
-        self.env.set({"LOCUST_DURATION": dehumanize_time(load.duration)})
+        if load.duration:
+            self.env.set({"LOCUST_DURATION": dehumanize_time(load.duration)})
 
         self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
         self.env.add_path({"PYTHONPATH": self.engine.artifacts_dir})

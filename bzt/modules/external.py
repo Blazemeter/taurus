@@ -13,7 +13,6 @@ from bzt.modules.pbench import PBenchKPIReader
 class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
     AB_HEADER = "starttime\tseconds\tctime\tdtime\tttime\twait"
     PBENCH_FORMAT = re.compile("^[0-9]+\.[0-9]{3}\t[^\t]*\t([0-9]+\t){9}[0-9]+$")
-    # PBENCH_FORMAT = re.compile(r'^([\d\.]+\s+\S+\s+\s+(\d+\s+){9}\d+)$', re.MULTILINE)
 
     def __init__(self):
         # TODO: document this executor
