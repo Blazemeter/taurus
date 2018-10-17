@@ -691,7 +691,7 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
         self.ignored_labels = ["ignore"]
         self.underlings = []
         self.buffer = {}
-        self.rtimes_len = 1000
+        self.rtimes_len = 5000
 
     def prepare(self):
         """
