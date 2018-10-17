@@ -100,7 +100,7 @@ class RespTimesCounter(JSONConvertible):
         }
 
     def __grow(self, newsize):
-        log.debug("Growing HDR from %s to %s: %s", self.high, newsize)
+        log.debug("Growing HDR from %s to %s", self.high, newsize)
         old = self.histogram
         self.high = newsize
         self.histogram = HdrHistogram(self.low, self.high, self.sign_figures)
@@ -457,7 +457,7 @@ class ResultsProvider(object):
         self.max_buffer_len = float('inf')
         self.buffer_multiplier = 2
         self.buffer_scale_idx = None
-        self.histogram_max = None
+        self.histogram_max = 1.0
         self.known_errors = fuzzyset.FuzzySet(use_levenshtein=True)
         self.max_error_count = 100
         self.known_labels = fuzzyset.FuzzySet(use_levenshtein=True)
