@@ -359,6 +359,7 @@ from bzt.resources import selenium_taurus_extras
         if remote_executor:
             if browser:
                 self.log.warning("Forcing browser to Remote, because of remote webdriver address")
+            inherited_capabilities.append({"browser": browser})
             browser = "Remote"
         elif browser in mobile_browsers and browser_platform in mobile_platforms:
             self.appium = True
