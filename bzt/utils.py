@@ -333,22 +333,6 @@ class BetterDict(defaultdict):
                 if not visitor(val, idx, obj):
                     cls.traverse(obj[idx], visitor)
 
-    def _filter_down(self, rules, key, invert, white_list):
-        if invert:
-            rkey = "!" + key
-        else:
-            rkey = key
-
-        if isinstance(rules.get(rkey), dict):
-            if isinstance(self.get(key), BetterDict):
-                self.get(key).filter(rules[rkey], invert=invert, white_list=white_list)
-        elif not white_list:
-            del self[key]
-
-        current = self.get(key, None)
-        if current is not None and not current:
-            del self[key]   # clean empty
-
     def filter(self, rules, invert=False, white_list=True):
         keys = set(self.keys())
         if invert:
@@ -357,9 +341,20 @@ class BetterDict(defaultdict):
         for key in keys:
             ikey = "!" + key
             if (key in rules) or (ikey in rules):
-                self._filter_down(rules, key, invert=(ikey in rules), white_list=white_list)
+                rkey = key if key in rules else ikey
+
+                if isinstance(rules.get(rkey), dict):
+                    if isinstance(self.get(key), BetterDict):
+                        self.get(key).filter(rules[rkey], invert=(ikey in rules), white_list=white_list)
+                elif not white_list:
+                    del self[key]
+
             elif white_list:    # default
                 del self[key]
+
+            current = self.get(key, None)
+            if current is not None and not current:
+                del self[key]  # clean empty
 
     def __repr__(self):
         return dict(self).__repr__()
