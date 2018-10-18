@@ -102,20 +102,6 @@ class TestBetterDict(BZTestCase):
 
         self._filter_and_compare(a, b, res)
 
-    def test_filter_wl2(self):
-        a = {
-            "A": {"D": "E", "G": "GG"},
-            "C": {"D": "E", "G": "GG"},
-            "F": ["FF"]}
-        b = {
-            "!A": None,
-            "C": {"G": "H"}}
-        res = {
-            "A": ["B", "BB"],
-            "C": {"D": "E"}}
-
-        self._filter_and_compare(a, b, res)
-
     def test_filter_bl1(self):
         a = {
             "A": ["B", "BB"],
