@@ -52,6 +52,7 @@ from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive,
 
 TAURUS_TEST_TYPE = "taurus"
 FUNC_TEST_TYPE = "functionalApi"
+
 CLOUD_CONFIG_WHITE_LIST = {
     "execution": True,
     "scenarios": True,
@@ -80,84 +81,14 @@ CLOUD_CONFIG_BLACK_LIST = {
             "public-report": True,
             "check-interval": True,
             "detach": True
-}}}
+        }},
+    "settings": {
+        "env": {
+            TAURUS_ARTIFACTS_DIR: True}
+    }}
+
 CLOUD_CONFIG_BLACK_LIST["modules"]["cloud"] = CLOUD_CONFIG_BLACK_LIST["modules"]["blazemeter"]
 
-CLOUD_CONFIG_FILTER_RULES = {
-    "execution": True,
-    "scenarios": True,
-    "services": True,
-
-    "locations": True,
-    "locations-weighted": True,
-
-    "settings": {
-        "verbose": True,
-        "env": True
-    },
-
-    "modules": {
-        "jmeter": {
-            "version": True,
-            "properties": True,
-            "system-properties": True,
-            "xml-jtl-flags": True,
-        },
-        "gatling": {
-            "version": True,
-            "properties": True,
-            "java-opts": True,
-            "additional-classpath": True
-        },
-        "grinder": {
-            "properties": True,
-            "properties-file": True
-        },
-        "selenium": {
-            "additional-classpath": True,
-            "virtual-display": True,
-            "compile-target-java": True
-        },
-        "junit": {
-            "compile-target-java": True
-        },
-        "testng": {
-            "compile-target-java": True
-        },
-        "local": {
-            "sequential": True
-        },
-        "proxy2jmx": {
-            "token": True
-        },
-        "shellexec": {
-            "env": True
-        },
-        "!blazemeter": {
-            "class": True,
-            "request-logging-limit": True,
-            "token": True,
-            "address": True,
-            "data-address": True,
-            "test": True,
-            "project": True,
-            "use-deprecated-api": True,
-            "default-location": True,
-            "browser-open": True,
-            "delete-test-files": True,
-            "report-name": True,
-            "timeout": True,
-            "public-report": True,
-            "check-interval": True,
-            "detach": True,
-        },
-        "consolidator": {
-            "rtimes-len": True
-        },
-    }
-}
-
-CLOUD_CONFIG_FILTER_RULES['modules']['!cloud'] = CLOUD_CONFIG_FILTER_RULES['modules']['!blazemeter']
 NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
 NOTE_SIZE_LIMIT = 2048
 
@@ -1138,19 +1069,17 @@ class BaseCloudTest(object):
             if mod_conf.get("class"):
                 del mod_conf["class"]
             if not mod_conf:
-                del config.get("modules")[module]
+                del config["modules"][module]  # todo: separate Configuration.clean()?
 
         config.filter(CLOUD_CONFIG_BLACK_LIST, white_list=False)
 
         config['local-bzt-version'] = engine_config.get('version', 'N/A')
-        for key in list(config.keys()):
+
+        for key in list(config.keys()):     # todo: is this cleaning necessary?
             if not config[key]:
                 config.pop(key)
 
         self.cleanup_defaults(config)
-
-        if TAURUS_ARTIFACTS_DIR in config.get('settings', force_set=True).get('env', force_set=True):
-            config['settings']['env'].pop(TAURUS_ARTIFACTS_DIR)
 
         if self.dedicated_ips:
             config[CloudProvisioning.DEDICATED_IPS] = True
