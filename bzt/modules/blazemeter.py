@@ -1131,11 +1131,16 @@ class BaseCloudTest(object):
 
         config.filter(CLOUD_CONFIG_WHITE_LIST)
 
-        for module in config.get("modules"):
-            if module.get("class"):
-                del module["class"]     # todo: clean empty?
+        modules = set(config.get("modules").keys())
+        for module in modules:
+            ensure_is_dict(config["modules"], module, "class")
+            mod_conf = config["modules"][module]
+            if mod_conf.get("class"):
+                del mod_conf["class"]
+            if not mod_conf:
+                del config.get("modules")[module]
 
-        config.filter(CLOUD_CONFIG_WHITE_LIST, white_list=False)
+        config.filter(CLOUD_CONFIG_BLACK_LIST, white_list=False)
 
         config['local-bzt-version'] = engine_config.get('version', 'N/A')
         for key in list(config.keys()):
