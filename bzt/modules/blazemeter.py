@@ -52,6 +52,37 @@ from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive,
 
 TAURUS_TEST_TYPE = "taurus"
 FUNC_TEST_TYPE = "functionalApi"
+CLOUD_CONFIG_WHITE_LIST = {
+    "execution": True,
+    "scenarios": True,
+    "services": True,
+    "settings": True,
+    "locations": True,
+    "locations-weighted": True,
+    "modules": True
+}
+
+CLOUD_CONFIG_BLACK_LIST = {
+    "modules": {
+        "blazemeter": {
+            "request-logging-limit": True,
+            "token": True,
+            "address": True,
+            "data-address": True,
+            "test": True,
+            "project": True,
+            "use-deprecated-api": True,
+            "default-location": True,
+            "browser-open": True,
+            "delete-test-files": True,
+            "report-name": True,
+            "timeout": True,
+            "public-report": True,
+            "check-interval": True,
+            "detach": True
+}}}
+CLOUD_CONFIG_BLACK_LIST["modules"]["cloud"] = CLOUD_CONFIG_BLACK_LIST["modules"]["blazemeter"]
+
 CLOUD_CONFIG_FILTER_RULES = {
     "execution": True,
     "scenarios": True,
@@ -1096,7 +1127,16 @@ class BaseCloudTest(object):
         # remove:
         #   reporting, cli, cli-aliases, fields,...
         # ? included-configs, provisioning,
-        config.filter(CLOUD_CONFIG_FILTER_RULES)
+        # config.filter(CLOUD_CONFIG_FILTER_RULES)
+
+        config.filter(CLOUD_CONFIG_WHITE_LIST)
+
+        for module in config.get("modules"):
+            if module.get("class"):
+                del module["class"]     # todo: clean empty?
+
+        config.filter(CLOUD_CONFIG_WHITE_LIST, white_list=False)
+
         config['local-bzt-version'] = engine_config.get('version', 'N/A')
         for key in list(config.keys()):
             if not config[key]:
