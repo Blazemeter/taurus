@@ -124,8 +124,7 @@ The `consolidator` has several settings:
 ```yaml
 modules:
   consolidator:
-    generalize-labels: false  # replace digits and UUID sequences 
-                              # with N and U to decrease label count
+    generalize-labels: 500    # support up to this number of labels
     ignore-labels: # sample labels from this list 
       - ignore     # will be ignored by results reader
       
@@ -134,7 +133,7 @@ modules:
     min-buffer-len: 2s      # minimal length of buffer (default: 2s)
     max-buffer-len: 2h      # maximal length of buffer (default: infinity)
     
-    rtimes-len: 500         # size of storage for response time values (default: 1000)  
+    histogram-initial: 5s         # starting size of histograms to use, before auto-grow (default: 5s)  
     max-error-variety: 100  # max count of different error messages accepted (default: 100)
         
     percentiles:  # percentile levels to track, 
@@ -147,9 +146,21 @@ modules:
     - 99.9
     - 100.0
 ```
-`rtimes-len` allows to reduce memory consumption for heavy tests. On the other hand, you reduce the precision of distribution with that.
 
-`max-error-variety` affects the intensity of treating different error messages as same, by closest match. Setting it to 0 or negative will disable error message merging.
+### Label and Error Folding
+
+To correctly and efficiently handle a lot of test data and calculate statistics, Taurus performs a few tricks.
+
+For example, the number of requests/labels Taurus can handle is capped by `generalize-labels` option (100 by default).
+Similar labels can be folded into a single one. For example, if the number of labels is high,
+`http://blazedemo.com/?foo=bar` and `http://blazedemo.com/?foo=baz` will be folded together and treated as two requests
+with the same label.
+
+The sample folding mechanics also apply to test errors. Similar errors are folded together, and the upper limit of
+errors can be set with `max-error-variety` option.
+
+To completely disable folding of labels or errors, you can set `generalize-labels` (or `max-error-variety`) to 0.
+This way Taurus will consume more memory for tests with lots of labels, so be prepared.
  
 ## Pass/Fail Criteria Subsystem
  

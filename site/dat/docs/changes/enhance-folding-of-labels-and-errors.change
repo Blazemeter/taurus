@@ -1,0 +1,1 @@
+Optimize folding of labels and errors by using `fuzzyset` data structure
