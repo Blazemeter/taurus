@@ -14,6 +14,7 @@ from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, FUNC_TEST_TYPE
+from bzt.modules.reporting import FinalStatus
 from bzt.utils import get_full_path
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
 from tests.mocks import EngineEmul, ModuleMock
@@ -1893,8 +1894,13 @@ class TestResultsFromBZA(BZTestCase):
                 for x in data[DataPoint.CURRENT].values():
                     a = x[KPISet.FAILURES] / x[KPISet.SAMPLE_COUNT]
                     obj.log.debug("TS: %s %s", data[DataPoint.TIMESTAMP], x[KPISet.SAMPLE_COUNT])
+                for x in data[DataPoint.CUMULATIVE].values():
+                    a = x[KPISet.FAILURES] / x[KPISet.SAMPLE_COUNT]
+                    obj.log.debug("TS: %s %s", data[DataPoint.TIMESTAMP], x[KPISet.SAMPLE_COUNT])
 
         agg.add_underling(obj)
+        status = FinalStatus()
+        agg.add_listener(status)
         agg.add_listener(Listener())
         agg.prepare()
         agg.startup()
@@ -1905,6 +1911,7 @@ class TestResultsFromBZA(BZTestCase):
             obj.log.warning("Shutting down")
         agg.shutdown()
         agg.post_process()
+        status.post_process()
 
         # res = list(obj.datapoints(False)) + list(obj.datapoints(True))
         # for point in res:
