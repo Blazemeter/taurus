@@ -1044,6 +1044,32 @@ class BaseCloudTest(object):
     def prepare_locations(self, executors, engine_config):
         pass
 
+    def _filter_config(self, config):
+        # remove:
+        #   reporting, cli, cli-aliases, fields,...
+        # ? included-configs, provisioning,
+        # run-at: remove for cloud
+
+        # config.filter(CLOUD_CONFIG_FILTER_RULES)
+
+        config.filter(CLOUD_CONFIG_WHITE_LIST)
+
+        #used_modules = config.filter("modules") to text
+        # if selenium in used_modules: add subrocessed executors
+
+        modules = set(config.get("modules").keys())
+        for module in modules:
+            ensure_is_dict(config["modules"], module, "class")
+            mod_conf = config["modules"][module]
+            if mod_conf.get("class"):
+                del mod_conf["class"]
+            if mod_conf.get("path"):
+                del mod_conf["path"]
+            if not mod_conf:    # or module not in used_modules
+                del config["modules"][module]  # todo: separate Configuration.clean()?
+
+        config.filter(CLOUD_CONFIG_BLACK_LIST, white_list=False)
+
     def prepare_cloud_config(self, engine_config):
         config = copy.deepcopy(engine_config)
 
@@ -1055,23 +1081,7 @@ class BaseCloudTest(object):
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
-        # remove:
-        #   reporting, cli, cli-aliases, fields,...
-        # ? included-configs, provisioning,
-        # config.filter(CLOUD_CONFIG_FILTER_RULES)
-
-        config.filter(CLOUD_CONFIG_WHITE_LIST)
-
-        modules = set(config.get("modules").keys())
-        for module in modules:
-            ensure_is_dict(config["modules"], module, "class")
-            mod_conf = config["modules"][module]
-            if mod_conf.get("class"):
-                del mod_conf["class"]
-            if not mod_conf:
-                del config["modules"][module]  # todo: separate Configuration.clean()?
-
-        config.filter(CLOUD_CONFIG_BLACK_LIST, white_list=False)
+        self._filter_config(config)
 
         config['local-bzt-version'] = engine_config.get('version', 'N/A')
 
@@ -1079,7 +1089,7 @@ class BaseCloudTest(object):
             if not config[key]:
                 config.pop(key)
 
-        self.cleanup_defaults(config)
+        self.cleanup_defaults(config)   # todo: remove all None values.
 
         if self.dedicated_ips:
             config[CloudProvisioning.DEDICATED_IPS] = True
