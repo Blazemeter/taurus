@@ -19,11 +19,7 @@ from subprocess import CalledProcessError
 
 from bzt import TaurusConfigError
 from bzt.engine import Service
-from bzt.six import iteritems
-from bzt.utils import ensure_is_dict
-from bzt.utils import shutdown_process, BetterDict, is_windows
-
-ARTIFACTS_DIR_ENVVAR = "TAURUS_ARTIFACTS_DIR"
+from bzt.utils import ensure_is_dict, Environment, shutdown_process, is_windows
 
 
 class ShellExecutor(Service):
@@ -34,6 +30,7 @@ class ShellExecutor(Service):
         self.check_tasks = []
         self.shutdown_tasks = []
         self.postprocess_tasks = []
+        self.env = None
 
     def _load_tasks(self, stage, container):
         if not isinstance(self.parameters.get(stage, []), list):
@@ -51,17 +48,10 @@ class ShellExecutor(Service):
             else:
                 working_dir = cwd
 
-            # todo: move it to new env
-            env = BetterDict.from_dict({k: os.environ.get(k) for k in os.environ.keys()})
-            env.merge(self.settings.get('env'))
-            env.merge(task_config.get('env'))
-            env.merge({"PYTHONPATH": working_dir})
-            if os.getenv("PYTHONPATH"):
-                env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
-            env[ARTIFACTS_DIR_ENVVAR] = self.engine.artifacts_dir
-
-            for name, value in iteritems(env):
-                env[str(name)] = str(value)
+            # make copy of env for every task
+            env = Environment(self.log, self.env.get())
+            env.set(task_config.get('env'))
+            env.add_path({"PYTHONPATH": working_dir})
 
             task = Task(task_config, self.log, working_dir, env)
             container.append(task)
@@ -72,6 +62,9 @@ class ShellExecutor(Service):
         Configure Tasks
         :return:
         """
+        self.env = Environment(self.log, self.engine.env.get())
+        self.env.set(self.settings.get('env'))
+
         self._load_tasks('prepare', self.prepare_tasks)
         self._load_tasks('startup', self.startup_tasks)
         self._load_tasks('check', self.check_tasks)
@@ -151,7 +144,7 @@ class Task(object):
             'stdout': out,
             'stderr': err,
             'cwd': self.working_dir,
-            'env': self.env,
+            'env': self.env.get(),
             'shell': True
         }
         # FIXME: shouldn't we bother closing opened descriptors?
