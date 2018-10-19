@@ -18,12 +18,10 @@ import subprocess
 from subprocess import CalledProcessError
 
 from bzt import TaurusConfigError
-from bzt.engine import Service
+from bzt.engine import Service, TAURUS_ARTIFACTS_DIR
 from bzt.six import iteritems
 from bzt.utils import ensure_is_dict
 from bzt.utils import shutdown_process, BetterDict, is_windows
-
-ARTIFACTS_DIR_ENVVAR = "TAURUS_ARTIFACTS_DIR"
 
 
 class ShellExecutor(Service):
@@ -58,7 +56,7 @@ class ShellExecutor(Service):
             env.merge({"PYTHONPATH": working_dir})
             if os.getenv("PYTHONPATH"):
                 env['PYTHONPATH'] = os.getenv("PYTHONPATH") + os.pathsep + env['PYTHONPATH']
-            env[ARTIFACTS_DIR_ENVVAR] = self.engine.artifacts_dir
+            env[TAURUS_ARTIFACTS_DIR] = self.engine.artifacts_dir
 
             for name, value in iteritems(env):
                 env[str(name)] = str(value)

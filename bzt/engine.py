@@ -373,7 +373,6 @@ class Engine(object):
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
         self.env.set({TAURUS_ARTIFACTS_DIR: self.artifacts_dir})
-        os.environ[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
