@@ -200,6 +200,7 @@ class FinalStatus(Reporter, AggregatorListener, FunctionalAggregatorListener):
         failed_samples_count = sample['fail']
         success_samples_count = sample['succ']
         total_samples_count = failed_samples_count + success_samples_count
+        assert total_samples_count > 0, "Total samples is zero for %s" % label_name
         success_samples_perc = (success_samples_count * 100) / total_samples_count
 
         errors = set()
