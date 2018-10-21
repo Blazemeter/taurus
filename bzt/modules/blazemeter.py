@@ -1092,10 +1092,11 @@ class BaseCloudTest(object):
 
         used_executors = [execution.get("executor") for execution in config.get(ScenarioExecutor.EXEC)]
         if "selenium" in used_executors:
-            used_executors += []    # todo: add subexecutors
+            used_executors += [
+                "nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot", "newman", "apiritif"]
         used_services = [service.get("module") for service in config.get(Service.SERV)]
-        # consolidator, local, cloud, blazemeter
-        used_modules = used_executors + used_services # +...
+        used_modules = used_executors + used_services + [
+            "consolidator", "functional-consolidator", "local", "blazemeter"]   # todo: cloud?
 
         modules = set(config.get("modules").keys())
         for module in modules:
