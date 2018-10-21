@@ -1085,13 +1085,22 @@ class BaseCloudTest(object):
     def prepare_cloud_config(self, engine_config):
         config = copy.deepcopy(engine_config)
 
-        if not isinstance(config[ScenarioExecutor.EXEC], list):
-            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
-
         provisioning = config.get(Provisioning.PROV)
         for execution in config[ScenarioExecutor.EXEC]:
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
+
+        used_executors = [execution.get("executor") for execution in config.get(ScenarioExecutor.EXEC)]
+        if "selenium" in used_executors:
+            used_executors += []    # todo: add subexecutors
+        used_services = [service.get("module") for service in config.get(Service.SERV)]
+        # consolidator, local, cloud, blazemeter
+        used_modules = used_executors + used_services # +...
+
+        modules = set(config.get("modules").keys())
+        for module in modules:
+            if module not in used_modules:
+                del config.get("modules")[module]
 
         config.filter(CLOUD_CONFIG_FILTER_RULES)
         config['local-bzt-version'] = engine_config.get('version', 'N/A')
