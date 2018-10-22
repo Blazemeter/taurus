@@ -340,9 +340,7 @@ from bzt.resources import selenium_taurus_extras
         inherited_capabilities = [{x: y} for x, y in iteritems(self.capabilities_from_outside)]
         mobile_browsers = ["Chrome", "Safari"]
         mobile_platforms = ["Android", "iOS"]
-        remote_executor = self.scenario.get("remote")
-        if self.webdriver_address:
-            remote_executor = self.webdriver_address
+        remote_executor = self.scenario.get("remote", self.webdriver_address)
 
         browser = self.scenario.get("browser", None)
 
