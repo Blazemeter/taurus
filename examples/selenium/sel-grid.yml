@@ -3,17 +3,17 @@ execution:
   - scenario: req
     executor: selenium
     hold-for: 1m
-    grid:
-    - platform: ubuntu/14.04
-      browser: chrome/46.0.12
-      vnc: true
-    - platform: ubuntu/14.04
-      browser: firefox/46.0.12
-      vnc: true
+    #grid:
+    #- platform: ubuntu/14.04
+    #  browser: chrome/46.0.12
+    #  vnc: true
+    #- platform: ubuntu/14.04
+    #  browser: firefox/46.0.12
+    #  vnc: true
 
 modules:
   selenium:
-    webdriver-address: http://localhost
+    remote: http://localhost
     capabilities:
       blazemeter.shipId: 5b98cfe5dee99c70197b23c6
       blazemeter.testId: 134
