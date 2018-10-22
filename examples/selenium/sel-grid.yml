@@ -21,4 +21,3 @@ scenarios:
       url: http://blazedemo.com/
       actions:
       - waitByXPath(//input[@type='submit'])
-
