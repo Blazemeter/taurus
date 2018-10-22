@@ -1824,23 +1824,29 @@ class ResultsFromBZA(ResultsProvider):
                 self.cur_errors = self.__get_errors_from_bza()
                 err_diff = self._get_err_diff()
                 if err_diff:
-                    for label in err_diff:
-                        point_label = '' if label == 'ALL' else label
-                        if point_label not in point[DataPoint.CURRENT]:
-                            self.log.warning("Got inconsistent kpi/error data for label: %s", point_label)
-                            kpiset = KPISet()
-                            point[DataPoint.CURRENT][point_label] = kpiset
-                            kpiset[KPISet.SAMPLE_COUNT] = sum([item['count'] for item in err_diff[label].values()])
-                        else:
-                            kpiset = point[DataPoint.CURRENT][point_label]
-                        kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
-                        assert kpiset[KPISet.SAMPLE_COUNT] > 0, point_label
+                    self.__add_err_diff(point, err_diff)
                     self.prev_errors = self.cur_errors
 
             point.recalculate()
 
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
+
+    def __add_err_diff(self, point, err_diff):
+        for label in err_diff:
+            point_label = '' if label == 'ALL' else label
+            if point_label not in point[DataPoint.CURRENT]:
+                self.log.warning("Got inconsistent kpi/error data for label: %s", point_label)
+                kpiset = KPISet()
+                point[DataPoint.CURRENT][point_label] = kpiset
+                kpiset[KPISet.SAMPLE_COUNT] = sum([item['count'] for item in err_diff[label].values()])
+            else:
+                kpiset = point[DataPoint.CURRENT][point_label]
+
+            kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
+            kpiset[KPISet.FAILURES] = sum([x['cnt'] for x in kpiset[KPISet.ERRORS]])
+            kpiset[KPISet.SAMPLE_COUNT] = kpiset[KPISet.SUCCESSES] + kpiset[KPISet.FAILURES]
+            assert kpiset[KPISet.SAMPLE_COUNT] > 0, point_label
 
     def __generate_kpisets(self, aggr, data, point, tstmp):
         for label in data:

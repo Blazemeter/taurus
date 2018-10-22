@@ -14,10 +14,10 @@ from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
 from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, FUNC_TEST_TYPE
+from bzt.modules.reporting import FinalStatus
 from bzt.utils import get_full_path
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
-from tests.mocks import EngineEmul, ModuleMock
-from tests.modules.test_blazemeter import BZMock
+from tests.mocks import EngineEmul, ModuleMock, BZMock
 
 
 class TestCloudProvisioning(BZTestCase):
@@ -66,6 +66,42 @@ class TestCloudProvisioning(BZTestCase):
         self.mock.mock_post.update(post if post else {})
         self.mock.mock_patch.update(patch if patch else {})
         self.mock.mock_patch.update({'https://a.blazemeter.com/api/v4/tests/1': {"result": {}}})
+
+    def test_old(self):
+        self.configure(
+            engine_cfg={
+                ScenarioExecutor.EXEC: [{
+                    "executor": "mock",
+                    "locations": {
+                        "aws": 1},
+                    "files": ModuleMock().get_resource_files()}]},
+
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/multi-tests': {"result": []},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"sessions": []}},
+                'https://a.blazemeter.com/api/v4/masters/1': {"result": {"note": "message"}},
+                'https://a.blazemeter.com/api/v4/masters/1/status': [
+                    {"result": {"id": 1, "status": "CREATE"}},
+                    {"result": {"id": 1, "status": "ENDED", "progress": 101}}]
+            },
+            post={
+                'https://a.blazemeter.com/api/v4/masters/1/public-token': {"result": {"publicToken": "token"}}
+            }
+        )
+
+        self.obj.public_report = True
+        self.obj.user.token = "test"
+
+        self.mock.apply(self.obj.user)
+
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.check()
+        self.obj._last_check_time = 0
+        self.obj.check()
+        self.obj.shutdown()
+        self.obj.post_process()
 
     def test_simple(self):
         self.configure(
@@ -276,16 +312,25 @@ class TestCloudProvisioning(BZTestCase):
                         "cloud": 10},
                     "locations": {
                         "us-east-1": 1,
-                        "us-west": 2}}},
+                        "us-west": 2}},
+                "modules": {
+                    "jmeter": {
+                        "class": "bizarre_local_class",
+                        "version": "some_value"},
+                    "blazemeter": {
+                        "class": "bm_class",
+                        "strange_param": False
+
+                    }
+                }
+            },
         )
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
         cloud_config = self.obj.router.prepare_cloud_config(self.obj.engine.config)
-        execution = cloud_config["execution"][0]
-        self.assertNotIn("throughput", execution)
-        self.assertNotIn("ramp-up", execution)
-        self.assertNotIn("hold-for", execution)
-        self.assertNotIn("steps", execution)
+        cloud_jmeter = cloud_config.get("modules").get("jmeter")
+        self.assertNotIn("class", cloud_jmeter)
+        self.assertIn("version", cloud_jmeter)
 
     def test_default_test_type_cloud(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
@@ -1893,8 +1938,13 @@ class TestResultsFromBZA(BZTestCase):
                 for x in data[DataPoint.CURRENT].values():
                     a = x[KPISet.FAILURES] / x[KPISet.SAMPLE_COUNT]
                     obj.log.debug("TS: %s %s", data[DataPoint.TIMESTAMP], x[KPISet.SAMPLE_COUNT])
+                for x in data[DataPoint.CUMULATIVE].values():
+                    a = x[KPISet.FAILURES] / x[KPISet.SAMPLE_COUNT]
+                    obj.log.debug("TS: %s %s", data[DataPoint.TIMESTAMP], x[KPISet.SAMPLE_COUNT])
 
         agg.add_underling(obj)
+        status = FinalStatus()
+        agg.add_listener(status)
         agg.add_listener(Listener())
         agg.prepare()
         agg.startup()
@@ -1905,6 +1955,7 @@ class TestResultsFromBZA(BZTestCase):
             obj.log.warning("Shutting down")
         agg.shutdown()
         agg.post_process()
+        status.post_process()
 
         # res = list(obj.datapoints(False)) + list(obj.datapoints(True))
         # for point in res:
