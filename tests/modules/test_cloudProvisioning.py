@@ -322,6 +322,9 @@ class TestCloudProvisioning(BZTestCase):
                         "strange_param": False
 
                     }
+                },
+                "settings": {
+                    "default-executor": "jmeter"
                 }
             },
         )

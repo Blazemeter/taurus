@@ -39,7 +39,7 @@ from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
-from bzt.engine import Singletone, TAURUS_ARTIFACTS_DIR
+from bzt.engine import Singletone, TAURUS_ARTIFACTS_DIR, SETTINGS
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
@@ -1085,6 +1085,8 @@ class BaseCloudTest(object):
     def prepare_cloud_config(self, engine_config):
         config = copy.deepcopy(engine_config)
 
+        self._unify_config(config)
+
         provisioning = config.get(Provisioning.PROV)
         for execution in config[ScenarioExecutor.EXEC]:
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
@@ -1119,6 +1121,27 @@ class BaseCloudTest(object):
 
         assert isinstance(config, Configuration)
         return config
+
+    def _unify_config(self, config):
+        executions = config.get(ScenarioExecutor.EXEC, [])
+        if isinstance(executions, dict):
+            executions = [executions]
+            config[ScenarioExecutor.EXEC] = executions
+
+        settings = config.get(SETTINGS)
+        default_executor = settings.get("default-executor", None)
+
+        for execution in executions:
+            execution.get("executor", default_executor, force_set=True)
+
+        reporting = config.get(Reporter.REP, [])
+        for index, reporter in enumerate(reporting):
+            ensure_is_dict(reporting, index, "module")
+
+        srv_config = config.get(Service.SERV, [])
+        for index, config in enumerate(srv_config):
+            ensure_is_dict(srv_config, index, "module")
+
 
     @abstractmethod
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
