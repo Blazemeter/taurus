@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.13.1<sup>next</sup>
+- use auto-growing histogram object to optimize CPU and memory usage (*big impact*)
+- optimize folding of labels and errors by using `fuzzyset` data structure (*big impact*)
 - bump up default JMeter to 5.0
 - fix `DivisionByZero` error happening for Cloud tests
 - fix hanging of shellexec commands due to `wait()` call used
@@ -22,6 +24,7 @@
 - less logging written for JUnit executor
 - use `STATUS_BROKEN` instead of `STATUS_FAILED` in JUnit 4
 - added `rc-file` as an executor option for Siege
+- some refactorings around artifacts dir in env variables
 
 
 ## 1.13.0<sup>4 sep 2018</sup>
