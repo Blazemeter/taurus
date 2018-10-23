@@ -70,6 +70,11 @@ class TestCloudProvisioning(BZTestCase):
         self.mock.mock_patch.update(patch if patch else {})
         self.mock.mock_patch.update({'https://a.blazemeter.com/api/v4/tests/1': {"result": {}}})
 
+    def test_defaults_clean(self):
+        conf = BetterDict.from_dict({"execution": [{"concurrency": {"local": None}}]})
+        res = self.obj._cleanup_defaults(conf)
+        self.assertEqual({"execution": [{}]}, res)
+
     def test_old(self):
         self.configure(
             engine_cfg={
@@ -386,7 +391,6 @@ class TestCloudProvisioning(BZTestCase):
             'blazemeter': {'strange_param': False}, 'selenium': {'virtual-display': False}, 'nose': {'verbose': False}})
 
         self.assertEqual(target, cloud_config.get("modules"))
-
 
     def test_default_test_type_cloud(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
@@ -1627,13 +1631,6 @@ class TestCloudProvisioning(BZTestCase):
         exp = "https://a.blazemeter.com/api/v4/workspaces?accountId=1&enabled=true&limit=100"
         self.assertEqual(exp, self.mock.requests[6]['url'])
         self.assertEqual(19, len(self.mock.requests))
-
-
-class TestCloudTaurusTest(BZTestCase):
-    def test_defaults_clean(self):
-        conf = {"execution": [{"concurrency": {"local": None}}]}
-        res = CloudProvisioning._cleanup_defaults(conf)
-        self.assertEqual({"execution": [{}]}, res)
 
 
 class TestResultsFromBZA(BZTestCase):
