@@ -1534,18 +1534,19 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.launch_existing_test = None
         self.disallow_empty_execution = False
 
-    def _merge_with_blazemeter_config(self):
-        if 'blazemeter' not in self.engine.config.get('modules'):
-            self.log.debug("Module 'blazemeter' wasn't found in base config")
+    @staticmethod
+    def merge_with_blazemeter_config(module):
+        if 'blazemeter' not in module.engine.config.get('modules'):
+            module.log.debug("Module 'blazemeter' wasn't found in base config")
             return
-        bm_mod = self.engine.instantiate_module('blazemeter')
+        bm_mod = module.engine.instantiate_module('blazemeter')
         bm_settings = copy.deepcopy(bm_mod.settings)
-        bm_settings.update(self.settings)
-        self.settings = bm_settings
+        bm_settings.update(module.settings)
+        module.settings = bm_settings
 
     def prepare(self):
-        self._merge_with_blazemeter_config()
-        self._configure_client()
+        CloudProvisioning.merge_with_blazemeter_config(self)
+        CloudProvisioning.configure_client(self)
         self._workspaces = self.user.accounts().workspaces()
         if not self._workspaces:
             raise TaurusNetworkError("Your account has no active workspaces, please contact BlazeMeter support")
@@ -1619,17 +1620,18 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 new_reporting.append(reporter)
         self.engine.config[Reporter.REP] = new_reporting
 
-    def _configure_client(self):
-        self.user.log = self.log
-        self.user.logger_limit = self.settings.get("request-logging-limit", self.user.logger_limit)
-        self.user.address = self.settings.get("address", self.user.address)
-        self.user.token = self.settings.get("token", self.user.token)
-        self.user.timeout = dehumanize_time(self.settings.get("timeout", self.user.timeout))
-        if isinstance(self.user.http_session, requests.Session):
-            self.log.debug("Installing http client")
-            self.user.http_session = self.engine.get_http_client()
-            self.user.http_request = self.user.http_session.request
-        if not self.user.token:
+    @staticmethod
+    def configure_client(module):
+        module.user.log = module.log
+        module.user.logger_limit = module.settings.get("request-logging-limit", module.user.logger_limit)
+        module.user.address = module.settings.get("address", module.user.address)
+        module.user.token = module.settings.get("token", module.user.token)
+        module.user.timeout = dehumanize_time(module.settings.get("timeout", module.user.timeout))
+        if isinstance(module.user.http_session, requests.Session):
+            module.log.debug("Installing http client")
+            module.user.http_session = module.engine.get_http_client()
+            module.user.http_request = module.user.http_session.request
+        if not module.user.token:
             raise TaurusConfigError("You must provide API token to use cloud provisioning")
 
     def startup(self):

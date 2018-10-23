@@ -1,0 +1,23 @@
+---
+execution:
+  - scenario: req
+    executor: selenium
+    hold-for: 1m
+
+modules:
+  selenium:
+    remote: http://localhost
+    capabilities:
+      blazemeter.shipId: 5b98cfe5dee99c70197b23c6
+      blazemeter.testId: 134
+      blazemeter.buildId: <random>
+
+scenarios:
+  req:
+    browser: Chrome
+    timeout: 60s
+    requests:
+    - label: open home and choose flights
+      url: http://blazedemo.com/
+      actions:
+      - waitByXPath(//input[@type='submit'])

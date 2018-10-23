@@ -38,7 +38,7 @@ class AbstractSeleniumExecutor(ReportableExecutor):
         pass
 
     @abstractmethod
-    def add_env(self, env):     # compatibility with taurus-server
+    def add_env(self, env):  # compatibility with taurus-server
         """
         Add environment variables into selenium process env
         :type env: dict[str,str]
@@ -72,7 +72,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.register_reader = True
         self.webdrivers = []
 
-    def add_env(self, env):     # compatibility with taurus-cloud
+    def add_env(self, env):  # compatibility with taurus-cloud
         self.env.set(env)
 
     def get_runner_working_dir(self):
@@ -94,12 +94,13 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.runner.execution['files'] = self.execution.get('files', [], force_set=True)
         self.runner.execution['executor'] = runner_type
         self.runner.register_reader = self.register_reader
+        self.runner.settings = self.settings.merge(self.runner.settings)
 
         if runner_type == "nose":
             self.runner.execution["test-mode"] = "selenium"
 
     def get_virtual_display(self):
-        pass    # for compatibility with taurus server
+        pass  # for compatibility with taurus server
 
     def install_required_tools(self):
         self.webdrivers = [self._get_tool(ChromeDriver, config=self.settings.get('chromedriver')),
@@ -112,7 +113,7 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
 
     def prepare(self):
         if self.env is None:
-            self.env = Environment(self.log, self.engine.env.get())   # for backward compatibility with taurus-server
+            self.env = Environment(self.log, self.engine.env.get())  # for backward compatibility with taurus-server
 
         self.install_required_tools()
         for driver in self.webdrivers:
