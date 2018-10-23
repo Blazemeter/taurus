@@ -91,7 +91,7 @@ class LocalProvisioningTest(BZTestCase):
         local = Local()
         local.settings["sequential"] = True
         local.engine = EngineEmul()
-        local.engine.config[ScenarioExecutor.EXEC] = [{}, {}]
+        local.engine.config.merge({ScenarioExecutor.EXEC: [{}, {}]})
         local.engine.config.get("settings")["default-executor"] = "mock"
         local.prepare()
         local.startup()
@@ -112,7 +112,7 @@ class LocalProvisioningTest(BZTestCase):
     def test_exception(self):
         local = Local()
         local.engine = EngineEmul()
-        local.engine.config[ScenarioExecutor.EXEC] = [{}]
+        local.engine.config.merge({ScenarioExecutor.EXEC: [{}]})
         local.engine.config.get("settings")["default-executor"] = "mock"
         local.prepare()
         local.startup()

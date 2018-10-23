@@ -1135,12 +1135,12 @@ class BaseCloudTest(object):
             execution.get("executor", default_executor, force_set=True)
 
         reporting = config.get(Reporter.REP, [])
-        for index, reporter in enumerate(reporting):
+        for index in range(len(reporting)):
             ensure_is_dict(reporting, index, "module")
 
-        srv_config = config.get(Service.SERV, [])
-        for index, config in enumerate(srv_config):
-            ensure_is_dict(srv_config, index, "module")
+        services = config.get(Service.SERV, [])
+        for index in range(len(services)):
+            ensure_is_dict(services, index, "module")
 
 
     @abstractmethod
