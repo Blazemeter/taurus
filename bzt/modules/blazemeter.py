@@ -43,12 +43,13 @@ from bzt.engine import Singletone, TAURUS_ARTIFACTS_DIR, SETTINGS
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.modules.monitoring import Monitoring, MonitoringListener
+from bzt.modules.monitoring import Monitoring, MonitoringListener, LocalClient
 from bzt.modules.services import Unpacker
+from bzt.modules.selenium import SeleniumExecutor
 from bzt.requests_model import has_variable_pattern
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
-from bzt.utils import dehumanize_time, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
-from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
+from bzt.utils import open_browser, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
+from bzt.utils import to_json, dehumanize_time, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 
 TAURUS_TEST_TYPE = "taurus"
 FUNC_TEST_TYPE = "functionalApi"
@@ -1082,7 +1083,7 @@ class BaseCloudTest(object):
     def prepare_locations(self, executors, engine_config):
         pass
 
-    def prepare_cloud_config(self, engine_config):
+    def prepare_cloud_config(self, engine_config, used_executors):
         config = copy.deepcopy(engine_config)
 
         self._unify_config(config)
@@ -1092,13 +1093,22 @@ class BaseCloudTest(object):
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
-        used_executors = [execution.get("executor") for execution in config.get(ScenarioExecutor.EXEC)]
-        if "selenium" in used_executors:
-            used_executors += [
-                "nose", "junit", "testng", "rspec", "mocha", "nunit", "pytest", "wdio", "robot", "newman", "apiritif"]
+        modules = set(config.get("modules").keys())
         used_services = [service.get("module") for service in config.get(Service.SERV)]
-        used_modules = used_executors + used_services + [
-            "consolidator", "functional-consolidator", "local", "blazemeter"]   # todo: cloud?
+        used_reporters = [reporter.get("module") for reporter in config.get(Reporter.REP)]
+        consolidator = config.get(SETTINGS).get("aggregator")
+
+        used_classes = LocalClient.__name__, BlazeMeterUploader.__name__
+
+        used_modules = []
+        for module in modules:
+            class_name = config.get("modules").get(module).get("class").split('.')[-1]
+            if class_name in used_classes:
+                used_modules.append(module)
+
+        used_modules += used_executors + used_services + used_reporters + [
+            consolidator, provisioning,
+            "local", "blazemeter"]
 
         modules = set(config.get("modules").keys())
         for module in modules:
@@ -1606,7 +1616,14 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
             res_files = self.get_rfiles()
             files_for_cloud = self._fix_filenames(res_files)
-            config_for_cloud = self.router.prepare_cloud_config(self.engine.config)
+
+            used_executors = []
+            for executor in self.executors:
+                used_executors.append(executor.execution.get("executor"))
+                if isinstance(executor, SeleniumExecutor):
+                    used_executors.append(executor.runner.execution.get("executor"))
+
+            config_for_cloud = self.router.prepare_cloud_config(self.engine.config, used_executors)
             config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
             del_files = self.settings.get("delete-test-files", True)
             self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
