@@ -1083,76 +1083,6 @@ class BaseCloudTest(object):
     def prepare_locations(self, executors, engine_config):
         pass
 
-    def prepare_cloud_config(self, engine_config, used_executors):
-        config = copy.deepcopy(engine_config)
-
-        self._unify_config(config)
-
-        provisioning = config.get(Provisioning.PROV)
-        for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
-            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
-
-        modules = set(config.get("modules").keys())
-        used_services = [service.get("module") for service in config.get(Service.SERV)]
-        used_reporters = [reporter.get("module") for reporter in config.get(Reporter.REP)]
-        consolidator = config.get(SETTINGS).get("aggregator")
-
-        used_classes = LocalClient.__name__, BlazeMeterUploader.__name__
-
-        used_modules = []
-        for module in modules:
-            class_name = config.get("modules").get(module).get("class").split('.')[-1]
-            if class_name in used_classes:
-                used_modules.append(module)
-
-        used_modules += used_executors + used_services + used_reporters + [
-            consolidator, provisioning,
-            "local", "blazemeter"]
-
-        modules = set(config.get("modules").keys())
-        for module in modules:
-            if module not in used_modules:
-                del config.get("modules")[module]
-
-        config.filter(CLOUD_CONFIG_FILTER_RULES)
-        config['local-bzt-version'] = engine_config.get('version', 'N/A')
-        for key in list(config.keys()):
-            if not config[key]:
-                config.pop(key)
-
-        self.cleanup_defaults(config)
-
-        if TAURUS_ARTIFACTS_DIR in config.get('settings', force_set=True).get('env', force_set=True):
-            config['settings']['env'].pop(TAURUS_ARTIFACTS_DIR)
-
-        if self.dedicated_ips:
-            config[CloudProvisioning.DEDICATED_IPS] = True
-
-        assert isinstance(config, Configuration)
-        return config
-
-    def _unify_config(self, config):
-        executions = config.get(ScenarioExecutor.EXEC, [])
-        if isinstance(executions, dict):
-            executions = [executions]
-            config[ScenarioExecutor.EXEC] = executions
-
-        settings = config.get(SETTINGS)
-        default_executor = settings.get("default-executor", None)
-
-        for execution in executions:
-            execution.get("executor", default_executor, force_set=True)
-
-        reporting = config.get(Reporter.REP, [])
-        for index in range(len(reporting)):
-            ensure_is_dict(reporting, index, "module")
-
-        services = config.get(Service.SERV, [])
-        for index in range(len(services)):
-            ensure_is_dict(services, index, "module")
-
-
     @abstractmethod
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
         pass
@@ -1178,31 +1108,6 @@ class BaseCloudTest(object):
     def get_master_status(self):
         self._last_status = self.master.get_status()
         return self._last_status
-
-    @staticmethod
-    def cleanup_defaults(config):
-        # cleanup configuration from empty values
-        default_values = {
-            'concurrency': None,
-            'iterations': None,
-            'ramp-up': None,
-            'steps': None,
-            'throughput': None,
-            'hold-for': 0,
-            'files': []
-        }
-        for execution in config[ScenarioExecutor.EXEC]:
-            if isinstance(execution['concurrency'], dict):
-                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
-
-            if not execution['concurrency']:
-                execution['concurrency'] = None
-
-            for key, value in iteritems(default_values):
-                if key in execution and execution[key] == value:
-                    execution.pop(key)
-
-        return config
 
 
 class CloudTaurusTest(BaseCloudTest):
@@ -1617,13 +1522,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             res_files = self.get_rfiles()
             files_for_cloud = self._fix_filenames(res_files)
 
-            used_executors = []
-            for executor in self.executors:
-                used_executors.append(executor.execution.get("executor"))
-                if isinstance(executor, SeleniumExecutor):
-                    used_executors.append(executor.runner.execution.get("executor"))
-
-            config_for_cloud = self.router.prepare_cloud_config(self.engine.config, used_executors)
+            config_for_cloud = self.prepare_cloud_config(self.engine.config)
             config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
             del_files = self.settings.get("delete-test-files", True)
             self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
@@ -1641,6 +1540,108 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         elif isinstance(self.engine.aggregator, FunctionalAggregator):
             self.results_reader = FunctionalBZAReader(self.log)
             self.engine.aggregator.add_underling(self.results_reader)
+
+    def prepare_cloud_config(self, engine_config):
+        config = copy.deepcopy(engine_config)
+
+        self._unify_config(config)
+
+        used_executors = []
+        for executor in self.executors:
+            used_executors.append(executor.execution.get("executor"))
+            if isinstance(executor, SeleniumExecutor):
+                used_executors.append(executor.runner.execution.get("executor"))
+
+        provisioning = config.get(Provisioning.PROV)
+        for execution in config[ScenarioExecutor.EXEC]:
+            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
+            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
+
+        modules = set(config.get("modules").keys())
+        used_services = [service.get("module") for service in config.get(Service.SERV)]
+        used_reporters = [reporter.get("module") for reporter in config.get(Reporter.REP)]
+        consolidator = config.get(SETTINGS).get("aggregator")
+
+        used_classes = LocalClient.__name__, BlazeMeterUploader.__name__
+
+        used_modules = []
+        for module in modules:
+            class_name = config.get("modules").get(module).get("class").split('.')[-1]
+            if class_name in used_classes:
+                used_modules.append(module)
+
+        used_modules += used_executors + used_services + used_reporters + [consolidator, provisioning]
+
+        modules = set(config.get("modules").keys())
+        for module in modules:
+            if module not in used_modules:
+                del config.get("modules")[module]
+
+        config.filter(CLOUD_CONFIG_FILTER_RULES)
+        config['local-bzt-version'] = engine_config.get('version', 'N/A')
+        for key in list(config.keys()):
+            if not config[key]:
+                config.pop(key)
+
+        self._cleanup_defaults(config)
+
+        if TAURUS_ARTIFACTS_DIR in config.get('settings', force_set=True).get('env', force_set=True):
+            config['settings']['env'].pop(TAURUS_ARTIFACTS_DIR)
+
+        if self.router.dedicated_ips:
+            config[CloudProvisioning.DEDICATED_IPS] = True
+
+        assert isinstance(config, Configuration)
+        return config
+
+    def _unify_config(self, config):
+        executions = config.get(ScenarioExecutor.EXEC, [])
+        if isinstance(executions, dict):
+            executions = [executions]
+            config[ScenarioExecutor.EXEC] = executions
+
+        settings = config.get(SETTINGS)
+        default_executor = settings.get("default-executor", None)
+
+        for execution in executions:
+            execution.get("executor", default_executor, force_set=True)
+
+        reporting = config.get(Reporter.REP, [])
+        for index in range(len(reporting)):
+            ensure_is_dict(reporting, index, "module")
+
+        services = config.get(Service.SERV, [])
+        for index in range(len(services)):
+            ensure_is_dict(services, index, "module")
+
+        modules = config.get("modules")
+        for module in modules:
+            ensure_is_dict(modules, module, "class")
+
+    @staticmethod
+    def _cleanup_defaults(config):
+        # cleanup configuration from empty values
+        default_values = {
+            'concurrency': None,
+            'iterations': None,
+            'ramp-up': None,
+            'steps': None,
+            'throughput': None,
+            'hold-for': 0,
+            'files': []
+        }
+        for execution in config[ScenarioExecutor.EXEC]:
+            if isinstance(execution['concurrency'], dict):
+                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
+
+            if not execution['concurrency']:
+                execution['concurrency'] = None
+
+            for key, value in iteritems(default_values):
+                if key in execution and execution[key] == value:
+                    execution.pop(key)
+
+        return config
 
     def __dump_locations_if_needed(self):
         if self.settings.get("dump-locations", False):

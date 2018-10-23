@@ -315,10 +315,10 @@ class TestCloudProvisioning(BZTestCase):
                         "us-west": 2}},
                 "modules": {
                     "jmeter": {
-                        "class": "bizarre_local_class",
+                        "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
                         "version": "some_value"},
                     "blazemeter": {
-                        "class": "bm_class",
+                        "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
                         "strange_param": False
 
                     }
@@ -330,7 +330,7 @@ class TestCloudProvisioning(BZTestCase):
         )
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
-        cloud_config = self.obj.router.prepare_cloud_config(self.obj.engine.config)
+        cloud_config = self.obj.prepare_cloud_config(self.obj.engine.config)
         cloud_jmeter = cloud_config.get("modules").get("jmeter")
         self.assertNotIn("class", cloud_jmeter)
         self.assertIn("version", cloud_jmeter)
@@ -1579,7 +1579,7 @@ class TestCloudProvisioning(BZTestCase):
 class TestCloudTaurusTest(BZTestCase):
     def test_defaults_clean(self):
         conf = {"execution": [{"concurrency": {"local": None}}]}
-        res = CloudTaurusTest.cleanup_defaults(conf)
+        res = CloudProvisioning._cleanup_defaults(conf)
         self.assertEqual({"execution": [{}]}, res)
 
 
