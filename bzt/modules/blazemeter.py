@@ -1522,7 +1522,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             res_files = self.get_rfiles()
             files_for_cloud = self._fix_filenames(res_files)
 
-            config_for_cloud = self.prepare_cloud_config(self.engine.config)
+            config_for_cloud = self.prepare_cloud_config()
             config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
             del_files = self.settings.get("delete-test-files", True)
             self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
@@ -1541,8 +1541,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.results_reader = FunctionalBZAReader(self.log)
             self.engine.aggregator.add_underling(self.results_reader)
 
-    def prepare_cloud_config(self, engine_config):
-        config = copy.deepcopy(engine_config)
+    def prepare_cloud_config(self):
+        config = copy.deepcopy(self.engine.config)
 
         self._unify_config(config)
 
@@ -1578,7 +1578,10 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 del config.get("modules")[module]
 
         config.filter(CLOUD_CONFIG_FILTER_RULES)
-        config['local-bzt-version'] = engine_config.get('version', 'N/A')
+
+        # todo: should we remove config['version'] before sending to cloud?
+        config['local-bzt-version'] = config.get('version', 'N/A')
+
         for key in list(config.keys()):
             if not config[key]:
                 config.pop(key)

@@ -6,15 +6,18 @@ import tempfile
 import time
 
 import yaml
+import bzt.modules.blazemeter
 
 from bzt import TaurusConfigError, TaurusException, NormalShutdown, AutomatedShutdown
 from bzt.bza import Master, Test, MultiTest
-from bzt.engine import ScenarioExecutor, Service
+from bzt.engine import ScenarioExecutor, Service, BetterDict
 from bzt.modules import FunctionalAggregator
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.modules.blazemeter import CloudProvisioning, ResultsFromBZA, ServiceStubCaptureHAR, FunctionalBZAReader
-from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, FUNC_TEST_TYPE
+from bzt.modules.blazemeter import CloudTaurusTest, CloudCollectionTest, FUNC_TEST_TYPE, BlazeMeterUploader
 from bzt.modules.reporting import FinalStatus
+from bzt.modules.selenium import SeleniumExecutor
+from bzt.modules.python import NoseTester
 from bzt.utils import get_full_path
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
 from tests.mocks import EngineEmul, ModuleMock, BZMock
@@ -303,7 +306,7 @@ class TestCloudProvisioning(BZTestCase):
         self.assertEquals('https://a.blazemeter.com/api/v4/web/elfinder/1?cmd=rm&targets[]=hash1&targets[]=hash1',
                           self.mock.requests[13]['url'])
 
-    def test_cloud_config_cleanup(self):
+    def test_cloud_config_cleanup_simple(self):
         self.configure(
             engine_cfg={
                 ScenarioExecutor.EXEC: {
@@ -334,10 +337,56 @@ class TestCloudProvisioning(BZTestCase):
         super(CloudProvisioning, self.obj).prepare()    # init executors
         self.obj.get_rfiles()                           # create runners
 
-        cloud_config = self.obj.prepare_cloud_config(self.obj.engine.config)
+        cloud_config = self.obj.prepare_cloud_config()
         cloud_jmeter = cloud_config.get("modules").get("jmeter")
         self.assertNotIn("class", cloud_jmeter)
         self.assertIn("version", cloud_jmeter)
+
+    def test_cloud_config_cleanup_selenium(self):
+        self.configure(
+            engine_cfg={
+                ScenarioExecutor.EXEC: [{
+                    "executor": "selenium",
+                    "concurrency": {
+                        "local": 1,
+                        "cloud": 10},
+                    "locations": {
+                        "us-east-1": 1,
+                        "us-west": 2},
+                    "scenario": {"requests": ["http://blazedemo.com"]}}],
+                "modules": {
+                    "selenium": {
+                        "class": SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__,
+                        "virtual-display": False},
+                    "nose": {
+                        "class": NoseTester.__module__ + "." + NoseTester.__name__,
+                        "verbose": False
+                    },
+                    "blazemeter": {
+                        "class": BlazeMeterUploader.__module__ + "." + BlazeMeterUploader.__name__,
+                        "strange_param": False
+                    },
+                    "unused_module": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                },
+                "settings": {
+                    "default-executor": "jmeter",
+                    "aggregator": "consolidator"
+                }
+            },
+        )
+
+        self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
+
+        super(CloudProvisioning, self.obj).prepare()    # init executors
+        self.obj.get_rfiles()                           # create runners
+
+        bzt.modules.blazemeter.CLOUD_CONFIG_FILTER_RULES["modules"]["nose"] = {"verbose": True}
+        cloud_config = self.obj.prepare_cloud_config()
+        target = BetterDict.from_dict({
+            'blazemeter': {'strange_param': False}, 'selenium': {'virtual-display': False}, 'nose': {'verbose': False}})
+
+        self.assertEqual(target, cloud_config.get("modules"))
+
 
     def test_default_test_type_cloud(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
