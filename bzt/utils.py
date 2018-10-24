@@ -911,10 +911,11 @@ def is_int(str_val):
     :param str_val: str
     :return: bool
     """
-    try:
-        int(str_val)
+    if str_val.startswith('-') and str_val[1:].isdigit():
         return True
-    except ValueError:
+    elif str_val.isdigit():
+        return True
+    else:
         return False
 
 
@@ -1463,12 +1464,6 @@ def which(filename):
         if os.path.isfile(candidate):
             candidates.append(candidate)
     return candidates
-
-
-def is_piped(file_obj):
-    """check if file-object is a pipe or a file redirect"""
-    mode = os.fstat(file_obj.fileno()).st_mode
-    return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
 
 
 class PythonGenerator(object):
