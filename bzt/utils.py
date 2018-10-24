@@ -573,14 +573,8 @@ def ensure_is_dict(container, key, default_key=None):
     :type default_key: basestring
     :return:
     """
-    if (isinstance(container, dict) and key not in container) \
-            or (isinstance(container, list) and not container[key]):
-        if isinstance(container, list):
-            raise BaseException("Look deeper..")
-        if default_key:
-            container[key] = BetterDict.from_dict({default_key: None})
-        else:
-            container[key] = BetterDict()
+    if isinstance(container, dict) and key not in container:
+        container[key] = BetterDict()
     elif not isinstance(container[key], dict):
         if default_key:
             val = container[key]
