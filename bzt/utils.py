@@ -564,7 +564,7 @@ class FileReader(object):
             self.fds.close()
 
 
-def ensure_is_dict(container, key, default_key=None):
+def ensure_is_dict(container, key, default_key):
     """
     Ensure that dict item is dict, convert if needed
 
@@ -576,11 +576,8 @@ def ensure_is_dict(container, key, default_key=None):
     if isinstance(container, dict) and key not in container:
         container[key] = BetterDict()
     elif not isinstance(container[key], dict):
-        if default_key:
-            val = container[key]
-            container[key] = BetterDict.from_dict({default_key: val})
-        else:
-            container[key] = BetterDict()
+        val = container[key]
+        container[key] = BetterDict.from_dict({default_key: val})
 
     return container[key]
 
