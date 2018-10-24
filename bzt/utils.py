@@ -911,10 +911,11 @@ def is_int(str_val):
     :param str_val: str
     :return: bool
     """
-    try:
-        int(str_val)
+    if str_val.startswith('-') and str_val[1:].isdigit():
         return True
-    except ValueError:
+    elif str_val.isdigit():
+        return True
+    else:
         return False
 
 
