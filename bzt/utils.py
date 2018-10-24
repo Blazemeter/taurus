@@ -564,36 +564,22 @@ class FileReader(object):
             self.fds.close()
 
 
-def ensure_is_dict(container, key, default_key):
+def ensure_is_dict(container, key, sub_key):
     """
     Ensure that dict item is dict, convert if needed
 
     :type container: dict or list
     :type key: basestring or int
-    :type default_key: basestring
+    :type sub_key: basestring
     :return:
     """
     if isinstance(container, dict) and key not in container:
         container[key] = BetterDict()
     elif not isinstance(container[key], dict):
         val = container[key]
-        container[key] = BetterDict.from_dict({default_key: val})
+        container[key] = BetterDict.from_dict({sub_key: val})
 
     return container[key]
-
-
-def dict_key(dictnr, value):
-    """
-    Search key by value in dict
-
-    :type dictnr: dict
-    :type value: type
-    :return: :raise TaurusInternalException:
-    """
-    for key, val in iteritems(dictnr):
-        if val == value:
-            return key
-    raise TaurusInternalException("Value not found in dict: %s" % value)
 
 
 class MultiPartForm(object):
