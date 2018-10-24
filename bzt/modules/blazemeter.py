@@ -45,6 +45,7 @@ from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
 from bzt.modules.monitoring import Monitoring, MonitoringListener
 from bzt.modules.services import Unpacker
+from bzt.requests_model import has_variable_pattern
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
 from bzt.utils import dehumanize_time, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
@@ -730,7 +731,7 @@ class DatapointSerializer(object):
                     "count": error['cnt'],
                     "rm": error['msg'],
                     "rc": error['rc'],
-                    "url": error['urls'].keys()[0] if error['urls'] else None,
+                    "url": list(error['urls'])[0] if error['urls'] else None,
                 })
             else:
                 report_item['assertions'].append({
@@ -1439,6 +1440,9 @@ class MasterProvisioning(Provisioning):
             config += to_json(self.engine.config.get('scenarios'))
             config += to_json(executor.settings)
             for rfile in executor_rfiles:
+                if has_variable_pattern(rfile):
+                    continue
+
                 if not os.path.exists(self.engine.find_file(rfile)):
                     raise TaurusConfigError("%s: resource file '%s' not found" % (executor, rfile))
                 if to_json(rfile) not in config:  # TODO: might be check is needed to improve
@@ -1449,6 +1453,7 @@ class MasterProvisioning(Provisioning):
             raise TaurusConfigError("Following files can't be handled in cloud: %s" % additional_files)
 
         rfiles = list(set(rfiles))
+        rfiles = [x for x in rfiles if not has_variable_pattern(x)]
         self.log.debug("All resource files are: %s", rfiles)
         return rfiles
 
@@ -1529,18 +1534,19 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         self.launch_existing_test = None
         self.disallow_empty_execution = False
 
-    def _merge_with_blazemeter_config(self):
-        if 'blazemeter' not in self.engine.config.get('modules'):
-            self.log.debug("Module 'blazemeter' wasn't found in base config")
+    @staticmethod
+    def merge_with_blazemeter_config(module):
+        if 'blazemeter' not in module.engine.config.get('modules'):
+            module.log.debug("Module 'blazemeter' wasn't found in base config")
             return
-        bm_mod = self.engine.instantiate_module('blazemeter')
+        bm_mod = module.engine.instantiate_module('blazemeter')
         bm_settings = copy.deepcopy(bm_mod.settings)
-        bm_settings.update(self.settings)
-        self.settings = bm_settings
+        bm_settings.update(module.settings)
+        module.settings = bm_settings
 
     def prepare(self):
-        self._merge_with_blazemeter_config()
-        self._configure_client()
+        CloudProvisioning.merge_with_blazemeter_config(self)
+        CloudProvisioning.configure_client(self)
         self._workspaces = self.user.accounts().workspaces()
         if not self._workspaces:
             raise TaurusNetworkError("Your account has no active workspaces, please contact BlazeMeter support")
@@ -1614,17 +1620,18 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 new_reporting.append(reporter)
         self.engine.config[Reporter.REP] = new_reporting
 
-    def _configure_client(self):
-        self.user.log = self.log
-        self.user.logger_limit = self.settings.get("request-logging-limit", self.user.logger_limit)
-        self.user.address = self.settings.get("address", self.user.address)
-        self.user.token = self.settings.get("token", self.user.token)
-        self.user.timeout = dehumanize_time(self.settings.get("timeout", self.user.timeout))
-        if isinstance(self.user.http_session, requests.Session):
-            self.log.debug("Installing http client")
-            self.user.http_session = self.engine.get_http_client()
-            self.user.http_request = self.user.http_session.request
-        if not self.user.token:
+    @staticmethod
+    def configure_client(module):
+        module.user.log = module.log
+        module.user.logger_limit = module.settings.get("request-logging-limit", module.user.logger_limit)
+        module.user.address = module.settings.get("address", module.user.address)
+        module.user.token = module.settings.get("token", module.user.token)
+        module.user.timeout = dehumanize_time(module.settings.get("timeout", module.user.timeout))
+        if isinstance(module.user.http_session, requests.Session):
+            module.log.debug("Installing http client")
+            module.user.http_session = module.engine.get_http_client()
+            module.user.http_request = module.user.http_session.request
+        if not module.user.token:
             raise TaurusConfigError("You must provide API token to use cloud provisioning")
 
     def startup(self):
@@ -1786,7 +1793,7 @@ class ResultsFromBZA(ResultsProvider):
                         diff[label] = {}
                     diff[label][msg] = {'count': delta, 'rc': self.cur_errors[label][msg]['rc']}
 
-        return diff
+        return {k: diff[k] for k in diff if diff[k]}  # clean from empty items
 
     def _calculate_datapoints(self, final_pass=False):
         if self.master is None:
@@ -1810,37 +1817,53 @@ class ResultsFromBZA(ResultsProvider):
 
         for tstmp in timestamps:
             point = DataPoint(tstmp)
-            for label in data:
-                for kpi in label.get('kpis', []):
-                    if kpi['ts'] != tstmp:
-                        continue
-                    label_str = label.get('label')
-                    if label_str is None or label_str not in aggr:
-                        self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
-                        continue
-
-                    if kpi['n'] <= 0:
-                        self.log.warning("Skipping empty KPI item got from API: %s", kpi)
-                        continue
-
-                    kpiset = self.__get_kpiset(aggr, kpi, label_str)
-                    point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
+            self.__generate_kpisets(aggr, data, point, tstmp)
 
             if self.handle_errors:
                 self.handle_errors = False
                 self.cur_errors = self.__get_errors_from_bza()
                 err_diff = self._get_err_diff()
                 if err_diff:
-                    for label in err_diff:
-                        point_label = '' if label == 'ALL' else label
-                        kpiset = point[DataPoint.CURRENT].setdefault(point_label, KPISet())
-                        kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
+                    self.__add_err_diff(point, err_diff)
                     self.prev_errors = self.cur_errors
 
             point.recalculate()
 
             self.min_ts = point[DataPoint.TIMESTAMP] + 1
             yield point
+
+    def __add_err_diff(self, point, err_diff):
+        for label in err_diff:
+            point_label = '' if label == 'ALL' else label
+            if point_label not in point[DataPoint.CURRENT]:
+                self.log.warning("Got inconsistent kpi/error data for label: %s", point_label)
+                kpiset = KPISet()
+                point[DataPoint.CURRENT][point_label] = kpiset
+                kpiset[KPISet.SAMPLE_COUNT] = sum([item['count'] for item in err_diff[label].values()])
+            else:
+                kpiset = point[DataPoint.CURRENT][point_label]
+
+            kpiset[KPISet.ERRORS] = self.__get_kpi_errors(err_diff[label])
+            kpiset[KPISet.FAILURES] = sum([x['cnt'] for x in kpiset[KPISet.ERRORS]])
+            kpiset[KPISet.SAMPLE_COUNT] = kpiset[KPISet.SUCCESSES] + kpiset[KPISet.FAILURES]
+            assert kpiset[KPISet.SAMPLE_COUNT] > 0, point_label
+
+    def __generate_kpisets(self, aggr, data, point, tstmp):
+        for label in data:
+            for kpi in label.get('kpis', []):
+                if kpi['ts'] != tstmp:
+                    continue
+                label_str = label.get('label')
+                if label_str is None or label_str not in aggr:
+                    self.log.warning("Skipping inconsistent data from API for label: %s", label_str)
+                    continue
+
+                if kpi['n'] <= 0:
+                    self.log.warning("Skipping empty KPI item got from API: %s", kpi)
+                    continue
+
+                kpiset = self.__get_kpiset(aggr, kpi, label_str)
+                point[DataPoint.CURRENT]['' if label_str == 'ALL' else label_str] = kpiset
 
     def __get_errors_from_bza(self):
         #
@@ -1890,7 +1913,7 @@ class ResultsFromBZA(ResultsProvider):
         kpiset[KPISet.FAILURES] = kpi['ec']
         kpiset[KPISet.CONCURRENCY] = kpi['na']
         kpiset[KPISet.SAMPLE_COUNT] = kpi['n']
-        assert kpi['n'] >= kpi['ec']
+        assert kpi['n'] > 0 and kpi['n'] >= kpi['ec']
         kpiset[KPISet.SUCCESSES] = kpi['n'] - kpi['ec']
         kpiset.sum_rt += kpi['t_avg'] * kpi['n'] / 1000.0
         kpiset.sum_lt += kpi['lt_avg'] * kpi['n'] / 1000.0

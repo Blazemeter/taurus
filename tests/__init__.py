@@ -15,25 +15,26 @@ from bzt.cli import CLI
 from bzt.engine import SelfDiagnosable
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.six import u
-from bzt.utils import run_once, EXE_SUFFIX, get_full_path
+from bzt.utils import EXE_SUFFIX, get_full_path, run_once
 
 TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
+
+ROOT_LOGGER = logging.getLogger("")
 
 
 @run_once
 def setup_test_logging():
     """ set up test logging for convenience in IDE """
-    root = logging.getLogger('')
-    if not root.handlers:
-        CLI.log = None
+    if not ROOT_LOGGER.handlers:
+        CLI.log = ''  # means no log file will be created
         CLI.verbose = True
         CLI.setup_logging(CLI)
     else:
-        root.debug("Already set up logging")
+        ROOT_LOGGER.debug("Already set up logging")
 
 
 setup_test_logging()
-logging.info("Bootstrapped test")
+ROOT_LOGGER.info("Bootstrapped test")
 
 
 def __dir__():
@@ -115,6 +116,7 @@ class BZTestCase(TestCase):
         self.log_recorder = None
         self.func_args = []
         self.func_results = None
+        self.log = ROOT_LOGGER
 
     def func_mock(self, *args, **kwargs):
         self.func_args.append({'args': args, 'kargs': kwargs})
@@ -123,10 +125,11 @@ class BZTestCase(TestCase):
         else:
             return self.func_results
 
-    def sniff_log(self, log):
-        self.log_recorder = RecordingHandler()
-        self.captured_logger = log
-        self.captured_logger.addHandler(self.log_recorder)
+    def sniff_log(self, log=ROOT_LOGGER):
+        if not self.captured_logger:
+            self.log_recorder = RecordingHandler()
+            self.captured_logger = log
+            self.captured_logger.addHandler(self.log_recorder)
 
     def tearDown(self):
         exc, _, _ = sys.exc_info()
@@ -136,7 +139,7 @@ class BZTestCase(TestCase):
                     diags = self.obj.get_error_diagnostics()
                     if diags:
                         for line in diags:
-                            logging.info(line)
+                            ROOT_LOGGER.info(line)
             except BaseException:
                 pass
         if self.captured_logger:
@@ -151,7 +154,7 @@ class BZTestCase(TestCase):
             exp_lines = [x.replace(replace_str, replace_with).rstrip() for x in exp.readlines()]
             diff = list(difflib.unified_diff(exp_lines, act_lines))
             if diff:
-                logging.info("Replacements are: %s => %s", replace_str, replace_with)
+                ROOT_LOGGER.info("Replacements are: %s => %s", replace_str, replace_with)
                 msg = "Failed asserting that two files are equal:\n" + actual + "\nversus\n" + expected + "\nDiff is:\n"
                 raise AssertionError(msg + "\n".join(diff))
 

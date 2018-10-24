@@ -57,6 +57,7 @@ URLError = urllib2.URLError
 BaseHTTPServer = BaseHTTPServer
 socketserver = socketserver
 SimpleHTTPRequestHandler = BaseHTTPServer.BaseHTTPRequestHandler
+url2pathname = urllib.url2pathname
 
 viewvalues = operator.methodcaller("viewvalues")
 
@@ -91,17 +92,6 @@ def reraise(exc_info, exc=None):
 
 def stream_decode(string):
     return string
-
-
-def unicode_decode(string):
-    if not isinstance(string, text_type):
-        return string.decode('utf-8')
-    else:
-        return string
-
-
-def communicate(proc):
-    return proc.communicate()
 
 
 def deunicode(string):

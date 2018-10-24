@@ -31,14 +31,12 @@ import yaml
 from colorlog import ColoredFormatter
 
 import bzt
-from bzt import ManualShutdown, NormalShutdown, RCProvider, AutomatedShutdown
-from bzt import TaurusException, ToolError
-from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError
-from bzt.engine import Engine, Configuration, ScenarioExecutor
-from bzt.engine import SETTINGS
+from bzt import ManualShutdown, NormalShutdown, RCProvider, TaurusException, AutomatedShutdown
+from bzt import TaurusInternalException, TaurusConfigError, TaurusNetworkError, ToolError
+from bzt.engine import Engine, Configuration, ScenarioExecutor, SETTINGS
 from bzt.linter import ConfigurationLinter
 from bzt.six import HTTPError, string_types, get_stacktrace, integer_types
-from bzt.utils import run_once, is_int, BetterDict, get_full_path, is_url
+from bzt.utils import is_int, BetterDict, is_url, RESOURCES_DIR
 
 
 class CLI(object):
@@ -64,7 +62,6 @@ class CLI(object):
         self.exit_code = 0
 
     @staticmethod
-    @run_once
     def setup_logging(options):
         """
         Setting up console and file logging, colored if possible
@@ -97,7 +94,7 @@ class CLI(object):
             options.log = tf.name
 
         if options.log:
-            file_handler = logging.FileHandler(options.log)
+            file_handler = logging.FileHandler(options.log, encoding="utf-8")
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(fmt_file)
             logger.addHandler(file_handler)
@@ -117,14 +114,14 @@ class CLI(object):
 
         logging.getLogger("requests").setLevel(logging.WARNING)  # misplaced?
 
-    def __close_log(self):
+    def close_log(self):
         """
         Close log handlers
         :return:
         """
         if self.options.log:
             # need to finalize the logger before finishing
-            for handler in self.log.handlers:
+            for handler in self.log.handlers[:]:
                 if issubclass(handler.__class__, logging.FileHandler):
                     self.log.debug("Closing log handler: %s", handler.baseFilename)
                     handler.close()
@@ -136,7 +133,7 @@ class CLI(object):
         :return:
         """
         if self.options.log:
-            for handler in self.log.handlers:
+            for handler in self.log.handlers[:]:
                 if issubclass(handler.__class__, logging.FileHandler):
                     self.log.debug("Closing log handler: %s", handler.baseFilename)
                     handler.close()
@@ -146,7 +143,7 @@ class CLI(object):
                 self.engine.existing_artifact(self.options.log, move=True, target_filename="bzt.log")
             self.options.log = os.path.join(self.engine.artifacts_dir, "bzt.log")
 
-            file_handler = logging.FileHandler(self.options.log)
+            file_handler = logging.FileHandler(self.options.log, encoding="utf-8")
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(Formatter("[%(asctime)s %(levelname)s %(name)s] %(message)s"))
 
@@ -165,7 +162,7 @@ class CLI(object):
         else:
             self.log.debug("Adding personal config: %s", bzt_rc)
             self.log.info("No personal config found, creating one at %s", bzt_rc)
-            shutil.copy(os.path.join(get_full_path(__file__, step_up=1), 'resources', 'base-bzt-rc.yml'), bzt_rc)
+            shutil.copy(os.path.join(RESOURCES_DIR, 'base-bzt-rc.yml'), bzt_rc)
 
         merged_config = self.engine.configure([bzt_rc] + configs, not self.options.no_system_configs)
 
@@ -278,7 +275,7 @@ class CLI(object):
         else:
             self.log.info("Done performing with code: %s", self.exit_code)
 
-        self.__close_log()
+        self.close_log()
 
         return self.exit_code
 

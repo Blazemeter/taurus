@@ -18,11 +18,11 @@ import ast
 import json
 import math
 import os
-import string
 import re
-import astunparse
-
+import string
 from collections import OrderedDict
+
+import astunparse
 
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
@@ -216,6 +216,8 @@ from bzt.resources import selenium_taurus_extras
 
     def __init__(self, scenario, parent_logger, wdlog, ignore_unknown_actions=False):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
+        self.webdriver_address = None
+        self.capabilities_from_outside = {}
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
@@ -343,10 +345,10 @@ from bzt.resources import selenium_taurus_extras
         test_method.append(self.gen_new_line())
 
     def _check_platform(self):
-        inherited_capabilities = []
+        inherited_capabilities = [{x: y} for x, y in iteritems(self.capabilities_from_outside)]
         mobile_browsers = ["Chrome", "Safari"]
         mobile_platforms = ["Android", "iOS"]
-        remote_executor = self.scenario.get("remote")
+        remote_executor = self.scenario.get("remote", self.webdriver_address)
 
         browser = self.scenario.get("browser", None)
 
@@ -360,7 +362,10 @@ from bzt.resources import selenium_taurus_extras
             if len(browser_split) > 1:
                 browser_platform = browser_split[1]
 
-        if not browser and remote_executor:
+        if remote_executor:
+            if browser:
+                self.log.warning("Forcing browser to Remote, because of remote webdriver address")
+            inherited_capabilities.append({"browser": browser})
             browser = "Remote"
         elif browser in mobile_browsers and browser_platform in mobile_platforms:
             self.appium = True
@@ -447,10 +452,8 @@ from bzt.resources import selenium_taurus_extras
                     desired_caps["platformVersion"] = str(capability[cap_key])
                 elif cap_key == "device":
                     desired_caps["deviceName"] = str(capability[cap_key])
-                elif cap_key == "app":
-                    desired_caps[cap_key] = capability[cap_key]
                 else:
-                    raise TaurusConfigError("Unsupported capability name: %s" % cap_key)
+                    desired_caps[cap_key] = capability[cap_key]
 
         tpl = "self.driver = webdriver.Remote(command_executor={command_executor}, desired_capabilities={des_caps})"
 

@@ -1,12 +1,11 @@
 # coding=utf-8
 import json
-import logging
 import tempfile
 
 from bzt import six
 from bzt.engine import Configuration
 from bzt.utils import BetterDict, dehumanize_time
-from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG
+from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
 
@@ -19,17 +18,17 @@ class TestConfiguration(BZTestCase):
             RESOURCES_DIR + "json/concurrency.json"
         ]
         obj.load(configs)
-        logging.debug("config:\n%s", obj)
+        ROOT_LOGGER.debug("config:\n%s", obj)
 
         fname = tempfile.mkstemp()[1]
         obj.dump(fname, Configuration.JSON)
         with open(fname) as fh:
-            logging.debug("JSON:\n%s", fh.read())
+            ROOT_LOGGER.debug("JSON:\n%s", fh.read())
 
         fname = tempfile.mkstemp()[1]
         obj.dump(fname, Configuration.YAML)
         with open(fname) as fh:
-            logging.debug("YAML:\n%s", fh.read())
+            ROOT_LOGGER.debug("YAML:\n%s", fh.read())
 
     def test_merge(self):
         obj = Configuration()
@@ -42,7 +41,7 @@ class TestConfiguration(BZTestCase):
         fname = tempfile.mkstemp()[1]
         obj.dump(fname, Configuration.JSON)
         with open(fname) as fh:
-            logging.debug("JSON:\n%s", fh.read())
+            ROOT_LOGGER.debug("JSON:\n%s", fh.read())
         jmeter = obj['modules']['jmeter']
         classval = jmeter['class']
         self.assertEquals("bzt.modules.jmeter.JMeterExecutor", classval)
@@ -83,7 +82,7 @@ class TestConfiguration(BZTestCase):
         obj.dump(fname, Configuration.YAML)
         with open(fname) as fh:
             written = fh.read()
-            logging.debug("YAML:\n%s", written)
+            ROOT_LOGGER.debug("YAML:\n%s", written)
             self.assertNotIn("unicode", written)
 
     def test_masq_sensitive(self):
@@ -224,5 +223,5 @@ class TestConfiguration(BZTestCase):
         obj.merge({
             "$execution": [{"~locations": {"harbor-1": 1}}],
         })
-        logging.info(obj)
+        ROOT_LOGGER.info(obj)
         self.assertEqual(obj, {"execution": [{"locations": {"harbor-1": 1}}]})

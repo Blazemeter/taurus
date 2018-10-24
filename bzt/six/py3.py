@@ -56,6 +56,7 @@ URLError = urllib.error.URLError
 BaseHTTPServer = server
 socketserver = socketserver
 SimpleHTTPRequestHandler = BaseHTTPServer.SimpleHTTPRequestHandler
+url2pathname = urllib.request.url2pathname
 
 viewvalues = operator.methodcaller("values")
 r_input = input
@@ -90,18 +91,6 @@ def stream_decode(string):
         return string.decode()
     else:
         return string
-
-
-def unicode_decode(string):
-    return string
-
-
-def communicate(proc):
-    stdout, stderr = proc.communicate()
-    if stderr:
-        stderr = str(stderr, sys.stderr.encoding or sys.getfilesystemencoding())
-    stdout = str(stdout, sys.stdout.encoding or sys.getfilesystemencoding())
-    return stdout, stderr
 
 
 def deunicode(string):

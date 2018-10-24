@@ -10,8 +10,7 @@ from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.services import Unpacker, InstallChecker, AndroidEmulatorLoader, AppiumLoader
 from bzt.utils import get_files_recursive, EXE_SUFFIX, JavaVM, Node
 from tests import BZTestCase, __dir__, RESOURCES_DIR
-from tests.mocks import EngineEmul, ModuleMock
-from tests.modules.test_blazemeter import BZMock
+from tests.mocks import EngineEmul, ModuleMock, BZMock
 
 
 class TestZipFolder(BZTestCase):

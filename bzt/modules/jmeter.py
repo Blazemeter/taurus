@@ -41,9 +41,8 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader, FunctionalSample
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
-from bzt.requests_model import ResourceFilesCollector, has_variable_pattern
-from bzt.six import communicate, PY2
-from bzt.six import iteritems, string_types, StringIO, etree, unicode_decode, numeric_types
+from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
+from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode, communicate
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
 from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
@@ -58,13 +57,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     :type properties_file: str
     :type sys_properties_file: str
     """
-    MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
-    JMETER_DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
-    PLUGINS_MANAGER_VERSION = "1.3"
-    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
-                      '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
-    CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar'
-    JMETER_VER = "4.0"
     UDP_PORT_NUMBER = None
 
     def __init__(self):
@@ -72,6 +64,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.original_jmx = None
         self.modified_jmx = None
         self.jmeter_log = None
+        self.properties = BetterDict()
         self.properties_file = None
         self.sys_properties_file = None
         self.kpi_jtl = None
@@ -253,7 +246,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             if index != -1:
                 return ver[:index]
 
-        return JMeterExecutor.JMETER_VER
+        return JMeter.VERSION
 
     def prepare(self):
         """
@@ -273,9 +266,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         is_jmx_generated = False
 
         self.original_jmx = self.get_script_path()
-        if self.settings.get("version", self.JMETER_VER, force_set=True) == "auto":
+        if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
             self.settings["version"] = self._get_tool_version(self.original_jmx)
-        self.install_required_tools()
 
         if not self.original_jmx:
             if scenario.get("requests"):
@@ -284,9 +276,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             else:
                 raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
+        self.__set_jvm_properties()
+        self.__set_system_properties()
+        self.__set_jmeter_properties(scenario)
+
+        self.install_required_tools()
+
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
-            version = LooseVersion(str(self.settings.get("version", self.JMETER_VER)))
+            version = LooseVersion(str(self.settings.get("version", JMeter.VERSION)))
             major = version.version[0]
             if major == 2:
                 flags["bytes"] = True
@@ -296,10 +294,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         modified = self.__get_modified_jmx(self.original_jmx, is_jmx_generated)
         self.modified_jmx = self.__save_modified_jmx(modified, self.original_jmx, is_jmx_generated)
-
-        self.__set_jmeter_properties(scenario)
-        self.__set_system_properties()
-        self.__set_jvm_properties()
 
         # check for necessary plugins and install them if needed
         if self.settings.get("detect-plugins", True):
@@ -325,6 +319,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         sys_props = self.settings.get("system-properties")
         if sys_props:
             self.log.debug("Additional system properties %s", sys_props)
+            self.properties.merge(sys_props)
             sys_props_file = self.engine.create_artifact("system", ".properties")
             JMeterExecutor.__write_props_to_file(sys_props_file, sys_props)
             self.sys_properties_file = sys_props_file
@@ -363,6 +358,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         if props:
             self.log.debug("Additional properties: %s", props)
+            self.properties.merge(props)
             props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
             JMeterExecutor.__write_props_to_file(props_file, props)
             self.properties_file = props_file
@@ -389,7 +385,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
 
         # fix for JMeter 4.0 bug where jmeter.bat requires JMETER_HOME to be set
-        jmeter_ver = str(self.settings.get("version", self.JMETER_VER))
+        jmeter_ver = str(self.settings.get("version", JMeter.VERSION))
         if is_windows() and jmeter_ver == "4.0":
             tool_path = self.tool.tool_path
             if os.path.exists(tool_path) and not os.path.isdir(tool_path):
@@ -568,7 +564,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_listener(log_lst, jmx)
 
     def __add_result_writers(self, jmx):
-        version = LooseVersion(str(self.settings.get('version', self.JMETER_VER)))
+        version = LooseVersion(str(self.settings.get('version', JMeter.VERSION)))
         flags = {}
         if version < LooseVersion("2.13"):
             flags['^connectTime'] = False
@@ -624,7 +620,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
-            version = LooseVersion(str(self.settings.get('version', self.JMETER_VER)))
+            version = LooseVersion(str(self.settings.get('version', JMeter.VERSION)))
             if version >= LooseVersion("3.2"):
                 self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
@@ -800,7 +796,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                     files.append(data_source)
                 elif isinstance(data_source, dict):
                     files.append(data_source['path'])
-        requests = scenario.get_requests()
+        requests = scenario.get_requests(parser=HierarchicRequestParser)
         for req in requests:
             files.extend(self.res_files_from_request(req))
             self.resource_files_collector.clear_path_cache()
@@ -857,17 +853,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         check tools
         """
-        required_tools = [JavaVM(self.log), TclLibrary(self.log)]
+        required_tools = [self._get_tool(JavaVM), self._get_tool(TclLibrary)]
         for tool in required_tools:
             if not tool.check_if_installed():
                 tool.install()
 
-        jmeter_version = self.settings.get("version", JMeterExecutor.JMETER_VER, force_set=True)
-        jmeter_path = self.settings.get("path", "~/.bzt/jmeter-taurus/{version}/", force_set=True)
-        jmeter_path = get_full_path(jmeter_path)
-        download_link = self.settings.get("download-link", None)
-        plugins = self.settings.get("plugins", [])
-        self.tool = JMeter(jmeter_path, self.log, jmeter_version, download_link, plugins, self.engine.get_http_client())
+        self.tool = self._get_tool(JMeter, config=self.settings, props=self.properties)
 
         if self._need_to_install(self.tool):
             self.tool.install()
@@ -1353,29 +1344,23 @@ class JTLErrorsReader(object):
         self._extract_common(elem, label, r_code, t_stamp, message)
 
     def _extract_common(self, elem, label, r_code, t_stamp, r_msg):
-        urls = elem.xpath(self.url_xpath)
-        if urls:
-            url_counts = Counter({urls[0].text: 1})
+        f_msg, f_url, f_rc, f_tag, f_type = self.find_failure(elem, r_msg, r_code)
+
+        if f_type == KPISet.ERRTYPE_ASSERT:
+            f_rc = r_code
+        if f_type == KPISet.ERRTYPE_SUBSAMPLE:
+            url_counts = Counter({f_url: 1})
         else:
-            url_counts = Counter()
-        errtype = KPISet.ERRTYPE_ERROR
+            urls = elem.xpath(self.url_xpath)
+            if urls:
+                url_counts = Counter({urls[0].text: 1})
+            else:
+                url_counts = Counter()
 
-        failed_assertion = self.__get_failed_assertion(elem)
-        if failed_assertion is not None:
-            errtype = KPISet.ERRTYPE_ASSERT
-
-        message, is_embedded, embedded_url, embedded_rc, tag = self.get_failure_message(elem)
-        if message is None:
-            message = r_msg
-        if is_embedded:
-            errtype = KPISet.ERRTYPE_SUBSAMPLE
-            url_counts = Counter({embedded_url: 1})
-            r_code = embedded_rc
-
-        err_item = KPISet.error_item_skel(message, r_code, 1, errtype, url_counts, tag)
+        err_item = KPISet.error_item_skel(f_msg, f_rc, 1, f_type, url_counts, f_tag)
         buf = self.buffer.get(t_stamp, force_set=True)
-        KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", message), err_item)
-        KPISet.inc_list(buf.get('', [], force_set=True), ("msg", message), err_item)
+        KPISet.inc_list(buf.get(label, [], force_set=True), ("msg", f_msg), err_item)
+        KPISet.inc_list(buf.get('', [], force_set=True), ("msg", f_msg), err_item)
 
     def _extract_nonstandard(self, elem):
         t_stamp = int(self.__get_child(elem, 'timeStamp')) / 1000  # NOTE: will it be sometimes EndTime?
@@ -1385,33 +1370,44 @@ class JTLErrorsReader(object):
 
         self._extract_common(elem, label, r_code, t_stamp, message)
 
-    def get_failure_message(self, element):
-        """
-        Returns failure message and flag of subsample originating error
-        """
-        failed_assertion = self.__get_failed_assertion(element)
-        r_code = element.get('rc')
-        if failed_assertion is not None:
-            assertion_message, assertion_name = self.__get_assertion_message(failed_assertion)
-            if assertion_message:
-                return assertion_message, False, None, r_code, assertion_name
-            else:
-                return element.get('rm'), False, None, r_code, None
+    def find_failure(self, element, def_msg, def_rc=None, is_subresult=False):
+        """ returns (message, url, rc, tag, err_type) """
 
-        if r_code and r_code.startswith("2"):
-            if element.get('s') == "false":
-                # FIXME: would work with HTTP only...
-                children = [elem for elem in element.iterchildren() if elem.tag == "httpSample" or elem.tag == "sample"]
-                for child in children:
-                    child_message, _, url, r_code, tag = self.get_failure_message(child)
-                    if child_message:
-                        return child_message, True, url, r_code, tag
-            return None, False, None, None, None
-        else:
-            url = element.xpath(self.url_xpath)
-            return element.get('rm'), False, url[0].text if url else element.get("lb"), r_code, None
+        rc = element.get("rc")
 
-    def __get_assertion_message(self, assertion_element):
+        msg = None
+        url = None
+        name = None
+        err_type = KPISet.ERRTYPE_ERROR
+
+        if element.tag == "assertionResult":
+            if self.__assertion_is_failed(element):
+                msg, name = self.__get_assertion_message(element, def_msg)
+                err_type = KPISet.ERRTYPE_ASSERT
+
+        elif element.tag in ("httpSample", "sample") and rc:
+            if rc.startswith("2"):
+                if element.get("s") == "false":     # has failed sub element, we should look deeper...
+                    for child in element.iterchildren():
+                        msg, url, rc, name, err_type = self.find_failure(
+                            child, def_msg=element.get("rm"), def_rc=rc, is_subresult=True)
+                        if msg:
+                            break
+
+            else:   # failed sub sample found
+                msg = element.get("rm") or def_msg
+                url = element.xpath(self.url_xpath)
+                url = url[0].text if url else element.get("lb")
+                if is_subresult:
+                    err_type = KPISet.ERRTYPE_SUBSAMPLE
+
+        if not is_subresult and msg is None:    # top level (exit from recursion) and no message
+            msg = def_msg                       # set default failure msg
+
+        rc = rc or def_rc
+        return msg, url, rc, name, err_type
+
+    def __get_assertion_message(self, assertion_element, default_message=None):
         """
         Returns assertion failureMessage if "failureMessage" element exists
         """
@@ -1424,7 +1420,7 @@ class JTLErrorsReader(object):
             name_elm = assertion_element.find("name")
             return msg, name_elm.text if name_elm is not None else None
 
-        return None, None
+        return default_message, None
 
     def __get_failed_assertion(self, element):
         """
@@ -1474,9 +1470,7 @@ class XMLJTLReader(JTLErrorsReader, ResultsReader):
         trname = ''
 
         rcd = elem.get("rc")
-        message = self.get_failure_message(elem)
-        if message is None:
-            message = elem.get('rm')
+        message = self.find_failure(elem, def_msg=elem.get("rm"))[0]
 
         error = message if elem.get("s") == "false" else None
         self.items.append((tstmp, label, concur, rtm, cnn, ltc, rcd, error, trname, byte_count))
@@ -1486,16 +1480,41 @@ class JMeter(RequiredTool):
     """
     JMeter tool
     """
+    PLUGINS_MANAGER_VERSION = "1.3"
+    PLUGINS_MANAGER = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
+                      '{ver}/jmeter-plugins-manager-{ver}.jar'.format(ver=PLUGINS_MANAGER_VERSION)
+    CMDRUNNER = 'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar'
+    VERSION = "5.0"
 
-    def __init__(self, tool_path, parent_logger, jmeter_version, jmeter_download_link, plugins, http_client):
-        if jmeter_download_link is not None:
-            jmeter_download_link = jmeter_download_link.format(version=jmeter_version)
-        super(JMeter, self).__init__("JMeter", tool_path, jmeter_download_link, http_client=http_client)
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.version = jmeter_version
-        self.mirror_manager = JMeterMirrorsManager(http_client, self.log, self.version)
-        self.plugins = plugins
-        self.tool_path = self.tool_path.format(version=self.version)
+    def __init__(self, config=None, props=None, **kwargs):
+        settings = config or {}
+        props = props or {}
+
+        version = settings.get("version", JMeter.VERSION)
+        jmeter_path = settings.get("path", "~/.bzt/jmeter-taurus/{version}/")
+        jmeter_path = get_full_path(jmeter_path).format(version=version)
+
+        download_link = settings.get("download-link", None)
+        if download_link is not None:
+            download_link = download_link.format(version=version)
+
+        self.plugins = settings.get("plugins", [])
+
+        super(JMeter, self).__init__(tool_path=jmeter_path, download_link=download_link, version=version, **kwargs)
+
+        self.mirror_manager = JMeterMirrorsManager(self.http_client, self.log, self.version)
+
+        additional_jvm_props = self._get_jvm_props(props)
+        for key in additional_jvm_props:
+            self.env.add_java_param({"JVM_ARGS": "-D%s=%s" % (key, additional_jvm_props[key])})
+
+    def _get_jvm_props(self, settings):
+        props = {key: settings[key] for key in settings if key.startswith("jpgc.")}
+
+        if self.http_client:
+            props.update(self.http_client.get_proxy_props())
+
+        return props
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
@@ -1520,9 +1539,9 @@ class JMeter(RequiredTool):
             self.log.debug("JMeter check failed.")
             return False
 
-    def _pmgr_call(self, params, env=None):
+    def _pmgr_call(self, params):
         cmd = [self._pmgr_path()] + params
-        proc = shell_exec(cmd, env=env)
+        proc = shell_exec(cmd, env=self.env.get())
         return communicate(proc)
 
     def install_for_jmx(self, jmx_file):
@@ -1530,16 +1549,8 @@ class JMeter(RequiredTool):
             self.log.warning("Script %s not found" % jmx_file)
             return
 
-        env = None
-        if self.http_client:
-            env = os.environ.copy()
-            jvm_args = env.get('JVM_ARGS', '')
-            jvm_args = (jvm_args + ' ' + self.http_client.get_proxy_jvm_args()).strip()
-            self.log.debug('Passing JVM_ARGS: %r', jvm_args)
-            env['JVM_ARGS'] = jvm_args
-
         try:
-            out, err = self._pmgr_call(["install-for-jmx", jmx_file], env=env)
+            out, err = self._pmgr_call(["install-for-jmx", jmx_file])
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
         except KeyboardInterrupt:
             raise
@@ -1575,12 +1586,11 @@ class JMeter(RequiredTool):
     def __download_additions(self, tools):
         downloader = ExceptionalDownloader(self.http_client)
         with ProgressBarContext() as pbar:
-            for tool in tools:
-                url = tool[0]
+            for url, path in tools:
                 _file = os.path.basename(url)
                 self.log.info("Downloading %s from %s", _file, url)
                 try:
-                    downloader.get(url, tool[1], reporthook=pbar.download_callback)
+                    downloader.get(url, path, reporthook=pbar.download_callback)
                 except KeyboardInterrupt:
                     raise
                 except BaseException as exc:
@@ -1606,15 +1616,8 @@ class JMeter(RequiredTool):
         cmd = [plugins_manager_cmd, 'install', plugin_str]
         self.log.debug("Trying: %s", cmd)
 
-        env = os.environ.copy()
-        if self.http_client:
-            jvm_args = env.get('JVM_ARGS', '')
-            jvm_args = (jvm_args + ' ' + self.http_client.get_proxy_jvm_args()).strip()
-            self.log.debug('Passing JVM_ARGS: %r', jvm_args)
-            env['JVM_ARGS'] = jvm_args
-
         try:
-            proc = shell_exec(cmd, env=env)
+            proc = shell_exec(cmd, env=self.env.get())
             out, err = communicate(proc)
             self.log.debug("Install plugins: %s / %s", out, err)
             if proc.returncode is not None and proc.returncode != 0:
@@ -1634,13 +1637,13 @@ class JMeter(RequiredTool):
     def install(self):
         dest = get_full_path(self.tool_path, step_up=2)
         self.log.info("Will install %s into %s", self.tool_name, dest)
-        plugins_manager_name = os.path.basename(JMeterExecutor.PLUGINS_MANAGER)
-        cmdrunner_name = os.path.basename(JMeterExecutor.CMDRUNNER)
+        plugins_manager_name = os.path.basename(self.PLUGINS_MANAGER)
+        cmdrunner_name = os.path.basename(self.CMDRUNNER)
         plugins_manager_path = os.path.join(dest, 'lib', 'ext', plugins_manager_name)
         cmdrunner_path = os.path.join(dest, 'lib', cmdrunner_name)
         direct_install_tools = [  # source link and destination
-            [JMeterExecutor.PLUGINS_MANAGER, plugins_manager_path],
-            [JMeterExecutor.CMDRUNNER, cmdrunner_path]]
+            [self.PLUGINS_MANAGER, plugins_manager_path],
+            [self.CMDRUNNER, cmdrunner_path]]
         plugins_manager_cmd = self._pmgr_path()
 
         self.__install_jmeter(dest)
@@ -1701,9 +1704,12 @@ class JarCleaner(object):
 
 
 class JMeterMirrorsManager(MirrorsManager):
+    MIRRORS_SOURCE = "https://jmeter.apache.org/download_jmeter.cgi"
+    DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
+
     def __init__(self, http_client, parent_logger, jmeter_version):
         self.jmeter_version = str(jmeter_version)
-        super(JMeterMirrorsManager, self).__init__(JMeterExecutor.MIRRORS_SOURCE, parent_logger, http_client)
+        super(JMeterMirrorsManager, self).__init__(http_client, self.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
         links = []
@@ -1716,7 +1722,7 @@ class JMeterMirrorsManager(MirrorsManager):
                 option_elements = option_search_pattern.findall(select_element[0])
                 link_tail = "/jmeter/binaries/apache-jmeter-{version}.zip".format(version=self.jmeter_version)
                 links = [link.strip('<option value="').strip('">') + link_tail for link in option_elements]
-        links.append(JMeterExecutor.JMETER_DOWNLOAD_LINK.format(version=self.jmeter_version))
+        links.append(self.DOWNLOAD_LINK.format(version=self.jmeter_version))
         self.log.debug('Total mirrors: %d', len(links))
         # place HTTPS links first, preserving the order of HTTP links
         sorted_links = sorted(links, key=lambda l: l.startswith("https"), reverse=True)

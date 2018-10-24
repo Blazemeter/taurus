@@ -241,9 +241,9 @@ scenarios:
       - waitByCSS(body)
     # ...
 ```
-It is possible to use only the `remote` property, and in this way declare the intention to use the `browser: Remote`, allowing a more compact yaml
+It is possible to use only the `remote` option, and in this way declare the intention to use the `browser: Remote`, allowing a more compact YAML.
 
-**Sample usage of `remote` without `browser: Remote` clausule declaration:**
+**Sample usage of `remote` without `browser: Remote` clause declaration:**
 ```yaml
 scenarios:
   request_example:
@@ -257,6 +257,8 @@ scenarios:
       - waitByCSS(body)
     # ...
 ```
+
+Note that `remote` keyword can be used on module settings, execution settings, or scenario level.
 
 ### Mobile Browsers
 

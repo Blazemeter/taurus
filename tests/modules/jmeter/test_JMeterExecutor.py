@@ -1,9 +1,7 @@
 # coding=utf-8
 import json
-import logging
 import os
 import shutil
-import sys
 import time
 from unittest import skipUnless, skipIf
 from distutils.version import LooseVersion
@@ -16,14 +14,14 @@ from bzt.jmx.tools import ProtocolHandler
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
-from bzt.modules.jmeter import JMeterExecutor, JTLErrorsReader, JTLReader, FuncJTLReader
+from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
 from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
-from tests.modules.jmeter import MockJMeterExecutor, MockHTTPClient
+from . import MockJMeterExecutor, MockHTTPClient
 
-_jvm = JavaVM(logging.getLogger(''))
+_jvm = JavaVM()
 _jvm.check_if_installed()
 java_version = _jvm.version
 java10 = LooseVersion(java_version) >= LooseVersion("10")
@@ -182,7 +180,7 @@ class TestJMeterExecutor(BZTestCase):
             self.obj.startup()
             while not self.obj.check():
                 self.obj.log.debug("Check...")
-                time.sleep(1)
+                time.sleep(self.obj.engine.check_interval)
             self.obj.shutdown()
             self.obj.post_process()
         except:
@@ -202,6 +200,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
 
     def test_body_file(self):
+        body_file0 = RESOURCES_DIR + "/jmeter/file-not-found"
         body_file1 = RESOURCES_DIR + "/jmeter/body-file.dat"
         body_file2 = RESOURCES_DIR + "/jmeter/jmx/http.jmx"
         self.configure({
@@ -210,18 +209,28 @@ class TestJMeterExecutor(BZTestCase):
                 'scenario': 'bf'}],
             'scenarios': {
                 'bf': {
+                    "variables": {
+                        "put_method": "put",
+                        "J_VAR": "some_value"
+                    },
                     "requests": [
                         {
+                            'url': 'http://zero.com',
+                            "method": "get",
+                            'body-file': body_file0     # ignore because method is GET
+                        }, {
                             'url': 'http://first.com',
-                            'body-file': body_file1
+                            "method": "${put_method}",
+                            'body-file': body_file1     # handle as body-file
                         }, {
                             'url': 'http://second.com',
-                            'body': 'body2',
+                            'method': 'post',
+                            'body': 'body2',    # handle only 'body' as both are mentioned (body and body-file)
                             'body-file': body_file2
                         }, {
                             'url': 'https://the third.com',
                             'method': 'post',
-                            'body-file': '${J_VAR}'
+                            'body-file': '${J_VAR}'     # write variable as body-file
                         }
                     ]}}})
         res_files = self.obj.get_resource_files()
@@ -230,17 +239,18 @@ class TestJMeterExecutor(BZTestCase):
         body_fields = [req.get('body') for req in scenario.get('requests')]
         self.assertIn(body_file1, res_files)
         self.assertIn(body_file2, res_files)
-        self.assertFalse(body_fields[0])
-        self.assertEqual(body_fields[1], 'body2')
-        self.assertEqual(body_files, [body_file1, body_file2, '${J_VAR}'])
+        self.assertEqual(body_fields, [{}, {}, 'body2', {}])
+        self.assertEqual(body_files, [body_file0, body_file1, body_file2, '${J_VAR}'])
 
         self.obj.prepare()
 
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         elements = xml_tree.findall(".//HTTPSamplerProxy/elementProp[@name='HTTPsampler.Files']")
-        self.assertEqual(1, len(elements))
-        self.assertEqual("${J_VAR}", elements[0].find(".//stringProp[@name='File.path']").text)
+        self.assertEqual(2, len(elements))
+        self.assertEqual(body_file1, elements[0].find(".//stringProp[@name='File.path']").text)
         self.assertIsNone(elements[0].find(".//stringProp[@name='File.paramname']").text)
+        self.assertEqual("${J_VAR}", elements[1].find(".//stringProp[@name='File.path']").text)
+        self.assertIsNone(elements[1].find(".//stringProp[@name='File.paramname']").text)
 
     def test_datasources_with_delimiter(self):
         self.obj.execution.merge({"scenario":
@@ -333,7 +343,7 @@ class TestJMeterExecutor(BZTestCase):
         http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-3.0.zip',
                                  file=jmeter_res_dir + "jmeter-dist-3.0.zip")
         url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
-              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeterExecutor.PLUGINS_MANAGER_VERSION)
+              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeter.PLUGINS_MANAGER_VERSION)
 
         http_client.add_response('GET', url, file=jmeter_res_dir + "jmeter-plugins-manager.jar")
         http_client.add_response('GET',
@@ -341,9 +351,9 @@ class TestJMeterExecutor(BZTestCase):
                                  file=jmeter_res_dir + "jmeter-plugins-manager.jar")
 
         self.obj.engine.get_http_client = lambda: http_client
-        jmeter_ver = JMeterExecutor.JMETER_VER
+        jmeter_ver = JMeter.VERSION
         try:
-            JMeterExecutor.JMETER_VER = '3.0'
+            JMeter.VERSION = '3.0'
 
             self.obj.settings.merge({"path": path})
             self.configure({
@@ -369,7 +379,7 @@ class TestJMeterExecutor(BZTestCase):
 
             self.obj.prepare()
         finally:
-            JMeterExecutor.JMETER_VER = jmeter_ver
+            JMeter.VERSION = jmeter_ver
 
     @skipIf(java10, "Disabled on Java 10")
     def test_install_jmeter_2_13(self):
@@ -386,16 +396,16 @@ class TestJMeterExecutor(BZTestCase):
         http_client.add_response('GET', 'https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-2.13.zip',
                                  file=jmeter_res_dir + "jmeter-dist-2.13.zip")
         url = 'https://search.maven.org/remotecontent?filepath=kg/apc/jmeter-plugins-manager/' \
-              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeterExecutor.PLUGINS_MANAGER_VERSION)
+              '{v}/jmeter-plugins-manager-{v}.jar'.format(v=JMeter.PLUGINS_MANAGER_VERSION)
         http_client.add_response('GET', url, file=jmeter_res_dir + "jmeter-plugins-manager.jar")
         http_client.add_response('GET',
                                  'https://search.maven.org/remotecontent?filepath=kg/apc/cmdrunner/2.2/cmdrunner-2.2.jar',
                                  file=jmeter_res_dir + "jmeter-plugins-manager.jar")
 
-        jmeter_ver = JMeterExecutor.JMETER_VER
+        jmeter_ver = JMeter.VERSION
         self.obj.engine.get_http_client = lambda: http_client
         try:
-            JMeterExecutor.JMETER_VER = '2.13'
+            JMeter.VERSION = '2.13'
 
             self.obj.settings.merge({"path": path})
             self.configure({
@@ -424,7 +434,7 @@ class TestJMeterExecutor(BZTestCase):
 
             self.obj.prepare()
         finally:
-            JMeterExecutor.JMETER_VER = jmeter_ver
+            JMeter.VERSION = jmeter_ver
 
     def test_install_disabled(self):
         path = os.path.abspath(BUILD_DIR + "jmeter-taurus/bin/jmeter" + EXE_SUFFIX)
@@ -435,7 +445,7 @@ class TestJMeterExecutor(BZTestCase):
         try:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = "true"
             self.obj.settings.merge({"path": path})
-            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}],})
+            self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}], })
             self.assertRaises(TaurusInternalException, self.obj.prepare)
         finally:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
@@ -666,8 +676,8 @@ class TestJMeterExecutor(BZTestCase):
 
         val_strings = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("100", val_strings[0].text)
-        self.assertEqual("100", val_strings[1].text)
+        self.assertEqual("100.0", val_strings[0].text)
+        self.assertEqual("100.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
     def test_add_cookies(self):
@@ -703,7 +713,7 @@ class TestJMeterExecutor(BZTestCase):
 
     def test_add_shaper_ramp_up(self):
         self.configure(
-            {'execution': {'ramp-up': '1m', 'throughput': 10, 'hold-for': '2m', 'concurrency': 20,
+            {'execution': {'ramp-up': '1m', 'throughput': 9, 'hold-for': '2m', 'concurrency': 20,
                            'scenario': {'script': RESOURCES_DIR + '/jmeter/jmx/http.jmx'}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -717,14 +727,14 @@ class TestJMeterExecutor(BZTestCase):
 
         val_strings = coll_elements[0].findall(".//stringProp")
 
-        self.assertEqual("1", val_strings[0].text)
-        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("0.05", val_strings[0].text)
+        self.assertEqual("9.0", val_strings[1].text)
         self.assertEqual("60", val_strings[2].text)
 
         val_strings = coll_elements[1].findall(".//stringProp")
 
-        self.assertEqual("10", val_strings[0].text)
-        self.assertEqual("10", val_strings[1].text)
+        self.assertEqual("9.0", val_strings[0].text)
+        self.assertEqual("9.0", val_strings[1].text)
         self.assertEqual("120", val_strings[2].text)
 
     def test_user_def_vars_from_requests(self):
@@ -860,6 +870,30 @@ class TestJMeterExecutor(BZTestCase):
         sys_prop = open(os.path.join(self.obj.engine.artifacts_dir, "system.properties")).read()
         self.assertTrue("any_prop=true" in sys_prop)
         self.assertFalse("sun.net.inetaddr.ttl=0" in sys_prop)
+
+    def test_jpgc_props(self):
+        self.configure({
+            'execution': {
+                'hold-for': 2,
+                'concurrency': 1,
+                'scenario': {
+                    'script': RESOURCES_DIR + '/jmeter/jmx/http.jmx',
+                    "properties": {"jpgc.3": "scenario_prop"}}},
+            'modules': {
+                'jmeter': {
+                    'system-properties': {'sys0': 'val_s0', 'jpgc.1': 'val_s1', 'jpgc.2': 'val_s2'},
+                    'properties': {'bzt0': 'val_p0', 'jpgc.2': 'val_p1'}}}})
+
+        self.obj.env.set({"JVM_ARGS": "-Dsettings_env=val_set_env"})
+
+        self.obj.prepare()
+        jvm_args = self.obj.tool.env.get('JVM_ARGS')
+
+        for val in ("sys0", "val_s0", "val_s2", "bzt0", "val_p0"):
+            self.assertNotIn(val, jvm_args)
+
+        for val in ("jpgc.1", "val_s1", "jpgc.2", "val_p1", "settings_env", "val_set_env", "jpgc.3", "scenario_prop"):
+            self.assertIn(val, jvm_args)
 
     def test_stepping_tg_ramp_no_proportion(self):
         self.configure({
@@ -1088,55 +1122,6 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.shutdown()
 
         self.assertIn("JMeter stopped on Shutdown command", self.log_recorder.debug_buff.getvalue())
-
-    def test_embedded_resources_main_sample_fail_assert(self):
-        obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-main-assert.jtl",
-                              logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "Test failed")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "Test failed")
-
-    def test_embedded_resources_fail_child_no_assert(self):
-        obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-child-no-assert.jtl",
-                              logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
-
-    def test_embedded_resources_fail_child_assert(self):
-        obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-child-assert.jtl",
-                              logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "subsample assertion error")
-        self.assertEqual(values.get('')[1].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "subsample assertion error")
-        self.assertEqual(values.get('HTTP Request')[1].get("msg"), "NOT FOUND")
-
-    def test_resource_tc(self):
-        obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource_tc.jtl", logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(values.get('')[0].get("msg"), "message")
-        self.assertEqual(values.get('')[1].get("msg"), "FOUND")
-        self.assertEqual(values.get('')[2].get("msg"), "second message")
-        self.assertEqual(values.get('')[3].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('')[4].get("msg"), "Failed")
-
-        self.assertEqual(values.get('tc1')[0].get("msg"), "FOUND")
-        self.assertEqual(values.get('tc3')[0].get("msg"), "message")
-        self.assertEqual(values.get('tc3')[1].get("msg"), "second message")
-        self.assertEqual(values.get('tc4')[0].get("msg"), "NOT FOUND")
-        self.assertEqual(values.get('tc5')[0].get("msg"), "Failed")
-
-    def test_embedded_resources_no_fail(self):
-        obj = JTLErrorsReader(RESOURCES_DIR + "/jmeter/jtl/resource-errors-no-fail.jtl", logging.getLogger(''))
-        obj.read_file()
-        values = obj.get_data(sys.maxsize)
-        self.assertEqual(len(values.get('HTTP Request')), 1)
-        self.assertEqual(values.get('HTTP Request')[0].get("msg"), "failed_resource_message")
 
     def test_fail_on_zero_results(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()
@@ -2309,7 +2294,7 @@ class TestJMeterExecutor(BZTestCase):
                     "http://example.com/"]}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
+        self.assertEqual(JMeter.VERSION, self.obj.tool.version)
 
     def test_detect_ver_wrong(self):
         self.obj.execution.merge({
@@ -2317,7 +2302,7 @@ class TestJMeterExecutor(BZTestCase):
                 "script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
+        self.assertEqual(JMeter.VERSION, self.obj.tool.version)
 
     def test_detect_ver_2_13(self):
         self.obj.execution.merge({
@@ -2332,7 +2317,7 @@ class TestJMeterExecutor(BZTestCase):
             'scenario': {
                 "script": RESOURCES_DIR + "/jmeter/jmx/SteppingThreadGroup.jmx"}})
         self.obj.prepare()
-        self.assertEqual(self.obj.JMETER_VER, self.obj.tool.version)
+        self.assertEqual(JMeter.VERSION, self.obj.tool.version)
 
     def test_jsr223_block(self):
         script = RESOURCES_DIR + "/jmeter/jsr223_script.js"
@@ -2609,7 +2594,7 @@ class TestJMeterExecutor(BZTestCase):
             self.obj.startup()
             while not self.obj.check():
                 self.obj.log.debug("Check...")
-                time.sleep(1)
+                time.sleep(self.obj.engine.check_interval)
             self.obj.shutdown()
             self.obj.post_process()
         except:
@@ -2668,7 +2653,7 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.env.set({'TEST_MODE': 'log'})
         self.obj.startup()
         while not self.obj.check():
-            time.sleep(1)
+            time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
         diagnostics = self.obj.get_error_diagnostics()
@@ -2719,4 +2704,5 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.execute = lambda *args, **kwargs: None
         self.obj.startup()
         jmeter_home = self.obj.env.get("JMETER_HOME")
-        self.assertEqual(jmeter_home, get_full_path("~/.bzt/jmeter-taurus/4.0"))
+        self.assertEqual(jmeter_home, get_full_path(self.obj.settings.get("path"), step_up=2))
+        self.assertEqual(jmeter_home, get_full_path(RESOURCES_DIR))

@@ -9,20 +9,125 @@ from psutil import Popen
 from os.path import join
 
 from bzt import TaurusNetworkError
-from bzt.six import PY2
-from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient
+from bzt.six import PY2, communicate
+from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient, BetterDict
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 
 
+class MockPopen(object):
+    def __init__(self, out, err):
+        self.out = out
+        self.err = err
+
+    def communicate(self):
+        return self.out, self.err
+
+
+class TestBetterDict(BZTestCase):
+    def _merge_and_compare(self, first, second, result):
+        sample = BetterDict().merge(first)
+        sample.merge(second)
+        result = BetterDict().merge(result)
+        self.assertEqual(sample, result)
+
+    def _filter_and_compare(self, first, second, result):
+        sample = BetterDict().merge(first)
+        sample.filter(second)
+        result = BetterDict().merge(result)
+        self.assertEqual(sample, result)
+
+    def test_merge_del(self):
+        a = {
+            "A": ["B", "C"],
+            "B": {"A": "vA"}}
+        b = {
+            "^A": {"^D": "E"},
+            "^X": "Y"}
+        res = {"B": {"A": "vA"}}
+        self._merge_and_compare(a, b, res)
+
+    def test_merge_overwrite(self):
+        a = {
+            "A": ["B", "C"],
+            "B": {"A": "vA"}}
+        b = {"~B": {"~C": "vC"}}
+        res = {
+            "A": ["B", "C"],
+            "B": {"C": "vC"}}
+        self._merge_and_compare(a, b, res)
+
+    def test_merge_list_elements(self):
+        a = {
+            "A": ["B", "C"],
+            "B": {"A": "vA"},
+            "D": ["E", "F"]}
+        b = {
+            "$A": ["nB"],
+            "$B": {"nC": "vC"},
+            "$C": ["D"]}
+        res = {
+            "A": ["nB", "C"],
+            "B": {"A": "vA", "nC": "vC"},
+            "D": ["E", "F"],
+            "C": ["D"]}
+
+        self._merge_and_compare(a, b, res)
+
+    def test_filter_wl0(self):
+        a = {
+            "A": "B",
+            "C": {"D": "E", "G": "GG"},
+            "F": ["FF"]}
+        b = {
+            "A": True,
+            "!C": {"G": "H"}}
+        res = {
+            "A": "B",
+            "C": {"D": "E"}}
+
+        self._filter_and_compare(a, b, res)
+
+    def test_filter_wl1(self):
+        a = {
+            "A": ["B", "BB"],
+            "C": {"D": "E", "G": "GG"},
+            "F": ["FF"]}
+        b = {
+            "A": True,
+            "!C": {"G": "H"}}
+        res = {
+            "A": ["B", "BB"],
+            "C": {"D": "E"}}
+
+        self._filter_and_compare(a, b, res)
+
+
+class TestMisc(BZTestCase):
+    def test_communicate(self):
+        self.sniff_log()
+
+        out = b'\xf1\xe5\xedoutput'     # on py2 bytes is just str synonym
+        err = b'\xf1\xe5\xederror'
+
+        obj = MockPopen(out, err)
+
+        output = communicate(obj)
+        if PY2:
+            output = output[0].decode(), output[1].decode()    # logging to file converts them to unicode
+
+        self.assertEqual(output, ("output", "error"))
+
+
 class TestJavaVM(BZTestCase):
     def test_missed_tool(self):
-        self.obj = JavaVM(logging.getLogger(''), tool_path='java-not-found')
+        self.obj = JavaVM()
+        self.obj.tool_path = 'java-not-found'
         self.assertEqual(False, self.obj.check_if_installed())
         self.assertRaises(ToolError, self.obj.install)
 
     def test_get_version(self):
-        self.obj = JavaVM(logging.getLogger(''))
+        self.obj = JavaVM()
 
         out1 = "openjdk version \"10.0.1\" 2018-04-17\nOpenJDK Runtime Environment (build " \
                "10.0.1+10-Ubuntu-3ubuntu1)\nOpenJDK 64-Bit Server VM (build 10.0.1+10-Ubuntu-3ubuntu1, mixed mode)"
@@ -35,7 +140,7 @@ class TestJavaVM(BZTestCase):
 
 class TestLogStreams(BZTestCase):
     def test_streams(self):
-        self.sniff_log(logging.getLogger(''))
+        self.sniff_log()
 
         print('test1')
 
@@ -158,7 +263,7 @@ class TestHTTPClient(BZTestCase):
         obj.add_proxy_settings({"address": "http://localhost:3128",
                                 "username": "me",
                                 "password": "too"})
-        jvm_args = obj.get_proxy_jvm_args()
+        jvm_args = obj.get_proxy_props()
         for protocol in ['http', 'https']:
             for key in ['proxyHost', 'proxyPort', 'proxyUser', 'proxyPass']:
                 combo_key = protocol + '.' + key

@@ -18,10 +18,10 @@ import os
 
 from subprocess import CalledProcessError, check_output, STDOUT
 
-from bzt import ToolError, TaurusConfigError
+from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools
-from bzt.utils import RequiredTool, is_windows, get_full_path, TclLibrary
+from bzt.utils import RequiredTool, is_windows, TclLibrary, RESOURCES_DIR
 
 
 class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
@@ -31,9 +31,7 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
 
     def __init__(self):
         super(RSpecTester, self).__init__()
-        self.plugin_path = os.path.join(get_full_path(__file__, step_up=2),
-                                        "resources",
-                                        "rspec_taurus_plugin.rb")
+        self.plugin = None
         self.script = None
 
     def prepare(self):
@@ -46,11 +44,12 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
         self.reporting_setup(suffix='.ldjson')
 
     def install_required_tools(self):
-        tools = []
-        tools.append(TclLibrary(self.log))
-        tools.append(Ruby(self.settings.get("interpreter", "ruby"), "", self.log))
-        tools.append(RSpec("", "", self.log))
-        tools.append(TaurusRSpecPlugin(self.plugin_path, ""))
+        self.plugin = self._get_tool(TaurusRSpecPlugin)
+
+        tools = [self._get_tool(TclLibrary),
+                 self._get_tool(Ruby, config=self.settings),
+                 self._get_tool(RSpec),
+                 self.plugin]
         self._check_tools(tools)
 
     def startup(self):
@@ -61,7 +60,7 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
 
         rspec_cmdline = [
             interpreter,
-            self.plugin_path,
+            self.plugin.tool_path,
             "--report-file",
             self.report_file,
             "--test-suite",
@@ -78,9 +77,10 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
 
 
 class Ruby(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(Ruby, self).__init__("Ruby", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, config=None, **kwargs):
+        settings = config or {}
+        tool_path = settings.get("interpreter", "ruby")
+        super(Ruby, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
         try:
@@ -90,14 +90,10 @@ class Ruby(RequiredTool):
         except (CalledProcessError, OSError):
             return False
 
-    def install(self):
-        raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
-
 
 class RSpec(RequiredTool):
-    def __init__(self, tool_path, download_link, parent_logger):
-        super(RSpec, self).__init__("RSpec", tool_path, download_link)
-        self.log = parent_logger.getChild(self.__class__.__name__)
+    def __init__(self, **kwargs):
+        super(RSpec, self).__init__(installable=False, **kwargs)
 
     def check_if_installed(self):
         try:
@@ -109,13 +105,8 @@ class RSpec(RequiredTool):
             self.log.debug("RSpec check exception: %s", traceback.format_exc())
             return False
 
-    def install(self):
-        raise ToolError("The %s is not operable or not available. Consider installing it" % self.tool_name)
-
 
 class TaurusRSpecPlugin(RequiredTool):
-    def __init__(self, tool_path, download_link):
-        super(TaurusRSpecPlugin, self).__init__("TaurusRSpecPlugin", tool_path, download_link)
-
-    def install(self):
-        raise ToolError("Automatic installation of Taurus RSpec plugin isn't implemented")
+    def __init__(self, **kwargs):
+        tool_path = os.path.join(RESOURCES_DIR, "rspec_taurus_plugin.rb")
+        super(TaurusRSpecPlugin, self).__init__(tool_path=tool_path, installable=False, **kwargs)

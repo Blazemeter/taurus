@@ -40,12 +40,12 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
-from bzt.requests_model import RequestsParser
+from bzt.requests_model import RequestParser
 from bzt.six import numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
-from bzt.utils import str_representer, Environment
+from bzt.utils import str_representer, Environment, RequiredTool, RESOURCES_DIR
 
 TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
 
@@ -373,7 +373,6 @@ class Engine(object):
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
         self.env.set({TAURUS_ARTIFACTS_DIR: self.artifacts_dir})
-        os.environ[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
@@ -456,10 +455,12 @@ class Engine(object):
             parsed_url = parse.urlparse(filename)
             downloader = ExceptionalDownloader(self.get_http_client())
             self.log.info("Downloading %s", filename)
-            tmp_f_name, http_msg = downloader.get(filename)
-            cd_header = http_msg.get('Content-Disposition', '')
+            tmp_f_name, headers = downloader.get(filename)
+            cd_header = headers.get('Content-Disposition', '')
             dest = cd_header.split('filename=')[-1] if cd_header and 'filename=' in cd_header else ''
-            if not dest:
+            if dest.startswith('"') and dest.endswith('"') or dest.startswith("'") and dest.endswith("'"):
+                dest = dest[1:-1]
+            elif not dest:
                 dest = os.path.basename(parsed_url.path)
             fname, ext = os.path.splitext(dest) if dest else (parsed_url.hostname.replace(".", "_"), '.file')
             dest = self.create_artifact(fname, ext)
@@ -481,7 +482,7 @@ class Engine(object):
         return filename
 
     def _load_base_configs(self):
-        base_configs = [os.path.join(get_full_path(__file__, step_up=1), 'resources', 'base-config.yml')]
+        base_configs = [os.path.join(RESOURCES_DIR, 'base-config.yml')]
         machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
         if os.path.isdir(machine_dir):
             self.log.debug("Reading extension configs from: %s", machine_dir)
@@ -989,6 +990,7 @@ class ScenarioExecutor(EngineModule):
 
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
+        self.env = None
         self.provisioning = None
         self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
         self.__scenario = None
@@ -997,8 +999,16 @@ class ScenarioExecutor(EngineModule):
         self.reader = None
         self.delay = None
         self.start_time = None
-        self.env = None
         self.preprocess_args = lambda x: None
+
+    def _get_tool(self, tool, **kwargs):
+        env = Environment(self.log, self.env.get())
+
+        instance = tool(env=env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
+        assert isinstance(instance, RequiredTool)
+
+        return instance
+
 
     def has_results(self):
         if self.reader and self.reader.buffer:
@@ -1232,15 +1242,16 @@ class Scenario(UserDict, object):
             headers = {}
         return headers
 
-    def get_requests(self, require_url=True):
+    def get_requests(self, parser=RequestParser, require_url=True):
         """
         Generator object to read requests
 
         :type require_url: bool
+        :type parser: class
         :rtype: list[bzt.requests_model.Request]
         """
-        requests_parser = RequestsParser(self, self.engine)
-        return requests_parser.extract_requests(require_url=require_url)
+        requests_parser = parser(self, self.engine)
+        return requests_parser.extract_requests(require_url=require_url,)
 
     def get_data_sources(self):
         data_sources = self.get(self.FIELD_DATA_SOURCES, [])
