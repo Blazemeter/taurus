@@ -1465,12 +1465,6 @@ def which(filename):
     return candidates
 
 
-def is_piped(file_obj):
-    """check if file-object is a pipe or a file redirect"""
-    mode = os.fstat(file_obj.fileno()).st_mode
-    return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
-
-
 class PythonGenerator(object):
     IMPORTS = ''
     INDENT_STEP = 4
