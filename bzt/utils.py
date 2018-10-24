@@ -573,11 +573,11 @@ def ensure_is_dict(container, key, sub_key):
     :type sub_key: basestring
     :return:
     """
-    if isinstance(container, dict) and key not in container:
-        container[key] = BetterDict()
-    elif not isinstance(container[key], dict):
-        val = container[key]
-        container[key] = BetterDict.from_dict({sub_key: val})
+    if isinstance(container, BetterDict):
+        container.get(key, force_set=True)
+
+    if not isinstance(container[key], BetterDict):
+        container[key] = BetterDict.from_dict({sub_key: container[key]})
 
     return container[key]
 
