@@ -6,7 +6,7 @@ from bzt import ToolError
 from bzt.engine import ScenarioExecutor
 from bzt.modules.provisioning import Local
 from tests import BZTestCase
-from tests.mocks import EngineEmul, ModuleMock
+from tests.mocks import EngineEmul
 
 
 class ScenarioExecutorEmul(object):

@@ -1542,36 +1542,39 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             self.results_reader = FunctionalBZAReader(self.log)
             self.engine.aggregator.add_underling(self.results_reader)
 
-    def prepare_cloud_config(self):
-        config = copy.deepcopy(self.engine.config)
-
-        self._unify_config(config)
-
-        used_executors = []
-        for executor in self.executors:
-            used_executors.append(executor.execution.get("executor"))
-            if isinstance(executor, SeleniumExecutor):
-                used_executors.append(executor.runner.execution.get("executor"))
-
-        provisioning = config.get(Provisioning.PROV)
-        for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
-            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
-
-        modules = set(config.get("modules").keys())
-        used_services = [service.get("module") for service in config.get(Service.SERV)]
-        used_reporters = [reporter.get("module") for reporter in config.get(Reporter.REP)]
-        consolidator = config.get(SETTINGS).get("aggregator")
-
+    @staticmethod
+    def _get_other_modules(config):
         used_classes = LocalClient.__name__, BlazeMeterUploader.__name__
-
         used_modules = []
-        for module in modules:
+
+        for module in config.get("modules"):
             class_name = config.get("modules").get(module).get("class").split('.')[-1]
             if class_name in used_classes:
                 used_modules.append(module)
+        return used_modules
 
-        used_modules += used_executors + used_services + used_reporters + [consolidator, provisioning]
+    def _get_executors(self):
+        executors = []
+        for executor in self.executors:
+            executors.append(executor.execution.get("executor"))
+            if isinstance(executor, SeleniumExecutor):
+                executors.append(executor.runner.execution.get("executor"))
+
+        return executors
+
+    def prepare_cloud_config(self):
+        config = copy.deepcopy(self.engine.config)
+
+        # todo: move it to Engine.configure()
+        self._unify_config(config)
+
+        services = [service.get("module") for service in config.get(Service.SERV)]
+        reporters = [reporter.get("module") for reporter in config.get(Reporter.REP)]
+        provisioning = config.get(Provisioning.PROV)
+        consolidator = config.get(SETTINGS).get("aggregator")
+
+        used_modules = self._get_executors() + self._get_other_modules(config)
+        used_modules += services + reporters + [consolidator, provisioning]
 
         modules = set(config.get("modules").keys())
         for module in modules:
@@ -1583,22 +1586,26 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         # todo: should we remove config['version'] before sending to cloud?
         config['local-bzt-version'] = config.get('version', 'N/A')
 
+        for execution in config[ScenarioExecutor.EXEC]:
+            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
+            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
+
+        config.get("settings").get("env").pop(TAURUS_ARTIFACTS_DIR, None)
+
+        if self.router.dedicated_ips:
+            config[CloudProvisioning.DEDICATED_IPS] = True
+
         for key in list(config.keys()):
             if not config[key]:
                 config.pop(key)
 
         self._cleanup_defaults(config)
 
-        if TAURUS_ARTIFACTS_DIR in config.get('settings', force_set=True).get('env', force_set=True):
-            config['settings']['env'].pop(TAURUS_ARTIFACTS_DIR)
-
-        if self.router.dedicated_ips:
-            config[CloudProvisioning.DEDICATED_IPS] = True
-
         assert isinstance(config, Configuration)
         return config
 
-    def _unify_config(self, config):
+    @staticmethod
+    def _unify_config(config):
         executions = config.get(ScenarioExecutor.EXEC, [])
         if isinstance(executions, dict):
             executions = [executions]
