@@ -11,6 +11,7 @@ from os.path import join
 from bzt import TaurusNetworkError
 from bzt.six import PY2, communicate
 from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient, BetterDict
+from bzt.utils import ensure_is_dict
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 
@@ -36,6 +37,17 @@ class TestBetterDict(BZTestCase):
         sample.filter(second)
         result = BetterDict().merge(result)
         self.assertEqual(sample, result)
+
+    def test_merge_configs(self):
+        a = {"modules": {"local": "class_name"}}
+        b = {"modules": {"local": {"class": "another_class"}}}
+        res = BetterDict()
+        res.merge(a)
+        res.merge(b)
+        self.assertEqual('BetterDict', type(res["modules"]["local"]))
+        modules = res["modules"]
+        ensure_is_dict(modules, "local", "class")
+        self.assertEqual("another_class", res["modules"]["local"]["class"])
 
     def test_merge_del(self):
         a = {
