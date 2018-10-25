@@ -1562,15 +1562,9 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         return executors
 
-    def prepare_cloud_config(self):
-        config = copy.deepcopy(self.engine.config)
-
-        # todo: move it to Engine.configure()
-        self._unify_config(config)
-
+    def _filter_unused_modules(self, config, provisioning):
         services = [service.get("module") for service in config.get(Service.SERV)]
         reporters = [reporter.get("module") for reporter in config.get(Reporter.REP)]
-        provisioning = config.get(Provisioning.PROV)
         consolidator = config.get(SETTINGS).get("aggregator")
 
         used_modules = self._get_executors() + self._get_other_modules(config)
@@ -1581,6 +1575,14 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             if module not in used_modules:
                 del config.get("modules")[module]
 
+    def prepare_cloud_config(self):
+        config = copy.deepcopy(self.engine.config)
+
+        # todo: move it to Engine.configure()
+        self._unify_config(config)
+
+        provisioning = config.get(Provisioning.PROV)
+        self._filter_unused_modules(config, provisioning)
         config.filter(CLOUD_CONFIG_FILTER_RULES)
 
         # todo: should we remove config['version'] before sending to cloud?
