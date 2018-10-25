@@ -575,8 +575,10 @@ def ensure_is_dict(container, key, sub_key):
     """
     if isinstance(container, BetterDict):
         container.get(key, force_set=True)
+    elif isinstance(container, dict):   # todo: remove after fixing merge
+        container[key] = BetterDict()
 
-    if not isinstance(container[key], BetterDict):
+    if not isinstance(container[key], dict):    # todo: replace dict with BetterDict after fixing merge
         container[key] = BetterDict.from_dict({sub_key: container[key]})
 
     return container[key]
