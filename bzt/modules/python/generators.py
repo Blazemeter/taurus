@@ -214,13 +214,14 @@ from bzt.resources import selenium_taurus_extras
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
-    def __init__(self, scenario, parent_logger, wdlog, ignore_unknown_actions=False):
+    def __init__(self, scenario, parent_logger, wdlog, file_finder, ignore_unknown_actions=False):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.webdriver_address = None
         self.capabilities_from_outside = {}
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
+        self.file_finder = file_finder
         self.ignore_unknown_actions = ignore_unknown_actions
 
     def gen_asserts(self, config):
@@ -320,12 +321,22 @@ from bzt.resources import selenium_taurus_extras
         variables = self.scenario.get("variables")
         stmts = [
             "_vars = {}",
-            "_tpl = selenium_taurus_extras.Template(_vars)"
+            "_tpl = selenium_taurus_extras.Template(_vars)",
         ]
 
         for key in sorted(variables.keys()):
             stmts.append("_vars['%s'] = %r" % (key, variables[key]))
-        stmts.append("")
+        if variables:
+            stmts.append("")
+
+        sources = self.scenario.get("data-sources", [])
+        for filename in sorted(sources):
+            name = self.file_finder.find_file(filename)
+            var_name = data_source_name(name)
+            stmts.append("%s = apiritif.feeders.CSVFeeder(%r, _vars)" % (var_name, name))
+        if sources:
+            stmts.append("")
+
         return [self.gen_statement(stmt, indent=0) for stmt in stmts]
 
     def _add_url_request(self, default_address, req, test_method):
