@@ -839,10 +839,8 @@ log.setLevel(logging.DEBUG)
 
             stmts.append(method)
 
-            if index == len(requests):
-                method.body.extend(self.gen_data_sources_next())
-            else:
-                stmts.append(self.gen_empty_line_stmt())
+            if index != len(requests):
+                stmts.append(self.gen_empty_line_stmt())  # do not append empty line after last test method
 
         return stmts
 
@@ -931,11 +929,6 @@ log.setLevel(logging.DEBUG)
                         kwargs=None
                     )
                 ),
-                ast.Expr(value=ast.Call(func=ast.Attribute(value=ast.Name(id=var_name), attr="open", ctx=ast.Load()),
-                                        args=[],
-                                        keywords=[],
-                                        starargs=None,
-                                        kwargs=None)),
             ])
         return stmts
 
