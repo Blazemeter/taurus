@@ -4,6 +4,7 @@
 - use auto-growing histogram object to optimize CPU and memory usage (*big impact*)
 - optimize folding of labels and errors by using `fuzzyset` data structure (*big impact*)
 - bump up default JMeter to 5.0
+- bump up chromedriver to 2.43 and geckodriver to 0.23.0
 - fix `DivisionByZero` error happening for Cloud tests
 - fix hanging of shellexec commands due to `wait()` call used
 - use JMeter properties for configuration of PluginManagerCMD
