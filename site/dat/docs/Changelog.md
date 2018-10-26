@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.13.1<sup>next</sup>
+## 1.13.1<sup>26 oct 2018</sup>
 - use auto-growing histogram object to optimize CPU and memory usage (*big impact*)
 - optimize folding of labels and errors by using `fuzzyset` data structure (*big impact*)
 - bump up default JMeter to 5.0
