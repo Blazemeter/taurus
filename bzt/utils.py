@@ -1344,7 +1344,7 @@ class MirrorsManager(object):
         self.log.debug("Retrieving mirrors from page: %s", self.base_link)
         downloader = ExceptionalDownloader(self.http_client)
         try:
-            tmp_file = downloader.get(self.base_link)
+            tmp_file = downloader.get(self.base_link)[0]
             with open(tmp_file) as fds:
                 self.page_source = fds.read()
         except BaseException:
