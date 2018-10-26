@@ -1,5 +1,4 @@
 """ Monitoring service subsystem """
-import json
 import select
 import socket
 import subprocess

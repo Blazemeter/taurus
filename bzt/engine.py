@@ -946,9 +946,10 @@ class Provisioning(EngineModule):
 
         if isinstance(executions, dict):
             executions = [executions]
+            self.engine.config[ScenarioExecutor.EXEC] = executions
 
         for execution in executions:
-            executor = execution.get("executor", default_executor)
+            executor = execution.get("executor", default_executor, force_set=True)
             if not executor:
                 msg = "Cannot determine executor type and no default executor in %s"
                 raise TaurusConfigError(msg % execution)
