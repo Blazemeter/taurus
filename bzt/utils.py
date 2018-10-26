@@ -32,7 +32,6 @@ import re
 import shlex
 import shutil
 import signal
-import stat
 import sys
 import tarfile
 import tempfile
@@ -43,9 +42,9 @@ import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
+from distutils.version import LooseVersion
 from math import log
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
-from distutils.version import LooseVersion
 from webbrowser import GenericBrowser
 
 import ipaddress
@@ -1114,6 +1113,7 @@ class RequiredTool(object):
     """
     Abstract required tool
     """
+
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
                  env=None, version=None, installable=True):
         self.http_client = http_client
@@ -1351,7 +1351,6 @@ class MirrorsManager(object):
             self.log.debug("Exception: %s", traceback.format_exc())
             self.log.error("Can't fetch %s", self.base_link)
         return self._parse_mirrors()
-
 
 
 @contextmanager
@@ -1598,4 +1597,3 @@ def get_host_ips(filter_loopbacks=True):
 
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
-

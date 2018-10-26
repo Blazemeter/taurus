@@ -25,7 +25,7 @@
 - use `STATUS_BROKEN` instead of `STATUS_FAILED` in JUnit 4
 - added `rc-file` as an executor option for Siege
 - some refactorings around artifacts dir in env variables
-
+- allow specifying Remote webdriver address and more capabilities for Selenium test
 
 ## 1.13.0<sup>4 sep 2018</sup>
 - Windows installer is now self-contained, can be used without network connection (**need to uninstall older versions first!**)
