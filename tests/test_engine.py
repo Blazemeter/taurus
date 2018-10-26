@@ -2,7 +2,7 @@
 import os
 
 from bzt import TaurusConfigError
-from bzt.engine import ScenarioExecutor
+from bzt.engine import ScenarioExecutor, Configuration
 from bzt.six import string_types, communicate
 from bzt.utils import BetterDict, is_windows
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR
@@ -42,6 +42,18 @@ class TestEngine(BZTestCase):
             self.fail()
         except TaurusConfigError as exc:
             self.assertIn('reading config file', str(exc))
+
+    def test_configuration_smoothness(self):
+        def find_ad_dict_ed(*args):
+            if isinstance(args[0], dict) and not isinstance(args[0], BetterDict):
+                raise BaseException("dict found in Configuration")
+
+        configs = [
+            RESOURCES_DIR + "json/get-post.json",
+            self.paths]
+        self.obj.configure(configs)
+        self.assertTrue(isinstance(self.obj.config, Configuration))
+        BetterDict.traverse(self.obj.config, find_ad_dict_ed)
 
     def test_requests(self):
         configs = [
