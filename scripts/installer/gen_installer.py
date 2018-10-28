@@ -116,12 +116,26 @@ def download_tkinter(archive_url, archive_filename):
         z.extractall()
 
 
+def overwrite_levenstein_wheel(wheel_dir, levenstein_wheel_link):
+    target_filename = os.path.join(wheel_dir, "python_Levenshtein-0.12.0-cp36-cp36m-win_amd64.whl")
+    if not os.path.exists(target_filename):
+        print("WARNING: Can't replace non-existent levenstein wheel")
+
+    print("Downloading levenstein pre-built wheel")
+    r = requests.get(levenstein_wheel_link, stream=True)
+    with open(target_filename, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=1024):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: %s <bzt-wheel>" % sys.argv[0])
         sys.exit(1)
     bzt_dist = sys.argv[1]
     tkinter_link = "https://github.com/mu-editor/mu_tkinter/releases/download/0.3/pynsist_tkinter_3.6_64bit.zip"
+    levenstein_wheel_link = "https://download.lfd.uci.edu/pythonlibs/h2ufg7oq/python_Levenshtein-0.12.0-cp36-cp36m-win_amd64.whl"
     pynsist_config = "installer-gen.cfg"
     wheel_dir = "build/wheels"
     additional_packages = ['pip', 'setuptools', 'wheel']
@@ -129,6 +143,7 @@ def main():
     tkinter_archive = tempfile.NamedTemporaryFile(prefix="tkinter-libs", suffix=".zip")
     download_tkinter(tkinter_link, tkinter_archive.name)
     fetch_all_wheels(bzt_dist, wheel_dir)
+    overwrite_levenstein_wheel(wheel_dir, levenstein_wheel_link)
     for pkg in additional_packages:
         fetch_all_wheels(pkg, wheel_dir)
     dependencies = extract_all_dependencies(wheel_dir)
