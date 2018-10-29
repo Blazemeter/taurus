@@ -73,7 +73,7 @@ execution:
 - executor: junit
   iterations: 5  # loop over test suite for 5 times
   concurrency: 20   # number of virtual users
-  ramp_up: 1m       # time of load growing
+  ramp-up: 1m       # time of load growing
   steps: 5          # number of steps of growing
   scenario: complex
   run-items:

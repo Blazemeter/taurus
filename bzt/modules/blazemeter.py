@@ -39,94 +39,72 @@ from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
-from bzt.engine import Singletone, TAURUS_ARTIFACTS_DIR
+from bzt.engine import Singletone, TAURUS_ARTIFACTS_DIR, SETTINGS
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
-from bzt.modules.monitoring import Monitoring, MonitoringListener
+from bzt.modules.monitoring import Monitoring, MonitoringListener, LocalClient
 from bzt.modules.services import Unpacker
+from bzt.modules.selenium import SeleniumExecutor
 from bzt.requests_model import has_variable_pattern
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
-from bzt.utils import dehumanize_time, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
-from bzt.utils import to_json, open_browser, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
+from bzt.utils import open_browser, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
+from bzt.utils import to_json, dehumanize_time, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 
 TAURUS_TEST_TYPE = "taurus"
 FUNC_TEST_TYPE = "functionalApi"
-CLOUD_CONFIG_FILTER_RULES = {
-    "execution": True,
-    "scenarios": True,
-    "services": True,
 
-    "locations": True,
-    "locations-weighted": True,
-
+CLOUD_CONFIG_BLACK_LIST = {
     "settings": {
-        "verbose": True,
-        "env": True
+        "artifacts-dir": True,
+        "aggregator": True,
+        "proxy": True,
+        "check-updates": True
     },
-
     "modules": {
         "jmeter": {
-            "version": True,
-            "properties": True,
-            "system-properties": True,
-            "xml-jtl-flags": True,
+            "path": True
+        },
+        "ab": {
+            "path": True
         },
         "gatling": {
-            "version": True,
-            "properties": True,
-            "java-opts": True,
-            "additional-classpath": True
+            "path": True
         },
         "grinder": {
-            "properties": True,
-            "properties-file": True
-        },
-        "selenium": {
-            "additional-classpath": True,
-            "virtual-display": True,
-            "compile-target-java": True
+            "path": True
         },
         "junit": {
-            "compile-target-java": True
+            "path": True
+        },
+        "molotov": {
+            "path": True
+        },
+        "siege": {
+            "path": True
         },
         "testng": {
-            "compile-target-java": True
+            "path": True
         },
-        "local": {
-            "sequential": True
+        "tsung": {
+            "path": True
         },
-        "proxy2jmx": {
-            "token": True
+        "console": {
+            "disable": True,
         },
-        "shellexec": {
-            "env": True
-        },
-        "!blazemeter": {
-            "class": True,
-            "request-logging-limit": True,
-            "token": True,
+        "blazemeter": {
             "address": True,
             "data-address": True,
-            "test": True,
-            "project": True,
-            "use-deprecated-api": True,
-            "default-location": True,
-            "browser-open": True,
-            "delete-test-files": True,
-            "report-name": True,
-            "timeout": True,
-            "public-report": True,
-            "check-interval": True,
-            "detach": True,
         },
-        "consolidator": {
-            "rtimes-len": True
+        "cloud": {
+            "address": True,
+            "data-address": True,
         },
-    }
+    },
+    "provisioning": True,
+
 }
 
-CLOUD_CONFIG_FILTER_RULES['modules']['!cloud'] = CLOUD_CONFIG_FILTER_RULES['modules']['!blazemeter']
 NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
 NOTE_SIZE_LIMIT = 2048
 
@@ -1082,34 +1060,6 @@ class BaseCloudTest(object):
     def prepare_locations(self, executors, engine_config):
         pass
 
-    def prepare_cloud_config(self, engine_config):
-        config = copy.deepcopy(engine_config)
-
-        if not isinstance(config[ScenarioExecutor.EXEC], list):
-            config[ScenarioExecutor.EXEC] = [config[ScenarioExecutor.EXEC]]
-
-        provisioning = config.get(Provisioning.PROV)
-        for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
-            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
-
-        config.filter(CLOUD_CONFIG_FILTER_RULES)
-        config['local-bzt-version'] = engine_config.get('version', 'N/A')
-        for key in list(config.keys()):
-            if not config[key]:
-                config.pop(key)
-
-        self.cleanup_defaults(config)
-
-        if TAURUS_ARTIFACTS_DIR in config.get('settings', force_set=True).get('env', force_set=True):
-            config['settings']['env'].pop(TAURUS_ARTIFACTS_DIR)
-
-        if self.dedicated_ips:
-            config[CloudProvisioning.DEDICATED_IPS] = True
-
-        assert isinstance(config, Configuration)
-        return config
-
     @abstractmethod
     def resolve_test(self, taurus_config, rfiles, delete_old_files=False):
         pass
@@ -1135,31 +1085,6 @@ class BaseCloudTest(object):
     def get_master_status(self):
         self._last_status = self.master.get_status()
         return self._last_status
-
-    @staticmethod
-    def cleanup_defaults(config):
-        # cleanup configuration from empty values
-        default_values = {
-            'concurrency': None,
-            'iterations': None,
-            'ramp-up': None,
-            'steps': None,
-            'throughput': None,
-            'hold-for': 0,
-            'files': []
-        }
-        for execution in config[ScenarioExecutor.EXEC]:
-            if isinstance(execution['concurrency'], dict):
-                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
-
-            if not execution['concurrency']:
-                execution['concurrency'] = None
-
-            for key, value in iteritems(default_values):
-                if key in execution and execution[key] == value:
-                    execution.pop(key)
-
-        return config
 
 
 class CloudTaurusTest(BaseCloudTest):
@@ -1574,7 +1499,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
             res_files = self.get_rfiles()
             files_for_cloud = self._fix_filenames(res_files)
-            config_for_cloud = self.router.prepare_cloud_config(self.engine.config)
+
+            config_for_cloud = self.prepare_cloud_config()
             config_for_cloud.dump(self.engine.create_artifact("cloud", ""))
             del_files = self.settings.get("delete-test-files", True)
             self.router.resolve_test(config_for_cloud, files_for_cloud, del_files)
@@ -1592,6 +1518,119 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         elif isinstance(self.engine.aggregator, FunctionalAggregator):
             self.results_reader = FunctionalBZAReader(self.log)
             self.engine.aggregator.add_underling(self.results_reader)
+
+    @staticmethod
+    def _get_other_modules(config):
+        used_classes = LocalClient.__name__, BlazeMeterUploader.__name__
+        used_modules = []
+
+        for module in config.get("modules"):
+            class_name = config.get("modules").get(module).get("class").split('.')[-1]
+            if class_name in used_classes:
+                used_modules.append(module)
+        return used_modules
+
+    def _get_executors(self):
+        executors = []
+        for executor in self.executors:
+            executors.append(executor.execution.get("executor"))
+            if isinstance(executor, SeleniumExecutor):
+                executors.append(executor.runner.execution.get("executor"))
+
+        return executors
+
+    def _filter_unused_modules(self, config, provisioning):
+        services = [service.get("module") for service in config.get(Service.SERV)]
+        reporters = [reporter.get("module") for reporter in config.get(Reporter.REP)]
+        consolidator = config.get(SETTINGS).get("aggregator")
+
+        used_modules = self._get_executors() + self._get_other_modules(config)
+        used_modules += services + reporters + [consolidator, provisioning]
+
+        modules = set(config.get("modules").keys())
+        for module in modules:
+            if module not in used_modules:
+                del config.get("modules")[module]
+
+    def prepare_cloud_config(self):
+        config = copy.deepcopy(self.engine.config)
+
+        # todo: move it to Engine.configure()
+        self._unify_config(config)
+
+        provisioning = config.get(Provisioning.PROV)
+        self._filter_unused_modules(config, provisioning)
+
+        # todo: should we remove config['version'] before sending to cloud?
+        config['local-bzt-version'] = config.get('version', 'N/A')
+
+        for execution in config[ScenarioExecutor.EXEC]:
+            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
+            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
+
+        config.filter(CLOUD_CONFIG_BLACK_LIST, black_list=True)
+
+        if self.router.dedicated_ips:
+            config[CloudProvisioning.DEDICATED_IPS] = True
+
+        for key in list(config.keys()):
+            if not config[key]:
+                config.pop(key)
+
+        self._cleanup_defaults(config)
+
+        assert isinstance(config, Configuration)
+        return config
+
+    @staticmethod
+    def _unify_config(config):
+        executions = config.get(ScenarioExecutor.EXEC, [])
+        if isinstance(executions, dict):
+            executions = [executions]
+            config[ScenarioExecutor.EXEC] = executions
+
+        settings = config.get(SETTINGS)
+        default_executor = settings.get("default-executor", None)
+
+        for execution in executions:
+            execution.get("executor", default_executor, force_set=True)
+
+        reporting = config.get(Reporter.REP, [])
+        for index in range(len(reporting)):
+            ensure_is_dict(reporting, index, "module")
+
+        services = config.get(Service.SERV, [])
+        for index in range(len(services)):
+            ensure_is_dict(services, index, "module")
+
+        modules = config.get("modules")
+        for module in modules:
+            ensure_is_dict(modules, module, "class")
+
+    @staticmethod
+    def _cleanup_defaults(config):
+        # cleanup configuration from empty values
+        default_values = {
+            'concurrency': None,
+            'iterations': None,
+            'ramp-up': None,
+            'steps': None,
+            'throughput': None,
+            'hold-for': 0,
+            'files': []
+        }
+        for execution in config[ScenarioExecutor.EXEC]:
+            if isinstance(execution['concurrency'], dict):
+                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
+
+            if not execution['concurrency']:
+                execution['concurrency'] = None
+
+            for key, value in iteritems(default_values):
+                if key in execution and execution[key] == value:
+                    execution.pop(key)
+
+        return config
 
     def __dump_locations_if_needed(self):
         if self.settings.get("dump-locations", False):

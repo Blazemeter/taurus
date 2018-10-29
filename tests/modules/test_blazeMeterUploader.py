@@ -6,11 +6,10 @@ import shutil
 import time
 from io import BytesIO
 
-from bzt import TaurusException, NormalShutdown
+from bzt import TaurusException
 from bzt.bza import Master, Session
-from bzt.modules import ConsolidatingAggregator
-from bzt.modules.aggregator import DataPoint, KPISet, AggregatorListener
-from bzt.modules.blazemeter import BlazeMeterUploader, ResultsFromBZA
+from bzt.modules.aggregator import DataPoint, KPISet
+from bzt.modules.blazemeter import BlazeMeterUploader
 from bzt.modules.blazemeter import MonitoringBuffer
 from bzt.six import HTTPError
 from bzt.six import iteritems, viewvalues

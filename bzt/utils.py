@@ -325,23 +325,27 @@ class BetterDict(defaultdict):
                 if not visitor(val, idx, obj):
                     cls.traverse(obj[idx], visitor)
 
-    def filter(self, rules):
+    def filter(self, rules, black_list=False):
         keys = set(self.keys())
         for key in keys:
             ikey = "!" + key
-            if ikey in rules:
-                if isinstance(rules.get(ikey), dict) and isinstance(self.get(key), BetterDict):
-                    inverted_rules = {x: True for x in self.get(key).keys() if x not in rules[ikey]}
-                    self.get(key).filter(inverted_rules)
-                    if not self.get(key):  # clear empty
+            if (key in rules) or (ikey in rules):   # we have rule for this key
+                current_black_list = black_list if key in rules else not black_list
+                rkey = key if key in rules else ikey
+
+                if isinstance(rules.get(rkey), dict):
+                    if isinstance(self.get(key), BetterDict):       # need to go deeper
+                        self.get(key).filter(rules[rkey], black_list=current_black_list)
+                    elif not current_black_list:
                         del self[key]
-            elif key not in rules:
-                del self[key]
-            else:
-                if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
-                    self.get(key).filter(rules[key])
-                    if not self.get(key):  # clear empty
-                        del self[key]
+                elif current_black_list:
+                    del self[key]   # must be blacklisted
+            elif not black_list:
+                del self[key]       # remove unknown key
+
+            current = self.get(key, None)
+            if isinstance(current, (dict, list)) and not current:
+                del self[key]       # clean empty
 
     def __repr__(self):
         return dict(self).__repr__()
@@ -563,43 +567,24 @@ class FileReader(object):
             self.fds.close()
 
 
-def ensure_is_dict(container, key, default_key=None):
+def ensure_is_dict(container, key, sub_key):
     """
     Ensure that dict item is dict, convert if needed
 
     :type container: dict or list
     :type key: basestring or int
-    :type default_key: basestring
+    :type sub_key: basestring
     :return:
     """
-    if (isinstance(container, dict) and key not in container) \
-            or (isinstance(container, list) and not container[key]):
-        if default_key:
-            container[key] = BetterDict.from_dict({default_key: None})
-        else:
-            container[key] = BetterDict()
-    elif not isinstance(container[key], dict):
-        if default_key:
-            val = container[key]
-            container[key] = BetterDict.from_dict({default_key: val})
-        else:
-            container[key] = BetterDict()
+    if isinstance(container, BetterDict):
+        container.get(key, force_set=True)
+    elif isinstance(container, dict):   # todo: remove after fixing merge
+        container[key] = BetterDict()
+
+    if not isinstance(container[key], dict):    # todo: replace dict with BetterDict after fixing merge
+        container[key] = BetterDict.from_dict({sub_key: container[key]})
 
     return container[key]
-
-
-def dict_key(dictnr, value):
-    """
-    Search key by value in dict
-
-    :type dictnr: dict
-    :type value: type
-    :return: :raise TaurusInternalException:
-    """
-    for key, val in iteritems(dictnr):
-        if val == value:
-            return key
-    raise TaurusInternalException("Value not found in dict: %s" % value)
 
 
 class MultiPartForm(object):

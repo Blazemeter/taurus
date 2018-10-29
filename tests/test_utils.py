@@ -11,6 +11,7 @@ from os.path import join
 from bzt import TaurusNetworkError
 from bzt.six import PY2, communicate
 from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient, BetterDict
+from bzt.utils import ensure_is_dict
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 
@@ -31,11 +32,22 @@ class TestBetterDict(BZTestCase):
         result = BetterDict().merge(result)
         self.assertEqual(sample, result)
 
-    def _filter_and_compare(self, first, second, result):
+    def _filter_and_compare(self, first, second, result, black_list=False):
         sample = BetterDict().merge(first)
-        sample.filter(second)
+        sample.filter(second, black_list=black_list)
         result = BetterDict().merge(result)
         self.assertEqual(sample, result)
+
+    def test_merge_configs(self):
+        a = {"modules": {"local": "class_name"}}
+        b = {"modules": {"local": {"class": "another_class"}}}
+        res = BetterDict()
+        res.merge(a)
+        res.merge(b)
+        #self.assertEqual('BetterDict', type(res["modules"]["local"]))  todo: should be implemented
+        modules = res["modules"]
+        ensure_is_dict(modules, "local", "class")
+        self.assertEqual("another_class", res["modules"]["local"]["class"])
 
     def test_merge_del(self):
         a = {
@@ -76,14 +88,14 @@ class TestBetterDict(BZTestCase):
 
     def test_filter_wl0(self):
         a = {
-            "A": "B",
+            "A": False,
             "C": {"D": "E", "G": "GG"},
             "F": ["FF"]}
         b = {
             "A": True,
             "!C": {"G": "H"}}
         res = {
-            "A": "B",
+            "A": False,
             "C": {"D": "E"}}
 
         self._filter_and_compare(a, b, res)
@@ -101,6 +113,44 @@ class TestBetterDict(BZTestCase):
             "C": {"D": "E"}}
 
         self._filter_and_compare(a, b, res)
+
+    def test_filter_wl2(self):
+        a = {
+            "A": "B",
+            "C": {"D": "E"}}
+        b = {
+            "A": {"B": "C"},
+            "C": True}
+        res = {
+            "C": {"D": "E"}}
+
+        self._filter_and_compare(a, b, res)
+
+    def test_filter_bl0(self):
+        a = {
+            "A": ["B", "BB"],
+            "C": {"D": "E", "G": "GG"},
+            "F": ["FF"]}
+        b = {
+            "A": True,
+            "!C": {"G": "H"}}
+        res = {
+            "F": ["FF"],
+            "C": {"G": "GG"}}
+
+        self._filter_and_compare(a, b, res, black_list=True)
+
+    def test_filter_bl1(self):
+        a = {
+            "A": "B",
+            "C": {"D": "E"}}
+        b = {
+            "A": {"B": "C"},
+            "C": True}
+        res = {
+            "A": "B"}
+
+        self._filter_and_compare(a, b, res, black_list=True)
 
 
 class TestMisc(BZTestCase):

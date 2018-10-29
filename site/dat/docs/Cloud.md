@@ -285,8 +285,6 @@ modules:
     dedicated-ips: true
 ```
 
-## 
-
 ## Worker Number Info
 
 There is a way to obtain worker index which can be used to coordinate distributed test data. For example, you can make sure that different workers will use different user logins or CSV file parts. To achieve that, you get some `env` variables for `shellexec` modules and some `properties` for `jmeter` module:

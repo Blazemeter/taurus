@@ -370,7 +370,7 @@ class JMeterScenarioBuilder(JMX):
         if not isinstance(jsrs, list):
             jsrs = [jsrs]
         for idx, _ in enumerate(jsrs):
-            jsr = ensure_is_dict(jsrs, idx, default_key='script-text')
+            jsr = ensure_is_dict(jsrs, idx, sub_key='script-text')
             lang = jsr.get("language", "groovy")
             script_file = jsr.get("script-file", None)
             script_text = jsr.get("script-text", None)
