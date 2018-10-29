@@ -295,6 +295,7 @@ class BetterDict(defaultdict):
                     if isinstance(lefty, BetterDict) and isinstance(righty, BetterDict):
                         lefty.merge(righty)
                     else:
+                        # todo: should we log all overwriting cases?
                         logging.warning("Overwriting the value of %r when merging configs", key)
                         left[index] = righty
                 else:
