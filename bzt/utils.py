@@ -32,7 +32,6 @@ import re
 import shlex
 import shutil
 import signal
-import stat
 import sys
 import tarfile
 import tempfile
@@ -43,9 +42,9 @@ import zipfile
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
+from distutils.version import LooseVersion
 from math import log
 from subprocess import CalledProcessError, PIPE, check_output, STDOUT
-from distutils.version import LooseVersion
 from webbrowser import GenericBrowser
 
 import ipaddress
@@ -564,43 +563,24 @@ class FileReader(object):
             self.fds.close()
 
 
-def ensure_is_dict(container, key, default_key=None):
+def ensure_is_dict(container, key, sub_key):
     """
     Ensure that dict item is dict, convert if needed
 
     :type container: dict or list
     :type key: basestring or int
-    :type default_key: basestring
+    :type sub_key: basestring
     :return:
     """
-    if (isinstance(container, dict) and key not in container) \
-            or (isinstance(container, list) and not container[key]):
-        if default_key:
-            container[key] = BetterDict.from_dict({default_key: None})
-        else:
-            container[key] = BetterDict()
-    elif not isinstance(container[key], dict):
-        if default_key:
-            val = container[key]
-            container[key] = BetterDict.from_dict({default_key: val})
-        else:
-            container[key] = BetterDict()
+    if isinstance(container, BetterDict):
+        container.get(key, force_set=True)
+    elif isinstance(container, dict):   # todo: remove after fixing merge
+        container[key] = BetterDict()
+
+    if not isinstance(container[key], dict):    # todo: replace dict with BetterDict after fixing merge
+        container[key] = BetterDict.from_dict({sub_key: container[key]})
 
     return container[key]
-
-
-def dict_key(dictnr, value):
-    """
-    Search key by value in dict
-
-    :type dictnr: dict
-    :type value: type
-    :return: :raise TaurusInternalException:
-    """
-    for key, val in iteritems(dictnr):
-        if val == value:
-            return key
-    raise TaurusInternalException("Value not found in dict: %s" % value)
 
 
 class MultiPartForm(object):
@@ -1114,6 +1094,7 @@ class RequiredTool(object):
     """
     Abstract required tool
     """
+
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
                  env=None, version=None, installable=True):
         self.http_client = http_client
@@ -1351,7 +1332,6 @@ class MirrorsManager(object):
             self.log.debug("Exception: %s", traceback.format_exc())
             self.log.error("Can't fetch %s", self.base_link)
         return self._parse_mirrors()
-
 
 
 @contextmanager
@@ -1598,4 +1578,3 @@ def get_host_ips(filter_loopbacks=True):
 
 def is_url(url):
     return parse.urlparse(url).scheme in ["https", "http"]
-

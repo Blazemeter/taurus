@@ -1,7 +1,6 @@
-from tests import ROOT_LOGGER
 from tests.mocks import EngineEmul
 from bzt.modules.jmeter import JMeter, JMeterExecutor
-from bzt.utils import get_full_path, HTTPClient
+from bzt.utils import HTTPClient
 
 
 class MockResponse(object):
