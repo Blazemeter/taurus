@@ -1560,7 +1560,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         provisioning = config.get(Provisioning.PROV)
         self._filter_unused_modules(config, provisioning)
-        config.filter(CLOUD_CONFIG_FILTER_RULES)
 
         # todo: should we remove config['version'] before sending to cloud?
         config['local-bzt-version'] = config.get('version', 'N/A')
