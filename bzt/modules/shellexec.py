@@ -23,6 +23,10 @@ from bzt.utils import ensure_is_dict, Environment, shutdown_process, is_windows
 
 
 class ShellExecutor(Service):
+    """
+    :type env: Environment
+    """
+
     def __init__(self):
         super(ShellExecutor, self).__init__()
         self.prepare_tasks = []
@@ -107,6 +111,7 @@ class Task(object):
     """
     :type process: subprocess.Popen
     """
+
     def __init__(self, config, parent_log, working_dir, env):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.working_dir = working_dir
@@ -160,7 +165,7 @@ class Task(object):
             self.check(sync=True)
 
     def check(self, sync=False):
-        if not self.process or self.ret_code is not None:   # finished task
+        if not self.process or self.ret_code is not None:  # finished task
             return
 
         self.ret_code = self.process.poll()
