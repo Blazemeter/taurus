@@ -10,9 +10,11 @@ import yaml
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
+from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader
 from bzt.modules.java import JUnitTester, TestNGTester
 from bzt.modules.java.executors import JavaTestRunner
 from bzt.modules.java.tools import JavaC, JarTool
+from bzt.modules.jmeter import JTLReader
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import ToolError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER
@@ -179,13 +181,40 @@ class TestJUnitTester(BZTestCase):
             msg = "Wrong path to {tool}: {path}".format(tool=str(tool), path=str(tool.tool_path))
             self.assertTrue(os.path.isfile(tool.tool_path), msg)
 
-    def test_simple(self):
+    # def test_simple(self):
+    #     self.obj.engine.aggregator = ConsolidatingAggregator()
+    #     self.obj.execution.merge({
+    #         "scenario": {"script": RESOURCES_DIR + "BlazeDemo.java", "properties": {"scenprop": 3}},
+    #         "properties": {"execprop": 2}
+    #     })
+    #     self.obj.settings.merge({"properties": {"settprop": 1}, "junit-version": 5})
+    #     self.obj.prepare()
+    #     self.obj.engine.aggregator.prepare()
+    #     self.obj.startup()
+    #     while not self.obj.check():
+    #         time.sleep(self.obj.engine.check_interval)
+    #     self.obj.shutdown()
+    #     self.obj.post_process()
+    #     self.obj.engine.aggregator.post_process()
+    #
+    #     orig_prop_file = RESOURCES_DIR + "selenium/junit/runner.properties"
+    #     start1 = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '/')
+    #     start2 = "ARTIFACTS+"
+    #     self.assertFilesEqual(orig_prop_file, self.obj.props_file, replace_str=start1, replace_with=start2)
+    #
+    #     self.assertTrue(self.obj.has_results())
+    #
+    #     cumulative = self.obj.engine.aggregator.cumulative
+    #     self.assertEqual("java.lang.RuntimeException: 123", cumulative[''][KPISet.ERRORS][0]['msg'])
+    #     self.assertEqual(1, cumulative[''][KPISet.SUCCESSES])
+
+    def test_load_mode(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.execution.merge({
-            "scenario": {"script": RESOURCES_DIR + "BlazeDemo.java", "properties": {"scenprop": 3}},
-            "properties": {"execprop": 2}
+            "iterations": 10,
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"},
         })
-        self.obj.settings.merge({"properties": {"settprop": 1}, "junit-version": 5})
+        self.obj.settings.merge({"junit-version": 5})
         self.obj.prepare()
         self.obj.engine.aggregator.prepare()
         self.obj.startup()
@@ -194,17 +223,28 @@ class TestJUnitTester(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
-
-        orig_prop_file = RESOURCES_DIR + "selenium/junit/runner.properties"
-        start1 = (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '/')
-        start2 = "ARTIFACTS+"
-        self.assertFilesEqual(orig_prop_file, self.obj.props_file, replace_str=start1, replace_with=start2)
-
         self.assertTrue(self.obj.has_results())
+        self.assertTrue(self.obj.report_file.endswith(".csv"))
+        self.assertIsInstance(self.obj.reader, JTLReader)
 
-        cumulative = self.obj.engine.aggregator.cumulative
-        self.assertEqual("java.lang.RuntimeException: 123", cumulative[''][KPISet.ERRORS][0]['msg'])
-        self.assertEqual(1, cumulative[''][KPISet.SUCCESSES])
+    def test_func_mode(self):
+        self.obj.engine.aggregator = FunctionalAggregator()
+        self.obj.execution.merge({
+            "iterations": 10,
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"},
+        })
+        self.obj.settings.merge({"junit-version": 5})
+        self.obj.prepare()
+        self.obj.engine.aggregator.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        self.assertTrue(self.obj.has_results())
+        self.assertTrue(self.obj.report_file.endswith(".ldjson"))
+        self.assertIsInstance(self.obj.reader, FuncSamplesReader)
 
 
 class TestSeleniumJUnitTester(SeleniumTestCase):
