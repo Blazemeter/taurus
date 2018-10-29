@@ -282,25 +282,25 @@ class BetterDict(defaultdict):
         self.__ensure_list_type(val)
         if key not in self:
             self[key] = []
-        if isinstance(self[key], list):
-            if merge_list_items:
-                left = self[key]
-                right = val
-                for index, righty in enumerate(right):
-                    if index < len(left):
-                        lefty = left[index]
-                        if isinstance(lefty, BetterDict):
-                            if isinstance(righty, BetterDict):
-                                lefty.merge(righty)
-                                continue
+        if not isinstance(self[key], list):
+            self[key] = val
+            return
+
+        if merge_list_items:
+            left = self[key]
+            right = val
+            for index, righty in enumerate(right):
+                if index < len(left):
+                    lefty = left[index]
+                    if isinstance(lefty, BetterDict) and isinstance(righty, BetterDict):
+                        lefty.merge(righty)
+                    else:
                         logging.warning("Overwriting the value of %r when merging configs", key)
                         left[index] = righty
-                    else:
-                        left.insert(index, righty)
-            else:
-                self[key].extend(val)
+                else:
+                    left.insert(index, righty)
         else:
-            self[key] = val
+            self[key].extend(val)
 
     def __ensure_list_type(self, values):
         """
