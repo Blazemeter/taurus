@@ -334,7 +334,7 @@ class BetterDict(defaultdict):
                 if isinstance(rules.get(rkey), dict) and isinstance(self.get(key), BetterDict):     # need to go deeper
                     child_white_list = white_list if key in rules else not white_list               # reverse the rule
                     self.get(key).filter(rules[rkey], white_list=child_white_list)
-                elif not white_list:
+                elif (not white_list) ^ isinstance(rules.get(rkey), dict):
                     del self[key]   # must be blacklisted
             elif white_list:
                 del self[key]       # remove unknown key

@@ -114,6 +114,18 @@ class TestBetterDict(BZTestCase):
 
         self._filter_and_compare(a, b, res)
 
+    def test_filter_wl2(self):
+        a = {
+            "A": "B",
+            "C": {"D": "E"}}
+        b = {
+            "A": {"B": "C"},
+            "C": True}
+        res = {
+            "C": {"D": "E"}}
+
+        self._filter_and_compare(a, b, res)
+
     def test_filter_bl0(self):
         a = {
             "A": ["B", "BB"],
@@ -125,6 +137,18 @@ class TestBetterDict(BZTestCase):
         res = {
             "F": ["FF"],
             "C": {"G": "GG"}}
+
+        self._filter_and_compare(a, b, res, white_list=False)
+
+    def test_filter_bl1(self):
+        a = {
+            "A": "B",
+            "C": {"D": "E"}}
+        b = {
+            "A": {"B": "C"},
+            "C": True}
+        res = {
+            "A": "B"}
 
         self._filter_and_compare(a, b, res, white_list=False)
 
