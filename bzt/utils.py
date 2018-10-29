@@ -331,11 +331,13 @@ class BetterDict(defaultdict):
             ikey = "!" + key
             if (key in rules) or (ikey in rules):   # we have rule for this key
                 rkey = key if key in rules else ikey
-                deep_rule = isinstance(rules.get(rkey), dict)
-                if deep_rule and isinstance(self.get(key), BetterDict):                     # need to go deeper
-                    child_black_list = black_list if key in rules else not black_list       # reverse the rule
-                    self.get(key).filter(rules[rkey], black_list=child_black_list)
-                elif deep_rule ^ black_list:
+                if isinstance(rules.get(rkey), dict):
+                    if isinstance(self.get(key), BetterDict):                               # need to go deeper
+                        child_black_list = black_list if key in rules else not black_list   # reverse the rule
+                        self.get(key).filter(rules[rkey], black_list=child_black_list)
+                    elif not black_list:
+                        del self[key]
+                elif black_list ^ (ikey in rules):
                     del self[key]   # must be blacklisted
             elif not black_list:
                 del self[key]       # remove unknown key
