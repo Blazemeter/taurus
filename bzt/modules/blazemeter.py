@@ -56,85 +56,55 @@ FUNC_TEST_TYPE = "functionalApi"
 
 CLOUD_CONFIG_BLACK_LIST = {
     "settings": {
-        "artifacts-dir": True
-    }
-}
-
-CLOUD_CONFIG_FILTER_RULES = {
-    "execution": True,
-    "scenarios": True,
-    "services": True,
-
-    "locations": True,
-    "locations-weighted": True,
-
-    "settings": {
-        "verbose": True,
-        "env": True
+        "artifacts-dir": True,
+        "aggregator": True,
+        "proxy": True,
+        "check-updates": True
     },
-
     "modules": {
         "jmeter": {
-            "version": True,
-            "properties": True,
-            "system-properties": True,
-            "xml-jtl-flags": True,
+            "path": True
+        },
+        "ab": {
+            "path": True
         },
         "gatling": {
-            "version": True,
-            "properties": True,
-            "java-opts": True,
-            "additional-classpath": True
+            "path": True
         },
         "grinder": {
-            "properties": True,
-            "properties-file": True
-        },
-        "selenium": {
-            "additional-classpath": True,
-            "virtual-display": True,
-            "compile-target-java": True
+            "path": True
         },
         "junit": {
-            "compile-target-java": True
+            "path": True
+        },
+        "molotov": {
+            "path": True
+        },
+        "siege": {
+            "path": True
         },
         "testng": {
-            "compile-target-java": True
+            "path": True
         },
-        "local": {
-            "sequential": True
+        "tsung": {
+            "path": True
         },
-        "proxy2jmx": {
-            "token": True
+        "console": {
+            "disable": True,
         },
-        "shellexec": {
-            "env": True
-        },
-        "!blazemeter": {
-            "class": True,
-            "request-logging-limit": True,
-            "token": True,
+        "blazemeter": {
             "address": True,
             "data-address": True,
-            "test": True,
-            "project": True,
-            "use-deprecated-api": True,
-            "default-location": True,
-            "browser-open": True,
-            "delete-test-files": True,
-            "report-name": True,
-            "timeout": True,
-            "public-report": True,
-            "check-interval": True,
-            "detach": True,
         },
-        "consolidator": {
-            "rtimes-len": True
+        "cloud": {
+            "address": True,
+            "data-address": True,
         },
-    }
+    },
+    "provisioning": True,
+
 }
 
-CLOUD_CONFIG_FILTER_RULES['modules']['!cloud'] = CLOUD_CONFIG_FILTER_RULES['modules']['!blazemeter']
 NETWORK_PROBLEMS = (IOError, URLError, SSLError, ReadTimeout, TaurusNetworkError)
 NOTE_SIZE_LIMIT = 2048
 
