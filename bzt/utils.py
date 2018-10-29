@@ -325,18 +325,19 @@ class BetterDict(defaultdict):
                 if not visitor(val, idx, obj):
                     cls.traverse(obj[idx], visitor)
 
-    def filter(self, rules, white_list=True):
+    def filter(self, rules, black_list=False):
         keys = set(self.keys())
         for key in keys:
             ikey = "!" + key
             if (key in rules) or (ikey in rules):   # we have rule for this key
                 rkey = key if key in rules else ikey
-                if isinstance(rules.get(rkey), dict) and isinstance(self.get(key), BetterDict):     # need to go deeper
-                    child_white_list = white_list if key in rules else not white_list               # reverse the rule
-                    self.get(key).filter(rules[rkey], white_list=child_white_list)
-                elif (not white_list) ^ isinstance(rules.get(rkey), dict):
+                deep_rule = isinstance(rules.get(rkey), dict)
+                if deep_rule and isinstance(self.get(key), BetterDict):                     # need to go deeper
+                    child_black_list = black_list if key in rules else not black_list       # reverse the rule
+                    self.get(key).filter(rules[rkey], black_list=child_black_list)
+                elif deep_rule ^ black_list:
                     del self[key]   # must be blacklisted
-            elif white_list:
+            elif not black_list:
                 del self[key]       # remove unknown key
 
             current = self.get(key, None)
