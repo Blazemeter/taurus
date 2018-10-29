@@ -32,9 +32,9 @@ class TestBetterDict(BZTestCase):
         result = BetterDict().merge(result)
         self.assertEqual(sample, result)
 
-    def _filter_and_compare(self, first, second, result):
+    def _filter_and_compare(self, first, second, result, white_list=True):
         sample = BetterDict().merge(first)
-        sample.filter(second)
+        sample.filter(second, white_list=white_list)
         result = BetterDict().merge(result)
         self.assertEqual(sample, result)
 
@@ -113,6 +113,20 @@ class TestBetterDict(BZTestCase):
             "C": {"D": "E"}}
 
         self._filter_and_compare(a, b, res)
+
+    def test_filter_bl0(self):
+        a = {
+            "A": ["B", "BB"],
+            "C": {"D": "E", "G": "GG"},
+            "F": ["FF"]}
+        b = {
+            "A": True,
+            "!C": {"G": "H"}}
+        res = {
+            "F": ["FF"],
+            "C": {"G": "GG"}}
+
+        self._filter_and_compare(a, b, res, white_list=False)
 
 
 class TestMisc(BZTestCase):
