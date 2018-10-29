@@ -88,14 +88,14 @@ class TestBetterDict(BZTestCase):
 
     def test_filter_wl0(self):
         a = {
-            "A": "B",
+            "A": False,
             "C": {"D": "E", "G": "GG"},
             "F": ["FF"]}
         b = {
             "A": True,
             "!C": {"G": "H"}}
         res = {
-            "A": "B",
+            "A": False,
             "C": {"D": "E"}}
 
         self._filter_and_compare(a, b, res)

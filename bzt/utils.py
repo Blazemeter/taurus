@@ -344,7 +344,7 @@ class BetterDict(defaultdict):
                 del self[key]       # remove unknown key
 
             current = self.get(key, None)
-            if current is not None and not current:
+            if isinstance(current, (dict, list)) and not current:
                 del self[key]       # clean empty
 
     def __repr__(self):
