@@ -90,7 +90,7 @@ If your scenario don't contains `script` parameter and contains at least one ele
 scala script for test. This script will be placed in `[artifact-dir](ConfigSyntax/#Top-Level-Settings)`:
 you can modify it and use with Gatling later.
 
-Following features are supported: request generation, `default-address`, `follow-redirect`, `headers`, `store-cache`, `think-time`
+Following features are supported: request generation, `default-address`, `follow-redirects`, `headers`, `store-cache`, `think-time`
 on scenario and request levels, `body` of request and params that described in
 `[Load Configuration](#Load-Configuration)`.
 Some asserts can be added to request. Assert describes templates and area for search (`contains` and `subject`
@@ -127,7 +127,7 @@ scenarios:
         contains: # expression list for assertion (mandatory)
         - .+sometext.+  
       body: 'Some Body Data'
-      follow-redirect: false    #   true by default
+      follow-redirects: false    #   true by default
       headers:
         HEADER_11: VALUE_11
     - url: /reserve.php
