@@ -53,6 +53,13 @@ from bzt.utils import to_json, dehumanize_time, get_full_path, get_files_recursi
 
 TAURUS_TEST_TYPE = "taurus"
 FUNC_TEST_TYPE = "functionalApi"
+
+CLOUD_CONFIG_BLACK_LIST = {
+    "settings": {
+        "artifacts-dir": True
+    }
+}
+
 CLOUD_CONFIG_FILTER_RULES = {
     "execution": True,
     "scenarios": True,
@@ -1592,7 +1599,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
             execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
             execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
 
-        config.get("settings").get("env").pop(TAURUS_ARTIFACTS_DIR, None)
+        config.filter(CLOUD_CONFIG_BLACK_LIST, black_list=True)
 
         if self.router.dedicated_ips:
             config[CloudProvisioning.DEDICATED_IPS] = True
