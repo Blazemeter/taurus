@@ -34,6 +34,12 @@ class ReportableExecutor(ScenarioExecutor):
         self.reported = True
         self.register_reader = True
 
+    def create_func_reader(self, report_file):
+        return FuncSamplesReader(report_file, self.engine, self.log)
+
+    def create_load_reader(self, report_file):
+        return LoadSamplesReader(report_file, self.log)
+
     def reporting_setup(self, prefix=None, suffix=None):
         if not self.reported:
             self.log.debug("Skipping reporting setup for executor %s", self)
@@ -50,9 +56,9 @@ class ReportableExecutor(ScenarioExecutor):
         self.report_file = report_file.replace(os.path.sep, '/')
 
         if self.engine.is_functional_mode():
-            self.reader = FuncSamplesReader(self.report_file, self.engine, self.log)
+            self.reader = self.create_func_reader(self.report_file)
         else:
-            self.reader = LoadSamplesReader(self.report_file, self.log)
+            self.reader = self.create_load_reader(self.report_file)
 
         if not self.register_reader:
             self.log.debug("Skipping reader registration for executor %s", self)
