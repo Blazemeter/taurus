@@ -1446,7 +1446,8 @@ class MasterProvisioning(Provisioning):
 
         if packed_list:
             services = self.engine.config.get(Service.SERV, [], force_set=True)
-            services.append({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list, 'run-at': 'local'})
+            unpacker = BetterDict.from_dict({'module': Unpacker.UNPACK, Unpacker.FILES: packed_list, 'run-at': 'local'})
+            services.append(unpacker)
 
         return result_list
 
@@ -1577,10 +1578,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
     def prepare_cloud_config(self):
         config = copy.deepcopy(self.engine.config)
-
-        # todo: move it to Engine.configure()
-        self._unify_config(config)
-
         provisioning = config.get(Provisioning.PROV)
         self._filter_unused_modules(config, provisioning)
         config.filter(CLOUD_CONFIG_FILTER_RULES)
@@ -1605,31 +1602,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
         assert isinstance(config, Configuration)
         return config
-
-    @staticmethod
-    def _unify_config(config):
-        executions = config.get(ScenarioExecutor.EXEC, [])
-        if isinstance(executions, dict):
-            executions = [executions]
-            config[ScenarioExecutor.EXEC] = executions
-
-        settings = config.get(SETTINGS)
-        default_executor = settings.get("default-executor", None)
-
-        for execution in executions:
-            execution.get("executor", default_executor, force_set=True)
-
-        reporting = config.get(Reporter.REP, [])
-        for index in range(len(reporting)):
-            ensure_is_dict(reporting, index, "module")
-
-        services = config.get(Service.SERV, [])
-        for index in range(len(services)):
-            ensure_is_dict(services, index, "module")
-
-        modules = config.get("modules")
-        for module in modules:
-            ensure_is_dict(modules, module, "class")
 
     @staticmethod
     def _cleanup_defaults(config):
@@ -1674,7 +1646,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         reporting = self.engine.config.get(Reporter.REP, [])
         new_reporting = []
         for index, reporter in enumerate(reporting):
-            reporter = ensure_is_dict(reporting, index, "module")
             exc = TaurusConfigError("'module' attribute not found in %s" % reporter)
             cls = reporter.get('module', exc)
             if cls == 'blazemeter':
@@ -1774,10 +1745,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
 
             # if we have captured HARs, let's download them
             for service in self.engine.config.get(Service.SERV, []):
-                # not good to reproduce what is done inside engine
-                # but no good way to get knowledge of the service in config
-                if not isinstance(service, dict):
-                    service = {"module": service}
                 mod = service.get('module', TaurusConfigError("No 'module' specified for service"))
                 assert isinstance(mod, string_types), mod
                 module = self.engine.instantiate_module(mod)
