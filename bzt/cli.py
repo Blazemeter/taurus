@@ -352,7 +352,7 @@ class CLI(object):
             config = Configuration()
 
             for jmx_file in jmxes:
-                piece = {"executor": "jmeter", "scenario": {"script": jmx_file}}
+                piece = BetterDict.from_dict({"executor": "jmeter", "scenario": {"script": jmx_file}})
                 config.get(ScenarioExecutor.EXEC, [], force_set=True).append(piece)  # Does it brake single execution?
 
             config.dump(fname, Configuration.JSON)
@@ -382,7 +382,7 @@ class CLI(object):
             config = Configuration()
 
             for jtl in jtls:
-                piece = {"executor": "external-results-loader", "data-file": jtl}
+                piece = BetterDict.from_dict({"executor": "external-results-loader", "data-file": jtl})
                 config.get(ScenarioExecutor.EXEC, [], force_set=True).append(piece)
 
             config.dump(fname, Configuration.JSON)
