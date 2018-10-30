@@ -93,6 +93,7 @@ class LocalProvisioningTest(BZTestCase):
         local.engine = EngineEmul()
         local.engine.config.merge({ScenarioExecutor.EXEC: [{}, {}]})
         local.engine.config.get("settings")["default-executor"] = "mock"
+        local.engine.unify_config()
         local.prepare()
         local.startup()
 
@@ -114,6 +115,7 @@ class LocalProvisioningTest(BZTestCase):
         local.engine = EngineEmul()
         local.engine.config.merge({ScenarioExecutor.EXEC: [{}]})
         local.engine.config.get("settings")["default-executor"] = "mock"
+        local.engine.unify_config()
         local.prepare()
         local.startup()
 
