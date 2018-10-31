@@ -112,6 +112,7 @@ class TestEngine(BZTestCase):
                 "jmeter": {"class": "tests.modules.jmeter.MockJMeterExecutor",
                            "protocol-handlers": {"http": "bzt.jmx.http.HTTPProtocolHandler"}},
             }})
+        self.obj.unify_config()
         self.obj.prepare()
 
     def test_yaml_multi_docs(self):

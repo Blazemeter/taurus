@@ -65,6 +65,8 @@ class TestCloudProvisioning(BZTestCase):
                 "modules": {"mock": ModuleMock.__module__ + "." + ModuleMock.__name__},
                 "provisioning": "mock"})
 
+        self.obj.engine.unify_config()
+
         self.mock.mock_get.update(get if get else {})
         self.mock.mock_post.update(post if post else {})
         self.mock.mock_patch.update(patch if patch else {})
@@ -821,6 +823,7 @@ class TestCloudProvisioning(BZTestCase):
     def test_terminate_only(self):
         """  test is terminated only when it was started and didn't finished """
         self.obj.user.token = object()
+        cls = ServiceStubCaptureHAR.__module__ + "." + ServiceStubCaptureHAR.__name__
         self.configure(
             add_settings=False,
             engine_cfg={
@@ -829,7 +832,9 @@ class TestCloudProvisioning(BZTestCase):
                     "concurrency": 5500,
                     "locations": {
                         "us-east-1": 1,
-                        "us-west": 1}}},
+                        "us-west": 1}},
+                Service.SERV: ["capturehar"],
+                "modules": {"capturehar": {"class": cls}}},
 
             get={
                 'https://a.blazemeter.com/api/v4/masters/1/status': [
@@ -868,9 +873,6 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.settings["check-interval"] = "0ms"  # do not skip checks
         self.obj.settings["use-deprecated-api"] = False
-        cls = ServiceStubCaptureHAR.__module__ + "." + ServiceStubCaptureHAR.__name__
-        self.obj.engine.config.get("modules", force_set=True).get("capturehar", force_set=True)["class"] = cls
-        self.obj.engine.config.get(Service.SERV, [], force_set=True).append("capturehar")
 
         self.sniff_log(self.obj.log)
         self.obj.prepare()
