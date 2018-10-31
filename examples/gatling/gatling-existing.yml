@@ -15,4 +15,4 @@ execution:
 scenarios:
   existing:
     script: blazedemo.scala
-    simulation: examples.gatling.blazedemo
+    simulation: examples.gatling.gradle.src.gatling.simulations.blazedemo
