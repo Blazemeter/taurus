@@ -341,12 +341,12 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
-        super(CloudProvisioning, self.obj).prepare()    # init executors
-        self.obj.get_rfiles()                           # create runners
+        super(CloudProvisioning, self.obj).prepare()  # init executors
+        self.obj.get_rfiles()  # create runners
 
         cloud_config = self.obj.prepare_cloud_config()
         cloud_jmeter = cloud_config.get("modules").get("jmeter")
-        self.assertNotIn("class", cloud_jmeter)
+        self.assertIn("class", cloud_jmeter)
         self.assertIn("version", cloud_jmeter)
 
     def test_cloud_config_cleanup_selenium(self):
@@ -384,13 +384,17 @@ class TestCloudProvisioning(BZTestCase):
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
-        super(CloudProvisioning, self.obj).prepare()    # init executors
-        self.obj.get_rfiles()                           # create runners
+        super(CloudProvisioning, self.obj).prepare()  # init executors
+        self.obj.get_rfiles()  # create runners
 
-        bzt.modules.blazemeter.CLOUD_CONFIG_FILTER_RULES["modules"]["nose"] = {"verbose": True}
         cloud_config = self.obj.prepare_cloud_config()
         target = BetterDict.from_dict({
-            'blazemeter': {'strange_param': False}, 'selenium': {'virtual-display': False}, 'nose': {'verbose': False}})
+            'blazemeter': {'class': 'bzt.modules.blazemeter.BlazeMeterUploader', 'strange_param': False},
+            'selenium': {'class': 'bzt.modules.python.executors.NoseTester', 'verbose': False,
+                         'virtual-display': False},
+            'nose': {'class': 'bzt.modules.python.executors.NoseTester', 'verbose': False},
+            'mock': {'class': 'tests.mocks.ModuleMock'}
+        })
 
         self.assertEqual(target, cloud_config.get("modules"))
 

@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import time
+import unittest
 import traceback
 from os import listdir
 from os.path import exists, join, dirname
@@ -10,9 +11,11 @@ import yaml
 
 from bzt.engine import ScenarioExecutor
 from bzt.modules.aggregator import ConsolidatingAggregator, KPISet
+from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader
 from bzt.modules.java import JUnitTester, TestNGTester
 from bzt.modules.java.executors import JavaTestRunner
 from bzt.modules.java.tools import JavaC, JarTool
+from bzt.modules.jmeter import JTLReader
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import ToolError
 from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER
@@ -179,6 +182,7 @@ class TestJUnitTester(BZTestCase):
             msg = "Wrong path to {tool}: {path}".format(tool=str(tool), path=str(tool.tool_path))
             self.assertTrue(os.path.isfile(tool.tool_path), msg)
 
+    @unittest.skip("(29.10.2018) Uncomment when the next version of junit runner is released")
     def test_simple(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.execution.merge({
@@ -205,6 +209,44 @@ class TestJUnitTester(BZTestCase):
         cumulative = self.obj.engine.aggregator.cumulative
         self.assertEqual("java.lang.RuntimeException: 123", cumulative[''][KPISet.ERRORS][0]['msg'])
         self.assertEqual(1, cumulative[''][KPISet.SUCCESSES])
+
+    def test_load_mode(self):
+        self.obj.engine.aggregator = ConsolidatingAggregator()
+        self.obj.execution.merge({
+            "iterations": 10,
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"},
+        })
+        self.obj.settings.merge({"junit-version": 5})
+        self.obj.prepare()
+        self.obj.engine.aggregator.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        self.assertTrue(self.obj.has_results())
+        self.assertTrue(self.obj.report_file.endswith(".csv"))
+        self.assertIsInstance(self.obj.reader, JTLReader)
+
+    def test_func_mode(self):
+        self.obj.engine.aggregator = FunctionalAggregator()
+        self.obj.execution.merge({
+            "iterations": 10,
+            "scenario": {"script": RESOURCES_DIR + "selenium/invalid/SimpleTest.java"},
+        })
+        self.obj.settings.merge({"junit-version": 5})
+        self.obj.prepare()
+        self.obj.engine.aggregator.prepare()
+        self.obj.startup()
+        while not self.obj.check():
+            time.sleep(self.obj.engine.check_interval)
+        self.obj.shutdown()
+        self.obj.post_process()
+        self.obj.engine.aggregator.post_process()
+        self.assertTrue(self.obj.has_results())
+        self.assertTrue(self.obj.report_file.endswith(".ldjson"))
+        self.assertIsInstance(self.obj.reader, FuncSamplesReader)
 
 
 class TestSeleniumJUnitTester(SeleniumTestCase):

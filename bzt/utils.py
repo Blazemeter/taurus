@@ -325,23 +325,27 @@ class BetterDict(defaultdict):
                 if not visitor(val, idx, obj):
                     cls.traverse(obj[idx], visitor)
 
-    def filter(self, rules):
+    def filter(self, rules, black_list=False):
         keys = set(self.keys())
         for key in keys:
             ikey = "!" + key
-            if ikey in rules:
-                if isinstance(rules.get(ikey), dict) and isinstance(self.get(key), BetterDict):
-                    inverted_rules = {x: True for x in self.get(key).keys() if x not in rules[ikey]}
-                    self.get(key).filter(inverted_rules)
-                    if not self.get(key):  # clear empty
+            if (key in rules) or (ikey in rules):   # we have rule for this key
+                current_black_list = black_list if key in rules else not black_list
+                rkey = key if key in rules else ikey
+
+                if isinstance(rules.get(rkey), dict):
+                    if isinstance(self.get(key), BetterDict):       # need to go deeper
+                        self.get(key).filter(rules[rkey], black_list=current_black_list)
+                    elif not current_black_list:
                         del self[key]
-            elif key not in rules:
-                del self[key]
-            else:
-                if isinstance(rules.get(key), dict) and isinstance(self.get(key), BetterDict):
-                    self.get(key).filter(rules[key])
-                    if not self.get(key):  # clear empty
-                        del self[key]
+                elif current_black_list:
+                    del self[key]   # must be blacklisted
+            elif not black_list:
+                del self[key]       # remove unknown key
+
+            current = self.get(key, None)
+            if isinstance(current, (dict, list)) and not current:
+                del self[key]       # clean empty
 
     def __repr__(self):
         return dict(self).__repr__()

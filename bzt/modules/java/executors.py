@@ -21,6 +21,9 @@ from os.path import join
 from bzt import ToolError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
+from bzt.modules.aggregator import ConsolidatingAggregator
+from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader
+from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM
 from .tools import SeleniumServer, Hamcrest, Json, TaurusJavaHelper, JavaC, JUnitJupiterApi, JUnitJupiterEngine
@@ -42,6 +45,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self._tools = []
         self._java_scripts = []
         self._full_install = True
+        self.report_file_suffix = ".ldjson"
 
     def install_required_tools(self):
         self._add_jar_tool(SeleniumServer, local_path=self.settings.get("selenium-server"))
@@ -75,7 +79,7 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         if not os.path.exists(self.working_dir):
             os.makedirs(self.working_dir)
 
-        self.reporting_setup(suffix=".ldjson")
+        self.reporting_setup(suffix=self.report_file_suffix)
 
         self.class_path.extend(self.settings.get("additional-classpath", []))
         self.class_path.extend(self.get_scenario().get("additional-classpath", []))
@@ -215,8 +219,15 @@ class JUnitTester(JavaTestRunner):
         super(JUnitTester, self).install_required_tools()
 
     def prepare(self):
+        self.report_file_suffix = ".ldjson" if self.engine.is_functional_mode() else ".csv"
         super(JUnitTester, self).prepare()
         self.__write_props_file()
+
+    def create_func_reader(self, report_file):
+        return FuncSamplesReader(report_file, self.engine, self.log)
+
+    def create_load_reader(self, report_file):
+        return JTLReader(report_file, self.log, None)
 
     def startup(self):
         jar_list = [join(self.working_dir, jar) for jar in listdir(self.working_dir) if jar.endswith(".jar")]
