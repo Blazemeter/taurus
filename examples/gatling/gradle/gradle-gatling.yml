@@ -2,7 +2,7 @@ services:
 - module: shellexec
   prepare:
   - rm -rf build/reports/gatling
-  - gradle gatlingClasses  # to spend here time, downloading JARs
+  #- gradle gatlingClasses  # to spend here time, downloading JARs
   startup:
   - command: gradle gatlingRun
     background: true
