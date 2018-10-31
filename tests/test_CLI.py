@@ -212,7 +212,7 @@ class TestCLI(BZTestCase):
 
     def test_normal_error(self):
         self.option.append("cli.linter.lint-and-exit=true")
-        self.obj.engine.config.merge({"execution": {"concurrency": 10, "scenario": {"script": "foo.jmx"}}})
+        self.obj.engine.config.merge({"execution": {"concurrency": 10, "scenarion": {"script": "foo.jmx"}}})
         ret = self.get_ret_code([])
         self.assertEquals(1, ret)
 
