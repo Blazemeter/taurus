@@ -89,11 +89,11 @@ class TestRequests(unittest.TestCase):
             _vars['Final'] = _tpl.apply('${Title} ${Basic} by ${By}')
             self.driver.get(_tpl.apply('http:\\blazemeter.com'))
             print(_tpl.apply('${red_pill}'))
-            
-            
-        body = self.driver.page_source
-        re_pattern = re.compile(r'contained_text')
-        self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
+
+            body = self.driver.page_source
+            re_pattern = re.compile(r'contained_text')
+            self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
+
 
         with apiritif.transaction_logged('empty'):
             pass
