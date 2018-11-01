@@ -895,6 +895,7 @@ class TestCloudProvisioning(BZTestCase):
         # FIXME: refactor this method!
         self.sniff_log(self.obj.log)
         self.obj.engine.configure([BASE_CONFIG, RESOURCES_DIR + 'yaml/resource_files.yml'], read_config_files=False)
+        self.obj.engine.unify_config()
         self.obj.settings = self.obj.engine.config['modules']['cloud']
         self.obj.settings.merge({'delete-test-files': False})
 
