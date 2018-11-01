@@ -71,7 +71,7 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
                 msg = "File has not appeared within %ss: %s" % (self._file_exists_wait, self.data_file)
                 raise TaurusInternalException(msg)
 
-        self.log.debug("Will load external results from file: %s", self.data_file)
+        self.log.info("Will load external results from file: %s", self.data_file)
         self.data_file = self.engine.find_file(self.data_file)
         self.label = self.data_file
 

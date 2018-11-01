@@ -1,0 +1,13 @@
+services:
+- module: shellexec
+  prepare:
+  - rm -f external-*.jtl
+  startup:
+  - command: jmeter -Jjmeter.save.saveservice.autoflush=true -n -t external.jmx
+    background: true
+
+execution:
+- executor: external-results-loader
+  data-file-pattern: external-*.jtl
+  wait-for-file: 5s
+  results-timeout: 5s
