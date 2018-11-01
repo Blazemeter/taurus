@@ -1,0 +1,17 @@
+plugins {
+    id "com.github.lkishalmi.gatling" version "0.7.4"
+}
+
+repositories {
+    mavenCentral()
+}
+
+apply plugin: 'scala'
+
+dependencies {
+    compile 'org.scala-lang:scala-library:2.11.8'
+}
+
+gatling {
+    jvmArgs = [ '-Dgatling.core.outputDirectoryBaseName=TEST', '-Dgatling.core.directory.results=/tmp/111']
+}

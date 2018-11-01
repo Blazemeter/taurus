@@ -44,7 +44,7 @@ class TestExternalResultsLoader(BZTestCase):
                 # empty execution
             }]
         })
-        self.assertRaises(TaurusConfigError, self.obj.prepare)
+        self.assertRaises(AssertionError, self.obj.prepare)
 
     def test_plain(self):
         self.configure({

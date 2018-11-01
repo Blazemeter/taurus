@@ -1,0 +1,14 @@
+services:
+- module: shellexec
+  prepare:
+  - rm -rf build/reports/gatling
+  #- gradle gatlingClasses  # to spend here time, downloading JARs
+  startup:
+  - command: gradle gatlingRun
+    background: true
+
+execution:
+- executor: external-results-loader
+  data-file-pattern: build/reports/gatling/blazedemosimulation-*/simulation.log
+  wait-for-file: 5s
+  results-timeout: 5s
