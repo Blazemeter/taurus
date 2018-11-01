@@ -26,4 +26,4 @@ node_modules
 /examples/BOOTH1/converted/
 
 bzt/resources/NUnitRunner/*
-
+.gradle

@@ -1,13 +1,13 @@
 services:
 - module: shellexec
   prepare:
-  - rm -f external-*.jtl
-  startup:
+  - rm -f external-*.jtl # cleanup old files, so we can run it over again and again
+  startup:  # custom testing tool called here
   - command: jmeter -Jjmeter.save.saveservice.autoflush=true -n -t external.jmx
-    background: true
+    background: true  # makes Taurus proceed to results reading
 
 execution:
 - executor: external-results-loader
-  data-file-pattern: external-*.jtl
-  wait-for-file: 5s
-  results-timeout: 5s
+  data-file-pattern: external-*.jtl  # find file by pattern
+  wait-for-file: 5s  # wait within this timeout for file to appear
+  results-timeout: 5s  # if no new results within this timeout - finish the job
