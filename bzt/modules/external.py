@@ -63,6 +63,7 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
                 return
             self.data_file = files[-1]
 
+        self.data_file = self.engine.find_file(self.data_file)
         if not os.path.exists(self.data_file):
             if time.time() - self._file_check_ts < self._file_exists_wait:
                 self.log.debug("File not exists yet: %s", self.data_file)
@@ -72,7 +73,6 @@ class ExternalResultsLoader(ScenarioExecutor, AggregatorListener):
                 raise TaurusInternalException(msg)
 
         self.log.info("Will load external results from file: %s", self.data_file)
-        self.data_file = self.engine.find_file(self.data_file)
         self.label = self.data_file
 
         self.reader = self._get_reader()
