@@ -117,7 +117,6 @@ class Engine(object):
         self.config['included-configs'] = all_includes
 
         self.config.merge({"version": bzt.VERSION})
-        self.unify_config()
         self.get_http_client()
 
         if self.config.get(SETTINGS).get("check-updates", True):
@@ -191,6 +190,7 @@ class Engine(object):
         downstream EngineModule instances
         """
         self.log.info("Preparing...")
+        self.unify_config()
         interval = self.config.get(SETTINGS).get("check-interval", self.check_interval)
         self.check_interval = dehumanize_time(interval)
 
