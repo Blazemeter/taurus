@@ -45,22 +45,13 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         super(ApiritifNoseExecutor, self).__init__()
         self._tailer = FileReader(file_opener=lambda _: None, parent_logger=self.log)
 
-    def reporting_setup(self, prefix=None, suffix=None):
-        if not self.reported:
-            self.log.debug("Skipping reporting setup for executor %s", self)
-            return
+    def create_func_reader(self, report_file):
+        del report_file
+        return ApiritifFuncReader(self.engine, self.log)
 
-        if self.engine.is_functional_mode():
-            self.reader = ApiritifFuncReader(self.engine, self.log)
-        else:
-            self.reader = ApiritifLoadReader(self.log)
-
-        if not self.register_reader:
-            self.log.debug("Skipping reader registration for executor %s", self)
-            return
-
-        if isinstance(self.engine.aggregator, (ConsolidatingAggregator, FunctionalAggregator)):
-            self.engine.aggregator.add_underling(self.reader)
+    def create_load_reader(self, report_file):
+        del report_file
+        return ApiritifLoadReader(self.log)
 
     def prepare(self):
         self.script = self.get_script_path()

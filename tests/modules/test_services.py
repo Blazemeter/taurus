@@ -33,8 +33,9 @@ class TestZipFolder(BZTestCase):
                 "junit": "bzt.modules.java.JUnitTester"},
             "provisioning": "cloud"
         })
+        obj.engine.unify_config()
 
-        obj.parameters = obj.engine.config['execution']
+        obj.parameters = obj.engine.config['execution'][0]
         obj.settings["token"] = "FakeToken"
         mock = BZMock(obj.user)
         mock.mock_get.update({

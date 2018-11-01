@@ -117,6 +117,7 @@ class Engine(object):
         self.config['included-configs'] = all_includes
 
         self.config.merge({"version": bzt.VERSION})
+        self.unify_config()
         self.get_http_client()
 
         if self.config.get(SETTINGS).get("check-updates", True):
@@ -130,7 +131,35 @@ class Engine(object):
 
         return merged_config
 
-    def _generate_id(self):
+    def unify_config(self):
+        executions = self.config.get(ScenarioExecutor.EXEC, [])
+        if isinstance(executions, dict):
+            executions = [executions]
+            self.config[ScenarioExecutor.EXEC] = executions
+
+        settings = self.config.get(SETTINGS)
+        default_executor = settings.get("default-executor", None)
+
+        for execution in executions:
+            executor = execution.get("executor", default_executor, force_set=True)
+            if not executor:
+                msg = "Cannot determine executor type and no default executor in %s"
+                raise TaurusConfigError(msg % execution)
+
+        reporting = self.config.get(Reporter.REP, [])
+        for index in range(len(reporting)):
+            ensure_is_dict(reporting, index, "module")
+
+        services = self.config.get(Service.SERV, [])
+        for index in range(len(services)):
+            ensure_is_dict(services, index, "module")
+
+        modules = self.config.get("modules")
+        for module in modules:
+            ensure_is_dict(modules, module, "class")
+
+    @staticmethod
+    def _generate_id():
         if os.getenv("JENKINS_HOME"):
             prefix = "jenkins"
         elif os.getenv("TRAVIS"):
@@ -532,7 +561,6 @@ class Engine(object):
         """
         reporting = self.config.get(Reporter.REP, [])
         for index, reporter in enumerate(reporting):
-            reporter = ensure_is_dict(reporting, index, "module")
             msg = "reporter 'module' field isn't recognized: %s"
             cls = reporter.get('module', TaurusConfigError(msg % reporter))
             instance = self.instantiate_module(cls)
@@ -558,7 +586,6 @@ class Engine(object):
         srv_config = self.config.get(Service.SERV, [])
         services = []
         for index, config in enumerate(srv_config):
-            config = ensure_is_dict(srv_config, index, "module")
             cls = config.get('module', '')
             instance = self.instantiate_module(cls)
             instance.parameters = config
@@ -932,28 +959,14 @@ class Provisioning(EngineModule):
         and instantiating ScenarioExecutor classes for them
         """
         super(Provisioning, self).prepare()
-        esettings = self.engine.config.get(SETTINGS)
-        default_executor = esettings.get("default-executor", None)
 
         exc = TaurusConfigError("No 'execution' is configured. Did you forget to pass config files?")
-
-        if ScenarioExecutor.EXEC not in self.engine.config and self.disallow_empty_execution:
-            raise exc
-
         executions = self.engine.config.get(ScenarioExecutor.EXEC, [])
         if not executions and self.disallow_empty_execution:
             raise exc
 
-        if isinstance(executions, dict):
-            executions = [executions]
-            self.engine.config[ScenarioExecutor.EXEC] = executions
-
         for execution in executions:
-            executor = execution.get("executor", default_executor, force_set=True)
-            if not executor:
-                msg = "Cannot determine executor type and no default executor in %s"
-                raise TaurusConfigError(msg % execution)
-            instance = self.engine.instantiate_module(executor)
+            instance = self.engine.instantiate_module(execution.get("executor"))
             instance.provisioning = self
             instance.execution = execution
             assert isinstance(instance, ScenarioExecutor)

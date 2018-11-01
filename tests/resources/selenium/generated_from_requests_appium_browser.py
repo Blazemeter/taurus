@@ -37,10 +37,10 @@ class TestRequests(unittest.TestCase):
             WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, _tpl.apply("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
             self.assertEqual(self.driver.title, _tpl.apply('BlazeDemo'))
 
+            body = self.driver.page_source
+            re_pattern = re.compile(r'contained_text')
+            self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
 
-        body = self.driver.page_source
-        re_pattern = re.compile(r'contained_text')
-        self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
 
         with apiritif.transaction_logged('empty'):
             pass

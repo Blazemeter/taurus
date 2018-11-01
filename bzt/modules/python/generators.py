@@ -215,12 +215,12 @@ from bzt.resources import selenium_taurus_extras
         self.appium = False
         self.ignore_unknown_actions = ignore_unknown_actions
 
-    def gen_asserts(self, config):
+    def gen_asserts(self, config, indent=None):
         test_method = []
         if "assert" in config:
-            test_method.append(self.gen_statement("body = self.driver.page_source"))
+            test_method.append(self.gen_statement("body = self.driver.page_source", indent=indent))
             for assert_config in config.get("assert"):
-                for elm in self.gen_assertion(assert_config):
+                for elm in self.gen_assertion(assert_config, indent=indent):
                     test_method.append(elm)
             test_method.append(self.gen_new_line())
         return test_method
@@ -284,13 +284,15 @@ from bzt.resources import selenium_taurus_extras
             if action_append:
                 transaction_contents.append(self.gen_new_line())
 
+            transaction_contents.extend(self.gen_asserts(req.config, indent=self.INDENT_STEP * 3))
+
             if transaction_contents:
                 test_method.extend(transaction_contents)
             else:
                 test_method.append(self.gen_statement('pass', indent=self.INDENT_STEP * 3))
             test_method.append(self.gen_new_line())
 
-            test_method.extend(self.gen_asserts(req.config))
+            # test_method.extend(self.gen_asserts(req.config))
             test_method.extend(self.gen_think_time(req.priority_option('think-time')))
 
         test_class.append(test_method)
@@ -474,7 +476,7 @@ from bzt.resources import selenium_taurus_extras
         tear_down_method_def.append(self.gen_new_line())
         return tear_down_method_def
 
-    def gen_assertion(self, assertion_config):
+    def gen_assertion(self, assertion_config, indent=None):
         self.log.debug("Generating assertion, config: %s", assertion_config)
         assertion_elements = []
 
@@ -495,16 +497,16 @@ from bzt.resources import selenium_taurus_extras
 
             if regexp:
                 assert_method = "self.assertEqual" if reverse else "self.assertNotEqual"
-                assertion_elements.append(self.gen_statement("re_pattern = re.compile(r'%s')" % val))
+                assertion_elements.append(self.gen_statement("re_pattern = re.compile(r'%s')" % val, indent=indent))
 
                 method = '%s(0, len(re.findall(re_pattern, body)), "Assertion: %s")'
                 method %= assert_method, assert_message
-                assertion_elements.append(self.gen_statement(method))
+                assertion_elements.append(self.gen_statement(method, indent=indent))
             else:
                 assert_method = "self.assertNotIn" if reverse else "self.assertIn"
                 method = '%s("%s", body, "Assertion: %s")'
                 method %= assert_method, val, assert_message
-                assertion_elements.append(self.gen_statement(method))
+                assertion_elements.append(self.gen_statement(method, indent=indent))
         return assertion_elements
 
     def gen_action(self, action_config, indent=None):
