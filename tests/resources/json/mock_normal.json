@@ -15,7 +15,8 @@
   "modules": {
     "mock1": {"class": "tests.mocks.ModuleMock"},
     "mock2": "tests.mocks.ModuleMock",
-    "mock3": "tests.mocks.ModuleMock"
+    "mock3": "tests.mocks.ModuleMock",
+    "mock4": "tests.mocks.ModuleMock"
   },
   "test": [
     1,
@@ -23,8 +24,8 @@
     3
   ],
   "cli-aliases": {
-    "test": {
-      "marker": true
+    "test4": {
+      "services": ["mock4"]
     }
   }
 }

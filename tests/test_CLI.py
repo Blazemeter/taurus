@@ -30,7 +30,6 @@ class TestCLI(BZTestCase):
 
     def get_ret_code(self, configs):
         self.obj.engine.config.get("settings", force_set=True).get("default-executor", "mock", force_set=True)
-        self.obj.engine.unify_config()
         return self.obj.perform(configs)
 
     def tearDown(self):
@@ -55,10 +54,10 @@ class TestCLI(BZTestCase):
         self.assertIn(u_symbol, log_content)
 
     def test_perform_aliases(self):
-        self.aliases = ['test']
+        self.aliases = ['test4']
         ret = self.get_ret_code([RESOURCES_DIR + "json/mock_normal.json"])
         self.assertEquals(0, ret)
-        self.assertTrue(self.obj.engine.config['marker'])
+        self.assertEqual("mock4", self.obj.engine.config.get("services")[0]["module"])
 
     def test_perform_prepare_exc(self):
         self.obj.engine.prepare_exc = TaurusException()
