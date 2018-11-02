@@ -286,25 +286,27 @@ from bzt.resources import selenium_taurus_extras
         test_method.append(self.gen_statement('with apiritif.transaction_logged(%r):' % label))
         transaction_contents = []
 
+        indent = self.INDENT_STEP * 3
+
         transaction_contents.extend(self.gen_request(req))
         if req.url is not None and req.timeout is not None:
-            test_method.append(self.gen_impl_wait(req.timeout, indent=self.INDENT_STEP * 3))
+            test_method.append(self.gen_impl_wait(req.timeout, indent=indent))
 
         action_append = False
         for action_config in req.config.get("actions", []):
-            action = self.gen_action(action_config, indent=self.INDENT_STEP * 3)
+            action = self.gen_action(action_config, indent=indent)
             if action:
                 transaction_contents.extend(action)
                 action_append = True
         if action_append:
             transaction_contents.append(self.gen_new_line())
 
-        transaction_contents.extend(self.gen_asserts(req.config, indent=self.INDENT_STEP * 3))
+        transaction_contents.extend(self.gen_asserts(req.config, indent=indent))
 
         if transaction_contents:
             test_method.extend(transaction_contents)
         else:
-            test_method.append(self.gen_statement('pass', indent=self.INDENT_STEP * 3))
+            test_method.append(self.gen_statement('pass', indent=indent))
         test_method.append(self.gen_new_line())
 
         # test_method.extend(self.gen_asserts(req.config))
@@ -313,6 +315,7 @@ from bzt.resources import selenium_taurus_extras
         marker = "self.driver.execute_script('/* FLOW_MARKER test-case-stop */', " \
                  "{'status': %r, 'message': %r})"
         test_method.append(self.gen_statement(marker % ('success', '')))
+        test_method.append(self.gen_new_line())
 
     def add_imports(self):
         imports = super(SeleniumScriptBuilder, self).add_imports()
