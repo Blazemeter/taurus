@@ -186,8 +186,8 @@ sudo yum -y install python-pip
 Install corresponding libraries for CentOS
 
 ```bash
-sudo yum install java-1.7.0-openjdk-headless.x86_64 python-devel.x86_64 \
-  libxml2-devel.x86_64 libxslt-devel.x86_64 zlib.x86_64 gcc.x86_64
+sudo yum install java-1.8.0-openjdk-headless.x86_64 java-1.8.0-openjdk-devel.x86_64 \
+  python-devel.x86_64 libxml2-devel.x86_64 libxslt-devel.x86_64 zlib.x86_64 gcc.x86_64
 ```
 
 You could search by 'yum search xxxxx' where 'xxxxx' represents the name of the library.
