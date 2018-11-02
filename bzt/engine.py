@@ -235,7 +235,9 @@ class Engine(object):
             self._wait()
         except BaseException as exc:
             self.log.debug("%s:\n%s", exc, traceback.format_exc())
-            self.stopping_reason = exc
+            if not self.stopping_reason:
+                self.stopping_reason = exc
+            exc_value = exc
             exc_info = sys.exc_info()
         finally:
             self.log.warning("Please wait for graceful shutdown...")
@@ -246,12 +248,11 @@ class Engine(object):
                 self.log.debug("%s:\n%s", exc, traceback.format_exc())
                 if not self.stopping_reason:
                     self.stopping_reason = exc
-                if not exc_info:
-                    exc_info = sys.exc_info()
                 if not exc_value:
                     exc_value = exc
+                    exc_info = sys.exc_info()
 
-        if exc_info:
+        if exc_value:
             reraise(exc_info, exc_value)
 
     def _check_modules_list(self):
@@ -292,7 +293,8 @@ class Engine(object):
         :return:
         """
         self.log.info("Shutting down...")
-        self.log.debug("Current stop reason: %s", self.stopping_reason)
+        if self.stopping_reason:
+            self.log.debug("Current stop reason: %s", self.stopping_reason)
         exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
@@ -301,13 +303,14 @@ class Engine(object):
                     module.shutdown()
             except BaseException as exc:
                 self.log.debug("%s:\n%s", exc, traceback.format_exc())
-                if not exc_info:
-                    exc_info = sys.exc_info()
+                if not self.stopping_reason:
+                    self.stopping_reason = exc
                 if not exc_value:
                     exc_value = exc
+                    exc_info = sys.exc_info()
 
         self.config.dump()
-        if exc_info:
+        if exc_value:
             reraise(exc_info, exc_value)
 
     def post_process(self):
@@ -330,10 +333,9 @@ class Engine(object):
                         self.log.debug("post_process: %s\n%s", exc, traceback.format_exc())
                     if not self.stopping_reason:
                         self.stopping_reason = exc
-                    if not exc_info:
-                        exc_info = sys.exc_info()
                     if not exc_value:
                         exc_value = exc
+                        exc_info = sys.exc_info()
         self.config.dump()
 
         if exc_info:
