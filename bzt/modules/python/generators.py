@@ -172,8 +172,9 @@ class SeleniumScriptBuilder(PythonGenerator):
     """
 
     IMPORTS_SELENIUM = """import unittest
+import os
 import re
-from time import sleep
+from time import sleep, time
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
@@ -188,8 +189,9 @@ import apiritif
 from bzt.resources import selenium_taurus_extras
 """
     IMPORTS_APPIUM = """import unittest
+import os
 import re
-from time import sleep
+from time import sleep, time
 from appium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
@@ -680,6 +682,16 @@ from bzt.resources import selenium_taurus_extras
             action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
+        elif atype == 'screenshot':
+            if selector:
+                filename = selector
+                action_elements.append(self.gen_statement('self.driver.save_screenshot(%r)' % filename, indent=indent))
+            else:
+                filename = "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), " \
+                           "'screenshot-%d.png' % (time() * 1000))"
+                action_elements.append(self.gen_statement(filename, indent=indent))
+                action_elements.append(self.gen_statement('self.driver.save_screenshot(filename)', indent=indent))
+
         if not action_elements:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
@@ -697,7 +709,7 @@ from bzt.resources import selenium_taurus_extras
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'script',
                             'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
-                            'storeText', 'storeValue', 'store', 'open'
+                            'storeText', 'storeValue', 'store', 'open', 'screenshot'
                             ])
 
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Eval|ByIdx|String"
