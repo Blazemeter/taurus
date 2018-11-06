@@ -20,7 +20,8 @@ _tpl = selenium_taurus_extras.Template(_vars)
 
 class TestRequests(unittest.TestCase):
     def setUp(self):
-        self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub', desired_capabilities={"app": "", "browserName": null, "deviceName": "", "javascriptEnabled": "True", "platformName": "linux", "platformVersion": "", "seleniumVersion": "", "version": "54.0"})
+        options = webdriver.ChromeOptions()
+        self.driver = webdriver.Chrome(service_log_path='<somewhere>webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(3.5)
         self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
         self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
@@ -32,7 +33,7 @@ class TestRequests(unittest.TestCase):
         self.driver.implicitly_wait(3.5)
 
         try:
-            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {'testCaseName': '/', 'testSuiteName': 'loc_sc_remote'})
+            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {'testCaseName': '/', 'testSuiteName': 'loc_sc'})
 
             with apiritif.transaction_logged('/'):
                 self.driver.get('http://blazedemo.com/')
@@ -48,7 +49,7 @@ class TestRequests(unittest.TestCase):
             self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'success', 'message': ''})
 
         try:
-            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {'testCaseName': 'empty', 'testSuiteName': 'loc_sc_remote'})
+            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {'testCaseName': 'empty', 'testSuiteName': 'loc_sc'})
 
             with apiritif.transaction_logged('empty'):
                 pass
