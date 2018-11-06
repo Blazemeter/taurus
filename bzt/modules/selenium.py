@@ -283,7 +283,7 @@ class ChromeDriver(RequiredTool):
 
     def __init__(self, config=None, **kwargs):
         settings = config or {}
-        version = settings.get('version', self.VERSION)
+        version = str(settings.get('version', self.VERSION))
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'chromedriver.exe' if is_windows() else 'chromedriver'
         tool_path = os.path.join(base_dir, 'chromedriver', version, filename)
@@ -333,7 +333,7 @@ class GeckoDriver(RequiredTool):
 
     def __init__(self, config=None, **kwargs):
         settings = config or {}
-        version = settings.get('version', self.VERSION)
+        version = str(settings.get('version', self.VERSION))
         base_dir = get_full_path(SeleniumExecutor.SELENIUM_TOOLS_DIR)
         filename = 'geckodriver.exe' if is_windows() else 'geckodriver'
         tool_path = os.path.join(base_dir, 'geckodriver', version, filename)
