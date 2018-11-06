@@ -78,7 +78,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         else:
             wdlog = self.engine.create_artifact('webdriver', '.log')
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
-            builder = SeleniumScriptBuilder(self.get_scenario(), self.log, wdlog, ignore_unknown_actions)
+            scenario = self.get_scenario()
+            generate_markers = scenario.get('generate-flow-markers', self.settings.get('generate-flow-markers', None))
+            builder = SeleniumScriptBuilder(scenario, self.log, wdlog, ignore_unknown_actions, generate_markers)
             builder.label = self.label
             builder.webdriver_address = self.settings.get("remote", builder.webdriver_address)
             builder.webdriver_address = self.execution.get("remote", builder.webdriver_address)
