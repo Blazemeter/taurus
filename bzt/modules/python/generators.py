@@ -680,6 +680,10 @@ from bzt.resources import selenium_taurus_extras
             action_elements.append(self.gen_statement(tpl % (dehumanize_time(selector),), indent=indent))
         elif atype == 'clear' and tag == 'cookies':
             action_elements.append(self.gen_statement("self.driver.delete_all_cookies()", indent=indent))
+        elif atype == 'takescreenshot':
+            filename = selector
+            action_elements.append(self.gen_statement('self.driver.save_screenshot(%r)' % filename, indent=indent))
+
         if not action_elements:
             raise TaurusInternalException("Could not build code for action: %s" % action_config)
 
@@ -697,7 +701,7 @@ from bzt.resources import selenium_taurus_extras
         actions = "|".join(['click', 'doubleClick', 'mouseDown', 'mouseUp', 'mouseMove', 'select', 'wait', 'keys',
                             'pause', 'clear', 'assert', 'assertText', 'assertValue', 'submit', 'close', 'script',
                             'editcontent', 'switch', 'switchFrame', 'go', 'echo', 'type', 'element', 'drag',
-                            'storeText', 'storeValue', 'store', 'open'
+                            'storeText', 'storeValue', 'store', 'open', 'takeScreenshot'
                             ])
 
         tag = "|".join(self.TAGS) + "|For|Cookies|Title|Window|Eval|ByIdx|String"

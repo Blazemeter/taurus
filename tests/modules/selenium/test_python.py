@@ -343,7 +343,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"storeValueByXPath(//*[@id='basics']/h1)": "World"},
                             {"storeString(${Title} ${Basic} by ${By})": "Final"},
                             "go(http:\\blazemeter.com)",
-                            "echoString(${red_pill})"
+                            "echoString(${red_pill})",
+                            "takeScreenshot(screen.png)",
                         ],
                     },
                         {"label": "empty"}

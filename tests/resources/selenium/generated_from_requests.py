@@ -89,6 +89,7 @@ class TestRequests(unittest.TestCase):
             _vars['Final'] = _tpl.apply('${Title} ${Basic} by ${By}')
             self.driver.get(_tpl.apply('http:\\blazemeter.com'))
             print(_tpl.apply('${red_pill}'))
+            self.driver.save_screenshot('screen.png')
 
             body = self.driver.page_source
             re_pattern = re.compile(r'contained_text')
