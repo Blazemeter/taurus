@@ -344,7 +344,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                             {"storeString(${Title} ${Basic} by ${By})": "Final"},
                             "go(http:\\blazemeter.com)",
                             "echoString(${red_pill})",
-                            "takeScreenshot(screen.png)",
+                            "screenshot(screen.png)",
+                            "screenshot()",
                         ],
                     },
                         {"label": "empty"}
