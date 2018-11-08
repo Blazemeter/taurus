@@ -305,14 +305,14 @@ modules:
     avd: android10_arm128
 ```
 
-### Flow markers
+### Flow Markers
 
-Functional test execution in the cloud required additional metadata about the tests,
+Functional test execution in the cloud requires additional metadata about the tests,
 which can be provided by flow markers. Flow markers are little pieces of code added
-by the Taurus to the test script that provide more data to test execution engine.
-Generation of flow markers is disabled by default and enabled only for `browser: Remote`.
+by the Taurus to the test script that provide more data for the test execution engine.
+Generating flow markers is disabled by default and enabled only for `browser: Remote`.
 
-You can enable/disable them manually with `generate-flow-markers` option.
+You can enable/disable it manually with `generate-flow-markers` option.
 It can be used on both scenario-level and settings-level.
 
 ```yaml
