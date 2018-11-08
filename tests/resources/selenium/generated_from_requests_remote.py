@@ -1,7 +1,8 @@
 # coding=utf-8
 import unittest
+import os
 import re
-from time import sleep
+from time import sleep, time
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException

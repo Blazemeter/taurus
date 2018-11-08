@@ -63,6 +63,7 @@ Supported features:
     - storeString Store a string or template in a variable
     - storeTextBy* Store text from element in a variable
     - storeValueBy* Store value from eleent in a variable
+    - screenshot(filename) Take a screenshot of a viewport and save it in a file (filename is optional)
 
 **Notes**:
   - \* selected by ID/Name/CSS/XPath.

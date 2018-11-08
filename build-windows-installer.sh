@@ -20,15 +20,18 @@ fi
 
 TAURUS_DIST="$1"
 
-# compile
-mkdir "$BUILD_DIR"/tmp
-x86_64-w64-mingw32-gcc -std=c99 -o "$BUILD_DIR"/tmp/chrome-loader.exe bzt/resources/chrome-loader.c
-
+# install pythonz
 curl -kL https://raw.github.com/saghul/pythonz/master/pythonz-install | bash
-/usr/local/pythonz/bin/pythonz install 3.6.3
 
-# set up python3 virtualenv
-virtualenv venv --python=$(/usr/local/pythonz/bin/pythonz locate 3.6.3)
+PYTHONZ_HOME="${HOME}/.pythonz/bin/pythonz"
+PYTHONZ_SYSTEM="/usr/local/pythonz/bin/pythonz"
+[ -f "$PYTHONZ_HOME" ] && PYTHONZ="$PYTHONZ_HOME" || PYTHONZ="$PYTHONZ_SYSTEM"
+
+# install specific version of python
+$PYTHONZ install 3.6.3
+
+# set up python virtualenv
+virtualenv venv --python=$($PYTHONZ locate 3.6.3)
 
 # this is a workaround for venv bug: https://github.com/pypa/virtualenv/issues/1029
 set +u

@@ -1,7 +1,8 @@
 # coding=utf-8
 import unittest
+import os
 import re
-from time import sleep
+from time import sleep, time
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import NoAlertPresentException
@@ -89,6 +90,9 @@ class TestRequests(unittest.TestCase):
             _vars['Final'] = _tpl.apply('${Title} ${Basic} by ${By}')
             self.driver.get(_tpl.apply('http:\\blazemeter.com'))
             print(_tpl.apply('${red_pill}'))
+            self.driver.save_screenshot('screen.png')
+            filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), 'screenshot-%d.png' % (time() * 1000))
+            self.driver.save_screenshot(filename)
 
             body = self.driver.page_source
             re_pattern = re.compile(r'contained_text')

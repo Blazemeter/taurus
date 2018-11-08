@@ -70,7 +70,6 @@ def generate_pynsist_config(dependencies, wheel_dir, cfg_location, bzt_version):
         'files': '\n'.join([
             'README.md',
             'lib',
-            'build/nsis/tmp/chrome-loader.exe',
         ])
     }
 
