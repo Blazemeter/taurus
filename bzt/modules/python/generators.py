@@ -208,14 +208,16 @@ from bzt.resources import selenium_taurus_extras
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
-    def __init__(self, scenario, parent_logger, wdlog, ignore_unknown_actions=False):
+    def __init__(self, scenario, parent_logger, wdlog, ignore_unknown_actions=False, generate_markers=None):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
+        self.label = ''
         self.webdriver_address = None
         self.capabilities_from_outside = {}
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
         self.ignore_unknown_actions = ignore_unknown_actions
+        self.generate_markers = generate_markers
 
     def gen_asserts(self, config, indent=None):
         test_method = []
@@ -224,20 +226,18 @@ from bzt.resources import selenium_taurus_extras
             for assert_config in config.get("assert"):
                 for elm in self.gen_assertion(assert_config, indent=indent):
                     test_method.append(elm)
-            test_method.append(self.gen_new_line())
         return test_method
 
-    def gen_think_time(self, think_time):
+    def gen_think_time(self, think_time, indent=None):
         test_method = []
-        # think_time = req.priority_option('think-time')
         if think_time is not None:
             delay = dehumanize_time(think_time)
             if delay > 0:
-                test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time)))
+                test_method.append(self.gen_statement("sleep(%s)" % dehumanize_time(think_time), indent=indent))
                 test_method.append(self.gen_new_line())
         return test_method
 
-    def gen_request(self, req):
+    def gen_request(self, req, indent=None):
         default_address = self.scenario.get("default-address")
         transaction_contents = []
         if req.url is not None:
@@ -247,7 +247,7 @@ from bzt.resources import selenium_taurus_extras
             else:
                 url = req.url
             transaction_contents.append(
-                self.gen_statement("self.driver.get(%r)" % url, indent=self.INDENT_STEP * 3))
+                self.gen_statement("self.driver.get(%r)" % url, indent=indent))
             transaction_contents.append(self.gen_new_line())
         return transaction_contents
 
@@ -262,40 +262,10 @@ from bzt.resources import selenium_taurus_extras
         test_method = self.gen_test_method('test_requests')
         self.gen_setup(test_method)
 
-        for req in requests:
-            if req.label:
-                label = req.label
-            elif req.url:
-                label = req.url
-            else:
-                raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
-
-            test_method.append(self.gen_statement('with apiritif.transaction_logged(%r):' % label))
-            transaction_contents = []
-
-            transaction_contents.extend(self.gen_request(req))
-            if req.url is not None and req.timeout is not None:
-                test_method.append(self.gen_impl_wait(req.timeout, indent=self.INDENT_STEP * 3))
-
-            action_append = False
-            for action_config in req.config.get("actions", []):
-                action = self.gen_action(action_config, indent=self.INDENT_STEP * 3)
-                if action:
-                    transaction_contents.extend(action)
-                    action_append = True
-            if action_append:
-                transaction_contents.append(self.gen_new_line())
-
-            transaction_contents.extend(self.gen_asserts(req.config, indent=self.INDENT_STEP * 3))
-
-            if transaction_contents:
-                test_method.extend(transaction_contents)
-            else:
-                test_method.append(self.gen_statement('pass', indent=self.INDENT_STEP * 3))
-            test_method.append(self.gen_new_line())
-
-            # test_method.extend(self.gen_asserts(req.config))
-            test_method.extend(self.gen_think_time(req.priority_option('think-time')))
+        for i, req in enumerate(requests, 1):
+            self._fill_test_method(req, test_method)
+            if i != len(requests):
+                test_method.append(self.gen_new_line())
 
         test_class.append(test_method)
 
@@ -303,6 +273,66 @@ from bzt.resources import selenium_taurus_extras
         self.root.append(self.add_imports())
         self.root.extend(self.gen_global_vars())
         self.root.append(test_class)
+
+    def _fill_test_method(self, req, test_method):
+        if req.label:
+            label = req.label
+        elif req.url:
+            label = req.url
+        else:
+            raise TaurusConfigError("You must specify at least 'url' or 'label' for each requests item")
+
+        if self.generate_markers:
+            test_method.append(self.gen_statement("try:", indent=self.INDENT_STEP * 2))
+            indent = 3
+            marker = "self.driver.execute_script('/* FLOW_MARKER test-case-start */', " \
+                     "{'testCaseName': %r, 'testSuiteName': %r})" % (label, self.label)
+            test_method.append(self.gen_statement(marker, indent=self.INDENT_STEP * indent))
+            test_method.append(self.gen_new_line())
+        else:
+            indent = 2
+
+        test_method.append(self.gen_statement('with apiritif.transaction_logged(%r):' % label,
+                                              indent=self.INDENT_STEP * indent))
+        transaction_contents = []
+
+        transaction_contents.extend(self.gen_request(req, indent=self.INDENT_STEP * (indent + 1)))
+        if req.url is not None and req.timeout is not None:
+            test_method.append(self.gen_impl_wait(req.timeout, indent=self.INDENT_STEP * (indent + 1)))
+
+        action_append = False
+        for action_config in req.config.get("actions", []):
+            action = self.gen_action(action_config, indent=self.INDENT_STEP * (indent + 1))
+            if action:
+                transaction_contents.extend(action)
+                action_append = True
+        if action_append:
+            transaction_contents.append(self.gen_new_line())
+
+        transaction_contents.extend(self.gen_asserts(req.config, indent=self.INDENT_STEP * (indent + 1)))
+
+        if transaction_contents:
+            test_method.extend(transaction_contents)
+        else:
+            test_method.append(self.gen_statement('pass', indent=self.INDENT_STEP * (indent + 1)))
+        test_method.append(self.gen_new_line())
+
+        test_method.extend(self.gen_think_time(req.priority_option('think-time'), indent=self.INDENT_STEP * indent))
+
+        if self.generate_markers:
+            marker = "self.driver.execute_script('/* FLOW_MARKER test-case-stop */', " \
+                     "{'status': %s, 'message': %s})"
+
+            test_method.append(self.gen_statement("except AssertionError as exc:", indent=self.INDENT_STEP * 2))
+            test_method.append(self.gen_statement(marker % (repr('assert'), 'str(exc)'), indent=self.INDENT_STEP * 3))
+            test_method.append(self.gen_statement("raise", indent=self.INDENT_STEP * 3))
+
+            test_method.append(self.gen_statement("except BaseException as exc:", indent=self.INDENT_STEP * 2))
+            test_method.append(self.gen_statement(marker % (repr('fail'), 'str(exc)'), indent=self.INDENT_STEP * 3))
+            test_method.append(self.gen_statement("raise", indent=self.INDENT_STEP * 3))
+
+            test_method.append(self.gen_statement("else:", indent=self.INDENT_STEP * 2))
+            test_method.append(self.gen_statement(marker % (repr('success'), repr('')), indent=self.INDENT_STEP * 3))
 
     def add_imports(self):
         imports = super(SeleniumScriptBuilder, self).add_imports()
@@ -363,6 +393,8 @@ from bzt.resources import selenium_taurus_extras
                 self.log.warning("Forcing browser to Remote, because of remote webdriver address")
             inherited_capabilities.append({"browser": browser})
             browser = "Remote"
+            if self.generate_markers is None:  # if not set by user - set to true
+                self.generate_markers = True
         elif browser in mobile_browsers and browser_platform in mobile_platforms:
             self.appium = True
             inherited_capabilities.append({"platform": browser_platform})

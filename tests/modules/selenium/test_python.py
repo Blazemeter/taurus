@@ -540,6 +540,39 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         self.obj.prepare()
         self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests_appium_browser.py")
 
+    def test_build_script_flow_markers(self):
+        self.configure({
+            "execution": [{
+                "executor": "selenium",
+                "hold-for": "4m",
+                "ramp-up": "3m",
+                "scenario": "loc_sc"}],
+            "scenarios": {
+                "loc_sc": {
+                    "generate-flow-markers": True,
+                    "browser": "Chrome",
+                    "default-address": "http://blazedemo.com",
+                    "timeout": "3.5s",
+                    "requests": [{
+                        "url": "/",
+                        "assert": [{
+                            "contains": ['contained_text'],
+                            "not": True
+                        }],
+                        "actions": [
+                            "waitByXPath(//input[@type='submit'])",
+                            "assertTitle(BlazeDemo)"
+                        ],
+                    },
+                        {"label": "empty"}
+                    ]
+                }
+            }
+        })
+        self.obj.prepare()
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests_flow_markers.py",
+                              (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\'), "<somewhere>")
+
 
 class TestApiritifScriptGenerator(BZTestCase):
     def setUp(self):
