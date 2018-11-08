@@ -45,7 +45,13 @@ class TestRequests(unittest.TestCase):
                 re_pattern = re.compile(r'contained_text')
                 self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
 
-        finally:
+        except AssertionError as exc:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'assert', 'message': str(exc)})
+            raise
+        except BaseException as exc:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'fail', 'message': str(exc)})
+            raise
+        else:
             self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'success', 'message': ''})
 
         try:
@@ -54,5 +60,11 @@ class TestRequests(unittest.TestCase):
             with apiritif.transaction_logged('empty'):
                 pass
 
-        finally:
+        except AssertionError as exc:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'assert', 'message': str(exc)})
+            raise
+        except BaseException as exc:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'fail', 'message': str(exc)})
+            raise
+        else:
             self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'success', 'message': ''})

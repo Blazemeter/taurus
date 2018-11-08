@@ -318,10 +318,19 @@ from bzt.resources import selenium_taurus_extras
         test_method.extend(self.gen_think_time(req.priority_option('think-time'), indent=self.INDENT_STEP * indent))
 
         if self.generate_markers:
-            test_method.append(self.gen_statement("finally:", indent=self.INDENT_STEP * 2))
             marker = "self.driver.execute_script('/* FLOW_MARKER test-case-stop */', " \
-                     "{'status': %r, 'message': %r})" % ('success', '')
-            test_method.append(self.gen_statement(marker, indent=self.INDENT_STEP * 3))
+                     "{'status': %s, 'message': %s})"
+
+            test_method.append(self.gen_statement("except AssertionError as exc:", indent=self.INDENT_STEP * 2))
+            test_method.append(self.gen_statement(marker % (repr('assert'), 'str(exc)'), indent=self.INDENT_STEP * 3))
+            test_method.append(self.gen_statement("raise", indent=self.INDENT_STEP * 3))
+
+            test_method.append(self.gen_statement("except BaseException as exc:", indent=self.INDENT_STEP * 2))
+            test_method.append(self.gen_statement(marker % (repr('fail'), 'str(exc)'), indent=self.INDENT_STEP * 3))
+            test_method.append(self.gen_statement("raise", indent=self.INDENT_STEP * 3))
+
+            test_method.append(self.gen_statement("else:", indent=self.INDENT_STEP * 2))
+            test_method.append(self.gen_statement(marker % (repr('success'), repr('')), indent=self.INDENT_STEP * 3))
 
     def add_imports(self):
         imports = super(SeleniumScriptBuilder, self).add_imports()
