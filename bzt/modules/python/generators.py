@@ -324,11 +324,11 @@ from bzt.resources import selenium_taurus_extras
                      "{'status': %s, 'message': %s})"
 
             test_method.append(self.gen_statement("except AssertionError as exc:", indent=self.INDENT_STEP * 2))
-            test_method.append(self.gen_statement(marker % (repr('assert'), 'str(exc)'), indent=self.INDENT_STEP * 3))
+            test_method.append(self.gen_statement(marker % (repr('failed'), 'str(exc)'), indent=self.INDENT_STEP * 3))
             test_method.append(self.gen_statement("raise", indent=self.INDENT_STEP * 3))
 
             test_method.append(self.gen_statement("except BaseException as exc:", indent=self.INDENT_STEP * 2))
-            test_method.append(self.gen_statement(marker % (repr('fail'), 'str(exc)'), indent=self.INDENT_STEP * 3))
+            test_method.append(self.gen_statement(marker % (repr('broken'), 'str(exc)'), indent=self.INDENT_STEP * 3))
             test_method.append(self.gen_statement("raise", indent=self.INDENT_STEP * 3))
 
             test_method.append(self.gen_statement("else:", indent=self.INDENT_STEP * 2))

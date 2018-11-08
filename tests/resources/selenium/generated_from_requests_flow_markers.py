@@ -47,10 +47,10 @@ class TestRequests(unittest.TestCase):
                 self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
 
         except AssertionError as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'assert', 'message': str(exc)})
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'failed', 'message': str(exc)})
             raise
         except BaseException as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'fail', 'message': str(exc)})
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'broken', 'message': str(exc)})
             raise
         else:
             self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'success', 'message': ''})
@@ -62,10 +62,10 @@ class TestRequests(unittest.TestCase):
                 pass
 
         except AssertionError as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'assert', 'message': str(exc)})
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'failed', 'message': str(exc)})
             raise
         except BaseException as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'fail', 'message': str(exc)})
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'broken', 'message': str(exc)})
             raise
         else:
             self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'success', 'message': ''})
