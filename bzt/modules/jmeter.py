@@ -155,8 +155,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         prov_type = self.engine.config.get(Provisioning.PROV)
 
-        throughput = ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type).get(prov_type, None)
-        concurrency = ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type).get(prov_type, None)
+        throughput = self.execution.get(ScenarioExecutor.THRPT).get(prov_type, None)
+        concurrency = self.execution.get(ScenarioExecutor.CONCURR).get(prov_type, None)
 
         iterations = self.execution.get("iterations", None)
 

@@ -72,11 +72,6 @@ class TestCloudProvisioning(BZTestCase):
         self.mock.mock_patch.update(patch if patch else {})
         self.mock.mock_patch.update({'https://a.blazemeter.com/api/v4/tests/1': {"result": {}}})
 
-    def test_defaults_clean(self):
-        conf = BetterDict.from_dict({"execution": [{"concurrency": {"local": None}}]})
-        res = self.obj._cleanup_defaults(conf)
-        self.assertEqual({"execution": [{}]}, res)
-
     def test_old(self):
         self.configure(
             engine_cfg={
@@ -330,7 +325,6 @@ class TestCloudProvisioning(BZTestCase):
                     "blazemeter": {
                         "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
                         "strange_param": False
-
                     }
                 },
                 "settings": {
@@ -378,6 +372,34 @@ class TestCloudProvisioning(BZTestCase):
 
         cloud_config = self.obj.prepare_cloud_config()
         self.assertNotIn(strange_module, cloud_config.get("modules"))
+
+    def test_cloud_config_cleanup_short_execution(self):
+        self.configure(
+            engine_cfg={
+                ScenarioExecutor.EXEC: {
+                    "concurrency": 33,
+                    "scenario": "sc1"},
+                "scenarios": {
+                    "sc1": {
+                        "requests": [
+                            "http://blazedemo.com"]}},
+                "modules": {
+                    "jmeter": {
+                        "class": ModuleMock.__module__ + "." + ModuleMock.__name__}},
+                "settings": {
+                    "default-executor": "jmeter"}
+                }
+            )
+
+        self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
+
+        super(CloudProvisioning, self.obj).prepare()  # init executors
+        self.obj.get_rfiles()  # create runners
+        self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]["files"] = []
+
+        cloud_execution = self.obj.prepare_cloud_config().get(ScenarioExecutor.EXEC)[0]
+        target = {ScenarioExecutor.CONCURR: 33, "scenario": "sc1", "executor": "jmeter"}
+        self.assertEqual(cloud_execution, BetterDict.from_dict(target))
 
     def test_cloud_config_cleanup_selenium(self):
         self.configure(
