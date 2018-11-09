@@ -18,8 +18,9 @@ from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
-from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file
+from tests import RESOURCES_DIR, BUILD_DIR, close_reader_file
 from . import MockJMeterExecutor, MockHTTPClient
+from tests.test_engine import ExecutorTestCase
 
 _jvm = JavaVM()
 _jvm.check_if_installed()
@@ -27,21 +28,16 @@ java_version = _jvm.version
 java10 = LooseVersion(java_version) >= LooseVersion("10")
 
 
-def get_jmeter():
-    path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
-    obj = MockJMeterExecutor()
-    obj.settings.merge({
-        'path': path, 'force-ctg': False, 'protocol-handlers': {
-            'http': 'bzt.jmx.http.HTTPProtocolHandler'
-        }
-    })
-    return obj
-
-
-class TestJMeterExecutor(BZTestCase):
+class TestJMeterExecutor(ExecutorTestCase):
     def setUp(self):
         super(TestJMeterExecutor, self).setUp()
-        self.obj = get_jmeter()
+        path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
+        jmeter = MockJMeterExecutor()
+        jmeter.settings.merge({
+            'path': path, 'force-ctg': False, 'protocol-handlers': {'http': 'bzt.jmx.http.HTTPProtocolHandler'}})
+        jmeter.engine = self.obj.engine
+        jmeter.env = self.obj.env
+        self.obj = jmeter
 
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
@@ -66,12 +62,7 @@ class TestJMeterExecutor(BZTestCase):
 
         :return:
         """
-        self.obj.engine.config.merge(config)
-        execution = self.obj.engine.config['execution']
-        if isinstance(execution, list):
-            self.obj.execution = execution[0]
-        else:
-            self.obj.execution = execution
+        super(TestJMeterExecutor, self).configure(config)
         self.obj.settings.merge(self.obj.engine.config.get('modules').get('jmeter'))
         prov = self.obj.engine.config.get('provisioning', None)
         if prov == 'local':
@@ -86,14 +77,14 @@ class TestJMeterExecutor(BZTestCase):
         self.obj.prepare()
 
     def test_jmx_with_props(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 10,
             "scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/props_tg.jmx"}
-        })
+        }})
         self.obj.prepare()
 
     def test_jmx_2tg(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1051,
             "ramp-up": 15,
             "iterations": 100,
@@ -103,7 +94,7 @@ class TestJMeterExecutor(BZTestCase):
                     "disable": ["should_disable"]
                 }
             }
-        })
+        }})
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
         selector = 'jmeterTestPlan>hashTree>hashTree>ThreadGroup'
@@ -190,13 +181,13 @@ class TestJMeterExecutor(BZTestCase):
                 self.obj.log.debug("%s", open(self.obj.jmeter_log).read())
 
     def test_issue_no_iterations(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 10,
             "ramp-up": 10,
             "scenario": {
                 "script": RESOURCES_DIR + "/jmeter/jmx/issue_no_iterations.jmx"
             }
-        })
+        }})
         self.obj.prepare()
 
     def test_body_file(self):
@@ -646,10 +637,10 @@ class TestJMeterExecutor(BZTestCase):
             self.assertEqual("false", request.find(".//boolProp[@name='HTTPSampler.use_keepalive']").text)
 
     def test_http_request_defaults_property(self):
-        self.obj.engine.config.merge(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))
+        self.configure(json.loads(open(RESOURCES_DIR + "json/get-post.json").read()))
+
         addr = 'https://${__P(hostname)}:${__P(port)}'
-        self.obj.engine.config['scenarios']['get-post']['default-address'] = addr
-        self.obj.execution = self.obj.engine.config['execution']
+        self.obj.engine.config.merge({'scenarios': {'get-post': {'default-address': addr}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         default_elements = xml_tree.findall(".//ConfigTestElement[@testclass='ConfigTestElement']")
@@ -911,11 +902,12 @@ class TestJMeterExecutor(BZTestCase):
         self.assertEqual(0, len(mod_stepping_tgs))  # generation of STG is obsolete
 
     def test_duration_loops_bug(self):
-        self.obj.execution.merge({
-            "concurrency": 10,
-            "ramp-up": 15,
-            "hold-for": "2m",
-            "scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+        self.configure({
+            "execution": {
+                "concurrency": 10,
+                "ramp-up": 15,
+                "hold-for": "2m",
+                "scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}}})
         self.obj.prepare()
         modified_xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         tg = modified_xml_tree.find(".//ThreadGroup")
