@@ -192,20 +192,22 @@ class TestEngine(BZTestCase):
         self.assertEquals(None, self.obj.reporters[1].parameters['run-at'])
 
 
-class TestScenarioExecutor(BZTestCase):
+class ExecutorTestCase(BZTestCase):
     def setUp(self):
-        super(TestScenarioExecutor, self).setUp()
+        super(ExecutorTestCase, self).setUp()
         self.engine = EngineEmul()
-        self.executor = ScenarioExecutor()
-        self.executor.engine = self.engine
-        self.executor.env = self.executor.engine.env
+        self.obj = ScenarioExecutor()
+        self.obj.engine = self.engine
+        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
-        self.engine.config.merge({"settings": {"default-executor": "jmeter"}})
-        self.engine.config.merge(config)
-        self.engine.unify_config()
-        self.executor.execution = self.engine.config.get(ScenarioExecutor.EXEC)[0]
+        self.obj.engine.config.merge({"settings": {"default-executor": "mock"}})
+        self.obj.engine.config.merge(config)
+        self.obj.engine.unify_config()
+        self.obj.execution = self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]
 
+
+class TestScenarioExecutor(ExecutorTestCase):
     def test_scenario_extraction_script(self):
         self.configure({
             "execution": [{
@@ -213,7 +215,7 @@ class TestScenarioExecutor(BZTestCase):
                     "script": "tests/resources/selenium/python/test_blazemeter_fail.py",
                     "param": "value"
                 }}]})
-        self.executor.get_scenario()
+        self.obj.get_scenario()
         config = self.engine.config
         self.assertEqual(config['execution'][0]['scenario'], 'test_blazemeter_fail.py')
         self.assertIn('test_blazemeter_fail.py', config['scenarios'])
@@ -236,7 +238,7 @@ class TestScenarioExecutor(BZTestCase):
                             'url': 'http://second.com',
                             'body': 'body2',
                             'body-file': body_file2}]}}})
-        scenario = self.executor.get_scenario()
+        scenario = self.obj.get_scenario()
 
         # check body fields in get_requests() results
         reqs = list(scenario.get_requests())
@@ -245,7 +247,7 @@ class TestScenarioExecutor(BZTestCase):
         self.assertIn('body2', body_fields[1])
 
         # check body fields and body-files fields after get_requests()
-        scenario = self.executor.get_scenario()
+        scenario = self.obj.get_scenario()
         body_files = [req.get('body-file') for req in scenario.get('requests')]
         body_fields = [req.get('body') for req in scenario.get('requests')]
         self.assertTrue(all(body_files))
@@ -257,7 +259,7 @@ class TestScenarioExecutor(BZTestCase):
             "execution": [{
                 "scenario": "tests/resources/selenium/python/test_blazemeter_fail.py"
             }]})
-        self.executor.get_scenario()
+        self.obj.get_scenario()
         config = self.engine.config
         self.assertEqual(config['execution'][0]['scenario'], 'test_blazemeter_fail.py')
         self.assertIn('test_blazemeter_fail.py', config['scenarios'])
@@ -269,7 +271,7 @@ class TestScenarioExecutor(BZTestCase):
                     "requests": [{"url": "url.example"}],
                     "param": "value"
                 }}})
-        self.executor.get_scenario()
+        self.obj.get_scenario()
         config = self.engine.config
         scenario = config['execution'][0]['scenario']
         self.assertTrue(isinstance(scenario, string_types))
@@ -280,21 +282,21 @@ class TestScenarioExecutor(BZTestCase):
             "execution": {
                 "scenario": "non-existent"
             }}})
-        self.assertRaises(TaurusConfigError, self.executor.get_scenario)
+        self.assertRaises(TaurusConfigError, self.obj.get_scenario)
 
     def test_scenario_no_requests(self):
         self.configure({
             "execution": {
                 "scenario": ["url1", "url2"]
             }})
-        self.assertRaises(TaurusConfigError, self.executor.get_scenario)
+        self.assertRaises(TaurusConfigError, self.obj.get_scenario)
 
     def test_passes_artifacts_dir(self):
         cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
         self.engine.eval_env()
         self.engine.prepare()
-        self.executor.env.set(self.engine.env.get())
-        process = self.executor.execute(cmdline, shell=True)
+        self.obj.env.set(self.engine.env.get())
+        process = self.obj.execute(cmdline, shell=True)
         stdout, _ = communicate(process)
         self.assertEquals(self.engine.artifacts_dir, stdout.strip())
 
@@ -305,8 +307,8 @@ class TestScenarioExecutor(BZTestCase):
         results = set()
 
         for cmdline in cmdlines:
-            self.executor.env.set(env)
-            process = self.executor.execute(cmdline, shell=True)
+            self.obj.env.set(env)
+            process = self.obj.execute(cmdline, shell=True)
             stdout, _ = communicate(process)
             results.add(stdout.strip())
         if is_windows():
@@ -323,7 +325,7 @@ class TestScenarioExecutor(BZTestCase):
             "throughput": "6",
             "steps": "7",
         }})
-        load = self.executor.get_load()
+        load = self.obj.get_load()
         self.assertEquals(2, load.concurrency)
         self.assertEquals(3, load.hold)
         self.assertEquals(4, load.ramp_up)
@@ -333,4 +335,4 @@ class TestScenarioExecutor(BZTestCase):
 
     def test_get_load_str_fail(self):
         self.configure({ScenarioExecutor.EXEC: {"concurrency": "2VU"}})
-        self.assertRaises(TaurusConfigError, self.executor.get_load)
+        self.assertRaises(TaurusConfigError, self.obj.get_load)
