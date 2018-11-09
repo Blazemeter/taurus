@@ -193,10 +193,12 @@ class TestEngine(BZTestCase):
 
 
 class ExecutorTestCase(BZTestCase):
+    EXECUTOR = ScenarioExecutor
+
     def setUp(self):
         super(ExecutorTestCase, self).setUp()
         self.engine = EngineEmul()
-        self.obj = ScenarioExecutor()
+        self.obj = self.EXECUTOR()
         self.obj.engine = self.engine
         self.obj.env = self.obj.engine.env
 

@@ -29,13 +29,11 @@ class DataPointLogger(AggregatorListener):
 
 @unittest.skipIf(is_windows(), "Disabled on Windows")
 class TestPBench(ExecutorTestCase):
-    def setUp(self):
-        super(TestPBench, self).setUp()
-        pbench = PBenchExecutor()
-        pbench.engine = self.obj.engine
-        pbench.settings.merge({"path": join(RESOURCES_DIR, "pbench", "phantom.sh")})
-        pbench.env = self.obj.env
-        self.obj = pbench
+    EXECUTOR = PBenchExecutor
+
+    def configure(self, config):
+        self.obj.settings.merge({"path": join(RESOURCES_DIR, "pbench", "phantom.sh")})
+        super(TestPBench, self).configure(config)
 
     def tearDown(self):
         if self.obj.generator:
