@@ -200,14 +200,19 @@ class TestScenarioExecutor(BZTestCase):
         self.executor.engine = self.engine
         self.executor.env = self.executor.engine.env
 
+    def configure(self, config):
+        self.engine.config.merge({"settings": {"default-executor": "jmeter"}})
+        self.engine.config.merge(config)
+        self.engine.unify_config()
+        self.executor.execution = self.engine.config.get(ScenarioExecutor.EXEC)[0]
+
     def test_scenario_extraction_script(self):
-        self.engine.config.merge({
+        self.configure({
             "execution": [{
                 "scenario": {
                     "script": "tests/resources/selenium/python/test_blazemeter_fail.py",
                     "param": "value"
                 }}]})
-        self.executor.execution = self.engine.config.get('execution')[0]
         self.executor.get_scenario()
         config = self.engine.config
         self.assertEqual(config['execution'][0]['scenario'], 'test_blazemeter_fail.py')
@@ -216,7 +221,7 @@ class TestScenarioExecutor(BZTestCase):
     def test_body_files(self):
         body_file1 = RESOURCES_DIR + "jmeter/body-file.dat"
         body_file2 = RESOURCES_DIR + "jmeter/jmx/http.jmx"
-        self.engine.config.merge({
+        self.configure({
             'execution': [{
                 'iterations': 1,
                 'executor': 'siege',
@@ -231,7 +236,6 @@ class TestScenarioExecutor(BZTestCase):
                             'url': 'http://second.com',
                             'body': 'body2',
                             'body-file': body_file2}]}}})
-        self.executor.execution = self.engine.config.get('execution')[0]
         scenario = self.executor.get_scenario()
 
         # check body fields in get_requests() results
@@ -249,24 +253,22 @@ class TestScenarioExecutor(BZTestCase):
         self.assertIn('body2', body_fields[1])
 
     def test_scenario_is_script(self):
-        self.engine.config.merge({
+        self.configure({
             "execution": [{
                 "scenario": "tests/resources/selenium/python/test_blazemeter_fail.py"
             }]})
-        self.executor.execution = self.engine.config.get('execution')[0]
         self.executor.get_scenario()
         config = self.engine.config
         self.assertEqual(config['execution'][0]['scenario'], 'test_blazemeter_fail.py')
         self.assertIn('test_blazemeter_fail.py', config['scenarios'])
 
     def test_scenario_extraction_request(self):
-        self.engine.config.merge({
-            "execution": [{
+        self.configure({
+            "execution": {
                 "scenario": {
                     "requests": [{"url": "url.example"}],
                     "param": "value"
-                }}]})
-        self.executor.execution = self.engine.config.get('execution')[0]
+                }}})
         self.executor.get_scenario()
         config = self.engine.config
         scenario = config['execution'][0]['scenario']
@@ -274,19 +276,17 @@ class TestScenarioExecutor(BZTestCase):
         self.assertIn(scenario, config['scenarios'])
 
     def test_scenario_not_found(self):
-        self.engine.config.merge({
-            "execution": [{
+        self.configure({ScenarioExecutor.EXEC: {
+            "execution": {
                 "scenario": "non-existent"
-            }]})
-        self.executor.execution = self.engine.config.get('execution')[0]
+            }}})
         self.assertRaises(TaurusConfigError, self.executor.get_scenario)
 
     def test_scenario_no_requests(self):
-        self.engine.config.merge({
-            "execution": [{
+        self.configure({
+            "execution": {
                 "scenario": ["url1", "url2"]
-            }]})
-        self.executor.execution = self.engine.config.get('execution')[0]
+            }})
         self.assertRaises(TaurusConfigError, self.executor.get_scenario)
 
     def test_passes_artifacts_dir(self):
@@ -315,14 +315,14 @@ class TestScenarioExecutor(BZTestCase):
             self.assertEqual(2, len(results))
 
     def test_get_load_str(self):
-        self.executor.execution.merge({
+        self.configure({ScenarioExecutor.EXEC: {
             "concurrency": "2",
             "hold-for": "3",
             "ramp-up": "4",
             "iterations": "5",
             "throughput": "6",
             "steps": "7",
-        })
+        }})
         load = self.executor.get_load()
         self.assertEquals(2, load.concurrency)
         self.assertEquals(3, load.hold)
@@ -332,7 +332,5 @@ class TestScenarioExecutor(BZTestCase):
         self.assertEquals(7, load.steps)
 
     def test_get_load_str_fail(self):
-        self.executor.execution.merge({
-            "concurrency": "2VU",
-        })
+        self.configure({ScenarioExecutor.EXEC: {"concurrency": "2VU"}})
         self.assertRaises(TaurusConfigError, self.executor.get_load)
