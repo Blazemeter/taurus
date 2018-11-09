@@ -20,7 +20,7 @@ from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
 from tests import RESOURCES_DIR, BUILD_DIR, close_reader_file
 from . import MockJMeterExecutor, MockHTTPClient
-from tests.test_engine import ExecutorTestCase
+from tests.cases import ExecutorTestCase
 
 _jvm = JavaVM()
 _jvm.check_if_installed()
@@ -29,15 +29,7 @@ java10 = LooseVersion(java_version) >= LooseVersion("10")
 
 
 class TestJMeterExecutor(ExecutorTestCase):
-    def setUp(self):
-        super(TestJMeterExecutor, self).setUp()
-        path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
-        jmeter = MockJMeterExecutor()
-        jmeter.settings.merge({
-            'path': path, 'force-ctg': False, 'protocol-handlers': {'http': 'bzt.jmx.http.HTTPProtocolHandler'}})
-        jmeter.engine = self.obj.engine
-        jmeter.env = self.obj.env
-        self.obj = jmeter
+    EXECUTOR = MockJMeterExecutor
 
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
@@ -62,9 +54,15 @@ class TestJMeterExecutor(ExecutorTestCase):
 
         :return:
         """
+        path = os.path.join(RESOURCES_DIR, "jmeter/jmeter-loader" + EXE_SUFFIX)
+        self.obj.settings.merge({
+            'path': path,
+            'force-ctg': False,
+            'protocol-handlers': {'http': 'bzt.jmx.http.HTTPProtocolHandler'}})
+
         super(TestJMeterExecutor, self).configure(config)
         self.obj.settings.merge(self.obj.engine.config.get('modules').get('jmeter'))
-        prov = self.obj.engine.config.get('provisioning', None)
+        prov = self.obj.engine.config.get('provisioning')
         if prov == 'local':
             self.obj.engine.provisioning = Local()
         elif prov == 'cloud':
@@ -104,7 +102,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEquals('631', thr[1].text)
 
     def test_regexp_extractors(self):
-        self.obj.execution.merge(
+        self.configure({"execution":
             {"scenario":
                 {"requests": [{
                     "url": "http://localhost",
@@ -113,7 +111,7 @@ class TestJMeterExecutor(ExecutorTestCase):
                             "regexp": "???",
                             "scope": "variable",
                             "from-variable": "RESULT"}
-                    }}]}})
+                    }}]}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         self.assertEqual("body", xml_tree.findall(".//stringProp[@name='RegexExtractor.useHeaders']")[0].text)
@@ -122,7 +120,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
 
     def test_boundary_extractors(self):
-        self.obj.execution.merge(
+        self.configure({"execution":
             {"scenario":
                 {"requests": [{
                     "url": "http://localhost",
@@ -131,7 +129,7 @@ class TestJMeterExecutor(ExecutorTestCase):
                             "left": "foo",
                             "right": "bar",
                             "scope": "variable",
-                            "from-variable": "RESULT"}}}]}})
+                            "from-variable": "RESULT"}}}]}}})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
         self.assertEqual("false", xml_tree.findall(".//stringProp[@name='BoundaryExtractor.useHeaders']")[0].text)
@@ -142,12 +140,12 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual("RESULT", xml_tree.findall(".//stringProp[@name='Scope.variable']")[0].text)
 
     def test_boundary_extractors_exc(self):
-        self.obj.execution.merge(
+        self.configure({"execution":
             {"scenario":
                 {"requests": [{
                     "url": "http://localhost",
                     "extract-boundary": {
-                        "varname": {"left": "foo"}}}]}})  # no "right"
+                        "varname": {"left": "foo"}}}]}}})  # no "right"
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_not_jmx(self):
@@ -244,18 +242,17 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertIsNone(elements[1].find(".//stringProp[@name='File.paramname']").text)
 
     def test_datasources_with_delimiter(self):
-        self.obj.execution.merge({"scenario":
-                                      {"requests": ["http://localhost"],
-                                       "data-sources": [
-                                           {"path": RESOURCES_DIR + "test2.csv",
-                                            "delimiter": ","}]}})
+        self.configure({"execution": {
+            "scenario": {
+                "requests": ["http://localhost"],
+                "data-sources": [{"path": RESOURCES_DIR + "test2.csv", "delimiter": ","}]}}})
         self.obj.prepare()
 
     def test_datasources_jmeter_var(self):
-        self.obj.execution.merge({"scenario":
-                                      {"requests": ["http://localhost"],
-                                       "data-sources": [
-                                           {"path": "/before/${some_jmeter_variable}/after"}]}})
+        self.configure({"execution": {
+            "scenario": {
+                "requests": ["http://localhost"],
+                "data-sources": [{"path": "/before/${some_jmeter_variable}/after"}]}}})
         self.obj.prepare()
 
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -273,10 +270,10 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_datasources_without_delimiter(self):
-        self.obj.execution.merge({"scenario":
-                                      {"requests": ["http://localhost"],
-                                       "data-sources": [
-                                           {"path": RESOURCES_DIR + "test2.csv"}]}})
+        self.configure({"execution": {
+            "scenario": {
+                "requests": ["http://localhost"],
+                "data-sources": [{"path": RESOURCES_DIR + "test2.csv"}]}}})
         self.obj.prepare()
 
     def test_path_processing(self):
@@ -346,7 +343,6 @@ class TestJMeterExecutor(ExecutorTestCase):
         try:
             JMeter.VERSION = '3.0'
 
-            self.obj.settings.merge({"path": path})
             self.configure({
                 "execution": [{"scenario": {"requests": ["http://localhost"]}}],
                 "settings": {
@@ -354,6 +350,7 @@ class TestJMeterExecutor(ExecutorTestCase):
                         "address": "http://myproxy.com:8080",
                         "username": "user",
                         "password": "pass"}}})
+            self.obj.settings.merge({"path": path})
             self.obj.prepare()
             jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
             self.assertNotIn('httpclient-4.5.jar', jars)
@@ -365,8 +362,8 @@ class TestJMeterExecutor(ExecutorTestCase):
             self.tearDown()
             self.setUp()
 
+            self.configure({"execution": {"scenario": {"requests": ["http://localhost"]}}})
             self.obj.settings.merge({"path": path})
-            self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
             self.obj.prepare()
         finally:
@@ -398,7 +395,6 @@ class TestJMeterExecutor(ExecutorTestCase):
         try:
             JMeter.VERSION = '2.13'
 
-            self.obj.settings.merge({"path": path})
             self.configure({
                 "execution": [{"scenario": {"requests": ["http://localhost"]}}],
                 "settings": {
@@ -406,6 +402,7 @@ class TestJMeterExecutor(ExecutorTestCase):
                         "address": "http://myproxy.com:8080",
                         "username": "user",
                         "password": "pass"}}})
+            self.obj.settings.merge({"path": path})
             self.obj.prepare()
             jars = os.listdir(os.path.abspath(os.path.join(path, '../../lib')))
             old_jars = [
@@ -420,8 +417,8 @@ class TestJMeterExecutor(ExecutorTestCase):
             self.tearDown()
             self.setUp()
 
+            self.configure({"execution": {"scenario": {"requests": ["http://localhost"]}}})
             self.obj.settings.merge({"path": path})
-            self.obj.execution.merge({"scenario": {"requests": ["http://localhost"]}})
 
             self.obj.prepare()
         finally:
@@ -435,8 +432,8 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertFalse(os.path.exists(path))
         try:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = "true"
-            self.obj.settings.merge({"path": path})
             self.configure({"execution": [{"scenario": {"requests": ["http://localhost"]}}], })
+            self.obj.settings.merge({"path": path})
             self.assertRaises(TaurusInternalException, self.obj.prepare)
         finally:
             os.environ["TAURUS_DISABLE_DOWNLOADS"] = ""
@@ -796,7 +793,7 @@ class TestJMeterExecutor(ExecutorTestCase):
     def test_distributed_props(self):
         self.sniff_log(self.obj.log)
 
-        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}})
+        self.configure({"execution":{"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/http.jmx"}}})
         self.obj.distributed_servers = ["127.0.0.1", "127.0.0.1"]
         self.obj.settings['properties'] = BetterDict.from_dict({"a": 1})
 
@@ -1105,7 +1102,7 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_shutdown_soft(self):
         self.sniff_log(self.obj.log)
-        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
+        self.configure({"execution": {"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}}})
         self.obj.prepare()
         self.obj.env.set({'TEST_MODE': 'server'})
         self.obj.startup()
@@ -1117,7 +1114,7 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_fail_on_zero_results(self):
         self.obj.engine.aggregator = ConsolidatingAggregator()
-        self.obj.execution.merge({"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}})
+        self.configure({"execution": {"scenario": {"script": RESOURCES_DIR + "/jmeter/jmx/dummy.jmx"}}})
         self.obj.prepare()
         self.obj.startup()
         self.obj.shutdown()
@@ -1183,12 +1180,12 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual(s_t('${VAR}'), '${VAR}')
 
     def test_json_body_app_str(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
                     "headers": {"Content-Type": "application/json"},
-                    "body": "{\"store_id\": \"${store_id}\", \"display_name\": \"${display_name}\"}"}]}})
+                    "body": "{\"store_id\": \"${store_id}\", \"display_name\": \"${display_name}\"}"}]}}})
         self.obj.prepare()
         jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
@@ -1197,14 +1194,14 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertNotEqual(res.find('store_id'), -1)
 
     def test_json_body_app_dic(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
                     "headers": {"Content-Type": "application/json"},
                     "body": {
                         "store_id": "${store_id}",
-                        "display_name": "${display_name}"}}]}})
+                        "display_name": "${display_name}"}}]}}})
         self.obj.prepare()
         jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
@@ -1214,14 +1211,14 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertTrue(isinstance(json.loads(res), dict))
 
     def test_json_body_app_list(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
                     "headers": {"Content-Type": "application/json"},
                     "body": [
                         {"store_id": "${store_id}"},
-                        {"display_name": "${display_name}"}]}]}})
+                        {"display_name": "${display_name}"}]}]}}})
         self.obj.prepare()
         jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
@@ -1245,7 +1242,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertTrue(all(not jprop.text.startswith('defaultdict') for jprop in jmx.get(selector)))
 
     def test_json_body_no_app(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "scenario": {
                 "requests": [{
                     "url": "http://blazedemo.com",
@@ -1253,7 +1250,7 @@ class TestJMeterExecutor(ExecutorTestCase):
                     "body": {
                         "store_id": "${store_id}",
                         "display_name": "${display_name}"
-                    }}]}})
+                    }}]}}})
         self.obj.prepare()
         jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
@@ -1261,44 +1258,44 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual(jmx.get(selector)[0].text.find('"store_id": "${store_id}"'), -1)
 
     def test_jtl_verbose(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "write-xml-jtl": "full",
             "scenario": {
                 "requests": [{
-                    "url": "http://blazedemo.com"}]}})
+                    "url": "http://blazedemo.com"}]}}})
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
         self.assertNotEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
         self.assertEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
 
     def test_jtl_errors(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "write-xml-jtl": "error",
             "scenario": {
                 "requests": [{
-                    "url": "http://blazedemo.com"}]}})
+                    "url": "http://blazedemo.com"}]}}})
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
         self.assertNotEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
         self.assertEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
 
     def test_jtl_none(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "write-xml-jtl": "bla-bla-bla",
             "scenario": {
                 "requests": [{
-                    "url": "http://blazedemo.com"}]}})
+                    "url": "http://blazedemo.com"}]}}})
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
         self.assertEqual(jmx.get('ResultCollector[testname="Trace Writer"]'), [])
         self.assertEqual(jmx.get('ResultCollector[testname="Errors Writer"]'), [])
 
     def test_jtl_flags(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "write-xml-jtl": "error",
             "scenario": {
                 "requests": [{
-                    "url": "http://blazedemo.com"}]}})
+                    "url": "http://blazedemo.com"}]}}})
         self.obj.settings.merge({'xml-jtl-flags': {
             'responseData': True,
             'message': False}})
@@ -1343,11 +1340,11 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual(jmx.get(selector)[0].text, 'new_value')
 
     def test_resources_regex(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "scenario": {
                 "retrieve-resources": True,
                 "retrieve-resources-regex": "myregex",
-                "requests": [{"url": "http://blazedemo.com/"}]}})
+                "requests": [{"url": "http://blazedemo.com/"}]}}})
         self.obj.prepare()
         jmx = JMX(self.obj.modified_jmx)
         self.assertEqual(jmx.get('boolProp[name="HTTPSampler.image_parser"]')[0].text, "true")
@@ -2243,13 +2240,13 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_func_mode_jmeter_2_13(self):
         self.obj.engine.aggregator.is_functional = True
-        self.obj.execution.merge({
+        self.configure({"execution": {
             'scenario': {
                 "requests": [
                     "http://example.com/",
                 ],
             }
-        })
+        }})
         self.obj.settings.merge({"version": "2.13"})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -2262,13 +2259,13 @@ class TestJMeterExecutor(ExecutorTestCase):
 
     def test_func_mode_jmeter_3_xx(self):
         self.obj.engine.aggregator.is_functional = True
-        self.obj.execution.merge({
+        self.configure({"execution": {
             'scenario': {
                 "requests": [
                     "http://example.com/",
                 ],
             }
-        })
+        }})
         self.obj.settings.merge({"version": "3.2"})
         self.obj.prepare()
         xml_tree = etree.fromstring(open(self.obj.modified_jmx, "rb").read())
@@ -2280,10 +2277,10 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual(bytes_flag.text, "true")
 
     def test_detect_ver_empty(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             'scenario': {
                 "requests": [
-                    "http://example.com/"]}})
+                    "http://example.com/"]}}})
         self.obj.settings.merge({"version": "auto"})
         self.obj.prepare()
         self.assertEqual(JMeter.VERSION, self.obj.tool.version)
