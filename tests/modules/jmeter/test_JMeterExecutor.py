@@ -18,9 +18,8 @@ from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
-from tests import RESOURCES_DIR, BUILD_DIR, close_reader_file
+from tests import RESOURCES_DIR, BUILD_DIR, close_reader_file, ExecutorTestCase
 from . import MockJMeterExecutor, MockHTTPClient
-from tests.cases import ExecutorTestCase
 
 _jvm = JavaVM()
 _jvm.check_if_installed()

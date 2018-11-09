@@ -5,8 +5,7 @@ from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, Configuration
 from bzt.six import string_types, communicate
 from bzt.utils import BetterDict, is_windows
-from tests import local_paths_config, RESOURCES_DIR
-from tests.cases import BZTestCase, ExecutorTestCase
+from tests import local_paths_config, RESOURCES_DIR, BZTestCase, ExecutorTestCase
 from tests.mocks import EngineEmul
 
 

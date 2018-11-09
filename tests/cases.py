@@ -12,6 +12,8 @@ from bzt.utils import get_full_path
 from tests import ROOT_LOGGER
 from tests.mocks import EngineEmul
 
+TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
+
 
 class BZTestCase(TestCase):
     def setUp(self):
