@@ -31,6 +31,7 @@ before_test:
   - gem -v
   - rspec --version
   - node --version
+  - locust --version
   - ps: Start-Process python tests/resources/httpserver/start.py
 
 test_script:

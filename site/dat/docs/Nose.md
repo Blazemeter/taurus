@@ -63,6 +63,7 @@ Supported features:
     - storeString Store a string or template in a variable
     - storeTextBy* Store text from element in a variable
     - storeValueBy* Store value from eleent in a variable
+    - screenshot(filename) Take a screenshot of a viewport and save it in a file (filename is optional)
 
 **Notes**:
   - \* selected by ID/Name/CSS/XPath.
@@ -302,4 +303,32 @@ services:
 modules:
   android-emulator:
     avd: android10_arm128
+```
+
+### Flow Markers
+
+Functional test execution in the cloud requires additional metadata about the tests,
+which can be provided by flow markers. Flow markers are little pieces of code added
+by the Taurus to the test script that provide more data for the test execution engine.
+Generating flow markers is disabled by default and enabled only for `browser: Remote`.
+
+You can enable/disable it manually with `generate-flow-markers` option.
+It can be used on both scenario-level and settings-level.
+
+```yaml
+scenarios:
+  request_example:
+    browser: Chrome
+    generate-flow-markers: true  # scenario-specific setting
+    requests:
+    - url: http://blazedemo.com/
+      actions:
+      - waitByCSS(body)
+      - clickByID(mySubmitButton)
+      - pauseFor(5s)
+
+modules:
+  nose:
+    generate-flow-markers: true  # global setting
+
 ```
