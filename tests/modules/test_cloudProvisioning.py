@@ -6,7 +6,6 @@ import tempfile
 import time
 
 import yaml
-import bzt.modules.blazemeter
 
 from bzt import TaurusConfigError, TaurusException, NormalShutdown, AutomatedShutdown
 from bzt.bza import Master, Test, MultiTest
@@ -336,7 +335,6 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
         super(CloudProvisioning, self.obj).prepare()  # init executors
-        self.obj.get_rfiles()  # create runners
 
         cloud_config = self.obj.prepare_cloud_config()
         cloud_jmeter = cloud_config.get("modules").get("jmeter")
@@ -368,7 +366,6 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
         super(CloudProvisioning, self.obj).prepare()  # init executors
-        self.obj.get_rfiles()  # create runners
 
         cloud_config = self.obj.prepare_cloud_config()
         self.assertNotIn(strange_module, cloud_config.get("modules"))
@@ -394,7 +391,9 @@ class TestCloudProvisioning(BZTestCase):
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
         super(CloudProvisioning, self.obj).prepare()  # init executors
-        self.obj.get_rfiles()  # create runners
+        self.obj.get_rfiles()
+
+        # let's check empty files list filtration..
         self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]["files"] = []
 
         cloud_execution = self.obj.prepare_cloud_config().get(ScenarioExecutor.EXEC)[0]
