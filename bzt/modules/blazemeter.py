@@ -1570,10 +1570,6 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         if self.router.dedicated_ips:
             config[CloudProvisioning.DEDICATED_IPS] = True
 
-        for key in list(config.keys()):
-            if not config[key]:
-                config.pop(key)
-
         self._cleanup_defaults(config)
 
         assert isinstance(config, Configuration)
