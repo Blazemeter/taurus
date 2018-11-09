@@ -15,7 +15,8 @@ from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregatorListener
 from bzt.six import b
 from bzt.utils import load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows
-from . import random_sample, TEST_DIR, ROOT_LOGGER
+
+from tests import random_sample, TEST_DIR, ROOT_LOGGER
 
 try:
     from exceptions import KeyboardInterrupt

@@ -16,15 +16,19 @@ from bzt.modules.pbench import PBenchExecutor, Scheduler, TaurusPBenchGenerator
 from bzt.six import parse, b
 from bzt.utils import is_windows
 from tests import RESOURCES_DIR, close_reader_file, ROOT_LOGGER
-from tests.test_engine import ExecutorTestCase
+from tests.cases import ExecutorTestCase
 
 
 class DataPointLogger(AggregatorListener):
     def aggregated_second(self, data):
         current = data[DataPoint.CURRENT]['']
-        ROOT_LOGGER.info("DataPoint %s: VU:%s RPS:%s/%s RT:%s", data[DataPoint.TIMESTAMP],
-                     current[KPISet.CONCURRENCY], current[KPISet.SAMPLE_COUNT], current[KPISet.FAILURES],
-                     current[KPISet.AVG_RESP_TIME])
+        ROOT_LOGGER.info(
+            "DataPoint %s: VU:%s RPS:%s/%s RT:%s",
+            data[DataPoint.TIMESTAMP],
+            current[KPISet.CONCURRENCY],
+            current[KPISet.SAMPLE_COUNT],
+            current[KPISet.FAILURES],
+            current[KPISet.AVG_RESP_TIME])
 
 
 @unittest.skipIf(is_windows(), "Disabled on Windows")

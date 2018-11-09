@@ -5,7 +5,8 @@ from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, Configuration
 from bzt.six import string_types, communicate
 from bzt.utils import BetterDict, is_windows
-from tests import BZTestCase, local_paths_config, RESOURCES_DIR
+from tests import local_paths_config, RESOURCES_DIR
+from tests.cases import BZTestCase, ExecutorTestCase
 from tests.mocks import EngineEmul
 
 
@@ -190,23 +191,6 @@ class TestEngine(BZTestCase):
         self.assertEquals(2, len(self.obj.reporters))
         self.assertEquals("mock", self.obj.reporters[0].parameters['run-at'])
         self.assertEquals(None, self.obj.reporters[1].parameters['run-at'])
-
-
-class ExecutorTestCase(BZTestCase):
-    EXECUTOR = ScenarioExecutor
-
-    def setUp(self):
-        super(ExecutorTestCase, self).setUp()
-        self.engine = EngineEmul()
-        self.obj = self.EXECUTOR()
-        self.obj.engine = self.engine
-        self.obj.env = self.obj.engine.env
-
-    def configure(self, config):
-        self.obj.engine.config.merge({"settings": {"default-executor": "mock"}})
-        self.obj.engine.config.merge(config)
-        self.obj.engine.unify_config()
-        self.obj.execution = self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]
 
 
 class TestScenarioExecutor(ExecutorTestCase):
