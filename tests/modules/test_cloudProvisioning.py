@@ -349,6 +349,36 @@ class TestCloudProvisioning(BZTestCase):
         self.assertIn("class", cloud_jmeter)
         self.assertIn("version", cloud_jmeter)
 
+    def test_cloud_config_cleanup_empty_class(self):
+        strange_module = "bla_ze_me_ter"
+        self.configure(
+            engine_cfg={
+                ScenarioExecutor.EXEC: {
+                    "concurrency": {
+                        "local": 1,
+                        "cloud": 10}},
+                "modules": {
+                    "jmeter": {
+                        "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                        "version": "some_value"},
+                    strange_module: {
+                        # "class": ModuleMock.__module__ + "." + ModuleMock.__name__,
+                        "strange_param": False}
+                },
+                "settings": {
+                    "default-executor": "jmeter"
+                }
+            }
+        )
+
+        self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
+
+        super(CloudProvisioning, self.obj).prepare()  # init executors
+        self.obj.get_rfiles()  # create runners
+
+        cloud_config = self.obj.prepare_cloud_config()
+        self.assertNotIn(strange_module, cloud_config.get("modules"))
+
     def test_cloud_config_cleanup_selenium(self):
         self.configure(
             engine_cfg={
