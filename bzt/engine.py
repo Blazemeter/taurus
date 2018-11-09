@@ -1124,8 +1124,8 @@ class ScenarioExecutor(EngineModule):
 
         prov_type = self.engine.config.get(Provisioning.PROV)
 
-        throughput = eval_float(self.execution[ScenarioExecutor.THRPT].get(prov_type, 0))
-        concurrency = eval_int(self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0))
+        throughput = eval_float(self.execution.get(ScenarioExecutor.THRPT).get(prov_type, 0))
+        concurrency = eval_int(self.execution.get(ScenarioExecutor.CONCURR).get(prov_type, 0))
 
         iterations = eval_int(self.execution.get("iterations", None))
 
