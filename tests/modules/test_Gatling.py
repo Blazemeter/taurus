@@ -9,23 +9,16 @@ from bzt.modules.gatling import GatlingExecutor, DataLogReader
 from bzt.modules.provisioning import Local
 from bzt.six import u
 from bzt.utils import EXE_SUFFIX, get_full_path
-from tests import BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
-from tests.mocks import EngineEmul
+from tests import ExecutorTestCase, BZTestCase, __dir__, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
 
 
-def get_gatling():
-    path = os.path.abspath(RESOURCES_DIR + "gatling/gatling" + EXE_SUFFIX)
-    obj = GatlingExecutor()
-    obj.engine = EngineEmul()
-    obj.env = obj.engine.env
-    obj.settings.merge({"path": path})
-    return obj
+class TestGatlingExecutor(ExecutorTestCase):
+    EXECUTOR = GatlingExecutor
 
-
-class TestGatlingExecutor(BZTestCase):
     def setUp(self):
         super(TestGatlingExecutor, self).setUp()
-        self.obj = get_gatling()
+        path = os.path.abspath(RESOURCES_DIR + "gatling/gatling" + EXE_SUFFIX)
+        self.obj.settings.merge({"path": path})
 
     def tearDown(self):
         if self.obj.stdout_file:
@@ -146,11 +139,11 @@ class TestGatlingExecutor(BZTestCase):
 
     def test_env_type(self):
         script = "LocalBasicSimulation.scala"
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 2,
             "hold-for": 1000,
             "throughput": 100,
-            "scenario": {"script": RESOURCES_DIR + "gatling/" + script}})
+            "scenario": {"script": RESOURCES_DIR + "gatling/" + script}}})
         self.obj.prepare()
         self.obj.engine.artifacts_dir = u(self.obj.engine.artifacts_dir)
         self.obj.startup()
@@ -161,10 +154,10 @@ class TestGatlingExecutor(BZTestCase):
 
     def test_warning_for_throughput_without_duration(self):
         script = "LocalBasicSimulation.scala"
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 2,
             "throughput": 100,
-            "scenario": {"script": RESOURCES_DIR + "gatling/" + script}})
+            "scenario": {"script": RESOURCES_DIR + "gatling/" + script}}})
         self.obj.prepare()
         self.obj.engine.artifacts_dir = u(self.obj.engine.artifacts_dir)
         self.obj.startup()
@@ -174,7 +167,7 @@ class TestGatlingExecutor(BZTestCase):
         self.assertNotIn('throughput', lines[-1])
 
     def test_requests_1(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 10,
             "iterations": 5,
             "scenario": {
@@ -199,14 +192,14 @@ class TestGatlingExecutor(BZTestCase):
                               }
                              ]
             }
-        })
+        }})
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
         self.assertFilesEqual(RESOURCES_DIR + "gatling/generated1.scala", scala_file,
                               self.obj.get_scenario().get('simulation'), "SIMNAME")
 
     def test_requests_def_addr_is_none(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 10,
             "hold-for": 110,
             "throughput": 33,
@@ -216,11 +209,11 @@ class TestGatlingExecutor(BZTestCase):
                 'timeout': '100ms',
                 'requests': ['http://blazedemo.com', 'google.com']
             }
-        })
+        }})
         self.obj.prepare()
 
     def test_requests_def_addr_is_empty(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 10,
             "hold-for": 110,
             "throughput": 33,
@@ -231,7 +224,7 @@ class TestGatlingExecutor(BZTestCase):
                 'timeout': '100ms',
                 'requests': ['http://blazedemo.com', 'google.com']
             }
-        })
+        }})
         self.obj.prepare()
 
     def test_requests_3(self):
