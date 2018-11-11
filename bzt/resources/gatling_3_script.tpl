@@ -14,7 +14,7 @@ class %(class_name)s extends Simulation {
   val durationLimit = rampUpTime + holdForTime
 
 %(feeders)s
-  var httpConf = %(httpConf)s
+  var httpConf = http.baseUrl%(httpConf)s
   var testScenario = scenario("Taurus Scenario")
 %(scenarioFeeds)s
   var execution = %(_exec)s
@@ -26,7 +26,7 @@ class %(class_name)s extends Simulation {
 
   val virtualUsers =
     if (rampUpTime > 0)
-      rampUsers(concurrency) over (rampUpTime seconds)
+      rampUsers(concurrency) during (rampUpTime seconds)
     else
       atOnceUsers(concurrency)
 

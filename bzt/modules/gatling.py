@@ -21,6 +21,7 @@ import re
 import subprocess
 import time
 from collections import defaultdict
+from distutils.version import LooseVersion
 
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
@@ -33,12 +34,16 @@ from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process,
 
 
 class GatlingScriptBuilder(object):
-    def __init__(self, load, scenario, parent_logger, class_name):
+    def __init__(self, load, scenario, parent_logger, class_name, gatling_version=None):
         super(GatlingScriptBuilder, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
         self.scenario = scenario
         self.class_name = class_name
+        if gatling_version is None:
+            self.gatling_version = Gatling.VERSION
+        else:
+            self.gatling_version = gatling_version
 
     # add prefix 'http://' if user forgot it
     @staticmethod
@@ -55,7 +60,7 @@ class GatlingScriptBuilder(object):
     def _get_http(self):
         default_address = self.scenario.get("default-address", "")
 
-        http_str = 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
+        http_str = '("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
 
         if not self.scenario.get('store-cache', True):
             http_str += self.indent('.disableCaching\n', level=2)
@@ -200,7 +205,11 @@ class GatlingScriptBuilder(object):
         return feeds
 
     def gen_test_case(self):
-        template_path = os.path.join(RESOURCES_DIR, "gatling_script.tpl")
+        if LooseVersion(self.gatling_version) < LooseVersion("3"):
+            version = 2
+        else:
+            version = 3
+        template_path = os.path.join(RESOURCES_DIR, ("gatling_%s_script.tpl" % version))
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -231,6 +240,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.simulation_started = False
         self.dir_prefix = "gatling-%s" % id(self)
         self.launcher = None
+        self.tool = None
 
     def __build_launcher(self):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
@@ -324,7 +334,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     def __generate_script(self):
         simulation = "TaurusSimulation_%s" % id(self)
         file_name = self.engine.create_artifact(simulation, ".scala")
-        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation)
+        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation, self.tool.version)
         with codecs.open(file_name, 'w', encoding='utf-8') as script:
             script.write(gen_script.gen_test_case())
 
@@ -475,10 +485,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.engine.existing_artifact(self.reader.file.name)
 
     def install_required_tools(self):
-        gatling = self._get_tool(Gatling, config=self.settings)
-        self.settings["path"] = gatling.tool_path
+        self.tool = self._get_tool(Gatling, config=self.settings)
+        self.settings["path"] = self.tool.tool_path
 
-        required_tools = [self._get_tool(TclLibrary), self._get_tool(JavaVM), gatling]
+        required_tools = [self._get_tool(TclLibrary), self._get_tool(JavaVM), self.tool]
 
         for tool in required_tools:
             if not tool.check_if_installed():
