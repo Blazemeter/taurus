@@ -1526,8 +1526,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         used_modules = []
 
         for module in config.get("modules"):
-            class_name = config.get("modules").get(module).get("class").split('.')[-1]
-            if class_name in used_classes:
+            class_name = config.get("modules").get(module).get("class")
+            if class_name and (class_name.split('.')[-1] in used_classes):
                 used_modules.append(module)
         return used_modules
 
