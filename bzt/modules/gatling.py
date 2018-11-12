@@ -238,7 +238,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.stdout_file = None
         self.stderr_file = None
         self.simulation_started = False
-        self.dir_prefix = "gatling-%s" % id(self)
+        self.dir_prefix = "taurussimulation-%s" % id(self)
         self.launcher = None
         self.tool = None
 
@@ -381,8 +381,14 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         data_dir = self.engine.artifacts_dir
 
         cmdline = [self.launcher]
-        cmdline += ["-df", data_dir, "-rf", data_dir]
-        cmdline += ["-on", self.dir_prefix, "-m"]
+
+        if LooseVersion(self.tool.version) < LooseVersion("3"):
+            feeders_opt = "-df"
+            cmdline += ["-on", self.dir_prefix, "-m"]
+        else:
+            feeders_opt = "-rsf"
+
+        cmdline += [feeders_opt, data_dir, "-rf", data_dir]
 
         if simulation_folder:
             cmdline += ["-sf", simulation_folder]
