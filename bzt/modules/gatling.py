@@ -238,7 +238,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.stdout_file = None
         self.stderr_file = None
         self.simulation_started = False
-        self.dir_prefix = "gatling-%s" % id(self)
+        self.dir_prefix = "taurussimulation-%s" % id(self)
         self.launcher = None
         self.tool = None
 
