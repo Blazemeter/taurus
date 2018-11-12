@@ -501,7 +501,7 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
         })
 
         self.obj.prepare()
-        self.assertFilesEqual(RESOURCES_DIR + "selenium/generated_from_requests_remote.py", self.obj.script)
+        self.assertFilesEqual(self.obj.script, RESOURCES_DIR + "selenium/generated_from_requests_remote.py")
 
     def test_build_script_appium_browser(self):
         self.configure({

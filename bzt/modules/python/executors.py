@@ -80,7 +80,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             ignore_unknown_actions = self.settings.get("ignore-unknown-actions", False)
             scenario = self.get_scenario()
             generate_markers = scenario.get('generate-flow-markers', self.settings.get('generate-flow-markers', None))
-            builder = SeleniumScriptBuilder(scenario, self.log, wdlog, ignore_unknown_actions, generate_markers)
+            extra_utilities = os.path.join(RESOURCES_DIR, "selenium_taurus_extras.py")
+            builder = SeleniumScriptBuilder(scenario, self.log, wdlog, extra_utilities, ignore_unknown_actions,
+                                            generate_markers)
             builder.label = self.label
             builder.webdriver_address = self.settings.get("remote", builder.webdriver_address)
             builder.webdriver_address = self.execution.get("remote", builder.webdriver_address)
