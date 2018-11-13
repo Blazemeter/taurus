@@ -46,7 +46,7 @@ class TestCLI(BZTestCase):
         self.assertEquals(1, ret)
 
         #from shellexec
-        good_err = "DEBUG EngineEmul] Command 'wrong_cmd' returned non-zero exit status 127"
+        good_err = "DEBUG EngineEmul] Command 'wrong_cmd' returned non-zero exit status 1"
 
         # from CalledProcessError constructor in reraise()
         bad_err = "__init__() missing 1 required positional argument: 'cmd'"
