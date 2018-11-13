@@ -139,11 +139,16 @@ class Engine(object):
         settings = self.config.get(SETTINGS)
         default_executor = settings.get("default-executor", None)
 
+        prov_type = self.config.get(Provisioning.PROV)
+
         for execution in executions:
             executor = execution.get("executor", default_executor, force_set=True)
             if not executor:
                 msg = "Cannot determine executor type and no default executor in %s"
                 raise TaurusConfigError(msg % execution)
+
+            for param in (ScenarioExecutor.THRPT, ScenarioExecutor.CONCURR):
+                ensure_is_dict(execution, param, prov_type)
 
         reporting = self.config.get(Reporter.REP, [])
         for index in range(len(reporting)):
@@ -1121,11 +1126,8 @@ class ScenarioExecutor(EngineModule):
 
         prov_type = self.engine.config.get(Provisioning.PROV)
 
-        ensure_is_dict(self.execution, ScenarioExecutor.THRPT, prov_type)
-        throughput = eval_float(self.execution[ScenarioExecutor.THRPT].get(prov_type, 0))
-
-        ensure_is_dict(self.execution, ScenarioExecutor.CONCURR, prov_type)
-        concurrency = eval_int(self.execution[ScenarioExecutor.CONCURR].get(prov_type, 0))
+        throughput = eval_float(self.execution.get(ScenarioExecutor.THRPT).get(prov_type, 0))
+        concurrency = eval_int(self.execution.get(ScenarioExecutor.CONCURR).get(prov_type, 0))
 
         iterations = eval_int(self.execution.get("iterations", None))
 

@@ -6,9 +6,7 @@ from bzt import TaurusConfigError, ToolError
 from bzt.modules.tsung import TsungExecutor, TsungStatsReader, TsungConfig, Tsung
 from bzt.six import etree
 from bzt.utils import EXE_SUFFIX, BetterDict, is_windows
-from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
-from tests.mocks import EngineEmul
-
+from tests import BZTestCase, ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER
 
 TOOL_NAME = 'tsung' + EXE_SUFFIX
 
@@ -17,14 +15,12 @@ def get_res_path(resource):
     return path.join(RESOURCES_DIR, 'tsung', resource)
 
 
-class TestTsungExecutor(BZTestCase):
+class TestTsungExecutor(ExecutorTestCase):
+    EXECUTOR = TsungExecutor
+
     def setUp(self):
         super(TestTsungExecutor, self).setUp()
-        self.obj = TsungExecutor()
-        self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
         self.obj.settings = BetterDict.from_dict({"path": get_res_path(TOOL_NAME)})
-        self.obj.execution = BetterDict()
 
     def test_prepare_no_script_no_requests(self):
         self.obj.execution.merge({"scenario": {}})
@@ -74,14 +70,14 @@ class TestTsungExecutor(BZTestCase):
         self.assertRaises(TaurusConfigError, self.obj.prepare)
 
     def test_full_requests(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 10,
             "hold-for": "20s",
             "scenario": {
                 "default-address": "http://blazedemo.com",
                 "requests": ["/",
                              "/reserve.php"]}
-        })
+        }})
         self.obj.prepare()
         self.obj.get_widget()
         try:
@@ -93,13 +89,13 @@ class TestTsungExecutor(BZTestCase):
         self.obj.post_process()
 
     def test_full_script(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 200,
             "hold-for": "20s",
             "scenario": {
                 "script": get_res_path("http_simple.xml")
             }
-        })
+        }})
         self.obj.prepare()
         self.obj.get_widget()
         try:
@@ -139,14 +135,14 @@ class TestTsungExecutor(BZTestCase):
         self.assertIn(cid_param, stdout)
 
     def test_diagnostics(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 1,
             "hold-for": "5s",
             "scenario": {
                 "default-address": "http://blazedemo.com",
                 "requests": ["/"]}
-        })
+        }})
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -154,14 +150,6 @@ class TestTsungExecutor(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
         self.assertIsNotNone(self.obj.get_error_diagnostics())
-
-
-class TestTsungConfig(BZTestCase):
-    def setUp(self):
-        super(TestTsungConfig, self).setUp()
-        self.obj = TsungExecutor()
-        self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
 
     def test_servers(self):
         self.obj.execution.merge({
@@ -182,14 +170,14 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(server.get('port'), '8080')
 
     def test_sessions_requests(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 2,
             "hold-for": "10s",
             "scenario": {
                 "default-address": "http://example.com",
                 "requests": ["/", "/reserve.php"],
             }
-        })
+        }})
         self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         self.obj.prepare()
         config = TsungConfig(None)
@@ -198,7 +186,7 @@ class TestTsungConfig(BZTestCase):
         self.assertEquals(2, len(requests))
 
     def test_sessions_thinktime(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
@@ -211,7 +199,7 @@ class TestTsungConfig(BZTestCase):
                     "think-time": "2s",
                 }],
             }
-        })
+        }})
         self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         self.obj.prepare()
         config = TsungConfig(None)
@@ -222,7 +210,7 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(thinktimes[1].get("value"), "2")
 
     def test_requests_custom(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
@@ -243,7 +231,7 @@ class TestTsungConfig(BZTestCase):
                     "body-file": get_res_path("http_simple.xml"),
                 }],
             }
-        })
+        }})
         self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         self.obj.prepare()
         config = TsungConfig(None)
@@ -257,7 +245,7 @@ class TestTsungConfig(BZTestCase):
         self.assertEqual(urls[2].get("contents"), open(get_res_path('http_simple.xml')).read())
 
     def test_requests_headers(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
@@ -272,7 +260,7 @@ class TestTsungConfig(BZTestCase):
                     },
                 }],
             }
-        })
+        }})
         self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         self.obj.prepare()
         config = TsungConfig(None)
@@ -284,13 +272,13 @@ class TestTsungConfig(BZTestCase):
         self.assertIn(("X-Answer", "42"), headers_list)
 
     def test_load_modification(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 50,
             "hold-for": "30s",
             "scenario": {
                 "script": get_res_path("http_simple.xml"),
             }
-        })
+        }})
         self.obj.settings.merge({"path": get_res_path(TOOL_NAME),})
         self.obj.prepare()
         original_config = TsungConfig(None)

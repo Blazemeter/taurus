@@ -8,34 +8,35 @@ except ImportError:
     import mock
 
 from bzt import ToolError
-from bzt.modules.jmeter import JTLReader
 from bzt.utils import dehumanize_time
-from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
-
+from bzt.modules.jmeter import JTLReader
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.locustio import LocustIOExecutor, SlavesReader
 from bzt.modules.provisioning import Local
-from tests.mocks import EngineEmul
+
+from tests import ExecutorTestCase, RESOURCES_DIR, ROOT_LOGGER
 
 
-class TestLocustIOExecutor(BZTestCase):
+class TestLocustIOExecutor(ExecutorTestCase):
+    EXECUTOR = LocustIOExecutor
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.append(RESOURCES_DIR + "locust/")
+
     def setUp(self):
         super(TestLocustIOExecutor, self).setUp()
-        sys.path.append(RESOURCES_DIR + "locust/")
-        self.obj = LocustIOExecutor()
-        self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
         self.obj.engine.config['provisioning'] = 'local'
 
     def test_simple(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 10,
             "scenario": {
                 "default-address": "http://blazedemo.com",
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
-        })
+        }})
         self.obj.prepare()
         self.obj.startup()
         try:
@@ -47,7 +48,7 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertFalse(self.obj.has_results())
 
     def test_locust_widget(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 10,
             "hold-for": 30,
@@ -55,7 +56,7 @@ class TestLocustIOExecutor(BZTestCase):
                 "default-address": "http://blazedemo.com",
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
-        })
+        }})
 
         self.obj.prepare()
         self.obj.startup()
@@ -69,7 +70,7 @@ class TestLocustIOExecutor(BZTestCase):
         test_concurrency, test_ramp_up = 4, "60s"
         expected_hatch_rate = test_concurrency / dehumanize_time(test_ramp_up)
 
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": test_concurrency,
             "ramp-up": test_ramp_up,
             "iterations": 10,
@@ -78,7 +79,7 @@ class TestLocustIOExecutor(BZTestCase):
                 "default-address": "http://blazedemo.com",
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
-        })
+        }})
 
         self.obj.prepare()
         with mock.patch('bzt.modules.locustio.LocustIOExecutor.execute') as m:
@@ -91,7 +92,7 @@ class TestLocustIOExecutor(BZTestCase):
             self.assertEqual(hatch[0], "%f" % expected_hatch_rate)
 
     def test_locust_master(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 10,
             "hold-for": 30,
@@ -101,7 +102,7 @@ class TestLocustIOExecutor(BZTestCase):
                 "default-address": "http://blazedemo.com",
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
-        })
+        }})
 
         self.obj.prepare()
         self.obj.startup()
@@ -138,7 +139,7 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertEquals(0, len(points))
 
     def test_locust_resource_files(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 10,
             "hold-for": 30,
@@ -146,12 +147,12 @@ class TestLocustIOExecutor(BZTestCase):
                 "default-address": "http://blazedemo.com",
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
-        })
+        }})
         resource_files = self.obj.resource_files()
         self.assertEqual(1, len(resource_files))
 
     def test_resource_files_requests(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 10,
             "hold-for": 30,
@@ -161,12 +162,12 @@ class TestLocustIOExecutor(BZTestCase):
                     "/",
                 ]
             }
-        })
+        }})
         resource_files = self.obj.resource_files()
         self.assertEqual(0, len(resource_files))
 
     def test_fail_on_zero_results(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 10,
             "hold-for": 30,
@@ -174,7 +175,7 @@ class TestLocustIOExecutor(BZTestCase):
                 "default-address": "http://blazedemo.com",
                 "script": RESOURCES_DIR + "locust/simple.py"
             }
-        })
+        }})
         self.obj.prepare()
         self.obj.engine.prepared = [self.obj]
         self.obj.engine.started = [self.obj]
@@ -185,13 +186,11 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertRaises(ToolError, self.obj.engine.provisioning.post_process)
 
     def test_requests_minimal(self):
-        self.obj.engine.config.merge({
-            "execution": [{
-                "executor": "locust",
-                "scenario": {
-                    "requests": ["http://blazedemo.com/"]}}]})
+        self.configure({"execution": {
+            "executor": "locust",
+            "scenario": {
+                "requests": ["http://blazedemo.com/"]}}})
 
-        self.obj.execution = self.obj.engine.config.get('execution')[0]
         self.obj.prepare()
         self.obj.startup()
         self.obj.check()
@@ -199,7 +198,7 @@ class TestLocustIOExecutor(BZTestCase):
         self.obj.post_process()
 
     def test_build_script(self):
-        self.obj.engine.config.merge({
+        self.configure({
             "execution": [{
                 "executor": "locust",
                 "hold-for": "4m",
@@ -238,13 +237,12 @@ class TestLocustIOExecutor(BZTestCase):
                             'subject': 'body',
                             'contains': '\w+l1e'}]}]}}})
 
-        self.obj.execution = self.obj.engine.config.get('execution')[0]
         self.obj.prepare()
         self.assertFilesEqual(RESOURCES_DIR + "locust/generated_from_requests_1.py", self.obj.script)
 
     def test_build_script_none_def_addr(self):
         self.sniff_log(self.obj.log)
-        self.obj.engine.config.merge({
+        self.configure({
             "execution": [{
                 "executor": "locust",
                 "hold-for": "4m",
@@ -255,7 +253,6 @@ class TestLocustIOExecutor(BZTestCase):
                     "requests": [{
                         "url": "http://blazedemo.com"}]}}})
 
-        self.obj.execution = self.obj.engine.config.get('execution')[0]
         self.obj.prepare()
         self.obj.startup()
         self.obj.shutdown()
@@ -263,7 +260,7 @@ class TestLocustIOExecutor(BZTestCase):
         self.assertNotIn("'--host='", debug_buff)
 
     def test_jtl_key_order(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 1,
             "hold-for": 30,
@@ -273,7 +270,7 @@ class TestLocustIOExecutor(BZTestCase):
                     "/"
                 ]
             }
-        })
+        }})
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -291,7 +288,7 @@ class TestLocustIOExecutor(BZTestCase):
             self.assertEqual(header_line, expected)
 
     def test_jtl_quoting_issue(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 1,
             "scenario": {
@@ -300,7 +297,7 @@ class TestLocustIOExecutor(BZTestCase):
                     "/"
                 ]
             }
-        })
+        }})
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():
@@ -316,7 +313,7 @@ class TestLocustIOExecutor(BZTestCase):
             pass
 
     def test_diagnostics(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 1,
             "scenario": {
@@ -325,7 +322,7 @@ class TestLocustIOExecutor(BZTestCase):
                     "/"
                 ]
             }
-        })
+        }})
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():

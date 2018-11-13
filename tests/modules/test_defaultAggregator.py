@@ -2,10 +2,10 @@ import json
 import time
 
 from bzt.utils import to_json
-from tests import BZTestCase, r, rc, err, ROOT_LOGGER
+from tests import BZTestCase, ROOT_LOGGER
 
 from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet
-from tests.mocks import MockReader
+from tests.mocks import r, rc, err, MockReader
 
 
 class TestDefaultAggregator(BZTestCase):

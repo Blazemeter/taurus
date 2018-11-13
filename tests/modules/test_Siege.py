@@ -2,22 +2,21 @@ import time
 from os.path import join
 
 from bzt import ToolError, TaurusConfigError
-from bzt.modules.siege import SiegeExecutor, DataLogReader
 from bzt.utils import EXE_SUFFIX
-from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
-from tests.mocks import EngineEmul
+from bzt.modules.siege import SiegeExecutor, DataLogReader
 from bzt.modules.aggregator import ConsolidatingAggregator
+
+from tests import BZTestCase, ExecutorTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 
 TOOL_NAME = 'siege' + EXE_SUFFIX
 TOOL_PATH = join(RESOURCES_DIR, "siege", TOOL_NAME)
 
 
-class TestSiegeExecutor(BZTestCase):
+class TestSiegeExecutor(ExecutorTestCase):
+    EXECUTOR = SiegeExecutor
+
     def setUp(self):
         super(TestSiegeExecutor, self).setUp()
-        self.obj = SiegeExecutor()
-        self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.settings.merge({"path": TOOL_PATH})
 
@@ -30,20 +29,20 @@ class TestSiegeExecutor(BZTestCase):
         super(TestSiegeExecutor, self).tearDown()
 
     def test_iter(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 2,
             "iterations": 3,
             "scenario": {
                 "think-time": "1s",
                 "requests": [
                     "http://blazedemo.com",
-                    "http://ya.ru"]}})
+                    "http://ya.ru"]}}})
         self.obj.prepare()
         self.obj.get_widget()
         self.obj.startup()
 
     def test_hold(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 2,
             "hold-for": '2s',
             "scenario": {
@@ -53,7 +52,7 @@ class TestSiegeExecutor(BZTestCase):
                 "variables": {
                     'v1': 1,
                     'v2': 'TWO'},
-                "script": join(RESOURCES_DIR, "siege", "url-file")}})
+                "script": join(RESOURCES_DIR, "siege", "url-file")}}})
         self.obj.prepare()
         self.assertNotEqual(len(self.obj.resource_files()), 0)
         self.obj.get_widget()
@@ -75,25 +74,25 @@ class TestSiegeExecutor(BZTestCase):
         self.assertRaises(ToolError, self.obj.prepare)
 
     def test_repetition_exceptions(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 2,
             "scenario": {
                 "requests": [
                     "http://blazedemo.com",
-                    "http://ya.ru"]}})
+                    "http://ya.ru"]}}})
         self.obj.prepare()
         self.assertEqual(len(self.obj.resource_files()), 0)
         self.assertRaises(TaurusConfigError, self.obj.startup)
 
     def test_full_execution(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 2,
             "iterations": 3,
             "rc-file": join(RESOURCES_DIR, "siege", "siegerc"),
             "scenario": {
                 "requests": [
                     "http://blazedemo.com",
-                    "http://ya.ru"]}})
+                    "http://ya.ru"]}}})
         self.obj.prepare()
         try:
             self.obj.startup()

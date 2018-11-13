@@ -3,8 +3,8 @@ from random import random, choice
 from apiritif import random_string
 from bzt.modules.aggregator import ConsolidatingAggregator, DataPoint, KPISet, AggregatorListener
 from bzt.utils import to_json
-from tests import BZTestCase, r
-from tests.mocks import MockReader
+from tests import BZTestCase
+from tests.mocks import r, MockReader
 
 
 def get_success_reader(offset=0):

@@ -7,20 +7,15 @@ from bzt import ToolError
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.molotov import MolotovExecutor, MolotovReportReader
 from bzt.utils import EXE_SUFFIX, is_windows
-from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
-from tests.mocks import EngineEmul
+from tests import BZTestCase, ExecutorTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 
 TOOL_NAME = 'molotov-mock' + EXE_SUFFIX
 TOOL_PATH = join(RESOURCES_DIR, "molotov", TOOL_NAME)
 LOADTEST_PY = join(RESOURCES_DIR, "molotov", "loadtest.py")
 
 
-class TestMolotov(BZTestCase):
-    def setUp(self):
-        super(TestMolotov, self).setUp()
-        self.obj = MolotovExecutor()
-        self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
+class TestMolotov(ExecutorTestCase):
+    EXECUTOR = MolotovExecutor
 
     def tearDown(self):
         if self.obj.stdout_file:
@@ -83,13 +78,13 @@ class TestMolotov(BZTestCase):
     @unittest.skipUnless(sys.version_info >= (3, 5), "enabled only on 3.5+")
     @unittest.skipIf(is_windows(), "disabled on windows")
     def test_full(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 3,
             "processes": 2,
             "hold-for": "5s",
             "iterations": 10,
             "scenario": {
-                "script": LOADTEST_PY}})
+                "script": LOADTEST_PY}}})
         self.obj.prepare()
         self.obj.get_widget()
         try:

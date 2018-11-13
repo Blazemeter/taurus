@@ -39,7 +39,7 @@ from bzt import AutomatedShutdown
 from bzt import TaurusInternalException, TaurusConfigError, TaurusException, TaurusNetworkError, NormalShutdown
 from bzt.bza import User, Session, Test, Workspace, MultiTest, BZA_TEST_DATA_RECEIVED
 from bzt.engine import Reporter, Provisioning, ScenarioExecutor, Configuration, Service
-from bzt.engine import Singletone, TAURUS_ARTIFACTS_DIR, SETTINGS
+from bzt.engine import Singletone, SETTINGS
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator, ResultsProvider, AggregatorListener
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregator, FunctionalSample
@@ -48,7 +48,7 @@ from bzt.modules.services import Unpacker
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.requests_model import has_variable_pattern
 from bzt.six import BytesIO, iteritems, HTTPError, r_input, URLError, b, string_types, text_type
-from bzt.utils import open_browser, BetterDict, ensure_is_dict, ExceptionalDownloader, ProgressBarContext
+from bzt.utils import open_browser, BetterDict, ExceptionalDownloader, ProgressBarContext
 from bzt.utils import to_json, dehumanize_time, get_full_path, get_files_recursive, replace_in_config, humanize_bytes
 
 TAURUS_TEST_TYPE = "taurus"
@@ -1526,8 +1526,8 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         used_modules = []
 
         for module in config.get("modules"):
-            class_name = config.get("modules").get(module).get("class").split('.')[-1]
-            if class_name in used_classes:
+            class_name = config.get("modules").get(module).get("class")
+            if class_name and (class_name.split('.')[-1] in used_classes):
                 used_modules.append(module)
         return used_modules
 
@@ -1561,47 +1561,22 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
         # todo: should we remove config['version'] before sending to cloud?
         config['local-bzt-version'] = config.get('version', 'N/A')
 
-        for execution in config[ScenarioExecutor.EXEC]:
-            execution[ScenarioExecutor.CONCURR] = execution.get(ScenarioExecutor.CONCURR).get(provisioning, None)
-            execution[ScenarioExecutor.THRPT] = execution.get(ScenarioExecutor.THRPT).get(provisioning, None)
-
         config.filter(CLOUD_CONFIG_BLACK_LIST, black_list=True)
+
+        for execution in config[ScenarioExecutor.EXEC]:
+            if execution.get("files") == []:
+                del execution["files"]
+            for param in (ScenarioExecutor.CONCURR, ScenarioExecutor.THRPT):
+                param_value = execution.get(param).get(provisioning, None)
+                if param_value is None:
+                    del execution[param]
+                else:
+                    execution[param] = param_value
 
         if self.router.dedicated_ips:
             config[CloudProvisioning.DEDICATED_IPS] = True
 
-        for key in list(config.keys()):
-            if not config[key]:
-                config.pop(key)
-
-        self._cleanup_defaults(config)
-
         assert isinstance(config, Configuration)
-        return config
-
-    @staticmethod
-    def _cleanup_defaults(config):
-        # cleanup configuration from empty values
-        default_values = {
-            'concurrency': None,
-            'iterations': None,
-            'ramp-up': None,
-            'steps': None,
-            'throughput': None,
-            'hold-for': 0,
-            'files': []
-        }
-        for execution in config[ScenarioExecutor.EXEC]:
-            if isinstance(execution['concurrency'], dict):
-                execution['concurrency'] = {k: v for k, v in iteritems(execution['concurrency']) if v is not None}
-
-            if not execution['concurrency']:
-                execution['concurrency'] = None
-
-            for key, value in iteritems(default_values):
-                if key in execution and execution[key] == value:
-                    execution.pop(key)
-
         return config
 
     def __dump_locations_if_needed(self):
