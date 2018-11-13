@@ -16,11 +16,65 @@ from selenium.webdriver.common.keys import Keys
 import apiritif
 from bzt.resources import selenium_taurus_extras
 
+_vars = {}
+_tpl = selenium_taurus_extras.Template(_vars)
+
+class TestRequests(unittest.TestCase):
+    def setUp(self):
+        self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub', desired_capabilities={"app": "", "browserName": null, "deviceName": "", "javascriptEnabled": "True", "platformName": "linux", "platformVersion": "", "seleniumVersion": "", "version": "54.0"})
+        self.driver.implicitly_wait(3.5)
+        self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
+        self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
+
+    def tearDown(self):
+        self.driver.quit()
+
+    def test_requests(self):
+        self.driver.implicitly_wait(3.5)
+
+        try:
+            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {'testCaseName': '/', 'testSuiteName': 'loc_sc_remote'})
+
+            with apiritif.transaction_logged('/'):
+                self.driver.get('http://blazedemo.com/')
+
+                WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, _tpl.apply("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
+                self.assertEqual(self.driver.title, _tpl.apply('BlazeDemo'))
+
+                body = self.driver.page_source
+                re_pattern = re.compile(r'contained_text')
+                self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
+
+        except AssertionError as exc:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'failed', 'message': str(exc)})
+            raise
+        except BaseException as exc:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'broken', 'message': str(exc)})
+            raise
+        else:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'success', 'message': ''})
+
+        try:
+            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {'testCaseName': 'empty', 'testSuiteName': 'loc_sc_remote'})
+
+            with apiritif.transaction_logged('empty'):
+                pass
+
+        except AssertionError as exc:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'failed', 'message': str(exc)})
+            raise
+        except BaseException as exc:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'broken', 'message': str(exc)})
+            raise
+        else:
+            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'success', 'message': ''})
+
+# Utility functions and classes for Taurus Selenium tests
+
 from string import Template as StrTemplate
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
 
 
-# Utility functions and classes for Selenium tests
 class Apply(StrTemplate):
     def __init__(self, template):
         super(Apply, self).__init__(template)
@@ -110,55 +164,3 @@ class WindowManager:
             self.switch(window_name)
         self.driver.close()
 
-_vars = {}
-_tpl = selenium_taurus_extras.Template(_vars)
-
-class TestRequests(unittest.TestCase):
-    def setUp(self):
-        self.driver = webdriver.Remote(command_executor='http://user:key@remote_web_driver_host:port/wd/hub', desired_capabilities={"app": "", "browserName": null, "deviceName": "", "javascriptEnabled": "True", "platformName": "linux", "platformVersion": "", "seleniumVersion": "", "version": "54.0"})
-        self.driver.implicitly_wait(3.5)
-        self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
-        self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
-
-    def tearDown(self):
-        self.driver.quit()
-
-    def test_requests(self):
-        self.driver.implicitly_wait(3.5)
-
-        try:
-            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {'testCaseName': '/', 'testSuiteName': 'loc_sc_remote'})
-
-            with apiritif.transaction_logged('/'):
-                self.driver.get('http://blazedemo.com/')
-
-                WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, _tpl.apply("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
-                self.assertEqual(self.driver.title, _tpl.apply('BlazeDemo'))
-
-                body = self.driver.page_source
-                re_pattern = re.compile(r'contained_text')
-                self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
-
-        except AssertionError as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'failed', 'message': str(exc)})
-            raise
-        except BaseException as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'broken', 'message': str(exc)})
-            raise
-        else:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'success', 'message': ''})
-
-        try:
-            self.driver.execute_script('/* FLOW_MARKER test-case-start */', {'testCaseName': 'empty', 'testSuiteName': 'loc_sc_remote'})
-
-            with apiritif.transaction_logged('empty'):
-                pass
-
-        except AssertionError as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'failed', 'message': str(exc)})
-            raise
-        except BaseException as exc:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'broken', 'message': str(exc)})
-            raise
-        else:
-            self.driver.execute_script('/* FLOW_MARKER test-case-stop */', {'status': 'success', 'message': ''})

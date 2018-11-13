@@ -1,8 +1,9 @@
+# Utility functions and classes for Taurus Selenium tests
+
 from string import Template as StrTemplate
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
 
 
-# Utility functions and classes for Selenium tests
 class Apply(StrTemplate):
     def __init__(self, template):
         super(Apply, self).__init__(template)

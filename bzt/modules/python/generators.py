@@ -208,7 +208,7 @@ from bzt.resources import selenium_taurus_extras
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
-    def __init__(self, scenario, parent_logger, wdlog, extra_utils, ignore_unknown_actions=False, generate_markers=None):
+    def __init__(self, scenario, parent_logger, wdlog, utils_file, ignore_unknown_actions=False, generate_markers=None):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.label = ''
         self.webdriver_address = None
@@ -216,7 +216,7 @@ from bzt.resources import selenium_taurus_extras
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
-        self.extra_utils = extra_utils
+        self.utils_file = utils_file
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
 
@@ -272,9 +272,9 @@ from bzt.resources import selenium_taurus_extras
 
         self.root.append(self.gen_statement("# coding=utf-8", indent=0))
         self.root.append(self.add_imports())
-        self.root.append(self.add_utilities())
         self.root.extend(self.gen_global_vars())
         self.root.append(test_class)
+        self.root.append(self.add_utilities())
 
     def _fill_test_method(self, req, test_method):
         if req.label:
@@ -345,10 +345,10 @@ from bzt.resources import selenium_taurus_extras
         return imports
 
     def add_utilities(self):
-        with open(self.extra_utils) as fds:
+        with open(self.utils_file) as fds:
             utilities_source_lines = fds.read()
         utils = etree.Element("utilities")
-        utils.text = utilities_source_lines
+        utils.text = "\n" + utilities_source_lines
         return utils
 
     def gen_global_vars(self):

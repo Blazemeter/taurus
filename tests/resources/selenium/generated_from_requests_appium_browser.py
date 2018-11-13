@@ -16,11 +16,43 @@ from selenium.webdriver.common.keys import Keys
 import apiritif
 from bzt.resources import selenium_taurus_extras
 
+_vars = {}
+_tpl = selenium_taurus_extras.Template(_vars)
+
+class TestRequests(unittest.TestCase):
+    def setUp(self):
+        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={"browserName": "Chrome", "deviceName": "", "platformName": "Android"})
+        self.driver.implicitly_wait(3.5)
+        self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
+        self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
+
+    def tearDown(self):
+        self.driver.quit()
+
+    def test_requests(self):
+        self.driver.implicitly_wait(3.5)
+
+        with apiritif.transaction_logged('/'):
+            self.driver.get('http://blazedemo.com/')
+
+            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, _tpl.apply("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
+            self.assertEqual(self.driver.title, _tpl.apply('BlazeDemo'))
+
+            body = self.driver.page_source
+            re_pattern = re.compile(r'contained_text')
+            self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
+
+
+        with apiritif.transaction_logged('empty'):
+            pass
+
+
+# Utility functions and classes for Taurus Selenium tests
+
 from string import Template as StrTemplate
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
 
 
-# Utility functions and classes for Selenium tests
 class Apply(StrTemplate):
     def __init__(self, template):
         super(Apply, self).__init__(template)
@@ -109,34 +141,4 @@ class WindowManager:
         if window_name:
             self.switch(window_name)
         self.driver.close()
-
-_vars = {}
-_tpl = selenium_taurus_extras.Template(_vars)
-
-class TestRequests(unittest.TestCase):
-    def setUp(self):
-        self.driver = webdriver.Remote(command_executor='http://localhost:4723/wd/hub', desired_capabilities={"browserName": "Chrome", "deviceName": "", "platformName": "Android"})
-        self.driver.implicitly_wait(3.5)
-        self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
-        self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
-
-    def tearDown(self):
-        self.driver.quit()
-
-    def test_requests(self):
-        self.driver.implicitly_wait(3.5)
-
-        with apiritif.transaction_logged('/'):
-            self.driver.get('http://blazedemo.com/')
-
-            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, _tpl.apply("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
-            self.assertEqual(self.driver.title, _tpl.apply('BlazeDemo'))
-
-            body = self.driver.page_source
-            re_pattern = re.compile(r'contained_text')
-            self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
-
-
-        with apiritif.transaction_logged('empty'):
-            pass
 
