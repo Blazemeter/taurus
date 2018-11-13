@@ -2,25 +2,18 @@ import time
 import os
 
 from bzt.modules.ab import ApacheBenchmarkExecutor, TSVDataReader
-from tests import BZTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
-from tests.mocks import EngineEmul
+from tests import BZTestCase, ExecutorTestCase, RESOURCES_DIR, close_reader_file, ROOT_LOGGER
 from bzt.utils import EXE_SUFFIX
 from bzt import ToolError, TaurusConfigError
 
 
-def get_ab():
-    path = os.path.abspath(RESOURCES_DIR + "ab/ab" + EXE_SUFFIX)
-    obj = ApacheBenchmarkExecutor()
-    obj.engine = EngineEmul()
-    obj.env = obj.engine.env
-    obj.settings.merge({"path": path})
-    return obj
+class TestApacheBenchExecutor(ExecutorTestCase):
+    EXECUTOR = ApacheBenchmarkExecutor
 
-
-class TestApacheBenchExecutor(BZTestCase):
     def setUp(self):
-        self.obj = get_ab()
         super(TestApacheBenchExecutor, self).setUp()
+        path = os.path.abspath(RESOURCES_DIR + "ab/ab" + EXE_SUFFIX)
+        self.obj.settings.merge({"path": path})
 
     def tearDown(self):
         if self.obj.stdout_file:
@@ -32,9 +25,9 @@ class TestApacheBenchExecutor(BZTestCase):
 
     def test_iter(self):
         "Ensures that executor doesn't fail with minimal configuration."
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "scenario": {
-                "requests": ["http://blazedemo.com"]}})
+                "requests": ["http://blazedemo.com"]}}})
         self.obj.prepare()
         self.obj.get_widget()
         try:
@@ -48,7 +41,7 @@ class TestApacheBenchExecutor(BZTestCase):
 
     def test_no_request_exception(self):
         "Checks that executor.startup fails if there's no request specified."
-        self.obj.execution.merge({"scenario": {}})
+        self.configure({"execution": {"scenario": {}}})
         self.obj.prepare()
         self.assertRaises(TaurusConfigError, self.obj.startup)
 
@@ -74,7 +67,7 @@ class TestApacheBenchExecutor(BZTestCase):
         self.assertRaises(ToolError, self.obj.prepare)
 
     def test_full_execution(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 2,
             "iterations": 3,
             "headers": {
@@ -86,7 +79,7 @@ class TestApacheBenchExecutor(BZTestCase):
                     "url": "http://blazedemo.com",
                     "headers": {"X-Answer": "42"},
                     "keepalive": False,
-                    "method": "GET"}]}})
+                    "method": "GET"}]}}})
         self.obj.prepare()
         self.obj.get_widget()
         try:
@@ -99,11 +92,11 @@ class TestApacheBenchExecutor(BZTestCase):
         self.assertNotEquals(self.obj.process, None)
 
     def test_diagnostics(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "concurrency": 1,
             "iterations": 1,
             "scenario": {
-                "requests": ["http://blazedemo.com"]}})
+                "requests": ["http://blazedemo.com"]}}})
         self.obj.prepare()
         self.obj.startup()
         while not self.obj.check():

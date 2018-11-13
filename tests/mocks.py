@@ -5,23 +5,79 @@ import sys
 import tempfile
 from _socket import SOCK_STREAM, AF_INET
 from collections import Counter
+from random import random
 
 import requests
 
 from bzt.engine import Engine, Configuration, FileLister, HavingInstallableTools, Singletone, Service, SelfDiagnosable
 from bzt.engine import Provisioning, ScenarioExecutor, Reporter
 from bzt.modules import TransactionListener
+from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregatorListener
 from bzt.six import b
 from bzt.utils import load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows
-from . import random_sample, TEST_DIR, ROOT_LOGGER
+
+from tests.base import TEST_DIR, ROOT_LOGGER
 
 try:
     from exceptions import KeyboardInterrupt
 except ImportError:
     # noinspection PyUnresolvedReferences
     from builtins import KeyboardInterrupt
+
+
+def r(mul=5):
+    return 1 + int(mul * random()) / 1000.0
+
+
+def rc():
+    return "%s00" % (int(4 * random()) + 1)
+
+
+def err():
+    if int(50 * random()) == 0:
+        return "Some Error"
+    else:
+        return None
+
+
+def random_sample(ts, label='', conc=1):
+    return ts, label, conc, r(), r(), r(), rc(), err()
+
+
+def random_datapoint(n):
+    point = DataPoint(n)
+    overall = point[DataPoint.CURRENT].setdefault('', KPISet())
+    overall[KPISet.CONCURRENCY] = r(100)
+    overall[KPISet.SAMPLE_COUNT] = int(100 * r(1000)) + 1
+    overall[KPISet.SUCCESSES] = int(overall[KPISet.SAMPLE_COUNT] * random())
+    overall[KPISet.FAILURES] = overall[KPISet.SAMPLE_COUNT] - overall[KPISet.SUCCESSES]
+    overall[KPISet.PERCENTILES]['25.0'] = r(10)
+    overall[KPISet.PERCENTILES]['50.0'] = r(20)
+    overall[KPISet.PERCENTILES]['75.0'] = r(30)
+    overall[KPISet.PERCENTILES]['90.0'] = r(40)
+    overall[KPISet.PERCENTILES]['99.0'] = r(50)
+    overall[KPISet.PERCENTILES]['100.0'] = r(100)
+    overall[KPISet.RESP_CODES][rc()] = 1
+
+    overall[KPISet.AVG_RESP_TIME] = r(100)
+    overall[KPISet.AVG_CONN_TIME] = overall[KPISet.AVG_RESP_TIME] / 3.0
+    overall[KPISet.AVG_LATENCY] = 2.0 * overall[KPISet.AVG_RESP_TIME] / 3.0
+
+    overall.sum_rt = overall[KPISet.AVG_RESP_TIME] * overall[KPISet.SAMPLE_COUNT]
+    overall.sum_cn = overall[KPISet.AVG_CONN_TIME] * overall[KPISet.SAMPLE_COUNT]
+    overall.sum_lt = overall[KPISet.AVG_LATENCY] * overall[KPISet.SAMPLE_COUNT]
+    cumul = point[DataPoint.CUMULATIVE].setdefault('', KPISet())
+    cumul.merge_kpis(overall)
+    cumul.recalculate()
+
+    point.recalculate()
+
+    overall[KPISet.AVG_RESP_TIME] = r(100)
+    overall[KPISet.AVG_CONN_TIME] = overall[KPISet.AVG_RESP_TIME] / 3.0
+    overall[KPISet.AVG_LATENCY] = 2.0 * overall[KPISet.AVG_RESP_TIME] / 3.0
+    return point
 
 
 class MockFileReader(FileReader):
