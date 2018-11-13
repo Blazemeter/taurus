@@ -23,6 +23,7 @@ import json
 import logging
 import math
 import os
+import pkgutil
 import re
 import shutil
 import sys
@@ -95,7 +96,7 @@ class Engine(object):
 
         self._http_client = None
 
-    def configure(self, user_configs, read_config_files=True):
+    def configure(self, user_configs, read_config_files=True, read_plugin_configs=True):
         """
         Load configuration files
         :type user_configs: list[str]
@@ -105,6 +106,9 @@ class Engine(object):
 
         if read_config_files:
             self._load_base_configs()
+
+        if read_plugin_configs:
+            self._load_plugin_configs()
 
         merged_config = self._load_user_configs(user_configs)
 
@@ -529,6 +533,34 @@ class Engine(object):
 
         self.log.debug("Base configs list: %s", base_configs)
         self.config.load(base_configs)
+
+    def _load_plugin_configs(self):
+        configs = []
+        for importer, modname, ispkg in pkgutil.iter_modules(path=None):
+            if not ispkg:
+                continue
+
+            index_path = os.path.join(importer.path, modname, 'bzt-configs.json')
+            if not os.path.exists(index_path):
+                continue
+
+            try:
+                with open(index_path, 'rb') as fds:
+                    index_configs = json.load(fds)
+            except (OSError, IOError, ValueError) as exc:
+                self.log.debug("Can't load plugin config %s: %s", index_path, exc)
+                continue
+
+            if not isinstance(index_configs, list):
+                self.log.debug("Error: value of bzt-configs.json should be a list (%s)" % index_path)
+                continue
+
+            for config_name in index_configs:
+                configs.append(os.path.join(importer.path, modname, config_name))
+
+        configs.sort(key=os.path.basename)
+        self.log.debug("Plugin configs list: %s", configs)
+        self.config.load(configs)
 
     def _load_user_configs(self, user_configs):
         """
