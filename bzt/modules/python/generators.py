@@ -26,7 +26,7 @@ import astunparse
 from bzt import TaurusConfigError, TaurusInternalException
 from bzt.engine import Scenario
 from bzt.requests_model import HTTPRequest
-from bzt.six import parse, string_types, iteritems, text_type
+from bzt.six import parse, string_types, iteritems, text_type, etree
 from bzt.utils import PythonGenerator, dehumanize_time, ensure_is_dict
 from .jmeter_functions import Base64DecodeFunction, UrlEncodeFunction, UuidFunction
 from .jmeter_functions import TimeFunction, RandomFunction, RandomStringFunction, Base64EncodeFunction
@@ -204,11 +204,11 @@ from selenium.webdriver.common.keys import Keys
 
 import apiritif
 from bzt.resources import selenium_taurus_extras
-    """
+"""
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
 
-    def __init__(self, scenario, parent_logger, wdlog, ignore_unknown_actions=False, generate_markers=None):
+    def __init__(self, scenario, parent_logger, wdlog, utils_file, ignore_unknown_actions=False, generate_markers=None):
         super(SeleniumScriptBuilder, self).__init__(scenario, parent_logger)
         self.label = ''
         self.webdriver_address = None
@@ -216,6 +216,7 @@ from bzt.resources import selenium_taurus_extras
         self.window_size = None
         self.wdlog = wdlog
         self.appium = False
+        self.utils_file = utils_file
         self.ignore_unknown_actions = ignore_unknown_actions
         self.generate_markers = generate_markers
 
@@ -273,6 +274,7 @@ from bzt.resources import selenium_taurus_extras
         self.root.append(self.add_imports())
         self.root.extend(self.gen_global_vars())
         self.root.append(test_class)
+        self.root.append(self.add_utilities())
 
     def _fill_test_method(self, req, test_method):
         if req.label:
@@ -341,6 +343,13 @@ from bzt.resources import selenium_taurus_extras
         else:
             imports.text = self.IMPORTS_SELENIUM
         return imports
+
+    def add_utilities(self):
+        with open(self.utils_file) as fds:
+            utilities_source_lines = fds.read()
+        utils = etree.Element("utilities")
+        utils.text = "\n" + utilities_source_lines
+        return utils
 
     def gen_global_vars(self):
         variables = self.scenario.get("variables")
@@ -717,7 +726,8 @@ from bzt.resources import selenium_taurus_extras
         elif atype == 'screenshot':
             if selector:
                 filename = selector
-                action_elements.append(self.gen_statement('self.driver.save_screenshot(%r)' % filename, indent=indent))
+                action_elements.append(self.gen_statement('self.driver.save_screenshot(_tpl.apply(%r))' % filename,
+                                                          indent=indent))
             else:
                 filename = "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), " \
                            "'screenshot-%d.png' % (time() * 1000))"
