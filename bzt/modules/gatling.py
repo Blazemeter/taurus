@@ -558,39 +558,6 @@ class DataLogReader(ResultsReader):
         self.guessed_gatling_version = None
         self._group_errors = defaultdict(lambda: defaultdict(set))
 
-    def _extract_log_gatling_3(self, fields):
-        """
-        Extract stats from Gatling 2.2 format
-        :param fields:
-        :return:
-        """
-        # 0 ${RequestRecordHeader.value}
-        # 1 $scenario
-        # 2 $userId
-        # 3 ${serializeGroups(groupHierarchy)}
-        # 4 $label
-        # 5 $startTimestamp
-        # 6 $endTimestamp
-        # 7 $status
-        # [8] ${serializeMessage(message)}${serializeExtraInfo(extraInfo)}
-
-        if fields[0].strip() == "USER":
-            user_id = fields[2]
-            if fields[3].strip() == "START":
-                self.concurrency += 1
-                self._group_errors[user_id].clear()
-            elif fields[3].strip() == "END":
-                self.concurrency -= 1
-                self._group_errors.pop(user_id)
-
-        if fields[0].strip() == "GROUP":
-            return self.__parse_group(fields)
-        elif fields[0].strip() == "REQUEST":
-            fields.insert(1, 'Taurus Scenario')
-            return self.__parse_request(fields)
-        else:
-            return None
-
     def _extract_log_gatling_21(self, fields):
         """
         Extract stats from Gatling 2.1 format.
@@ -736,9 +703,7 @@ class DataLogReader(ResultsReader):
         if self.guessed_gatling_version is None:
             self.guessed_gatling_version = self._guess_gatling_version(fields)
 
-        elif self.guessed_gatling_version == "3.0.0":
-            return self._extract_log_gatling_3(fields)
-        elif self.guessed_gatling_version == "2.1":
+        if self.guessed_gatling_version == "2.1":
             return self._extract_log_gatling_21(fields)
         elif self.guessed_gatling_version in ["2.2+", "3.X"]:
             return self._extract_log_gatling_22(fields)
