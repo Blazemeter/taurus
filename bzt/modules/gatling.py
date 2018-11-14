@@ -29,7 +29,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types
-from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR
+from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
@@ -238,9 +238,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.stdout_file = None
         self.stderr_file = None
         self.simulation_started = False
-        self.dir_prefix = "taurussimulation-%s" % id(self)
+        self.dir_prefix = "gatling-%s" % id(self)
         self.launcher = None
         self.tool = None
+        self.java_params = BetterDict()
 
     def __build_launcher(self):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
@@ -366,8 +367,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         else:
             simulation_folder = self.script
 
+        cmdline = self.__get_cmdline(simulation_folder)
         self.__set_env()
-        self.process = self.execute(self.__get_cmdline(simulation_folder),
+        self.process = self.execute(cmdline,
                                     stdout=self.stdout_file,
                                     stderr=self.stderr_file)
 
@@ -383,24 +385,24 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         cmdline = [self.launcher]
 
         if LooseVersion(self.tool.version) < LooseVersion("3"):
-            feeders_opt = "-df"
-            cmdline += ["-on", self.dir_prefix, "-m"]
-        else:
-            feeders_opt = "-rsf"
+            cmdline += ["-m"]   # default for 3.0.0
 
-        cmdline += [feeders_opt, data_dir, "-rf", data_dir]
+        self.java_params['gatling.core.outputDirectoryBaseName'] = self.dir_prefix
+        self.java_params['gatling.core.directory.resources'] = data_dir
+        self.java_params['gatling.core.directory.results'] = data_dir
 
         if simulation_folder:
-            cmdline += ["-sf", simulation_folder]
+            self.java_params['gatling.core.directory.simulations'] = simulation_folder
 
         if simulation:
-            cmdline += ["-s", simulation]
+            self.java_params['gatling.core.simulationClass'] = simulation
 
         return cmdline
 
     def __set_params_for_scala(self):
         scenario = self.get_scenario()
-        params = self.settings.get('properties')
+        params = self.java_params
+        params.merge(self.settings.get('properties'))
         params.merge(scenario.get("properties"))
         load = self.get_load()
 
@@ -733,7 +735,9 @@ class DataLogReader(ResultsReader):
         if self.guessed_gatling_version is None:
             self.guessed_gatling_version = self._guess_gatling_version(fields)
 
-        if self.guessed_gatling_version == "2.1":
+        elif self.guessed_gatling_version == "3.0.0":
+            return self._extract_log_gatling_3(fields)
+        elif self.guessed_gatling_version == "2.1":
             return self._extract_log_gatling_21(fields)
         elif self.guessed_gatling_version == "2.2+":
             return self._extract_log_gatling_22(fields)
