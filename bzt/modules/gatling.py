@@ -238,9 +238,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.stdout_file = None
         self.stderr_file = None
         self.simulation_started = False
-        self.dir_prefix = "taurussimulation-%s" % id(self)
+        self.dir_prefix = "gatling-%s" % id(self)
         self.launcher = None
         self.tool = None
+        self.java_params = BetterDict()
 
     def __build_launcher(self):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
@@ -735,7 +736,9 @@ class DataLogReader(ResultsReader):
         if self.guessed_gatling_version is None:
             self.guessed_gatling_version = self._guess_gatling_version(fields)
 
-        if self.guessed_gatling_version == "2.1":
+        elif self.guessed_gatling_version == "3.0.0":
+            return self._extract_log_gatling_3(fields)
+        elif self.guessed_gatling_version == "2.1":
             return self._extract_log_gatling_21(fields)
         elif self.guessed_gatling_version in ["2.2+", "3.X"]:
             return self._extract_log_gatling_22(fields)
