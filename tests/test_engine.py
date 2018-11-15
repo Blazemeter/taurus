@@ -194,15 +194,16 @@ class TestEngine(BZTestCase):
 
     def test_autodetect_plugin_configs(self):
         self.sniff_log(self.obj.log)
-        sys.path.append(RESOURCES_DIR)
+        sys.path.append(RESOURCES_DIR + "plugins")
         try:
             configs = [
-                RESOURCES_DIR + "bzt_plugin_dummy/demo.yml",
+                RESOURCES_DIR + "plugins/bzt_plugin_dummy/demo.yml",
             ]
             self.obj.configure(configs, read_plugin_configs=True)
+            self.obj.prepare()
             self.assertEqual({'class': 'bzt_plugin_dummy.dummy.DummyExecutor'}, self.obj.config['modules']['dummy'])
         finally:
-            sys.path.remove(RESOURCES_DIR)
+            sys.path.remove(RESOURCES_DIR + "plugins")
 
 
 class TestScenarioExecutor(ExecutorTestCase):
