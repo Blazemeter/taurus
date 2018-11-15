@@ -96,7 +96,7 @@ class Engine(object):
 
         self._http_client = None
 
-    def configure(self, user_configs, read_config_files=True, read_plugin_configs=True):
+    def configure(self, user_configs, read_config_files=True):
         """
         Load configuration files
         :type user_configs: list[str]
@@ -105,10 +105,7 @@ class Engine(object):
         self.log.info("Configuring...")
 
         if read_config_files:
-            self._load_base_configs()
-
-        if read_plugin_configs:
-            self._load_plugin_configs()
+            self._load_extension_configs()
 
         merged_config = self._load_user_configs(user_configs)
 
@@ -519,22 +516,7 @@ class Engine(object):
         self.log.warning("Could not find location at path: %s", filename)
         return filename
 
-    def _load_base_configs(self):
-        base_configs = [os.path.join(RESOURCES_DIR, 'base-config.yml')]
-        machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
-        if os.path.isdir(machine_dir):
-            self.log.debug("Reading extension configs from: %s", machine_dir)
-            for cfile in sorted(os.listdir(machine_dir)):
-                fname = os.path.join(machine_dir, cfile)
-                if os.path.isfile(fname):
-                    base_configs.append(fname)
-        else:
-            self.log.debug("No machine configs dir: %s", machine_dir)
-
-        self.log.debug("Base configs list: %s", base_configs)
-        self.config.load(base_configs)
-
-    def _load_plugin_configs(self):
+    def _load_extension_configs(self):
         configs = []
         for importer, modname, ispkg in pkgutil.iter_modules(path=None):
             if not ispkg:
@@ -548,7 +530,7 @@ class Engine(object):
                 with codecs.open(index_path, 'rb', encoding='utf-8') as fds:
                     index_configs = json.load(fds)
             except (OSError, IOError, ValueError) as exc:
-                self.log.debug("Can't load plugin config %s: %s", index_path, exc)
+                self.log.debug("Can't load extension config %s: %s", index_path, exc)
                 continue
 
             if not isinstance(index_configs, list):
@@ -559,7 +541,7 @@ class Engine(object):
                 configs.append(os.path.join(importer.path, modname, config_name))
 
         configs.sort(key=os.path.basename)
-        self.log.debug("Plugin configs list: %s", configs)
+        self.log.debug("Extension configs list: %s", configs)
         self.config.load(configs)
 
     def _load_user_configs(self, user_configs):

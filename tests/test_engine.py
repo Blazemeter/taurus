@@ -199,7 +199,7 @@ class TestEngine(BZTestCase):
             configs = [
                 RESOURCES_DIR + "plugins/bzt_plugin_dummy/demo.yml",
             ]
-            self.obj.configure(configs, read_plugin_configs=True)
+            self.obj.configure(configs, read_config_files=True)
             self.obj.prepare()
             self.assertEqual({'class': 'bzt_plugin_dummy.dummy.DummyExecutor'}, self.obj.config['modules']['dummy'])
         finally:
