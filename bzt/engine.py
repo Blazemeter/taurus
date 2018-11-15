@@ -545,7 +545,7 @@ class Engine(object):
                 continue
 
             try:
-                with open(index_path, 'rb') as fds:
+                with codecs.open(index_path, 'rb', encoding='utf-8') as fds:
                     index_configs = json.load(fds)
             except (OSError, IOError, ValueError) as exc:
                 self.log.debug("Can't load plugin config %s: %s", index_path, exc)
