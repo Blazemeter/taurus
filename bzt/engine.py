@@ -298,8 +298,7 @@ class Engine(object):
         :return:
         """
         self.log.info("Shutting down...")
-        if self.stopping_reason:
-            self.log.debug("Current stop reason: %s", self.stopping_reason)
+        self.log.debug("Current stop reason: %s", self.stopping_reason)
         exc_info = exc_value = None
         modules = [self.provisioning, self.aggregator] + self.reporters + self.services  # order matters
         for module in modules:
