@@ -8,4 +8,4 @@ else (
   set GATLING_PATH=%~dp0
 )
 
-python %GATLING_PATH%/galing-fake.py %*
+python -u %GATLING_PATH%/galing-fake.py %*

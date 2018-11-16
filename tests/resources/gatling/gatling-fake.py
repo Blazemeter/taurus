@@ -1,6 +1,4 @@
 import os
-import sys
-sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)     # turn buffering off
 print("Fake gatling output")
 print("dir:")
 print(os.path.abspath(os.curdir))
