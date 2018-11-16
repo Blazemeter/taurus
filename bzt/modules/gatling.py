@@ -630,8 +630,9 @@ class DataLogReader(ResultsReader):
         if fields[0].strip() == "GROUP":
             return self.__parse_group(fields)
         elif fields[0].strip() == "REQUEST":
-            if self.guessed_gatling_version == "3.X":
-                fields.insert(1, 'Taurus Scenario')
+            del fields[0]
+            if self.guessed_gatling_version != "3.X":
+                del fields[0]
             return self.__parse_request(fields)
         else:
             return None
@@ -663,24 +664,24 @@ class DataLogReader(ResultsReader):
     def __parse_request(self, fields):
         # see LogFileDataWriter.ResponseMessageSerializer in gatling-core
 
-        if len(fields) >= 9 and fields[8]:
-            error = fields[8]
+        if len(fields) >= 7 and fields[6]:
+            error = fields[6]
         else:
             error = None
 
-        req_hierarchy = fields[3].split(',')[0]
+        req_hierarchy = fields[1].split(',')[0]
         if req_hierarchy:
-            user_id = fields[2]
+            user_id = fields[0]
             if error:
                 self._group_errors[user_id][req_hierarchy].add(error)
             return None
 
-        label = fields[4]
-        t_stamp = int(fields[6]) / 1000.0
-        r_time = (int(fields[6]) - int(fields[5])) / 1000.0
+        label = fields[2]
+        t_stamp = int(fields[4]) / 1000.0
+        r_time = (int(fields[4]) - int(fields[3])) / 1000.0
         latency = 0.0
         con_time = 0.0
-        if fields[7] == 'OK':
+        if fields[5] == 'OK':
             r_code = '200'
         else:
             _tmp_rc = fields[-1].split(" ")[-1]
