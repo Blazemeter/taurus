@@ -95,7 +95,8 @@ class Template:
     def apply(self, template):
         self.tmpl.template = template
         self.tmpl.variables = self.variables
-        return str(self.tmpl)
+        string = b''.decode() + self.tmpl.template  # cute hack to force 'string' to be unicode
+        return string
 
     @staticmethod
     def str_repr(text):
