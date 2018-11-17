@@ -1,0 +1,17 @@
+execution:
+  iteration: 1
+  #executor: mock
+  scenario:
+    requests:
+    - http://blazedemo.com
+
+services:
+- module: shellexec
+  startup:
+  - wrong_cmd
+
+modules:
+  shellexec:
+    class: bzt.modules.shellexec.ShellExecutor
+  mock:
+    class: mock
