@@ -1,5 +1,6 @@
 """ unit test """
 import os
+import sys
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, Configuration
@@ -190,6 +191,19 @@ class TestEngine(BZTestCase):
         self.assertEquals(2, len(self.obj.reporters))
         self.assertEquals("mock", self.obj.reporters[0].parameters['run-at'])
         self.assertEquals(None, self.obj.reporters[1].parameters['run-at'])
+
+    def test_autodetect_plugin_configs(self):
+        self.sniff_log(self.obj.log)
+        sys.path.append(RESOURCES_DIR + "plugins")
+        try:
+            configs = [
+                RESOURCES_DIR + "plugins/bzt_plugin_dummy/demo.yml",
+            ]
+            self.obj.configure(configs, read_config_files=True)
+            self.obj.prepare()
+            self.assertEqual({'class': 'bzt_plugin_dummy.dummy.DummyExecutor'}, self.obj.config['modules']['dummy'])
+        finally:
+            sys.path.remove(RESOURCES_DIR + "plugins")
 
 
 class TestScenarioExecutor(ExecutorTestCase):

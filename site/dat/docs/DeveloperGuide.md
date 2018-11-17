@@ -53,6 +53,37 @@ Restart Apache webserver
 ```
 Open [http://localhost:8002](http://localhost:8002) in your browser, you should see our website.
 
+# Developing Taurus Extensions
+
+Taurus is an extensible project. You can develop additional modules for it (executors, services, reporters)
+in a completely separate codebase. See `bzt/resources/base-config.yml` to get a feeling of how Taurus
+loads all its components.
+
+Additionally, Taurus has a mechanism for automatically detecting configuration files for Taurus plugins.
+Here's the conditions:
+1. Your plugin has to be a Python package installed with the same Python that you're using to run Taurus.
+1. You plugin has to have a `bzt-configs.json` file in the project dir (right next to `__init__.py`).
+1. In this file should be a JSON list of configuration file names that your project uses to define Taurus modules.
+
+For example, you are developing a Taurus extension with the following structure:
+
+```
+bzt_plugin_hello
+├── __init__.py  # package init file, standard for Python
+├── hello.py  # your plugin module, contains class HelloService
+├── 10-hello.yml  # configuration file, analogous to base-config.yml
+├── bzt-configs.json  # configuration index
+```
+
+Contents of `bzt-configs.json` should be `["10-hello.yml"]`.
+
+Contents of `10-hello.yml`:
+```yaml
+modules:
+  hello:
+    class: bzt_plugin_hello.hello.HelloService
+```
+
 # Python Egg Snapshots
 
 Download and install it like this:
