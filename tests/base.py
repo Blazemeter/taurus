@@ -19,7 +19,7 @@ os.chdir(root_dir)
 RESOURCES_DIR = os.path.join(__dir__(), 'resources') + os.path.sep
 BUILD_DIR = __dir__() + "/../build/tmp/"
 TEST_DIR = __dir__() + "/../build/test/"
-BASE_CONFIG = __dir__() + "/../bzt/resources/base-config.yml"
+BASE_CONFIG = __dir__() + "/../bzt/resources/10-base-config.yml"
 
 from bzt.cli import CLI
 from bzt.utils import EXE_SUFFIX, run_once
