@@ -241,7 +241,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.dir_prefix = "gatling-%s" % id(self)
         self.launcher = None
         self.tool = None
-        self.java_params = BetterDict()
 
     def __build_launcher(self):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
@@ -347,96 +346,92 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             source_path = self.engine.find_file(source["path"])
             self.engine.existing_artifact(source_path)
 
-    def startup(self):
-        """
-        Should start the tool as fast as possible.
-        """
+    def _set_files(self):
         self.start_time = time.time()
         out = self.engine.create_artifact("gatling-stdout", ".log")
         err = self.engine.create_artifact("gatling-stderr", ".log")
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
+    def _set_simulation_props(self, props):
         if os.path.isfile(self.script):
             if self.script.endswith('.jar'):
                 self.env.add_path({"JAVA_CLASSPATH": self.script})
                 self.env.add_path({"COMPILATION_CLASSPATH": self.script})
-                simulation_folder = None
             else:
-                simulation_folder = get_full_path(self.script, step_up=1)
+                props['gatling.core.directory.simulations'] = get_full_path(self.script, step_up=1)
         else:
-            simulation_folder = self.script
+            props['gatling.core.directory.simulations'] = self.script
 
-        cmdline = self.__get_cmdline(simulation_folder)
-        self.__set_env()
-        self.process = self.execute(cmdline,
-                                    stdout=self.stdout_file,
-                                    stderr=self.stderr_file)
-
-    def __set_env(self):
-        self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
-        self.__set_params_for_scala()
-        self.env.set({"NO_PAUSE": "TRUE"})
-
-    def __get_cmdline(self, simulation_folder):
         simulation = self.get_scenario().get("simulation")
-        data_dir = self.engine.artifacts_dir
+        if simulation:
+            props['gatling.core.simulationClass'] = simulation
 
+    def _set_load_props(self, props):
+        load = self.get_load()
+        if load.concurrency is not None:
+            props['concurrency'] = load.concurrency
+        if load.ramp_up is not None:
+            props['ramp-up'] = int(load.ramp_up)
+        if load.hold is not None:
+            props['hold-for'] = int(load.hold)
+        if load.iterations is not None and load.iterations != 0:
+            props['iterations'] = int(load.iterations)
+        if load.throughput:
+            if load.duration:
+                props['throughput'] = load.throughput
+            else:
+                self.log.warning("You should set up 'ramp-up' and/or 'hold-for' for usage of 'throughput'")
+
+    def _set_scenario_props(self, props):
+        scenario = self.get_scenario()
+        timeout = scenario.get('timeout', None)
+        if timeout is not None:
+            props['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
+
+        if scenario.get('keepalive', True):
+            # gatling <= 2.2.0
+            props['gatling.http.ahc.allowPoolingConnections'] = 'true'
+            props['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
+            # gatling > 2.2.0
+            props['gatling.http.ahc.keepAlive'] = 'true'
+        else:
+            # gatling <= 2.2.0
+            props['gatling.http.ahc.allowPoolingConnections'] = 'false'
+            props['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
+            # gatling > 2.2.0
+            props['gatling.http.ahc.keepAlive'] = 'false'
+
+    def _set_env(self):
+        props = BetterDict()
+        props.merge(self.settings.get('properties'))
+        props.merge(self.get_scenario().get("properties"))
+
+        props['gatling.core.outputDirectoryBaseName'] = self.dir_prefix
+        props['gatling.core.directory.resources'] = self.engine.artifacts_dir
+        props['gatling.core.directory.results'] = self.engine.artifacts_dir
+
+        self._set_simulation_props(props)
+        self._set_load_props(props)
+        self._set_scenario_props(props)
+
+        self.env.set({"NO_PAUSE": "TRUE"})
+        self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
+        for key in props:
+            self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
+
+    def startup(self):
+        self._set_files()
+        self._set_env()
+        self.process = self.execute(self._get_cmdline(), stdout=self.stdout_file, stderr=self.stderr_file)
+
+    def _get_cmdline(self):
         cmdline = [self.launcher]
 
         if LooseVersion(self.tool.version) < LooseVersion("3"):
             cmdline += ["-m"]   # default for 3.0.0
 
-        self.java_params['gatling.core.outputDirectoryBaseName'] = self.dir_prefix
-        self.java_params['gatling.core.directory.resources'] = data_dir
-        self.java_params['gatling.core.directory.results'] = data_dir
-
-        if simulation_folder:
-            self.java_params['gatling.core.directory.simulations'] = simulation_folder
-
-        if simulation:
-            self.java_params['gatling.core.simulationClass'] = simulation
-
         return cmdline
-
-    def __set_params_for_scala(self):
-        scenario = self.get_scenario()
-        params = self.java_params
-        params.merge(self.settings.get('properties'))
-        params.merge(scenario.get("properties"))
-        load = self.get_load()
-
-        timeout = scenario.get('timeout', None)
-        if timeout is not None:
-            params['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
-        if scenario.get('keepalive', True):
-            # gatling <= 2.2.0
-            params['gatling.http.ahc.allowPoolingConnections'] = 'true'
-            params['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
-            # gatling > 2.2.0
-            params['gatling.http.ahc.keepAlive'] = 'true'
-        else:
-            # gatling <= 2.2.0
-            params['gatling.http.ahc.allowPoolingConnections'] = 'false'
-            params['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
-            # gatling > 2.2.0
-            params['gatling.http.ahc.keepAlive'] = 'false'
-        if load.concurrency is not None:
-            params['concurrency'] = load.concurrency
-        if load.ramp_up is not None:
-            params['ramp-up'] = int(load.ramp_up)
-        if load.hold is not None:
-            params['hold-for'] = int(load.hold)
-        if load.iterations is not None and load.iterations != 0:
-            params['iterations'] = int(load.iterations)
-        if load.throughput:
-            if load.duration:
-                params['throughput'] = load.throughput
-            else:
-                self.log.warning("You should set up 'ramp-up' and/or 'hold-for' for usage of 'throughput'")
-
-        for key in params:
-            self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, params[key])})
 
     def check(self):
         """
