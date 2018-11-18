@@ -241,7 +241,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.dir_prefix = "gatling-%s" % id(self)
         self.launcher = None
         self.tool = None
-        self.java_params = BetterDict()
 
     def __build_launcher(self):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
