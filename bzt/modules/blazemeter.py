@@ -1707,6 +1707,7 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                                 break
                         if reason is None:
                             reason = "Cloud tests failed because failure criteria were met"
+                        self.log.warning(reason)
                         raise AutomatedShutdown(reason)
 
             # if we have captured HARs, let's download them
