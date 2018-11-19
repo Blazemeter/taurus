@@ -62,6 +62,11 @@ class GatlingScriptBuilder(object):
 
         http_str = '("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
 
+        if self.scenario.get("retrieve-resources", False):
+            regex = self.scenario.get("retrieve-resources-regex")
+            params = 'BlackList(), WhiteList("""%s""")' % regex if regex else ""
+            http_str += self.indent(".inferHtmlResources(%s)\n" % params, level=2)
+
         if not self.scenario.get('store-cache', True):
             http_str += self.indent('.disableCaching\n', level=2)
 
