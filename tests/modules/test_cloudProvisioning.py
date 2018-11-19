@@ -1743,6 +1743,28 @@ class TestCloudProvisioning(BZTestCase):
         except AutomatedShutdown as exc:
             self.fail("Raised automated shutdown %s" % exc)
 
+    def test_cloud_failure_criteria_default_reason(self):
+        self.configure(
+            engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}},
+            get={
+                'https://a.blazemeter.com/api/v4/masters/1/status': {"result": {"id": 1, "progress": 100}},
+                'https://a.blazemeter.com/api/v4/masters/1/sessions': {"result": []},
+                'https://a.blazemeter.com/api/v4/masters/1/full': {"result": {"hasThresholds": True}},
+                'https://a.blazemeter.com/api/v4/masters/1/reports/thresholds?external=false&source=default': {
+                    "result": {"data": [{"success": True, "assertions": []}]}
+                },
+            },
+        )
+
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.check()
+        self.obj.shutdown()
+        try:
+            self.obj.post_process()
+        except AutomatedShutdown as exc:
+            self.fail("Raised automated shutdown %s" % exc)
+
 
 class TestResultsFromBZA(BZTestCase):
     @staticmethod
