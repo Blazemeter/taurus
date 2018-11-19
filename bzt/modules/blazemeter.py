@@ -1694,6 +1694,21 @@ class CloudProvisioning(MasterProvisioning, WidgetProvider):
                 for error in session.get("errors", ()):
                     raise TaurusException(to_json(error))
 
+            if "hasThresholds" in full and full["hasThresholds"]:
+                thresholds = self.router.master.get_thresholds()
+                for item in thresholds.get('data', []):
+                    if item.get('success', None) is False:
+                        reason = None
+                        for assertion in item.get('assertions', []):
+                            if assertion.get('success', None) is False:
+                                criterion = assertion.get('field', '')
+                                label = assertion.get('label', '')
+                                reason = "Cloud failure criterion %r (on label %r) was met" % (criterion, label)
+                                break
+                        if reason is None:
+                            reason = "Cloud tests failed because failure criteria were met"
+                        raise AutomatedShutdown(reason)
+
             # if we have captured HARs, let's download them
             for service in self.engine.config.get(Service.SERV, []):
                 mod = service.get('module', TaurusConfigError("No 'module' specified for service"))

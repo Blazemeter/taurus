@@ -610,6 +610,10 @@ class Master(BZAObject):
         url = self.address + "/api/v4/masters/%s/full" % self['id']
         return self._request(url)['result']
 
+    def get_thresholds(self):
+        url = self.address + "/api/v4/masters/%s/reports/thresholds?external=false&source=default" % self['id']
+        return self._request(url)['result']
+
     def get_functional_report_groups(self):
         url = self.address + "/api/v4/masters/%s/reports/functional/groups" % self['id']
         return self._request(url)['result']
