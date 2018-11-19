@@ -1,5 +1,6 @@
 # coding=utf-8
 import os
+import sys
 import shutil
 import time
 
@@ -19,6 +20,7 @@ class TestGatlingExecutor(ExecutorTestCase):
         super(TestGatlingExecutor, self).setUp()
         path = os.path.abspath(RESOURCES_DIR + "gatling/gatling" + EXE_SUFFIX)
         self.obj.settings.merge({"path": path})
+        self.obj.env.add_path({"PATH": os.path.dirname(sys.executable)})
 
     def tearDown(self):
         if self.obj.stdout_file:
