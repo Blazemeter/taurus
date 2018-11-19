@@ -520,27 +520,34 @@ class Engine(object):
     def _load_extension_configs(self):
         configs = []
         for importer, modname, ispkg in pkgutil.iter_modules(path=None):
-            if not ispkg:
-                continue
-
-            index_path = os.path.join(importer.path, modname, 'bzt-configs.json')
-            if not os.path.exists(index_path):
-                continue
-
             try:
-                with codecs.open(index_path, 'rb', encoding='utf-8') as fds:
-                    index_configs = json.load(fds)
-            except (OSError, IOError, ValueError) as exc:
-                self.log.debug("Can't load extension config %s: %s", index_path, exc)
-                continue
+                if not ispkg:
+                    continue
 
-            if not isinstance(index_configs, list):
-                self.log.debug("Error: value of bzt-configs.json should be a list (%s)" % index_path)
-                continue
+                package_path = getattr(importer, 'path', None)
+                if package_path is None:
+                    continue
 
-            for config_name in index_configs:
-                configs.append(os.path.join(importer.path, modname, config_name))
+                index_path = os.path.join(package_path, modname, 'bzt-configs.json')
+                if not os.path.exists(index_path):
+                    continue
 
+                try:
+                    with codecs.open(index_path, 'rb', encoding='utf-8') as fds:
+                        index_configs = json.load(fds)
+                except (OSError, IOError, ValueError) as exc:
+                    self.log.debug("Can't load extension config %s: %s", index_path, exc)
+                    continue
+
+                if not isinstance(index_configs, list):
+                    self.log.debug("Error: value of bzt-configs.json should be a list (%s)" % index_path)
+                    continue
+
+                for config_name in index_configs:
+                    configs.append(os.path.join(importer.path, modname, config_name))
+            except BaseException as exc:
+                self.log.warning("Can't look extension configs from package %r: %s", modname, str(exc))
+                self.log.debug("Traceback: %s", traceback.format_exc())
         configs.sort(key=os.path.basename)
         self.log.debug("Extension configs list: %s", configs)
         self.config.load(configs)
