@@ -420,6 +420,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         for key in props:
             self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
 
+        self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
+
     def startup(self):
         self._set_files()
         self._set_env()
