@@ -40,13 +40,13 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
+from bzt import ManualShutdown, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestParser
 from bzt.six import numeric_types
 from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
-from bzt.utils import str_representer, Environment, RequiredTool, RESOURCES_DIR
+from bzt.utils import str_representer, Environment, RequiredTool
 
 TAURUS_ARTIFACTS_DIR = "TAURUS_ARTIFACTS_DIR"
 
@@ -1051,7 +1051,6 @@ class ScenarioExecutor(EngineModule):
         assert isinstance(instance, RequiredTool)
 
         return instance
-
 
     def has_results(self):
         if self.reader and self.reader.buffer:

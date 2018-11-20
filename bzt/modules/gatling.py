@@ -21,6 +21,7 @@ import re
 import subprocess
 import time
 from collections import defaultdict
+from distutils.version import LooseVersion
 
 from bzt import TaurusConfigError, ToolError
 from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallableTools, SelfDiagnosable
@@ -28,17 +29,21 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types
-from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR
+from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
 
 
 class GatlingScriptBuilder(object):
-    def __init__(self, load, scenario, parent_logger, class_name):
+    def __init__(self, load, scenario, parent_logger, class_name, gatling_version=None):
         super(GatlingScriptBuilder, self).__init__()
         self.log = parent_logger.getChild(self.__class__.__name__)
         self.load = load
         self.scenario = scenario
         self.class_name = class_name
+        if gatling_version is None:
+            self.gatling_version = Gatling.VERSION
+        else:
+            self.gatling_version = gatling_version
 
     # add prefix 'http://' if user forgot it
     @staticmethod
@@ -55,7 +60,7 @@ class GatlingScriptBuilder(object):
     def _get_http(self):
         default_address = self.scenario.get("default-address", "")
 
-        http_str = 'http.baseURL("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
+        http_str = '("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
 
         if not self.scenario.get('store-cache', True):
             http_str += self.indent('.disableCaching\n', level=2)
@@ -200,7 +205,11 @@ class GatlingScriptBuilder(object):
         return feeds
 
     def gen_test_case(self):
-        template_path = os.path.join(RESOURCES_DIR, "gatling_script.tpl")
+        if LooseVersion(self.gatling_version) < LooseVersion("3"):
+            version = 2
+        else:
+            version = 3
+        template_path = os.path.join(RESOURCES_DIR, ("gatling_%s_script.tpl" % version))
 
         with open(template_path) as template_file:
             template_line = template_file.read()
@@ -231,6 +240,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.simulation_started = False
         self.dir_prefix = "gatling-%s" % id(self)
         self.launcher = None
+        self.tool = None
 
     def __build_launcher(self):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
@@ -324,7 +334,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     def __generate_script(self):
         simulation = "TaurusSimulation_%s" % id(self)
         file_name = self.engine.create_artifact(simulation, ".scala")
-        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation)
+        gen_script = GatlingScriptBuilder(self.get_load(), self.get_scenario(), self.log, simulation, self.tool.version)
         with codecs.open(file_name, 'w', encoding='utf-8') as script:
             script.write(gen_script.gen_test_case())
 
@@ -336,89 +346,94 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             source_path = self.engine.find_file(source["path"])
             self.engine.existing_artifact(source_path)
 
-    def startup(self):
-        """
-        Should start the tool as fast as possible.
-        """
+    def _set_files(self):
         self.start_time = time.time()
         out = self.engine.create_artifact("gatling-stdout", ".log")
         err = self.engine.create_artifact("gatling-stderr", ".log")
         self.stdout_file = open(out, "w")
         self.stderr_file = open(err, "w")
 
+    def _set_simulation_props(self, props):
         if os.path.isfile(self.script):
             if self.script.endswith('.jar'):
                 self.env.add_path({"JAVA_CLASSPATH": self.script})
                 self.env.add_path({"COMPILATION_CLASSPATH": self.script})
-                simulation_folder = None
             else:
-                simulation_folder = get_full_path(self.script, step_up=1)
+                props['gatling.core.directory.simulations'] = get_full_path(self.script, step_up=1)
         else:
-            simulation_folder = self.script
+            props['gatling.core.directory.simulations'] = self.script
 
-        self.__set_env()
-        self.process = self.execute(self.__get_cmdline(simulation_folder),
-                                    stdout=self.stdout_file,
-                                    stderr=self.stderr_file)
-
-    def __set_env(self):
-        self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
-        self.__set_params_for_scala()
-        self.env.set({"NO_PAUSE": "TRUE"})
-
-    def __get_cmdline(self, simulation_folder):
         simulation = self.get_scenario().get("simulation")
-        data_dir = self.engine.artifacts_dir
-
-        cmdline = [self.launcher]
-        cmdline += ["-df", data_dir, "-rf", data_dir]
-        cmdline += ["-on", self.dir_prefix, "-m"]
-
-        if simulation_folder:
-            cmdline += ["-sf", simulation_folder]
-
         if simulation:
-            cmdline += ["-s", simulation]
+            props['gatling.core.simulationClass'] = simulation
 
-        return cmdline
-
-    def __set_params_for_scala(self):
-        scenario = self.get_scenario()
-        params = self.settings.get('properties')
-        params.merge(scenario.get("properties"))
+    def _set_load_props(self, props):
         load = self.get_load()
-
-        timeout = scenario.get('timeout', None)
-        if timeout is not None:
-            params['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
-        if scenario.get('keepalive', True):
-            # gatling <= 2.2.0
-            params['gatling.http.ahc.allowPoolingConnections'] = 'true'
-            params['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
-            # gatling > 2.2.0
-            params['gatling.http.ahc.keepAlive'] = 'true'
-        else:
-            # gatling <= 2.2.0
-            params['gatling.http.ahc.allowPoolingConnections'] = 'false'
-            params['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
-            # gatling > 2.2.0
-            params['gatling.http.ahc.keepAlive'] = 'false'
         if load.concurrency is not None:
-            params['concurrency'] = load.concurrency
+            props['concurrency'] = load.concurrency
         if load.ramp_up is not None:
-            params['ramp-up'] = int(load.ramp_up)
+            props['ramp-up'] = int(load.ramp_up)
         if load.hold is not None:
-            params['hold-for'] = int(load.hold)
+            props['hold-for'] = int(load.hold)
         if load.iterations is not None and load.iterations != 0:
-            params['iterations'] = int(load.iterations)
+            props['iterations'] = int(load.iterations)
         if load.throughput:
             if load.duration:
-                params['throughput'] = load.throughput
+                props['throughput'] = load.throughput
             else:
                 self.log.warning("You should set up 'ramp-up' and/or 'hold-for' for usage of 'throughput'")
 
-        for key in params:
-            self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, params[key])})
+    def _set_scenario_props(self, props):
+        scenario = self.get_scenario()
+        timeout = scenario.get('timeout', None)
+        if timeout is not None:
+            props['gatling.http.ahc.requestTimeout'] = int(dehumanize_time(timeout) * 1000)
+
+        if scenario.get('keepalive', True):
+            # gatling <= 2.2.0
+            props['gatling.http.ahc.allowPoolingConnections'] = 'true'
+            props['gatling.http.ahc.allowPoolingSslConnections'] = 'true'
+            # gatling > 2.2.0
+            props['gatling.http.ahc.keepAlive'] = 'true'
+        else:
+            # gatling <= 2.2.0
+            props['gatling.http.ahc.allowPoolingConnections'] = 'false'
+            props['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
+            # gatling > 2.2.0
+            props['gatling.http.ahc.keepAlive'] = 'false'
+
+    def _set_env(self):
+        props = BetterDict()
+        props.merge(self.settings.get('properties'))
+        props.merge(self.get_scenario().get("properties"))
+
+        props['gatling.core.outputDirectoryBaseName'] = self.dir_prefix
+        props['gatling.core.directory.resources'] = self.engine.artifacts_dir
+        props['gatling.core.directory.results'] = self.engine.artifacts_dir
+
+        self._set_simulation_props(props)
+        self._set_load_props(props)
+        self._set_scenario_props(props)
+
+        self.env.set({"NO_PAUSE": "TRUE"})
+        self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
+        for key in props:
+            self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
+
+        self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
+
+    def startup(self):
+        self._set_files()
+        self._set_env()
+        self.process = self.execute(self._get_cmdline(), stdout=self.stdout_file, stderr=self.stderr_file)
+
+    def _get_cmdline(self):
+        cmdline = [self.launcher]
+
+        if LooseVersion(self.tool.version) < LooseVersion("3"):
+            cmdline += ["-m"]   # default for 3.0.0
+
+        return cmdline
 
     def check(self):
         """
@@ -475,10 +490,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             self.engine.existing_artifact(self.reader.file.name)
 
     def install_required_tools(self):
-        gatling = self._get_tool(Gatling, config=self.settings)
-        self.settings["path"] = gatling.tool_path
+        self.tool = self._get_tool(Gatling, config=self.settings)
+        self.settings["path"] = self.tool.tool_path
 
-        required_tools = [self._get_tool(TclLibrary), self._get_tool(JavaVM), gatling]
+        required_tools = [self._get_tool(TclLibrary), self._get_tool(JavaVM), self.tool]
 
         for tool in required_tools:
             if not tool.check_if_installed():
@@ -612,6 +627,9 @@ class DataLogReader(ResultsReader):
         if fields[0].strip() == "GROUP":
             return self.__parse_group(fields)
         elif fields[0].strip() == "REQUEST":
+            del fields[0]
+            if self.guessed_gatling_version != "3.X":
+                del fields[0]
             return self.__parse_request(fields)
         else:
             return None
@@ -643,24 +661,24 @@ class DataLogReader(ResultsReader):
     def __parse_request(self, fields):
         # see LogFileDataWriter.ResponseMessageSerializer in gatling-core
 
-        if len(fields) >= 9 and fields[8]:
-            error = fields[8]
+        if len(fields) >= 7 and fields[6]:
+            error = fields[6]
         else:
             error = None
 
-        req_hierarchy = fields[3].split(',')[0]
+        req_hierarchy = fields[1].split(',')[0]
         if req_hierarchy:
-            user_id = fields[2]
+            user_id = fields[0]
             if error:
                 self._group_errors[user_id][req_hierarchy].add(error)
             return None
 
-        label = fields[4]
-        t_stamp = int(fields[6]) / 1000.0
-        r_time = (int(fields[6]) - int(fields[5])) / 1000.0
+        label = fields[2]
+        t_stamp = int(fields[4]) / 1000.0
+        r_time = (int(fields[4]) - int(fields[3])) / 1000.0
         latency = 0.0
         con_time = 0.0
-        if fields[7] == 'OK':
+        if fields[5] == 'OK':
             r_code = '200'
         else:
             _tmp_rc = fields[-1].split(" ")[-1]
@@ -669,7 +687,9 @@ class DataLogReader(ResultsReader):
         return int(t_stamp), label, r_time, con_time, latency, r_code, error
 
     def _guess_gatling_version(self, fields):
-        if fields[0].strip() in ["USER", "REQUEST", "RUN"]:
+        if fields and fields[-1].strip().startswith("3"):
+            return "3.X"
+        elif fields[0].strip() in ["USER", "REQUEST", "RUN"]:
             self.log.debug("Parsing Gatling 2.2+ stats")
             return "2.2+"
         elif len(fields) >= 3 and fields[2].strip() in ["USER", "REQUEST", "RUN"]:
@@ -684,7 +704,7 @@ class DataLogReader(ResultsReader):
 
         if self.guessed_gatling_version == "2.1":
             return self._extract_log_gatling_21(fields)
-        elif self.guessed_gatling_version == "2.2+":
+        elif self.guessed_gatling_version in ["2.2+", "3.X"]:
             return self._extract_log_gatling_22(fields)
         else:
             return None
@@ -749,7 +769,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "2.3.0"
+    VERSION = "3.0.1"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):

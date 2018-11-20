@@ -147,7 +147,7 @@ scenarios:
  - `path`: Path to Gatling executable. In case no Gatling executable found, it will be automatically downloaded and installed into `path` location. By default `~/.bzt/gatling-taurus/{version}/bin/gatling.sh`.
  - `java-opts`: string with some java options for Gatling
  - `download-link`: Link to download Gatling from. By default: `https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip`
- -  `version`: Gatling version, `2.3.0` by default
+ -  `version`: Gatling version, `3.0.1` by default
  -  `dir-prefix`: Gatling report prefix, `gatling-%s` by default. Used by taurus to find gatling reports. If you use Gatling property `gatling.core.outputDirectoryBaseName`, you may use also this setting.
  - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling
  documentation) and sending your own variables into Scala program:
