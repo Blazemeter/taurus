@@ -550,6 +550,8 @@ class Engine(object):
                 self.log.debug("Traceback: %s", traceback.format_exc())
         configs.sort(key=os.path.basename)
         self.log.debug("Extension configs list: %s", configs)
+        if not configs:
+            self.log.warning("No base configs were discovered")
         self.config.load(configs)
 
     def _load_user_configs(self, user_configs):
