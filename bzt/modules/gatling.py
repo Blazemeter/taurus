@@ -61,14 +61,6 @@ class GatlingScriptBuilder(object):
         default_address = self.scenario.get("default-address", "")
 
         http_str = '("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
-<<<<<<< HEAD
-=======
-
-        if self.scenario.get("retrieve-resources", False):
-            regex = self.scenario.get("retrieve-resources-regex")
-            params = 'BlackList(), WhiteList("""%s""")' % regex if regex else ""
-            http_str += self.indent(".inferHtmlResources(%s)\n" % params, level=2)
->>>>>>> part/gatling/embedded-res
 
         if not self.scenario.get('store-cache', True):
             http_str += self.indent('.disableCaching\n', level=2)
@@ -409,21 +401,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             props['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
             # gatling > 2.2.0
             props['gatling.http.ahc.keepAlive'] = 'false'
-<<<<<<< HEAD
 
     def _set_env(self):
         props = BetterDict()
         props.merge(self.settings.get('properties'))
         props.merge(self.get_scenario().get("properties"))
 
-=======
-
-    def _set_env(self):
-        props = BetterDict()
-        props.merge(self.settings.get('properties'))
-        props.merge(self.get_scenario().get("properties"))
-
->>>>>>> part/gatling/embedded-res
         props['gatling.core.outputDirectoryBaseName'] = self.dir_prefix
         props['gatling.core.directory.resources'] = self.engine.artifacts_dir
         props['gatling.core.directory.results'] = self.engine.artifacts_dir
@@ -437,11 +420,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         for key in props:
             self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
 
-<<<<<<< HEAD
         self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
 
-=======
->>>>>>> part/gatling/embedded-res
     def startup(self):
         self._set_files()
         self._set_env()
