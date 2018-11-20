@@ -19,7 +19,7 @@ class TestGatlingExecutor(ExecutorTestCase):
     def setUp(self):
         super(TestGatlingExecutor, self).setUp()
         path = os.path.abspath(RESOURCES_DIR + "gatling/gatling" + EXE_SUFFIX)
-        self.obj.settings.merge({"path": path})
+        self.obj.settings.merge({"path": path, "version": "2.3.0"})
         self.obj.env.add_path({"PATH": os.path.dirname(sys.executable)})
 
     def tearDown(self):
