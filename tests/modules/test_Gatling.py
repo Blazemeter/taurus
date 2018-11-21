@@ -42,7 +42,25 @@ class TestGatlingExecutor(ExecutorTestCase):
                     "requests": [
                         "http://blazedemo.com"]}}})
         self.obj.prepare()
-        target_script = os.path.join(RESOURCES_DIR, "gatling", "SimpleSimulation.gatling3.scala")
+        target_script = os.path.join(RESOURCES_DIR, "gatling", "gatling3.scala")
+        target_str = "class TaurusSimulation extends Simulation {"
+        substitute = "class TaurusSimulation_%s extends Simulation {" % id(self.obj)
+        self.assertFilesEqual(target_script, self.obj.script, replace_str=target_str, replace_with=substitute)
+
+    def test_embedded_res(self):
+        self.configure({
+            "execution": {
+                "executor": "gatling",
+                "ramp-up": "1m",
+                "scenario": "gs"},
+            "scenarios": {
+                "gs": {
+                    "retrieve-resources": True,
+                    "retrieve-resources-regex": "(.*)boo(. *)",
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+        self.obj.prepare()
+        target_script = os.path.join(RESOURCES_DIR, "gatling", "embedded_res.scala")
         target_str = "class TaurusSimulation extends Simulation {"
         substitute = "class TaurusSimulation_%s extends Simulation {" % id(self.obj)
         self.assertFilesEqual(target_script, self.obj.script, replace_str=target_str, replace_with=substitute)
