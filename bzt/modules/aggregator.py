@@ -82,7 +82,6 @@ class RespTimesCounter(JSONConvertible):
 
     def get_percentiles_dict(self, percentiles):
         if self._cached_perc is None or set(self._cached_perc.keys()) != set(percentiles):
-            raise ValueError()
             self._cached_perc = self.histogram.get_percentile_to_value_dict(percentiles)
         return self._cached_perc
 
