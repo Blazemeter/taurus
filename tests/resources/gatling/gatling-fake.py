@@ -1,9 +1,10 @@
 import os
+
 print("Fake gatling output")
 print("dir:")
 print(os.path.abspath(os.curdir))
 
-java_opts = os.environ.get("JAVA_OPTS", "")
+java_opts = os.environ.get("JAVA_OPTS", "").strip() + " "
 
 res_dir_opt = "gatling.core.directory.resources"
 start_res_dir = java_opts.find(res_dir_opt) + len(res_dir_opt) + 1
@@ -12,7 +13,8 @@ res_dir = res_dir_str[:res_dir_str.find(" -D")]
 
 scala_files = [fname for fname in os.listdir(res_dir) if fname.endswith('scala')]
 if len(scala_files) > 1:
-    input("Choose a simulation number:")
+    print("Choose a simulation number:")
+    input()
 
 print("started...")
 
