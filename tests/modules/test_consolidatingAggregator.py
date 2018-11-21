@@ -129,6 +129,7 @@ class TestConsolidatingAggregator(BZTestCase):
         cnt = 0
         for _ in range(1, 10):
             for point in self.obj.datapoints():
+                self.assertEqual(2, len(point[DataPoint.SUBRESULTS]))
                 overall = point[DataPoint.CURRENT]['']
                 self.assertEquals(2, overall[KPISet.CONCURRENCY])
                 self.assertGreater(overall[KPISet.PERCENTILES]["100.0"], 0)
@@ -207,6 +208,7 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.log.info(len(reader.data))
         self.obj.generalize_labels = LABEL_COUNT
         self.obj.add_underling(reader)
+        last = None
         for point in self.obj.datapoints():
             last = point
         cum_dict = self.obj.cumulative
@@ -214,6 +216,7 @@ class TestConsolidatingAggregator(BZTestCase):
         labels_count = len(labels)
         self.assertLessEqual(labels_count, LABEL_COUNT + 1)  # didn't overflow
         self.assertGreaterEqual(labels_count, LABEL_COUNT * 0.25)  # at least a quorter-filled
+        self.assertEqual(0, len(last[DataPoint.SUBRESULTS]))
 
     def test_errors_variety(self):
         self.obj.track_percentiles = [50]
@@ -227,7 +230,8 @@ class TestConsolidatingAggregator(BZTestCase):
         self.obj.post_process()
         expected = self.obj.max_error_count  # due to randomness, it it can go a bit higher than limit
         self.assertLessEqual(len(self.obj.known_errors), expected)
-        self.assertGreaterEqual(len(self.obj.known_errors), self.obj.max_error_count / 2)  # assert that it's at least half full
+        self.assertGreaterEqual(len(self.obj.known_errors),
+                                self.obj.max_error_count / 2)  # assert that it's at least half full
 
     def test_uniq_errors(self):
         self.obj.track_percentiles = [50]
