@@ -371,6 +371,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         simulation = self.get_scenario().get("simulation")
         if simulation:
             props['gatling.core.simulationClass'] = simulation
+        else:
+            props['gatling.core.runDescription'] = "Taurus_Test"
 
     def _set_load_props(self, props):
         load = self.get_load()
