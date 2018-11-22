@@ -48,15 +48,18 @@ class SinglePassIterator(RecordedIterator):
         super(SinglePassIterator, self).__init__(histogram)
         assert mean is not None, "Known mean is required"
         self.perc_levels = percentiles
-        self.percentiles = {}
-        self.stdev = 0
-        self.hist_values = {}
+        self._mean = mean
+        self._init()
 
     def reset(self, histogram=None):
         super(SinglePassIterator, self).reset(histogram)
+        self._init()
+
+    def _init(self):
         self.percentiles = {}
         self.stdev = 0
         self.hist_values = {}
+        self.geometric_dev_total = 0.0
 
     def __next__(self):
         item = super(SinglePassIterator, self).__next__()
@@ -65,12 +68,20 @@ class SinglePassIterator(RecordedIterator):
         self.hist_values[item.value_iterated_to] = item.count_at_value_iterated_to
 
         # stddev
+        dev = (self.histogram._hdr_median_equiv_value(item.value_iterated_to) * 1.0) - self._mean  # FIXME: protected mt
+        self.geometric_dev_total += (dev * dev) * item.count_added_in_this_iter_step
 
         # percentiles
 
         return item
 
     next = __next__
+
+    def has_next(self):
+        has = super(SinglePassIterator, self).has_next()
+        if not has:
+            self.stdev = math.sqrt(self.geometric_dev_total / self.total_count)
+        return has
 
 
 class RespTimesCounter(JSONConvertible):
@@ -130,7 +141,7 @@ class RespTimesCounter(JSONConvertible):
     def get_counts(self):
         return self._get_ff().hist_values
 
-    def get_stdev(self, mean):
+    def get_stdev(self):
         return self._get_ff().stdev / 1000.0
 
     def __json__(self):
@@ -289,7 +300,7 @@ class KPISet(dict):
         rtimes.known_mean = self.get(self.AVG_RESP_TIME, no_recalc=True)
         if key != self.RESP_TIMES and rtimes:
             if key == self.STDEV_RESP_TIME:
-                self[self.STDEV_RESP_TIME] = rtimes.get_stdev(self.get(self.AVG_RESP_TIME, no_recalc=True))
+                self[self.STDEV_RESP_TIME] = rtimes.get_stdev()
             elif key == self.PERCENTILES:
                 percs = {str(float(perc)): value / 1000.0 for perc, value in
                          iteritems(rtimes.get_percentiles_dict(self.perc_levels))}
