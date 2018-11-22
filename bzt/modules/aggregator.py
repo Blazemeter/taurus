@@ -44,8 +44,10 @@ class SinglePassIterator(RecordedIterator):
     - histogram
     """
 
-    def __init__(self, histogram, percentiles, mean=None):
+    def __init__(self, histogram, percentiles, mean):
         super(SinglePassIterator, self).__init__(histogram)
+        assert mean is not None, "Known mean is required"
+        self.perc_levels = percentiles
         self.percentiles = {}
         self.stdev = 0
         self.hist_values = {}
@@ -80,7 +82,7 @@ class RespTimesCounter(JSONConvertible):
         self.histogram = HdrHistogram(low, high, sign_figures)
         self._ff_iterator = None
         self._perc_levels = perc_levels
-        self._known_mean = None
+        self.known_mean = None
 
     def __deepcopy__(self, memo):
         new = RespTimesCounter(self.low, self.high, self.sign_figures)
@@ -116,9 +118,8 @@ class RespTimesCounter(JSONConvertible):
         self.histogram.add(other.histogram)
 
     def _get_ff(self):
-        # perc_are_same = set(self._cached_perc.keys()) == set(percentiles)
-        if self._ff_iterator == None:
-            self._ff_iterator = SinglePassIterator(self.histogram, self._perc_levels, self._known_mean)
+        if self._ff_iterator is None:
+            self._ff_iterator = SinglePassIterator(self.histogram, self._perc_levels, self.known_mean)
             for _ in self._ff_iterator:
                 pass  # consume it
         return self._ff_iterator
@@ -285,6 +286,7 @@ class KPISet(dict):
 
     def __getitem__(self, key):
         rtimes = self.get(self.RESP_TIMES, no_recalc=True)
+        rtimes.known_mean = self.get(self.AVG_RESP_TIME, no_recalc=True)
         if key != self.RESP_TIMES and rtimes:
             if key == self.STDEV_RESP_TIME:
                 self[self.STDEV_RESP_TIME] = rtimes.get_stdev(self.get(self.AVG_RESP_TIME, no_recalc=True))
