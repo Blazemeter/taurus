@@ -30,25 +30,62 @@ from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems, PY3, text_type
 from bzt.utils import dehumanize_time, JSONConvertible
-from hdrpy import HdrHistogram
+from hdrpy import HdrHistogram, RecordedIterator
 
 log = logging.getLogger('aggregator')
 
 
+class SinglePassIterator(RecordedIterator):
+    """
+    An iterator to do only one pass on data and calculate all we need inside it.
+    Should do one pass and return:
+    - stddev
+    - percentiles
+    - histogram
+    """
+
+    def __init__(self, histogram, percentiles, mean=None):
+        super(SinglePassIterator, self).__init__(histogram)
+        self.percentiles = {}
+        self.stdev = 0
+        self.hist_values = {}
+
+    def reset(self, histogram=None):
+        super(SinglePassIterator, self).reset(histogram)
+        self.percentiles = {}
+        self.stdev = 0
+        self.hist_values = {}
+
+    def __next__(self):
+        item = super(SinglePassIterator, self).__next__()
+
+        # histogram
+        self.hist_values[item.value_iterated_to] = item.count_at_value_iterated_to
+
+        # stddev
+
+        # percentiles
+
+        return item
+
+    next = __next__
+
+
 class RespTimesCounter(JSONConvertible):
-    def __init__(self, low, high, sign_figures):
+    def __init__(self, low, high, sign_figures, perc_levels=()):
         super(RespTimesCounter, self).__init__()
         self.low = low
         self.high = high
         self.sign_figures = sign_figures
         self.histogram = HdrHistogram(low, high, sign_figures)
-        self._cached_perc = None
-        self._cached_stdev = None
+        self._ff_iterator = None
+        self._perc_levels = perc_levels
+        self._known_mean = None
 
     def __deepcopy__(self, memo):
         new = RespTimesCounter(self.low, self.high, self.sign_figures)
-        new._cached_perc = self._cached_perc
-        new._cached_stdev = self._cached_stdev
+        new._ff_iterator = self._ff_iterator
+        new._perc_levels = self._perc_levels
 
         # TODO: maybe hdrpy can encapsulate this itself
         new.histogram.counts = copy.deepcopy(self.histogram.counts, memo)
@@ -68,30 +105,32 @@ class RespTimesCounter(JSONConvertible):
         item = round(item * 1000.0, 3)
         if item > self.high:
             self.__grow(math.ceil(item / 1000.0) * 1000.0)
-        self._cached_perc = None
-        self._cached_stdev = None
+        self._ff_iterator = None
         self.histogram.record_value(item, count)
 
     def merge(self, other):
-        self._cached_perc = None
-        self._cached_stdev = None
+        self._ff_iterator = None
         if other.high > self.high:
             self.__grow(other.high)
 
         self.histogram.add(other.histogram)
 
+    def _get_ff(self):
+        # perc_are_same = set(self._cached_perc.keys()) == set(percentiles)
+        if self._ff_iterator == None:
+            self._ff_iterator = SinglePassIterator(self.histogram, self._perc_levels, self._known_mean)
+            for _ in self._ff_iterator:
+                pass  # consume it
+        return self._ff_iterator
+
     def get_percentiles_dict(self, percentiles):
-        if self._cached_perc is None or set(self._cached_perc.keys()) != set(percentiles):
-            self._cached_perc = self.histogram.get_percentile_to_value_dict(percentiles)
-        return self._cached_perc
+        return self._get_ff().percentiles
 
     def get_counts(self):
-        return self.histogram.get_value_counts()
+        return self._get_ff().hist_values
 
     def get_stdev(self, mean):
-        if self._cached_stdev is None:
-            self._cached_stdev = self.histogram.get_stddev(mean) / 1000.0  # is this correct to divide?
-        return self._cached_stdev
+        return self._get_ff().stdev / 1000.0
 
     def __json__(self):
         return {
@@ -148,7 +187,7 @@ class KPISet(dict):
         self[KPISet.BYTE_COUNT] = 0
         # vectors
         self[KPISet.ERRORS] = []
-        self[KPISet.RESP_TIMES] = RespTimesCounter(1, hist_max_rt, 3)
+        self[KPISet.RESP_TIMES] = RespTimesCounter(1, hist_max_rt, 3, perc_levels)
         self[KPISet.RESP_CODES] = Counter()
         self[KPISet.PERCENTILES] = {}
 
