@@ -62,6 +62,11 @@ class GatlingScriptBuilder(object):
 
         http_str = '("%(addr)s")\n' % {'addr': self.fixed_addr(default_address)}
 
+        if self.scenario.get("retrieve-resources", False):
+            regex = self.scenario.get("retrieve-resources-regex")
+            params = 'BlackList(), WhiteList("""%s""")' % regex if regex else ""
+            http_str += self.indent(".inferHtmlResources(%s)\n" % params, level=2)
+
         if not self.scenario.get('store-cache', True):
             http_str += self.indent('.disableCaching\n', level=2)
 
@@ -366,6 +371,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         simulation = self.get_scenario().get("simulation")
         if simulation:
             props['gatling.core.simulationClass'] = simulation
+        else:
+            props['gatling.core.runDescription'] = "Taurus_Test"
 
     def _set_load_props(self, props):
         load = self.get_load()
@@ -769,7 +776,7 @@ class Gatling(RequiredTool):
     """
     DOWNLOAD_LINK = "https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle" \
                     "/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip"
-    VERSION = "3.0.1"
+    VERSION = "2.3.0"
     LOCAL_PATH = "~/.bzt/gatling-taurus/{version}/bin/gatling{suffix}"
 
     def __init__(self, config=None, **kwargs):

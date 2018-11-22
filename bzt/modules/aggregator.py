@@ -805,11 +805,15 @@ class ConsolidatingAggregator(Aggregator, ResultsProvider):
             tstamp = timestamps.pop(0)
             self.log.debug("Merging into %s", tstamp)
             points_to_consolidate = self.buffer.pop(tstamp)
-            point = DataPoint(tstamp, self.track_percentiles)
-            for subresult in points_to_consolidate:
-                self.log.debug("Merging %s", subresult[DataPoint.TIMESTAMP])
-                point.merge_point(subresult)
-            point.recalculate()
+            if len(points_to_consolidate) == 1:
+                self.log.debug("Bypassing consolidation because of single result")
+                point = points_to_consolidate[0]
+            else:
+                point = DataPoint(tstamp, self.track_percentiles)
+                for subresult in points_to_consolidate:
+                    self.log.debug("Merging %s", subresult[DataPoint.TIMESTAMP])
+                    point.merge_point(subresult)
+                point.recalculate()
             yield point
 
 

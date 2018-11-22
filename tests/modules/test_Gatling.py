@@ -30,6 +30,41 @@ class TestGatlingExecutor(ExecutorTestCase):
         close_reader_file(self.obj.reader)
         super(TestGatlingExecutor, self).tearDown()
 
+    def test_gatling3(self):
+        self.obj.settings.merge({"version": "3.0.1"})
+        self.configure({
+            "execution": {
+                "executor": "gatling",
+                "ramp-up": "1m",
+                "scenario": "gs"},
+            "scenarios": {
+                "gs": {
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+        self.obj.prepare()
+        target_script = os.path.join(RESOURCES_DIR, "gatling", "gatling3.scala")
+        target_str = "class TaurusSimulation extends Simulation {"
+        substitute = "class TaurusSimulation_%s extends Simulation {" % id(self.obj)
+        self.assertFilesEqual(target_script, self.obj.script, replace_str=target_str, replace_with=substitute)
+
+    def test_embedded_res(self):
+        self.configure({
+            "execution": {
+                "executor": "gatling",
+                "ramp-up": "1m",
+                "scenario": "gs"},
+            "scenarios": {
+                "gs": {
+                    "retrieve-resources": True,
+                    "retrieve-resources-regex": "(.*)boo(. *)",
+                    "requests": [
+                        "http://blazedemo.com"]}}})
+        self.obj.prepare()
+        target_script = os.path.join(RESOURCES_DIR, "gatling", "embedded_res.scala")
+        target_str = "class TaurusSimulation extends Simulation {"
+        substitute = "class TaurusSimulation_%s extends Simulation {" % id(self.obj)
+        self.assertFilesEqual(target_script, self.obj.script, replace_str=target_str, replace_with=substitute)
+
     def test_external_jar_wrong_launcher(self):
         modified_launcher = self.obj.engine.create_artifact('wrong-gatling', EXE_SUFFIX)
         origin_launcher = get_full_path(self.obj.settings['path'])

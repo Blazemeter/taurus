@@ -2,4 +2,3 @@ use new keywords in scala file (baseUrl, during)
 use properties instead of cmdline params
 handle new syntax of simulation.log
 update gatling mock
-use gatling 3.0.1 by default

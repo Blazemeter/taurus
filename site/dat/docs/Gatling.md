@@ -21,8 +21,6 @@ scenarios:
 
 The `simulation` option is canonical class name for main simulation class. It will be passed as-is to gatling
 with `-s` option.
-Also you can use `keepalive` and `timeout` scenario attributes to set appropriate HTTP feature and
-limit request time accordingly.
 
 ## Load Configuration
 
@@ -90,9 +88,12 @@ If your scenario don't contains `script` parameter and contains at least one ele
 scala script for test. This script will be placed in `[artifact-dir](ConfigSyntax/#Top-Level-Settings)`:
 you can modify it and use with Gatling later.
 
-Following features are supported: request generation, `default-address`, `follow-redirects`, `headers`, `store-cache`, `think-time`
-on scenario and request levels, `body` of request and params that described in
-`[Load Configuration](#Load-Configuration)`.
+Following features are supported: 
+  - request generation
+  - on scenario level: `think-time`, `default-address`, `follow-redirects`, `headers`, `store-cache`, `keepalive`, 
+  `timeout`, `retrieve-resources`, `retrieve-resources-regex`
+  - on request level: `think-time`, `body`
+  - params that described in `[Load Configuration](#Load-Configuration)`.
 Some asserts can be added to request. Assert describes templates and area for search (`contains` and `subject`
 accordingly), regexp and inverse marks. You can look for particular response code in `http-code` part or for string
 and regular expression in `body` of request.
@@ -114,7 +115,9 @@ scenarios:
       delimiter: ','  # optional, set to comma by default
       loop: true  # loop over data source file, true by default
     store-cache: true  # cache HTTP responses, true by default
-    default-address: blazedemo.com
+    retrieve-resources: true # false by default, retrieves all embedded resources from HTML pages
+    retrieve-resources-regex: (.*)boo(.*) # regular expression used to match any resource (white list)
+    default-address: blazedemo.com 
     headers:
       HEADER_1: VALUE_1
       HEADER_2: VALUE_2
@@ -147,7 +150,7 @@ scenarios:
  - `path`: Path to Gatling executable. In case no Gatling executable found, it will be automatically downloaded and installed into `path` location. By default `~/.bzt/gatling-taurus/{version}/bin/gatling.sh`.
  - `java-opts`: string with some java options for Gatling
  - `download-link`: Link to download Gatling from. By default: `https://repo1.maven.org/maven2/io/gatling/highcharts/gatling-charts-highcharts-bundle/{version}/gatling-charts-highcharts-bundle-{version}-bundle.zip`
- -  `version`: Gatling version, `3.0.1` by default
+ -  `version`: Gatling version, `2.3.0` by default
  -  `dir-prefix`: Gatling report prefix, `gatling-%s` by default. Used by taurus to find gatling reports. If you use Gatling property `gatling.core.outputDirectoryBaseName`, you may use also this setting.
  - `properties`: dictionary for tuning of gatling tool behaviour (see list of available parameters in gatling
  documentation) and sending your own variables into Scala program:
