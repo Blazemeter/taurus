@@ -294,8 +294,7 @@ class TestJTLReader(BZTestCase):
 
     def test_kpiset_trapped_getitem(self):
         def new():
-            subj = KPISet()
-            subj.perc_levels = (100.0,)
+            subj = KPISet(perc_levels=(100.0,))
             subj[KPISet.RESP_TIMES].add(0.1)
             subj[KPISet.RESP_TIMES].add(0.01)
             subj[KPISet.RESP_TIMES].add(0.001)
