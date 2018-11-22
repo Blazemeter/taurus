@@ -3,7 +3,7 @@ astunparse>=1.6.0
 colorama; sys_platform == 'win32'
 colorlog
 cssselect
-fuzzyset
+-e git+https://github.com/dmand/fuzzyset.git@regenerate-cython-for-python-3.7#egg=fuzzyset  # TODO: replace with `fuzzyset` once it supports py37
 hdrpy>=0.3.3
 ipaddress; python_version < '3.0'
 lxml>=3.8.0,!=4.2.0
