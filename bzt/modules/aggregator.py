@@ -72,6 +72,7 @@ class SinglePassIterator(RecordedIterator):
         self.geometric_dev_total += (dev * dev) * item.count_added_in_this_iter_step
 
         # percentiles
+        # TODO
 
         return item
 
