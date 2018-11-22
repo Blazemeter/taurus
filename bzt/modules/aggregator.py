@@ -59,7 +59,9 @@ class SinglePassIterator(RecordedIterator):
         self.percentiles = {}
         self.stdev = 0
         self.hist_values = {}
-        self.geometric_dev_total = 0.0
+        self._geometric_dev_total = 0.0
+        self._perc_progress = 0.0
+        self._perc_indexes = copy.copy(self.perc_levels)
 
     def __next__(self):
         item = super(SinglePassIterator, self).__next__()
@@ -69,19 +71,27 @@ class SinglePassIterator(RecordedIterator):
 
         # stddev
         dev = (self.histogram._hdr_median_equiv_value(item.value_iterated_to) * 1.0) - self._mean  # FIXME: protected mt
-        self.geometric_dev_total += (dev * dev) * item.count_added_in_this_iter_step
+        self._geometric_dev_total += (dev * dev) * item.count_added_in_this_iter_step
 
         # percentiles
-        # TODO
+        self._perc_progress += item.count_added_in_this_iter_step / float(self.total_count)
+
+        self._fill_percentiles()
 
         return item
+
+    def _fill_percentiles(self):
+        while self._perc_indexes and self._perc_indexes[0] <= self.get_percentile_iterated_to():
+            perc_level = self._perc_indexes.pop(0)
+            self.percentiles[perc_level] = self.value_at_index
 
     next = __next__
 
     def has_next(self):
         has = super(SinglePassIterator, self).has_next()
         if not has:
-            self.stdev = math.sqrt(self.geometric_dev_total / self.total_count)
+            self.stdev = math.sqrt(self._geometric_dev_total / self.total_count)
+            assert set(self.perc_levels) == set(self.percentiles.keys()), 'Not all percentiles are generated'
         return has
 
 
