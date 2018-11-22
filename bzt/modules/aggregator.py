@@ -47,7 +47,7 @@ class SinglePassIterator(RecordedIterator):
     def __init__(self, histogram, percentiles, mean):
         super(SinglePassIterator, self).__init__(histogram)
         assert mean is not None, "Known mean is required"
-        self.perc_levels = percentiles
+        self.perc_levels = list(percentiles)
         self.perc_levels.sort()
         self._mean = mean
         self._init()
@@ -61,7 +61,7 @@ class SinglePassIterator(RecordedIterator):
         self.stdev = 0
         self.hist_values = {}
         self._geometric_dev_total = 0.0
-        self._perc_indexes = list(self.perc_levels)
+        self._perc_indexes = copy.copy(self.perc_levels)
 
     def __next__(self):
         item = super(SinglePassIterator, self).__next__()
@@ -144,7 +144,7 @@ class RespTimesCounter(JSONConvertible):
                 pass  # consume it
         return self._ff_iterator
 
-    def get_percentiles_dict(self, percentiles):
+    def get_percentiles_dict(self):
         return self._get_ff().percentiles
 
     def get_counts(self):
@@ -312,7 +312,7 @@ class KPISet(dict):
                 self[self.STDEV_RESP_TIME] = rtimes.get_stdev()
             elif key == self.PERCENTILES:
                 percs = {str(float(perc)): value / 1000.0 for perc, value in
-                         iteritems(rtimes.get_percentiles_dict(self.perc_levels))}
+                         iteritems(rtimes.get_percentiles_dict())}
                 self[self.PERCENTILES] = percs
 
         return super(KPISet, self).__getitem__(key)
@@ -403,7 +403,7 @@ class KPISet(dict):
         :type obj: dict
         :rtype: KPISet
         """
-        prc_levels=[float(x) for x in obj[KPISet.PERCENTILES].keys()]
+        prc_levels = [float(x) for x in obj[KPISet.PERCENTILES].keys()]
         inst = KPISet(perc_levels=prc_levels)
 
         assert inst.PERCENTILES in obj
