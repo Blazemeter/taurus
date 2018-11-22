@@ -48,6 +48,7 @@ class SinglePassIterator(RecordedIterator):
         super(SinglePassIterator, self).__init__(histogram)
         assert mean is not None, "Known mean is required"
         self.perc_levels = percentiles
+        self.perc_levels.sort()
         self._mean = mean
         self._init()
 
@@ -60,8 +61,7 @@ class SinglePassIterator(RecordedIterator):
         self.stdev = 0
         self.hist_values = {}
         self._geometric_dev_total = 0.0
-        self._perc_progress = 0.0
-        self._perc_indexes = copy.copy(self.perc_levels)
+        self._perc_indexes = list(self.perc_levels)
 
     def __next__(self):
         item = super(SinglePassIterator, self).__next__()
@@ -74,8 +74,6 @@ class SinglePassIterator(RecordedIterator):
         self._geometric_dev_total += (dev * dev) * item.count_added_in_this_iter_step
 
         # percentiles
-        self._perc_progress += item.count_added_in_this_iter_step / float(self.total_count)
-
         self._fill_percentiles()
 
         return item
@@ -405,10 +403,10 @@ class KPISet(dict):
         :type obj: dict
         :rtype: KPISet
         """
-        inst = KPISet()
+        prc_levels=[float(x) for x in obj[KPISet.PERCENTILES].keys()]
+        inst = KPISet(perc_levels=prc_levels)
 
         assert inst.PERCENTILES in obj
-        inst.perc_levels = [float(x) for x in obj[inst.PERCENTILES].keys()]
 
         for key, val in iteritems(obj):
             if key == inst.RESP_TIMES:
