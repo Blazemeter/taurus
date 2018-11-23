@@ -252,7 +252,7 @@ class KPISet(dict):
         :type sample: tuple
         """
         # TODO: introduce a flag to not count failed in resp times? or offer it always?
-        cnc, r_time, con_time, latency, r_code, error, trname, byte_count = sample
+        r_time, cnc, con_time, latency, r_code, error, trname, byte_count = sample
         self[self.SAMPLE_COUNT] += 1
         if cnc:
             self._concurrencies[trname] = cnc
