@@ -642,33 +642,29 @@ class ResultsReader(ResultsProvider):
                     r_time = 0
 
                 if t_stamp not in self.buffer:
-                    self.buffer[t_stamp] = []
+                    default = lambda: KPISet(self.track_percentiles, self.__get_rtimes_max(label))
+                    self.buffer[t_stamp] = collections.defaultdict(default)
 
                 error = self._fold_error(error)
-                self.buffer[t_stamp].append((label, conc, r_time, con_time, latency, r_code, error, trname, byte_count))
+                if label == '':
+                    label = '[empty]'
+
+                if self.generalize_labels:
+                    label = self._generalize_label(label)
+
+                sample = (r_time, conc, con_time, latency, r_code, error, trname, byte_count)
+                self.buffer[t_stamp][label].add_sample(sample)
             else:
                 raise TaurusInternalException("Unsupported results from %s reader: %s" % (self, result))
 
     def __aggregate_current(self, datapoint, samples):
         """
         :param datapoint: DataPoint
-        :param samples: list of samples
+        :param samples: dict(str,KPISet)
         :return:
         """
         current = datapoint[DataPoint.CURRENT]
-        for sample in samples:
-            label, r_time, concur, con_time, latency, r_code, error, trname, byte_count = sample
-            if label == '':
-                label = '[empty]'
-
-            if self.generalize_labels:
-                label = self._generalize_label(label)
-
-            if label not in current:
-                current[label] = KPISet(self.track_percentiles, self.__get_rtimes_max(label))
-
-            # empty means overall
-            current[label].add_sample((r_time, concur, con_time, latency, r_code, error, trname, byte_count))
+        current.update(samples)
 
         overall = KPISet(self.track_percentiles, self.__get_rtimes_max(''))
         for label in current.values():
