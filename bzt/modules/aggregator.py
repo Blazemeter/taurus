@@ -315,7 +315,9 @@ class KPISet(dict):
                          iteritems(rtimes.get_percentiles_dict())}
                 self[self.PERCENTILES] = percs
 
-        return super(KPISet, self).__getitem__(key)
+        val = super(KPISet, self).__getitem__(key)
+        assert key != KPISet.ERRORS or isinstance(val, list)
+        return val
 
     def get(self, k, no_recalc=False):
         if no_recalc:
