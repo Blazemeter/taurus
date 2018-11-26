@@ -1530,14 +1530,18 @@ class JMeter(RequiredTool):
 
         return True
 
+    def _pmgr_call(self, params):
+        cmd = [self._pmgr_path()] + params
+        return self.execute(cmd)
+
     def install_for_jmx(self, jmx_file):
         if not os.path.isfile(jmx_file):
             self.log.warning("Script %s not found" % jmx_file)
             return
 
         try:
-            cmd_line = [self._pmgr_path(), "install-for-jmx", jmx_file]
-            out, err = self.execute(cmd_line)
+            params = ["install-for-jmx", jmx_file]
+            out, err = self._pmgr_call(params)
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
         except CALL_PROBLEMS as exc:
             self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
