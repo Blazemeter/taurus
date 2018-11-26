@@ -20,6 +20,7 @@ import os
 import re
 import subprocess
 import time
+import json
 from collections import defaultdict
 from distutils.version import LooseVersion
 
@@ -101,11 +102,11 @@ class GatlingScriptBuilder(object):
                                         level=3)
 
             if req.body is not None:
-                if isinstance(req.body, string_types):
-                    exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
-                    exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
-                else:
-                    self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
+                if not isinstance(req.body, string_types):
+                    req.body = json.dumps(req.body)     # todo: write it file and use as body-file?
+
+                exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
+                exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
 
             exec_str += self.__get_assertions(req.config.get('assert', []))
 

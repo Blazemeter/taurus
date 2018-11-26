@@ -212,24 +212,27 @@ class TestGatlingExecutor(ExecutorTestCase):
                 "follow-redirects": False,
                 "default-address": "blazedemo.com",
                 "headers": {"H1": "V1"},
-                "requests": [{"url": "/reserve.php",
-                              "headers": {"H2": "V2"},
-                              "method": "POST",
-                              "body": "Body Content",
-                              "assert": [{
-                                  "contains": ["bootstrap.min"],
-                                  "not": True
-                              }]},
-                             {"url": "/",
-                              "think-time": 2,
-                              "follow-redirects": True},
-                             {"url": "/reserve.php",
-                              "method": "POST",
-                              "body": u"Body Content 日本語",
-                              }
-                             ]
-            }
-        }})
+                "requests": [
+                    {
+                        "url": "/reserve.php",
+                        "headers": {"H2": "V2"},
+                        "method": "POST",
+                        "body": "Body Content",
+                        "assert": [{
+                            "contains": ["bootstrap.min"],
+                            "not": True}]
+                    }, {
+                        "url": "/",
+                        "think-time": 2,
+                        "follow-redirects": True
+                    }, {
+                        "url": "/reserve.php",
+                        "method": "POST",
+                        "body": u"Body Content 日本語",
+                    }, {
+                        "url": "/something.php",
+                        "method": "POST",
+                        "body": {"param_name": "param_value"}}]}}})
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
         self.assertFilesEqual(RESOURCES_DIR + "gatling/generated1.scala", scala_file,

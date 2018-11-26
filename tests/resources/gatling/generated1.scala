@@ -33,6 +33,10 @@ class SIMNAME extends Simulation {
     http("/reserve.php").post("/reserve.php")
       .body(StringBody("""Body Content 日本語"""))
       .disableFollowRedirect
+  ).pause(1).exec(
+    http("/something.php").post("/something.php")
+      .body(StringBody("""{"param_name": "param_value"}"""))
+      .disableFollowRedirect
   ).pause(1)
 
   if (iterationLimit == null)
