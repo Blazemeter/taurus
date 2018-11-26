@@ -369,6 +369,13 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     return base + diff + suffix
 
 
+def start_and_communicate(*args, **kwargs):
+    process = start_process(*args, **kwargs)
+    communicate(process)
+    if process.returncode != 0:
+        raise CalledProcessError(process.returncode, *args[0])
+
+
 def start_process(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None, shared_env=None):
     tmp_env = Environment()
     for e in (env, shared_env):
@@ -387,7 +394,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     :param cwd:
     :param stdin:
     :param shell:
-    :param: env:
+    :param env:
     :type args: basestring or list
     :return:
     """
@@ -1119,7 +1126,7 @@ class RequiredTool(object):
     """
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
-                 env=None, version=None, installable=True):
+                 env=None, version=None, installable=True, shared_env=None):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
@@ -1127,6 +1134,7 @@ class RequiredTool(object):
         self.mirror_manager = None
         self.version = version
         self.installable = installable
+        self.shared_env = shared_env
 
         self.tool_name = self.__class__.__name__
 

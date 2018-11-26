@@ -40,10 +40,9 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
+from bzt import ManualShutdown, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration, ToolError
 from bzt.requests_model import RequestParser
-from bzt.six import numeric_types
-from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
+from bzt.six import numeric_types, string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import str_representer, Environment, RequiredTool
@@ -1047,7 +1046,8 @@ class ScenarioExecutor(EngineModule):
     def _get_tool(self, tool, **kwargs):
         env = Environment(self.log, self.env.get())
 
-        instance = tool(env=env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
+        instance = tool(env=env, shared_env=self.engine.shared_env, log=self.log,
+                        http_client=self.engine.get_http_client(), **kwargs)
         assert isinstance(instance, RequiredTool)
 
         return instance
@@ -1192,10 +1192,12 @@ class ScenarioExecutor(EngineModule):
 
     def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False):
         self.preprocess_args(args)
-
-        return self.engine.start_subprocess(args=args, cwd=cwd, stdout=stdout,
-                                            stderr=stderr, stdin=stdin, shell=shell, env=self.env)
-
+        try:
+          process = self.engine.start_subprocess(args=args, cwd=cwd, stdout=stdout,
+                                                 stderr=stderr, stdin=stdin, shell=shell, env=self.env)
+        except OSError as exc:
+            raise ToolError("Failed to start %s: %s (%s)" % (self.__class__.__name__, exc, args))
+        return process
 
 class Reporter(EngineModule):
     """
