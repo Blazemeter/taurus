@@ -175,7 +175,8 @@ class Task(object):
 
         self.log.debug("Task was finished with exit code %s: %s", self.process.returncode, self)
         if not self.ignore_failure and self.process.returncode != 0:
-            self.log.warning("Output for %s:\n%s", self, stdout)
+            if self.out != subprocess.PIPE:
+                self.log.warning("Output for %s:\n%s", self, stdout)
             raise CalledProcessError(self.process.returncode, self)
 
     def shutdown(self):
