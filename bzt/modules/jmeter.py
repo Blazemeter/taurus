@@ -981,7 +981,7 @@ class JTLReader(ResultsReader):
                     if label in data:
                         label_data[KPISet.ERRORS] = data[label]
                     else:
-                        label_data[KPISet.ERRORS] = {}
+                        label_data[KPISet.ERRORS] = []
 
             yield point
 
