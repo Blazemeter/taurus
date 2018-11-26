@@ -55,7 +55,7 @@ from progressbar import ProgressBar, Percentage, Bar, ETA
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname
+from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname, communicate
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
@@ -296,7 +296,7 @@ class BetterDict(defaultdict):
                         lefty.merge(righty)
                     else:
                         # todo: should we log all overwriting cases?
-                        logging.warning("Overwriting the value of %r when merging configs", key)
+                        LOG.warning("Overwriting the value of %r when merging configs", key)
                         left[index] = righty
                 else:
                     left.insert(index, righty)
@@ -369,6 +369,15 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     return base + diff + suffix
 
 
+def start_process(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None, shared_env=None):
+    tmp_env = Environment()
+    for e in (env, shared_env):
+        if e:
+            tmp_env.set(e.get())
+
+    return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=tmp_env.get())
+
+
 def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
     """
     Wrapper for subprocess starting
@@ -377,20 +386,22 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     :param stdout:
     :param cwd:
     :param stdin:
+    :param shell:
+    :param: env:
     :type args: basestring or list
     :return:
     """
     if stdout and not isinstance(stdout, integer_types) and not isinstance(stdout, file_type):
-        logging.warning("stdout is not IOBase: %s", stdout)
+        LOG.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
     if stderr and not isinstance(stderr, integer_types) and not isinstance(stderr, file_type):
-        logging.warning("stderr is not IOBase: %s", stderr)
+        LOG.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
     if isinstance(args, string_types) and not shell:
         args = shlex.split(args, posix=not is_windows())
-    logging.getLogger(__name__).debug("Executing shell: %s at %s", args, cwd or os.curdir)
+    LOG.debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
     if is_windows():
         return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
@@ -398,6 +409,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     else:
         return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
                             bufsize=0, preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
+        # FIXME: shouldn't we bother closing opened descriptors?
 
 
 class Environment(object):
@@ -822,12 +834,12 @@ def load_class(full_name):
     """
     module_name = full_name[:full_name.rfind('.')]
     class_name = full_name[full_name.rfind('.') + 1:]
-    logging.debug("Importing module: %s", module_name)
+    LOG.debug("Importing module: %s", module_name)
     module = __import__(module_name)
     for mod in module_name.split('.')[1:]:
         module = getattr(module, mod)
 
-    logging.debug("Loading class: '%s' from %s", class_name, module)
+    LOG.debug("Loading class: '%s' from %s", class_name, module)
     return getattr(module, class_name)
 
 
@@ -838,7 +850,7 @@ def unzip(source_filename, dest_dir, rel_path=None):
     :param rel_path:
     :return:
     """
-    logging.debug("Extracting %s to %s", source_filename, dest_dir)
+    LOG.debug("Extracting %s to %s", source_filename, dest_dir)
 
     with zipfile.ZipFile(source_filename) as zfd:
         for member in zfd.infolist():
@@ -853,7 +865,7 @@ def unzip(source_filename, dest_dir, rel_path=None):
 
             # Path traversal defense copied from
             # http://hg.python.org/cpython/file/tip/Lib/http/server.py#l789
-            logging.debug("Writing %s%s%s", dest_dir, os.path.sep, member.filename)
+            LOG.debug("Writing %s%s%s", dest_dir, os.path.sep, member.filename)
 
             zfd.extract(member, dest_dir)
 
@@ -1210,7 +1222,7 @@ class ProgressBarContext(ProgressBar):
 
     def __enter__(self):
         if not sys.stdout.isatty():
-            logging.debug("No progressbar for non-tty output: %s", sys.stdout)
+            LOG.debug("No progressbar for non-tty output: %s", sys.stdout)
 
         self.start()
         return self
@@ -1384,10 +1396,10 @@ def open_browser(url):
     try:
         browser = webbrowser.get()
         if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-            with log_std_streams(logger=logging):
+            with log_std_streams(logger=LOG):
                 webbrowser.open(url)
     except BaseException as exc:
-        logging.warning("Can't open link in browser: %s", exc)
+        LOG.warning("Can't open link in browser: %s", exc)
 
 
 def is_windows():
@@ -1443,7 +1455,7 @@ class DummyScreen(BaseScreen):
                     line += part[2].decode()
             data += "%s│\n" % line
         data = self.ansi_escape.sub('', data)
-        logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
+        LOG.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
 
 
 def which(filename):
