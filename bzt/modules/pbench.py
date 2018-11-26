@@ -36,7 +36,7 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
 from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader, RESOURCES_DIR, start_and_communicate
-from bzt.utils import shutdown_process, BetterDict, dehumanize_time, get_full_path
+from bzt.utils import shutdown_process, BetterDict, dehumanize_time, get_full_path, CALL_PROBLEMS
 
 
 class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -283,7 +283,7 @@ class PBenchGenerator(object):
         try:
             start_and_communicate(
                 cmdline, stdout=out, stderr=err, env=self.engine.env, shared_env=self.engine.shared_env)
-        except CalledProcessError as exc:
+        except CALL_PROBLEMS as exc:
             raise TaurusConfigError("Config check has failed: %s\nLook at %s for details" % (exc, err.name))
         finally:
             out.close()
@@ -711,6 +711,6 @@ class PBench(RequiredTool):
             if err:
                 self.log.warning("PBench check stderr: %s", err)
             return True
-        except (CalledProcessError, OSError) as exc:
+        except CALL_PROBLEMS as exc:
             self.log.info("Phantom check failed: %s", exc)
             return False
