@@ -371,9 +371,11 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
 
 def start_and_communicate(*args, **kwargs):
     process = start_process(*args, **kwargs)
-    communicate(process)
+    out, err = communicate(process)
     if process.returncode != 0:
-        raise CalledProcessError(process.returncode, *args[0])
+        raise CalledProcessError(process.returncode, args[0][0])
+
+    return out, err
 
 
 def start_process(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None, shared_env=None):

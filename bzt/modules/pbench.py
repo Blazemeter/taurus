@@ -711,6 +711,6 @@ class PBench(RequiredTool):
             if err:
                 self.log.warning("PBench check stderr: %s", err)
             return True
-        except (CalledProcessError, OSError):
-            self.log.info("Phantom check failed")
+        except (CalledProcessError, OSError) as exc:
+            self.log.info("Phantom check failed: %s", exc)
             return False
