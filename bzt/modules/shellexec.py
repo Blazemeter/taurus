@@ -154,7 +154,7 @@ class Task(object):
             self._get_results()
 
     def check(self):
-        if not self.process or self.process.returncode is not None:  # not started or finished task
+        if not self.process or self.process.returncode is not None:  # not started or already finished task
             return True
 
         if self.process.poll() is None:
