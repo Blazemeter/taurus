@@ -43,9 +43,8 @@ from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
 from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
-from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, FileReader
+from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, FileReader, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
-from bzt.utils import start_and_communicate, CALL_PROBLEMS
 
 
 class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -393,9 +392,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.start_time = time.time()
         try:
             self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
-        except KeyboardInterrupt:
-            raise
-        except BaseException as exc:
+        except CALL_PROBLEMS as exc:
             raise ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
 
     def check(self):
@@ -1515,7 +1512,7 @@ class JMeter(RequiredTool):
 
         try:
             cmd_line = [self.tool_path, '-j', jmlog.name, '--version']
-            out, err = start_and_communicate(cmd_line, env=self.env, shared_env=self.shared_env)
+            out, err = self.execute(cmd_line)
             self.log.debug("JMeter check: %s / %s", out, err)
 
             if "is too low to run JMeter" in out:
@@ -1533,21 +1530,16 @@ class JMeter(RequiredTool):
 
         return True
 
-    def _pmgr_call(self, params):
-        cmd_line = [self._pmgr_path()] + params
-        return start_and_communicate(cmd_line, env=self.env, shared_env=self.shared_env)
-
     def install_for_jmx(self, jmx_file):
         if not os.path.isfile(jmx_file):
             self.log.warning("Script %s not found" % jmx_file)
             return
 
         try:
-            out, err = self._pmgr_call(["install-for-jmx", jmx_file])
+            cmd_line = [self._pmgr_path(), "install-for-jmx", jmx_file]
+            out, err = self.execute(cmd_line)
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
-        except KeyboardInterrupt:
-            raise
-        except BaseException as exc:
+        except CALL_PROBLEMS as exc:
             self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
             return
 
@@ -1595,10 +1587,8 @@ class JMeter(RequiredTool):
         cmd_line = ["java", "-cp", plugins_manager_path, installer]
         self.log.debug("Trying: %s", cmd_line)
         try:
-            out, err = start_and_communicate(cmd_line, env=self.env, shared_env=self.shared_env)
+            out, err = self.execute(cmd_line)
             self.log.debug("Install PluginsManager: %s / %s", out, err)
-        except KeyboardInterrupt:
-            raise
         except CALL_PROBLEMS as exc:
             raise ToolError("Failed to install PluginsManager: %s" % exc)
 
@@ -1609,7 +1599,7 @@ class JMeter(RequiredTool):
         self.log.debug("Trying: %s", cmd_line)
 
         try:
-            out, err = start_and_communicate(cmd_line, env=self.env, shared_env=self.shared_env)
+            out, err = self.execute(cmd_line)
             self.log.debug("Install plugins: %s / %s", out, err)
         except CALL_PROBLEMS as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))

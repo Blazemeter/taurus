@@ -21,11 +21,9 @@ import os
 import socket
 import string
 import struct
-import subprocess
 import time
 from abc import abstractmethod
 from os import strerror
-from subprocess import CalledProcessError
 
 import psutil
 
@@ -35,7 +33,7 @@ from bzt.modules.aggregator import ResultsReader, DataPoint, KPISet, Consolidati
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
-from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader, RESOURCES_DIR, start_and_communicate
+from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader, RESOURCES_DIR
 from bzt.utils import shutdown_process, BetterDict, dehumanize_time, get_full_path, CALL_PROBLEMS
 
 
@@ -281,8 +279,7 @@ class PBenchGenerator(object):
         out = open(self.engine.create_artifact('pbench_check', '.out'), 'wb')
         err = open(self.engine.create_artifact('pbench_check', '.err'), 'wb')
         try:
-            start_and_communicate(
-                cmdline, stdout=out, stderr=err, env=self.engine.env, shared_env=self.engine.shared_env)
+            self.tool.execute(cmdline, stdout=out, stderr=err)
         except CALL_PROBLEMS as exc:
             raise TaurusConfigError("Config check has failed: %s\nLook at %s for details" % (exc, err.name))
         finally:
@@ -705,7 +702,7 @@ class PBench(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying phantom: %s", self.tool_path)
         try:
-            out, err = start_and_communicate([self.tool_path], env=self.env, shared_env=self.shared_env)
+            out, err = self.execute([self.tool_path])
 
             self.log.debug("PBench check stdout: %s", out)
             if err:

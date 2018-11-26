@@ -369,7 +369,7 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     return base + diff + suffix
 
 
-def start_and_communicate(*args, **kwargs):
+def exec_and_communicate(*args, **kwargs):
     process = start_process(*args, **kwargs)
     out, err = communicate(process)
     if process.returncode != 0:
@@ -391,14 +391,6 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     """
     Wrapper for subprocess starting
 
-    :param stderr:
-    :param stdout:
-    :param cwd:
-    :param stdin:
-    :param shell:
-    :param env:
-    :type args: basestring or list
-    :return:
     """
     if stdout and not isinstance(stdout, integer_types) and not isinstance(stdout, file_type):
         LOG.warning("stdout is not IOBase: %s", stdout)
@@ -1157,6 +1149,11 @@ class RequiredTool(object):
     def _get_version(self, output):
         return
 
+    def execute(self, *args, **kwargs):
+        kwargs["env"] = self.env
+        kwargs["shared_env"] = self.shared_env
+        return exec_and_communicate(*args, **kwargs)
+
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
             self.already_installed = True
@@ -1216,11 +1213,11 @@ class JavaVM(RequiredTool):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
-            output = sync_run(cmd)
-            self.version = self._get_version(output)
-            self.log.debug("%s output: %s", self.tool_name, output)
+            out, err = self.execute(cmd)
+            self.version = self._get_version(err)
+            self.log.debug("%s output: %s", self.tool_name, out)
             return True
-        except (CalledProcessError, OSError) as exc:
+        except CALL_PROBLEMS as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
@@ -1328,11 +1325,11 @@ class Node(RequiredTool):
         for candidate in node_candidates:
             try:
                 self.log.debug("Trying %r", candidate)
-                output = sync_run([candidate, '--version'])
-                self.log.debug("%s output: %s", candidate, output)
+                out, err = self.execute([candidate, '--version'])
+                self.log.debug("%s output: %s", candidate, out)
                 self.tool_path = candidate
                 return True
-            except (CalledProcessError, OSError):
+            except CALL_PROBLEMS:
                 self.log.debug("%r is not installed", candidate)
                 continue
         return False
