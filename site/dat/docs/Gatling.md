@@ -129,7 +129,7 @@ scenarios:
         not: true     # invert condition (default: false)
         contains: # expression list for assertion (mandatory)
         - .+sometext.+  
-      body: 'Some Body Data'
+      body: 'Some Body Data'    # can be string or dictionary
       follow-redirects: false    #   true by default
       headers:
         HEADER_11: VALUE_11
