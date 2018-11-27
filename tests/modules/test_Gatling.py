@@ -232,7 +232,9 @@ class TestGatlingExecutor(ExecutorTestCase):
                     }, {
                         "url": "/something.php",
                         "method": "POST",
-                        "body": {"param_name": "param_value"}}]}}})
+                        "body": {
+                            "param_name1": "param_value1",
+                            "param_name2": "param_value2"}}]}}})
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
         self.assertFilesEqual(RESOURCES_DIR + "gatling/generated1.scala", scala_file,

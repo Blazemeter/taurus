@@ -94,19 +94,24 @@ class GatlingScriptBuilder(object):
             else:
                 url = self.fixed_addr(req.url)
 
-            exec_template = 'exec(\n' + self.indent('http("%(req_label)s").%(method)s("%(url)s")', level=2) + '\n'
+            exec_str += 'exec(\n'
+            exec_template = self.indent('http("%(req_label)s").%(method)s("%(url)s")\n', level=2)
             exec_str += exec_template % {'req_label': req.label, 'method': req.method.lower(), 'url': url}
 
             for key in req.headers:
-                exec_str += self.indent('.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]},
-                                        level=3)
+                exec_template = self.indent('.header("%(key)s", "%(val)s")\n', level=3)
+                exec_str += exec_template % {'key': key, 'val': req.headers[key]}
 
             if req.body is not None:
-                if not isinstance(req.body, string_types):
-                    req.body = json.dumps(req.body)     # todo: write it file and use as body-file?
-
-                exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
-                exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
+                if isinstance(req.body, string_types):
+                    exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
+                    exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
+                elif isinstance(req.body, dict):
+                    for key in req.body:
+                        exec_str += self.indent('.formParam("%(key)s", "%(val)s")\n', level=3)
+                        exec_str = exec_str % {'key': key, 'val': req.body[key]}
+                else:
+                    self.log.warning("Unknown body type: %s", req.body)
 
             exec_str += self.__get_assertions(req.config.get('assert', []))
 

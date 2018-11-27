@@ -35,7 +35,8 @@ class SIMNAME extends Simulation {
       .disableFollowRedirect
   ).pause(1).exec(
     http("/something.php").post("/something.php")
-      .body(StringBody("""{"param_name": "param_value"}"""))
+      .formParam("param_name1", "param_value1")
+      .formParam("param_name2", "param_value2")
       .disableFollowRedirect
   ).pause(1)
 
