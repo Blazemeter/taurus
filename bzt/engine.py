@@ -40,10 +40,9 @@ import yaml
 from yaml.representer import SafeRepresenter
 
 import bzt
-from bzt import ManualShutdown, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
+from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
 from bzt.requests_model import RequestParser
-from bzt.six import numeric_types
-from bzt.six import string_types, text_type, PY2, UserDict, parse, reraise
+from bzt.six import numeric_types, string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
 from bzt.utils import load_class, to_json, BetterDict, ensure_is_dict, dehumanize_time, is_windows, is_linux
 from bzt.utils import str_representer, Environment, RequiredTool
@@ -105,7 +104,7 @@ class Engine(object):
         self.log.info("Configuring...")
 
         if read_config_files:
-            self._load_extension_configs()
+            self._load_base_configs()
 
         merged_config = self._load_user_configs(user_configs)
 
@@ -517,7 +516,21 @@ class Engine(object):
         self.log.warning("Could not find location at path: %s", filename)
         return filename
 
-    def _load_extension_configs(self):
+    def _load_base_configs(self):
+        configs = []
+        try:
+            sys.path.insert(0, os.path.curdir)  # necessary for development mode (running bzt from curdir)
+            configs.extend(self._scan_system_configs())
+            configs.extend(self._scan_package_configs())
+        finally:
+            sys.path.pop(0)
+        configs.sort(key=os.path.basename)
+        self.log.debug("Base configs list: %s", configs)
+        if not configs:
+            self.log.warning("No base configs were discovered")
+        self.config.load(configs)
+
+    def _scan_package_configs(self):
         configs = []
         for importer, modname, ispkg in pkgutil.iter_modules(path=None):
             try:
@@ -536,7 +549,7 @@ class Engine(object):
                     with codecs.open(index_path, 'rb', encoding='utf-8') as fds:
                         index_configs = json.load(fds)
                 except (OSError, IOError, ValueError) as exc:
-                    self.log.debug("Can't load extension config %s: %s", index_path, exc)
+                    self.log.debug("Can't load package-specific bzt config %s: %s", index_path, exc)
                     continue
 
                 if not isinstance(index_configs, list):
@@ -546,13 +559,20 @@ class Engine(object):
                 for config_name in index_configs:
                     configs.append(os.path.join(importer.path, modname, config_name))
             except BaseException as exc:
-                self.log.warning("Can't look extension configs from package %r: %s", modname, str(exc))
+                self.log.warning("Can't look for package configs in package %r: %s", modname, str(exc))
                 self.log.debug("Traceback: %s", traceback.format_exc())
-        configs.sort(key=os.path.basename)
-        self.log.debug("Extension configs list: %s", configs)
-        if not configs:
-            self.log.warning("No base configs were discovered")
-        self.config.load(configs)
+        return configs
+
+    def _scan_system_configs(self):
+        configs = []
+        machine_dir = get_configs_dir()  # can't refactor machine_dir out - see setup.py
+        if os.path.isdir(machine_dir):
+            self.log.debug("Reading system configs from: %s", machine_dir)
+            for cfile in sorted(os.listdir(machine_dir)):
+                fname = os.path.join(machine_dir, cfile)
+                if os.path.isfile(fname):
+                    configs.append(fname)
+        return configs
 
     def _load_user_configs(self, user_configs):
         """

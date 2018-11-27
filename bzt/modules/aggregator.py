@@ -30,25 +30,84 @@ from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Aggregator
 from bzt.six import iteritems, PY3, text_type
 from bzt.utils import dehumanize_time, JSONConvertible
-from hdrpy import HdrHistogram
+from hdrpy import HdrHistogram, RecordedIterator
 
 log = logging.getLogger('aggregator')
 
 
+class SinglePassIterator(RecordedIterator):
+    """
+    An iterator to do only one pass on data and calculate all we need inside it.
+    Should do one pass and return:
+    - stddev
+    - percentiles
+    - histogram
+    """
+
+    def __init__(self, histogram, percentiles, mean):
+        super(SinglePassIterator, self).__init__(histogram)
+        assert mean is not None, "Known mean is required"
+        self.perc_levels = list(percentiles)
+        self.perc_levels.sort()
+        self._mean = mean
+        self._init()
+
+    def reset(self, histogram=None):
+        super(SinglePassIterator, self).reset(histogram)
+        self._init()
+
+    def _init(self):
+        self.percentiles = {}
+        self.stdev = 0
+        self.hist_values = {}
+        self._geometric_dev_total = 0.0
+        self._perc_indexes = copy.copy(self.perc_levels)
+
+    def __next__(self):
+        item = super(SinglePassIterator, self).__next__()
+
+        # histogram
+        self.hist_values[item.value_iterated_to] = item.count_at_value_iterated_to
+
+        # stddev
+        dev = (self.histogram._hdr_median_equiv_value(item.value_iterated_to) * 1.0) - self._mean  # FIXME: protected mt
+        self._geometric_dev_total += (dev * dev) * item.count_added_in_this_iter_step
+
+        # percentiles
+        self._fill_percentiles()
+
+        return item
+
+    def _fill_percentiles(self):
+        while self._perc_indexes and self._perc_indexes[0] <= self.get_percentile_iterated_to():
+            perc_level = self._perc_indexes.pop(0)
+            self.percentiles[perc_level] = self.value_at_index
+
+    next = __next__
+
+    def has_next(self):
+        has = super(SinglePassIterator, self).has_next()
+        if not has:
+            self.stdev = math.sqrt(self._geometric_dev_total / self.total_count)
+            assert set(self.perc_levels) == set(self.percentiles.keys()), 'Not all percentiles are generated'
+        return has
+
+
 class RespTimesCounter(JSONConvertible):
-    def __init__(self, low, high, sign_figures):
+    def __init__(self, low, high, sign_figures, perc_levels=()):
         super(RespTimesCounter, self).__init__()
         self.low = low
         self.high = high
         self.sign_figures = sign_figures
         self.histogram = HdrHistogram(low, high, sign_figures)
-        self._cached_perc = None
-        self._cached_stdev = None
+        self._ff_iterator = None
+        self._perc_levels = perc_levels
+        self.known_mean = None
 
     def __deepcopy__(self, memo):
         new = RespTimesCounter(self.low, self.high, self.sign_figures)
-        new._cached_perc = self._cached_perc
-        new._cached_stdev = self._cached_stdev
+        new._ff_iterator = self._ff_iterator
+        new._perc_levels = self._perc_levels
 
         # TODO: maybe hdrpy can encapsulate this itself
         new.histogram.counts = copy.deepcopy(self.histogram.counts, memo)
@@ -68,30 +127,31 @@ class RespTimesCounter(JSONConvertible):
         item = round(item * 1000.0, 3)
         if item > self.high:
             self.__grow(math.ceil(item / 1000.0) * 1000.0)
-        self._cached_perc = None
-        self._cached_stdev = None
+        self._ff_iterator = None
         self.histogram.record_value(item, count)
 
     def merge(self, other):
-        self._cached_perc = None
-        self._cached_stdev = None
+        self._ff_iterator = None
         if other.high > self.high:
             self.__grow(other.high)
 
         self.histogram.add(other.histogram)
 
-    def get_percentiles_dict(self, percentiles):
-        if self._cached_perc is None or set(self._cached_perc.keys()) != set(percentiles):
-            self._cached_perc = self.histogram.get_percentile_to_value_dict(percentiles)
-        return self._cached_perc
+    def _get_ff(self):
+        if self._ff_iterator is None:
+            self._ff_iterator = SinglePassIterator(self.histogram, self._perc_levels, self.known_mean)
+            for _ in self._ff_iterator:
+                pass  # consume it
+        return self._ff_iterator
+
+    def get_percentiles_dict(self):
+        return self._get_ff().percentiles
 
     def get_counts(self):
-        return self.histogram.get_value_counts()
+        return self._get_ff().hist_values
 
-    def get_stdev(self, mean):
-        if self._cached_stdev is None:
-            self._cached_stdev = self.histogram.get_stddev(mean) / 1000.0  # is this correct to divide?
-        return self._cached_stdev
+    def get_stdev(self):
+        return self._get_ff().stdev / 1000.0
 
     def __json__(self):
         return {
@@ -148,7 +208,7 @@ class KPISet(dict):
         self[KPISet.BYTE_COUNT] = 0
         # vectors
         self[KPISet.ERRORS] = []
-        self[KPISet.RESP_TIMES] = RespTimesCounter(1, hist_max_rt, 3)
+        self[KPISet.RESP_TIMES] = RespTimesCounter(1, hist_max_rt, 3, perc_levels)
         self[KPISet.RESP_CODES] = Counter()
         self[KPISet.PERCENTILES] = {}
 
@@ -246,15 +306,18 @@ class KPISet(dict):
 
     def __getitem__(self, key):
         rtimes = self.get(self.RESP_TIMES, no_recalc=True)
+        rtimes.known_mean = self.get(self.AVG_RESP_TIME, no_recalc=True)
         if key != self.RESP_TIMES and rtimes:
             if key == self.STDEV_RESP_TIME:
-                self[self.STDEV_RESP_TIME] = rtimes.get_stdev(self.get(self.AVG_RESP_TIME, no_recalc=True))
+                self[self.STDEV_RESP_TIME] = rtimes.get_stdev()
             elif key == self.PERCENTILES:
                 percs = {str(float(perc)): value / 1000.0 for perc, value in
-                         iteritems(rtimes.get_percentiles_dict(self.perc_levels))}
+                         iteritems(rtimes.get_percentiles_dict())}
                 self[self.PERCENTILES] = percs
 
-        return super(KPISet, self).__getitem__(key)
+        val = super(KPISet, self).__getitem__(key)
+        assert key != KPISet.ERRORS or isinstance(val, list)
+        return val
 
     def get(self, k, no_recalc=False):
         if no_recalc:
@@ -342,10 +405,10 @@ class KPISet(dict):
         :type obj: dict
         :rtype: KPISet
         """
-        inst = KPISet()
+        prc_levels = [float(x) for x in obj[KPISet.PERCENTILES].keys()]
+        inst = KPISet(perc_levels=prc_levels)
 
         assert inst.PERCENTILES in obj
-        inst.perc_levels = [float(x) for x in obj[inst.PERCENTILES].keys()]
 
         for key, val in iteritems(obj):
             if key == inst.RESP_TIMES:
