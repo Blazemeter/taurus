@@ -107,7 +107,7 @@ class GatlingScriptBuilder(object):
                     exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
                     exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
                 elif isinstance(req.body, dict):
-                    for key in req.body:
+                    for key in sorted(req.body.keys()):
                         exec_str += self.indent('.formParam("%(key)s", "%(val)s")\n', level=3)
                         exec_str = exec_str % {'key': key, 'val': req.body[key]}
                 else:
