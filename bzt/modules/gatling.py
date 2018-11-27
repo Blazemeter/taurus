@@ -20,7 +20,6 @@ import os
 import re
 import subprocess
 import time
-import json
 from collections import defaultdict
 from distutils.version import LooseVersion
 
