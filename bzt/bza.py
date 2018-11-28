@@ -705,7 +705,7 @@ class Session(BZAObject):
             body.add_file_as_string('file', filename, contents)
 
         url = self.data_address + "/api/v4/image/%s/files?signature=%s&masterId=%s"
-        url %= self['id'], self.data_signature, self['masterId']
+        url %= self['id'], self.data_signature, self.get('masterId')
         hdr = {"Content-Type": str(body.get_content_type())}
         response = self._request(url, body.form_as_bytes(), headers=hdr)
         if not response['result']:
