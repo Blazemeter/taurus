@@ -68,7 +68,7 @@ def sync_run(args, env=None):
 
 
 def simple_body_dict(dic):
-    """ body must has one level for sending with form params"""
+    """ body dict must have just one level for sending with form params"""
     if isinstance(dic, dict):
         for key in dic:
             if not isinstance(dic[key], (string_types, numeric_types)):
