@@ -22,6 +22,7 @@ from distutils.version import LooseVersion
 from bzt import TaurusInternalException, TaurusConfigError
 from bzt.engine import Scenario
 from bzt.jmx import JMX
+from bzt.jmx.base import cond_int
 from bzt.jmx.threadgroups import ThreadGroup, ConcurrencyThreadGroup, ThreadGroupHandler
 from bzt.requests_model import RequestVisitor, has_variable_pattern, HierarchicRequestParser
 from bzt.six import etree, iteritems, numeric_types
@@ -173,7 +174,17 @@ class LoadSettingsProcessor(object):
                 start_rps = self.load.throughput / float(self.load.duration)
             else:
                 start_rps = 1
-            jmx.add_rps_shaper_schedule(etree_shaper, start_rps, self.load.throughput, self.load.ramp_up)
+
+            if not self.load.steps:
+                jmx.add_rps_shaper_schedule(etree_shaper, start_rps, self.load.throughput, self.load.ramp_up)
+            else:
+                step_h = self.load.throughput / self.load.steps
+                step_w = float(self.load.ramp_up) / self.load.steps
+                accum_time = 0
+                for step in range(1, self.load.steps + 1):
+                    jmx.add_rps_shaper_schedule(etree_shaper, step_h * step, step_h * step,
+                                                step_w * step - accum_time)
+                    accum_time += cond_int(step_w * step - accum_time)
 
         if self.load.hold:
             jmx.add_rps_shaper_schedule(etree_shaper, self.load.throughput, self.load.throughput, self.load.hold)
