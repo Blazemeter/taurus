@@ -26,6 +26,8 @@ from bzt.engine import Scenario, BetterDict
 from bzt.requests_model import has_variable_pattern
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types, integer_types
 
+LOG = logging.getLogger("")
+
 
 def cond_int(val):
     if isinstance(val, float):
@@ -288,7 +290,7 @@ class JMX(object):
             conf_mech = authorization.get("mechanism", "").upper()
 
             if not (conf_name and conf_pass and (conf_url or conf_domain)):
-                logging.warning("Wrong authorization: %s" % authorization)
+                LOG.warning("Wrong authorization: %s" % authorization)
                 continue
 
             auth_element.append(JMX._string_prop("Authorization.url", conf_url))
@@ -393,7 +395,7 @@ class JMX(object):
         try:
             header.append(JMX._string_prop("Argument.value", body))
         except ValueError:
-            logging.warning("Failed to set body: %s", traceback.format_exc())
+            LOG.warning("Failed to set body: %s", traceback.format_exc())
             header.append(JMX._string_prop("Argument.value", "BINARY-STUB"))
         coll_prop.append(header)
         args.append(coll_prop)
@@ -405,24 +407,24 @@ class JMX(object):
         for arg_name, arg_value in body.items():
             if not (isinstance(arg_value, string_types) or isinstance(arg_value, numeric_types)):
                 msg = 'Body field "%s: %s" requires "Content-Type: application/json" header'
-                raise TaurusInternalException(msg % (arg_name, arg_value))
+                LOG.warning(msg % (arg_name, arg_value))
             try:
                 http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
             except ValueError:
-                logging.warning("Failed to get element property: %s", traceback.format_exc())
+                LOG.warning("Failed to get element property: %s", traceback.format_exc())
                 http_element_prop = JMX._element_prop('BINARY-STUB', "HTTPArgument")
 
             try:
                 http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
             except ValueError:
-                logging.warning("Failed to set arg name: %s", traceback.format_exc())
+                LOG.warning("Failed to set arg name: %s", traceback.format_exc())
                 http_element_prop.append(JMX._string_prop("Argument.name", "BINARY-STUB"))
 
             try:
                 http_element_prop.append(
                     JMX._string_prop("Argument.value", arg_value if arg_value is not None else ''))
             except ValueError:
-                logging.warning("Failed to set arg name: %s", traceback.format_exc())
+                LOG.warning("Failed to set arg name: %s", traceback.format_exc())
                 http_element_prop.append(JMX._string_prop("Argument.value", "BINARY-STUB"))
 
             http_element_prop.append(JMX._bool_prop("HTTPArgument.always_encode", True))
@@ -451,7 +453,7 @@ class JMX(object):
                     else:
                         proxy.append(JMX._string_prop("HTTPSampler.port", ""))
                 except ValueError:
-                    logging.debug("Non-parsable port: %s", url)
+                    LOG.debug("Non-parsable port: %s", url)
                     proxy.append(JMX._string_prop("HTTPSampler.port", ""))
 
     @staticmethod
