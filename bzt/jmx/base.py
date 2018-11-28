@@ -615,8 +615,8 @@ class JMX(object):
         """
         shaper_collection = shaper_etree.find(".//collectionProp[@name='load_profile']")
         coll_prop = self._collection_prop("")
-        start_rps_prop = self._string_prop("", cond_float(start_rps))
-        end_rps_prop = self._string_prop("", cond_float(end_rps))
+        start_rps_prop = self._string_prop("", round(cond_float(start_rps), 3))
+        end_rps_prop = self._string_prop("", round(cond_float(end_rps), 3))
         duration_prop = self._string_prop("", cond_int(duration))
         coll_prop.append(start_rps_prop)
         coll_prop.append(end_rps_prop)
