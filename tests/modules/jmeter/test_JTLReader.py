@@ -167,6 +167,13 @@ class TestJTLErrorsReader(BZTestCase):
         self.assertEqual(values.get('')[0].get("msg"), "NOT FOUND")
         self.assertEqual(values.get('HTTP Request')[0].get("msg"), "NOT FOUND")
 
+    def test_bug1(self):
+        self.configure(RESOURCES_DIR + "/jmeter/jtl/error-bug1.jtl")
+        self.obj.read_file()
+        values = self.obj.get_data(sys.maxsize)
+        self.assertEqual(9, len(values.get("")))
+        self.assertEqual(values.get('')[0].get("msg"), "Non HTTP response message: Connection reset")
+
     def test_resource_tc(self):
         self.configure(RESOURCES_DIR + "/jmeter/jtl/resource_tc.jtl")
         self.obj.read_file()
@@ -294,8 +301,7 @@ class TestJTLReader(BZTestCase):
 
     def test_kpiset_trapped_getitem(self):
         def new():
-            subj = KPISet()
-            subj.perc_levels = (100.0,)
+            subj = KPISet(perc_levels=(100.0,))
             subj[KPISet.RESP_TIMES].add(0.1)
             subj[KPISet.RESP_TIMES].add(0.01)
             subj[KPISet.RESP_TIMES].add(0.001)

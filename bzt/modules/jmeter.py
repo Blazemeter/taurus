@@ -981,7 +981,7 @@ class JTLReader(ResultsReader):
                     if label in data:
                         label_data[KPISet.ERRORS] = data[label]
                     else:
-                        label_data[KPISet.ERRORS] = {}
+                        label_data[KPISet.ERRORS] = []
 
             yield point
 
@@ -1411,7 +1411,7 @@ class JTLErrorsReader(object):
         failure_message_elem = assertion_element.find("failureMessage")
         if failure_message_elem is not None:
             msg = failure_message_elem.text
-            if msg.startswith("The operation lasted too long"):
+            if msg and msg.startswith("The operation lasted too long"):
                 msg = "The operation lasted too long"
 
             name_elm = assertion_element.find("name")
