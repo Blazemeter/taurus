@@ -103,6 +103,7 @@ class GatlingScriptBuilder(object):
                 exec_template = self.indent('.header("%(key)s", "%(val)s")\n', level=3)
                 exec_str += exec_template % {'key': key, 'val': req.headers[key]}
 
+            # todo: join with the same in get_sampler_pair
             if isinstance(req.body, (dict, list, numeric_types)):
                 if req.get_header('content-type') == 'application/json' or isinstance(req.body, numeric_types):
                     req.body = json.dumps(req.body)
