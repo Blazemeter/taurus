@@ -214,10 +214,10 @@ class TestGatlingExecutor(ExecutorTestCase):
                 "headers": {"H1": "V1"},
                 "requests": [
                     {
-                        "url": "/reserve.php",
+                        "url": "/reserve.php",      # complicate body without content header -> json
                         "headers": {"H2": "V2"},
                         "method": "POST",
-                        "body": "Body Content",
+                        "body": {"com": {"pli": {"cat": ["ed", "dict"]}}},
                         "assert": [{
                             "contains": ["bootstrap.min"],
                             "not": True}]
@@ -234,7 +234,14 @@ class TestGatlingExecutor(ExecutorTestCase):
                         "method": "POST",
                         "body": {
                             "param_name1": "param_value1",
-                            "param_name2": "param_value2"}}]}}})
+                            "param_name2": "param_value2"}      # simple body without content header -> params
+                    }, {
+                        "url": "/something_else.php",
+                        "headers": {"Content-Type": "application/json"},
+                        "method": "POST",
+                        "body": {
+                            "param_name3": "param_value4"}}     # simple body with content header -> json
+                ]}}})
         self.obj.prepare()
         scala_file = self.obj.engine.artifacts_dir + '/' + self.obj.get_scenario().get('simulation') + '.scala'
         self.assertFilesEqual(RESOURCES_DIR + "gatling/generated1.scala", scala_file,

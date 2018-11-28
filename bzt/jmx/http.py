@@ -46,9 +46,8 @@ class HTTPProtocolHandler(ProtocolHandler):
         timeout = self.safe_time(request.priority_option('timeout'))
 
         # convert body to string
-        content_type = request.get_header('content-type')
         if isinstance(request.body, (dict, list, numeric_types)):
-            if content_type == 'application/json' or isinstance(request.body, numeric_types):
+            if request.get_header('content-type') == 'application/json' or isinstance(request.body, numeric_types):
                 request.body = json.dumps(request.body)
             elif not simple_body_dict(request.body):
                 LOG.debug('Header "Content-Type: application/json" is required for body: "%s"', request.body)

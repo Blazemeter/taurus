@@ -22,7 +22,7 @@ class SIMNAME extends Simulation {
   var execution = exec(
     http("/reserve.php").post("/reserve.php")
       .header("H2", "V2")
-      .body(StringBody("""Body Content"""))
+      .body(StringBody("""{"com": {"pli": {"cat": ["ed", "dict"]}}}"""))
       .check(
         substring("""bootstrap.min""").notExists
       )
@@ -37,6 +37,11 @@ class SIMNAME extends Simulation {
     http("/something.php").post("/something.php")
       .formParam("param_name1", "param_value1")
       .formParam("param_name2", "param_value2")
+      .disableFollowRedirect
+  ).pause(1).exec(
+    http("/something_else.php").post("/something_else.php")
+      .header("Content-Type", "application/json")
+      .body(StringBody("""{"param_name3": "param_value4"}"""))
       .disableFollowRedirect
   ).pause(1)
 
