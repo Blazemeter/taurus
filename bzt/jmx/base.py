@@ -405,9 +405,6 @@ class JMX(object):
     def __add_body_from_script(args, body, proxy):
         http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
         for arg_name, arg_value in body.items():
-            if not (isinstance(arg_value, string_types) or isinstance(arg_value, numeric_types)):
-                msg = 'Body field "%s: %s" requires "Content-Type: application/json" header'
-                LOG.warning(msg % (arg_name, arg_value))
             try:
                 http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
             except ValueError:

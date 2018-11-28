@@ -1259,17 +1259,39 @@ class TestJMeterExecutor(ExecutorTestCase):
     def test_complicate_body(self):
         self.configure({"execution": {
             "scenario": {
-                "requests": [{
-                    "url": "http://blazedemo.com",
-                    "body": {
-                        "key1": {"key2": "val3"}
-                    }}]}}})
+                "requests": [
+                    {
+                        "url": "http://blazedemo1.com",         # header + complicated dict = json
+                        "method": "POST",
+                        "headers": {"Content-Type": "application/json"},
+                        "body": {"key1": {"key2": "val3"}}
+                    }, {
+                        "url": "http://blazedemo2.com",         # no header + easy dict = form
+                        "method": "POST",
+                        "body": {"key4": "val5"}
+                    }, {
+                        "url": "http://blazedemo3.com",         # no header + complicated dict = json
+                        "method": "POST",
+                        "body": {
+                            "key6": {"key7": "val8"}}
+                    }, {
+                        "url": "http://blazedemo4.com",         # header + easy dict = json
+                        "method": "POST",
+                        "headers": {"Content-Type": "application/json"},
+                        "body": {"key9": "val10"}
+                    }]}}})
         self.obj.prepare()
         jmx = JMX(self.obj.original_jmx)
-        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
-        selector += '>elementProp>stringProp[name="Argument.value"]'
-        target = "{'key2': 'val3'}"
-        self.assertEqual(target, jmx.get(selector)[0].text)
+        selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp>elementProp>stringProp[name="Argument.%s"]'
+
+        names = jmx.get(selector % "name")
+        vals = jmx.get(selector % "value")
+
+        target_names = ['key4']
+        target_vals = ['{"key1": {"key2": "val3"}}', 'val5', '{"key6": {"key7": "val8"}}', '{"key9": "val10"}']
+
+        self.assertEqual(target_names, [name.text for name in names])
+        self.assertEqual(target_vals, [val.text for val in vals])
 
     def test_jtl_verbose(self):
         self.configure({"execution": {

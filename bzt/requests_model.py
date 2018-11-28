@@ -19,7 +19,7 @@ import mimetypes
 import re
 
 from bzt import TaurusConfigError, TaurusInternalException
-from bzt.utils import ensure_is_dict, dehumanize_time
+from bzt.utils import ensure_is_dict, dehumanize_time, BetterDict
 
 VARIABLE_PATTERN = re.compile("\${.+\}")
 
@@ -66,6 +66,16 @@ class HTTPRequest(Request):
         self.think_time = self.config.get('think-time', None)
         self.follow_redirects = self.config.get('follow-redirects', None)
         self.body = self._get_body(pure_body_file=pure_body_file)
+
+    def get_header(self, name):
+        def dic_lower(dic):
+            return {str(k).lower(): str(dic[k]).lower() for k in dic}
+
+        scenario_headers = dic_lower(self.scenario.get_headers())
+        request_headers = dic_lower(self.headers)
+        headers = BetterDict.from_dict(scenario_headers)
+        headers.merge(request_headers)
+        return headers.get(name.lower(), None)
 
     def _get_body(self, pure_body_file=False):
         # todo: if self.method not in ("PUT", "POST")?
