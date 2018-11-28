@@ -191,7 +191,7 @@ class ProtocolHandler(object):
     def get_toplevel_elements(self, scenario):
         return []
 
-    def get_sampler_pair(self, scenario, request):
+    def get_sampler_pair(self, request):
         return None, None
 
     @staticmethod
@@ -410,7 +410,7 @@ class JMeterScenarioBuilder(JMX):
         protocol_name = request.priority_option('protocol', default=self.default_protocol)
         if protocol_name in self.protocol_handlers:
             protocol = self.protocol_handlers[protocol_name]
-            sampler, children = protocol.get_sampler_pair(self.scenario, request)
+            sampler, children = protocol.get_sampler_pair(request)
 
         if sampler is None:
             self.log.warning("Problematic request: %s", request.config)

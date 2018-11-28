@@ -10,20 +10,6 @@ LOG = logging.getLogger("")
 
 
 class HTTPProtocolHandler(ProtocolHandler):
-    @staticmethod
-    def _get_merged_ci_headers(scenario, req, header):
-        def dic_lower(dic):
-            return {str(k).lower(): str(dic[k]).lower() for k in dic}
-
-        ci_scenario_headers = dic_lower(scenario.get_headers())
-        ci_request_headers = dic_lower(req.headers)
-        headers = BetterDict.from_dict(ci_scenario_headers)
-        headers.merge(ci_request_headers)
-        if header.lower() in headers:
-            return headers[header]
-        else:
-            return None
-
     def get_toplevel_elements(self, scenario):
         return self._gen_managers(scenario) + self._gen_defaults(scenario)
 
@@ -56,11 +42,11 @@ class HTTPProtocolHandler(ProtocolHandler):
                     etree.Element("hashTree")]
         return elements
 
-    def get_sampler_pair(self, scenario, request):
+    def get_sampler_pair(self, request):
         timeout = self.safe_time(request.priority_option('timeout'))
 
         # convert body to string
-        content_type = self._get_merged_ci_headers(scenario, request, 'content-type')
+        content_type = request.get_header('content-type')
         if isinstance(request.body, (dict, list, numeric_types)):
             if content_type == 'application/json' or isinstance(request.body, numeric_types):
                 request.body = json.dumps(request.body)
