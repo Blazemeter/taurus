@@ -1268,7 +1268,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         jmx = JMX(self.obj.original_jmx)
         selector = 'elementProp[name="HTTPsampler.Arguments"]>collectionProp'
         selector += '>elementProp>stringProp[name="Argument.value"]'
-        target = "{'key2': 'val3'}"
+        target = '{"key1": {"key2": "val3"}}'
         self.assertEqual(target, jmx.get(selector)[0].text)
 
     def test_jtl_verbose(self):

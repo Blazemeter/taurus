@@ -1,13 +1,17 @@
 import json
+import logging
 
 from bzt.jmx.base import JMX
 from bzt.jmx.tools import ProtocolHandler
-from bzt.six import etree
-from bzt.utils import get_host_ips, BetterDict
+from bzt.six import etree, numeric_types
+from bzt.utils import get_host_ips, BetterDict, simple_body_dict
+
+LOG = logging.getLogger("")
 
 
 class HTTPProtocolHandler(ProtocolHandler):
-    def _get_merged_ci_headers(self, scenario, req, header):
+    @staticmethod
+    def _get_merged_ci_headers(scenario, req, header):
         def dic_lower(dic):
             return {str(k).lower(): str(dic[k]).lower() for k in dic}
 
@@ -55,24 +59,27 @@ class HTTPProtocolHandler(ProtocolHandler):
     def get_sampler_pair(self, scenario, request):
         timeout = self.safe_time(request.priority_option('timeout'))
 
+        # convert body to string
         content_type = self._get_merged_ci_headers(scenario, request, 'content-type')
-        if content_type == 'application/json' and isinstance(request.body, (dict, list)):
-            body = json.dumps(request.body)
-        else:
-            body = request.body
+        if isinstance(request.body, (dict, list, numeric_types)):
+            if content_type == 'application/json' or isinstance(request.body, numeric_types):
+                request.body = json.dumps(request.body)
+            elif not simple_body_dict(request.body):
+                LOG.warning('Body field "%s" requires "Content-Type: application/json" header', request.body)
+                request.body = json.dumps(request.body)
 
         use_random_host_ip = request.priority_option('random-source-ip', default=False)
         host_ips = get_host_ips(filter_loopbacks=True) if use_random_host_ip else []
 
         files = request.upload_files
         body_file = request.config.get("body-file")
-        has_file_for_body = not (body or files) and body_file
+        has_file_for_body = not (request.body or files) and body_file
 
         # method can be put, post, or even variable
         if has_file_for_body and request.method != "GET":
             files = [{"path": body_file}]
 
-        http = JMX._get_http_request(request.url, request.label, request.method, timeout, body,
+        http = JMX._get_http_request(request.url, request.label, request.method, timeout, request.body,
                                      request.priority_option('keepalive', default=True),
                                      files, request.content_encoding,
                                      request.priority_option('follow-redirects', default=True),

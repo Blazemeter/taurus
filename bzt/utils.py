@@ -56,7 +56,7 @@ from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
 from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname
-from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types
+from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, numeric_types
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
 LOG = logging.getLogger("")
@@ -65,6 +65,16 @@ LOG = logging.getLogger("")
 def sync_run(args, env=None):
     output = check_output(args, env=env, stderr=STDOUT)
     return stream_decode(output).rstrip()
+
+
+def simple_body_dict(dic):
+    """ body must has one level for sending with form params"""
+    if isinstance(dic, dict):
+        for key in dic:
+            if not isinstance(dic[key], (string_types, numeric_types)):
+                return False
+        return True
+    return False
 
 
 def get_full_path(path, default=None, step_up=0):
