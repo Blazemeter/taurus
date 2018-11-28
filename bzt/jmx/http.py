@@ -65,7 +65,7 @@ class HTTPProtocolHandler(ProtocolHandler):
             if content_type == 'application/json' or isinstance(request.body, numeric_types):
                 request.body = json.dumps(request.body)
             elif not simple_body_dict(request.body):
-                LOG.warning('Body field "%s" requires "Content-Type: application/json" header', request.body)
+                LOG.debug('Header "Content-Type: application/json" is required for body: "%s"', request.body)
                 request.body = json.dumps(request.body)
 
         use_random_host_ip = request.priority_option('random-source-ip', default=False)
