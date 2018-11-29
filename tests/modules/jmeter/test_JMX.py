@@ -82,7 +82,7 @@ class TestLoadSettingsProcessor(BZTestCase):
 
     def test_CTG_crs(self):
         """ ConcurrencyThreadGroup: concurrency, ramp-up, steps """
-        self.configure(load={'concurrency': 71, 'ramp-up': 100, 'steps': 5},
+        self.configure(load={'concurrency': 71, 'ramp-up': 103, 'steps': 5, "throughput": 52},
                        jmx_file=RESOURCES_DIR + 'jmeter/jmx/threadgroups.jmx')
         self.assertEqual(LoadSettingsProcessor.CTG, self.obj.tg)
         self.sniff_log(self.obj.log)
@@ -99,7 +99,7 @@ class TestLoadSettingsProcessor(BZTestCase):
         for group in self.get_groupset():
             self.assertEqual(group.gtype, "ConcurrencyThreadGroup")
             self.assertEqual("5", group.element.find(".//*[@name='Steps']").text)
-            self.assertEqual("100", group.element.find(".//*[@name='RampUp']").text)
+            self.assertEqual("103", group.element.find(".//*[@name='RampUp']").text)
             self.assertEqual("S", group.element.find(".//*[@name='Unit']").text)
             self.assertIn(group.element.find(".//*[@name='Hold']").text, ("", "0"))
 
@@ -111,6 +111,13 @@ class TestLoadSettingsProcessor(BZTestCase):
                           'STG.03': {'conc': 26, 'on_error': 'stoptest'},
                           'UTG.04': {'conc': 6, 'on_error': 'stoptestnow'},
                           'ATG.05': {'conc': 6, 'on_error': 'continue'}})
+
+        self.assertListEqual(self._get_tst_schedule(),
+                             [['10.4', '10.4', '20'],
+                              ['20.8', '20.8', '21'],
+                              ['31.2', '31.2', '20'],
+                              ['41.6', '41.6', '21'],
+                              ['52.0', '52.0', '21']])
 
     def test_CTG_prop_rs(self):
         """ ConcurrencyThreadGroup: properties in ramp-up, steps """
@@ -139,25 +146,24 @@ class TestLoadSettingsProcessor(BZTestCase):
 
         self.obj.modify(self.jmx)
 
+        self.assertListEqual(self._get_tst_schedule(),
+                             [["1.0", "${__P(t)}", "${__P(r)}"], ["${__P(t)}", "${__P(t)}", "${__P(h)}"]], )
+
+    def _get_tst_schedule(self):
+        records = []
         shaper_elements = self.jmx.get("kg\.apc\.jmeter\.timers\.VariableThroughputTimer")
         self.assertEqual(1, len(shaper_elements))
 
         shaper_collection = shaper_elements[0].find(".//collectionProp[@name='load_profile']")
         coll_elements = shaper_collection.findall(".//collectionProp")
 
-        self.assertEqual(2, len(coll_elements))
-
-        strings0 = coll_elements[0].findall(".//stringProp")
-
-        self.assertEqual("1.0", strings0[0].text)
-        self.assertEqual("${__P(t)}", strings0[1].text)
-        self.assertEqual("${__P(r)}", strings0[2].text)
-
-        strings1 = coll_elements[1].findall(".//stringProp")
-
-        self.assertEqual("${__P(t)}", strings1[0].text)
-        self.assertEqual("${__P(t)}", strings1[1].text)
-        self.assertEqual("${__P(h)}", strings1[2].text)
+        for expected in coll_elements:
+            item = []
+            strings0 = expected.findall(".//stringProp")
+            for rec in strings0:
+                item.append(rec.text)
+            records.append(item)
+        return records
 
     def test_TG_prop_cih(self):
         """ ThreadGroup: properties in concurrency, hold-for, iterations """
