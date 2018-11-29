@@ -124,6 +124,31 @@ class TestToolInstaller(BZTestCase):
         obj.engine.config.get("modules")["err"] = "hello there"
         self.assertRaises(ToolError, obj.prepare)
 
+    def test_include_only_good(self):
+        obj = InstallChecker()
+        obj.engine = EngineEmul()
+        obj.engine.config.get("modules")["base"] = EngineModule.__module__ + "." + EngineModule.__name__
+        obj.engine.config.get("modules")["dummy"] = ModuleMock.__module__ + "." + ModuleMock.__name__
+        obj.engine.config.get("modules")["err"] = "hello there"
+        obj.settings["include"] = ["base", "dummy"]
+        self.assertRaises(NormalShutdown, obj.prepare)
+
+    def test_exclude_problematic(self):
+        obj = InstallChecker()
+        obj.engine = EngineEmul()
+        obj.engine.config.get("modules")["err"] = "hello there"
+        obj.settings["exclude"] = ["err"]
+        self.assertRaises(NormalShutdown, obj.prepare)
+
+    def test_include_string(self):
+        obj = InstallChecker()
+        obj.engine = EngineEmul()
+        obj.engine.config.get("modules")["base"] = EngineModule.__module__ + "." + EngineModule.__name__
+        obj.engine.config.get("modules")["dummy"] = ModuleMock.__module__ + "." + ModuleMock.__name__
+        obj.engine.config.get("modules")["err"] = "hello there"
+        obj.settings["include"] = "base,dummy"
+        self.assertRaises(NormalShutdown, obj.prepare)
+
 
 class TestAndroidEmulatorLoader(BZTestCase):
     def setUp(self):

@@ -1,1 +1,0 @@
-Fix `chrome-loader.exe` location in windows installer (used by `proxy2jmx`)

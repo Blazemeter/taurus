@@ -23,7 +23,7 @@ import subprocess
 import time
 import zipfile
 
-from bzt.six import communicate
+from bzt.six import communicate, text_type, string_types
 
 from bzt import NormalShutdown, ToolError, TaurusConfigError, TaurusInternalException
 from bzt.engine import Service, HavingInstallableTools, Singletone, ScenarioExecutor
@@ -62,10 +62,27 @@ class Unpacker(Service):
 
 
 class InstallChecker(Service, Singletone):
+    @staticmethod
+    def _parse_module_filter(filter_value):
+        if isinstance(filter_value, (string_types, text_type)):
+            filter = set(filter_value.strip().split(","))
+        elif isinstance(filter_value, (list, dict)):
+            filter = set(filter_value)
+        else:
+            filter = set()
+        return filter
+
     def prepare(self):
         modules = self.engine.config.get("modules")
         problems = []
+        include_set = self._parse_module_filter(self.settings.get("include", []))
+        exclude_set = self._parse_module_filter(self.settings.get("exclude", []))
         for mod_name in modules:
+            if include_set and mod_name not in include_set:
+                continue
+            if exclude_set and mod_name in exclude_set:
+                continue
+
             try:
                 self._check_module(mod_name)
             except KeyboardInterrupt:
