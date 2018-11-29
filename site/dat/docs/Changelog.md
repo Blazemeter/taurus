@@ -5,7 +5,8 @@
 - introduce a convention for plugin configs autodetection
 - optimize aggregator subsystem: bypass consolidation step when single execution is used, use single-pass HDR iterator
 - Gatling 3 support: use new keywords in scala file (baseUrl, during), use properties instead of cmdline params, handle new syntax of simulation.log
-- Support embedded resource download options for Gatling
+- support embedded resource download options for Gatling
+- support body of dictionary style for Gatling YAML scripts
 - use blacklist for cloud config filtering
 - don't fail if failureMessage is empty in error.jtl
 - add `screenshot([filename])` Selenium action, allow using variables and interpolation in screenshot names
@@ -16,7 +17,11 @@
 - use JTL as a results format for JUnit-based load tests
 - prevent skipping assertion failures from Selenium scripts
 - allow waiting for file with external results to appear within timeout
+- generate stepping schedule in JMeter TST when `steps` are used
+- don't raise exception when JMeter uses JSON body with no appropriate header
 - support cloud failure criteria for BM tests to set exit code
+- added masterId argument when uploading monitoring file to BM
+- add include/exclude for `-install-tools` alias
 
 
 ## 1.13.1<sup>26 oct 2018</sup>
