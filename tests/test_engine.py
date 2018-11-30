@@ -111,7 +111,6 @@ class TestEngine(BZTestCase):
             "modules": {
                 "local": "bzt.modules.provisioning.Local",
                 "jmeter": {"class": "tests.modules.jmeter.MockJMeterExecutor",
-                           "detect-plugins": False,
                            "protocol-handlers": {"http": "bzt.jmx.http.HTTPProtocolHandler"}},
             }})
         self.obj.unify_config()

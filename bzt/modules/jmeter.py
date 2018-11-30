@@ -22,6 +22,7 @@ import fnmatch
 import os
 import re
 import socket
+import subprocess
 import tempfile
 import time
 import traceback
@@ -41,9 +42,9 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
-from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode
+from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode, communicate
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
-from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, FileReader, CALL_PROBLEMS
+from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
 
@@ -392,7 +393,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.start_time = time.time()
         try:
             self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
-        except CALL_PROBLEMS as exc:
+        except KeyboardInterrupt:
+            raise
+        except BaseException as exc:
             raise ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
 
     def check(self):
@@ -458,10 +461,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def _process_stopped(self, cycles):
         while cycles > 0:
-            if not (self.process and self.process.poll() is None):
-                return True
             cycles -= 1
-            time.sleep(self.engine.check_interval)
+            if self.process and self.process.poll() is None:
+                time.sleep(self.engine.check_interval)
+            else:
+                return True
         return False
 
     def _set_remote_port(self):
@@ -871,7 +875,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         if os.path.isdir(tool.tool_path):  # it's dir: fix tool path and install if needed
             tool.tool_path = os.path.join(tool.tool_path, end_str_l)
-            return not tool.check_if_installed()
+            if tool.check_if_installed():
+                return False
+            else:
+                return True
 
         # similar to future jmeter directory
         if not (tool.tool_path.endswith(end_str_l) or tool.tool_path.endswith(end_str_s)):
@@ -1508,31 +1515,31 @@ class JMeter(RequiredTool):
 
     def check_if_installed(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
-        jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
-
         try:
-            cmd_line = [self.tool_path, '-j', jmlog.name, '--version']
-            out, err = self.execute(cmd_line)
-            self.log.debug("JMeter check: %s / %s", out, err)
+            with tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False) as jmlog:
+                jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
+                jmout, jmerr = communicate(jm_proc)
+                self.log.debug("JMeter check: %s / %s", jmout, jmerr)
 
-            if "is too low to run JMeter" in out:
+            os.remove(jmlog.name)
+
+            if "is too low to run JMeter" in jmout:
                 raise ToolError("Java version is too low to run JMeter")
 
-            if "Error:" in out:
-                self.log.warning("JMeter output: \n%s", out)
+            if "Error:" in jmout:
+                self.log.warning("JMeter output: \n%s", jmout)
                 raise ToolError("Unable to run JMeter, see error above")
 
-        except CALL_PROBLEMS as exc:
-            self.log.debug("JMeter check failed: %s", exc)
-            return False
-        finally:
-            jmlog.close()
+            return True
 
-        return True
+        except OSError:
+            self.log.debug("JMeter check failed.")
+            return False
 
     def _pmgr_call(self, params):
         cmd = [self._pmgr_path()] + params
-        return self.execute(cmd)
+        proc = shell_exec(cmd, env=self.env.get())
+        return communicate(proc)
 
     def install_for_jmx(self, jmx_file):
         if not os.path.isfile(jmx_file):
@@ -1540,10 +1547,11 @@ class JMeter(RequiredTool):
             return
 
         try:
-            params = ["install-for-jmx", jmx_file]
-            out, err = self._pmgr_call(params)
+            out, err = self._pmgr_call(["install-for-jmx", jmx_file])
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
-        except CALL_PROBLEMS as exc:
+        except KeyboardInterrupt:
+            raise
+        except BaseException as exc:
             self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
             return
 
@@ -1588,24 +1596,32 @@ class JMeter(RequiredTool):
 
     def __install_plugins_manager(self, plugins_manager_path):
         installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
-        cmd_line = ["java", "-cp", plugins_manager_path, installer]
-        self.log.debug("Trying: %s", cmd_line)
+        cmd = ["java", "-cp", plugins_manager_path, installer]
+        self.log.debug("Trying: %s", cmd)
         try:
-            out, err = self.execute(cmd_line)
+            proc = shell_exec(cmd)
+            out, err = communicate(proc)
             self.log.debug("Install PluginsManager: %s / %s", out, err)
-        except CALL_PROBLEMS as exc:
+        except KeyboardInterrupt:
+            raise
+        except BaseException as exc:
             raise ToolError("Failed to install PluginsManager: %s" % exc)
 
     def __install_plugins(self, plugins_manager_cmd):
         plugin_str = ",".join(self.plugins)
         self.log.info("Installing JMeter plugins: %s", plugin_str)
-        cmd_line = [plugins_manager_cmd, 'install', plugin_str]
-        self.log.debug("Trying: %s", cmd_line)
+        cmd = [plugins_manager_cmd, 'install', plugin_str]
+        self.log.debug("Trying: %s", cmd)
 
         try:
-            out, err = self.execute(cmd_line)
+            proc = shell_exec(cmd, env=self.env.get())
+            out, err = communicate(proc)
             self.log.debug("Install plugins: %s / %s", out, err)
-        except CALL_PROBLEMS as exc:
+            if proc.returncode is not None and proc.returncode != 0:
+                raise ToolError("Failed to install JMeter plugins with code %s" % proc.returncode)
+        except KeyboardInterrupt:
+            raise
+        except BaseException as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
 
         if out and "Plugins manager will apply some modifications" in out:
