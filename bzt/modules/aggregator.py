@@ -544,15 +544,16 @@ class ResultsProvider(object):
             return key
 
         size = len(dataset)
-        tolerance = (float(size) / float(limit)) ** 2
-        threshold = 1 - tolerance
-        matches = dataset.get(key)
-        if matches:
-            for score, result in matches:
-                if score >= threshold:
-                    return result
-        elif tolerance >= 1.0:
-            return next(iter(dataset.exact_set.values()))  # last resort for capping
+        if size >= limit / 4:  # TODO: parameterize it
+            tolerance = (float(size) / float(limit)) ** 2
+            threshold = 1 - tolerance
+            matches = dataset.get(key)
+            if matches:
+                for score, result in matches:
+                    if score >= threshold:
+                        return result
+            elif tolerance >= 1.0:
+                return next(iter(dataset.exact_set.values()))  # last resort for capping
 
         dataset.add(key)
         return key
