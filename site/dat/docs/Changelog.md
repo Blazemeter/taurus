@@ -22,6 +22,7 @@
 - support cloud failure criteria for BM tests to set exit code
 - added masterId argument when uploading monitoring file to BM
 - add include/exclude for `-install-tools` alias
+- don't fold labels and errors until 1/4 of limit used
 
 
 ## 1.13.1<sup>26 oct 2018</sup>

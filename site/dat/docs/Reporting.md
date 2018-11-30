@@ -149,18 +149,16 @@ modules:
 
 ### Label and Error Folding
 
-To correctly and efficiently handle a lot of test data and calculate statistics, Taurus performs a few tricks.
+To handle a lot of test data correctly and efficiently, Taurus performs a few tricks when calculates statistics.
 
 For example, the number of requests/labels Taurus can handle is capped by `generalize-labels` option (100 by default).
 Similar labels can be folded into a single one. For example, if the number of labels is high,
-`http://blazedemo.com/?foo=bar` and `http://blazedemo.com/?foo=baz` will be folded together and treated as two requests
-with the same label.
+`http://blazedemo.com/?foo=bar` and `http://blazedemo.com/?foo=baz` will be folded together and treated as two requests with the same label. This label merging only happens when you have more than 1/4 of `generalize-labels` utilized.
 
-The sample folding mechanics also apply to test errors. Similar errors are folded together, and the upper limit of
-errors can be set with `max-error-variety` option.
+The sample folding mechanics also apply to test errors. Similar errors are folded together, and the upper limit of errors can be set with `max-error-variety` option.
 
 To completely disable folding of labels or errors, you can set `generalize-labels` (or `max-error-variety`) to 0.
-This way Taurus will consume more memory for tests with lots of labels, so be prepared.
+Disabled folding makes Taurus consume more memory and CPU for tests with lots of labels, so be prepared.
  
 ## Pass/Fail Criteria Subsystem
  
