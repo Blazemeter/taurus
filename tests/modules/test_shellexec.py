@@ -53,7 +53,8 @@ class TestBlockingTasks(TaskTestCase):
         self.obj.prepare()
         self.obj.startup()
         self.obj.shutdown()
-        self.assertIn(buf, self.log_recorder.debug_buff.getvalue())
+        out = self.log_recorder.debug_buff.getvalue()
+        self.assertIn(buf, out)
 
     def test_nonbackground_prepare(self):
         task = {"command": "echo hello", "background": True}
@@ -98,13 +99,28 @@ class TestNonBlockingTasks(TaskTestCase):
         self.assertIn("Task was finished with exit code 0: sleep 1", self.log_recorder.debug_buff.getvalue())
 
     def test_background_task_output(self):
-        task = {"command": "echo hello", "background": True}
-        blocking_task = {"command": "sleep 1", "background": False}
-        self.obj.parameters.merge({"prepare": [task, blocking_task]})
-        self.obj.prepare()
-        self.obj.check()
-        self.obj.shutdown()
-        self.assertIn("Output for echo hello:\n", self.log_recorder.debug_buff.getvalue())
+        fd, temp = tempfile.mkstemp()
+        os.close(fd)
+        try:
+            with open(temp, "at") as temp_f:
+                temp_f.write("*" * (2 ** 16 + 1))
+            if is_windows():
+                cmd = "type"
+            else:
+                cmd = "cat"
+            command1 = "%s %s" % (cmd, temp)
+            command2 = "sleep 1"
+            task = {"command": command1, "background": True}
+            blocking_task = {"command": command2, "background": False}
+            self.obj.parameters.merge({"prepare": [task, blocking_task]})
+            self.obj.prepare()
+            self.obj.check()
+            self.obj.shutdown()
+            out = self.log_recorder.debug_buff.getvalue()
+            self.assertIn("code 0: %s" % command1, out)
+            self.assertIn("code 0: %s" % command2, out)
+        finally:
+            os.remove(temp)
 
     def test_background_task_stop_on_fail(self):
         task = {"command": "python -m nosuchmodule", "background": True, "ignore-failure": False}
@@ -127,7 +143,7 @@ class TestNonBlockingTasks(TaskTestCase):
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         self.obj.post_process()
-        self.assertIn("Task: sleep 5 && pwd is not finished yet", self.log_recorder.debug_buff.getvalue())
+        self.assertIn("Task is not finished yet: sleep 5 && pwd", self.log_recorder.debug_buff.getvalue())
 
 
 class TestTasksConfigs(TaskTestCase):

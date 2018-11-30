@@ -58,6 +58,28 @@ class ShellExecutor(Service):
             env.add_path({"PYTHONPATH": working_dir})
 
             task = Task(task_config, self.log, working_dir, env, self.shared_env)
+
+            f_name = 'shellexec_%s_%s' % (stage, index)
+            if task.out:
+                task.out = open(task.out, 'at')
+            else:
+                if task.is_background:
+                    out = self.engine.create_artifact(f_name, '.out')
+                    self.log.debug('STDOUT of background task "%s" redirected to "%s"' % (task, out))
+                    task.out = open(out, 'at')
+                else:
+                    task.out = PIPE
+
+            if task.err:
+                task.err = open(task.err, 'at')
+            else:
+                if task.is_background:
+                    err = self.engine.create_artifact(f_name, '.err')
+                    self.log.debug('STDERR of background task "%s" redirected to "%s"' % (task, err))
+                    task.err = open(err, 'at')
+                else:
+                    task.err = PIPE
+
             container.append(task)
             self.log.debug("Added %s task: %s", stage, stage_task)
 
@@ -137,24 +159,6 @@ class Task(object):
             self.log.info("Process already running: %s", self)
             return
 
-        if self.out:
-            self.out = open(self.out, 'at')
-        else:
-            if self.is_background:
-                with tempfile.NamedTemporaryFile(mode='at') as f:   # todo: add to log or/and move to artifacts
-                    self.out = open(f.name)
-            else:
-                self.out = PIPE
-
-        if self.err:
-            self.err = open(self.err, 'at')
-        else:
-            if self.is_background:
-                with tempfile.NamedTemporaryFile(mode='at') as f:   # todo: add to log or/and move to artifacts
-                    self.err = open(f.name)
-            else:
-                self.err = PIPE
-
         self.log.info("Starting shell command: %s", self)
         self.process = start_process(args=self.command, stdout=self.out, stderr=self.err, cwd=self.working_dir,
                                      env=self.env, shared_env=self.shared_env, shell=True)
@@ -168,7 +172,7 @@ class Task(object):
             return True
 
         if self.process.poll() is None:
-            self.log.debug('Task: %s is not finished yet', self)
+            self.log.debug('Task is not finished yet: %s', self)
             return False
 
         self._get_results()
