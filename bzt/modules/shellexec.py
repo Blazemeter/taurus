@@ -67,7 +67,7 @@ class ShellExecutor(Service):
         :return:
         """
         self.env = Environment(self.log, self.engine.env.get())
-        self.env = self.engine.shared_env
+        self.shared_env = self.engine.shared_env
         self.env.set(self.settings.get('env'))
 
         self._load_tasks('prepare', self.prepare_tasks)
