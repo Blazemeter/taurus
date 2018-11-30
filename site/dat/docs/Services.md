@@ -109,6 +109,12 @@ There is small service which helps to check for all possible tools presence on t
 
 To invoke this service, just run Taurus like this `bzt -install-tools`. 
 
+Also, this service supports additional black- and whitelisting.
+
+Example of whitelisting: `bzt -install-tools -o modules.install-checker.include=jmeter,gatling`
+
+Example of blacklisting: `bzt -install-tools -o modules.install-checker.exclude=jmeter`
+
 ## Appium Loader
 
 Useful for start/stop appium server automatically. This service doesn't provide installation ability so use [official documentation](http://appium.io) to get appium. You can specify path to appium through the appropriate setting:

@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import json
 import codecs
 import os
 import re
@@ -28,9 +29,10 @@ from bzt.engine import ScenarioExecutor, Scenario, FileLister, HavingInstallable
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
-from bzt.six import string_types
+from bzt.six import string_types, numeric_types
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
 from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
+from bzt.utils import simple_body_dict
 
 
 class GatlingScriptBuilder(object):
@@ -93,19 +95,31 @@ class GatlingScriptBuilder(object):
             else:
                 url = self.fixed_addr(req.url)
 
-            exec_template = 'exec(\n' + self.indent('http("%(req_label)s").%(method)s("%(url)s")', level=2) + '\n'
+            exec_str += 'exec(\n'
+            exec_template = self.indent('http("%(req_label)s").%(method)s("%(url)s")\n', level=2)
             exec_str += exec_template % {'req_label': req.label, 'method': req.method.lower(), 'url': url}
 
             for key in req.headers:
-                exec_str += self.indent('.header("%(key)s", "%(val)s")\n' % {'key': key, 'val': req.headers[key]},
-                                        level=3)
+                exec_template = self.indent('.header("%(key)s", "%(val)s")\n', level=3)
+                exec_str += exec_template % {'key': key, 'val': req.headers[key]}
 
-            if req.body is not None:
-                if isinstance(req.body, string_types):
-                    exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
-                    exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
-                else:
-                    self.log.warning('Only string and file are supported body content, "%s" ignored' % str(req.body))
+            # todo: join with the same in get_sampler_pair
+            if isinstance(req.body, (dict, list, numeric_types)):
+                if req.get_header('content-type') == 'application/json' or isinstance(req.body, numeric_types):
+                    req.body = json.dumps(req.body)
+                elif not simple_body_dict(req.body):
+                    self.log.debug('Header "Content-Type: application/json" is required for body: "%s"', req.body)
+                    req.body = json.dumps(req.body)
+
+            if isinstance(req.body, string_types):
+                exec_str += self.indent('.body(%(method)s("""%(body)s"""))\n', level=3)
+                exec_str = exec_str % {'method': 'StringBody', 'body': req.body}
+            elif isinstance(req.body, dict):
+                for key in sorted(req.body.keys()):
+                    exec_str += self.indent('.formParam("%(key)s", "%(val)s")\n', level=3)
+                    exec_str = exec_str % {'key': key, 'val': req.body[key]}
+            elif req.body is not None:
+                self.log.warning("Unknown body type: %s", req.body)
 
             exec_str += self.__get_assertions(req.config.get('assert', []))
 

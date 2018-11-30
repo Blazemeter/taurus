@@ -26,6 +26,8 @@ from bzt.engine import Scenario, BetterDict
 from bzt.requests_model import has_variable_pattern
 from bzt.six import etree, iteritems, string_types, parse, text_type, numeric_types, integer_types
 
+LOG = logging.getLogger("")
+
 
 def cond_int(val):
     if isinstance(val, float):
@@ -34,9 +36,9 @@ def cond_int(val):
     return val
 
 
-def cond_float(val):
+def cond_float(val, rounding=None):
     if isinstance(val, numeric_types):
-        return float(val)
+        return round(float(val), rounding) if rounding is not None else float(val)
 
     return val
 
@@ -288,7 +290,7 @@ class JMX(object):
             conf_mech = authorization.get("mechanism", "").upper()
 
             if not (conf_name and conf_pass and (conf_url or conf_domain)):
-                logging.warning("Wrong authorization: %s" % authorization)
+                LOG.warning("Wrong authorization: %s" % authorization)
                 continue
 
             auth_element.append(JMX._string_prop("Authorization.url", conf_url))
@@ -393,7 +395,7 @@ class JMX(object):
         try:
             header.append(JMX._string_prop("Argument.value", body))
         except ValueError:
-            logging.warning("Failed to set body: %s", traceback.format_exc())
+            LOG.warning("Failed to set body: %s", traceback.format_exc())
             header.append(JMX._string_prop("Argument.value", "BINARY-STUB"))
         coll_prop.append(header)
         args.append(coll_prop)
@@ -403,26 +405,23 @@ class JMX(object):
     def __add_body_from_script(args, body, proxy):
         http_args_coll_prop = JMX._collection_prop("Arguments.arguments")
         for arg_name, arg_value in body.items():
-            if not (isinstance(arg_value, string_types) or isinstance(arg_value, numeric_types)):
-                msg = 'Body field "%s: %s" requires "Content-Type: application/json" header'
-                raise TaurusInternalException(msg % (arg_name, arg_value))
             try:
                 http_element_prop = JMX._element_prop(arg_name, "HTTPArgument")
             except ValueError:
-                logging.warning("Failed to get element property: %s", traceback.format_exc())
+                LOG.warning("Failed to get element property: %s", traceback.format_exc())
                 http_element_prop = JMX._element_prop('BINARY-STUB', "HTTPArgument")
 
             try:
                 http_element_prop.append(JMX._string_prop("Argument.name", arg_name))
             except ValueError:
-                logging.warning("Failed to set arg name: %s", traceback.format_exc())
+                LOG.warning("Failed to set arg name: %s", traceback.format_exc())
                 http_element_prop.append(JMX._string_prop("Argument.name", "BINARY-STUB"))
 
             try:
                 http_element_prop.append(
                     JMX._string_prop("Argument.value", arg_value if arg_value is not None else ''))
             except ValueError:
-                logging.warning("Failed to set arg name: %s", traceback.format_exc())
+                LOG.warning("Failed to set arg name: %s", traceback.format_exc())
                 http_element_prop.append(JMX._string_prop("Argument.value", "BINARY-STUB"))
 
             http_element_prop.append(JMX._bool_prop("HTTPArgument.always_encode", True))
@@ -451,7 +450,7 @@ class JMX(object):
                     else:
                         proxy.append(JMX._string_prop("HTTPSampler.port", ""))
                 except ValueError:
-                    logging.debug("Non-parsable port: %s", url)
+                    LOG.debug("Non-parsable port: %s", url)
                     proxy.append(JMX._string_prop("HTTPSampler.port", ""))
 
     @staticmethod
@@ -614,10 +613,10 @@ class JMX(object):
             <third> ('duration'): int
         """
         shaper_collection = shaper_etree.find(".//collectionProp[@name='load_profile']")
-        coll_prop = self._collection_prop("1817389797")
-        start_rps_prop = self._string_prop("49", cond_float(start_rps))
-        end_rps_prop = self._string_prop("1567", cond_float(end_rps))
-        duration_prop = self._string_prop("53", cond_int(duration))
+        coll_prop = self._collection_prop("")
+        start_rps_prop = self._string_prop("", cond_float(start_rps, 3))
+        end_rps_prop = self._string_prop("", cond_float(end_rps, 3))
+        duration_prop = self._string_prop("", cond_int(duration))
         coll_prop.append(start_rps_prop)
         coll_prop.append(end_rps_prop)
         coll_prop.append(duration_prop)
