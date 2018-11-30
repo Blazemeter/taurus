@@ -13,8 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import subprocess
-from subprocess import CalledProcessError
+import tempfile
+from subprocess import CalledProcessError, PIPE
 
 from bzt import TaurusConfigError
 from bzt.engine import Service
@@ -67,7 +67,7 @@ class ShellExecutor(Service):
         :return:
         """
         self.env = Environment(self.log, self.engine.env.get())
-        self.env = self.engine.shared_env
+        self.shared_env = self.engine.shared_env
         self.env.set(self.settings.get('env'))
 
         self._load_tasks('prepare', self.prepare_tasks)
@@ -121,9 +121,11 @@ class Task(object):
 
         self.command = config.get("command", TaurusConfigError("Parameter is required: command"))
         self.is_background = config.get("background", False)
+
+        self.out = config.get("out", None)
+        self.err = config.get("err", None)
+
         self.ignore_failure = config.get("ignore-failure", False)
-        self.err = config.get("err", subprocess.PIPE)
-        self.out = config.get("out", subprocess.PIPE)
         self.process = None
 
     def start(self):
@@ -135,18 +137,26 @@ class Task(object):
             self.log.info("Process already running: %s", self)
             return
 
-        if self.out is not None and self.out != subprocess.PIPE:
-            out = open(self.out, 'at')
+        if self.out:
+            self.out = open(self.out, 'at')
         else:
-            out = self.out
+            if self.is_background:
+                with tempfile.NamedTemporaryFile(mode='at') as f:   # todo: add to log or/and move to artifacts
+                    self.out = open(f.name)
+            else:
+                self.out = PIPE
 
-        if self.err is not None and self.err != subprocess.PIPE:
-            err = open(self.err, 'at')
+        if self.err:
+            self.err = open(self.err, 'at')
         else:
-            err = self.err
+            if self.is_background:
+                with tempfile.NamedTemporaryFile(mode='at') as f:   # todo: add to log or/and move to artifacts
+                    self.err = open(f.name)
+            else:
+                self.err = PIPE
 
         self.log.info("Starting shell command: %s", self)
-        self.process = start_process(args=self.command, stdout=out, stderr=err, cwd=self.working_dir,
+        self.process = start_process(args=self.command, stdout=self.out, stderr=self.err, cwd=self.working_dir,
                                      env=self.env, shared_env=self.shared_env, shell=True)
         if self.is_background:
             self.log.debug("Task started, PID: %d", self.process.pid)
@@ -167,15 +177,16 @@ class Task(object):
     def _get_results(self):
         stdout, stderr = communicate(self.process)
 
-        if stdout and (self.out == subprocess.PIPE):
+        # todo: show temp files from startup
+        if stdout and (self.out == PIPE):
             self.log.debug("Output for %s:\n%s", self, stdout)
 
-        if stderr and (self.err == subprocess.PIPE):
+        if stderr and (self.err == PIPE):
             self.log.warning("Errors for %s:\n%s", self, stderr)
 
         self.log.debug("Task was finished with exit code %s: %s", self.process.returncode, self)
         if not self.ignore_failure and self.process.returncode != 0:
-            if self.out != subprocess.PIPE:
+            if self.out != PIPE:
                 self.log.warning("Output for %s:\n%s", self, stdout)
             raise CalledProcessError(self.process.returncode, self)
 
@@ -192,6 +203,9 @@ class Task(object):
             shutdown_process(self.process, self.log)
 
         self.process = None
+        for stream in (self.out, self.err):
+            if stream and stream != PIPE:
+                stream.close()
 
     def __repr__(self):
         return self.command

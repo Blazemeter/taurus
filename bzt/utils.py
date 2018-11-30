@@ -402,11 +402,11 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     Wrapper for subprocess starting
 
     """
-    if stdout and not isinstance(stdout, integer_types) and not isinstance(stdout, file_type):
+    if stdout and not isinstance(stdout, (integer_types, file_type)):
         LOG.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
-    if stderr and not isinstance(stderr, integer_types) and not isinstance(stderr, file_type):
+    if stderr and not isinstance(stderr, (integer_types, file_type)):
         LOG.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
