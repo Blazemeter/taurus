@@ -16,8 +16,9 @@ limitations under the License.
 from subprocess import CalledProcessError, PIPE
 
 from bzt import TaurusConfigError
+from bzt.six import communicate
 from bzt.engine import Service
-from bzt.utils import ensure_is_dict, Environment, shutdown_process, start_process, communicate
+from bzt.utils import ensure_is_dict, Environment, shutdown_process, start_process
 
 
 class ShellExecutor(Service):
