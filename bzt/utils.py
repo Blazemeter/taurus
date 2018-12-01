@@ -55,7 +55,7 @@ from progressbar import ProgressBar, Percentage, Bar, ETA
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname, communicate
+from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, numeric_types
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
