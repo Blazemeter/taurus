@@ -379,15 +379,6 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     return base + diff + suffix
 
 
-def exec_and_communicate(*args, **kwargs):
-    process = start_process(*args, **kwargs)
-    out, err = communicate(process)
-    if process.returncode != 0:
-        raise CalledProcessError(process.returncode, args[0][0])
-
-    return out, err
-
-
 def start_process(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None, shared_env=None):
     tmp_env = Environment()
     for e in (env, shared_env):
@@ -1130,7 +1121,7 @@ class RequiredTool(object):
     """
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
-                 env=None, version=None, installable=True, shared_env=None):
+                 env=None, version=None, installable=True):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
@@ -1138,7 +1129,6 @@ class RequiredTool(object):
         self.mirror_manager = None
         self.version = version
         self.installable = installable
-        self.shared_env = shared_env
 
         self.tool_name = self.__class__.__name__
 
@@ -1158,11 +1148,6 @@ class RequiredTool(object):
 
     def _get_version(self, output):
         return
-
-    def execute(self, *args, **kwargs):
-        kwargs["env"] = self.env
-        kwargs["shared_env"] = self.shared_env
-        return exec_and_communicate(*args, **kwargs)
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
@@ -1223,9 +1208,9 @@ class JavaVM(RequiredTool):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
-            out, err = self.execute(cmd)
-            self.version = self._get_version(err)
-            self.log.debug("%s output: %s", self.tool_name, out)
+            output = sync_run(cmd)
+            self.version = self._get_version(output)
+            self.log.debug("%s output: %s", self.tool_name, output)
             return True
         except CALL_PROBLEMS as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
@@ -1335,8 +1320,8 @@ class Node(RequiredTool):
         for candidate in node_candidates:
             try:
                 self.log.debug("Trying %r", candidate)
-                out, err = self.execute([candidate, '--version'])
-                self.log.debug("%s output: %s", candidate, out)
+                output = sync_run([candidate, '--version'])
+                self.log.debug("%s output: %s", candidate, output)
                 self.tool_path = candidate
                 return True
             except CALL_PROBLEMS:
