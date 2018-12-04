@@ -415,15 +415,22 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 
 
 class Environment(object):
-    def __init__(self, log=None, data=None):
+    def __init__(self, log=None, parent=None):
         self.data = {}
         self._queue = []
 
         log = log or LOG
         self.log = log.getChild(self.__class__.__name__)
 
-        if data:
-            self.set(data)
+        if parent:
+            for method, args, kwargs in parent.get_queue():
+                self._queue.append((self.__getattribute__(method), args, kwargs))
+
+        pass
+
+    def get_queue(self):
+        for method, args, kwargs in self._queue:
+            yield method.__name__, args, kwargs
 
     def set(self, *args, **kwargs):
         self._add_to_queue(self._set, *args, **kwargs)
@@ -438,7 +445,7 @@ class Environment(object):
         self._add_to_queue(self._update, *args, **kwargs)
 
     def _add_to_queue(self, *args, **kwargs):
-        self._queue.append((self._set, args, kwargs))
+        self._queue.append((args[0], args[1:], kwargs))
 
     def _set(self, env):
         """

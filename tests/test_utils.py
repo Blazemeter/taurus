@@ -11,7 +11,7 @@ from os.path import join
 from bzt import TaurusNetworkError
 from bzt.six import PY2, communicate
 from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient, BetterDict
-from bzt.utils import ensure_is_dict
+from bzt.utils import ensure_is_dict, Environment
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 
@@ -23,6 +23,19 @@ class MockPopen(object):
 
     def communicate(self):
         return self.out, self.err
+
+
+class TestEnvironment(BZTestCase):
+    def test_nesting(self):
+        os.environ['path_param_name'] = 'v1'
+        e1 = Environment()
+        e1.add_path({'path_param_name': 'param_val1'}, finish=True)
+        e2 = Environment(parent=e1)
+        e1.add_path({'path_param_name': 'param_val3'}, finish=True)
+        os.environ['path_param_name'] = 'v2'
+        e2.add_path({'path_param_name': 'param_val2'}, finish=True)
+        self.assertEqual(e1.get('path_param_name'), os.pathsep.join(('v2', 'param_val1', 'param_val3')))
+        self.assertEqual(e2.get('path_param_name'), os.pathsep.join(('v2', 'param_val1', 'param_val2')))
 
 
 class TestBetterDict(BZTestCase):
