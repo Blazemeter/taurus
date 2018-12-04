@@ -417,6 +417,7 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
 class Environment(object):
     def __init__(self, log=None, data=None):
         self.data = {}
+        self._queue = []
 
         log = log or LOG
         self.log = log.getChild(self.__class__.__name__)
@@ -424,7 +425,22 @@ class Environment(object):
         if data:
             self.set(data)
 
-    def set(self, env):
+    def set(self, *args, **kwargs):
+        self._add_to_queue(self._set, *args, **kwargs)
+
+    def add_path(self, *args, **kwargs):
+        self._add_to_queue(self._add_path, *args, **kwargs)
+
+    def add_java_param(self, *args, **kwargs):
+        self._add_to_queue(self._add_java_param, *args, **kwargs)
+
+    def update(self, *args, **kwargs):
+        self._add_to_queue(self._update, *args, **kwargs)
+
+    def _add_to_queue(self, *args, **kwargs):
+        self._queue.append((self._set, args, kwargs))
+
+    def _set(self, env):
         """
         :type env: dict
         """
@@ -445,13 +461,13 @@ class Environment(object):
             else:
                 self._add({key: val}, '', finish=False)
 
-    def add_path(self, pair, finish=False):
+    def _add_path(self, pair, finish=False):
         self._add(pair, os.pathsep, finish)
 
-    def add_java_param(self, pair, finish=False):
+    def _add_java_param(self, pair, finish=False):
         self._add(pair, " ", finish)
 
-    def update(self, env):  # compatibility with taurus-server
+    def _update(self, env):  # compatibility with taurus-server
         self.set(env)
 
     def _add(self, pair, separator, finish):
@@ -476,6 +492,8 @@ class Environment(object):
                 self.data[key] = str(val)
 
     def get(self, key=None):
+        self._apply_queue()
+
         if key:
             key = str(key)
             if is_windows():
@@ -485,6 +503,12 @@ class Environment(object):
         else:
             # full environment
             return copy.deepcopy(self.data)
+
+    def _apply_queue(self):
+        self.data = {}
+        self._set(os.environ)
+        for method, args, kwargs in self._queue:
+            method(*args, **kwargs)
 
 
 class FileReader(object):
