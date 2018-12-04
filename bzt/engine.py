@@ -75,8 +75,7 @@ class Engine(object):
         self.reporters = []
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.env = Environment(self.log, dict(os.environ))
-        self.shared_env = Environment(self.log)
+        self.env = Environment(self.log)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
@@ -221,9 +220,6 @@ class Engine(object):
     def start_subprocess(self, args, cwd, stdout, stderr, stdin, shell, env):
         if cwd is None:
             cwd = self.default_cwd
-
-        env = Environment(self.log, env.get())
-        env.set(self.shared_env.get())
 
         return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=env.get())
 
@@ -1065,9 +1061,7 @@ class ScenarioExecutor(EngineModule):
         self.preprocess_args = lambda x: None
 
     def _get_tool(self, tool, **kwargs):
-        env = Environment(self.log, self.env.get())
-
-        instance = tool(env=env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
+        instance = tool(env=self.env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
         assert isinstance(instance, RequiredTool)
 
         return instance

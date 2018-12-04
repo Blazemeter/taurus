@@ -379,12 +379,8 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     return base + diff + suffix
 
 
-def start_process(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None, shared_env=None):
-    tmp_env = Environment()
-    for e in (env, shared_env):
-        if e:
-            tmp_env.set(e.get())
-
+def start_process(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
+    tmp_env = Environment(parent=env)
     return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=tmp_env.get())
 
 
@@ -1173,7 +1169,7 @@ class RequiredTool(object):
         self.log = log.getChild(self.tool_name)
 
         if env is None:
-            env = Environment(self.log, dict(os.environ))
+            env = Environment(self.log)
 
         self.env = env
 

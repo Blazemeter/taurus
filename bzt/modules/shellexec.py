@@ -34,7 +34,6 @@ class ShellExecutor(Service):
         self.shutdown_tasks = []
         self.postprocess_tasks = []
         self.env = None
-        self.shared_env = None
 
     def _load_tasks(self, stage, container):
         if not isinstance(self.parameters.get(stage, []), list):
@@ -53,11 +52,11 @@ class ShellExecutor(Service):
                 working_dir = cwd
 
             # make copy of env for every task
-            env = Environment(self.log, self.env.get())
+            env = Environment(self.log, self.env)
             env.set(task_config.get('env'))
             env.add_path({"PYTHONPATH": working_dir})
 
-            task = Task(task_config, self.log, working_dir, env, self.shared_env)
+            task = Task(task_config, self.log, working_dir, env)
 
             f_name = 'shellexec_%s_%s' % (stage, index)
             if task.out:
@@ -88,8 +87,7 @@ class ShellExecutor(Service):
         Configure Tasks
         :return:
         """
-        self.env = Environment(self.log, self.engine.env.get())
-        self.shared_env = self.engine.shared_env
+        self.env = Environment(self.log, self.engine.env)
         self.env.set(self.settings.get('env'))
 
         self._load_tasks('prepare', self.prepare_tasks)
@@ -135,11 +133,10 @@ class Task(object):
     :type process: subprocess.Popen
     """
 
-    def __init__(self, config, parent_log, working_dir, env, shared_env):
+    def __init__(self, config, parent_log, working_dir, env):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.working_dir = working_dir
         self.env = env
-        self.shared_env = shared_env
 
         self.command = config.get("command", TaurusConfigError("Parameter is required: command"))
         self.is_background = config.get("background", False)
@@ -161,7 +158,7 @@ class Task(object):
 
         self.log.info("Starting shell command: %s", self)
         self.process = start_process(args=self.command, stdout=self.out, stderr=self.err, cwd=self.working_dir,
-                                     env=self.env, shared_env=self.shared_env, shell=True)
+                                     env=self.env, shell=True)
         if self.is_background:
             self.log.debug("Task started, PID: %d", self.process.pid)
         else:

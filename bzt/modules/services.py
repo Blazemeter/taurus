@@ -106,7 +106,7 @@ class InstallChecker(Service, Singletone):
 
         self.log.info("Checking installation needs for: %s", mod_name)
         if isinstance(mod, ScenarioExecutor):
-            mod.env = Environment(mod.log, self.engine.env.get())
+            mod.env = Environment(mod.log, self.engine.env)
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
 
@@ -322,7 +322,7 @@ class VirtualDisplay(Service, Singletone):
                 del os.environ["DISPLAY"]
 
             VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine] = self.virtual_display
-            self.engine.shared_env.set({"DISPLAY": self.virtual_display.new_display_var})
+            self.engine.env.set({"DISPLAY": self.virtual_display.new_display_var})
 
     def free_virtual_display(self):
         if self.virtual_display and self.virtual_display.is_alive():
@@ -330,7 +330,7 @@ class VirtualDisplay(Service, Singletone):
             self.virtual_display.stop()
         if self.engine in VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
             del VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine]
-            self.engine.shared_env.set({"DISPLAY": None})
+            self.engine.env.set({"DISPLAY": None})
 
     def startup(self):
         self.set_virtual_display()
