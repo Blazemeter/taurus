@@ -27,15 +27,30 @@ class MockPopen(object):
 
 class TestEnvironment(BZTestCase):
     def test_nesting(self):
-        os.environ['path_param_name'] = 'v1'
+        v1 = 'val_param_name'
+        v2 = 'path_param_name'
+        v3 = 'const_val'
+        os.environ[v1] = 'v1.1'
+        os.environ[v2] = 'v1.2'
+        os.environ[v3] = 'v1.3'
+
         e1 = Environment()
-        e1.add_path({'path_param_name': 'param_val1'}, finish=True)
+        e1.set({v1: 'local_val1.1'})
+        e1.add_path({v2: 'param_val1.1'}, finish=True)
         e2 = Environment(parent=e1)
-        e1.add_path({'path_param_name': 'param_val3'}, finish=True)
-        os.environ['path_param_name'] = 'v2'
-        e2.add_path({'path_param_name': 'param_val2'}, finish=True)
-        self.assertEqual(e1.get('path_param_name'), os.pathsep.join(('v2', 'param_val1', 'param_val3')))
-        self.assertEqual(e2.get('path_param_name'), os.pathsep.join(('v2', 'param_val1', 'param_val2')))
+        e1.add_path({v2: 'param_val1.3'}, finish=True)
+        os.environ[v1] = 'v2.1'
+        os.environ[v2] = 'v2.2'
+        os.environ[v3] = 'v2.3'
+        e1.set({v1: 'local_val1.2'})
+        e2.add_path({v2: 'param_val1.2'}, finish=True)
+
+        self.assertEqual(e1.get(v1), 'local_val1.2')
+        self.assertEqual(e2.get(v1), 'local_val1.1')
+        self.assertEqual(e1.get(v2), os.pathsep.join(('v2.2', 'param_val1.1', 'param_val1.3')))
+        self.assertEqual(e2.get(v2), os.pathsep.join(('v2.2', 'param_val1.1', 'param_val1.2')))
+        self.assertEqual(e1.get(v3), 'v2.3')
+        self.assertEqual(e2.get(v3), 'v2.3')
 
 
 class TestBetterDict(BZTestCase):
