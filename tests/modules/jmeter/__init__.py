@@ -67,7 +67,6 @@ class MockJMeterExecutor(JMeterExecutor):
         self.engine = EngineEmul()
         self.engine.config.merge({"execution": load, "settings": {"default-executor": "jmeter"}})
         self.engine.unify_config()
-        self.env = self.engine.env
         self.execution.merge(self.engine.config.get("execution")[0])
 
     def install_required_tools(self):

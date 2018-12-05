@@ -81,7 +81,6 @@ class TestProxy2JMX(BZTestCase):
         self.obj.settings = self.obj.engine.config.get('modules').get('recorder')
 
         executor = SeleniumExecutor()
-        executor.env = self.obj.engine.env
         self.obj.engine.provisioning.executors = [executor]
 
         self.obj.prepare()
@@ -218,7 +217,6 @@ class TestProxy2JMX(BZTestCase):
         self.sniff_log(self.obj.log)
 
         executor = SeleniumExecutor()
-        executor.env = self.obj.engine.env
         self.obj.engine.provisioning.executors = [executor]
 
         self.obj.prepare()

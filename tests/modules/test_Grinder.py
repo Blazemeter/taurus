@@ -16,7 +16,6 @@ from tests.mocks import EngineEmul
 def get_grinder():
     obj = GrinderExecutor()
     obj.engine = EngineEmul()
-    obj.env = obj.engine.env
     obj.settings.merge({'path': RESOURCES_DIR + "grinder/fake_grinder.jar"})
     return obj
 

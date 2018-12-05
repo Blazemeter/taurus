@@ -238,7 +238,6 @@ class TestNewmanExecutor(BZTestCase):
     def full_run(self, config):
         self.obj = NewmanExecutor()
         self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
         self.obj.engine.config.merge(config)
         execution = config["execution"][0] if isinstance(config["execution"], list) else config["execution"]
         self.obj.execution.merge(execution)
