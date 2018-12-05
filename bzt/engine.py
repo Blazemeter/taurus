@@ -74,8 +74,7 @@ class Engine(object):
         self.__artifacts = []
         self.reporters = []
         self.artifacts_dir = None
-        self.log = parent_logger.getChild(self.__class__.__name__)
-        self.env = Environment(self.log)  # compatibility with server
+        self.log = parent_logger.getChild(self.__class__.__name__)                        
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
