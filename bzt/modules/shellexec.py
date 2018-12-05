@@ -33,7 +33,7 @@ class ShellExecutor(Service):
         self.check_tasks = []
         self.shutdown_tasks = []
         self.postprocess_tasks = []
-        self.env = None
+        self.env = Environment(self.log)
 
     def _load_tasks(self, stage, container):
         if not isinstance(self.parameters.get(stage, []), list):
@@ -87,7 +87,6 @@ class ShellExecutor(Service):
         Configure Tasks
         :return:
         """
-        self.env = Environment(self.log, self.engine.env)
         self.env.set(self.settings.get('env'))
 
         self._load_tasks('prepare', self.prepare_tasks)

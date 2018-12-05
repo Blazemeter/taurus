@@ -75,7 +75,6 @@ class Engine(object):
         self.reporters = []
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.env = Environment(self.log)
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
@@ -1049,7 +1048,7 @@ class ScenarioExecutor(EngineModule):
 
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
-        self.env = None
+        self.env = Environment(log=self.log)
         self.provisioning = None
         self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
         self.__scenario = None

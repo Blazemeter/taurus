@@ -105,8 +105,6 @@ class InstallChecker(Service, Singletone):
             return
 
         self.log.info("Checking installation needs for: %s", mod_name)
-        if isinstance(mod, ScenarioExecutor):
-            mod.env = Environment(mod.log, self.engine.env)
         mod.install_required_tools()
         self.log.info("Module is fine: %s", mod_name)
 

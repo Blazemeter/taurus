@@ -112,9 +112,6 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
                 tool.install()
 
     def prepare(self):
-        if self.env is None:
-            self.env = Environment(self.log, self.engine.env)  # for backward compatibility with taurus-server
-
         self.install_required_tools()
         for driver in self.webdrivers:
             self.env.add_path({"PATH": driver.get_driver_dir()})
