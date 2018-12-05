@@ -379,11 +379,6 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     return base + diff + suffix
 
 
-def start_process(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
-    tmp_env = Environment(parent=env)
-    return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=tmp_env.get())
-
-
 def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
     """
     Wrapper for subprocess starting
@@ -419,14 +414,11 @@ class Environment(object):
         self.log = log.getChild(self.__class__.__name__)
 
         if parent:
-            for method, args, kwargs in parent.get_queue():
-                self._queue.append((self.__getattribute__(method), args, kwargs))
-
-        pass
+            self._queue.extend(
+                [(self.__getattribute__(method), args, kwargs) for method, args, kwargs in parent.get_queue()])
 
     def get_queue(self):
-        for method, args, kwargs in self._queue:
-            yield method.__name__, args, kwargs
+        return [(method.__name__, args, kwargs) for method, args, kwargs in self._queue]
 
     def set(self, *args, **kwargs):
         self._add_to_queue(self._set, *args, **kwargs)

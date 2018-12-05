@@ -291,7 +291,7 @@ class VirtualDisplay(Service, Singletone):
     :type virtual_display: Display
     """
 
-    SHARED_VIRTUAL_DISPLAY = {}
+    SHARED_VIRTUAL_DISPLAY = None
 
     def __init__(self):
         super(VirtualDisplay, self).__init__()
@@ -305,8 +305,8 @@ class VirtualDisplay(Service, Singletone):
             self.log.warning("Cannot have virtual display on Windows, ignoring")
             return
 
-        if self.engine in VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
-            self.virtual_display = VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine]
+        if VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
+            self.virtual_display = VirtualDisplay.SHARED_VIRTUAL_DISPLAY
         else:
             width = self.parameters.get("width", 1024)
             height = self.parameters.get("height", 768)
@@ -314,13 +314,13 @@ class VirtualDisplay(Service, Singletone):
             msg = "Starting virtual display[%s]: %s"
             self.log.info(msg, self.virtual_display.size, self.virtual_display.new_display_var)
             self.virtual_display.start()
-            VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine] = self.virtual_display
+            VirtualDisplay.SHARED_VIRTUAL_DISPLAY = self.virtual_display
 
     def free_virtual_display(self):
         if self.virtual_display and self.virtual_display.is_alive():
             self.virtual_display.stop()
-        if self.engine in VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
-            del VirtualDisplay.SHARED_VIRTUAL_DISPLAY[self.engine]
+        if VirtualDisplay.SHARED_VIRTUAL_DISPLAY:
+            VirtualDisplay.SHARED_VIRTUAL_DISPLAY = None
 
     def startup(self):
         self.set_virtual_display()

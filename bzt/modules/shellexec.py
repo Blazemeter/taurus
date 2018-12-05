@@ -18,7 +18,7 @@ from subprocess import CalledProcessError, PIPE
 from bzt import TaurusConfigError
 from bzt.six import communicate
 from bzt.engine import Service
-from bzt.utils import ensure_is_dict, Environment, shutdown_process, start_process
+from bzt.utils import ensure_is_dict, Environment, shutdown_process, shell_exec
 
 
 class ShellExecutor(Service):
@@ -157,8 +157,8 @@ class Task(object):
             return
 
         self.log.info("Starting shell command: %s", self)
-        self.process = start_process(args=self.command, stdout=self.out, stderr=self.err, cwd=self.working_dir,
-                                     env=self.env, shell=True)
+        self.process = shell_exec(args=self.command, stdout=self.out, stderr=self.err, cwd=self.working_dir,
+                                  env=self.env.get(), shell=True)
         if self.is_background:
             self.log.debug("Task started, PID: %d", self.process.pid)
         else:
