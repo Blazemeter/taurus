@@ -402,7 +402,7 @@ class Engine(object):
         self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
-        self.env.set({TAURUS_ARTIFACTS_DIR: self.artifacts_dir})
+        os.environ[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
@@ -719,7 +719,6 @@ class Engine(object):
                 envs[varname] = os.path.expandvars(envs[varname])
 
         for varname in envs:
-            self.env.set({varname: envs[varname]})
             if envs[varname] is None:
                 if varname in os.environ:
                     os.environ.pop(varname)
