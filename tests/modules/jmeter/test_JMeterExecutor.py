@@ -33,10 +33,6 @@ class TestJMeterExecutor(ExecutorTestCase):
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
             os.remove(self.obj.modified_jmx)
-        if self.obj.stdout_file:
-            self.obj.stdout_file.close()
-        if self.obj.stderr_file:
-            self.obj.stderr_file.close()
         if self.obj.reader:
             if isinstance(self.obj.reader, FuncJTLReader):
                 close_reader_file(self.obj.reader)

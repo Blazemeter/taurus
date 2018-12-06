@@ -74,8 +74,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.distributed_servers = []
         self.management_port = None
         self.resource_files_collector = None
-        self.stdout_file = None
-        self.stderr_file = None
         self.tool = None
 
     def get_load(self):
@@ -297,8 +295,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         out = self.engine.create_artifact("jmeter", ".out")
         err = self.engine.create_artifact("jmeter", ".err")
-        self.stdout_file = open(out, "w")
-        self.stderr_file = open(err, "w")
+        self.stdout = open(out, "w")
+        self.stderr = open(err, "w")
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
@@ -390,10 +388,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 self.env.set({"JMETER_HOME": tool_path})
 
         self.start_time = time.time()
-        try:
-            self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
-        except CALL_PROBLEMS as exc:
-            raise ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
+        self.process = self.execute(cmdline)
 
     def check(self):
         """
@@ -445,10 +440,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def post_process(self):
         self.engine.existing_artifact(self.modified_jmx, True)
-        if self.stdout_file:
-            self.stdout_file.close()
-        if self.stderr_file:
-            self.stderr_file.close()
+        if self.stdout:
+            self.stdout.close()
+        if self.stderr:
+            self.stderr.close()
 
     def has_results(self):
         if self.reader and self.reader.read_records:
@@ -890,13 +885,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.stdout_file is not None:
-            with codecs.open(self.stdout_file.name, encoding='utf-8') as fds:
+        if self.stdout is not None:
+            with codecs.open(self.stdout.name, encoding='utf-8') as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("JMeter STDOUT:\n" + contents)
-        if self.stderr_file is not None:
-            with codecs.open(self.stderr_file.name, encoding='utf-8') as fds:
+        if self.stderr is not None:
+            with codecs.open(self.stderr.name, encoding='utf-8') as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("JMeter STDERR:\n" + contents)

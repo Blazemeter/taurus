@@ -73,6 +73,8 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def startup(self):
         self.start_time = time.time()
+        self.stdout = open(self.engine.create_artifact("pbench", ".out"), 'w')
+        self.stderr = open(self.engine.create_artifact("pbench", ".err"), 'w')
         self.generator.start(self.generator.config_file)
 
     def check(self):
@@ -114,14 +116,16 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def get_error_diagnostics(self):
         diagnostics = []
         if self.generator is not None:
-            if self.generator.stdout_file is not None:
-                with open(self.generator.stdout_file.name) as fds:
+            if self.stdout is not None:
+                with open(self.stdout.name) as fds:
                     contents = fds.read().strip()
-                    if contents.strip():
+                    if contents:
                         diagnostics.append("PBench STDOUT:\n" + contents)
-            if self.generator.stderr_file is not None:
-                with open(self.generator.stderr_file.name) as fds:
-                    diagnostics.append("PBench STDERR:\n" + fds.read())
+            if self.stderr is not None:
+                with open(self.stderr.name) as fds:
+                    contents = fds.read().strip()
+                    if contents:
+                        diagnostics.append("PBench STDERR:\n" + contents)
         return diagnostics
 
 
@@ -151,8 +155,6 @@ class PBenchGenerator(object):
         self.hostname = 'localhost'
         self.port = 80
         self._target = {"scheme": None, "netloc": None}
-        self.stdout_file = None
-        self.stderr_file = None
 
     def generate_config(self, scenario, load):
         self.kpi_file = self.engine.create_artifact("pbench-kpi", ".txt")
@@ -288,9 +290,7 @@ class PBenchGenerator(object):
 
     def start(self, config_file):
         cmdline = [self.tool.tool_path, 'run', config_file]
-        self.stdout_file = open(self.executor.engine.create_artifact("pbench", ".out"), 'w')
-        self.stderr_file = open(self.executor.engine.create_artifact("pbench", ".err"), 'w')
-        self.process = self.executor.call(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
+        self.process = self.executor.execute(cmdline)
 
     def _generate_payload_inner(self, scenario):
         requests = scenario.get_requests()

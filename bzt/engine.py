@@ -77,8 +77,8 @@ class Engine(object):
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
 
-        self.env = Environment(self.log)            # backward compatibility
-        self.shared_env = Environment(self.log)     # backward compatibility
+        self.env = Environment(self.log)  # backward compatibility
+        self.shared_env = Environment(self.log)  # backward compatibility
 
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
@@ -221,11 +221,11 @@ class Engine(object):
             module.startup()
         self.config.dump()
 
-    def start_subprocess(self, args, cwd, stdout, stderr, stdin, shell, env):
+    def start_subprocess(self, args, cwd, stdout, stderr, env):
         if cwd is None:
             cwd = self.default_cwd
 
-        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=env.get())
+        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, env=env.get())
 
     def run(self):
         """
@@ -503,7 +503,7 @@ class Engine(object):
             shutil.move(tmp_f_name, dest)
             return dest
         else:
-            filename = os.path.expanduser(filename)     # expanding of '~' is required for check of existence
+            filename = os.path.expanduser(filename)  # expanding of '~' is required for check of existence
 
             # check filename 'as is' and all combinations of file_search_path/filename
             for dirname in [""] + self.file_search_paths:
@@ -1059,6 +1059,8 @@ class ScenarioExecutor(EngineModule):
         self.label = None
         self.widget = None
         self.reader = None
+        self.stdout = None
+        self.stderr = None
         self.delay = None
         self.start_time = None
         self.preprocess_args = lambda x: None
@@ -1207,14 +1209,15 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
 
-    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False):
+    def execute(self, args, cwd=None):
         self.preprocess_args(args)
         try:
-          process = self.engine.start_subprocess(args=args, cwd=cwd, stdout=stdout,
-                                                 stderr=stderr, stdin=stdin, shell=shell, env=self.env)
+            process = self.engine.start_subprocess(
+                args=args, cwd=cwd, env=self.env, stdout=self.stdout, stderr=self.stderr)
         except OSError as exc:
             raise ToolError("Failed to start %s: %s (%s)" % (self.__class__.__name__, exc, args))
         return process
+
 
 class Reporter(EngineModule):
     """
@@ -1309,7 +1312,7 @@ class Scenario(UserDict, object):
         :rtype: list[bzt.requests_model.Request]
         """
         requests_parser = parser(self, self.engine)
-        return requests_parser.extract_requests(require_url=require_url,)
+        return requests_parser.extract_requests(require_url=require_url, )
 
     def get_data_sources(self):
         data_sources = self.get(self.FIELD_DATA_SOURCES, [])

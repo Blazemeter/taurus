@@ -23,10 +23,6 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.env.add_path({"PATH": os.path.dirname(sys.executable)})
 
     def tearDown(self):
-        if self.obj.stdout_file:
-            self.obj.stdout_file.close()
-        if self.obj.stderr_file:
-            self.obj.stderr_file.close()
         close_reader_file(self.obj.reader)
         super(TestGatlingExecutor, self).tearDown()
 
@@ -125,7 +121,7 @@ class TestGatlingExecutor(ExecutorTestCase):
             self.assertTrue(not line.startswith('COMPILATION_CLASSPATH=') or
                             line.endswith('":${COMPILATION_CLASSPATH}"\n'))
 
-        with open(self.obj.stdout_file.name) as stdout:
+        with open(self.obj.stdout.name) as stdout:
             out_lines = stdout.readlines()
 
         out_lines = [out_line.rstrip() for out_line in out_lines]
@@ -185,7 +181,7 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.engine.artifacts_dir = u(self.obj.engine.artifacts_dir)
         self.obj.startup()
         self.obj.shutdown()
-        with open(self.obj.stdout_file.name) as fds:
+        with open(self.obj.stdout.name) as fds:
             lines = fds.readlines()
         self.assertIn('throughput', lines[-1])
 
@@ -199,7 +195,7 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.engine.artifacts_dir = u(self.obj.engine.artifacts_dir)
         self.obj.startup()
         self.obj.shutdown()
-        with open(self.obj.stdout_file.name) as fds:
+        with open(self.obj.stdout.name) as fds:
             lines = fds.readlines()
         self.assertNotIn('throughput', lines[-1])
 
