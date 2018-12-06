@@ -1209,11 +1209,16 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
 
-    def execute(self, args, cwd=None):
+    def execute(self, args, **kwargs):
         self.preprocess_args(args)
+
+        # for compatibility with other executors
+        kwargs["stdout"] = kwargs["stdout"] or self.stdout
+        kwargs["stderr"] = kwargs["stderr"] or self.stderr
+        kwargs["env"] = self.env
+
         try:
-            process = self.engine.start_subprocess(
-                args=args, cwd=cwd, env=self.env, stdout=self.stdout, stderr=self.stderr)
+            process = self.engine.start_subprocess(args=args, **kwargs)
         except OSError as exc:
             raise ToolError("Failed to start %s: %s (%s)" % (self.__class__.__name__, exc, args))
         return process
