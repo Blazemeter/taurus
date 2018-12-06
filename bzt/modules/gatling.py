@@ -492,11 +492,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         shutdown_process(self.process, self.log)
 
-        if self.stdout:
-            self.stdout.close()
-        if self.stderr:
-            self.stderr.close()
-
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("Gatling worked for %s seconds", self.end_time - self.start_time)
@@ -507,6 +502,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         if self.reader and self.reader.file and self.reader.file.name:
             self.engine.existing_artifact(self.reader.file.name)
+        super(GatlingExecutor, self.post_process())
 
     def install_required_tools(self):
         self.tool = self._get_tool(Gatling, config=self.settings)

@@ -440,10 +440,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def post_process(self):
         self.engine.existing_artifact(self.modified_jmx, True)
-        if self.stdout:
-            self.stdout.close()
-        if self.stderr:
-            self.stderr.close()
+        super(JMeterExecutor, self).post_process()
 
     def has_results(self):
         if self.reader and self.reader.read_records:

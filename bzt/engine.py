@@ -1213,8 +1213,8 @@ class ScenarioExecutor(EngineModule):
         self.preprocess_args(args)
 
         # for compatibility with other executors
-        kwargs["stdout"] = kwargs.get("stdout") or self.stdout
-        kwargs["stderr"] = kwargs.get("stderr") or self.stderr
+        kwargs["stdout"] = kwargs.get("stdout", self.stdout)
+        kwargs["stderr"] = kwargs.get("stderr", self.stderr)
         kwargs["cwd"] = kwargs.get("cwd", None)
         kwargs["env"] = self.env
 
@@ -1223,6 +1223,13 @@ class ScenarioExecutor(EngineModule):
         except OSError as exc:
             raise ToolError("Failed to start %s: %s (%s)" % (self.__class__.__name__, exc, args))
         return process
+
+    def post_process(self):
+        if self.stdout:
+            self.stdout.close()
+        if self.stderr:
+            self.stderr.close()
+        super(ScenarioExecutor, self).post_process()
 
 
 class Reporter(EngineModule):
