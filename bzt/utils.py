@@ -1172,7 +1172,7 @@ class RequiredTool(object):
     def _get_version(self, output):
         return
 
-    def execute(self, *args, **kwargs):
+    def call(self, *args, **kwargs):
         kwargs["env"] = self.env.get().update(kwargs.get("env", {}))
         return exec_and_communicate(*args, **kwargs)
 
