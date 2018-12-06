@@ -503,7 +503,7 @@ class Engine(object):
             shutil.move(tmp_f_name, dest)
             return dest
         else:
-            filename = os.path.expanduser(filename)  # expanding of '~' is required for check of existence
+            filename = os.path.expanduser(filename)     # expanding of '~' is required for check of existence
 
             # check filename 'as is' and all combinations of file_search_path/filename
             for dirname in [""] + self.file_search_paths:
@@ -1326,7 +1326,7 @@ class Scenario(UserDict, object):
         :rtype: list[bzt.requests_model.Request]
         """
         requests_parser = parser(self, self.engine)
-        return requests_parser.extract_requests(require_url=require_url, )
+        return requests_parser.extract_requests(require_url=require_url,)
 
     def get_data_sources(self):
         data_sources = self.get(self.FIELD_DATA_SOURCES, [])
