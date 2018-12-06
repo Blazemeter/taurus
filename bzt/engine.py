@@ -77,8 +77,8 @@ class Engine(object):
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
 
-        self.env = Environment(self.log)  # backward compatibility
-        self.shared_env = Environment(self.log)  # backward compatibility
+        self.env = Environment(self.log)            # backward compatibility
+        self.shared_env = Environment(self.log)     # backward compatibility
 
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
