@@ -1213,8 +1213,9 @@ class ScenarioExecutor(EngineModule):
         self.preprocess_args(args)
 
         # for compatibility with other executors
-        kwargs["stdout"] = kwargs.get("stdout", self.stdout)
-        kwargs["stderr"] = kwargs.get("stderr", self.stderr)
+        kwargs["stdout"] = kwargs.get("stdout", self.stdout) or PIPE
+        kwargs["stderr"] = kwargs.get("stderr", self.stderr) or PIPE
+
         kwargs["cwd"] = kwargs.get("cwd", None)
         kwargs["env"] = self.env
 
