@@ -3,11 +3,14 @@ from . import MockJMeterExecutor
 from bzt.engine import Provisioning
 from bzt.jmx import JMX, LoadSettingsProcessor
 from tests import BZTestCase, RESOURCES_DIR
+from tests.mocks import EngineEmul
 
 
 class TestLoadSettingsProcessor(BZTestCase):
     def configure(self, jmx_file=None, load=None, settings=None, has_ctg=None):
-        executor = MockJMeterExecutor(load, settings, has_ctg)
+        executor = MockJMeterExecutor(settings, has_ctg)
+        executor.engine = EngineEmul()
+        executor.configure(load=load)
         executor.engine.config.merge({Provisioning.PROV: 'local'})
         executor.install_required_tools()
         self.obj = LoadSettingsProcessor(executor)

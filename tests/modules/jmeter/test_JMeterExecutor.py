@@ -61,6 +61,7 @@ class TestJMeterExecutor(ExecutorTestCase):
 
         super(TestJMeterExecutor, self).configure(config)
         self.obj.settings.merge(self.obj.engine.config.get('modules').get('jmeter'))
+
         prov = self.obj.engine.config.get('provisioning')
         if prov == 'local':
             self.obj.engine.provisioning = Local()
