@@ -502,7 +502,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         if self.reader and self.reader.file and self.reader.file.name:
             self.engine.existing_artifact(self.reader.file.name)
-        super(GatlingExecutor, self.post_process())
+        super(GatlingExecutor, self).post_process()
 
     def install_required_tools(self):
         self.tool = self._get_tool(Gatling, config=self.settings)
