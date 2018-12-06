@@ -279,7 +279,7 @@ class PBenchGenerator(object):
         out = open(self.engine.create_artifact('pbench_check', '.out'), 'wb')
         err = open(self.engine.create_artifact('pbench_check', '.err'), 'wb')
         try:
-            self.tool.execute(cmdline, stdout=out, stderr=err)
+            self.tool.call(cmdline, stdout=out, stderr=err)
         except CALL_PROBLEMS as exc:
             raise TaurusConfigError("Config check has failed: %s\nLook at %s for details" % (exc, err.name))
         finally:
@@ -290,7 +290,7 @@ class PBenchGenerator(object):
         cmdline = [self.tool.tool_path, 'run', config_file]
         self.stdout_file = open(self.executor.engine.create_artifact("pbench", ".out"), 'w')
         self.stderr_file = open(self.executor.engine.create_artifact("pbench", ".err"), 'w')
-        self.process = self.executor.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
+        self.process = self.executor.call(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
 
     def _generate_payload_inner(self, scenario):
         requests = scenario.get_requests()
@@ -702,7 +702,7 @@ class PBench(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying phantom: %s", self.tool_path)
         try:
-            out, err = self.execute([self.tool_path])
+            out, err = self.call([self.tool_path])
 
             self.log.debug("PBench check stdout: %s", out)
             if err:

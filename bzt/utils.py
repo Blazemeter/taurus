@@ -1235,7 +1235,7 @@ class JavaVM(RequiredTool):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
-            out, err = self.execute(cmd)
+            out, err = self.call(cmd)
             self.version = self._get_version(err)
             self.log.debug("%s output: %s", self.tool_name, out)
             return True
@@ -1347,7 +1347,7 @@ class Node(RequiredTool):
         for candidate in node_candidates:
             try:
                 self.log.debug("Trying %r", candidate)
-                out, err = self.execute([candidate, '--version'])
+                out, err = self.call([candidate, '--version'])
                 self.log.debug("%s output: %s", candidate, out)
                 self.tool_path = candidate
                 return True

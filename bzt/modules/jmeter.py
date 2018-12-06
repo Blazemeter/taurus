@@ -1512,7 +1512,7 @@ class JMeter(RequiredTool):
 
         try:
             cmd_line = [self.tool_path, '-j', jmlog.name, '--version']
-            out, err = self.execute(cmd_line)
+            out, err = self.call(cmd_line)
             self.log.debug("JMeter check: %s / %s", out, err)
 
             if "is too low to run JMeter" in out:
@@ -1532,7 +1532,7 @@ class JMeter(RequiredTool):
 
     def _pmgr_call(self, params):
         cmd = [self._pmgr_path()] + params
-        return self.execute(cmd)
+        return self.call(cmd)
 
     def install_for_jmx(self, jmx_file):
         if not os.path.isfile(jmx_file):
@@ -1591,7 +1591,7 @@ class JMeter(RequiredTool):
         cmd_line = ["java", "-cp", plugins_manager_path, installer]
         self.log.debug("Trying: %s", cmd_line)
         try:
-            out, err = self.execute(cmd_line)
+            out, err = self.call(cmd_line)
             self.log.debug("Install PluginsManager: %s / %s", out, err)
         except CALL_PROBLEMS as exc:
             raise ToolError("Failed to install PluginsManager: %s" % exc)
@@ -1603,7 +1603,7 @@ class JMeter(RequiredTool):
         self.log.debug("Trying: %s", cmd_line)
 
         try:
-            out, err = self.execute(cmd_line)
+            out, err = self.call(cmd_line)
             self.log.debug("Install plugins: %s / %s", out, err)
         except CALL_PROBLEMS as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
