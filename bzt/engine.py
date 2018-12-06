@@ -221,11 +221,11 @@ class Engine(object):
             module.startup()
         self.config.dump()
 
-    def start_subprocess(self, args, cwd, stdout, stderr, env):
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
         if cwd is None:
             cwd = self.default_cwd
 
-        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, env=env.get())
+        return shell_exec(args, cwd=cwd, env=env.get(), **kwargs)
 
     def run(self):
         """

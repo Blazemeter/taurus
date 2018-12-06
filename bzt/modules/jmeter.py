@@ -838,15 +838,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         check tools
         """
-        required_tools = [self._get_tool(JavaVM), self._get_tool(TclLibrary)]
+        self.tool = self._get_tool(JMeter, config=self.settings, props=self.properties)
+
+        required_tools = [self._get_tool(JavaVM), self._get_tool(TclLibrary), self.tool]
         for tool in required_tools:
             if not tool.check_if_installed():
                 tool.install()
-
-        self.tool = self._get_tool(JMeter, config=self.settings, props=self.properties)
-
-        if self._need_to_install(self.tool):
-            self.tool.install()
 
         self.settings['path'] = self.tool.tool_path
 

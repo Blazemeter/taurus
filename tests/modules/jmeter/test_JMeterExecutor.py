@@ -273,7 +273,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.prepare()
 
     def test_path_processing(self):
-        class FakeTool(object):
+        class FakeTool(JMeter):
             tool_path = ''
             installed = None
 
