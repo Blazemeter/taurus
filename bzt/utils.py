@@ -388,12 +388,7 @@ def exec_and_communicate(*args, **kwargs):
     return out, err
 
 
-def start_process(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None, shared_env=None):
-    tmp_env = Environment()
-    for e in (env, shared_env):
-        if e:
-            tmp_env.set(e.get())
-
+def start_process(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
     return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=tmp_env.get())
 
 
@@ -1158,7 +1153,7 @@ class RequiredTool(object):
     """
 
     def __init__(self, log=None, tool_path="", download_link="", http_client=None,
-                 env=None, version=None, installable=True, shared_env=None):
+                 env=None, version=None, installable=True):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
@@ -1166,7 +1161,6 @@ class RequiredTool(object):
         self.mirror_manager = None
         self.version = version
         self.installable = installable
-        self.shared_env = shared_env
 
         self.tool_name = self.__class__.__name__
 
@@ -1174,22 +1168,16 @@ class RequiredTool(object):
         if not isinstance(log, logging.Logger):
             log = None
 
-        if log is None:
-            log = log or LOG
-
+        log = log or LOG
         self.log = log.getChild(self.tool_name)
 
-        if env is None:
-            env = Environment(self.log)
-
-        self.env = env
+        self.env = env or Environment(self.log)
 
     def _get_version(self, output):
         return
 
     def execute(self, *args, **kwargs):
-        kwargs["env"] = self.env
-        kwargs["shared_env"] = self.shared_env
+        kwargs["env"] = self.env.get().update(kwargs.get("env", {}))
         return exec_and_communicate(*args, **kwargs)
 
     def check_if_installed(self):

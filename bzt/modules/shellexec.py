@@ -132,11 +132,10 @@ class Task(object):
     :type process: subprocess.Popen
     """
 
-    def __init__(self, config, parent_log, working_dir, env, shared_env):
+    def __init__(self, config, parent_log, working_dir, env):
         self.log = parent_log.getChild(self.__class__.__name__)
         self.working_dir = working_dir
         self.env = env
-        self.shared_env = shared_env
 
         self.command = config.get("command", TaurusConfigError("Parameter is required: command"))
         self.is_background = config.get("background", False)
