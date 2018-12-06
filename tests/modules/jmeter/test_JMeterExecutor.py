@@ -61,6 +61,7 @@ class TestJMeterExecutor(ExecutorTestCase):
 
         super(TestJMeterExecutor, self).configure(config)
         self.obj.settings.merge(self.obj.engine.config.get('modules').get('jmeter'))
+
         prov = self.obj.engine.config.get('provisioning')
         if prov == 'local':
             self.obj.engine.provisioning = Local()
@@ -2090,7 +2091,6 @@ class TestJMeterExecutor(ExecutorTestCase):
                     "requests": [{
                         "url": "http://blazedemo.com/",
                         "method": "POST",
-                        "multipart-form": True,
                         "upload-files": [{
                             "path": path0,
                             "param": "stats",
@@ -2107,8 +2107,6 @@ class TestJMeterExecutor(ExecutorTestCase):
         xml_tree = etree.fromstring(open(self.obj.original_jmx, "rb").read())
         request = xml_tree.find('.//HTTPSamplerProxy')
         self.assertIsNotNone(request)
-        self.assertEqual(request.find('boolProp[@name="HTTPSampler.DO_MULTIPART_POST"]').text, 'true')
-        self.assertEqual(request.find('boolProp[@name="HTTPSampler.BROWSER_COMPATIBLE_MULTIPART"]').text, 'true')
         file_query = 'elementProp[@name="HTTPsampler.Files"]/collectionProp[@name="HTTPFileArgs.files"]/elementProp'
         files = request.findall(file_query)
         self.assertEqual(len(files), 2)

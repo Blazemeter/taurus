@@ -362,28 +362,19 @@ class JMX(object):
 
     @staticmethod
     def get_files_elements(files):
-        if not files:
-            return []
+        elements = []
+        if files:
+            files_prop = JMX._element_prop("HTTPsampler.Files", "HTTPFileArgs")
+            elements.append(files_prop)
 
-        # check if it's multipart
-        if len(files) > 1 or files[0].get("param", "") or not has_variable_pattern(files[0].get("path", "")):
-            elements = [
-                JMX._bool_prop("HTTPSampler.DO_MULTIPART_POST", True),
-                JMX._bool_prop("HTTPSampler.BROWSER_COMPATIBLE_MULTIPART", True)]
-        else:
-            elements = []
-
-        files_prop = JMX._element_prop("HTTPsampler.Files", "HTTPFileArgs")
-        elements.append(files_prop)
-
-        files_coll = JMX._collection_prop("HTTPFileArgs.files")
-        for file_dict in files:
-            file_elem = JMX._element_prop(file_dict.get("path", ""), "HTTPFileArg")
-            file_elem.append(JMX._string_prop("File.path", file_dict.get("path", "")))
-            file_elem.append(JMX._string_prop("File.paramname", file_dict.get("param", "")))
-            file_elem.append(JMX._string_prop("File.mimetype", file_dict.get("mime-type", "")))
-            files_coll.append(file_elem)
-        files_prop.append(files_coll)
+            files_coll = JMX._collection_prop("HTTPFileArgs.files")
+            for file_dict in files:
+                file_elem = JMX._element_prop(file_dict.get("path", ""), "HTTPFileArg")
+                file_elem.append(JMX._string_prop("File.path", file_dict.get("path", "")))
+                file_elem.append(JMX._string_prop("File.paramname", file_dict.get("param", "")))
+                file_elem.append(JMX._string_prop("File.mimetype", file_dict.get("mime-type", "")))
+                files_coll.append(file_elem)
+            files_prop.append(files_coll)
 
         return elements
 

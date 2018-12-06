@@ -140,7 +140,6 @@ class TestNoseRunner(BZTestCase):
         super(TestNoseRunner, self).setUp()
         self.obj = ApiritifNoseExecutor()
         self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -579,7 +578,6 @@ class TestApiritifScriptGenerator(BZTestCase):
         super(TestApiritifScriptGenerator, self).setUp()
         self.obj = ApiritifNoseExecutor()
         self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -1269,7 +1267,6 @@ class TestPyTestExecutor(BZTestCase):
         super(TestPyTestExecutor, self).setUp()
         self.obj = PyTestExecutor()
         self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)
@@ -1425,7 +1422,6 @@ class TestRobotExecutor(BZTestCase):
         super(TestRobotExecutor, self).setUp()
         self.obj = RobotExecutor()
         self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge(config)

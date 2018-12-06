@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.13.2<sup>next</sup>
+## 1.13.2<sup>03 dec 2018</sup>
 
 - introduce a convention for plugin configs autodetection
 - optimize aggregator subsystem: bypass consolidation step when single execution is used, use single-pass HDR iterator
@@ -19,6 +19,7 @@
 - allow waiting for file with external results to appear within timeout
 - generate stepping schedule in JMeter TST when `steps` are used
 - don't raise exception when JMeter uses JSON body with no appropriate header
+- delegate multipart property setup to JMeter
 - support cloud failure criteria for BM tests to set exit code
 - added masterId argument when uploading monitoring file to BM
 - add include/exclude for `-install-tools` alias

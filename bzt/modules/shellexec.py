@@ -16,8 +16,9 @@ limitations under the License.
 from subprocess import CalledProcessError, PIPE
 
 from bzt import TaurusConfigError
+from bzt.six import communicate
 from bzt.engine import Service
-from bzt.utils import ensure_is_dict, Environment, shutdown_process, start_process, communicate
+from bzt.utils import ensure_is_dict, Environment, shutdown_process, shell_exec
 
 
 class ShellExecutor(Service):
@@ -32,8 +33,7 @@ class ShellExecutor(Service):
         self.check_tasks = []
         self.shutdown_tasks = []
         self.postprocess_tasks = []
-        self.env = None
-        self.shared_env = None
+        self.env = Environment(self.log)
 
     def _load_tasks(self, stage, container):
         if not isinstance(self.parameters.get(stage, []), list):
@@ -52,11 +52,11 @@ class ShellExecutor(Service):
                 working_dir = cwd
 
             # make copy of env for every task
-            env = Environment(self.log, self.env.get())
+            env = Environment(self.log, self.env)
             env.set(task_config.get('env'))
             env.add_path({"PYTHONPATH": working_dir})
 
-            task = Task(task_config, self.log, working_dir, env, self.shared_env)
+            task = Task(task_config, self.log, working_dir, env)
 
             f_name = 'shellexec_%s_%s' % (stage, index)
             if task.out:
@@ -87,8 +87,6 @@ class ShellExecutor(Service):
         Configure Tasks
         :return:
         """
-        self.env = Environment(self.log, self.engine.env.get())
-        self.shared_env = self.engine.shared_env
         self.env.set(self.settings.get('env'))
 
         self._load_tasks('prepare', self.prepare_tasks)
@@ -159,8 +157,8 @@ class Task(object):
             return
 
         self.log.info("Starting shell command: %s", self)
-        self.process = start_process(args=self.command, stdout=self.out, stderr=self.err, cwd=self.working_dir,
-                                     env=self.env, shared_env=self.shared_env, shell=True)
+        self.process = shell_exec(args=self.command, stdout=self.out, stderr=self.err, cwd=self.working_dir,
+                                  env=self.env.get(), shell=True)
         if self.is_background:
             self.log.debug("Task started, PID: %d", self.process.pid)
         else:

@@ -82,7 +82,6 @@ class ExecutorTestCase(BZTestCase):
         self.engine = EngineEmul()
         self.obj = self.EXECUTOR()
         self.obj.engine = self.engine
-        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge({"settings": {"default-executor": "mock"}})
