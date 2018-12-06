@@ -314,6 +314,8 @@ class VirtualDisplay(Service, Singletone):
             self.virtual_display.start()
             VirtualDisplay.SHARED_VIRTUAL_DISPLAY = self.virtual_display
 
+            self.engine.shared_env.set({'DISPLAY': os.environ['DISPLAY']})   # backward compatibility
+
     def free_virtual_display(self):
         if self.virtual_display and self.virtual_display.is_alive():
             self.virtual_display.stop()
