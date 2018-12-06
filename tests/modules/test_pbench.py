@@ -40,6 +40,12 @@ class TestPBench(ExecutorTestCase):
         super(TestPBench, self).configure(config)
 
     def tearDown(self):
+        if self.obj.generator:
+            if self.obj.generator.stdout_file:
+                self.obj.generator.stdout_file.close()
+            if self.obj.generator.stderr_file:
+                self.obj.generator.stderr_file.close()
+
         if self.obj.reader:
             close_reader_file(self.obj.reader)
             close_reader_file(self.obj.reader.stats_reader)
