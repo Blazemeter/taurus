@@ -133,6 +133,7 @@ class TestJUnitTester(BZTestCase):
         selenium.prepare()
 
         self.obj = JUnitTester()
+        self.obj.env = selenium.env
         self.obj.settings = engine_obj.config.get("modules").get("junit")
         self.obj.engine = engine_obj
 
