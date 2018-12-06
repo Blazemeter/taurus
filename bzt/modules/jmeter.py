@@ -1492,7 +1492,7 @@ class JMeter(RequiredTool):
         if not (self.tool_path.endswith(end_str_l) or self.tool_path.endswith(end_str_s)):
             self.tool_path = os.path.join(self.tool_path, end_str_l)
 
-        return True
+        return False
 
     def run_and_check(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
