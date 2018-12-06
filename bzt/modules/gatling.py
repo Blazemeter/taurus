@@ -344,6 +344,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 raise TaurusConfigError(msg)
 
         self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
+
+        out = self.engine.create_artifact("gatling-stdout", ".log")
+        err = self.engine.create_artifact("gatling-stderr", ".log")
+        self.stdout = open(out, "w")
+        self.stderr = open(err, "w")
+
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -362,13 +368,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         for source in scenario.get_data_sources():
             source_path = self.engine.find_file(source["path"])
             self.engine.existing_artifact(source_path)
-
-    def _set_files(self):
-        self.start_time = time.time()
-        out = self.engine.create_artifact("gatling-stdout", ".log")
-        err = self.engine.create_artifact("gatling-stderr", ".log")
-        self.stdout = open(out, "w")
-        self.stderr = open(err, "w")
 
     def _set_simulation_props(self, props):
         if os.path.isfile(self.script):
@@ -442,7 +441,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
 
     def startup(self):
-        self._set_files()
+        self.start_time = time.time()
         self._set_env()
         self.process = self.execute(self._get_cmdline())
 

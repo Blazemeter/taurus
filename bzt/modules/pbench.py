@@ -53,6 +53,10 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self._prepare_pbench()
         self._generate_files()
+
+        self.stdout = open(self.engine.create_artifact("pbench", ".out"), 'w')
+        self.stderr = open(self.engine.create_artifact("pbench", ".err"), 'w')
+
         self.reader = self.generator.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -73,8 +77,6 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def startup(self):
         self.start_time = time.time()
-        self.stdout = open(self.engine.create_artifact("pbench", ".out"), 'w')
-        self.stderr = open(self.engine.create_artifact("pbench", ".err"), 'w')
         self.generator.start(self.generator.config_file)
 
     def check(self):

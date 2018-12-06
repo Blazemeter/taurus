@@ -14,7 +14,7 @@ from bzt.jmx.tools import ProtocolHandler
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
-from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader, JMeter
+from bzt.modules.jmeter import JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
