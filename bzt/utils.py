@@ -39,6 +39,7 @@ import time
 import traceback
 import webbrowser
 import zipfile
+import subprocess
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
@@ -406,11 +407,11 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     LOG.debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
     if is_windows():
-        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
-                            bufsize=0, cwd=cwd, shell=shell, env=env)
+        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
+                            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
     else:
-        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
-                            bufsize=0, preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
+        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
+                            preexec_fn=os.setpgrp, close_fds=True)
         # FIXME: shouldn't we bother closing opened descriptors?
 
 
