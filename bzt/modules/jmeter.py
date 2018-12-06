@@ -851,27 +851,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.settings['path'] = self.tool.tool_path
 
     @staticmethod
-    def _need_to_install(tool):
-        end_str_l = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
-        end_str_s = os.path.join('bin', 'jmeter')
-
-        if os.path.isfile(tool.tool_path):
-            if tool.check_if_installed():  # all ok, it's really tool path
-                return False
-            else:  # probably it's path to other tool)
-                raise TaurusConfigError('JMeter: wrong tool path: %s' % tool.tool_path)
-
-        if os.path.isdir(tool.tool_path):  # it's dir: fix tool path and install if needed
-            tool.tool_path = os.path.join(tool.tool_path, end_str_l)
-            return not tool.check_if_installed()
-
-        # similar to future jmeter directory
-        if not (tool.tool_path.endswith(end_str_l) or tool.tool_path.endswith(end_str_s)):
-            tool.tool_path = os.path.join(tool.tool_path, end_str_l)
-
-        return True
-
-    @staticmethod
     def __trim_jmeter_log(log_contents):
         lines = [line for line in log_contents.split("\n") if line]
         relevant_lines = list(dropwhile(lambda lin: "ERROR" not in lin, lines))
@@ -1499,6 +1478,26 @@ class JMeter(RequiredTool):
         return props
 
     def check_if_installed(self):
+        end_str_l = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
+        end_str_s = os.path.join('bin', 'jmeter')
+
+        if os.path.isfile(self.tool_path):
+            if self.run_and_check():  # all ok, it's really tool path
+                return True
+            else:  # probably it's path to other tool)
+                raise TaurusConfigError('JMeter: wrong tool path: %s' % self.tool_path)
+
+        if os.path.isdir(self.tool_path):  # it's dir: fix tool path and install if needed
+            self.tool_path = os.path.join(self.tool_path, end_str_l)
+            return self.run_and_check()
+
+        # similar to future jmeter directory
+        if not (self.tool_path.endswith(end_str_l) or self.tool_path.endswith(end_str_s)):
+            self.tool_path = os.path.join(self.tool_path, end_str_l)
+
+        return True
+
+    def run_and_check(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
         jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
 
