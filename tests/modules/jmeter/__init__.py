@@ -51,23 +51,22 @@ class MockJMeter(JMeter):
 
 
 class MockJMeterExecutor(JMeterExecutor):
-    def __init__(self, load=None, settings=None, has_ctg=None):
+    def __init__(self, settings=None, has_ctg=None):
         super(MockJMeterExecutor, self).__init__()
         self.mock_install = True
 
         if has_ctg is None: has_ctg = True
         self.has_ctg = has_ctg
 
-        if load is None: load = {}
-
         self.settings.merge({"detect-plugins": False})
         if settings is not None:
             self.settings.merge(settings)
 
-        self.engine = EngineEmul()
+    def configure(self, load=None):
+        if load is None: load = {}
+
         self.engine.config.merge({"execution": load, "settings": {"default-executor": "jmeter"}})
         self.engine.unify_config()
-        self.env = self.engine.env
         self.execution.merge(self.engine.config.get("execution")[0])
 
     def install_required_tools(self):

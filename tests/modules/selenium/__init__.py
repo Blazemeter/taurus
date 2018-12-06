@@ -25,7 +25,6 @@ class SeleniumTestCase(BZTestCase):
         self.obj = SeleniumExecutor()
         self.obj.engine = self.engine
         self.obj.settings = self.engine.config.get("modules").get("selenium")
-        self.obj.env = self.obj.engine.env
 
     def tearDown(self):
         self.virtual_display.shutdown()

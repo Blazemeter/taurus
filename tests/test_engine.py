@@ -294,7 +294,6 @@ class TestScenarioExecutor(ExecutorTestCase):
         cmdline = "echo %TAURUS_ARTIFACTS_DIR%" if is_windows() else "echo $TAURUS_ARTIFACTS_DIR"
         self.engine.eval_env()
         self.engine.prepare()
-        self.obj.env.set(self.engine.env.get())
         process = self.obj.execute(cmdline, shell=True)
         stdout, _ = communicate(process)
         self.assertEquals(self.engine.artifacts_dir, stdout.strip())

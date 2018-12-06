@@ -4,13 +4,16 @@ from bzt.jmx.http import HTTPProtocolHandler
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
 from tests import BZTestCase, RESOURCES_DIR
+from tests.mocks import EngineEmul
 from . import MockJMeterExecutor
 
 
 class TestScenarioBuilder(BZTestCase):
     def setUp(self):
         super(TestScenarioBuilder, self).setUp()
-        executor = MockJMeterExecutor({"scenario": "SB"})
+        executor = MockJMeterExecutor()
+        executor.engine = EngineEmul()
+        executor.configure(load={"scenario": "SB"})
         executor.engine.config.merge({"scenarios": {"SB": {}}})
         executor.settings['protocol-handlers'] = {
             'http': HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__

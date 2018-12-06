@@ -32,7 +32,6 @@ class TestTestNGTester(BZTestCase):
         self.obj = TestNGTester()
         self.obj.settings = engine_obj.config.get("modules").get("testng")
         self.obj.engine = engine_obj
-        self.obj.env = self.obj.engine.env
 
     def test_simple(self):
         self.obj.execution.merge({
@@ -130,14 +129,13 @@ class TestJUnitTester(BZTestCase):
         # just download geckodriver & chromedriver with selenium
         selenium = SeleniumExecutor()
         selenium.engine = engine_obj
-        selenium.env = selenium.engine.env
         selenium.execution.merge({"scenario": {"requests": ["req"]}})
         selenium.prepare()
 
         self.obj = JUnitTester()
+        self.obj.env = selenium.env
         self.obj.settings = engine_obj.config.get("modules").get("junit")
         self.obj.engine = engine_obj
-        self.obj.env = self.obj.engine.env
 
     def test_install_tools(self):
         """
