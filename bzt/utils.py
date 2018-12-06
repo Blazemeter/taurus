@@ -380,16 +380,12 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
 
 
 def exec_and_communicate(*args, **kwargs):
-    process = start_process(*args, **kwargs)
+    process = shell_exec(*args, **kwargs)
     out, err = communicate(process)
     if process.returncode != 0:
         raise CalledProcessError(process.returncode, args[0][0])
 
     return out, err
-
-
-def start_process(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
-    return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=tmp_env.get())
 
 
 def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
