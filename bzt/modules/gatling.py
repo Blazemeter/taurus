@@ -254,8 +254,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.process = None
         self.end_time = None
         self.retcode = None
-        self.stdout_file = None
-        self.stderr_file = None
         self.simulation_started = False
         self.dir_prefix = "gatling-%s" % id(self)
         self.launcher = None
@@ -346,6 +344,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 raise TaurusConfigError(msg)
 
         self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
+
+        out = self.engine.create_artifact("gatling-stdout", ".log")
+        err = self.engine.create_artifact("gatling-stderr", ".log")
+        self.stdout = open(out, "w")
+        self.stderr = open(err, "w")
+
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -364,13 +368,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         for source in scenario.get_data_sources():
             source_path = self.engine.find_file(source["path"])
             self.engine.existing_artifact(source_path)
-
-    def _set_files(self):
-        self.start_time = time.time()
-        out = self.engine.create_artifact("gatling-stdout", ".log")
-        err = self.engine.create_artifact("gatling-stderr", ".log")
-        self.stdout_file = open(out, "w")
-        self.stderr_file = open(err, "w")
 
     def _set_simulation_props(self, props):
         if os.path.isfile(self.script):
@@ -444,9 +441,9 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
 
     def startup(self):
-        self._set_files()
+        self.start_time = time.time()
         self._set_env()
-        self.process = self.execute(self._get_cmdline(), stdout=self.stdout_file, stderr=self.stderr_file)
+        self.process = self.execute(self._get_cmdline())
 
     def _get_cmdline(self):
         cmdline = [self.launcher]
@@ -470,7 +467,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         # detect interactive mode and raise exception if it found
         if not self.simulation_started:
             wrong_line = "Choose a simulation number:"
-            with open(self.stdout_file.name) as out:
+            with open(self.stdout.name) as out:
                 file_header = out.read(1024)
             if wrong_line in file_header:  # gatling can't select test scenario
                 scenarios = file_header[file_header.find(wrong_line) + len(wrong_line):].rstrip()
@@ -494,11 +491,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         shutdown_process(self.process, self.log)
 
-        if self.stdout_file:
-            self.stdout_file.close()
-        if self.stderr_file:
-            self.stderr_file.close()
-
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("Gatling worked for %s seconds", self.end_time - self.start_time)
@@ -509,6 +501,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         if self.reader and self.reader.file and self.reader.file.name:
             self.engine.existing_artifact(self.reader.file.name)
+        super(GatlingExecutor, self).post_process()
 
     def install_required_tools(self):
         self.tool = self._get_tool(Gatling, config=self.settings)
@@ -545,13 +538,13 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.stdout_file is not None:
-            with open(self.stdout_file.name) as fds:
+        if self.stdout is not None:
+            with open(self.stdout.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Gatling STDOUT:\n" + contents)
-        if self.stderr_file is not None:
-            with open(self.stderr_file.name) as fds:
+        if self.stderr is not None:
+            with open(self.stderr.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Gatling STDERR:\n" + contents)
