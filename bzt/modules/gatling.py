@@ -261,32 +261,34 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.launcher = None
         self.tool = None
 
-    def __build_launcher(self):
+    def __build_launcher(self, origin_launcher):
         modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
-        origin_launcher = get_full_path(self.settings['path'])
-        origin_dir = get_full_path(origin_launcher, step_up=2)
 
         modified_lines = []
         mod_success = False
 
         with open(origin_launcher) as fds:
-            for line in fds.readlines():
-                if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
-                    mod_success = True
-                    continue
-                if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
-                    mod_success = True
-                    line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
-                modified_lines.append(line)
+            if LooseVersion(self.tool.version) < LooseVersion('3'):
+                for line in fds.readlines():
+                    if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
+                        mod_success = True
+                        continue  # don't add it to modified_lines - just remove
+                    if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip() + ':"${COMPILATION_CLASSPATH}"\n'  # add from env
+                    modified_lines.append(line)
+            else:
+                for line in fds.readlines():
+                    if is_windows() and line.startswith('set COMPILER_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'   # add from env
+                    if not is_windows() and line.startswith('COMPILER_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
+                    modified_lines.append(line)
 
         if not mod_success:
             raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
-
-        if is_windows():
-            first_line = 'set "GATLING_HOME=%s"\n' % origin_dir
-        else:
-            first_line = 'GATLING_HOME="%s"\n' % origin_dir
-        modified_lines.insert(1, first_line)
 
         with open(modified_launcher, 'w') as modified:
             modified.writelines(modified_lines)
@@ -314,23 +316,25 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     def get_additional_classpath(self):
         cp = self.get_scenario().get("additional-classpath", [])
         cp.extend(self.settings.get("additional-classpath", []))
-        cp.extend(self.get_cp_from_files())  # todo: for backward compatibility, remove it later as obsolete
         return cp
 
     def prepare(self):
         self.install_required_tools()
         scenario = self.get_scenario()
 
+        origin_launcher = get_full_path(self.settings['path'])
+        origin_dir = get_full_path(origin_launcher, step_up=2)
+        self.env.set({"GATLING_HOME": origin_dir})
+
         cpath = self.get_additional_classpath()
-
         self.log.debug("Classpath for Gatling: %s", cpath)
-        for element in cpath:
-            self.env.add_path({"JAVA_CLASSPATH": element})
-            self.env.add_path({"COMPILATION_CLASSPATH": element})
 
-        if is_windows() or cpath:
-            self.log.debug("Building Gatling launcher")
-            self.launcher = self.__build_launcher()
+        if cpath:
+            self.log.warning("Building Gatling launcher")
+            self.launcher = self.__build_launcher(origin_launcher)
+            for element in cpath:
+                self.env.add_path({"JAVA_CLASSPATH": element})
+                self.env.add_path({"COMPILATION_CLASSPATH": element})
         else:
             self.log.debug("Will not build Gatling launcher")
             self.launcher = self.settings["path"]
