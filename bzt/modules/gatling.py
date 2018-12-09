@@ -247,7 +247,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     """
     Gatling executor module
     """
-
     def __init__(self):
         super(GatlingExecutor, self).__init__()
         self.script = None
@@ -256,43 +255,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.retcode = None
         self.simulation_started = False
         self.dir_prefix = "gatling-%s" % id(self)
-        self.launcher = None
         self.tool = None
-
-    def __build_launcher(self):
-        modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
-        origin_launcher = get_full_path(self.settings['path'])
-        origin_dir = get_full_path(origin_launcher, step_up=2)
-
-        modified_lines = []
-        mod_success = False
-
-        with open(origin_launcher) as fds:
-            for line in fds.readlines():
-                if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
-                    mod_success = True
-                    continue
-                if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
-                    mod_success = True
-                    line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
-                modified_lines.append(line)
-
-        if not mod_success:
-            raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
-
-        if is_windows():
-            first_line = 'set "GATLING_HOME=%s"\n' % origin_dir
-        else:
-            first_line = 'GATLING_HOME="%s"\n' % origin_dir
-        modified_lines.insert(1, first_line)
-
-        with open(modified_launcher, 'w') as modified:
-            modified.writelines(modified_lines)
-
-        if not is_windows():
-            os.chmod(modified_launcher, 0o755)
-
-        return modified_launcher
 
     def get_cp_from_files(self):
         jar_files = []
@@ -312,26 +275,24 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     def get_additional_classpath(self):
         cp = self.get_scenario().get("additional-classpath", [])
         cp.extend(self.settings.get("additional-classpath", []))
-        cp.extend(self.get_cp_from_files())  # todo: for backward compatibility, remove it later as obsolete
         return cp
 
     def prepare(self):
         self.install_required_tools()
         scenario = self.get_scenario()
 
+        self.env.set({"GATLING_HOME": self.tool.tool_dir})
+
         cpath = self.get_additional_classpath()
-
         self.log.debug("Classpath for Gatling: %s", cpath)
-        for element in cpath:
-            self.env.add_path({"JAVA_CLASSPATH": element})
-            self.env.add_path({"COMPILATION_CLASSPATH": element})
 
-        if is_windows() or cpath:
-            self.log.debug("Building Gatling launcher")
-            self.launcher = self.__build_launcher()
-        else:
-            self.log.debug("Will not build Gatling launcher")
-            self.launcher = self.settings["path"]
+        if cpath:
+            new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
+            self.log.debug("Building Gatling launcher: %s", new_name)
+            self.tool.build_launcher(new_name)
+            for element in cpath:
+                self.env.add_path({"JAVA_CLASSPATH": element})
+                self.env.add_path({"COMPILATION_CLASSPATH": element})
 
         self.script = self.get_script_path()
         if not self.script:
@@ -446,7 +407,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.process = self.execute(self._get_cmdline())
 
     def _get_cmdline(self):
-        cmdline = [self.launcher]
+        cmdline = [self.tool.tool_path]
 
         if LooseVersion(self.tool.version) < LooseVersion("3"):
             cmdline += ["-m"]   # default for 3.0.0
@@ -505,8 +466,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def install_required_tools(self):
         self.tool = self._get_tool(Gatling, config=self.settings)
-        self.settings["path"] = self.tool.tool_path
-
         required_tools = [self._get_tool(TclLibrary), self._get_tool(JavaVM), self.tool]
 
         for tool in required_tools:
@@ -794,6 +753,8 @@ class Gatling(RequiredTool):
         download_link = settings.get("download-link", self.DOWNLOAD_LINK).format(version=version)
         super(Gatling, self).__init__(tool_path=gatling_path, download_link=download_link, version=version, **kwargs)
 
+        self.tool_dir = get_full_path(self.tool_path, step_up=2)
+
     def check_if_installed(self):
         self.log.debug("Trying Gatling: %s", self.tool_path)
         try:
@@ -816,3 +777,55 @@ class Gatling(RequiredTool):
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
+
+    def build_launcher(self, new_name):
+        def convert_v2():
+            modified_lines = []
+            mod_success = False
+
+            with open(self.tool_path) as fds:
+                for line in fds.readlines():
+                    if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
+                        mod_success = True
+                        continue  # don't add it to modified_lines - just remove
+                    if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip() + ':"${COMPILATION_CLASSPATH}"\n'  # add from env
+                    modified_lines.append(line)
+
+            if not mod_success:
+                raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
+
+            return modified_lines
+
+        def convert_v3():
+            modified_lines = []
+            mod_success = False
+
+            with open(self.tool_path) as fds:
+                for line in fds.readlines():
+                    if is_windows() and line.startswith('set COMPILER_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'   # add from env
+                    if not is_windows() and line.startswith('COMPILER_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
+                    modified_lines.append(line)
+
+            if not mod_success:
+                raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
+
+            return modified_lines
+
+        if LooseVersion(self.version) < LooseVersion('3'):
+            converted_lines = convert_v2()
+        else:
+            converted_lines = convert_v3()
+
+        self.tool_path = new_name
+
+        with open(self.tool_path, 'w') as modified:
+            modified.writelines(converted_lines)
+
+        if not is_windows():
+            os.chmod(self.tool_path, 0o755)

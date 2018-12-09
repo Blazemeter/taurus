@@ -59,7 +59,7 @@ def local_paths_config():
                 "path": RESOURCES_DIR + "grinder/fake_grinder.jar",
             },
             "gatling": {
-                "path": RESOURCES_DIR + "gatling/gatling" + EXE_SUFFIX,
+                "path": RESOURCES_DIR + "gatling/gatling2" + EXE_SUFFIX,
             },
             "junit": {
                 "path": dirname + "/../build/selenium/tools/junit/junit.jar",
