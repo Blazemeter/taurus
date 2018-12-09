@@ -39,6 +39,7 @@ import time
 import traceback
 import webbrowser
 import zipfile
+import subprocess
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
@@ -55,7 +56,7 @@ from progressbar import ProgressBar, Percentage, Bar, ETA
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname
+from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname, communicate
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, numeric_types
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
@@ -379,6 +380,15 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     return base + diff + suffix
 
 
+def exec_and_communicate(*args, **kwargs):
+    process = shell_exec(*args, **kwargs)
+    out, err = communicate(process)
+    if process.returncode != 0:
+        raise CalledProcessError(process.returncode, args[0][0])
+
+    return out, err
+
+
 def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
     """
     Wrapper for subprocess starting
@@ -397,11 +407,11 @@ def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False
     LOG.debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
     if is_windows():
-        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
-                            bufsize=0, cwd=cwd, shell=shell, env=env)
+        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
+                            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
     else:
-        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
-                            bufsize=0, preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
+        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
+                            preexec_fn=os.setpgrp, close_fds=True)
         # FIXME: shouldn't we bother closing opened descriptors?
 
 
@@ -1155,18 +1165,17 @@ class RequiredTool(object):
         if not isinstance(log, logging.Logger):
             log = None
 
-        if log is None:
-            log = log or LOG
-
+        log = log or LOG
         self.log = log.getChild(self.tool_name)
 
-        if env is None:
-            env = Environment(self.log)
-
-        self.env = env
+        self.env = env or Environment(self.log)
 
     def _get_version(self, output):
         return
+
+    def call(self, *args, **kwargs):
+        kwargs["env"] = self.env.get().update(kwargs.get("env", {}))
+        return exec_and_communicate(*args, **kwargs)
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
@@ -1227,9 +1236,9 @@ class JavaVM(RequiredTool):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
-            output = sync_run(cmd)
-            self.version = self._get_version(output)
-            self.log.debug("%s output: %s", self.tool_name, output)
+            out, err = self.call(cmd)
+            self.version = self._get_version(err)
+            self.log.debug("%s output: %s", self.tool_name, out)
             return True
         except CALL_PROBLEMS as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
@@ -1339,8 +1348,8 @@ class Node(RequiredTool):
         for candidate in node_candidates:
             try:
                 self.log.debug("Trying %r", candidate)
-                output = sync_run([candidate, '--version'])
-                self.log.debug("%s output: %s", candidate, output)
+                out, _ = self.call([candidate, '--version'])
+                self.log.debug("%s output: %s", candidate, out)
                 self.tool_path = candidate
                 return True
             except CALL_PROBLEMS:

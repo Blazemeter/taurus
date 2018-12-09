@@ -23,10 +23,6 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.env.add_path({"PATH": os.path.dirname(sys.executable)})
 
     def tearDown(self):
-        if self.obj.stdout_file:
-            self.obj.stdout_file.close()
-        if self.obj.stderr_file:
-            self.obj.stderr_file.close()
         close_reader_file(self.obj.reader)
         super(TestGatlingExecutor, self).tearDown()
 
@@ -206,7 +202,7 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.engine.artifacts_dir = u(self.obj.engine.artifacts_dir)
         self.obj.startup()
         self.obj.shutdown()
-        with open(self.obj.stdout_file.name) as fds:
+        with open(self.obj.stdout.name) as fds:
             lines = fds.readlines()
         self.assertIn('throughput', lines[-1])
 
@@ -220,7 +216,7 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.engine.artifacts_dir = u(self.obj.engine.artifacts_dir)
         self.obj.startup()
         self.obj.shutdown()
-        with open(self.obj.stdout_file.name) as fds:
+        with open(self.obj.stdout.name) as fds:
             lines = fds.readlines()
         self.assertNotIn('throughput', lines[-1])
 
