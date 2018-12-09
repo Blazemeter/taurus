@@ -18,7 +18,7 @@ class TestGatlingExecutor(ExecutorTestCase):
 
     def setUp(self):
         super(TestGatlingExecutor, self).setUp()
-        path = os.path.abspath(RESOURCES_DIR + "gatling/gatling" + EXE_SUFFIX)
+        path = os.path.abspath(RESOURCES_DIR + "gatling/gatling2" + EXE_SUFFIX)
         self.obj.settings.merge({"path": path, "version": "2.3.0"})
         self.obj.env.add_path({"PATH": os.path.dirname(sys.executable)})
 
@@ -78,61 +78,82 @@ class TestGatlingExecutor(ExecutorTestCase):
         self.obj.settings.merge({"path": modified_launcher})
 
         self.obj.execution.merge({
-            'files': [
-                'tests/resources/grinder/fake_grinder.jar',
-                'tests/resources/selenium/junit/jar'],
-            'scenario': 'tests/resources/gatling/bs'})
+            "scenario": {
+                "script": "tests/resources/gatling/bs",
+                "additional-classpath": ["tests/resources/grinder/fake_grinder.jar"]}})
         self.assertRaises(ToolError, self.obj.prepare)
 
     def test_additional_classpath(self):
-        jars = ("gatling", "simulations.jar"), ("gatling", "deps.jar"), ("grinder", "fake_grinder.jar")
+        jars = ("gatling", "simulations.jar"), ("gatling", "deps.jar")
         jars = list(os.path.join(RESOURCES_DIR, *jar) for jar in jars)
 
         self.obj.execution.merge({
-            "files": [jars[0]],
             "scenario": {
                 "script": RESOURCES_DIR + "gatling/BasicSimulation.scala",
-                "additional-classpath": [jars[1]]}})
-        self.obj.settings.merge({"additional-classpath": [jars[2]]})
+                "additional-classpath": [jars[0]]}})
+        self.obj.settings.merge({"additional-classpath": [jars[1]]})
         self.obj.prepare()
 
         for jar in jars:
             for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
                 self.assertIn(jar, self.obj.env.get(var))
 
-    def test_external_jar_right_launcher(self):
+    def test_external_jar_built_launcher_v2(self):
+        jars = ['tests/resources/grinder/fake_grinder.jar', 'tests/resources/selenium/junit/another_dummy.jar']
         self.obj.execution.merge({
             'files': [
-                'tests/resources/grinder/fake_grinder.jar',
-                'tests/resources/selenium/junit/jar'],
+                jars[0]],
             'scenario': {
                 "script": RESOURCES_DIR + "gatling/BasicSimulation.scala",
+                "additional-classpath": [jars[1]],
                 "simulation": "mytest.BasicSimulation"}})
         self.obj.prepare()
         self.obj.startup()
         self.obj.shutdown()
 
-        modified_launcher = self.obj.launcher
+        modified_launcher = self.obj.tool.tool_path
         with open(modified_launcher) as modified:
             modified_lines = modified.readlines()
 
-        for jar in ('fake_grinder.jar', 'another_dummy.jar'):
-            for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
-                self.assertIn(jar, self.obj.env.get(var))
+        for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
+            self.assertNotIn(jars[0], self.obj.env.get(var))
+            self.assertIn(jars[1], self.obj.env.get(var))
 
         for line in modified_lines:
-            self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))
-            self.assertTrue(not line.startswith('COMPILATION_CLASSPATH=') or
-                            line.endswith('":${COMPILATION_CLASSPATH}"\n'))
+            self.assertFalse(line.startswith('set COMPILATION_CLASSPATH=""'))       # win
+            if line.startswith('COMPILATION_CLASSPATH='):                           # linux
+                self.assertTrue(line.endswith(':"${COMPILATION_CLASSPATH}"\n'))
 
-        with open(self.obj.stdout_file.name) as stdout:
-            out_lines = stdout.readlines()
+    def test_external_jar_built_launcher_v3(self):
+        jars = ['tests/resources/grinder/fake_grinder.jar', 'tests/resources/selenium/junit/another_dummy.jar']
+        self.obj.execution.merge({
+            'files': [
+                jars[0]],
+            'scenario': {
+                "script": RESOURCES_DIR + "gatling/BasicSimulation.scala",
+                "additional-classpath": [jars[1]],
+                "simulation": "mytest.BasicSimulation"}})
 
-        out_lines = [out_line.rstrip() for out_line in out_lines]
-        self.assertEqual(out_lines[-4], get_full_path(self.obj.settings['path'], step_up=2))  # $GATLING_HOME
-        self.assertIn('fake_grinder.jar', out_lines[-3])  # $COMPILATION_CLASSPATH
-        self.assertIn('another_dummy.jar', out_lines[-3])  # $COMPILATION_CLASSPATH
-        self.assertEqual(out_lines[-2], 'TRUE')  # $NO_PAUSE
+        path = os.path.abspath(RESOURCES_DIR + "gatling/gatling3" + EXE_SUFFIX)
+        self.obj.settings.merge({"path": path, "version": "3.0.0"})
+
+        self.obj.prepare()
+        self.obj.startup()
+        self.obj.shutdown()
+
+        modified_launcher = self.obj.tool.tool_path
+        with open(modified_launcher) as modified:
+            modified_lines = modified.readlines()
+
+        for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
+            self.assertNotIn(jars[0], self.obj.env.get(var))
+            self.assertIn(jars[1], self.obj.env.get(var))
+
+        for line in modified_lines:
+            if line.startswith('set COMPILER_CLASSPATH='):                      # win
+                self.assertTrue(line.endswith(';%COMPILATION_CLASSPATH%\n'))
+            if line.startswith('COMPILER_CLASSPATH='):                          # linux
+                self.assertTrue('${COMPILATION_CLASSPATH}"\n')
 
     def test_install_Gatling(self):
         path = os.path.abspath(BUILD_DIR + "gatling-taurus/bin/gatling" + EXE_SUFFIX)
@@ -460,9 +481,10 @@ class TestGatlingExecutor(ExecutorTestCase):
             finally:
                 self.obj.shutdown()
 
-            for jar in ("simulations.jar", "deps.jar"):
-                for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
-                    self.assertIn(jar, self.obj.env.get(var))
+            for var in ("JAVA_CLASSPATH", "COMPILATION_CLASSPATH"):
+                self.assertIn("simulations.jar", self.obj.env.get(var))
+                self.assertNotIn("deps.jar", self.obj.env.get(var))         # new logic: don't add 'files' to cp
+
         finally:
             os.chdir(curdir)
 

@@ -247,7 +247,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     """
     Gatling executor module
     """
-
     def __init__(self):
         super(GatlingExecutor, self).__init__()
         self.script = None
