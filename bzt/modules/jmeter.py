@@ -274,6 +274,16 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self.install_required_tools()
 
+        if self.engine.aggregator.is_functional:
+            flags = {"connectTime": True}
+            version = LooseVersion(str(self.settings.get("version", JMeter.VERSION)))
+            major = version.version[0]
+            if major == 2:
+                flags["bytes"] = True
+            else:
+                flags["sentBytes"] = True
+            self.settings.merge({"xml-jtl-flags": flags})
+
         modified = self.__get_modified_jmx(self.original_jmx, is_jmx_generated)
         self.modified_jmx = self.__save_modified_jmx(modified, self.original_jmx, is_jmx_generated)
 
@@ -294,15 +304,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.reader.executor_label = self.label
             self.engine.aggregator.add_underling(self.reader)
-
-            flags = {"connectTime": True}
-            version = LooseVersion(self.tool.version)
-            major = version.version[0]
-            if major == 2:
-                flags["bytes"] = True
-            else:
-                flags["sentBytes"] = True
-            self.settings.merge({"xml-jtl-flags": flags})
 
     def __set_system_properties(self):
         sys_props = self.settings.get("system-properties")
