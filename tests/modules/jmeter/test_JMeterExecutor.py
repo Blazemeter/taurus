@@ -14,7 +14,7 @@ from bzt.jmx.tools import ProtocolHandler
 from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.blazemeter import CloudProvisioning
 from bzt.modules.functional import FunctionalAggregator
-from bzt.modules.jmeter import JTLReader, FuncJTLReader, JMeter
+from bzt.modules.jmeter import JMeterExecutor, JTLReader, FuncJTLReader, JMeter
 from bzt.modules.provisioning import Local
 from bzt.six import etree, u
 from bzt.utils import EXE_SUFFIX, get_full_path, BetterDict, is_windows, JavaVM
@@ -33,6 +33,10 @@ class TestJMeterExecutor(ExecutorTestCase):
     def tearDown(self):
         if self.obj.modified_jmx and os.path.exists(self.obj.modified_jmx):
             os.remove(self.obj.modified_jmx)
+        if self.obj.stdout_file:
+            self.obj.stdout_file.close()
+        if self.obj.stderr_file:
+            self.obj.stderr_file.close()
         if self.obj.reader:
             if isinstance(self.obj.reader, FuncJTLReader):
                 close_reader_file(self.obj.reader)
@@ -273,7 +277,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.obj.prepare()
 
     def test_path_processing(self):
-        class FakeTool(JMeter):
+        class FakeTool(object):
             tool_path = ''
             installed = None
 
@@ -281,35 +285,35 @@ class TestJMeterExecutor(ExecutorTestCase):
                 self.tool_path = tool_path
                 self.installed = installed
 
-            def run_and_check(self):
+            def check_if_installed(self):
                 return self.installed
 
         fake = FakeTool()
         end_str = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
 
         fake.set(__file__, True)  # real file, jmeter works: do nothing
-        self.assertEqual(fake.check_if_installed(), True)
+        self.assertEqual(JMeterExecutor._need_to_install(fake), False)
 
         fake.set(__file__, False)  # real file, jmeter doesn't work: raise
         with self.assertRaises(TaurusConfigError):
-            fake.check_if_installed()
+            JMeterExecutor._need_to_install(fake)
 
         fake.set(os.path.curdir, True)  # real dir, $dir/bin/jmeter.EXT works: fix path only
-        self.assertEqual(fake.check_if_installed(), True)
+        self.assertEqual(JMeterExecutor._need_to_install(fake), False)
         self.assertEqual(fake.tool_path, os.path.join(os.path.curdir, end_str))
 
         fake.set(os.path.curdir, False)  # real dir, $dir/bin/jmeter.EXT doesn't work: install into $dir
-        self.assertEqual(fake.check_if_installed(), False)
+        self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, os.path.join(os.path.curdir, end_str))
 
         # not real file/dir, looks like *bin/jmeter.EXT: make two steps up, use as dir, install jmeter into it
         fake.set('*' + end_str, False)
-        self.assertEqual(fake.check_if_installed(), False)
+        self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, '*' + end_str)
 
         # not real file/dir, doesn't look like *bin/jmeter.EXT: use as dir, install jmeter into it
         fake.set('*', False)
-        self.assertEqual(fake.check_if_installed(), False)
+        self.assertEqual(JMeterExecutor._need_to_install(fake), True)
         self.assertEqual(fake.tool_path, os.path.join('*', end_str))
 
     @skipIf(java10, "Disabled on Java 10")

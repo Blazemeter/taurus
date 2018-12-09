@@ -19,7 +19,7 @@ class TestJMeterTool(BZTestCase):
     def test_new_plugin(self):
         self.sniff_log(self.obj.log)
 
-        self.obj.reaction = [{"output": ("one", "two"), "raise": OSError("runtime error")}]
+        self.obj.reaction = [{"output": ("one", "two"), "raise": RuntimeError("runtime error")}]
         self.obj.install_for_jmx(RESOURCES_DIR + "/jmeter/jmx/http.jmx")
 
         self.assertIn("Failed to detect plugins", self.log_recorder.warn_buff.getvalue())
