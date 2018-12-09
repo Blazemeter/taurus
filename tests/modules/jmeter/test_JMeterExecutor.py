@@ -2288,7 +2288,7 @@ class TestJMeterExecutor(ExecutorTestCase):
         self.assertEqual(bytes_flag.text, "true")
 
     def test_func_mode_jmeter_3_xx(self):
-        self.obj.engine.aggregator.is_functional = True
+        self.obj.engine.aggregator = FunctionalAggregator()
         self.configure({"execution": {
             'scenario': {
                 "requests": [
