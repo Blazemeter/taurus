@@ -251,8 +251,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         :raise TaurusConfigError:
         """
-        scenario = self.get_scenario()
-
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
@@ -264,7 +262,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.settings["version"] = self._get_tool_version(self.original_jmx)
 
         if not self.original_jmx:
-            if scenario.get("requests"):
+            if self.get_scenario().get("requests"):
                 self.original_jmx = self.__jmx_from_requests()
                 is_jmx_generated = True
             else:
@@ -272,19 +270,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self.__set_jvm_properties()
         self.__set_system_properties()
-        self.__set_jmeter_properties(scenario)
+        self.__set_jmeter_properties()
 
         self.install_required_tools()
-
-        if self.engine.aggregator.is_functional:
-            flags = {"connectTime": True}
-            version = LooseVersion(str(self.settings.get("version", JMeter.VERSION)))
-            major = version.version[0]
-            if major == 2:
-                flags["bytes"] = True
-            else:
-                flags["sentBytes"] = True
-            self.settings.merge({"xml-jtl-flags": flags})
 
         modified = self.__get_modified_jmx(self.original_jmx, is_jmx_generated)
         self.modified_jmx = self.__save_modified_jmx(modified, self.original_jmx, is_jmx_generated)
@@ -293,10 +281,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if self.settings.get("detect-plugins", True):
             self.tool.install_for_jmx(self.modified_jmx)
 
-        out = self.engine.create_artifact("jmeter", ".out")
-        err = self.engine.create_artifact("jmeter", ".err")
-        self.stdout = open(out, "w")
-        self.stderr = open(err, "w")
+        self.stdout = open(self.engine.create_artifact("jmeter", ".out"), "w")
+        self.stderr = open(self.engine.create_artifact("jmeter", ".err"), "w")
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
@@ -308,6 +294,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.reader.is_distributed = len(self.distributed_servers) > 0
             self.reader.executor_label = self.label
             self.engine.aggregator.add_underling(self.reader)
+
+            flags = {"connectTime": True}
+            version = LooseVersion(self.tool.version)
+            major = version.version[0]
+            if major == 2:
+                flags["bytes"] = True
+            else:
+                flags["sentBytes"] = True
+            self.settings.merge({"xml-jtl-flags": flags})
 
     def __set_system_properties(self):
         sys_props = self.settings.get("system-properties")
@@ -324,9 +319,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.log.debug("Setting JVM heap size to %s", heap_size)
             self.env.add_java_param({"JVM_ARGS": "-Xmx%s" % heap_size})
 
-    def __set_jmeter_properties(self, scenario):
+    def __set_jmeter_properties(self):
         props = copy.deepcopy(self.settings.get("properties"))
-        props_local = copy.deepcopy(scenario.get("properties"))
+        props_local = copy.deepcopy(self.get_scenario().get("properties"))
         if self.distributed_servers and self.settings.get("gui", False):
             props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
         props_local.update({"jmeterengine.nongui.port": self.management_port})
@@ -335,8 +330,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         props_local.update({"sampleresult.default.encoding": "UTF-8"})
         props.merge(props_local)
 
-        user_cp = [self.engine.artifacts_dir]
-        user_cp.append(get_full_path(self.original_jmx, step_up=1))
+        user_cp = [self.engine.artifacts_dir, get_full_path(self.original_jmx, step_up=1)]
 
         for _file in self.execution.get('files', []):
             full_path = get_full_path(_file)
@@ -350,28 +344,21 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         props['user.classpath'] = os.pathsep.join(user_cp).replace(os.path.sep, "/")  # replace to avoid Windows issue
 
-        if props:
-            self.log.debug("Additional properties: %s", props)
-            self.properties.merge(props)
-            props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
-            JMeterExecutor.__write_props_to_file(props_file, props)
-            self.properties_file = props_file
+        self.log.debug("Additional properties: %s", props)
+        self.properties.merge(props)
+        self.properties_file = self.engine.create_artifact("jmeter-bzt", ".properties")
+        JMeterExecutor.__write_props_to_file(self.properties_file, props)
 
     def startup(self):
         """
         Should start JMeter as fast as possible.
         """
-        cmdline = [self.settings.get("path")]  # default is set when prepared
+        cmdline = [self.tool.tool_path, "-t", self.modified_jmx, "-j", self.jmeter_log, "-q", self.properties_file]
         if not self.settings.get("gui", False):
             cmdline += ["-n"]
-        cmdline += ["-t", os.path.abspath(self.modified_jmx)]
-        if self.jmeter_log:
-            cmdline += ["-j", os.path.abspath(self.jmeter_log)]
 
-        if self.properties_file:
-            cmdline += ["-q", os.path.abspath(self.properties_file)]
-            if self.distributed_servers:
-                cmdline += ["-G", os.path.abspath(self.properties_file)]
+        if self.distributed_servers:
+            cmdline += ["-G", os.path.abspath(self.properties_file)]
 
         if self.sys_properties_file:
             cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
@@ -379,13 +366,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
 
         # fix for JMeter 4.0 bug where jmeter.bat requires JMETER_HOME to be set
-        jmeter_ver = str(self.settings.get("version", JMeter.VERSION))
-        if is_windows() and jmeter_ver == "4.0":
-            tool_path = self.tool.tool_path
-            if os.path.exists(tool_path) and not os.path.isdir(tool_path):
-                tool_path = get_full_path(tool_path, step_up=2)
-            if not self.env.get("JMETER_HOME"):
-                self.env.set({"JMETER_HOME": tool_path})
+        if is_windows() and self.tool.version == "4.0" and not self.env.get("JMETER_HOME"):
+            tool_dir = self.tool.tool_path
+            if os.path.isfile(self.tool.tool_path):
+                tool_dir = get_full_path(self.tool.tool_path, step_up=2)
+            self.env.set({"JMETER_HOME": tool_dir})
 
         self.start_time = time.time()
         self.process = self.execute(cmdline)
@@ -605,7 +590,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
-            version = LooseVersion(str(self.settings.get('version', JMeter.VERSION)))
+            version = LooseVersion(self.tool.version)
             if version >= LooseVersion("3.2"):
                 self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
@@ -1677,7 +1662,7 @@ class JMeterMirrorsManager(MirrorsManager):
     DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
 
     def __init__(self, http_client, parent_logger, jmeter_version):
-        self.jmeter_version = str(jmeter_version)
+        self.jmeter_version = jmeter_version
         super(JMeterMirrorsManager, self).__init__(http_client, self.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
