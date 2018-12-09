@@ -1348,7 +1348,7 @@ class Node(RequiredTool):
         for candidate in node_candidates:
             try:
                 self.log.debug("Trying %r", candidate)
-                out, err = self.call([candidate, '--version'])
+                out, _ = self.call([candidate, '--version'])
                 self.log.debug("%s output: %s", candidate, out)
                 self.tool_path = candidate
                 return True
