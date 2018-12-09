@@ -21,11 +21,9 @@ import os
 import socket
 import string
 import struct
-import subprocess
 import time
 from abc import abstractmethod
 from os import strerror
-from subprocess import CalledProcessError
 
 import psutil
 
@@ -36,7 +34,7 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, urlencode, iteritems, parse, b, viewvalues
 from bzt.utils import RequiredTool, IncrementableProgressBar, FileReader, RESOURCES_DIR
-from bzt.utils import shell_exec, shutdown_process, BetterDict, dehumanize_time, get_full_path
+from bzt.utils import shutdown_process, BetterDict, dehumanize_time, get_full_path, CALL_PROBLEMS
 
 
 class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -55,6 +53,10 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self._prepare_pbench()
         self._generate_files()
+
+        self.stdout = open(self.engine.create_artifact("pbench", ".out"), 'w')
+        self.stderr = open(self.engine.create_artifact("pbench", ".err"), 'w')
+
         self.reader = self.generator.get_results_reader()
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -116,14 +118,16 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
     def get_error_diagnostics(self):
         diagnostics = []
         if self.generator is not None:
-            if self.generator.stdout_file is not None:
-                with open(self.generator.stdout_file.name) as fds:
+            if self.stdout is not None:
+                with open(self.stdout.name) as fds:
                     contents = fds.read().strip()
-                    if contents.strip():
+                    if contents:
                         diagnostics.append("PBench STDOUT:\n" + contents)
-            if self.generator.stderr_file is not None:
-                with open(self.generator.stderr_file.name) as fds:
-                    diagnostics.append("PBench STDERR:\n" + fds.read())
+            if self.stderr is not None:
+                with open(self.stderr.name) as fds:
+                    contents = fds.read().strip()
+                    if contents:
+                        diagnostics.append("PBench STDERR:\n" + contents)
         return diagnostics
 
 
@@ -153,8 +157,6 @@ class PBenchGenerator(object):
         self.hostname = 'localhost'
         self.port = 80
         self._target = {"scheme": None, "netloc": None}
-        self.stdout_file = None
-        self.stderr_file = None
 
     def generate_config(self, scenario, load):
         self.kpi_file = self.engine.create_artifact("pbench-kpi", ".txt")
@@ -281,21 +283,16 @@ class PBenchGenerator(object):
         out = open(self.engine.create_artifact('pbench_check', '.out'), 'wb')
         err = open(self.engine.create_artifact('pbench_check', '.err'), 'wb')
         try:
-            subprocess.check_call(cmdline, stdout=out, stderr=err)
-        except CalledProcessError as exc:
-            raise ToolError("Config check has failed: %s\nLook at %s for details" % (exc, err.name))
+            self.tool.call(cmdline, stdout=out, stderr=err)
+        except CALL_PROBLEMS as exc:
+            raise TaurusConfigError("Config check has failed: %s\nLook at %s for details" % (exc, err.name))
         finally:
             out.close()
             err.close()
 
     def start(self, config_file):
         cmdline = [self.tool.tool_path, 'run', config_file]
-        self.stdout_file = open(self.executor.engine.create_artifact("pbench", ".out"), 'w')
-        self.stderr_file = open(self.executor.engine.create_artifact("pbench", ".err"), 'w')
-        try:
-            self.process = self.executor.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
-        except OSError as exc:
-            raise ToolError("Failed to start phantom-benchmark utility: %s (%s)" % (exc, cmdline))
+        self.process = self.executor.execute(cmdline)
 
     def _generate_payload_inner(self, scenario):
         requests = scenario.get_requests()
@@ -707,12 +704,12 @@ class PBench(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying phantom: %s", self.tool_path)
         try:
-            pbench = shell_exec([self.tool_path], stderr=subprocess.STDOUT)
-            pbench_out, pbench_err = pbench.communicate()
-            self.log.debug("PBench check stdout: %s", pbench_out)
-            if pbench_err:
-                self.log.warning("PBench check stderr: %s", pbench_err)
+            out, err = self.call([self.tool_path])
+
+            self.log.debug("PBench check stdout: %s", out)
+            if err:
+                self.log.warning("PBench check stderr: %s", err)
             return True
-        except (CalledProcessError, OSError):
-            self.log.info("Phantom check failed")
+        except CALL_PROBLEMS as exc:
+            self.log.info("Phantom check failed: %s", exc)
             return False
