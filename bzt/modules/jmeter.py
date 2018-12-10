@@ -261,17 +261,17 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if self.settings.get("version") == "auto":
             self.settings["version"] = self._get_tool_version(self.original_jmx)
 
-        self.install_required_tools()
-
         if not self.original_jmx:
             exc = TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
             self.get_scenario().get("requests", exc)
             self.original_jmx = self.__jmx_from_requests()
             is_jmx_generated = True
 
-        self.__set_jvm_properties()
         self.__set_system_properties()
         self.__set_jmeter_properties()
+        self.__set_jvm_properties()
+
+        self.install_required_tools()
 
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
