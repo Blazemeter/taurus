@@ -41,15 +41,15 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
         }})
-        self.func_results = "not found"
-        sync_run_back = bzt.modules.javascript.sync_run
-        bzt.modules.javascript.sync_run = self.func_mock
+        self.func_results = "not found", None
+        call_back = bzt.utils.RequiredTool.call
+        bzt.utils.RequiredTool.call = self.func_mock
         try:
             self.obj.prepare()
         finally:
-            bzt.modules.javascript.sync_run = sync_run_back
+            bzt.utils.RequiredTool.call = call_back
 
-        self.assertEqual(5, len(self.func_args))
+        self.assertEqual(6, len(self.func_args))
 
         runner = self.obj.runner
         args = [args["args"][0] for args in self.func_args]
@@ -61,15 +61,15 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
         }})
-        self.func_results = "mocha is installed"
-        sync_run_back = bzt.utils.sync_run
-        bzt.modules.javascript.sync_run = self.func_mock
+        self.func_results = "mocha is installed", None
+        call_back = bzt.utils.RequiredTool.call
+        bzt.utils.RequiredTool.call = self.func_mock
         try:
             self.obj.prepare()
         finally:
-            bzt.modules.javascript.sync_run = sync_run_back
+            bzt.utils.RequiredTool.call = call_back
 
-        self.assertEqual(4, len(self.func_args))
+        self.assertEqual(5, len(self.func_args))
         runner = self.obj.runner
         args = [args["args"][0] for args in self.func_args]
 

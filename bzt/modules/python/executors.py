@@ -242,6 +242,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         self._additional_args = []
 
     def prepare(self):
+        super(PyTestExecutor, self).prepare()
         self.install_required_tools()
         self.script = self.get_script_path()
         if not self.script:
