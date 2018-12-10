@@ -25,7 +25,7 @@ from bzt.engine import FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
-from bzt.utils import is_windows, is_mac, platform_bitness, Environment
+from bzt.utils import is_windows, is_mac, platform_bitness
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
