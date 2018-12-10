@@ -54,6 +54,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         return ApiritifLoadReader(self.log)
 
     def prepare(self):
+        super(ApiritifNoseExecutor, self).prepare()
         self.script = self.get_script_path()
         if not self.script:
             if "requests" in self.get_scenario():
