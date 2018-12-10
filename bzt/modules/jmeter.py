@@ -359,10 +359,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             cmdline += ["-n"]
 
         if self.distributed_servers:
-            cmdline += ["-G", os.path.abspath(self.properties_file)]
+            cmdline += ["-G", self.properties_file]
 
         if self.sys_properties_file:
-            cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
+            cmdline += ["-S", self.sys_properties_file]
         if self.distributed_servers and not self.settings.get("gui", False):
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
 
