@@ -68,6 +68,12 @@ def sync_run(args, env=None):
     return stream_decode(output).rstrip()
 
 
+def temp_file(*args, **kwargs):
+    fd, fname = tempfile.mkstemp(*args, **kwargs)
+    os.close(fd)
+    return fname
+
+
 def simple_body_dict(dic):
     """ body dict must have just one level for sending with form params"""
     if isinstance(dic, dict):
@@ -1128,19 +1134,14 @@ class ExceptionalDownloader(object):
         if os.getenv("TAURUS_DISABLE_DOWNLOADS", ""):
             raise TaurusInternalException("Downloads are disabled by TAURUS_DISABLE_DOWNLOADS env var")
 
-        fd = None
         try:
             if not filename:
-                fd, filename = tempfile.mkstemp(suffix)
+                filename = temp_file(suffix)
             result = self.http_client.download_file(url, filename, reporthook=reporthook, data=data, timeout=timeout)
         except BaseException:
-            if fd:
-                os.close(fd)
-                os.remove(filename)
+            os.remove(filename)
             raise
 
-        if fd:
-            os.close(fd)
         return result
 
 

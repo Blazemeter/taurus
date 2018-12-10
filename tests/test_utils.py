@@ -3,7 +3,6 @@
 import os
 import sys
 import logging
-import tempfile
 
 from psutil import Popen
 from os.path import join
@@ -11,7 +10,7 @@ from os.path import join
 from bzt import TaurusNetworkError
 from bzt.six import PY2, communicate
 from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient, BetterDict
-from bzt.utils import ensure_is_dict, Environment
+from bzt.utils import ensure_is_dict, Environment, temp_file
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 
@@ -284,8 +283,7 @@ class TestFileReader(BZTestCase):
 
     def test_decode(self):
         old_string = "Тест.Эхо"
-        fd, gen_file_name = tempfile.mkstemp()
-        os.close(fd)
+        gen_file_name = temp_file()
 
         mod_str = old_string + '\n'
         if PY2:
@@ -349,8 +347,7 @@ class TestHTTPClient(BZTestCase):
 
     def test_download_file(self):
         obj = HTTPClient()
-        fd, tmpfile = tempfile.mkstemp()
-        os.close(fd)
+        tmpfile = temp_file()
 
         obj.download_file('http://localhost:8000/', tmpfile)
 
@@ -363,15 +360,13 @@ class TestHTTPClient(BZTestCase):
 
     def test_download_404(self):
         obj = HTTPClient()
-        fd, tmpfile = tempfile.mkstemp()
-        os.close(fd)
+        tmpfile = temp_file()
 
         self.assertRaises(TaurusNetworkError, lambda: obj.download_file('http://localhost:8000/404', tmpfile))
 
     def test_download_fail(self):
         obj = HTTPClient()
-        fd, tmpfile = tempfile.mkstemp()
-        os.close(fd)
+        tmpfile = temp_file()
 
         self.assertRaises(TaurusNetworkError, lambda: obj.download_file('http://non.existent.com/', tmpfile))
 

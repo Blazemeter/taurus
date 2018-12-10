@@ -1,11 +1,10 @@
 import os
 import time
-import tempfile
 from subprocess import CalledProcessError
 
 from bzt.engine import Service
 from bzt.modules.shellexec import ShellExecutor
-from bzt.utils import BetterDict, is_windows
+from bzt.utils import BetterDict, is_windows, temp_file
 from tests import BZTestCase
 from tests.mocks import EngineEmul
 
@@ -36,8 +35,7 @@ class TestBlockingTasks(TaskTestCase):
     def test_long_buf(self):
         """ subprocess (tast) became blocked and blocks parent (shellexec)
         if exchange buffer (PIPE) is full because of wait() """
-        fd, file_name = tempfile.mkstemp()
-        os.close(fd)
+        file_name = temp_file()
         if is_windows():
             task = "type "
             buf_len = 2 ** 10 * 4    # 4K
@@ -99,8 +97,7 @@ class TestNonBlockingTasks(TaskTestCase):
         self.assertIn("Task was finished with exit code 0: sleep 1", self.log_recorder.debug_buff.getvalue())
 
     def test_background_task_output(self):
-        fd, temp = tempfile.mkstemp()
-        os.close(fd)
+        temp = temp_file()
         try:
             with open(temp, "at") as temp_f:
                 temp_f.write("*" * (2 ** 16 + 1))

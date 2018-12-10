@@ -2,11 +2,10 @@
 import os
 import sys
 import yaml
-import tempfile
 
 from bzt.engine import ScenarioExecutor
 from bzt.jmx2yaml import JMX2YAML
-from bzt.utils import get_full_path, FileReader
+from bzt.utils import get_full_path, FileReader, temp_file
 
 from tests import BZTestCase, RESOURCES_DIR
 
@@ -92,8 +91,7 @@ class TestConverter(BZTestCase):
         self.assertIn("Removing unknown element", self.log_recorder.warn_buff.getvalue())
 
     def test_export_clean_jmx(self):
-        fd, tmp_jmx_name = tempfile.mkstemp()
-        os.close(fd)
+        tmp_jmx_name = temp_file()
         open(tmp_jmx_name, 'w+').close()    # touch file
 
         self.configure(RESOURCES_DIR + "yaml/converter/disabled.jmx", dump_jmx=tmp_jmx_name)
@@ -553,8 +551,7 @@ class TestConverter(BZTestCase):
         # make IfControllers unknown
         content = content.replace("IfController", "FiController", sys.maxsize)
 
-        fd, wrong_jmx = tempfile.mkstemp(suffix=".jmx")
-        os.close(fd)
+        wrong_jmx = temp_file(suffix=".jmx")
         try:
             with open(wrong_jmx, "a") as _file:
                 _file.write(content)
