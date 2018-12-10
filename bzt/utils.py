@@ -1156,7 +1156,11 @@ class RequiredTool(object):
         self.download_link = download_link
         self.already_installed = False
         self.mirror_manager = None
-        self.version = version
+
+        self.version = None
+        if version is not None:
+            self.version = str(version)
+
         self.installable = installable
 
         self.tool_name = self.__class__.__name__

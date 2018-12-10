@@ -22,7 +22,6 @@ import fnmatch
 import os
 import re
 import socket
-import subprocess
 import tempfile
 import time
 import traceback
@@ -42,9 +41,9 @@ from bzt.modules.functional import FunctionalAggregator, FunctionalResultsReader
 from bzt.modules.provisioning import Local
 from bzt.modules.soapui import SoapUIScriptConverter
 from bzt.requests_model import ResourceFilesCollector, has_variable_pattern, HierarchicRequestParser
-from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode, communicate
+from bzt.six import iteritems, string_types, StringIO, etree, numeric_types, PY2, unicode_decode
 from bzt.utils import get_full_path, EXE_SUFFIX, MirrorsManager, ExceptionalDownloader, get_uniq_name, is_windows
-from bzt.utils import shell_exec, BetterDict, guess_csv_dialect, ensure_is_dict, dehumanize_time, FileReader
+from bzt.utils import BetterDict, guess_csv_dialect, dehumanize_time, FileReader, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ProgressBarContext, TclLibrary
 
 
@@ -75,8 +74,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.distributed_servers = []
         self.management_port = None
         self.resource_files_collector = None
-        self.stdout_file = None
-        self.stderr_file = None
         self.tool = None
 
     def get_load(self):
@@ -254,8 +251,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         :raise TaurusConfigError:
         """
-        scenario = self.get_scenario()
-
         self.jmeter_log = self.engine.create_artifact("jmeter", ".log")
         self._set_remote_port()
         self.distributed_servers = self.execution.get('distributed', self.distributed_servers)
@@ -267,7 +262,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.settings["version"] = self._get_tool_version(self.original_jmx)
 
         if not self.original_jmx:
-            if scenario.get("requests"):
+            if self.get_scenario().get("requests"):
                 self.original_jmx = self.__jmx_from_requests()
                 is_jmx_generated = True
             else:
@@ -275,13 +270,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         self.__set_jvm_properties()
         self.__set_system_properties()
-        self.__set_jmeter_properties(scenario)
+        self.__set_jmeter_properties()
 
         self.install_required_tools()
 
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
-            version = LooseVersion(str(self.settings.get("version", JMeter.VERSION)))
+            version = LooseVersion(self.tool.version)
             major = version.version[0]
             if major == 2:
                 flags["bytes"] = True
@@ -296,10 +291,8 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         if self.settings.get("detect-plugins", True):
             self.tool.install_for_jmx(self.modified_jmx)
 
-        out = self.engine.create_artifact("jmeter", ".out")
-        err = self.engine.create_artifact("jmeter", ".err")
-        self.stdout_file = open(out, "w")
-        self.stderr_file = open(err, "w")
+        self.stdout = open(self.engine.create_artifact("jmeter", ".out"), "w")
+        self.stderr = open(self.engine.create_artifact("jmeter", ".err"), "w")
 
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.reader = JTLReader(self.kpi_jtl, self.log, self.log_jtl)
@@ -327,9 +320,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.log.debug("Setting JVM heap size to %s", heap_size)
             self.env.add_java_param({"JVM_ARGS": "-Xmx%s" % heap_size})
 
-    def __set_jmeter_properties(self, scenario):
+    def __set_jmeter_properties(self):
         props = copy.deepcopy(self.settings.get("properties"))
-        props_local = copy.deepcopy(scenario.get("properties"))
+        props_local = copy.deepcopy(self.get_scenario().get("properties"))
         if self.distributed_servers and self.settings.get("gui", False):
             props_local.merge({"remote_hosts": ",".join(self.distributed_servers)})
         props_local.update({"jmeterengine.nongui.port": self.management_port})
@@ -338,8 +331,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         props_local.update({"sampleresult.default.encoding": "UTF-8"})
         props.merge(props_local)
 
-        user_cp = [self.engine.artifacts_dir]
-        user_cp.append(get_full_path(self.original_jmx, step_up=1))
+        user_cp = [self.engine.artifacts_dir, get_full_path(self.original_jmx, step_up=1)]
 
         for _file in self.execution.get('files', []):
             full_path = get_full_path(_file)
@@ -353,50 +345,36 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
         props['user.classpath'] = os.pathsep.join(user_cp).replace(os.path.sep, "/")  # replace to avoid Windows issue
 
-        if props:
-            self.log.debug("Additional properties: %s", props)
-            self.properties.merge(props)
-            props_file = self.engine.create_artifact("jmeter-bzt", ".properties")
-            JMeterExecutor.__write_props_to_file(props_file, props)
-            self.properties_file = props_file
+        self.log.debug("Additional properties: %s", props)
+        self.properties.merge(props)
+        self.properties_file = self.engine.create_artifact("jmeter-bzt", ".properties")
+        JMeterExecutor.__write_props_to_file(self.properties_file, props)
 
     def startup(self):
         """
         Should start JMeter as fast as possible.
         """
-        cmdline = [self.settings.get("path")]  # default is set when prepared
+        cmdline = [self.tool.tool_path, "-t", self.modified_jmx, "-j", self.jmeter_log, "-q", self.properties_file]
         if not self.settings.get("gui", False):
             cmdline += ["-n"]
-        cmdline += ["-t", os.path.abspath(self.modified_jmx)]
-        if self.jmeter_log:
-            cmdline += ["-j", os.path.abspath(self.jmeter_log)]
 
-        if self.properties_file:
-            cmdline += ["-q", os.path.abspath(self.properties_file)]
-            if self.distributed_servers:
-                cmdline += ["-G", os.path.abspath(self.properties_file)]
+        if self.distributed_servers:
+            cmdline += ["-G", self.properties_file]
 
         if self.sys_properties_file:
-            cmdline += ["-S", os.path.abspath(self.sys_properties_file)]
+            cmdline += ["-S", self.sys_properties_file]
         if self.distributed_servers and not self.settings.get("gui", False):
             cmdline += ['-R%s' % ','.join(self.distributed_servers)]
 
         # fix for JMeter 4.0 bug where jmeter.bat requires JMETER_HOME to be set
-        jmeter_ver = str(self.settings.get("version", JMeter.VERSION))
-        if is_windows() and jmeter_ver == "4.0":
-            tool_path = self.tool.tool_path
-            if os.path.exists(tool_path) and not os.path.isdir(tool_path):
-                tool_path = get_full_path(tool_path, step_up=2)
-            if not self.env.get("JMETER_HOME"):
-                self.env.set({"JMETER_HOME": tool_path})
+        if is_windows() and self.tool.version == "4.0" and not self.env.get("JMETER_HOME"):
+            tool_dir = self.tool.tool_path
+            if os.path.isfile(self.tool.tool_path):
+                tool_dir = get_full_path(self.tool.tool_path, step_up=2)
+            self.env.set({"JMETER_HOME": tool_dir})
 
         self.start_time = time.time()
-        try:
-            self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
-        except KeyboardInterrupt:
-            raise
-        except BaseException as exc:
-            raise ToolError("%s\nFailed to start JMeter: %s" % (cmdline, exc))
+        self.process = self.execute(cmdline)
 
     def check(self):
         """
@@ -448,10 +426,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def post_process(self):
         self.engine.existing_artifact(self.modified_jmx, True)
-        if self.stdout_file:
-            self.stdout_file.close()
-        if self.stderr_file:
-            self.stderr_file.close()
+        super(JMeterExecutor, self).post_process()
 
     def has_results(self):
         if self.reader and self.reader.read_records:
@@ -461,11 +436,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def _process_stopped(self, cycles):
         while cycles > 0:
-            cycles -= 1
-            if self.process and self.process.poll() is None:
-                time.sleep(self.engine.check_interval)
-            else:
+            if not (self.process and self.process.poll() is None):
                 return True
+            cycles -= 1
+            time.sleep(self.engine.check_interval)
         return False
 
     def _set_remote_port(self):
@@ -561,7 +535,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_listener(log_lst, jmx)
 
     def __add_result_writers(self, jmx):
-        version = LooseVersion(str(self.settings.get('version', JMeter.VERSION)))
+        version = LooseVersion(self.tool.version)
         flags = {}
         if version < LooseVersion("2.13"):
             flags['^connectTime'] = False
@@ -617,7 +591,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_result_listeners(jmx)
         if not is_jmx_generated:
             self.__force_tran_parent_sample(jmx)
-            version = LooseVersion(str(self.settings.get('version', JMeter.VERSION)))
+            version = LooseVersion(self.tool.version)
             if version >= LooseVersion("3.2"):
                 self.__force_hc4_cookie_handler(jmx)
         self.__fill_empty_delimiters(jmx)
@@ -850,41 +824,14 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         check tools
         """
-        required_tools = [self._get_tool(JavaVM), self._get_tool(TclLibrary)]
+        self.tool = self._get_tool(JMeter, config=self.settings, props=self.properties)
+
+        required_tools = [self._get_tool(JavaVM), self._get_tool(TclLibrary), self.tool]
         for tool in required_tools:
             if not tool.check_if_installed():
                 tool.install()
 
-        self.tool = self._get_tool(JMeter, config=self.settings, props=self.properties)
-
-        if self._need_to_install(self.tool):
-            self.tool.install()
-
         self.settings['path'] = self.tool.tool_path
-
-    @staticmethod
-    def _need_to_install(tool):
-        end_str_l = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
-        end_str_s = os.path.join('bin', 'jmeter')
-
-        if os.path.isfile(tool.tool_path):
-            if tool.check_if_installed():  # all ok, it's really tool path
-                return False
-            else:  # probably it's path to other tool)
-                raise TaurusConfigError('JMeter: wrong tool path: %s' % tool.tool_path)
-
-        if os.path.isdir(tool.tool_path):  # it's dir: fix tool path and install if needed
-            tool.tool_path = os.path.join(tool.tool_path, end_str_l)
-            if tool.check_if_installed():
-                return False
-            else:
-                return True
-
-        # similar to future jmeter directory
-        if not (tool.tool_path.endswith(end_str_l) or tool.tool_path.endswith(end_str_s)):
-            tool.tool_path = os.path.join(tool.tool_path, end_str_l)
-
-        return True
 
     @staticmethod
     def __trim_jmeter_log(log_contents):
@@ -897,13 +844,13 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.stdout_file is not None:
-            with codecs.open(self.stdout_file.name, encoding='utf-8') as fds:
+        if self.stdout is not None:
+            with codecs.open(self.stdout.name, encoding='utf-8') as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("JMeter STDOUT:\n" + contents)
-        if self.stderr_file is not None:
-            with codecs.open(self.stderr_file.name, encoding='utf-8') as fds:
+        if self.stderr is not None:
+            with codecs.open(self.stderr.name, encoding='utf-8') as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("JMeter STDERR:\n" + contents)
@@ -1514,32 +1461,52 @@ class JMeter(RequiredTool):
         return props
 
     def check_if_installed(self):
+        end_str_l = os.path.join('bin', 'jmeter' + EXE_SUFFIX)
+        end_str_s = os.path.join('bin', 'jmeter')
+
+        if os.path.isfile(self.tool_path):
+            if self.run_and_check():  # all ok, it's really tool path
+                return True
+            else:  # probably it's path to other tool)
+                raise TaurusConfigError('JMeter: wrong tool path: %s' % self.tool_path)
+
+        if os.path.isdir(self.tool_path):  # it's dir: fix tool path and install if needed
+            self.tool_path = os.path.join(self.tool_path, end_str_l)
+            return self.run_and_check()
+
+        # similar to future jmeter directory
+        if not (self.tool_path.endswith(end_str_l) or self.tool_path.endswith(end_str_s)):
+            self.tool_path = os.path.join(self.tool_path, end_str_l)
+
+        return False
+
+    def run_and_check(self):
         self.log.debug("Trying jmeter: %s", self.tool_path)
+        jmlog = tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False)
+
         try:
-            with tempfile.NamedTemporaryFile(prefix="jmeter", suffix="log", delete=False) as jmlog:
-                jm_proc = shell_exec([self.tool_path, '-j', jmlog.name, '--version'], stderr=subprocess.STDOUT)
-                jmout, jmerr = communicate(jm_proc)
-                self.log.debug("JMeter check: %s / %s", jmout, jmerr)
+            cmd_line = [self.tool_path, '-j', jmlog.name, '--version']
+            out, err = self.call(cmd_line)
+            self.log.debug("JMeter check: %s / %s", out, err)
 
-            os.remove(jmlog.name)
-
-            if "is too low to run JMeter" in jmout:
+            if "is too low to run JMeter" in out:
                 raise ToolError("Java version is too low to run JMeter")
 
-            if "Error:" in jmout:
-                self.log.warning("JMeter output: \n%s", jmout)
+            if "Error:" in out:
+                self.log.warning("JMeter output: \n%s", out)
                 raise ToolError("Unable to run JMeter, see error above")
 
-            return True
-
-        except OSError:
-            self.log.debug("JMeter check failed.")
+        except CALL_PROBLEMS as exc:
+            self.log.debug("JMeter check failed: %s", exc)
             return False
+        finally:
+            jmlog.close()
+
+        return True
 
     def _pmgr_call(self, params):
         cmd = [self._pmgr_path()] + params
-        proc = shell_exec(cmd, env=self.env.get())
-        return communicate(proc)
+        return self.call(cmd)
 
     def install_for_jmx(self, jmx_file):
         if not os.path.isfile(jmx_file):
@@ -1547,11 +1514,10 @@ class JMeter(RequiredTool):
             return
 
         try:
-            out, err = self._pmgr_call(["install-for-jmx", jmx_file])
+            params = ["install-for-jmx", jmx_file]
+            out, err = self._pmgr_call(params)
             self.log.debug("Try to detect plugins for %s\n%s\n%s", jmx_file, out, err)
-        except KeyboardInterrupt:
-            raise
-        except BaseException as exc:
+        except CALL_PROBLEMS as exc:
             self.log.warning("Failed to detect plugins for %s: %s", jmx_file, exc)
             return
 
@@ -1596,32 +1562,24 @@ class JMeter(RequiredTool):
 
     def __install_plugins_manager(self, plugins_manager_path):
         installer = "org.jmeterplugins.repository.PluginManagerCMDInstaller"
-        cmd = ["java", "-cp", plugins_manager_path, installer]
-        self.log.debug("Trying: %s", cmd)
+        cmd_line = ["java", "-cp", plugins_manager_path, installer]
+        self.log.debug("Trying: %s", cmd_line)
         try:
-            proc = shell_exec(cmd)
-            out, err = communicate(proc)
+            out, err = self.call(cmd_line)
             self.log.debug("Install PluginsManager: %s / %s", out, err)
-        except KeyboardInterrupt:
-            raise
-        except BaseException as exc:
+        except CALL_PROBLEMS as exc:
             raise ToolError("Failed to install PluginsManager: %s" % exc)
 
     def __install_plugins(self, plugins_manager_cmd):
         plugin_str = ",".join(self.plugins)
         self.log.info("Installing JMeter plugins: %s", plugin_str)
-        cmd = [plugins_manager_cmd, 'install', plugin_str]
-        self.log.debug("Trying: %s", cmd)
+        cmd_line = [plugins_manager_cmd, 'install', plugin_str]
+        self.log.debug("Trying: %s", cmd_line)
 
         try:
-            proc = shell_exec(cmd, env=self.env.get())
-            out, err = communicate(proc)
+            out, err = self.call(cmd_line)
             self.log.debug("Install plugins: %s / %s", out, err)
-            if proc.returncode is not None and proc.returncode != 0:
-                raise ToolError("Failed to install JMeter plugins with code %s" % proc.returncode)
-        except KeyboardInterrupt:
-            raise
-        except BaseException as exc:
+        except CALL_PROBLEMS as exc:
             raise ToolError("Failed to install plugins %s: %s" % (plugin_str, exc))
 
         if out and "Plugins manager will apply some modifications" in out:
@@ -1705,7 +1663,7 @@ class JMeterMirrorsManager(MirrorsManager):
     DOWNLOAD_LINK = "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-{version}.zip"
 
     def __init__(self, http_client, parent_logger, jmeter_version):
-        self.jmeter_version = str(jmeter_version)
+        self.jmeter_version = jmeter_version
         super(JMeterMirrorsManager, self).__init__(http_client, self.MIRRORS_SOURCE, parent_logger)
 
     def _parse_mirrors(self):
