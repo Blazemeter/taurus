@@ -258,25 +258,24 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         is_jmx_generated = False
 
         self.original_jmx = self.get_script_path()
-        if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
+        if self.settings.get("version") == "auto":
             self.settings["version"] = self._get_tool_version(self.original_jmx)
 
+        self.install_required_tools()
+
         if not self.original_jmx:
-            if self.get_scenario().get("requests"):
-                self.original_jmx = self.__jmx_from_requests()
-                is_jmx_generated = True
-            else:
-                raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
+            exc = TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
+            self.get_scenario().get("requests", exc)
+            self.original_jmx = self.__jmx_from_requests()
+            is_jmx_generated = True
 
         self.__set_jvm_properties()
         self.__set_system_properties()
         self.__set_jmeter_properties()
 
-        self.install_required_tools()
-
         if self.engine.aggregator.is_functional:
             flags = {"connectTime": True}
-            version = LooseVersion(str(self.settings.get("version", JMeter.VERSION)))
+            version = LooseVersion(self.tool.version)
             major = version.version[0]
             if major == 2:
                 flags["bytes"] = True
@@ -535,7 +534,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.__add_listener(log_lst, jmx)
 
     def __add_result_writers(self, jmx):
-        version = LooseVersion(str(self.settings.get('version', JMeter.VERSION)))
+        version = LooseVersion(self.tool.version)
         flags = {}
         if version < LooseVersion("2.13"):
             flags['^connectTime'] = False
