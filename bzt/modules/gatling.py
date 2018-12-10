@@ -19,7 +19,6 @@ import json
 import codecs
 import os
 import re
-import subprocess
 import time
 from collections import defaultdict
 from distutils.version import LooseVersion
@@ -31,8 +30,8 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, numeric_types
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
-from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
-from bzt.utils import simple_body_dict
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
+from bzt.utils import simple_body_dict, CALL_PROBLEMS
 
 
 class GatlingScriptBuilder(object):
@@ -306,10 +305,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
         self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
 
-        out = self.engine.create_artifact("gatling-stdout", ".log")
-        err = self.engine.create_artifact("gatling-stderr", ".log")
-        self.stdout = open(out, "w")
-        self.stderr = open(err, "w")
+        self.stdout = open(self.engine.create_artifact("gatling", ".out"), "w")
+        self.stderr = open(self.engine.create_artifact("gatling", ".err"), "w")
 
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -330,7 +327,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             source_path = self.engine.find_file(source["path"])
             self.engine.existing_artifact(source_path)
 
-    def _set_simulation_props(self, props):
+    def _get_simulation_props(self):
+        props = {}
         if os.path.isfile(self.script):
             if self.script.endswith('.jar'):
                 self.env.add_path({"JAVA_CLASSPATH": self.script})
@@ -345,9 +343,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             props['gatling.core.simulationClass'] = simulation
         else:
             props['gatling.core.runDescription'] = "Taurus_Test"
+        return props
 
-    def _set_load_props(self, props):
+    def _get_load_props(self):
         load = self.get_load()
+        props = {}
         if load.concurrency is not None:
             props['concurrency'] = load.concurrency
         if load.ramp_up is not None:
@@ -361,8 +361,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 props['throughput'] = load.throughput
             else:
                 self.log.warning("You should set up 'ramp-up' and/or 'hold-for' for usage of 'throughput'")
+        return props
 
-    def _set_scenario_props(self, props):
+    def _get_scenario_props(self):
+        props = {}
         scenario = self.get_scenario()
         timeout = scenario.get('timeout', None)
         if timeout is not None:
@@ -380,6 +382,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             props['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
             # gatling > 2.2.0
             props['gatling.http.ahc.keepAlive'] = 'false'
+        return props
 
     def _set_env(self):
         props = BetterDict()
@@ -390,14 +393,14 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         props['gatling.core.directory.resources'] = self.engine.artifacts_dir
         props['gatling.core.directory.results'] = self.engine.artifacts_dir
 
-        self._set_simulation_props(props)
-        self._set_load_props(props)
-        self._set_scenario_props(props)
+        props.merge(self._get_simulation_props())
+        props.merge(self._get_load_props())
+        props.merge(self._get_scenario_props())
+        for key in props:
+            self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
 
         self.env.set({"NO_PAUSE": "TRUE"})
         self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
-        for key in props:
-            self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
 
         self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
 
@@ -438,13 +441,12 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             if 'started...' in file_header:
                 self.simulation_started = True
 
-        if self.retcode is not None:
-            if self.retcode != 0:
-                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode,
-                                self.get_error_diagnostics())
-
+        if self.retcode is None:
+            return False
+        elif self.retcode == 0:
             return True
-        return False
+        else:
+            raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode, self.get_error_diagnostics())
 
     def shutdown(self):
         """
@@ -758,12 +760,13 @@ class Gatling(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying Gatling: %s", self.tool_path)
         try:
-            gatling_proc = shell_exec([self.tool_path, '--help'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            gatling_output = gatling_proc.communicate()
-            self.log.debug("Gatling check is successful: %s", gatling_output)
+            out, err = self.call([self.tool_path, '--help'])
+            self.log.debug("Gatling check output: %s", out)
+            if err:
+                self.log.warning("Gatling check stderr: %s", err)
             return True
-        except OSError:
-            self.log.info("Gatling check failed.")
+        except CALL_PROBLEMS as exc:
+            self.log.info("Gatling check failed: %s", exc)
             return False
 
     def install(self):
