@@ -122,7 +122,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         cmdline += [self.script]
         self.start_time = time.time()
         self._start_subprocess(cmdline)
-        self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
+        self._tailer = FileReader(filename=self.stdout.name, parent_logger=self.log)
 
     def has_results(self):
         if not self.reader:
@@ -177,9 +177,9 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             self.log.info("\n".join(lines))
 
     def post_process(self):
-        super(ApiritifNoseExecutor, self).post_process()
         self._check_stdout()
         self.__log_lines()
+        super(ApiritifNoseExecutor, self).post_process()
 
     def __is_verbose(self):
         engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
@@ -288,7 +288,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         self._start_subprocess(cmdline)
 
         if self.__is_verbose():
-            self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
+            self._tailer = FileReader(filename=self.stdout.name, parent_logger=self.log)
 
     def check(self):
         self.__log_lines()
