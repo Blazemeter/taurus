@@ -258,7 +258,7 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         is_jmx_generated = False
 
         self.original_jmx = self.get_script_path()
-        if self.settings.get("version") == "auto":
+        if self.settings.get("version", JMeter.VERSION, force_set=True) == "auto":
             self.settings["version"] = self._get_tool_version(self.original_jmx)
 
         if not self.original_jmx:
@@ -267,9 +267,9 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.original_jmx = self.__jmx_from_requests()
             is_jmx_generated = True
 
+        self.__set_jvm_properties()
         self.__set_system_properties()
         self.__set_jmeter_properties()
-        self.__set_jvm_properties()
 
         self.install_required_tools()
 

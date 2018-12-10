@@ -283,7 +283,7 @@ class JMeterScenarioBuilder(JMX):
         jextractors = req.config.get("extract-jsonpath")
         for varname in jextractors:
             cfg = ensure_is_dict(jextractors, varname, "jsonpath")
-            if LooseVersion(self.executor.tool.version) < LooseVersion("3.0"):
+            if LooseVersion(str(self.executor.settings.get("version"))) < LooseVersion("3.0"):
                 extractor = JMX._get_json_extractor(varname,
                                                     cfg["jsonpath"],
                                                     cfg.get("default", "NOT_FOUND"),
