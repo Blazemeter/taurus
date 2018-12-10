@@ -108,7 +108,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             },
         })
 
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn("--hold-for 5", stdout)
 
@@ -120,7 +120,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
                 'executor': 'selenium'
             },
         })
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn("--iterations 3", stdout)
 
@@ -214,7 +214,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             },
         })
 
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn("--hold-for 5", stdout)
 
@@ -227,7 +227,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             },
         })
 
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn("--iterations 3", stdout)
 

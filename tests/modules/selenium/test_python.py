@@ -1412,7 +1412,7 @@ class TestPyTestExecutor(BZTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        with open(self.obj.stdout_file) as fds:
+        with open(self.obj.stdout.name) as fds:
             stdout = fds.read()
             self.assertIn(additional_args, stdout)
 
