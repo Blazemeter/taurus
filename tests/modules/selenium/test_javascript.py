@@ -6,7 +6,6 @@ from os.path import join, exists, dirname
 
 import bzt
 
-from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.javascript import WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.utils import get_full_path, is_windows
 

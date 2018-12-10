@@ -2,7 +2,6 @@ import json
 import os
 import shutil
 import time
-import unittest
 import traceback
 from os import listdir
 from os.path import exists, join, dirname
