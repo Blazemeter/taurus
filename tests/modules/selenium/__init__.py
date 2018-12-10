@@ -24,6 +24,11 @@ class SeleniumTestCase(ExecutorTestCase):
 
     def tearDown(self):
         self.virtual_display.shutdown()
+        if self.obj and self.obj.runner:
+            if self.obj.runner.stdout:
+                self.obj.runner.stdout.close()
+            if self.obj.runner.stderr:
+                self.obj.runner.stderr.close()
         super(SeleniumTestCase, self).tearDown()
 
 
