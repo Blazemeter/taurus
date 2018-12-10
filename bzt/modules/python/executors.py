@@ -267,7 +267,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         if sys.version >= '3':
             self.log.warning("You are using Python 3, make sure that your scripts are able to run in Python 3")
 
-        self._check_tools([TaurusPytestRunner(self.runner_path, "")])
+        self._check_tools([self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
 
     def startup(self):
         """
@@ -354,8 +354,9 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
                 raise TaurusConfigError("`tags` is not a string or text")
 
     def install_required_tools(self):
-        self._check_tools([Robot(self.settings.get("interpreter", sys.executable), self.log),
-                           TaurusRobotRunner(self.runner_path, "")])
+        tools = [self._get_tool(TaurusRobotRunner, tool_path=self.runner_path),
+                 self._get_tool(Robot, python=self.settings.get("interpreter", sys.executable))]
+        self._check_tools(tools)
 
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
