@@ -262,10 +262,11 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
             self.settings["version"] = self._get_tool_version(self.original_jmx)
 
         if not self.original_jmx:
-            exc = TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
-            self.get_scenario().get("requests", exc)
-            self.original_jmx = self.__jmx_from_requests()
-            is_jmx_generated = True
+            if self.get_scenario().get("requests"):
+                self.original_jmx = self.__jmx_from_requests()
+                is_jmx_generated = True
+            else:
+                raise TaurusConfigError("You must specify either a JMX file or list of requests to run JMeter")
 
         self.__set_jvm_properties()
         self.__set_system_properties()
