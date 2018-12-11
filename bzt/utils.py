@@ -619,6 +619,9 @@ class FileReader(object):
                 return _bytes
 
     def __del__(self):
+        self.close()
+
+    def close(self):
         if self.fds:
             self.fds.close()
 

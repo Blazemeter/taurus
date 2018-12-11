@@ -165,6 +165,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 self.transacion_ended(label, duration)
 
     def check(self):
+
         self._check_stdout()
         return super(ApiritifNoseExecutor, self).check()
 
@@ -180,6 +181,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
     def post_process(self):
         self._check_stdout()
         self.__log_lines()
+        self._tailer.close()
         super(ApiritifNoseExecutor, self).post_process()
 
     def __is_verbose(self):

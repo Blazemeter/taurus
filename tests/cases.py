@@ -16,6 +16,8 @@ from psutil import Process
 
 TestCase.shortDescription = lambda self: None  # suppress nose habit to show docstring instead of method name
 
+TOTAL = 0
+
 
 class BZTestCase(TestCase):
     def setUp(self):
@@ -24,6 +26,7 @@ class BZTestCase(TestCase):
         self.func_args = []
         self.func_results = None
         self.log = ROOT_LOGGER
+        self.sn = len(Process().open_files())
 
     def func_mock(self, *args, **kwargs):
         self.func_args.append({'args': args, 'kargs': kwargs})
@@ -52,6 +55,13 @@ class BZTestCase(TestCase):
         if self.captured_logger:
             self.captured_logger.removeHandler(self.log_recorder)
             self.log_recorder.close()
+        self.en = len(Process().open_files()) - self.sn
+        if self.en:
+            global TOTAL
+            TOTAL += self.en
+            b = Process().open_files()
+            with open('/tmp/nose.log', 'at') as nl:
+                nl.write("%s[%s]: %s(%s)\n" % (self.en, TOTAL, self._testMethodName, str(self)))
 
     def assertFilesEqual(self, expected, actual, replace_str="", replace_with=""):
         # import shutil; shutil.copy(actual, expected)

@@ -136,6 +136,13 @@ class TestJUnitTester(BZTestCase):
         self.obj.settings = engine_obj.config.get("modules").get("junit")
         self.obj.engine = engine_obj
 
+    def tearDown(self):
+        if self.obj.stdout:
+            self.obj.stdout.close()
+        if self.obj.stderr:
+            self.obj.stderr.close()
+        super(TestJUnitTester, self).tearDown()
+
     def test_install_tools(self):
         """
         check installation of selenium-server, junit
@@ -240,6 +247,9 @@ class TestJUnitTester(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
+
+        self.obj.reader.report_reader.json_reader.file.close()
+
         self.assertTrue(self.obj.has_results())
         self.assertTrue(self.obj.report_file.endswith(".ldjson"))
         self.assertIsInstance(self.obj.reader, FuncSamplesReader)
