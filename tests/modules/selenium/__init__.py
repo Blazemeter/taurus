@@ -4,6 +4,7 @@ from bzt.modules.services import VirtualDisplay
 
 
 class SeleniumTestCase(ExecutorTestCase):
+    """ ExecutorTestCase with virtual display """
     EXECUTOR = SeleniumExecutor
 
     def __init__(self, methodName='runTest'):

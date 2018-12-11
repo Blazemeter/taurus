@@ -17,20 +17,18 @@ from bzt.modules.java.tools import JavaC, JarTool
 from bzt.modules.jmeter import JTLReader
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import ToolError
-from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER, ExecutorTestCase
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
 
-class TestTestNGTester(BZTestCase):
+class TestTestNGTester(ExecutorTestCase):
+    EXECUTOR = TestNGTester
+
     def setUp(self):
         super(TestTestNGTester, self).setUp()
-        engine_obj = EngineEmul()
-        paths = [local_paths_config()]
-        engine_obj.configure(paths)
-        self.obj = TestNGTester()
-        self.obj.settings = engine_obj.config.get("modules").get("testng")
-        self.obj.engine = engine_obj
+        self.obj.engine.configure([local_paths_config()])
+        self.obj.settings = self.obj.engine.config.get("modules").get("testng")
 
     def test_simple(self):
         self.obj.execution.merge({
