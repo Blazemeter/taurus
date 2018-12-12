@@ -77,7 +77,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
             tool.install()
 
     def startup(self):
-        self.start_time = time.time()
         load = self.get_load()
         concurrency = load.concurrency or 1
 

@@ -161,9 +161,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         Should start the tool as fast as possible.
         """
-        self.start_time = time.time()
         self.env.set({"T_GRINDER_PREFIX": self.exec_id})
-
         self.process = self.execute(self.cmd_line)
 
     def check(self):

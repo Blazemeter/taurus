@@ -121,7 +121,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             cmdline += ['--verbose']
 
         cmdline += [self.script]
-        self.start_time = time.time()
         self._start_subprocess(cmdline)
         self._tailer = FileReader(filename=self.stdout.name, parent_logger=self.log)
 

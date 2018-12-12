@@ -373,7 +373,6 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
                 tool_dir = get_full_path(self.tool.tool_path, step_up=2)
             self.env.set({"JMETER_HOME": tool_dir})
 
-        self.start_time = time.time()
         self.process = self.execute(cmdline)
 
     def check(self):

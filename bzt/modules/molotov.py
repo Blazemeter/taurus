@@ -85,7 +85,6 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.env.set({"MOLOTOV_TAURUS_REPORT": self.report_file_name})
         self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
-        self.start_time = time.time()
         self.process = self.execute(cmdline)
 
     def check(self):

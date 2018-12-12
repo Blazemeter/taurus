@@ -57,7 +57,7 @@ class JavaC(RequiredTool):
     def check_if_installed(self):
         self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
-            out, err = self.call([self.tool_path, "--version"])
+            out, err = self.call([self.tool_path, "-version"])
             if err:
                 out += err
             self.log.debug("%s output: %s", self.tool_name, out)

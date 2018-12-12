@@ -125,8 +125,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
             args += ['--header', "%s: %s" % (key, val)]
 
         self.env.set({"SIEGERC": self.__rc_name})
-        self.start_time = time.time()
-
         self.process = self.execute(args)
 
     def check(self):
@@ -156,6 +154,11 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         self.tool = self._get_tool(Siege, config=self.settings)
         if not self.tool.check_if_installed():
             self.tool.install()
+
+    def post_process(self):
+        if self.reader and self.reader.file:
+            self.reader.file.close()
+        super(SiegeExecutor, self).post_process()
 
     def get_error_diagnostics(self):
         diagnostics = []

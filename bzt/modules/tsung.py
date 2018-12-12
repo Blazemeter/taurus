@@ -102,7 +102,6 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
             '-w', '0',
             'start',
         ]
-        self.start_time = time.time()
         self.process = self.execute(args)
 
     def check(self):

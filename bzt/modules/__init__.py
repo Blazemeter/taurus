@@ -118,7 +118,6 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
         self.stderr = open(self.engine.create_artifact(prefix, ".err"), "wt")
 
     def _start_subprocess(self, cmdline, **kwargs):
-        self.start_time = time.time()
         self.process = self.execute(cmdline, **kwargs)
 
     def resource_files(self):
