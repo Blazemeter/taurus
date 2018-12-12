@@ -16,10 +16,6 @@ class TestApacheBenchExecutor(ExecutorTestCase):
         self.obj.settings.merge({"path": path})
 
     def tearDown(self):
-        if self.obj.stdout_file:
-            self.obj.stdout_file.close()
-        if self.obj.stderr_file:
-            self.obj.stderr_file.close()
         close_reader_file(self.obj.reader)
         super(TestApacheBenchExecutor, self).tearDown()
 

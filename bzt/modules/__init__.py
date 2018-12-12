@@ -110,21 +110,16 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
         TransactionProvider.__init__(self)
         self.script = None
         self.process = None
-        self.opened_descriptors = []
-        self.stdout_file = None
-        self.stderr_file = None
         self.widget = None
 
-    def _start_subprocess(self, cmdline, **kwargs):
+    def prepare(self):
         prefix = self.execution.get("executor", "executor")
-        self.stdout_file = self.engine.create_artifact(prefix, ".out")
-        std_out = open(self.stdout_file, "wt")
-        self.opened_descriptors.append(std_out)
-        self.stderr_file = self.engine.create_artifact(prefix, ".err")
-        std_err = open(self.stderr_file, "wt")
-        self.opened_descriptors.append(std_err)
+        self.stdout = open(self.engine.create_artifact(prefix, ".out"), "wt")
+        self.stderr = open(self.engine.create_artifact(prefix, ".err"), "wt")
+
+    def _start_subprocess(self, cmdline, **kwargs):
         self.start_time = time.time()
-        self.process = self.execute(cmdline, stdout=std_out, stderr=std_err, **kwargs)
+        self.process = self.execute(cmdline, **kwargs)
 
     def resource_files(self):
         script = self.get_script_path()
@@ -144,9 +139,6 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
 
     def shutdown(self):
         shutdown_process(self.process, self.log)
-        for desc in self.opened_descriptors:
-            desc.close()
-        self.opened_descriptors = []
 
     def _check_tools(self, tools):
         for tool in tools:
@@ -160,13 +152,13 @@ class SubprocessedExecutor(ReportableExecutor, FileLister, SelfDiagnosable, Widg
     def get_error_diagnostics(self):
         diagnostics = []
         class_name = self.__class__.__name__
-        if self.stdout_file is not None:
-            with open(self.stdout_file) as fds:
+        if self.stdout is not None:
+            with open(self.stdout.name) as fds:
                 contents = fds.read().strip()
                 if contents:
                     diagnostics.append(class_name + " STDOUT:\n" + contents)
-        if self.stderr_file is not None:
-            with open(self.stderr_file) as fds:
+        if self.stderr is not None:
+            with open(self.stderr.name) as fds:
                 contents = fds.read().strip()
                 if contents:
                     diagnostics.append(class_name + " STDERR:\n" + contents)
