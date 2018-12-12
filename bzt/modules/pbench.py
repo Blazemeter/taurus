@@ -81,7 +81,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.process = self.execute(cmdline)
 
     def check(self):
-        retcode = self.generator.poll()
+        retcode = self.process.poll()
         if retcode is not None:
             if retcode != 0:
                 raise ToolError("Phantom-benchmark exit code: %s" % retcode, self.get_error_diagnostics())
