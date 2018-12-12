@@ -34,16 +34,16 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         super(MolotovExecutor, self).__init__()
         self.process = None
         self.report_file_name = None
-        self.stdout_file = None
-        self.stderr_file = None
+        self.stdout = None
+        self.stderr = None
         self.molotov = None
         self.scenario = None
 
     def prepare(self):
         self.install_required_tools()
 
-        self.stdout_file = open(self.engine.create_artifact("molotov", ".out"), 'w')
-        self.stderr_file = open(self.engine.create_artifact("molotov", ".err"), 'w')
+        self.stdout = open(self.engine.create_artifact("molotov", ".out"), 'w')
+        self.stderr = open(self.engine.create_artifact("molotov", ".err"), 'w')
 
         self.report_file_name = self.engine.create_artifact("molotov-report", ".ldjson")
         self.reader = MolotovReportReader(self.report_file_name, self.log)
@@ -87,7 +87,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
         self.start_time = time.time()
-        self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
+        self.process = self.execute(cmdline)
 
     def check(self):
         ret_code = self.process.poll()
@@ -100,12 +100,6 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
     def shutdown(self):
         shutdown_process(self.process, self.log)
 
-    def post_process(self):
-        if self.stdout_file and not self.stdout_file.closed:
-            self.stdout_file.close()
-        if self.stderr_file and not self.stderr_file.closed:
-            self.stderr_file.close()
-
     def install_required_tools(self):
         self.molotov = self._get_tool(Molotov, config=self.settings)
         if not self.molotov.check_if_installed():
@@ -113,13 +107,13 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.stdout_file is not None:
-            with open(self.stdout_file.name) as fds:
+        if self.stdout is not None:
+            with open(self.stdout.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("molotov STDOUT:\n" + contents)
-        if self.stderr_file is not None:
-            with open(self.stderr_file.name) as fds:
+        if self.stderr is not None:
+            with open(self.stderr.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("molotov STDERR:\n" + contents)

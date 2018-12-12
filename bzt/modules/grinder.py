@@ -430,7 +430,6 @@ class Grinder(RequiredTool):        # todo: take it from maven and convert to Ja
             if err:
                 out += err
             self.log.debug("%s stdout: %s", self.tool_name, out)
-            self.already_installed = True
             return True
         except CALL_PROBLEMS as exc:
             self.log.warning("%s check failed: %s", self.tool_name, exc)

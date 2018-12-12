@@ -1154,7 +1154,6 @@ class RequiredTool(object):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
-        self.already_installed = False
         self.mirror_manager = None
 
         self.version = None
@@ -1183,7 +1182,6 @@ class RequiredTool(object):
 
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
-            self.already_installed = True
             return True
         self.log.debug("File not exists: %s", self.tool_path)
         return False
