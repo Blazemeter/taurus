@@ -21,7 +21,6 @@ import os
 import sys
 import time
 from collections import OrderedDict, Counter
-from subprocess import STDOUT, CalledProcessError
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, FileLister, Scenario, HavingInstallableTools, SelfDiagnosable
@@ -29,8 +28,8 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsProvider, Dat
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.jmeter import JTLReader
 from bzt.requests_model import HTTPRequest
-from bzt.six import iteritems, communicate
-from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader, shell_exec
+from bzt.six import iteritems
+from bzt.utils import get_full_path, ensure_is_dict, PythonGenerator, FileReader, CALL_PROBLEMS
 from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, RESOURCES_DIR
 
 
@@ -38,7 +37,6 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
     def __init__(self):
         super(LocustIOExecutor, self).__init__()
         self.process = None
-        self.__out = None
         self.is_master = False
         self.expected_slaves = 0
         self.scenario = None
@@ -46,6 +44,9 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         self.log_file = None
 
     def prepare(self):
+        self.stdout = open(self.engine.create_artifact("locust", ".out"), 'w')
+        self.stderr = open(self.engine.create_artifact("locust", ".err"), 'w')
+
         self.install_required_tools()
         self.scenario = self.get_scenario()
         self.__setup_script()
@@ -112,8 +113,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
         if host:
             args.append('--host=%s' % host)
 
-        self.__out = open(self.engine.create_artifact("locust", ".out"), 'w')
-        self.process = self.execute(args, stderr=STDOUT, stdout=self.__out)
+        self.process = self.execute(args)
 
     def get_widget(self):
         """
@@ -161,11 +161,7 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
                 raise TaurusConfigError(msg)
 
     def shutdown(self):
-        try:
-            shutdown_process(self.process, self.log)
-        finally:
-            if self.__out:
-                self.__out.close()
+        shutdown_process(self.process, self.log)
 
     def has_results(self):
         master_results = self.is_master and self.reader.cumulative
@@ -177,11 +173,16 @@ class LocustIOExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInsta
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.__out is not None:
-            with open(self.__out.name) as fds:
+        if self.stdout is not None:
+            with open(self.stdout.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Locust STDOUT:\n" + contents)
+        if self.stderr is not None:
+            with open(self.stderr.name) as fds:
+                contents = fds.read().strip()
+                if contents.strip():
+                    diagnostics.append("Locust STDERR:\n" + contents)
         if self.log_file is not None and os.path.exists(self.log_file):
             with open(self.log_file) as fds:
                 contents = fds.read().strip()
@@ -195,13 +196,16 @@ class LocustIO(RequiredTool):
         super(LocustIO, self).__init__(tool_path="locust", installable=False, **kwargs)
 
     def check_if_installed(self):
-        self.log.debug('Checking LocustIO: %s' % self.tool_path)
+        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
-            stdout, stderr = communicate(shell_exec([self.tool_path, '--version']))
-            self.log.debug("Locustio check stdout/stderr: %s, %s", stdout, stderr)
-        except (CalledProcessError, OSError, AttributeError):
+            out, err = self.call([self.tool_path, "--version"])
+            if err:
+                out += err
+            self.log.debug("%s output: %s", self.tool_name, out)
+            return True
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
-        return True
 
 
 class SlavesReader(ResultsProvider):

@@ -424,7 +424,7 @@ class Grinder(RequiredTool):        # todo: take it from maven and convert to Ja
         self.mirror_manager = GrinderMirrorsManager(self.http_client, self.log, self.version)
 
     def check_if_installed(self):
-        self.log.debug("Trying grinder: %s", self.tool_path)
+        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
             out, err = self.call(["java", "-classpath", self.tool_path, "net.grinder.Grinder"])
             if err:
