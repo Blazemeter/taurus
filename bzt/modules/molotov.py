@@ -19,14 +19,13 @@ import time
 from distutils.version import LooseVersion
 
 from math import ceil
-from subprocess import CalledProcessError
 
 from bzt import ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.six import communicate, unicode_decode
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, get_full_path, LDJSONReader
+from bzt.six import unicode_decode
+from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, get_full_path, LDJSONReader, CALL_PROBLEMS
 
 
 class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
@@ -130,17 +129,20 @@ class Molotov(RequiredTool):
         super(Molotov, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
-        self.log.debug('Checking Molotov: %s' % self.tool_path)
+        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
-            stdout, stderr = communicate(shell_exec([self.tool_path, '--version']))
-            self.log.debug("Molotov stdout/stderr: %s, %s", stdout, stderr)
-            version_s = stdout.strip()
-            version = LooseVersion(version_s)
-            if version < LooseVersion("1.4"):
+            out, err = self.call([self.tool_path, "--version"])
+            version = out.strip()
+            if LooseVersion(version) < LooseVersion("1.4"):
                 raise ToolError("You must install molotov>=1.4 to use this executor (version %s detected)" % version)
-        except (CalledProcessError, OSError, AttributeError):
+            if err:
+                out += err
+            self.log.debug("%s output: %s", self.tool_name, out)
+
+            return True
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
-        return True
 
 
 class MolotovReportReader(ResultsReader):
