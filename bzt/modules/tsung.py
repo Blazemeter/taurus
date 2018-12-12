@@ -28,7 +28,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import etree, parse, iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, which, FileReader
+from bzt.utils import CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, which, FileReader
 
 
 class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstallableTools, SelfDiagnosable):
@@ -38,13 +38,10 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
 
     def __init__(self):
         super(TsungExecutor, self).__init__()
-        self.log = logging.getLogger('')
         self.process = None
-        self.__out = None
-        self.__err = None
         self.__stats_file = None
         self.tsung_config = None
-        self.tsung = None
+        self.tool = None
         self.tsung_controller_id = None
         self.tsung_artifacts_basedir = None
 
@@ -74,13 +71,13 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
-        self.__out = open(self.engine.create_artifact("tsung", ".out"), 'w')
-        self.__err = open(self.engine.create_artifact("tsung", ".err"), 'w')
+        self.stdout = open(self.engine.create_artifact("tsung", ".out"), 'w')
+        self.stderr = open(self.engine.create_artifact("tsung", ".err"), 'w')
 
     def __modify_user_tsung_config(self, user_config_path):
         modified_config_path = self.engine.create_artifact("tsung-config", ".xml")
         load = self.get_load()
-        config = TsungConfig(self.tsung)
+        config = TsungConfig(self.tool)
         config.load(user_config_path)
         config.apply_load_profile(load)
         config.apply_dumpstats()
@@ -91,14 +88,14 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
         config_file = self.engine.create_artifact("tsung-config", ".xml")
         scenario = self.get_scenario()
         load = self.get_load()
-        config = TsungConfig(self.tsung)
+        config = TsungConfig(self.tool)
         config.generate(scenario, load)
         config.save(config_file)
         return config_file
 
     def startup(self):
         args = [
-            self.tsung.tool_path,
+            self.tool.tool_path,
             '-f', self.tsung_config,
             '-l', self.tsung_artifacts_basedir,
             '-i', self.tsung_controller_id,
@@ -106,7 +103,7 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
             'start',
         ]
         self.start_time = time.time()
-        self.process = self.execute(args, stdout=self.__out, stderr=self.__err)
+        self.process = self.execute(args)
 
     def check(self):
         ret_code = self.process.poll()
@@ -119,16 +116,10 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
     def shutdown(self):
         shutdown_process(self.process, self.log)
 
-    def post_process(self):
-        if self.__out and not self.__out.closed:
-            self.__out.close()
-        if self.__err and not self.__err.closed:
-            self.__err.close()
-
     def install_required_tools(self):
-        self.tsung = self._get_tool(Tsung, config=self.settings)
-        if not self.tsung.check_if_installed():
-            self.tsung.install()
+        self.tool = self._get_tool(Tsung, config=self.settings)
+        if not self.tool.check_if_installed():
+            self.tool.install()
 
     def get_widget(self):
         if not self.widget:
@@ -144,13 +135,13 @@ class TsungExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstalla
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.__out is not None:
-            with open(self.__out.name) as fds:
+        if self.stdout is not None:
+            with open(self.stdout.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Tsung STDOUT:\n" + contents)
-        if self.__err is not None:
-            with open(self.__err.name) as fds:
+        if self.stderr is not None:
+            with open(self.stderr.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Tsung STDERR:\n" + contents)
@@ -249,7 +240,7 @@ class TsungConfig(object):
         self.log = logging.getLogger(self.__class__.__name__)
         self.root = etree.Element("tsung", loglevel="notice", version="1.0", dumptraffic="protocol", backend="text")
         self.tree = etree.ElementTree(self.root)
-        self.tsung_tool = tsung_tool
+        self.tool = tsung_tool
 
     def load(self, filename):
         try:
@@ -263,7 +254,7 @@ class TsungConfig(object):
     def save(self, filename):
         self.log.debug("Saving Tsung config to: %s", filename)
         with open(filename, "wb") as fhd:
-            tsung_dtd = self.tsung_tool.get_dtd_path()
+            tsung_dtd = self.tool.get_dtd_path()
             self.log.debug("Detected Tsung DTD: %s", tsung_dtd)
             doctype = '<!DOCTYPE tsung SYSTEM "%s">' % tsung_dtd
             xml = etree.tostring(self.tree, pretty_print=True, encoding="UTF-8", xml_declaration=True, doctype=doctype)
@@ -427,13 +418,17 @@ class Tsung(RequiredTool):
         super(Tsung, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
-        self.log.debug('Checking Tsung at %s' % self.tool_path)
+        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
-            shell_exec([self.tool_path, '-v'])
-        except OSError:
+            out, err = self.call([self.tool_path, "-v"])
+            if err:
+                out += err
+            self.log.debug("%s output: %s", self.tool_name, out)
+            return True
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             self.log.warning("Info for tsung installation: %s", self.INSTALLATION_DOCS)
             return False
-        return True
 
     def get_tool_abspath(self):
         if not self.tool_path:
