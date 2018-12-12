@@ -239,7 +239,7 @@ class JUnitTester(JavaTestRunner):
         runner_class = "com.blazemeter.taurus.junit.CustomRunner"
         junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true", runner_class, self.props_file]
 
-        self._start_subprocess(junit_cmd_line)
+        self.process = self.execute(junit_cmd_line)
 
     def __write_props_file(self):
         def write_prop(name, val):
@@ -347,5 +347,5 @@ class TestNGTester(JavaTestRunner):
 
         cmdline = ["java", "-cp", os.pathsep.join(self.class_path),
                    "com.blazemeter.taurus.testng.TestNGRunner", self.props_file]
-        self._start_subprocess(cmdline)
+        self.process = self.execute(cmdline)
 

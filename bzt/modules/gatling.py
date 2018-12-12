@@ -405,7 +405,6 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
 
     def startup(self):
-        self.start_time = time.time()
         self._set_env()
         self.process = self.execute(self._get_cmdline())
 

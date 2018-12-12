@@ -73,7 +73,7 @@ class RSpecTester(SubprocessedExecutor, HavingInstallableTools):
         if load.hold:
             rspec_cmdline += ['--hold-for', str(load.hold)]
 
-        self._start_subprocess(rspec_cmdline)
+        self.process = self.execute(rspec_cmdline)
 
 
 class Ruby(RequiredTool):
