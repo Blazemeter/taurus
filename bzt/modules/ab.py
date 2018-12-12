@@ -117,7 +117,6 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
 
         self.reader.setup(load_concurrency, request.label)
 
-        self.start_time = time.time()
         self.process = self.execute(args)
 
     def check(self):
@@ -199,7 +198,7 @@ class ApacheBenchmark(RequiredTool):
     def check_if_installed(self):
         self.log.debug('Trying %s: %s', self.tool_name, self.tool_path)
         try:
-            out, err = self.call([self.tool_path, '-h'])
+            out, err = self.call([self.tool_path, '-V'])
             self.log.debug("%s check stdout: %s", self.tool_name, out)
             if err:
                 self.log.warning("%s check stderr: %s", self.tool_name, err)

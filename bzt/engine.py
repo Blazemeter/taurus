@@ -1219,6 +1219,8 @@ class ScenarioExecutor(EngineModule):
         kwargs["cwd"] = kwargs.get("cwd", None)
         kwargs["env"] = self.env
 
+        self.start_time = time.time()
+
         try:
             process = self.engine.start_subprocess(args=args, **kwargs)
         except OSError as exc:

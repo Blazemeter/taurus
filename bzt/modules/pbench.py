@@ -47,6 +47,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         super(PBenchExecutor, self).__init__()
         self.generator = None
         self.tool = None
+        self.process = None
 
     def prepare(self):
         self.install_required_tools()
@@ -76,11 +77,11 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         self.generator.check_config()
 
     def startup(self):
-        self.start_time = time.time()
-        self.generator.start(self.generator.config_file)
+        cmdline = [self.tool.tool_path, 'run', self.generator.config_file]
+        self.process = self.execute(cmdline)
 
     def check(self):
-        retcode = self.generator.process.poll()
+        retcode = self.process.poll()
         if retcode is not None:
             if retcode != 0:
                 raise ToolError("Phantom-benchmark exit code: %s" % retcode, self.get_error_diagnostics())
@@ -100,7 +101,7 @@ class PBenchExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         return self.widget
 
     def shutdown(self):
-        shutdown_process(self.generator.process, self.log)
+        shutdown_process(self.process, self.log)
 
     def resource_files(self):
         script = self.get_script_path()
@@ -152,7 +153,6 @@ class PBenchGenerator(object):
         self.config_file = None
         self.payload_file = None
         self.schedule_file = None
-        self.process = None
         self.use_ssl = False
         self.hostname = 'localhost'
         self.port = 80
@@ -289,10 +289,6 @@ class PBenchGenerator(object):
         finally:
             out.close()
             err.close()
-
-    def start(self, config_file):
-        cmdline = [self.tool.tool_path, 'run', config_file]
-        self.process = self.executor.execute(cmdline)
 
     def _generate_payload_inner(self, scenario):
         requests = scenario.get_requests()

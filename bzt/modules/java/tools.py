@@ -16,7 +16,7 @@ limitations under the License.
 import re
 import subprocess
 
-from bzt.utils import shell_exec, sync_run, RequiredTool, parse_java_version
+from bzt.utils import shell_exec, sync_run, RequiredTool, parse_java_version, CALL_PROBLEMS
 
 
 class JarTool(RequiredTool):
@@ -55,15 +55,16 @@ class JavaC(RequiredTool):
         return version
 
     def check_if_installed(self):
-        cmd = [self.tool_path, '-version']
-        self.log.debug("Trying %s: %s", self.tool_name, cmd)
+        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
-            output = sync_run(cmd)
-            self.log.debug("%s output: %s", self.tool_name, output)
-            self.version = self._get_version(output)
+            out, err = self.call([self.tool_path, "-version"])
+            if err:
+                out += err
+            self.log.debug("%s output: %s", self.tool_name, out)
+            self.version = self._get_version(out)
             return True
-        except (subprocess.CalledProcessError, OSError) as exc:
-            self.log.debug("Failed to check %s: %s", self.tool_name, exc)
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
 
 
@@ -74,15 +75,15 @@ class SeleniumServer(JarTool):
     TOOL_FILE = "selenium-server-{version}.jar"
 
     def check_if_installed(self):
-        self.log.debug("%s path: %s", self.tool_name, self.tool_path)
-        selenium_launch_command = ["java", "-jar", self.tool_path, "-help"]
-        selenium_subproc = shell_exec(selenium_launch_command, stderr=subprocess.STDOUT)
-        output = selenium_subproc.communicate()
-        self.log.debug("%s output: %s", self.tool_name, output)
-        if selenium_subproc.returncode == 0:
-            self.already_installed = True
+        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
+        try:
+            out, err = self.call(["java", "-jar", self.tool_path, "-help"])
+            if err:
+                out += err
+            self.log.debug("%s output: %s", self.tool_name, out)
             return True
-        else:
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
 
 

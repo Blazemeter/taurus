@@ -121,8 +121,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             cmdline += ['--verbose']
 
         cmdline += [self.script]
-        self.start_time = time.time()
-        self._start_subprocess(cmdline)
+        self.process = self.execute(cmdline)
         self._tailer = FileReader(filename=self.stdout.name, parent_logger=self.log)
 
     def has_results(self):
@@ -288,7 +287,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         cmdline += self._additional_args
         cmdline += [self.script]
 
-        self._start_subprocess(cmdline)
+        self.process = self.execute(cmdline)
 
         if self.__is_verbose():
             self._tailer = FileReader(filename=self.stdout.name, parent_logger=self.log)
@@ -379,4 +378,4 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
             cmdline += ['--include', self.tags]
 
         cmdline += [self.script]
-        self._start_subprocess(cmdline)
+        self.process = self.execute(cmdline)

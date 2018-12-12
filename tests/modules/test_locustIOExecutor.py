@@ -309,8 +309,7 @@ class TestLocustIOExecutor(ExecutorTestCase):
         self.assertTrue(os.path.exists(kpi_path))
 
         reader = JTLReader(kpi_path, self.obj.log)
-        for point in reader.datapoints():
-            pass
+        list(reader.datapoints())
 
     def test_diagnostics(self):
         self.configure({"execution": {

@@ -26,7 +26,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, FileReader
+from bzt.utils import CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, FileReader
 
 
 class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, FileLister, SelfDiagnosable):
@@ -34,8 +34,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         super(SiegeExecutor, self).__init__()
         self.log = logging.getLogger('')
         self.process = None
-        self.stdout_file = None
-        self.stderr_file = None
         self.__rc_name = None
         self.__url_name = None
         self.tool = None
@@ -45,7 +43,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         self.scenario = self.get_scenario()
         self.install_required_tools()
 
-        self.__rc_name = self.execution.get("rc-file", None)
+        self.__rc_name = self.execution.get("rc-file")
         if not self.__rc_name:
             config_params = ('verbose = true',
                              'csv = true',
@@ -67,12 +65,10 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         else:
             raise TaurusConfigError("Siege: you must specify either script(url-file) or some requests")
 
-        out = self.engine.create_artifact("siege", ".out")
+        self.stdout = open(self.engine.create_artifact("siege", ".out"), 'w')
+        self.stderr = open(self.engine.create_artifact("siege", ".err"), 'w')
 
-        self.stdout_file = open(out, 'w')
-        self.stderr_file = open(self.engine.create_artifact("siege", ".err"), 'w')
-
-        self.reader = DataLogReader(out, self.log)
+        self.reader = DataLogReader(self.stdout.name, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
 
@@ -129,9 +125,7 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
             args += ['--header', "%s: %s" % (key, val)]
 
         self.env.set({"SIEGERC": self.__rc_name})
-        self.start_time = time.time()
-
-        self.process = self.execute(args, stdout=self.stdout_file, stderr=self.stderr_file)
+        self.process = self.execute(args)
 
     def check(self):
         ret_code = self.process.poll()
@@ -156,26 +150,25 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         """
         shutdown_process(self.process, self.log)
 
-    def post_process(self):
-        if self.stdout_file:
-            self.stdout_file.close()
-        if self.stderr_file:
-            self.stderr_file.close()
-
     def install_required_tools(self):
         self.tool = self._get_tool(Siege, config=self.settings)
         if not self.tool.check_if_installed():
             self.tool.install()
 
+    def post_process(self):
+        if self.reader and self.reader.file:
+            self.reader.file.close()
+        super(SiegeExecutor, self).post_process()
+
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.stdout_file is not None:
-            with open(self.stdout_file.name) as fds:
+        if self.stdout is not None:
+            with open(self.stdout.name) as fds:
                 contents = fds.read().strip()
                 if contents:
                     diagnostics.append("Siege STDOUT:\n" + contents)
-        if self.stderr_file is not None:
-            with open(self.stderr_file.name) as fds:
+        if self.stderr is not None:
+            with open(self.stderr.name) as fds:
                 contents = fds.read().strip()
                 if contents:
                     diagnostics.append("Siege STDERR:\n" + contents)
@@ -225,9 +218,14 @@ class Siege(RequiredTool):
         super(Siege, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
-        self.log.debug('Check Siege: %s' % self.tool_path)
+        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
-            shell_exec([self.tool_path, '-h'])
-        except OSError:
+            out, err = self.call([self.tool_path, "-h"])
+            if err:
+                out += err
+            self.log.debug("%s output: %s", self.tool_name, out)
+            return True
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
-        return True
+

@@ -65,7 +65,7 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         if not is_windows():
             self.env.add_path({"MONO_PATH": self.runner_dir})
 
-        self._start_subprocess(cmdline)
+        self.process = self.execute(cmdline)
 
 
 class Mono(RequiredTool):

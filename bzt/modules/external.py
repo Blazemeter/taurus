@@ -3,7 +3,7 @@ import re
 import time
 from glob import glob
 
-from bzt import TaurusInternalException, TaurusConfigError
+from bzt import TaurusInternalException
 from bzt.engine import ScenarioExecutor
 from bzt.modules.ab import TSVDataReader
 from bzt.modules.aggregator import AggregatorListener, ConsolidatingAggregator, DataPoint

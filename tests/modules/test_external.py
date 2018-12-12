@@ -1,4 +1,3 @@
-from bzt import TaurusConfigError
 from bzt.modules.aggregator import DataPoint, KPISet, ConsolidatingAggregator
 from bzt.modules.external import ExternalResultsLoader
 from bzt.modules.jmeter import FuncJTLReader, JTLReader
@@ -7,15 +6,12 @@ from bzt.modules.pbench import PBenchKPIReader
 from bzt.modules.gatling import DataLogReader as GatlingLogReader
 from bzt.modules.grinder import DataLogReader as GrinderLogReader
 
-from tests import BZTestCase, RESOURCES_DIR, close_reader_file
-from tests.mocks import EngineEmul, MockReader
+from tests import RESOURCES_DIR, close_reader_file, ExecutorTestCase
+from tests.mocks import MockReader
 
 
-class TestExternalResultsLoader(BZTestCase):
-    def setUp(self):
-        super(TestExternalResultsLoader, self).setUp()
-        self.obj = ExternalResultsLoader()
-        self.obj.engine = EngineEmul()
+class TestExternalResultsLoader(ExecutorTestCase):
+    EXECUTOR = ExternalResultsLoader
 
     def tearDown(self):
         if self.obj.reader:
@@ -27,13 +23,7 @@ class TestExternalResultsLoader(BZTestCase):
         super(TestExternalResultsLoader, self).tearDown()
 
     def configure(self, config):
-        self.obj.engine.config.merge(config)
-        execution = self.obj.engine.config['execution']
-        if isinstance(execution, list):
-            self.obj.execution = execution[0]
-        else:
-            self.obj.execution = execution
-
+        super(TestExternalResultsLoader, self).configure(config)
         self.results_listener = MockReader()
         self.obj.engine.aggregator = ConsolidatingAggregator()
         self.obj.engine.aggregator.add_listener(self.results_listener)
