@@ -165,7 +165,6 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
                 self.transacion_ended(label, duration)
 
     def check(self):
-
         self._check_stdout()
         return super(ApiritifNoseExecutor, self).check()
 

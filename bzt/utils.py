@@ -68,8 +68,9 @@ def sync_run(args, env=None):
     return stream_decode(output).rstrip()
 
 
-def temp_file(*args, **kwargs):
-    fd, fname = tempfile.mkstemp(*args, **kwargs)
+def temp_file(suffix=None, prefix=None, dir=None):
+    """ Creates temporary file, returns name of it. User is responsible for deleting the file """
+    fd, fname = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=dir)
     os.close(fd)
     return fname
 
