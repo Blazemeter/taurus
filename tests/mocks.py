@@ -2,7 +2,6 @@
 import datetime
 import random
 import sys
-import tempfile
 from _socket import SOCK_STREAM, AF_INET
 from collections import Counter
 from random import random
@@ -16,7 +15,7 @@ from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.aggregator import ResultsReader, AggregatorListener
 from bzt.modules.functional import FunctionalResultsReader, FunctionalAggregatorListener
 from bzt.six import b
-from bzt.utils import load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows
+from bzt.utils import load_class, to_json, get_full_path, get_uniq_name, FileReader, is_windows, temp_file
 
 from tests.base import TEST_DIR, ROOT_LOGGER
 
@@ -106,7 +105,7 @@ class EngineEmul(Engine):
 
     def dump_config(self):
         """ test """
-        fname = tempfile.mkstemp()[1]
+        fname = temp_file()
         self.config.dump(fname, Configuration.JSON)
         with open(fname) as fh:
             ROOT_LOGGER.debug("JSON:\n%s", fh.read())

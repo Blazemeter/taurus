@@ -25,7 +25,7 @@ from bzt.engine import FileLister, HavingInstallableTools, SelfDiagnosable
 from bzt.modules import ReportableExecutor
 from bzt.modules.console import WidgetProvider, PrioritizedWidget
 from bzt.utils import get_files_recursive, get_full_path, RequiredTool, unzip, untar
-from bzt.utils import is_windows, is_mac, platform_bitness, Environment
+from bzt.utils import is_windows, is_mac, platform_bitness
 
 
 class AbstractSeleniumExecutor(ReportableExecutor):
@@ -223,12 +223,14 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         if os.path.exists("geckodriver.log"):
             self.engine.existing_artifact("geckodriver.log", True)
 
+        super(SeleniumExecutor, self).post_process()
+
     def has_results(self):
         return self.runner.has_results()
 
     def get_widget(self):
         if not self.widget:
-            self.widget = SeleniumWidget(self.script, self.runner.stdout_file)
+            self.widget = SeleniumWidget(self.script, self.runner.stdout.name)
         return self.widget
 
     def get_error_diagnostics(self):

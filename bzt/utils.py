@@ -68,6 +68,13 @@ def sync_run(args, env=None):
     return stream_decode(output).rstrip()
 
 
+def temp_file(suffix="", prefix="tmp", dir=None):
+    """ Creates temporary file, returns name of it. User is responsible for deleting the file """
+    fd, fname = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=dir)
+    os.close(fd)
+    return fname
+
+
 def simple_body_dict(dic):
     """ body dict must have just one level for sending with form params"""
     if isinstance(dic, dict):
@@ -613,6 +620,9 @@ class FileReader(object):
                 return _bytes
 
     def __del__(self):
+        self.close()
+
+    def close(self):
         if self.fds:
             self.fds.close()
 
@@ -1128,19 +1138,14 @@ class ExceptionalDownloader(object):
         if os.getenv("TAURUS_DISABLE_DOWNLOADS", ""):
             raise TaurusInternalException("Downloads are disabled by TAURUS_DISABLE_DOWNLOADS env var")
 
-        fd = None
         try:
             if not filename:
-                fd, filename = tempfile.mkstemp(suffix)
+                filename = temp_file(suffix)
             result = self.http_client.download_file(url, filename, reporthook=reporthook, data=data, timeout=timeout)
         except BaseException:
-            if fd:
-                os.close(fd)
-                os.remove(filename)
+            os.remove(filename)
             raise
 
-        if fd:
-            os.close(fd)
         return result
 
 

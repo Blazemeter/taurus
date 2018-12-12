@@ -33,7 +33,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
             },
         })
         self.assertTrue(os.path.exists(self.obj.runner.report_file))
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn('--test-suite', stdout)
         self.assertIn('example_spec.rb', stdout)
@@ -46,7 +46,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
                 'executor': 'selenium'
             },
         })
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn('--hold-for 10', stdout)
 
@@ -58,7 +58,7 @@ class TestSeleniumRSpecRunner(SeleniumTestCase):
                 'executor': 'selenium'
             },
         })
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn('--iterations 3', stdout)
 

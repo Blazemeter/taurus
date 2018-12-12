@@ -1,8 +1,12 @@
 import os
+import sys
 
 print("Fake gatling output")
 print("dir:")
 print(os.path.abspath(os.curdir))
+
+if len(sys.argv) == 2 and sys.argv[1] == '--help':
+    exit(0)
 
 java_opts = os.environ.get("JAVA_OPTS", "").strip() + " "
 

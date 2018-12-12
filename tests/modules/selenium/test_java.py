@@ -2,7 +2,6 @@ import json
 import os
 import shutil
 import time
-import unittest
 import traceback
 from os import listdir
 from os.path import exists, join, dirname
@@ -18,20 +17,18 @@ from bzt.modules.java.tools import JavaC, JarTool
 from bzt.modules.jmeter import JTLReader
 from bzt.modules.selenium import SeleniumExecutor
 from bzt.utils import ToolError
-from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER
+from tests import BZTestCase, local_paths_config, RESOURCES_DIR, BUILD_DIR, ROOT_LOGGER, ExecutorTestCase
 from tests.mocks import EngineEmul
 from tests.modules.selenium import SeleniumTestCase
 
 
-class TestTestNGTester(BZTestCase):
+class TestTestNGTester(ExecutorTestCase):
+    EXECUTOR = TestNGTester
+
     def setUp(self):
         super(TestTestNGTester, self).setUp()
-        engine_obj = EngineEmul()
-        paths = [local_paths_config()]
-        engine_obj.configure(paths)
-        self.obj = TestNGTester()
-        self.obj.settings = engine_obj.config.get("modules").get("testng")
-        self.obj.engine = engine_obj
+        self.obj.engine.configure([local_paths_config()])
+        self.obj.settings = self.obj.engine.config.get("modules").get("testng")
 
     def test_simple(self):
         self.obj.execution.merge({
@@ -137,6 +134,13 @@ class TestJUnitTester(BZTestCase):
         self.obj.settings = engine_obj.config.get("modules").get("junit")
         self.obj.engine = engine_obj
 
+    def tearDown(self):
+        if self.obj.stdout:
+            self.obj.stdout.close()
+        if self.obj.stderr:
+            self.obj.stderr.close()
+        super(TestJUnitTester, self).tearDown()
+
     def test_install_tools(self):
         """
         check installation of selenium-server, junit
@@ -241,6 +245,9 @@ class TestJUnitTester(BZTestCase):
         self.obj.shutdown()
         self.obj.post_process()
         self.obj.engine.aggregator.post_process()
+
+        self.obj.reader.report_reader.json_reader.file.close()
+
         self.assertTrue(self.obj.has_results())
         self.assertTrue(self.obj.report_file.endswith(".ldjson"))
         self.assertIsInstance(self.obj.reader, FuncSamplesReader)
