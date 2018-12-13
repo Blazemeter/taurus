@@ -155,11 +155,6 @@ class SiegeExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, Fi
         if not self.tool.check_if_installed():
             self.tool.install()
 
-    def post_process(self):
-        if self.reader and self.reader.file:
-            self.reader.file.close()
-        super(SiegeExecutor, self).post_process()
-
     def get_error_diagnostics(self):
         diagnostics = []
         if self.stdout is not None:
