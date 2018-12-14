@@ -248,7 +248,7 @@ from bzt.resources import selenium_taurus_extras
             else:
                 url = req.url
             transaction_contents.append(
-                self.gen_statement("self.driver.get(%r)" % url, indent=indent))
+                self.gen_statement("self.driver.get(_tpl.apply(%r))" % url, indent=indent))
             transaction_contents.append(self.gen_new_line())
         return transaction_contents
 
@@ -294,7 +294,7 @@ from bzt.resources import selenium_taurus_extras
         else:
             indent = 2
 
-        test_method.append(self.gen_statement('with apiritif.transaction_logged(%r):' % label,
+        test_method.append(self.gen_statement('with apiritif.transaction_logged(_tpl.apply(%r)):' % label,
                                               indent=self.INDENT_STEP * indent))
         transaction_contents = []
 
@@ -371,7 +371,7 @@ from bzt.resources import selenium_taurus_extras
             url = req.url
         if req.timeout is not None:
             test_method.append(self.gen_impl_wait(req.timeout))
-        test_method.append(self.gen_statement("self.driver.get('%s')" % url))
+        test_method.append(self.gen_statement("self.driver.get(_tpl.apply(%r))" % url))
 
     def gen_setup(self, test_method):
         timeout = self.scenario.get("timeout", "30s")

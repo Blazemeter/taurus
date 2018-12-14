@@ -4,28 +4,13 @@ from string import Template as StrTemplate
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
 
 
-class Apply(StrTemplate):
-    def __init__(self, template):
-        super(Apply, self).__init__(template)
-        self.variables = {}
-
-    def __repr__(self):
-        return repr(self.safe_substitute(self.variables))
-
-    def __str__(self):
-        return self.safe_substitute(self.variables)
-
-
 class Template:
     def __init__(self, variables):
         self.variables = variables
-        self.tmpl = Apply("")
 
     def apply(self, template):
-        self.tmpl.template = template
-        self.tmpl.variables = self.variables
-        string = b''.decode() + self.tmpl.template  # cute hack to force 'string' to be unicode
-        return string
+        tmpl = StrTemplate(b''.decode() + template)
+        return tmpl.safe_substitute(self.variables)
 
     @staticmethod
     def str_repr(text):
