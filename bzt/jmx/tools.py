@@ -99,7 +99,7 @@ class LoadSettingsProcessor(object):
         elif not executor.tool:
             msg = 'You must set executor tool (%s) for choosing of ConcurrencyThreadGroup'
             raise TaurusInternalException(msg % executor.tool_name)
-        elif not executor.tool.ctg_plugin_installed():
+        elif not executor.settings.get("detect-plugins", True) and not executor.tool.ctg_plugin_installed():
             self.log.warning(msg % 'plugin for ConcurrentThreadGroup not found')
         else:
             tg = self.CTG
