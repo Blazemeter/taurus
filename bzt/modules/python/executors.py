@@ -92,6 +92,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
 
         builder.build_source_code()
         builder.save(filename)
+        builder.modify(filename)
         return filename
 
     def startup(self):

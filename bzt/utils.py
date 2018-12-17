@@ -1571,6 +1571,45 @@ class PythonGenerator(object):
                     indent = int(child.get('indent', "0"))
                     fds.write(" " * indent + child.text + "\n")
 
+    def modify(self, filename):
+        inline_blocks = self.scenario.get("inline-blocks")
+        if not inline_blocks:
+            self.log.debug("Nothing to modify in %s", filename)
+            return
+
+        if inline_blocks is dict:
+            inline_blocks = [inline_blocks]
+
+        with codecs.open(filename, "r", encoding="utf-8") as fds:
+            lines = fds.readlines()
+
+        lines.insert(0, "")
+
+        for block in inline_blocks:
+            text = block.get("text")
+            if not text:
+                self.log.debug("Skip empty inline block: %s", block)
+
+            ident = block.get("ident", "auto")
+            after = block.get("after", 0)
+            before = block.get("before", after + 1)
+
+            if ident is "auto":
+                if after != -1:
+                    prev_line = lines[after]
+                    ident = len(prev_line) - len(prev_line.lstrip())
+                else:
+                    ident = 0
+
+            text = text.split("\n")[:-1]
+            new_block = [(" " * ident) + line + "\n" for line in text]
+
+            lines = lines[:after + 1] + new_block + lines[before:]
+            del lines[0]
+
+        with codecs.open(filename, "w", encoding="utf-8") as fds:
+            fds.writelines(lines)
+
     def gen_new_line(self, indent=0):
         return self.gen_statement("", indent=indent)
 
