@@ -39,6 +39,7 @@ Supported features:
   - assertions (requested page source inspected use the new assertTitle, assertTextBy or assertValueBy* for item level)
   - pauseFor (pause for n seconds) 
   - request method GET (only)
+  - inline modifications
   - selenium commands:
     - go(url) Redirect to another website
     - window handler (openWindow, switchWindow, closeWindow)
@@ -208,7 +209,23 @@ scenario:
       - storeString(${my_title} love my ${my_text} with ${my_value}): final_text
 ```
 
+### Inline modification
 
+There is low-level way to change generated python file. 
+You can use inline blocks to insert/replace lines of code.
+```yaml
+scenario:
+  sc1:
+    requests:
+    - http://blazedemo.com
+    inline-blocks:
+    - after: 10   # start file if omited
+      before: 20  # `after` + 1 by default. Used for removing lines from `after` + 1 to `before` - 1
+      text: "first line()\nsecond(line)"  # required field
+      ident: auto   # default value, identation based on previous (`after`) line
+```
+
+ 
 ### Remote WebDriver
 
 It is possible to use the browser remotely using Remote WebDriver. It must be indicated as the browser name `Remote` and indicate in the `remote` property the URL in which the webdriver service is located to control the browser.

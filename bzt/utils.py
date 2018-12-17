@@ -1601,7 +1601,9 @@ class PythonGenerator(object):
                 else:
                     ident = 0
 
-            text = text.split("\n")[:-1]
+            text = text.split("\n")
+            if not text[-1]:
+                del text[-1]
             new_block = [(" " * ident) + line + "\n" for line in text]
 
             lines = lines[:after + 1] + new_block + lines[before:]
