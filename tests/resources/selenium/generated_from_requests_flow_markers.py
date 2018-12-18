@@ -14,18 +14,17 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-from bzt.resources import selenium_taurus_extras
-
-_vars = {}
-_tpl = selenium_taurus_extras.Template(_vars)
 
 class TestRequests(unittest.TestCase):
     def setUp(self):
+        self.vars = {}
+        self.template = Template(self.vars)
+        
         options = webdriver.ChromeOptions()
         self.driver = webdriver.Chrome(service_log_path='<somewhere>webdriver.log', chrome_options=options)
         self.driver.implicitly_wait(3.5)
-        self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
-        self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
+        self.wnd_mng = WindowManager(self.driver)
+        self.frm_mng = FrameManager(self.driver)
 
     def tearDown(self):
         self.driver.quit()
@@ -36,11 +35,11 @@ class TestRequests(unittest.TestCase):
         try:
             self.driver.execute_script('/* FLOW_MARKER test-case-start */', {'testCaseName': '/', 'testSuiteName': 'loc_sc'})
 
-            with apiritif.transaction_logged('/'):
-                self.driver.get('http://blazedemo.com/')
+            with apiritif.transaction_logged(self.template('/')):
+                self.driver.get(self.template('http://blazedemo.com/'))
 
-                WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, _tpl.apply("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
-                self.assertEqual(self.driver.title, _tpl.apply('BlazeDemo'))
+                WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, self.template("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
+                self.assertEqual(self.driver.title, self.template('BlazeDemo'))
 
                 body = self.driver.page_source
                 re_pattern = re.compile(r'contained_text')
@@ -58,7 +57,7 @@ class TestRequests(unittest.TestCase):
         try:
             self.driver.execute_script('/* FLOW_MARKER test-case-start */', {'testCaseName': 'empty', 'testSuiteName': 'loc_sc'})
 
-            with apiritif.transaction_logged('empty'):
+            with apiritif.transaction_logged(self.template('empty')):
                 pass
 
         except AssertionError as exc:
@@ -76,28 +75,15 @@ from string import Template as StrTemplate
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
 
 
-class Apply(StrTemplate):
-    def __init__(self, template):
-        super(Apply, self).__init__(template)
-        self.variables = {}
-
-    def __repr__(self):
-        return repr(self.safe_substitute(self.variables))
-
-    def __str__(self):
-        return self.safe_substitute(self.variables)
-
-
 class Template:
     def __init__(self, variables):
         self.variables = variables
-        self.tmpl = Apply("")
 
     def apply(self, template):
-        self.tmpl.template = template
-        self.tmpl.variables = self.variables
-        string = b''.decode() + self.tmpl.template  # cute hack to force 'string' to be unicode
-        return string
+        tmpl = StrTemplate(b''.decode() + template)
+        return tmpl.safe_substitute(self.variables)
+
+    __call__ = apply
 
     @staticmethod
     def str_repr(text):
