@@ -135,10 +135,11 @@ class LoadSettingsProcessor(object):
         calculate target concurrency for every thread group
         """
         concurrency_list = []
+        concurrency_in_execution = bool(self.load.concurrency)
         for group in groups:
-            concurrency_list.append(group.get_concurrency())
+            concurrency_list.append(group.get_concurrency(pure=not concurrency_in_execution))
 
-        if concurrency_list and self.load.concurrency:
+        if concurrency_in_execution and concurrency_list:
             total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.get_concurrency()
 
             for idx, concurrency in enumerate(concurrency_list):
