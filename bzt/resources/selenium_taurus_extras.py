@@ -12,6 +12,8 @@ class Template:
         tmpl = StrTemplate(b''.decode() + template)
         return tmpl.safe_substitute(self.variables)
 
+    __call__ = apply
+
     @staticmethod
     def str_repr(text):
         return repr(text)[1:] if repr(text)[0] == "u" else repr(text)

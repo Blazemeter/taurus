@@ -14,22 +14,21 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-from bzt.resources import selenium_taurus_extras
-
-_vars = {}
-_tpl = selenium_taurus_extras.Template(_vars)
-_vars['name'] = 'Name'
-_vars['red_pill'] = 'take_it'
 
 class TestRequests(unittest.TestCase):
     def setUp(self):
+        self.vars = {}
+        self.template = Template(self.vars)
+        self.vars['name'] = 'Name'
+        self.vars['red_pill'] = 'take_it'
+        
         options = webdriver.FirefoxOptions()
         profile = webdriver.FirefoxProfile()
         profile.set_preference('webdriver.log.file', '<somewhere>webdriver.log')
         self.driver = webdriver.Firefox(profile, firefox_options=options)
         self.driver.implicitly_wait(3.5)
-        self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)
-        self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)
+        self.wnd_mng = WindowManager(self.driver)
+        self.frm_mng = FrameManager(self.driver)
 
     def tearDown(self):
         self.driver.quit()
@@ -37,60 +36,60 @@ class TestRequests(unittest.TestCase):
     def test_requests(self):
         self.driver.implicitly_wait(3.5)
 
-        with apiritif.transaction_logged('/'):
-            self.driver.get('http://blazedemo.com/')
+        with apiritif.transaction_logged(self.template('/')):
+            self.driver.get(self.template('http://blazedemo.com/'))
 
-            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, _tpl.apply("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
-            self.assertEqual(self.driver.title, _tpl.apply('BlazeDemo'))
-            ActionChains(self.driver).move_to_element(self.driver.find_element(By.XPATH, _tpl.apply('/html/body/div[2]/div/p[2]/a'))).perform()
-            ActionChains(self.driver).double_click(self.driver.find_element(By.XPATH, _tpl.apply('/html/body/div[3]/h2'))).perform()
-            ActionChains(self.driver).click_and_hold(self.driver.find_element(By.XPATH, _tpl.apply('/html/body/div[3]/form/select[1]'))).perform()
-            ActionChains(self.driver).release(self.driver.find_element(By.XPATH, _tpl.apply('/html/body/div[3]/form/select[1]/option[6]'))).perform()
-            Select(self.driver.find_element(By.NAME, _tpl.apply('toPort'))).select_by_visible_text(_tpl.apply('London'))
-            self.driver.find_element(By.CSS_SELECTOR, _tpl.apply('body input.btn.btn-primary')).send_keys(Keys.ENTER)
-            self.assertEqual(_tpl.apply(self.driver.find_element(By.ID, _tpl.apply('address')).get_attribute('value')).strip(), _tpl.apply('123 Beautiful st.').strip())
-            self.assertEqual(_tpl.apply(self.driver.find_element(By.XPATH, _tpl.apply('/html/body/div[2]/form/div[1]/label')).get_attribute('innerText')).strip(), _tpl.apply('${name}').strip())
-            WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, _tpl.apply('toPort'))), "Element 'toPort' failed to appear within 3.5s")
-            self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(_tpl.apply('B'))
-            self.driver.find_element(By.NAME, _tpl.apply('toPort')).clear()
-            self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(_tpl.apply('B'))
-            self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(Keys.ENTER)
-            self.driver.find_element(By.NAME, _tpl.apply('toPort')).clear()
-            self.driver.find_element(By.NAME, _tpl.apply('toPort')).send_keys(Keys.ENTER)
-            self.driver.find_element(By.XPATH, _tpl.apply('//div[3]/form/select[1]//option[3]')).click()
-            self.driver.find_element(By.XPATH, _tpl.apply('//div[3]/form/select[2]//option[6]')).click()
-            self.wnd_mng.switch(_tpl.apply('0'))
-            self.driver.execute_script(_tpl.apply("window.open('some.url');"))
-            self.wnd_mng.switch(_tpl.apply('win_ser_local'))
-            self.wnd_mng.switch(_tpl.apply('win_ser_1'))
-            self.wnd_mng.switch(_tpl.apply('that_window'))
-            self.wnd_mng.close(_tpl.apply('1'))
-            self.wnd_mng.close(_tpl.apply('win_ser_local'))
-            self.wnd_mng.close(_tpl.apply('win_ser_1'))
-            self.wnd_mng.close(_tpl.apply('that_window'))
-            self.driver.find_element(By.NAME, _tpl.apply('toPort')).submit()
-            self.driver.execute_script(_tpl.apply("alert('This is Sparta');"))
-            ActionChains(self.driver).drag_and_drop(self.driver.find_element(By.ID, _tpl.apply('address')), self.driver.find_element(By.NAME, _tpl.apply('toPort'))).perform()
-            self.frm_mng.switch(self.driver.find_element(By.NAME, _tpl.apply('my_frame')))
+            WebDriverWait(self.driver, 3.5).until(econd.presence_of_element_located((By.XPATH, self.template("//input[@type='submit']"))), 'Element "//input[@type=\'submit\']" failed to appear within 3.5s')
+            self.assertEqual(self.driver.title, self.template('BlazeDemo'))
+            ActionChains(self.driver).move_to_element(self.driver.find_element(By.XPATH, self.template('/html/body/div[2]/div/p[2]/a'))).perform()
+            ActionChains(self.driver).double_click(self.driver.find_element(By.XPATH, self.template('/html/body/div[3]/h2'))).perform()
+            ActionChains(self.driver).click_and_hold(self.driver.find_element(By.XPATH, self.template('/html/body/div[3]/form/select[1]'))).perform()
+            ActionChains(self.driver).release(self.driver.find_element(By.XPATH, self.template('/html/body/div[3]/form/select[1]/option[6]'))).perform()
+            Select(self.driver.find_element(By.NAME, self.template('toPort'))).select_by_visible_text(self.template('London'))
+            self.driver.find_element(By.CSS_SELECTOR, self.template('body input.btn.btn-primary')).send_keys(Keys.ENTER)
+            self.assertEqual(self.template(self.driver.find_element(By.ID, self.template('address')).get_attribute('value')).strip(), self.template('123 Beautiful st.').strip())
+            self.assertEqual(self.template(self.driver.find_element(By.XPATH, self.template('/html/body/div[2]/form/div[1]/label')).get_attribute('innerText')).strip(), self.template('${name}').strip())
+            WebDriverWait(self.driver, 3.5).until(econd.visibility_of_element_located((By.NAME, self.template('toPort'))), "Element 'toPort' failed to appear within 3.5s")
+            self.driver.find_element(By.NAME, self.template('toPort')).send_keys(self.template('B'))
+            self.driver.find_element(By.NAME, self.template('toPort')).clear()
+            self.driver.find_element(By.NAME, self.template('toPort')).send_keys(self.template('B'))
+            self.driver.find_element(By.NAME, self.template('toPort')).send_keys(Keys.ENTER)
+            self.driver.find_element(By.NAME, self.template('toPort')).clear()
+            self.driver.find_element(By.NAME, self.template('toPort')).send_keys(Keys.ENTER)
+            self.driver.find_element(By.XPATH, self.template('//div[3]/form/select[1]//option[3]')).click()
+            self.driver.find_element(By.XPATH, self.template('//div[3]/form/select[2]//option[6]')).click()
+            self.wnd_mng.switch(self.template('0'))
+            self.driver.execute_script(self.template("window.open('some.url');"))
+            self.wnd_mng.switch(self.template('win_ser_local'))
+            self.wnd_mng.switch(self.template('win_ser_1'))
+            self.wnd_mng.switch(self.template('that_window'))
+            self.wnd_mng.close(self.template('1'))
+            self.wnd_mng.close(self.template('win_ser_local'))
+            self.wnd_mng.close(self.template('win_ser_1'))
+            self.wnd_mng.close(self.template('that_window'))
+            self.driver.find_element(By.NAME, self.template('toPort')).submit()
+            self.driver.execute_script(self.template("alert('This is Sparta');"))
+            ActionChains(self.driver).drag_and_drop(self.driver.find_element(By.ID, self.template('address')), self.driver.find_element(By.NAME, self.template('toPort'))).perform()
+            self.frm_mng.switch(self.driver.find_element(By.NAME, self.template('my_frame')))
             self.frm_mng.switch(1)
             self.frm_mng.switch('relative=parent')
             if self.driver.find_element(By.ID, 'editor').get_attribute('contenteditable'):
                 self.driver.execute_script(
-                    'arguments[0].innerHTML = %s;' % _tpl.str_repr(_tpl.apply('lo-la-lu')),
+                    'arguments[0].innerHTML = %s;' % self.template.str_repr(self.template('lo-la-lu')),
                     self.driver.find_element(By.ID, 'editor')
                 )
             else:
                 raise NoSuchElementException("The element (By.ID, 'editor') is not contenteditable element")
             sleep(3.5)
             self.driver.delete_all_cookies()
-            self.driver.find_element(By.LINK_TEXT, _tpl.apply('destination of the week! The Beach!')).click()
-            _vars['Title'] = _tpl.apply(self.driver.title)
-            _vars['Basic'] = _tpl.apply(self.driver.find_element(By.XPATH, _tpl.apply("//*[@id='basics']/h2")).get_attribute('innerText'))
-            _vars['World'] = _tpl.apply(self.driver.find_element(By.XPATH, _tpl.apply("//*[@id='basics']/h1")).get_attribute('value'))
-            _vars['Final'] = _tpl.apply('${Title} ${Basic} by ${By}')
-            self.driver.get(_tpl.apply('http:\\blazemeter.com'))
-            print(_tpl.apply('${red_pill}'))
-            self.driver.save_screenshot(_tpl.apply('screen.png'))
+            self.driver.find_element(By.LINK_TEXT, self.template('destination of the week! The Beach!')).click()
+            self.vars['Title'] = self.template(self.driver.title)
+            self.vars['Basic'] = self.template(self.driver.find_element(By.XPATH, self.template("//*[@id='basics']/h2")).get_attribute('innerText'))
+            self.vars['World'] = self.template(self.driver.find_element(By.XPATH, self.template("//*[@id='basics']/h1")).get_attribute('value'))
+            self.vars['Final'] = self.template('${Title} ${Basic} by ${By}')
+            self.driver.get(self.template('http:\\blazemeter.com'))
+            print(self.template('${red_pill}'))
+            self.driver.save_screenshot(self.template('screen.png'))
             filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), 'screenshot-%d.png' % (time() * 1000))
             self.driver.save_screenshot(filename)
 
@@ -99,7 +98,7 @@ class TestRequests(unittest.TestCase):
             self.assertEqual(0, len(re.findall(re_pattern, body)), "Assertion: 'contained_text' found in BODY")
 
 
-        with apiritif.transaction_logged('empty'):
+        with apiritif.transaction_logged(self.template('empty')):
             pass
 
 
@@ -109,28 +108,15 @@ from string import Template as StrTemplate
 from selenium.common.exceptions import NoSuchWindowException, NoSuchFrameException
 
 
-class Apply(StrTemplate):
-    def __init__(self, template):
-        super(Apply, self).__init__(template)
-        self.variables = {}
-
-    def __repr__(self):
-        return repr(self.safe_substitute(self.variables))
-
-    def __str__(self):
-        return self.safe_substitute(self.variables)
-
-
 class Template:
     def __init__(self, variables):
         self.variables = variables
-        self.tmpl = Apply("")
 
     def apply(self, template):
-        self.tmpl.template = template
-        self.tmpl.variables = self.variables
-        string = b''.decode() + self.tmpl.template  # cute hack to force 'string' to be unicode
-        return string
+        tmpl = StrTemplate(b''.decode() + template)
+        return tmpl.safe_substitute(self.variables)
+
+    __call__ = apply
 
     @staticmethod
     def str_repr(text):

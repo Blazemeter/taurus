@@ -186,7 +186,6 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-from bzt.resources import selenium_taurus_extras
 """
     IMPORTS_APPIUM = """import unittest
 import os
@@ -203,7 +202,6 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import apiritif
-from bzt.resources import selenium_taurus_extras
 """
 
     TAGS = ("byName", "byID", "byCSS", "byXPath", "byLinkText")
@@ -248,7 +246,7 @@ from bzt.resources import selenium_taurus_extras
             else:
                 url = req.url
             transaction_contents.append(
-                self.gen_statement("self.driver.get(_tpl.apply(%r))" % url, indent=indent))
+                self.gen_statement("self.driver.get(self.template(%r))" % url, indent=indent))
             transaction_contents.append(self.gen_new_line())
         return transaction_contents
 
@@ -272,7 +270,6 @@ from bzt.resources import selenium_taurus_extras
 
         self.root.append(self.gen_statement("# coding=utf-8", indent=0))
         self.root.append(self.add_imports())
-        self.root.extend(self.gen_global_vars())
         self.root.append(test_class)
         self.root.append(self.add_utilities())
 
@@ -294,7 +291,7 @@ from bzt.resources import selenium_taurus_extras
         else:
             indent = 2
 
-        test_method.append(self.gen_statement('with apiritif.transaction_logged(_tpl.apply(%r)):' % label,
+        test_method.append(self.gen_statement('with apiritif.transaction_logged(self.template(%r)):' % label,
                                               indent=self.INDENT_STEP * indent))
         transaction_contents = []
 
@@ -354,14 +351,14 @@ from bzt.resources import selenium_taurus_extras
     def gen_global_vars(self):
         variables = self.scenario.get("variables")
         stmts = [
-            "_vars = {}",
-            "_tpl = selenium_taurus_extras.Template(_vars)"
+            "self.vars = {}",
+            "self.template = Template(self.vars)"
         ]
 
         for key in sorted(variables.keys()):
-            stmts.append("_vars['%s'] = %r" % (key, variables[key]))
+            stmts.append("self.vars['%s'] = %r" % (key, variables[key]))
         stmts.append("")
-        return [self.gen_statement(stmt, indent=0) for stmt in stmts]
+        return [self.gen_statement(stmt) for stmt in stmts]
 
     def _add_url_request(self, default_address, req, test_method):
         parsed_url = parse.urlparse(req.url)
@@ -371,7 +368,7 @@ from bzt.resources import selenium_taurus_extras
             url = req.url
         if req.timeout is not None:
             test_method.append(self.gen_impl_wait(req.timeout))
-        test_method.append(self.gen_statement("self.driver.get(_tpl.apply(%r))" % url))
+        test_method.append(self.gen_statement("self.driver.get(self.template(%r))" % url))
 
     def gen_setup(self, test_method):
         timeout = self.scenario.get("timeout", "30s")
@@ -423,6 +420,7 @@ from bzt.resources import selenium_taurus_extras
             self.log.info("Headless mode works only with Selenium 3.8.0+, be sure to have it installed")
 
         setup_method_def = self.gen_method_definition("setUp", ["self"])
+        setup_method_def.extend(self.gen_global_vars())
 
         if browser == 'Firefox':
             setup_method_def.append(self.gen_statement("options = webdriver.FirefoxOptions()"))
@@ -450,8 +448,8 @@ from bzt.resources import selenium_taurus_extras
         scenario_timeout = self.scenario.get("timeout", "30s")
         setup_method_def.append(self.gen_impl_wait(scenario_timeout))
 
-        setup_method_def.append(self.gen_statement("self.wnd_mng = selenium_taurus_extras.WindowManager(self.driver)"))
-        setup_method_def.append(self.gen_statement("self.frm_mng = selenium_taurus_extras.FrameManager(self.driver)"))
+        setup_method_def.append(self.gen_statement("self.wnd_mng = WindowManager(self.driver)"))
+        setup_method_def.append(self.gen_statement("self.frm_mng = FrameManager(self.driver)"))
 
         if self.window_size:  # FIXME: unused in fact
             statement = self.gen_statement("self.driver.set_window_position(0, 0)")
@@ -577,15 +575,15 @@ from bzt.resources import selenium_taurus_extras
 
         if tag == "window":
             if atype == "switch":
-                cmd = 'self.wnd_mng.switch(_tpl.apply(%r))' % selector
+                cmd = 'self.wnd_mng.switch(self.template(%r))' % selector
                 action_elements.append(self.gen_statement(cmd, indent=indent))
             elif atype == "open":
                 script = "window.open('%s');" % selector
-                cmd = 'self.driver.execute_script(_tpl.apply(%r))' % script
+                cmd = 'self.driver.execute_script(self.template(%r))' % script
                 action_elements.append(self.gen_statement(cmd, indent=indent))
             elif atype == "close":
                 if selector:
-                    cmd = 'self.wnd_mng.close(_tpl.apply(%r))' % selector
+                    cmd = 'self.wnd_mng.close(self.template(%r))' % selector
                 else:
                     cmd = 'self.wnd_mng.close()'
                 action_elements.append(self.gen_statement(cmd, indent=indent))
@@ -596,13 +594,13 @@ from bzt.resources import selenium_taurus_extras
             elif selector.startswith("index=") or selector in ["relative=top", "relative=parent"]:
                 cmd = "self.frm_mng.switch(%r)" % selector
             else:
-                frame = "self.driver.find_element(By.%s, _tpl.apply(%r))" % (bys[tag], selector)
+                frame = "self.driver.find_element(By.%s, self.template(%r))" % (bys[tag], selector)
                 cmd = "self.frm_mng.switch(%s)" % frame
 
             action_elements.append(self.gen_statement(cmd, indent=indent))
 
         elif atype in action_chains:
-            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+            tpl = "self.driver.find_element(By.%s, self.template(%r))"
             action = action_chains[atype]
             action_elements.append(self.gen_statement(
                 "ActionChains(self.driver).%s(%s).perform()" % (action, (tpl % (bys[tag], selector))),
@@ -611,7 +609,7 @@ from bzt.resources import selenium_taurus_extras
             drop_action = self._parse_action(param)
             if drop_action and drop_action[0] == "element" and not drop_action[2]:
                 drop_tag, drop_selector = (drop_action[1], drop_action[3])
-                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
+                tpl = "self.driver.find_element(By.%s, self.template(%r))"
                 action = "drag_and_drop"
                 drag_element = tpl % (bys[tag], selector)
                 drop_element = tpl % (bys[drop_tag], drop_selector)
@@ -619,42 +617,42 @@ from bzt.resources import selenium_taurus_extras
                     "ActionChains(self.driver).%s(%s, %s).perform()" % (action, drag_element, drop_element),
                     indent=indent))
         elif atype == 'select':
-            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r))"
-            action = "select_by_visible_text(_tpl.apply(%r))" % param
+            tpl = "self.driver.find_element(By.%s, self.template(%r))"
+            action = "select_by_visible_text(self.template(%r))" % param
             action_elements.append(self.gen_statement("Select(%s).%s" % (tpl % (bys[tag], selector), action),
                                                       indent=indent))
         elif atype.startswith('assert') or atype.startswith('store'):
             if tag == 'title':
                 if atype.startswith('assert'):
                     action_elements.append(
-                        self.gen_statement("self.assertEqual(self.driver.title, _tpl.apply(%r))"
+                        self.gen_statement("self.assertEqual(self.driver.title, self.template(%r))"
                                            % selector, indent=indent))
                 else:
                     action_elements.append(self.gen_statement(
-                        "_vars['%s'] = _tpl.apply(self.driver.title)" % param.strip(), indent=indent
+                        "self.vars['%s'] = self.template(self.driver.title)" % param.strip(), indent=indent
                     ))
             elif atype == 'store' and tag == 'string':
                 action_elements.append(self.gen_statement(
-                    "_vars['%s'] = _tpl.apply('%s')" % (param.strip(), selector.strip()), indent=indent
+                    "self.vars['%s'] = self.template('%s')" % (param.strip(), selector.strip()), indent=indent
                 ))
             else:
-                tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
+                tpl = "self.driver.find_element(By.%s, self.template(%r)).%s"
                 if atype in ['asserttext', 'storetext']:
                     action = "get_attribute('innerText')"
                 elif atype in ['assertvalue', 'storevalue']:
                     action = "get_attribute('value')"
                 if atype.startswith('assert'):
                     action_elements.append(
-                        self.gen_statement("self.assertEqual(_tpl.apply(%s).strip(), _tpl.apply(%r).strip())" %
+                        self.gen_statement("self.assertEqual(self.template(%s).strip(), self.template(%r).strip())" %
                                            (tpl % (bys[tag], selector, action), param),
                                            indent=indent))
                 elif atype.startswith('store'):
                     action_elements.append(
-                        self.gen_statement("_vars['%s'] = _tpl.apply(%s)" %
+                        self.gen_statement("self.vars['%s'] = self.template(%s)" %
                                            (param.strip(), tpl % (bys[tag], selector, action)),
                                            indent=indent))
         elif atype in ('click', 'type', 'keys', 'submit'):
-            tpl = "self.driver.find_element(By.%s, _tpl.apply(%r)).%s"
+            tpl = "self.driver.find_element(By.%s, self.template(%r)).%s"
             action = None
             if atype == 'click':
                 action = "click()"
@@ -664,25 +662,25 @@ from bzt.resources import selenium_taurus_extras
                 if atype == 'type':
                     action_elements.append(self.gen_statement(
                         tpl % (bys[tag], selector, "clear()"), indent=indent))
-                action = "send_keys(_tpl.apply(%r))" % str(param)
+                action = "send_keys(self.template(%r))" % str(param)
                 if isinstance(param, (string_types, text_type)) and param.startswith("KEY_"):
                     action = "send_keys(Keys.%s)" % param.split("KEY_")[1]
 
             action_elements.append(self.gen_statement(tpl % (bys[tag], selector, action), indent=indent))
 
         elif atype == "script" and tag == "eval":
-            cmd = 'self.driver.execute_script(_tpl.apply(%r))' % selector
+            cmd = 'self.driver.execute_script(self.template(%r))' % selector
             action_elements.append(self.gen_statement(cmd, indent=indent))
         elif atype == 'go':
             if selector and not param:
-                cmd = "self.driver.get(_tpl.apply(%r))" % selector.strip()
+                cmd = "self.driver.get(self.template(%r))" % selector.strip()
                 action_elements.append(self.gen_statement(cmd, indent=indent))
         elif atype == "editcontent":
             element = "self.driver.find_element(By.%s, %r)" % (bys[tag], selector)
             editable_error = "The element (By.%s, %r) " \
                              "is not contenteditable element" % (bys[tag], selector)
             editable_script_tpl = "arguments[0].innerHTML = %s;"
-            editable_script_tpl_argument = "_tpl.str_repr(_tpl.apply(%r))" % param.strip()
+            editable_script_tpl_argument = "self.template.str_repr(self.template(%r))" % param.strip()
             editable_script = "%r %% %s" % \
                               (editable_script_tpl, editable_script_tpl_argument)
             action_elements.extend([
@@ -710,9 +708,9 @@ from bzt.resources import selenium_taurus_extras
         elif atype == 'echo' and tag == 'string':
             if len(selector) > 0 and not param:
                 action_elements.append(
-                    self.gen_statement("print(_tpl.apply(%r))" % selector.strip(), indent=indent))
+                    self.gen_statement("print(self.template(%r))" % selector.strip(), indent=indent))
         elif atype == 'wait':
-            tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, _tpl.apply(%r))), %r)"
+            tpl = "WebDriverWait(self.driver, %s).until(econd.%s_of_element_located((By.%s, self.template(%r))), %r)"
             mode = "visibility" if param == 'visible' else 'presence'
             exc = TaurusConfigError("wait action requires timeout in scenario: \n%s" % self.scenario)
             timeout = dehumanize_time(self.scenario.get("timeout", exc))
@@ -726,7 +724,7 @@ from bzt.resources import selenium_taurus_extras
         elif atype == 'screenshot':
             if selector:
                 filename = selector
-                action_elements.append(self.gen_statement('self.driver.save_screenshot(_tpl.apply(%r))' % filename,
+                action_elements.append(self.gen_statement('self.driver.save_screenshot(self.template(%r))' % filename,
                                                           indent=indent))
             else:
                 filename = "filename = os.path.join(os.getenv('TAURUS_ARTIFACTS_DIR'), " \
