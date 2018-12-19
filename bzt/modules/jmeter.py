@@ -150,19 +150,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         Helper method to read load specification
         """
-        prov_type = self.engine.config.get(Provisioning.PROV)
+        throughput, concurrency, iterations, steps, hold, ramp_up = self.get_raw_load()
 
-        throughput = self.execution.get(ScenarioExecutor.THRPT).get(prov_type, None)
-        concurrency = self.execution.get(ScenarioExecutor.CONCURR).get(prov_type, None)
-
-        iterations = self.execution.get("iterations", None)
-
-        steps = self.execution.get(ScenarioExecutor.STEPS, None)
-
-        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, 0)
         hold = self._try_convert(hold, dehumanize_time)
 
-        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
         ramp_up = self._try_convert(ramp_up, dehumanize_time)
 
         if not hold:

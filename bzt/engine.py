@@ -1147,6 +1147,21 @@ class ScenarioExecutor(EngineModule):
 
         return scenario_obj
 
+    def get_raw_load(self):
+        prov_type = self.engine.config.get(Provisioning.PROV)
+
+        throughput = self.execution.get(ScenarioExecutor.THRPT).get(prov_type, None)
+        concurrency = self.execution.get(ScenarioExecutor.CONCURR).get(prov_type, None)
+
+        iterations = self.execution.get("iterations", None)
+
+        steps = self.execution.get(ScenarioExecutor.STEPS, None)
+
+        hold = self.execution.get(ScenarioExecutor.HOLD_FOR, None)
+        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
+
+        return throughput, concurrency, iterations, steps, hold, ramp_up
+
     def get_load(self):
         """
         Helper method to read load specification
@@ -1164,16 +1179,14 @@ class ScenarioExecutor(EngineModule):
             except (ValueError, TypeError):
                 return value
 
-        prov_type = self.engine.config.get(Provisioning.PROV)
+        throughput, concurrency, iterations, steps, hold, ramp_up = self.get_raw_load()
 
-        throughput = eval_float(self.execution.get(ScenarioExecutor.THRPT).get(prov_type, 0))
-        concurrency = eval_int(self.execution.get(ScenarioExecutor.CONCURR).get(prov_type, 0))
+        throughput = eval_float(throughput or 0)
+        concurrency = eval_int(concurrency or 0)
 
-        iterations = eval_int(self.execution.get("iterations", None))
+        steps = eval_int(steps)
+        hold = dehumanize_time(hold or 0)
 
-        ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
-        steps = eval_int(self.execution.get(ScenarioExecutor.STEPS, None))
-        hold = dehumanize_time(self.execution.get(ScenarioExecutor.HOLD_FOR, 0))
         if ramp_up is None:
             duration = hold
         else:
