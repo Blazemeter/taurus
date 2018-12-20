@@ -116,7 +116,8 @@ class LoadSettingsProcessor(object):
 
         if self.load.concurrency and not isinstance(self.load.concurrency, numeric_types):  # property found
             for group in groups:
-                self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load, concurrency=self.load.concurrency)
+                self.tg_handler.convert(
+                    source=group, target_gtype=self.tg, load=self.load, concurrency=self.load.concurrency)
         else:
             target_list = zip(groups, self._get_concurrencies(groups))
 

@@ -1,4 +1,3 @@
-from copy import deepcopy
 from bzt.jmx.base import JMX
 
 
