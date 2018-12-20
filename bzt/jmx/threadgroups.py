@@ -25,17 +25,17 @@ class AbstractThreadGroup(object):
 
     def get(self, name, pure=False):
         parser = self.fields.get(name, {})
-        params = deepcopy(parser)
-        getter = params.get("getter")
-        if getter:
-            del params["getter"]
-        else:
-            getter = self._get_val
+        params = {key: parser[key] for key in parser.keys() if key != "getter"}
 
         if not parser.get("pure"):  # use configured pure if exist
             parser["pure"] = pure
 
-        return getter(name, **params)
+        getter = parser.get("getter")
+        if not getter:
+            getter = self._get_val
+            params["name"] = name
+
+        return getter(**params)
 
     def _get_val(self, name, selector=None, default=None, pure=False):
         if not selector:
@@ -83,15 +83,17 @@ class ThreadGroup(AbstractThreadGroup):
             self.log.warning('Getting of ramp-up for %s is impossible due to scheduler: %s', self.gtype, scheduler)
             return default
 
-    def _get_iterations(self):
+    def _get_iterations(self, default=None):
         loop_control_sel = ".//*[@name='LoopController.continue_forever']"
         loop_controller = self._get_val("loop controller", selector=loop_control_sel, pure=True)
         if loop_controller == "false":
             loop_sel = ".//*[@name='LoopController.loops']"
-            return self._get_val("loops", selector=loop_sel)
+            return self._get_val("loops", default=default, selector=loop_sel)
         else:
             msg = 'Getting of ramp-up for %s is impossible due to loop_controller: %s'
             self.log.warning(msg, (self.gtype, loop_controller))
+
+        return default
 
 
 class SteppingThreadGroup(AbstractThreadGroup):
@@ -190,7 +192,7 @@ class ThreadGroupHandler(object):
         Convert a 'source' to ThreadGroup/ConcurrencyThreadGroup for applying user load params
         """
         msg = "Converting %s (%s) to %s and apply load parameters"
-        self.log.debug(msg, source.gtype, source.get_testname(), target_gtype)
+        self.log.debug(msg, source.gtype, source.test_name, target_gtype)
 
         if target_gtype == ThreadGroup.__name__:
             new_group_element = JMX.get_thread_group(
@@ -198,7 +200,7 @@ class ThreadGroupHandler(object):
                 rampup=self.choose_val(load.ramp_up, source.get("ramp-up")),
                 hold=self.choose_val(load.hold, source.get("hold")),
                 iterations=self.choose_val(load.iterations, source.get("iterations")),
-                testname=source.get("testname"),
+                testname=source.test_name,
                 on_error=source.get("on-error"))
         elif target_gtype == ConcurrencyThreadGroup.__name__:
             new_group_element = JMX.get_concurrency_thread_group(
@@ -206,7 +208,7 @@ class ThreadGroupHandler(object):
                 rampup=self.choose_val(load.ramp_up, source.get("ramp-up")),
                 hold=self.choose_val(load.hold, source.get("hold")),
                 steps=self.choose_val(load.steps, source.get("steps")),
-                testname=source.get("testname"),
+                testname=source.test_name,
                 on_error=source.get("on-error"))
         else:
             self.log.warning('Unsupported preferred thread group: %s', target_gtype)

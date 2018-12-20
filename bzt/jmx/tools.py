@@ -137,7 +137,7 @@ class LoadSettingsProcessor(object):
         concurrency_list = []
         concurrency_in_execution = bool(self.load.concurrency)
         for group in groups:
-            concurrency_list.append(group.get_concurrency(pure=not concurrency_in_execution))
+            concurrency_list.append(group.get("concurrency", pure=not concurrency_in_execution))
 
         if concurrency_in_execution and concurrency_list:
             total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.get_concurrency()
