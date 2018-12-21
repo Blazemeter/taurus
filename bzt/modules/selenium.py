@@ -94,7 +94,8 @@ class SeleniumExecutor(AbstractSeleniumExecutor, WidgetProvider, FileLister, Hav
         self.runner.execution['files'] = self.execution.get('files', [], force_set=True)
         self.runner.execution['executor'] = runner_type
         self.runner.register_reader = self.register_reader
-        self.runner.settings = self.settings.merge(self.runner.settings)
+
+        self.runner.settings = copy.deepcopy(self.settings).merge(self.runner.settings)
 
         if runner_type == "nose":
             self.runner.execution["test-mode"] = "selenium"

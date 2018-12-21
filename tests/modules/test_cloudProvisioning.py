@@ -456,16 +456,10 @@ class TestCloudProvisioning(BZTestCase):
                 ScenarioExecutor.EXEC: [{
                     "executor": "selenium",
                     "runner": "nose",
-                    "concurrency": 1,
                     "scenario": {"requests": ["http://blazedemo.com"]}}],
                 "modules": {
-                    "selenium": {
-                        "class": target_selenium_class,
-                        "virtual-display": False},
-                    "nose": {
-                        "class": target_nose_class,
-                        "verbose": False
-                    }}})
+                    "selenium": {"class": target_selenium_class},
+                    "nose": {"class": target_nose_class}}})
 
         self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
 
