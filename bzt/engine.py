@@ -1160,7 +1160,8 @@ class ScenarioExecutor(EngineModule):
         hold = self.execution.get(ScenarioExecutor.HOLD_FOR, None)
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
 
-        return throughput, concurrency, iterations, steps, hold, ramp_up
+        return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
+                             iterations=iterations, steps=steps)
 
     def get_load(self):
         """
@@ -1179,22 +1180,25 @@ class ScenarioExecutor(EngineModule):
             except (ValueError, TypeError):
                 return value
 
-        throughput, concurrency, iterations, steps, hold, ramp_up = self.get_raw_load()
+        raw_load = self.get_raw_load()
 
-        throughput = eval_float(throughput or 0)
-        concurrency = eval_int(concurrency or 0)
+        iterations = raw_load.iterations
+        ramp_up = raw_load.ramp_up
 
-        steps = eval_int(steps)
-        hold = dehumanize_time(hold or 0)
+        throughput = eval_float(raw_load.throughput or 0)
+        concurrency = eval_int(raw_load.concurrency or 0)
+
+        steps = eval_int(raw_load.steps)
+        hold = dehumanize_time(raw_load.hold or 0)
 
         if ramp_up is None:
             duration = hold
         else:
-            ramp_up = dehumanize_time(ramp_up)
+            ramp_up = dehumanize_time(raw_load.ramp_up)
             duration = hold + ramp_up
 
         if duration and not iterations:
-            iterations = 0  # which means infinite
+            iterations = 0  # infinite
 
         msg = ''
         if not isinstance(concurrency, numeric_types + (type(None),)):

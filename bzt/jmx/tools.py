@@ -76,7 +76,8 @@ class LoadSettingsProcessor(object):
 
     def __init__(self, executor):
         self.log = executor.log.getChild(self.__class__.__name__)
-        self.load = executor.get_specific_load()
+        self.raw_load = executor.get_raw_load()
+        self.load = executor.get_load()
         self.tg = self._detect_thread_group(executor)
         self.tg_handler = ThreadGroupHandler(self.log)
 
@@ -92,9 +93,9 @@ class LoadSettingsProcessor(object):
 
         msg = 'Thread group detection: %s, regular ThreadGroup will be used'
 
-        if not self.load.duration:
+        if self.raw_load.hold is None and self.raw_load.ramp_up is None:
             self.log.debug(msg, 'duration not found')
-        elif self.load.iterations:
+        elif self.raw_load.iterations is None:
             self.log.debug(msg, 'iterations are found')
         elif not executor.tool:
             msg = 'You must set executor tool (%s) for choosing of ConcurrencyThreadGroup'
@@ -107,18 +108,20 @@ class LoadSettingsProcessor(object):
         return tg
 
     def modify(self, jmx):
-        if not (self.load.iterations or self.load.concurrency or self.load.duration):
+        if all(param is None for param in
+               (self.raw_load.iterations, self.raw_load.concurrency, self.raw_load.ramp_up, self.raw_load.hold)):
             self.log.debug('No iterations/concurrency/duration found, thread group modification is skipped')
             return
 
         # IMPORTANT: fix groups order as changing of element type changes order of getting of groups
         groups = list(self.tg_handler.groups(jmx))
 
-        if self.load.concurrency and not isinstance(self.load.concurrency, numeric_types):  # property found
+        # write variable/property as is, ignore empty load.concurrency
+        if self.raw_load.concurrency is None or not isinstance(self.load.concurrency, numeric_types):
             for group in groups:
                 self.tg_handler.convert(
-                    source=group, target_gtype=self.tg, load=self.load, concurrency=self.load.concurrency)
-        else:
+                    source=group, target_gtype=self.tg, load=self.raw_load, concurrency=self.raw_load.concurrency)
+        else:   # split numeric concurrency for thread groups
             target_list = zip(groups, self._get_concurrencies(groups))
 
             for group, concurrency in target_list:
@@ -136,11 +139,10 @@ class LoadSettingsProcessor(object):
         calculate target concurrency for every thread group
         """
         concurrency_list = []
-        concurrency_in_execution = self.load.concurrency is not None
         for group in groups:
-            concurrency_list.append(group.get("concurrency", raw=not concurrency_in_execution))
+            concurrency_list.append(group.get("concurrency"))
 
-        if concurrency_in_execution and concurrency_list:
+        if concurrency_list:
             total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.get("concurrency")
 
             for idx, concurrency in enumerate(concurrency_list):

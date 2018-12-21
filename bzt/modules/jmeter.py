@@ -150,11 +150,12 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         """
         Helper method to read load specification
         """
-        throughput, concurrency, iterations, steps, hold, ramp_up = self.get_raw_load()
+        # throughput, concurrency, iterations, steps, hold, ramp_up
+        raw_load = self.get_raw_load()
 
-        hold = self._try_convert(hold, dehumanize_time)
+        hold = self._try_convert(raw_load.hold, dehumanize_time)
 
-        ramp_up = self._try_convert(ramp_up, dehumanize_time)
+        ramp_up = self._try_convert(raw_load.ramp_up, dehumanize_time)
 
         if not hold:
             duration = ramp_up
@@ -165,10 +166,10 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         else:
             duration = 1  # dehumanize_time(<sum_of_props>) can be unpredictable so we use default there
 
-        throughput = self._try_convert(throughput, float)
-        concurrency = self._try_convert(concurrency, int)
-        iterations = self._try_convert(iterations, int)
-        steps = self._try_convert(steps, int)
+        throughput = self._try_convert(raw_load.throughput, float)
+        concurrency = self._try_convert(raw_load.concurrency, int)
+        iterations = self._try_convert(raw_load.iterations, int)
+        steps = self._try_convert(raw_load.steps, int)
 
         if duration and not iterations:
             iterations = 0  # which means infinite
