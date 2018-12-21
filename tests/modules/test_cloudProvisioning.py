@@ -440,8 +440,7 @@ class TestCloudProvisioning(BZTestCase):
         cloud_config = self.obj.prepare_cloud_config()
         target = BetterDict.from_dict({
             'blazemeter': {'class': 'bzt.modules.blazemeter.BlazeMeterUploader', 'strange_param': False},
-            'selenium': {'class': 'bzt.modules.python.executors.NoseTester', 'verbose': False,
-                         'virtual-display': False},
+            'selenium': {'class': 'bzt.modules.selenium.SeleniumExecutor', 'virtual-display': False},
             'nose': {'class': 'bzt.modules.python.executors.NoseTester', 'verbose': False},
             'mock': {'class': 'tests.mocks.ModuleMock'}
         })
