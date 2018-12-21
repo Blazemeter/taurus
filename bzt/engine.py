@@ -1161,7 +1161,7 @@ class ScenarioExecutor(EngineModule):
         ramp_up = self.execution.get(ScenarioExecutor.RAMP_UP, None)
 
         return self.LOAD_FMT(concurrency=concurrency, ramp_up=ramp_up, throughput=throughput, hold=hold,
-                             iterations=iterations, steps=steps)
+                             iterations=iterations, duration=None, steps=steps)
 
     def get_load(self):
         """
