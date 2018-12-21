@@ -20,14 +20,14 @@ class AbstractThreadGroup(object):
             "rate": {"default": 1},
             "hold": {"default": 0},             # infinite
             "unit": {},
-            "on-error": {"selector": ".//stringProp[@name='ThreadGroup.on_sample_error']", "pure": True}}
+            "on-error": {"selector": ".//stringProp[@name='ThreadGroup.on_sample_error']", "raw": True}}
 
-    def get(self, name, pure=False):
+    def get(self, name, raw=False):
         parser = self.fields.get(name, {})
         params = {key: parser[key] for key in parser.keys() if key != "getter"}
 
-        if not parser.get("pure"):  # use configured pure if exist
-            parser["pure"] = pure
+        if not parser.get("raw"):  # use configured 'raw' if exist
+            parser["raw"] = raw
 
         getter = parser.get("getter")
         if not getter:
@@ -36,7 +36,7 @@ class AbstractThreadGroup(object):
 
         return getter(**params)
 
-    def _get_val(self, name, selector=None, default=None, pure=False):
+    def _get_val(self, name, selector=None, default=None, raw=False):
         if not selector:
             self.log.warning('Getting of %s for %s not implemented', name, self.gtype)
             return default
@@ -47,7 +47,7 @@ class AbstractThreadGroup(object):
         else:
             string_val = element.text
 
-        if pure:
+        if raw:
             return string_val
 
         try:
@@ -71,7 +71,7 @@ class ThreadGroup(AbstractThreadGroup):
 
     def _get_duration(self, default=None):
         sched_sel = ".//*[@name='ThreadGroup.scheduler']"
-        scheduler = self._get_val("scheduler", selector=sched_sel, pure=True)
+        scheduler = self._get_val("scheduler", selector=sched_sel, raw=True)
 
         if scheduler == 'true':
             duration_sel = ".//*[@name='ThreadGroup.duration']"
@@ -84,7 +84,7 @@ class ThreadGroup(AbstractThreadGroup):
 
     def _get_iterations(self, default=None):
         loop_control_sel = ".//*[@name='LoopController.continue_forever']"
-        loop_controller = self._get_val("loop controller", selector=loop_control_sel, pure=True)
+        loop_controller = self._get_val("loop controller", selector=loop_control_sel, raw=True)
         if loop_controller == "false":
             loop_sel = ".//*[@name='LoopController.loops']"
             return self._get_val("loops", default=default, selector=loop_sel)
@@ -114,7 +114,7 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
         self.fields["ramp-up"]["selector"] = ".//*[@name='RampUp']"
         self.fields["iterations"]["selector"] = ".//*[@name='Iterations']"
         self.fields["unit"]["selector"] = ".//*[@name='Unit']"
-        self.fields["unit"]["pure"] = True
+        self.fields["unit"]["raw"] = True
         self.fields["hold"]["selector"] = ".//*[@name='Hold']"
 
     def set_ramp_up(self, ramp_up=None):
@@ -126,8 +126,8 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
         ramp_up = self.get("ramp-up")
 
         # 'empty' means 0 sec, let's detect that
-        p_hold = self.get("hold", pure=True)
-        p_ramp_up = self.get("ramp-up", pure=True)
+        p_hold = self.get("hold", raw=True)
+        p_ramp_up = self.get("ramp-up", raw=True)
         if hold is None and not p_hold:
             hold = 0
         if ramp_up is None and not p_ramp_up:
