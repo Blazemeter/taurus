@@ -13,13 +13,13 @@ class AbstractThreadGroup(object):
         # default getter: _get_val
         # default selector: None (means "non-implemented")
         self.fields = {
-            "concurrency": {"default": 1},      # single bot
-            "ramp-up": {"default": 0},          # without ramp-up
-            "duration": {"default": 0},         # infinite
-            "iterations": {"default": 0},       # infinite
+            "concurrency": {"default": 1},  # single bot
+            "ramp-up": {"default": 0},  # without ramp-up
+            "duration": {"default": 0},  # infinite
+            "iterations": {"default": 0},  # infinite
             "rate": {"default": 1},
-            "hold": {"default": 0},             # infinite
-            "unit": {},
+            "hold": {"default": 0},  # infinite
+            "unit": {"default": "S"},
             "on-error": {"selector": ".//stringProp[@name='ThreadGroup.on_sample_error']", "raw": True}}
 
     def get(self, name, raw=False):
@@ -36,7 +36,18 @@ class AbstractThreadGroup(object):
 
         return getter(**params)
 
-    def _get_val(self, name, selector=None, default=None, raw=False):
+    def get_seconds(self, name, raw=False):
+        """ convert time (hold, ramp-up) to seconds according to group time unit (M/S) """
+        time = self.get(name, raw)
+        if time and self.get("unit") == "M":
+            if isinstance(time, int):
+                time *= 60
+            else:
+                self.log.warning("Impossible to convert to seconds: %s", time)
+
+        return time
+
+    def _get_val(self, name, selector=None, default=None, raw=False, seconds=False):
         if not selector:
             self.log.warning('Getting of %s for %s not implemented', name, self.gtype)
             return default
@@ -51,7 +62,11 @@ class AbstractThreadGroup(object):
             return string_val
 
         try:
-            return int(string_val)
+            int_val = int(string_val)
+            if seconds:
+                if self.get("unit") == 'M':  # time unit
+                    int_val *= 60
+            return int_val
         except (ValueError, TypeError):
             msg = "Parsing {param} '{val}' in group '{gtype}' failed"
             self.log.warning(msg.format(param=name, val=string_val, gtype=self.gtype))
@@ -109,6 +124,7 @@ class UltimateThreadGroup(AbstractThreadGroup):
 
 class AbstractDynamicThreadGroup(AbstractThreadGroup):
     """ parent of ConcurrencyThreadGroup and ArrivalThreadGroup """
+
     def __init__(self, *args, **kwargs):
         super(AbstractDynamicThreadGroup, self).__init__(*args, **kwargs)
         self.fields["ramp-up"]["selector"] = ".//*[@name='RampUp']"
@@ -134,10 +150,7 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
             ramp_up = 0
 
         if hold is not None and ramp_up is not None:
-            result = hold + ramp_up
-            if self.get("unit") == 'M':     # time unit
-                result *= 60
-
+            result = self.get_seconds(hold + ramp_up)
             return result
 
 
@@ -196,8 +209,8 @@ class ThreadGroupHandler(object):
         if target_gtype == ThreadGroup.__name__:
             new_group_element = JMX.get_thread_group(
                 concurrency=self.choose_val(concurrency, source.get("concurrency")),
-                rampup=self.choose_val(load.ramp_up, source.get("ramp-up")),
-                hold=self.choose_val(load.hold, source.get("hold")),
+                rampup=self.choose_val(load.ramp_up, source.get_seconds("ramp-up")),    # todo call get_seconds by
+                hold=self.choose_val(load.hold, source.get_seconds("hold")),            # lazy way
                 iterations=self.choose_val(load.iterations, source.get("iterations")),
                 testname=source.test_name,
                 on_error=source.get("on-error"))
@@ -208,6 +221,7 @@ class ThreadGroupHandler(object):
                 hold=self.choose_val(load.hold, source.get("hold")),
                 steps=self.choose_val(load.steps, source.get("steps")),
                 testname=source.test_name,
+                unit=source.get("unit"),
                 on_error=source.get("on-error"))
         else:
             self.log.warning('Unsupported preferred thread group: %s', target_gtype)

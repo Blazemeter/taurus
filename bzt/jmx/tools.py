@@ -77,7 +77,7 @@ class LoadSettingsProcessor(object):
     def __init__(self, executor):
         self.log = executor.log.getChild(self.__class__.__name__)
         self.raw_load = executor.get_raw_load()
-        self.load = executor.get_load()
+        self.specific_load = executor.get_load()
         self.tg = self._detect_thread_group(executor)
         self.tg_handler = ThreadGroupHandler(self.log)
 
@@ -95,7 +95,7 @@ class LoadSettingsProcessor(object):
 
         if self.raw_load.hold is None and self.raw_load.ramp_up is None:
             self.log.debug(msg, 'duration not found')
-        elif self.raw_load.iterations is None:
+        elif self.raw_load.iterations is not None:
             self.log.debug(msg, 'iterations are found')
         elif not executor.tool:
             msg = 'You must set executor tool (%s) for choosing of ConcurrencyThreadGroup'
@@ -117,7 +117,7 @@ class LoadSettingsProcessor(object):
         groups = list(self.tg_handler.groups(jmx))
 
         # write variable/property as is, ignore empty load.concurrency
-        if self.raw_load.concurrency is None or not isinstance(self.load.concurrency, numeric_types):
+        if self.raw_load.concurrency is None or not isinstance(self.specific_load.concurrency, numeric_types):
             for group in groups:
                 self.tg_handler.convert(
                     source=group, target_gtype=self.tg, load=self.raw_load, concurrency=self.raw_load.concurrency)
@@ -125,12 +125,12 @@ class LoadSettingsProcessor(object):
             target_list = zip(groups, self._get_concurrencies(groups))
 
             for group, concurrency in target_list:
-                self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.load, concurrency=concurrency)
+                self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.specific_load, concurrency=concurrency)
 
-        if self.load.throughput:
+        if self.specific_load.throughput:
             self._add_shaper(jmx)
 
-        if self.load.steps and self.tg == self.TG:
+        if self.specific_load.steps and self.tg == self.TG:
             self.log.warning("Stepping ramp-up isn't supported for regular ThreadGroup")
 
     def _get_concurrencies(self, groups):
@@ -146,14 +146,14 @@ class LoadSettingsProcessor(object):
             total_old_concurrency = sum(concurrency_list)  # t_o_c != 0 because of logic of group.get("concurrency")
 
             for idx, concurrency in enumerate(concurrency_list):
-                part_of_load = 1.0 * self.load.concurrency * concurrency / total_old_concurrency
+                part_of_load = 1.0 * self.specific_load.concurrency * concurrency / total_old_concurrency
                 if part_of_load < 1:
                     concurrency_list[idx] = 1
                 else:
                     concurrency_list[idx] = int(round(part_of_load))
 
             total_new_concurrency = sum(concurrency_list)
-            leftover = self.load.concurrency - total_new_concurrency
+            leftover = self.specific_load.concurrency - total_new_concurrency
             if leftover < 0:
                 msg = "Had to add %s more threads to maintain thread group proportion"
                 self.log.warning(msg, -leftover)
@@ -168,30 +168,30 @@ class LoadSettingsProcessor(object):
         :param jmx: JMX
         :return:
         """
-        if not self.load.duration:
+        if not self.specific_load.duration:
             self.log.warning("You must set 'ramp-up' and/or 'hold-for' when using 'throughput' option")
             return
 
         etree_shaper = jmx.get_rps_shaper()
-        if self.load.ramp_up:
-            if isinstance(self.load.throughput, numeric_types) and self.load.duration:
-                start_rps = self.load.throughput / float(self.load.duration)
+        if self.specific_load.ramp_up:
+            if isinstance(self.specific_load.throughput, numeric_types) and self.specific_load.duration:
+                start_rps = self.specific_load.throughput / float(self.specific_load.duration)
             else:
                 start_rps = 1
 
-            if not self.load.steps:
-                jmx.add_rps_shaper_schedule(etree_shaper, start_rps, self.load.throughput, self.load.ramp_up)
+            if not self.specific_load.steps:
+                jmx.add_rps_shaper_schedule(etree_shaper, start_rps, self.specific_load.throughput, self.specific_load.ramp_up)
             else:
-                step_h = self.load.throughput / self.load.steps
-                step_w = float(self.load.ramp_up) / self.load.steps
+                step_h = self.specific_load.throughput / self.specific_load.steps
+                step_w = float(self.specific_load.ramp_up) / self.specific_load.steps
                 accum_time = 0
-                for step in range(1, self.load.steps + 1):
+                for step in range(1, self.specific_load.steps + 1):
                     jmx.add_rps_shaper_schedule(etree_shaper, step_h * step, step_h * step,
                                                 step_w * step - accum_time)
                     accum_time += cond_int(step_w * step - accum_time)
 
-        if self.load.hold:
-            jmx.add_rps_shaper_schedule(etree_shaper, self.load.throughput, self.load.throughput, self.load.hold)
+        if self.specific_load.hold:
+            jmx.add_rps_shaper_schedule(etree_shaper, self.specific_load.throughput, self.specific_load.throughput, self.specific_load.hold)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))

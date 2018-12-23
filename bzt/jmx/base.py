@@ -671,7 +671,8 @@ class JMX(object):
 
     @staticmethod
     def get_concurrency_thread_group(
-            concurrency=None, rampup=0, hold=0, steps=None, on_error="continue", testname="ConcurrencyThreadGroup"):
+            concurrency=None, rampup=0, hold=0, steps=None, unit="S",
+            on_error="continue", testname="ConcurrencyThreadGroup"):
         """
         Generates ConcurrencyThreadGroup
 
@@ -707,7 +708,7 @@ class JMX(object):
         concurrency_thread_group.append(JMX._string_prop("Hold", str(cond_int(hold))))
         concurrency_thread_group.append(JMX._string_prop("LogFilename", ""))
         concurrency_thread_group.append(JMX._string_prop("Iterations", ""))
-        concurrency_thread_group.append(JMX._string_prop("Unit", "S"))
+        concurrency_thread_group.append(JMX._string_prop("Unit", unit))
 
         return concurrency_thread_group
 

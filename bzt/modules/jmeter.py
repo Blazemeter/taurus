@@ -89,12 +89,15 @@ class JMeterExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstall
         hold = load.hold
         ramp_up = load.ramp_up
 
-        hold = self._try_convert(hold, dehumanize_time, 0)
-        duration = hold
+        duration = 0
 
         if ramp_up is not None:
             ramp_up = self._try_convert(ramp_up, dehumanize_time, 0)
             duration += ramp_up
+
+        if hold is not None:
+            hold = self._try_convert(hold, dehumanize_time, 0)
+            duration += hold
 
         msg = ''
         if not isinstance(concurrency, numeric_types + (type(None),)):
