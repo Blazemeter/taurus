@@ -20,6 +20,7 @@ class AbstractThreadGroup(object):
             "rate": {"default": 1},
             "hold": {"default": 0},  # infinite
             "unit": {"default": "S"},
+            "steps": {"default": 1},
             "on-error": {"selector": ".//stringProp[@name='ThreadGroup.on_sample_error']", "raw": True}}
 
     def get(self, name, raw=False):
@@ -27,7 +28,7 @@ class AbstractThreadGroup(object):
         params = {key: parser[key] for key in parser.keys() if key != "getter"}
 
         if not parser.get("raw"):  # use configured 'raw' if exist
-            parser["raw"] = raw
+            params["raw"] = raw
 
         getter = parser.get("getter")
         if not getter:
@@ -83,26 +84,40 @@ class ThreadGroup(AbstractThreadGroup):
         self.fields["ramp-up"]["selector"] = ".//*[@name='ThreadGroup.ramp_time']"
         self.fields["duration"]["getter"] = self._get_duration
         self.fields["iterations"]["getter"] = self._get_iterations
+        self.fields["hold"]["getter"] = self._get_hold
 
-    def _get_duration(self, default=None):
+    def _get_hold(self, default=None, raw=False):
+        duration = self.get("duration", raw=raw)
+        ramp_up = self.get("ramp-up", raw=raw)
+        if not ramp_up:
+            hold = duration
+        elif isinstance(duration, int) and isinstance(ramp_up, int):
+            hold = duration - ramp_up
+        else:
+            self.log.warning("Impossible to get hold from duration: %s", duration)
+            hold = default
+
+        return hold
+
+    def _get_duration(self, default=None, raw=False):
         sched_sel = ".//*[@name='ThreadGroup.scheduler']"
         scheduler = self._get_val("scheduler", selector=sched_sel, raw=True)
 
         if scheduler == 'true':
             duration_sel = ".//*[@name='ThreadGroup.duration']"
-            return self._get_val("duration", selector=duration_sel)
+            return self._get_val("duration", selector=duration_sel, raw=raw)
         elif scheduler == 'false':
-            return self.get("ramp-up")
+            return self.get("ramp-up", raw=raw)
         else:
             self.log.warning('Getting of ramp-up for %s is impossible due to scheduler: %s', self.gtype, scheduler)
             return default
 
-    def _get_iterations(self, default=None):
+    def _get_iterations(self, default=None, raw=False):
         loop_control_sel = ".//*[@name='LoopController.continue_forever']"
         loop_controller = self._get_val("loop controller", selector=loop_control_sel, raw=True)
         if loop_controller == "false":
             loop_sel = ".//*[@name='LoopController.loops']"
-            return self._get_val("loops", default=default, selector=loop_sel)
+            return self._get_val("loops", default=default, selector=loop_sel, raw=raw)
         else:
             msg = 'Getting of ramp-up for %s is impossible due to loop_controller: %s'
             self.log.warning(msg, (self.gtype, loop_controller))
@@ -116,6 +131,7 @@ class SteppingThreadGroup(AbstractThreadGroup):
     def __init__(self, *args, **kwargs):
         super(SteppingThreadGroup, self).__init__(*args, **kwargs)
         self.fields["concurrency"]["selector"] = ".//*[@name='ThreadGroup.num_threads']"
+        self.fields["hold"]["selector"] = ".//*[@name='flighttime']"
 
 
 class UltimateThreadGroup(AbstractThreadGroup):
@@ -129,15 +145,21 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
         super(AbstractDynamicThreadGroup, self).__init__(*args, **kwargs)
         self.fields["ramp-up"]["selector"] = ".//*[@name='RampUp']"
         self.fields["iterations"]["selector"] = ".//*[@name='Iterations']"
+        self.fields["duration"]["getter"] = self._get_duration
         self.fields["unit"]["selector"] = ".//*[@name='Unit']"
         self.fields["unit"]["raw"] = True
         self.fields["hold"]["selector"] = ".//*[@name='Hold']"
+        self.fields["steps"]["selector"] = ".//*[@name='Steps']"
 
     def set_ramp_up(self, ramp_up=None):
         ramp_up_element = self.element.find(self.fields["ramp-up"]["selector"])
         ramp_up_element.text = str(ramp_up)
 
-    def _get_duration(self):
+    def _get_duration(self, default=None, raw=False):
+        if raw:
+            return default
+
+        # try to get number values
         hold = self.get("hold")
         ramp_up = self.get("ramp-up")
 
@@ -149,9 +171,7 @@ class AbstractDynamicThreadGroup(AbstractThreadGroup):
         if ramp_up is None and not p_ramp_up:
             ramp_up = 0
 
-        if hold is not None and ramp_up is not None:
-            result = self.get_seconds(hold + ramp_up)
-            return result
+        return hold + ramp_up
 
 
 class ConcurrencyThreadGroup(AbstractDynamicThreadGroup):

@@ -542,7 +542,7 @@ class JMX(object):
             iterations = -1
 
         scheduler = False
-        if hold or (rampup and not iterations):
+        if hold or (rampup and (iterations == -1)):
             scheduler = True
 
         if not hold:

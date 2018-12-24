@@ -77,7 +77,7 @@ class LoadSettingsProcessor(object):
     def __init__(self, executor):
         self.log = executor.log.getChild(self.__class__.__name__)
         self.raw_load = executor.get_raw_load()
-        self.specific_load = executor.get_load()
+        self.specific_load = executor.get_specific_load()
         self.tg = self._detect_thread_group(executor)
         self.tg_handler = ThreadGroupHandler(self.log)
 
