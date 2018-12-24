@@ -440,13 +440,36 @@ class TestCloudProvisioning(BZTestCase):
         cloud_config = self.obj.prepare_cloud_config()
         target = BetterDict.from_dict({
             'blazemeter': {'class': 'bzt.modules.blazemeter.BlazeMeterUploader', 'strange_param': False},
-            'selenium': {'class': 'bzt.modules.python.executors.NoseTester', 'verbose': False,
-                         'virtual-display': False},
+            'selenium': {'class': 'bzt.modules.selenium.SeleniumExecutor', 'virtual-display': False},
             'nose': {'class': 'bzt.modules.python.executors.NoseTester', 'verbose': False},
             'mock': {'class': 'tests.mocks.ModuleMock'}
         })
 
         self.assertEqual(target, cloud_config.get("modules"))
+
+    def test_merge_settings(self):
+        target_selenium_class = SeleniumExecutor.__module__ + "." + SeleniumExecutor.__name__
+        target_nose_class = NoseTester.__module__ + "." + NoseTester.__name__
+        self.configure(
+            engine_cfg={
+                ScenarioExecutor.EXEC: [{
+                    "executor": "selenium",
+                    "runner": "nose",
+                    "scenario": {"requests": ["http://blazedemo.com"]}}],
+                "modules": {
+                    "selenium": {"class": target_selenium_class},
+                    "nose": {"class": target_nose_class}}})
+
+        self.obj.router = CloudTaurusTest(self.obj.user, None, None, "name", None, False, self.obj.log)
+
+        super(CloudProvisioning, self.obj).prepare()  # init executors
+        self.obj.get_rfiles()  # create runners
+
+        selenium_class = self.obj.engine.config.get("modules").get("selenium").get("class")
+        nose_class = self.obj.engine.config.get("modules").get("nose").get("class")
+        self.assertNotEqual(selenium_class, nose_class)
+        self.assertEqual(selenium_class, target_selenium_class)
+        self.assertEqual(nose_class, target_nose_class)
 
     def test_default_test_type_cloud(self):
         self.configure(engine_cfg={ScenarioExecutor.EXEC: {"executor": "mock"}}, )
