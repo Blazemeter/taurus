@@ -125,7 +125,8 @@ class LoadSettingsProcessor(object):
             target_list = zip(groups, self._get_concurrencies(groups))
 
             for group, concurrency in target_list:
-                self.tg_handler.convert(source=group, target_gtype=self.tg, load=self.specific_load, concurrency=concurrency)
+                self.tg_handler.convert(
+                    source=group, target_gtype=self.tg, load=self.specific_load, concurrency=concurrency)
 
         if self.specific_load.throughput:
             self._add_shaper(jmx)
@@ -180,7 +181,8 @@ class LoadSettingsProcessor(object):
                 start_rps = 1
 
             if not self.specific_load.steps:
-                jmx.add_rps_shaper_schedule(etree_shaper, start_rps, self.specific_load.throughput, self.specific_load.ramp_up)
+                jmx.add_rps_shaper_schedule(
+                    etree_shaper, start_rps, self.specific_load.throughput, self.specific_load.ramp_up)
             else:
                 step_h = self.specific_load.throughput / self.specific_load.steps
                 step_w = float(self.specific_load.ramp_up) / self.specific_load.steps
@@ -191,7 +193,8 @@ class LoadSettingsProcessor(object):
                     accum_time += cond_int(step_w * step - accum_time)
 
         if self.specific_load.hold:
-            jmx.add_rps_shaper_schedule(etree_shaper, self.specific_load.throughput, self.specific_load.throughput, self.specific_load.hold)
+            jmx.add_rps_shaper_schedule(
+                etree_shaper, self.specific_load.throughput, self.specific_load.throughput, self.specific_load.hold)
 
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree_shaper)
         jmx.append(JMeterScenarioBuilder.TEST_PLAN_SEL, etree.Element("hashTree"))
