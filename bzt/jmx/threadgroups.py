@@ -120,7 +120,7 @@ class ThreadGroup(AbstractThreadGroup):
             return self._get_val("loops", default=default, selector=loop_sel, raw=raw)
         else:
             msg = 'Getting of ramp-up for %s is impossible due to loop_controller: %s'
-            self.log.warning(msg, (self.gtype, loop_controller))
+            self.log.warning(msg, self.gtype, loop_controller)
 
         return default
 

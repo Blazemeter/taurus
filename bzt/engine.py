@@ -1182,7 +1182,7 @@ class ScenarioExecutor(EngineModule):
 
         raw_load = self.get_raw_load()
 
-        iterations = raw_load.iterations
+        iterations = eval_int(raw_load.iterations)
         ramp_up = raw_load.ramp_up
 
         throughput = eval_float(raw_load.throughput or 0)
