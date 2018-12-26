@@ -4,8 +4,5 @@ handlers:
 - url: /img
   static_dir: img
 
-- url: /docs
-  static_dir: dat/docs
-
 - url: .*
   script: auto
