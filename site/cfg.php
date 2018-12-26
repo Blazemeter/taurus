@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 
-if (is_dir("/home/gettauru")) {
+$cur_dir = getcwd();
+
+if (substr( $cur_dir, 0, 10 ) === ('/base/data')) {
     // our real website settings
     $level = \PWE\Core\PWELogger::WARNING;
     $tempdir = "/home/gettauru/tmp";
@@ -23,7 +25,7 @@ $PWECore->setRootDirectory(__DIR__);
 $PWECore->setXMLDirectory($PWECore->getDataDirectory());
 $PWECore->setTempDirectory($tempdir);
 
-if (!is_dir("/home/gettauru")) {
+if (substr( $cur_dir, 0, 10 ) != ('/base/data')) {
     $fname=$tempdir.'/taurus.xml';
     if (!is_file($fname)) {
       file_put_contents($fname, "<registry/>");
