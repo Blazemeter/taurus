@@ -14,7 +14,7 @@
   },
   "require": {
     "php": "7.2.*",
-    "symfony/yaml": "*",
+    "ext-yaml": "*",
     "undera/pwe": "dev-master"
   }
 }
