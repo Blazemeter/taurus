@@ -3,7 +3,6 @@
 import os
 import sys
 import logging
-import tempfile
 
 from psutil import Popen
 from os.path import join
@@ -11,7 +10,7 @@ from os.path import join
 from bzt import TaurusNetworkError
 from bzt.six import PY2, communicate
 from bzt.utils import log_std_streams, get_uniq_name, JavaVM, ToolError, is_windows, HTTPClient, BetterDict
-from bzt.utils import ensure_is_dict
+from bzt.utils import ensure_is_dict, Environment, temp_file
 from tests import BZTestCase, RESOURCES_DIR
 from tests.mocks import MockFileReader
 
@@ -23,6 +22,34 @@ class MockPopen(object):
 
     def communicate(self):
         return self.out, self.err
+
+
+class TestEnvironment(BZTestCase):
+    def test_nesting(self):
+        v1 = 'val_param_name'
+        v2 = 'path_param_name'
+        v3 = 'const_val'
+        os.environ[v1] = 'v1.1'
+        os.environ[v2] = 'v1.2'
+        os.environ[v3] = 'v1.3'
+
+        e1 = Environment()
+        e1.set({v1: 'local_val1.1'})
+        e1.add_path({v2: 'param_val1.1'}, finish=True)
+        e2 = Environment(parent=e1)
+        e1.add_path({v2: 'param_val1.3'}, finish=True)
+        os.environ[v1] = 'v2.1'
+        os.environ[v2] = 'v2.2'
+        os.environ[v3] = 'v2.3'
+        e1.set({v1: 'local_val1.2'})
+        e2.add_path({v2: 'param_val1.2'}, finish=True)
+
+        self.assertEqual(e1.get(v1), 'local_val1.2')
+        self.assertEqual(e2.get(v1), 'local_val1.1')
+        self.assertEqual(e1.get(v2), os.pathsep.join(('v2.2', 'param_val1.1', 'param_val1.3')))
+        self.assertEqual(e2.get(v2), os.pathsep.join(('v2.2', 'param_val1.1', 'param_val1.2')))
+        self.assertEqual(e1.get(v3), 'v2.3')
+        self.assertEqual(e2.get(v3), 'v2.3')
 
 
 class TestBetterDict(BZTestCase):
@@ -256,8 +283,7 @@ class TestFileReader(BZTestCase):
 
     def test_decode(self):
         old_string = "Тест.Эхо"
-        fd, gen_file_name = tempfile.mkstemp()
-        os.close(fd)
+        gen_file_name = temp_file()
 
         mod_str = old_string + '\n'
         if PY2:
@@ -321,8 +347,7 @@ class TestHTTPClient(BZTestCase):
 
     def test_download_file(self):
         obj = HTTPClient()
-        fd, tmpfile = tempfile.mkstemp()
-        os.close(fd)
+        tmpfile = temp_file()
 
         obj.download_file('http://localhost:8000/', tmpfile)
 
@@ -335,15 +360,13 @@ class TestHTTPClient(BZTestCase):
 
     def test_download_404(self):
         obj = HTTPClient()
-        fd, tmpfile = tempfile.mkstemp()
-        os.close(fd)
+        tmpfile = temp_file()
 
         self.assertRaises(TaurusNetworkError, lambda: obj.download_file('http://localhost:8000/404', tmpfile))
 
     def test_download_fail(self):
         obj = HTTPClient()
-        fd, tmpfile = tempfile.mkstemp()
-        os.close(fd)
+        tmpfile = temp_file()
 
         self.assertRaises(TaurusNetworkError, lambda: obj.download_file('http://non.existent.com/', tmpfile))
 

@@ -1,4 +1,3 @@
-import logging
 import os
 import re
 import shutil
@@ -16,7 +15,6 @@ from bzt.utils import LDJSONReader, FileReader
 from tests import BZTestCase, RESOURCES_DIR, ROOT_LOGGER
 from tests.mocks import EngineEmul, DummyListener
 from tests.modules.selenium import SeleniumTestCase
-
 
 class LDJSONReaderEmul(object):
     def __init__(self):
@@ -114,6 +112,10 @@ class TestSeleniumStuff(SeleniumTestCase):
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         results = list(self.obj.runner.reader._read(final_pass=True))
+
+        self.obj.runner._tailer.close()
+        self.obj.runner.reader.readers[0].csvreader.file.close()
+
         self.assertEquals(1, len(results))
         self.assertIsNone(results[0][7])    # error msg
 
@@ -130,6 +132,10 @@ class TestSeleniumStuff(SeleniumTestCase):
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
         results = list(self.obj.runner.reader._read(final_pass=True))
+
+        self.obj.runner._tailer.close()
+        self.obj.runner.reader.readers[0].csvreader.file.close()
+
         self.assertEquals(1, len(results))
         self.assertIsNone(results[0][7])  # error msg
 
@@ -141,8 +147,14 @@ class TestSeleniumStuff(SeleniumTestCase):
         while not self.obj.check():
             time.sleep(self.obj.engine.check_interval)
         self.obj.shutdown()
+
         reader = FileReader(os.path.join(self.obj.engine.artifacts_dir, "apiritif-0.csv"))
         lines = reader.get_lines(last_pass=True)
+
+        reader.close()
+        self.obj.runner._tailer.close()
+        self.obj.runner.reader.readers[0].csvreader.file.close()
+
         self.assertEquals(4, len(list(lines)))
 
     def test_fail_on_zero_results(self):
@@ -173,8 +185,8 @@ class TestSeleniumStuff(SeleniumTestCase):
                 "script": script_path,
             }
         })
-        self.obj.prepare()
         files = self.obj.resource_files()
+        self.obj.prepare()
         self.assertIn(script_path, files)
         artifacts_script = os.path.join(self.obj.engine.artifacts_dir, filename)
         self.assertFalse(os.path.exists(artifacts_script))
@@ -214,7 +226,7 @@ class TestSeleniumStuff(SeleniumTestCase):
         self.obj.prepare()
         with open(os.path.join(self.obj.engine.artifacts_dir, os.path.basename(self.obj.script))) as fds:
             script = fds.read()
-        urls = re.findall(r"get\('(.+)'\)", script)
+        urls = re.findall(r"get\(.+'(.+)'.+\)", script)
         self.assertEqual("http://blazedemo.com/", urls[0])
         self.assertEqual("http://absolute.address.com/somepage", urls[1])
         self.assertEqual("http://blazedemo.com/reserve.php", urls[2])

@@ -1,10 +1,9 @@
 # coding=utf-8
 import json
-import tempfile
 
 from bzt import six
 from bzt.engine import Configuration
-from bzt.utils import BetterDict, dehumanize_time
+from bzt.utils import BetterDict, dehumanize_time, temp_file
 from tests import BZTestCase, RESOURCES_DIR, BASE_CONFIG, ROOT_LOGGER
 from tests.mocks import EngineEmul
 
@@ -20,12 +19,12 @@ class TestConfiguration(BZTestCase):
         obj.load(configs)
         ROOT_LOGGER.debug("config:\n%s", obj)
 
-        fname = tempfile.mkstemp()[1]
+        fname = temp_file()
         obj.dump(fname, Configuration.JSON)
         with open(fname) as fh:
             ROOT_LOGGER.debug("JSON:\n%s", fh.read())
 
-        fname = tempfile.mkstemp()[1]
+        fname = temp_file()
         obj.dump(fname, Configuration.YAML)
         with open(fname) as fh:
             ROOT_LOGGER.debug("YAML:\n%s", fh.read())
@@ -38,7 +37,7 @@ class TestConfiguration(BZTestCase):
             RESOURCES_DIR + "json/merge2.json",
         ]
         obj.load(configs)
-        fname = tempfile.mkstemp()[1]
+        fname = temp_file()
         obj.dump(fname, Configuration.JSON)
         with open(fname) as fh:
             ROOT_LOGGER.debug("JSON:\n%s", fh.read())
@@ -54,7 +53,7 @@ class TestConfiguration(BZTestCase):
         self.assertIsInstance(obj["list-complex"][1][0], BetterDict)
         self.assertFalse("properties" in jmeter)
 
-        fname = tempfile.mkstemp()[1]
+        fname = temp_file()
         obj.dump(fname, Configuration.JSON)
         checker = Configuration()
         checker.load([fname])
@@ -78,7 +77,7 @@ class TestConfiguration(BZTestCase):
             "str": "text",
             "uc": six.u("ucstring")
         })
-        fname = tempfile.mkstemp()[1]
+        fname = temp_file()
         obj.dump(fname, Configuration.YAML)
         with open(fname) as fh:
             written = fh.read()
@@ -134,7 +133,7 @@ class TestConfiguration(BZTestCase):
         obj = Configuration()
         obj.tab_replacement_spaces = 4
         obj.load([RESOURCES_DIR + "yaml/tabs-issue.yml"])
-        fname = tempfile.mkstemp()[1]
+        fname = temp_file()
         obj.dump(fname, Configuration.YAML)
         self.assertFilesEqual(RESOURCES_DIR + "yaml/tabs-issue-spaces.yml", fname)
 

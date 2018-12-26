@@ -19,14 +19,13 @@ import time
 from distutils.version import LooseVersion
 
 from math import ceil
-from subprocess import CalledProcessError
 
 from bzt import ToolError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable, FileLister
 from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
-from bzt.six import communicate, unicode_decode
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, get_full_path, LDJSONReader
+from bzt.six import unicode_decode
+from bzt.utils import shutdown_process, RequiredTool, dehumanize_time, get_full_path, LDJSONReader, CALL_PROBLEMS
 
 
 class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
@@ -34,16 +33,16 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         super(MolotovExecutor, self).__init__()
         self.process = None
         self.report_file_name = None
-        self.stdout_file = None
-        self.stderr_file = None
+        self.stdout = None
+        self.stderr = None
         self.molotov = None
         self.scenario = None
 
     def prepare(self):
         self.install_required_tools()
 
-        self.stdout_file = open(self.engine.create_artifact("molotov", ".out"), 'w')
-        self.stderr_file = open(self.engine.create_artifact("molotov", ".err"), 'w')
+        self.stdout = open(self.engine.create_artifact("molotov", ".out"), 'w')
+        self.stderr = open(self.engine.create_artifact("molotov", ".err"), 'w')
 
         self.report_file_name = self.engine.create_artifact("molotov-report", ".ldjson")
         self.reader = MolotovReportReader(self.report_file_name, self.log)
@@ -86,8 +85,7 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
         self.env.set({"MOLOTOV_TAURUS_REPORT": self.report_file_name})
         self.env.add_path({"PYTHONPATH": get_full_path(__file__, step_up=3)})
 
-        self.start_time = time.time()
-        self.process = self.execute(cmdline, stdout=self.stdout_file, stderr=self.stderr_file)
+        self.process = self.execute(cmdline)
 
     def check(self):
         ret_code = self.process.poll()
@@ -100,12 +98,6 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
     def shutdown(self):
         shutdown_process(self.process, self.log)
 
-    def post_process(self):
-        if self.stdout_file and not self.stdout_file.closed:
-            self.stdout_file.close()
-        if self.stderr_file and not self.stderr_file.closed:
-            self.stderr_file.close()
-
     def install_required_tools(self):
         self.molotov = self._get_tool(Molotov, config=self.settings)
         if not self.molotov.check_if_installed():
@@ -113,13 +105,13 @@ class MolotovExecutor(ScenarioExecutor, FileLister, WidgetProvider, HavingInstal
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.stdout_file is not None:
-            with open(self.stdout_file.name) as fds:
+        if self.stdout is not None:
+            with open(self.stdout.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("molotov STDOUT:\n" + contents)
-        if self.stderr_file is not None:
-            with open(self.stderr_file.name) as fds:
+        if self.stderr is not None:
+            with open(self.stderr.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("molotov STDERR:\n" + contents)
@@ -136,17 +128,20 @@ class Molotov(RequiredTool):
         super(Molotov, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
-        self.log.debug('Checking Molotov: %s' % self.tool_path)
+        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
         try:
-            stdout, stderr = communicate(shell_exec([self.tool_path, '--version']))
-            self.log.debug("Molotov stdout/stderr: %s, %s", stdout, stderr)
-            version_s = stdout.strip()
-            version = LooseVersion(version_s)
-            if version < LooseVersion("1.4"):
+            out, err = self.call([self.tool_path, "--version"])
+            version = out.strip()
+            if LooseVersion(version) < LooseVersion("1.4"):
                 raise ToolError("You must install molotov>=1.4 to use this executor (version %s detected)" % version)
-        except (CalledProcessError, OSError, AttributeError):
+            if err:
+                out += err
+            self.log.debug("%s output: %s", self.tool_name, out)
+
+            return True
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
-        return True
 
 
 class MolotovReportReader(ResultsReader):

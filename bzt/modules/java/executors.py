@@ -21,8 +21,7 @@ from os.path import join
 from bzt import ToolError
 from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
-from bzt.modules.aggregator import ConsolidatingAggregator
-from bzt.modules.functional import FunctionalAggregator, FuncSamplesReader
+from bzt.modules.functional import FuncSamplesReader
 from bzt.modules.jmeter import JTLReader
 from bzt.six import string_types
 from bzt.utils import get_full_path, shell_exec, TclLibrary, JavaVM
@@ -67,6 +66,8 @@ class JavaTestRunner(SubprocessedExecutor, HavingInstallableTools):
         self.class_path.append(req_tool.tool_path)
 
     def prepare(self):
+        super(JavaTestRunner, self).prepare()
+
         self.script = self.get_script_path(required=True)
 
         self.target_java = str(self.settings.get("compile-target-java", self.target_java))
@@ -238,7 +239,7 @@ class JUnitTester(JavaTestRunner):
         runner_class = "com.blazemeter.taurus.junit.CustomRunner"
         junit_cmd_line = ["java", "-cp", class_path, "-Djna.nosys=true", runner_class, self.props_file]
 
-        self._start_subprocess(junit_cmd_line)
+        self.process = self.execute(junit_cmd_line)
 
     def __write_props_file(self):
         def write_prop(name, val):
@@ -346,5 +347,5 @@ class TestNGTester(JavaTestRunner):
 
         cmdline = ["java", "-cp", os.pathsep.join(self.class_path),
                    "com.blazemeter.taurus.testng.TestNGRunner", self.props_file]
-        self._start_subprocess(cmdline)
+        self.process = self.execute(cmdline)
 

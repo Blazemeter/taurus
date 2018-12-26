@@ -21,10 +21,6 @@ class TestSiegeExecutor(ExecutorTestCase):
         self.obj.settings.merge({"path": TOOL_PATH})
 
     def tearDown(self):
-        if self.obj.stdout_file:
-            self.obj.stdout_file.close()
-        if self.obj.stderr_file:
-            self.obj.stderr_file.close()
         close_reader_file(self.obj.reader)
         super(TestSiegeExecutor, self).tearDown()
 

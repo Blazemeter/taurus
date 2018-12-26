@@ -18,10 +18,6 @@ class TestMolotov(ExecutorTestCase):
     EXECUTOR = MolotovExecutor
 
     def tearDown(self):
-        if self.obj.stdout_file:
-            self.obj.stdout_file.close()
-        if self.obj.stderr_file:
-            self.obj.stderr_file.close()
         if self.obj.reader:
             close_reader_file(self.obj.reader.ldjson_reader)
         super(TestMolotov, self).tearDown()

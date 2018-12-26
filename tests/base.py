@@ -1,8 +1,9 @@
 import json
-import tempfile
 import inspect
 import os
 import logging
+
+from bzt.utils import temp_file
 
 ROOT_LOGGER = logging.getLogger("")
 
@@ -48,8 +49,7 @@ def close_reader_file(obj):
 def local_paths_config():
     """ to fix relative paths """
     dirname = os.path.dirname(__file__)
-    fds, fname = tempfile.mkstemp()
-    os.close(fds)
+    fname = temp_file()
     settings = {
         "modules": {
             "jmeter": {
@@ -59,7 +59,7 @@ def local_paths_config():
                 "path": RESOURCES_DIR + "grinder/fake_grinder.jar",
             },
             "gatling": {
-                "path": RESOURCES_DIR + "gatling/gatling" + EXE_SUFFIX,
+                "path": RESOURCES_DIR + "gatling/gatling2" + EXE_SUFFIX,
             },
             "junit": {
                 "path": dirname + "/../build/selenium/tools/junit/junit.jar",

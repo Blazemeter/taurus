@@ -14,7 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-import traceback
 from abc import abstractmethod
 
 from bzt import TaurusConfigError
@@ -22,7 +21,7 @@ from bzt.engine import HavingInstallableTools
 from bzt.modules import SubprocessedExecutor
 from bzt.six import string_types, iteritems
 from bzt.utils import TclLibrary, RequiredTool, Node, CALL_PROBLEMS, RESOURCES_DIR
-from bzt.utils import sync_run, get_full_path, is_windows, to_json, dehumanize_time
+from bzt.utils import get_full_path, is_windows, to_json, dehumanize_time
 
 
 class JavaScriptExecutor(SubprocessedExecutor, HavingInstallableTools):
@@ -96,7 +95,7 @@ class MochaTester(JavaScriptExecutor):
         if load.hold:
             mocha_cmdline += ['--hold-for', str(load.hold)]
 
-        self._start_subprocess(mocha_cmdline)
+        self.process = self.execute(mocha_cmdline)
 
 
 class WebdriverIOExecutor(JavaScriptExecutor):
@@ -159,7 +158,7 @@ class WebdriverIOExecutor(JavaScriptExecutor):
         if load.hold:
             cmdline += ['--hold-for', str(load.hold)]
 
-        self._start_subprocess(cmdline, cwd=script_dir)
+        self.process = self.execute(cmdline, cwd=script_dir)
 
 
 class NewmanExecutor(JavaScriptExecutor):
@@ -232,7 +231,7 @@ class NewmanExecutor(JavaScriptExecutor):
         # if load.hold:
         #    cmdline += ['--hold-for', str(load.hold)]
 
-        self._start_subprocess(cmdline, cwd=script_dir)
+        self.process = self.execute(cmdline, cwd=script_dir)
 
     def _dump_vars(self, key):
         cmdline = []
@@ -271,8 +270,10 @@ class NPM(RequiredTool):
         for candidate in candidates:
             try:
                 self.log.debug("Trying %r", candidate)
-                output = sync_run([candidate, '--version'])
-                self.log.debug("%s output: %s", candidate, output)
+                out, err = self.call([candidate, '--version'])
+                if err:
+                    out += err
+                self.log.debug("%s output: %s", candidate, out)
                 self.tool_path = candidate
                 return True
             except CALL_PROBLEMS:
@@ -295,32 +296,34 @@ class NPMPackage(RequiredTool):
         self.npm = npm_tool
 
     def check_if_installed(self):
+        cmdline = [self.node.tool_path, "-e"]
+        ok_msg = "%s is installed" % self.package_name
+        cmdline.append("require('%s'); console.log('%s');" % (self.package_name, ok_msg))
+
+        self.log.debug("%s check cmdline: %s", self.package_name, cmdline)
+        self.log.debug("NODE_PATH for check: %s", self.env.get("NODE_PATH"))
+
         try:
-            cmdline = [self.node.tool_path, "-e"]
-            ok_msg = "%s is installed" % self.package_name
-            cmdline.append("require('%s'); console.log('%s');" % (self.package_name, ok_msg))
-            self.log.debug("%s check cmdline: %s", self.package_name, cmdline)
-
-            self.log.debug("NODE_PATH for check: %s", self.env.get("NODE_PATH"))
-            output = sync_run(cmdline, env=self.env.get())
-            return ok_msg in output
-
-        except CALL_PROBLEMS:
-            self.log.debug("%s check failed: %s", self.package_name, traceback.format_exc())
+            out, _ = self.call(cmdline)
+            return ok_msg in out
+        except CALL_PROBLEMS as exc:
+            self.log.debug("%s check failed: %s", self.package_name, exc)
             return False
 
     def install(self):
-        try:
-            package_name = self.package_name
-            if self.version:
-                package_name += "@" + self.version
-            cmdline = [self.npm.tool_path, 'install', package_name, '--prefix', self.tools_dir, '--no-save']
-            output = sync_run(cmdline)
-            self.log.debug("%s install output: %s", self.tool_name, output)
-            return True
+        package_name = self.package_name
+        if self.version:
+            package_name += "@" + self.version
+        cmdline = [self.npm.tool_path, 'install', package_name, '--prefix', self.tools_dir, '--no-save']
 
-        except CALL_PROBLEMS:
-            self.log.debug("%s install failed: %s", self.package_name, traceback.format_exc())
+        try:
+            out, err = self.call(cmdline)
+            self.log.debug("%s install stdout: %s", self.tool_name, out)
+            if err:
+                self.log.warning("%s install stderr: %s", self.tool_name, err)
+            return True
+        except CALL_PROBLEMS as exc:
+            self.log.debug("%s install failed: %s", self.package_name, exc)
             return False
 
 

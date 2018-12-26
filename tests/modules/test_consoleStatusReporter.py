@@ -36,7 +36,9 @@ class TestConsoleStatusReporter(BZTestCase):
     def get_jmeter(self):
         jmeter_path = RESOURCES_DIR + "jmeter/jmeter-loader" + EXE_SUFFIX
         script_path = RESOURCES_DIR + "jmeter/jmx/dummy.jmx"
-        obj = MockJMeterExecutor(settings={'path': jmeter_path}, load={"scenario": {"script": script_path}})
+        obj = MockJMeterExecutor(settings={'path': jmeter_path})
+        obj.engine = EngineEmul()
+        obj.configure(load={"scenario": {"script": script_path}})
         return obj
 
     def test_1(self):

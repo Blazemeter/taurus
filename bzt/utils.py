@@ -39,6 +39,7 @@ import time
 import traceback
 import webbrowser
 import zipfile
+import subprocess
 from abc import abstractmethod
 from collections import defaultdict, Counter
 from contextlib import contextmanager
@@ -55,7 +56,7 @@ from progressbar import ProgressBar, Percentage, Bar, ETA
 from urwid import BaseScreen
 
 from bzt import TaurusInternalException, TaurusNetworkError, ToolError
-from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname
+from bzt.six import stream_decode, file_type, etree, parse, deunicode, url2pathname, communicate
 from bzt.six import string_types, iteritems, binary_type, text_type, b, integer_types, numeric_types
 
 CALL_PROBLEMS = (CalledProcessError, OSError)
@@ -65,6 +66,13 @@ LOG = logging.getLogger("")
 def sync_run(args, env=None):
     output = check_output(args, env=env, stderr=STDOUT)
     return stream_decode(output).rstrip()
+
+
+def temp_file(suffix="", prefix="tmp", dir=None):
+    """ Creates temporary file, returns name of it. User is responsible for deleting the file """
+    fd, fname = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=dir)
+    os.close(fd)
+    return fname
 
 
 def simple_body_dict(dic):
@@ -306,7 +314,7 @@ class BetterDict(defaultdict):
                         lefty.merge(righty)
                     else:
                         # todo: should we log all overwriting cases?
-                        logging.warning("Overwriting the value of %r when merging configs", key)
+                        LOG.warning("Overwriting the value of %r when merging configs", key)
                         left[index] = righty
                 else:
                     left.insert(index, righty)
@@ -379,48 +387,72 @@ def get_uniq_name(directory, prefix, suffix="", forbidden_names=()):
     return base + diff + suffix
 
 
+def exec_and_communicate(*args, **kwargs):
+    process = shell_exec(*args, **kwargs)
+    out, err = communicate(process)
+    if process.returncode != 0:
+        raise CalledProcessError(process.returncode, args[0][0])
+
+    return out, err
+
+
 def shell_exec(args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False, env=None):
     """
     Wrapper for subprocess starting
 
-    :param stderr:
-    :param stdout:
-    :param cwd:
-    :param stdin:
-    :type args: basestring or list
-    :return:
     """
-    if stdout and not isinstance(stdout, integer_types) and not isinstance(stdout, file_type):
-        logging.warning("stdout is not IOBase: %s", stdout)
+    if stdout and not isinstance(stdout, (integer_types, file_type)):
+        LOG.warning("stdout is not IOBase: %s", stdout)
         stdout = None
 
-    if stderr and not isinstance(stderr, integer_types) and not isinstance(stderr, file_type):
-        logging.warning("stderr is not IOBase: %s", stderr)
+    if stderr and not isinstance(stderr, (integer_types, file_type)):
+        LOG.warning("stderr is not IOBase: %s", stderr)
         stderr = None
 
     if isinstance(args, string_types) and not shell:
         args = shlex.split(args, posix=not is_windows())
-    logging.getLogger(__name__).debug("Executing shell: %s at %s", args, cwd or os.curdir)
+    LOG.debug("Executing shell: %s at %s", args, cwd or os.curdir)
 
     if is_windows():
-        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
-                            bufsize=0, cwd=cwd, shell=shell, env=env)
+        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
+                            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
     else:
-        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin,
-                            bufsize=0, preexec_fn=os.setpgrp, close_fds=True, cwd=cwd, shell=shell, env=env)
+        return psutil.Popen(args, stdout=stdout, stderr=stderr, stdin=stdin, bufsize=0, cwd=cwd, shell=shell, env=env,
+                            preexec_fn=os.setpgrp, close_fds=True)
+        # FIXME: shouldn't we bother closing opened descriptors?
 
 
 class Environment(object):
-    def __init__(self, log=None, data=None):
+    def __init__(self, log=None, parent=None):
         self.data = {}
+        self._queue = []
 
         log = log or LOG
         self.log = log.getChild(self.__class__.__name__)
 
-        if data:
-            self.set(data)
+        if parent:
+            self._queue.extend(
+                [(self.__getattribute__(method), args, kwargs) for method, args, kwargs in parent.get_queue()])
 
-    def set(self, env):
+    def get_queue(self):
+        return [(method.__name__, args, kwargs) for method, args, kwargs in self._queue]
+
+    def set(self, *args, **kwargs):
+        self._add_to_queue(self._set, *args, **kwargs)
+
+    def add_path(self, *args, **kwargs):
+        self._add_to_queue(self._add_path, *args, **kwargs)
+
+    def add_java_param(self, *args, **kwargs):
+        self._add_to_queue(self._add_java_param, *args, **kwargs)
+
+    def update(self, *args, **kwargs):
+        self._add_to_queue(self._update, *args, **kwargs)
+
+    def _add_to_queue(self, *args, **kwargs):
+        self._queue.append((args[0], args[1:], kwargs))
+
+    def _set(self, env):
         """
         :type env: dict
         """
@@ -441,13 +473,13 @@ class Environment(object):
             else:
                 self._add({key: val}, '', finish=False)
 
-    def add_path(self, pair, finish=False):
+    def _add_path(self, pair, finish=False):
         self._add(pair, os.pathsep, finish)
 
-    def add_java_param(self, pair, finish=False):
+    def _add_java_param(self, pair, finish=False):
         self._add(pair, " ", finish)
 
-    def update(self, env):  # compatibility with taurus-server
+    def _update(self, env):  # compatibility with taurus-server
         self.set(env)
 
     def _add(self, pair, separator, finish):
@@ -472,6 +504,8 @@ class Environment(object):
                 self.data[key] = str(val)
 
     def get(self, key=None):
+        self._apply_queue()
+
         if key:
             key = str(key)
             if is_windows():
@@ -481,6 +515,12 @@ class Environment(object):
         else:
             # full environment
             return copy.deepcopy(self.data)
+
+    def _apply_queue(self):
+        self.data = {}
+        self._set(os.environ)
+        for method, args, kwargs in self._queue:
+            method(*args, **kwargs)
 
 
 class FileReader(object):
@@ -580,6 +620,9 @@ class FileReader(object):
                 return _bytes
 
     def __del__(self):
+        self.close()
+
+    def close(self):
         if self.fds:
             self.fds.close()
 
@@ -832,12 +875,12 @@ def load_class(full_name):
     """
     module_name = full_name[:full_name.rfind('.')]
     class_name = full_name[full_name.rfind('.') + 1:]
-    logging.debug("Importing module: %s", module_name)
+    LOG.debug("Importing module: %s", module_name)
     module = __import__(module_name)
     for mod in module_name.split('.')[1:]:
         module = getattr(module, mod)
 
-    logging.debug("Loading class: '%s' from %s", class_name, module)
+    LOG.debug("Loading class: '%s' from %s", class_name, module)
     return getattr(module, class_name)
 
 
@@ -848,7 +891,7 @@ def unzip(source_filename, dest_dir, rel_path=None):
     :param rel_path:
     :return:
     """
-    logging.debug("Extracting %s to %s", source_filename, dest_dir)
+    LOG.debug("Extracting %s to %s", source_filename, dest_dir)
 
     with zipfile.ZipFile(source_filename) as zfd:
         for member in zfd.infolist():
@@ -863,7 +906,7 @@ def unzip(source_filename, dest_dir, rel_path=None):
 
             # Path traversal defense copied from
             # http://hg.python.org/cpython/file/tip/Lib/http/server.py#l789
-            logging.debug("Writing %s%s%s", dest_dir, os.path.sep, member.filename)
+            LOG.debug("Writing %s%s%s", dest_dir, os.path.sep, member.filename)
 
             zfd.extract(member, dest_dir)
 
@@ -1095,19 +1138,14 @@ class ExceptionalDownloader(object):
         if os.getenv("TAURUS_DISABLE_DOWNLOADS", ""):
             raise TaurusInternalException("Downloads are disabled by TAURUS_DISABLE_DOWNLOADS env var")
 
-        fd = None
         try:
             if not filename:
-                fd, filename = tempfile.mkstemp(suffix)
+                filename = temp_file(suffix)
             result = self.http_client.download_file(url, filename, reporthook=reporthook, data=data, timeout=timeout)
         except BaseException:
-            if fd:
-                os.close(fd)
-                os.remove(filename)
+            os.remove(filename)
             raise
 
-        if fd:
-            os.close(fd)
         return result
 
 
@@ -1121,9 +1159,12 @@ class RequiredTool(object):
         self.http_client = http_client
         self.tool_path = os.path.expanduser(tool_path)
         self.download_link = download_link
-        self.already_installed = False
         self.mirror_manager = None
-        self.version = version
+
+        self.version = None
+        if version is not None:
+            self.version = str(version)
+
         self.installable = installable
 
         self.tool_name = self.__class__.__name__
@@ -1132,22 +1173,20 @@ class RequiredTool(object):
         if not isinstance(log, logging.Logger):
             log = None
 
-        if log is None:
-            log = log or LOG
-
+        log = log or LOG
         self.log = log.getChild(self.tool_name)
 
-        if env is None:
-            env = Environment(self.log, dict(os.environ))
-
-        self.env = env
+        self.env = env or Environment(self.log)
 
     def _get_version(self, output):
         return
 
+    def call(self, *args, **kwargs):
+        kwargs["env"] = self.env.get().update(kwargs.get("env", {}))
+        return exec_and_communicate(*args, **kwargs)
+
     def check_if_installed(self):
         if os.path.exists(self.tool_path):
-            self.already_installed = True
             return True
         self.log.debug("File not exists: %s", self.tool_path)
         return False
@@ -1204,11 +1243,11 @@ class JavaVM(RequiredTool):
         cmd = [self.tool_path, '-version']
         self.log.debug("Trying %s: %s", self.tool_name, cmd)
         try:
-            output = sync_run(cmd)
-            self.version = self._get_version(output)
-            self.log.debug("%s output: %s", self.tool_name, output)
+            out, err = self.call(cmd)
+            self.version = self._get_version(err)
+            self.log.debug("%s output: %s", self.tool_name, out)
             return True
-        except (CalledProcessError, OSError) as exc:
+        except CALL_PROBLEMS as exc:
             self.log.debug("Failed to check %s: %s", self.tool_name, exc)
             return False
 
@@ -1220,7 +1259,7 @@ class ProgressBarContext(ProgressBar):
 
     def __enter__(self):
         if not sys.stdout.isatty():
-            logging.debug("No progressbar for non-tty output: %s", sys.stdout)
+            LOG.debug("No progressbar for non-tty output: %s", sys.stdout)
 
         self.start()
         return self
@@ -1316,11 +1355,11 @@ class Node(RequiredTool):
         for candidate in node_candidates:
             try:
                 self.log.debug("Trying %r", candidate)
-                output = sync_run([candidate, '--version'])
-                self.log.debug("%s output: %s", candidate, output)
+                out, _ = self.call([candidate, '--version'])
+                self.log.debug("%s output: %s", candidate, out)
                 self.tool_path = candidate
                 return True
-            except (CalledProcessError, OSError):
+            except CALL_PROBLEMS:
                 self.log.debug("%r is not installed", candidate)
                 continue
         return False
@@ -1394,10 +1433,10 @@ def open_browser(url):
     try:
         browser = webbrowser.get()
         if type(browser) != GenericBrowser:  # pylint: disable=unidiomatic-typecheck
-            with log_std_streams(logger=logging):
+            with log_std_streams(logger=LOG):
                 webbrowser.open(url)
     except BaseException as exc:
-        logging.warning("Can't open link in browser: %s", exc)
+        LOG.warning("Can't open link in browser: %s", exc)
 
 
 def is_windows():
@@ -1453,7 +1492,7 @@ class DummyScreen(BaseScreen):
                     line += part[2].decode()
             data += "%s│\n" % line
         data = self.ansi_escape.sub('', data)
-        logging.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
+        LOG.info("Screen %sx%s chars:\n%s", size[0], size[1], data)
 
 
 def which(filename):

@@ -4,33 +4,22 @@ import time
 
 import os
 from bzt import ToolError
-from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER
+from tests import BZTestCase, RESOURCES_DIR, BUILD_DIR, close_reader_file, ROOT_LOGGER, ExecutorTestCase
 
 from bzt.modules.aggregator import DataPoint, KPISet
 from bzt.modules.grinder import GrinderExecutor, DataLogReader, Grinder, GrinderMirrorsManager
 from bzt.modules.provisioning import Local
 from bzt.utils import EXE_SUFFIX, get_full_path
-from tests.mocks import EngineEmul
 
 
-def get_grinder():
-    obj = GrinderExecutor()
-    obj.engine = EngineEmul()
-    obj.env = obj.engine.env
-    obj.settings.merge({'path': RESOURCES_DIR + "grinder/fake_grinder.jar"})
-    return obj
+class TestGrinderExecutor(ExecutorTestCase):
+    EXECUTOR = GrinderExecutor
 
-
-class TestGrinderExecutor(BZTestCase):
     def setUp(self):
         super(TestGrinderExecutor, self).setUp()
-        self.obj = get_grinder()
+        self.obj.settings.merge({'path': RESOURCES_DIR + "grinder/fake_grinder.jar"})
 
     def tearDown(self):
-        if self.obj.stdout_file:
-            self.obj.stdout_file.close()
-        if self.obj.stderr_file:
-            self.obj.stderr_file.close()
         close_reader_file(self.obj.reader)
         super(TestGrinderExecutor, self).tearDown()
 
@@ -43,7 +32,7 @@ class TestGrinderExecutor(BZTestCase):
         mirrors_source = GrinderMirrorsManager.MIRRORS_SOURCE
         try:
             GrinderMirrorsManager.DOWNLOAD_LINK = "file:///" + RESOURCES_DIR + \
-                                            "grinder/grinder-{version}_{version}-binary.zip"
+                                                  "grinder/grinder-{version}_{version}-binary.zip"
             Grinder.VERSION = "3.11"
             GrinderMirrorsManager.MIRRORS_SOURCE = "file:///" + RESOURCES_DIR + "jmeter/unicode_file"
 
@@ -148,7 +137,7 @@ class TestGrinderExecutor(BZTestCase):
         self.assertFalse(self.obj.has_results())
 
     def test_script_generation(self):
-        self.obj.execution.merge({
+        self.configure({"execution": {
             "scenario": {
                 "default-address": "http://blazedemo.com",
                 "headers": {
@@ -165,10 +154,7 @@ class TestGrinderExecutor(BZTestCase):
                      'think-time': "1s",
                      'headers': {
                          'Custom': 'Header',
-                     }},
-                ]
-            }
-        })
+                     }}]}}})
         self.obj.prepare()
         script = open(os.path.join(self.obj.engine.artifacts_dir, 'grinder_requests.py')).read()
 

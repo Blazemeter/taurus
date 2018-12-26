@@ -41,6 +41,7 @@ from yaml.representer import SafeRepresenter
 
 import bzt
 from bzt import ManualShutdown, get_configs_dir, TaurusConfigError, TaurusInternalException, InvalidTaurusConfiguration
+from bzt import ToolError
 from bzt.requests_model import RequestParser
 from bzt.six import numeric_types, string_types, text_type, PY2, UserDict, parse, reraise
 from bzt.utils import PIPE, shell_exec, get_full_path, ExceptionalDownloader, get_uniq_name, HTTPClient
@@ -75,8 +76,10 @@ class Engine(object):
         self.reporters = []
         self.artifacts_dir = None
         self.log = parent_logger.getChild(self.__class__.__name__)
-        self.env = Environment(self.log, dict(os.environ))
-        self.shared_env = Environment(self.log)
+
+        self.env = Environment(self.log)            # backward compatibility
+        self.shared_env = Environment(self.log)     # backward compatibility
+
         self.config = Configuration()
         self.config.log = self.log.getChild(Configuration.__name__)
         self.modules = {}  # available modules
@@ -218,14 +221,11 @@ class Engine(object):
             module.startup()
         self.config.dump()
 
-    def start_subprocess(self, args, cwd, stdout, stderr, stdin, shell, env):
+    def start_subprocess(self, args, env, cwd=None, **kwargs):
         if cwd is None:
             cwd = self.default_cwd
 
-        env = Environment(self.log, env.get())
-        env.set(self.shared_env.get())
-
-        return shell_exec(args, cwd=cwd, stdout=stdout, stderr=stderr, stdin=stdin, shell=shell, env=env.get())
+        return shell_exec(args, cwd=cwd, env=env.get(), **kwargs)
 
     def run(self):
         """
@@ -407,7 +407,7 @@ class Engine(object):
         self.artifacts_dir = get_full_path(self.artifacts_dir)
 
         self.log.info("Artifacts dir: %s", self.artifacts_dir)
-        self.env.set({TAURUS_ARTIFACTS_DIR: self.artifacts_dir})
+        os.environ[TAURUS_ARTIFACTS_DIR] = self.artifacts_dir
 
         if not os.path.isdir(self.artifacts_dir):
             os.makedirs(self.artifacts_dir)
@@ -724,7 +724,6 @@ class Engine(object):
                 envs[varname] = os.path.expandvars(envs[varname])
 
         for varname in envs:
-            self.env.set({varname: envs[varname]})
             if envs[varname] is None:
                 if varname in os.environ:
                     os.environ.pop(varname)
@@ -1053,21 +1052,21 @@ class ScenarioExecutor(EngineModule):
 
     def __init__(self):
         super(ScenarioExecutor, self).__init__()
-        self.env = None
+        self.env = Environment(log=self.log)
         self.provisioning = None
         self.execution = BetterDict()  # FIXME: why have this field if we have `parameters` from base class?
         self.__scenario = None
         self.label = None
         self.widget = None
         self.reader = None
+        self.stdout = None
+        self.stderr = None
         self.delay = None
         self.start_time = None
         self.preprocess_args = lambda x: None
 
     def _get_tool(self, tool, **kwargs):
-        env = Environment(self.log, self.env.get())
-
-        instance = tool(env=env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
+        instance = tool(env=self.env, log=self.log, http_client=self.engine.get_http_client(), **kwargs)
         assert isinstance(instance, RequiredTool)
 
         return instance
@@ -1210,11 +1209,30 @@ class ScenarioExecutor(EngineModule):
     def __repr__(self):
         return "%s/%s" % (self.execution.get("executor", None), self.label if self.label else id(self))
 
-    def execute(self, args, cwd=None, stdout=PIPE, stderr=PIPE, stdin=PIPE, shell=False):
+    def execute(self, args, **kwargs):
         self.preprocess_args(args)
 
-        return self.engine.start_subprocess(args=args, cwd=cwd, stdout=stdout,
-                                            stderr=stderr, stdin=stdin, shell=shell, env=self.env)
+        # for compatibility with other executors
+        kwargs["stdout"] = kwargs.get("stdout", self.stdout) or PIPE
+        kwargs["stderr"] = kwargs.get("stderr", self.stderr) or PIPE
+
+        kwargs["cwd"] = kwargs.get("cwd", None)
+        kwargs["env"] = self.env
+
+        self.start_time = time.time()
+
+        try:
+            process = self.engine.start_subprocess(args=args, **kwargs)
+        except OSError as exc:
+            raise ToolError("Failed to start %s: %s (%s)" % (self.__class__.__name__, exc, args))
+        return process
+
+    def post_process(self):
+        if self.stdout:
+            self.stdout.close()
+        if self.stderr:
+            self.stderr.close()
+        super(ScenarioExecutor, self).post_process()
 
 
 class Reporter(EngineModule):

@@ -1,16 +1,20 @@
-from tempfile import mkstemp
+import os
 
 from bzt.jmx.http import HTTPProtocolHandler
 from bzt.modules.jmeter import JMeterScenarioBuilder
 from bzt.six import etree
+from bzt.utils import temp_file
 from tests import BZTestCase, RESOURCES_DIR
+from tests.mocks import EngineEmul
 from . import MockJMeterExecutor
 
 
 class TestScenarioBuilder(BZTestCase):
     def setUp(self):
         super(TestScenarioBuilder, self).setUp()
-        executor = MockJMeterExecutor({"scenario": "SB"})
+        executor = MockJMeterExecutor()
+        executor.engine = EngineEmul()
+        executor.configure(load={"scenario": "SB"})
         executor.engine.config.merge({"scenarios": {"SB": {}}})
         executor.settings['protocol-handlers'] = {
             'http': HTTPProtocolHandler.__module__ + '.' + HTTPProtocolHandler.__name__
@@ -18,11 +22,15 @@ class TestScenarioBuilder(BZTestCase):
 
         self.obj = JMeterScenarioBuilder(executor)
 
-        _, self.jmx = mkstemp()
+        self.jmx = temp_file()
 
     def configure(self, scenario, version="3.3"):
         self.obj.scenario.data.merge(scenario)
         self.obj.executor.settings["version"] = version
+
+    def tearDown(self):
+        os.remove(self.jmx)
+        super(TestScenarioBuilder, self).tearDown()
 
     @staticmethod
     def get_plugin_json_extractor_config(xml_tree):

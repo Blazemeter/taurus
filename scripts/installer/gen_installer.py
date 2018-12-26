@@ -134,7 +134,7 @@ def main():
         sys.exit(1)
     bzt_dist = sys.argv[1]
     tkinter_link = "https://github.com/mu-editor/mu_tkinter/releases/download/0.3/pynsist_tkinter_3.6_64bit.zip"
-    levenstein_wheel_link = "https://download.lfd.uci.edu/pythonlibs/h2ufg7oq/python_Levenshtein-0.12.0-cp36-cp36m-win_amd64.whl"
+    levenstein_wheel_link = "https://download.lfd.uci.edu/pythonlibs/r5uhg2lo/python_Levenshtein-0.12.0-cp36-cp36m-win_amd64.whl"
     pynsist_config = "installer-gen.cfg"
     wheel_dir = "build/wheels"
     additional_packages = ['pip', 'setuptools', 'wheel']

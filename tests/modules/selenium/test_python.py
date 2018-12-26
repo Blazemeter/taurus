@@ -8,8 +8,7 @@ from bzt.engine import ScenarioExecutor
 from bzt.modules.functional import FuncSamplesReader, LoadSamplesReader, FunctionalAggregator
 from bzt.modules.python import ApiritifNoseExecutor, PyTestExecutor, RobotExecutor
 from bzt.modules.python.executors import ApiritifLoadReader, ApiritifFuncReader
-from tests import BZTestCase, RESOURCES_DIR
-from tests.mocks import EngineEmul
+from tests import RESOURCES_DIR, ExecutorTestCase
 from tests.modules.selenium import SeleniumTestCase
 
 
@@ -135,16 +134,8 @@ class TestSeleniumNoseRunner(SeleniumTestCase):
             self.obj.shutdown()
 
 
-class TestNoseRunner(BZTestCase):
-    def setUp(self):
-        super(TestNoseRunner, self).setUp()
-        self.obj = ApiritifNoseExecutor()
-        self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
-
-    def configure(self, config):
-        self.obj.engine.config.merge(config)
-        self.obj.execution = self.obj.engine.config["execution"][0]
+class TestNoseRunner(ExecutorTestCase):
+    EXECUTOR = ApiritifNoseExecutor
 
     def test_full_single_script(self):
         self.obj.engine.check_interval = 0.1
@@ -574,16 +565,8 @@ class TestSeleniumScriptBuilder(SeleniumTestCase):
                               (self.obj.engine.artifacts_dir + os.path.sep).replace('\\', '\\\\'), "<somewhere>")
 
 
-class TestApiritifScriptGenerator(BZTestCase):
-    def setUp(self):
-        super(TestApiritifScriptGenerator, self).setUp()
-        self.obj = ApiritifNoseExecutor()
-        self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
-
-    def configure(self, config):
-        self.obj.engine.config.merge(config)
-        self.obj.execution = self.obj.engine.config["execution"][0]
+class TestApiritifScriptGenerator(ExecutorTestCase):
+    EXECUTOR = ApiritifNoseExecutor
 
     def test_keepalive_default(self):
         self.configure({
@@ -1264,16 +1247,8 @@ class TestApiritifScriptGenerator(BZTestCase):
         self.assertIn("class TestAPI(unittest.TestCase)", test_script)
 
 
-class TestPyTestExecutor(BZTestCase):
-    def setUp(self):
-        super(TestPyTestExecutor, self).setUp()
-        self.obj = PyTestExecutor()
-        self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
-
-    def configure(self, config):
-        self.obj.engine.config.merge(config)
-        self.obj.execution = self.obj.engine.config["execution"][0]
+class TestPyTestExecutor(ExecutorTestCase):
+    EXECUTOR = PyTestExecutor
 
     def test_full_single_script(self):
         self.obj.execution.merge({
@@ -1415,21 +1390,13 @@ class TestPyTestExecutor(BZTestCase):
                 time.sleep(self.obj.engine.check_interval)
         finally:
             self.obj.shutdown()
-        with open(self.obj.stdout_file) as fds:
+        with open(self.obj.stdout.name) as fds:
             stdout = fds.read()
             self.assertIn(additional_args, stdout)
 
 
-class TestRobotExecutor(BZTestCase):
-    def setUp(self):
-        super(TestRobotExecutor, self).setUp()
-        self.obj = RobotExecutor()
-        self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
-
-    def configure(self, config):
-        self.obj.engine.config.merge(config)
-        self.obj.execution = self.obj.engine.config["execution"][0]
+class TestRobotExecutor(ExecutorTestCase):
+    EXECUTOR = RobotExecutor
 
     def test_full_single_script(self):
         self.configure({

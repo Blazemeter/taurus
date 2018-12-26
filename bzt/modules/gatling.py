@@ -19,7 +19,6 @@ import json
 import codecs
 import os
 import re
-import subprocess
 import time
 from collections import defaultdict
 from distutils.version import LooseVersion
@@ -31,8 +30,8 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import string_types, numeric_types
 from bzt.utils import TclLibrary, EXE_SUFFIX, dehumanize_time, get_full_path, FileReader, RESOURCES_DIR, BetterDict
-from bzt.utils import unzip, shell_exec, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
-from bzt.utils import simple_body_dict
+from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, ensure_is_dict, is_windows
+from bzt.utils import simple_body_dict, CALL_PROBLEMS
 
 
 class GatlingScriptBuilder(object):
@@ -247,54 +246,15 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     """
     Gatling executor module
     """
-
     def __init__(self):
         super(GatlingExecutor, self).__init__()
         self.script = None
         self.process = None
         self.end_time = None
         self.retcode = None
-        self.stdout_file = None
-        self.stderr_file = None
         self.simulation_started = False
         self.dir_prefix = "gatling-%s" % id(self)
-        self.launcher = None
         self.tool = None
-
-    def __build_launcher(self):
-        modified_launcher = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
-        origin_launcher = get_full_path(self.settings['path'])
-        origin_dir = get_full_path(origin_launcher, step_up=2)
-
-        modified_lines = []
-        mod_success = False
-
-        with open(origin_launcher) as fds:
-            for line in fds.readlines():
-                if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
-                    mod_success = True
-                    continue
-                if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
-                    mod_success = True
-                    line = line.rstrip() + '":${COMPILATION_CLASSPATH}"\n'
-                modified_lines.append(line)
-
-        if not mod_success:
-            raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
-
-        if is_windows():
-            first_line = 'set "GATLING_HOME=%s"\n' % origin_dir
-        else:
-            first_line = 'GATLING_HOME="%s"\n' % origin_dir
-        modified_lines.insert(1, first_line)
-
-        with open(modified_launcher, 'w') as modified:
-            modified.writelines(modified_lines)
-
-        if not is_windows():
-            os.chmod(modified_launcher, 0o755)
-
-        return modified_launcher
 
     def get_cp_from_files(self):
         jar_files = []
@@ -314,26 +274,24 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
     def get_additional_classpath(self):
         cp = self.get_scenario().get("additional-classpath", [])
         cp.extend(self.settings.get("additional-classpath", []))
-        cp.extend(self.get_cp_from_files())  # todo: for backward compatibility, remove it later as obsolete
         return cp
 
     def prepare(self):
         self.install_required_tools()
         scenario = self.get_scenario()
 
+        self.env.set({"GATLING_HOME": self.tool.tool_dir})
+
         cpath = self.get_additional_classpath()
-
         self.log.debug("Classpath for Gatling: %s", cpath)
-        for element in cpath:
-            self.env.add_path({"JAVA_CLASSPATH": element})
-            self.env.add_path({"COMPILATION_CLASSPATH": element})
 
-        if is_windows() or cpath:
-            self.log.debug("Building Gatling launcher")
-            self.launcher = self.__build_launcher()
-        else:
-            self.log.debug("Will not build Gatling launcher")
-            self.launcher = self.settings["path"]
+        if cpath:
+            new_name = self.engine.create_artifact('gatling-launcher', EXE_SUFFIX)
+            self.log.debug("Building Gatling launcher: %s", new_name)
+            self.tool.build_launcher(new_name)
+            for element in cpath:
+                self.env.add_path({"JAVA_CLASSPATH": element})
+                self.env.add_path({"COMPILATION_CLASSPATH": element})
 
         self.script = self.get_script_path()
         if not self.script:
@@ -346,6 +304,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 raise TaurusConfigError(msg)
 
         self.dir_prefix = self.settings.get("dir-prefix", self.dir_prefix)
+
+        self.stdout = open(self.engine.create_artifact("gatling", ".out"), "w")
+        self.stderr = open(self.engine.create_artifact("gatling", ".err"), "w")
+
         self.reader = DataLogReader(self.engine.artifacts_dir, self.log, self.dir_prefix)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
             self.engine.aggregator.add_underling(self.reader)
@@ -365,14 +327,8 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             source_path = self.engine.find_file(source["path"])
             self.engine.existing_artifact(source_path)
 
-    def _set_files(self):
-        self.start_time = time.time()
-        out = self.engine.create_artifact("gatling-stdout", ".log")
-        err = self.engine.create_artifact("gatling-stderr", ".log")
-        self.stdout_file = open(out, "w")
-        self.stderr_file = open(err, "w")
-
-    def _set_simulation_props(self, props):
+    def _get_simulation_props(self):
+        props = {}
         if os.path.isfile(self.script):
             if self.script.endswith('.jar'):
                 self.env.add_path({"JAVA_CLASSPATH": self.script})
@@ -387,9 +343,11 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             props['gatling.core.simulationClass'] = simulation
         else:
             props['gatling.core.runDescription'] = "Taurus_Test"
+        return props
 
-    def _set_load_props(self, props):
+    def _get_load_props(self):
         load = self.get_load()
+        props = {}
         if load.concurrency is not None:
             props['concurrency'] = load.concurrency
         if load.ramp_up is not None:
@@ -403,8 +361,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
                 props['throughput'] = load.throughput
             else:
                 self.log.warning("You should set up 'ramp-up' and/or 'hold-for' for usage of 'throughput'")
+        return props
 
-    def _set_scenario_props(self, props):
+    def _get_scenario_props(self):
+        props = {}
         scenario = self.get_scenario()
         timeout = scenario.get('timeout', None)
         if timeout is not None:
@@ -422,6 +382,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             props['gatling.http.ahc.allowPoolingSslConnections'] = 'false'
             # gatling > 2.2.0
             props['gatling.http.ahc.keepAlive'] = 'false'
+        return props
 
     def _set_env(self):
         props = BetterDict()
@@ -432,24 +393,23 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         props['gatling.core.directory.resources'] = self.engine.artifacts_dir
         props['gatling.core.directory.results'] = self.engine.artifacts_dir
 
-        self._set_simulation_props(props)
-        self._set_load_props(props)
-        self._set_scenario_props(props)
+        props.merge(self._get_simulation_props())
+        props.merge(self._get_load_props())
+        props.merge(self._get_scenario_props())
+        for key in props:
+            self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
 
         self.env.set({"NO_PAUSE": "TRUE"})
         self.env.add_java_param({"JAVA_OPTS": self.settings.get("java-opts", None)})
-        for key in props:
-            self.env.add_java_param({"JAVA_OPTS": "-D%s=%s" % (key, props[key])})
 
         self.log.debug('JAVA_OPTS: "%s"', self.env.get("JAVA_OPTS"))
 
     def startup(self):
-        self._set_files()
         self._set_env()
-        self.process = self.execute(self._get_cmdline(), stdout=self.stdout_file, stderr=self.stderr_file)
+        self.process = self.execute(self._get_cmdline())
 
     def _get_cmdline(self):
-        cmdline = [self.launcher]
+        cmdline = [self.tool.tool_path]
 
         if LooseVersion(self.tool.version) < LooseVersion("3"):
             cmdline += ["-m"]   # default for 3.0.0
@@ -470,7 +430,7 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         # detect interactive mode and raise exception if it found
         if not self.simulation_started:
             wrong_line = "Choose a simulation number:"
-            with open(self.stdout_file.name) as out:
+            with open(self.stdout.name) as out:
                 file_header = out.read(1024)
             if wrong_line in file_header:  # gatling can't select test scenario
                 scenarios = file_header[file_header.find(wrong_line) + len(wrong_line):].rstrip()
@@ -480,24 +440,18 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
             if 'started...' in file_header:
                 self.simulation_started = True
 
-        if self.retcode is not None:
-            if self.retcode != 0:
-                raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode,
-                                self.get_error_diagnostics())
-
+        if self.retcode is None:
+            return False
+        elif self.retcode == 0:
             return True
-        return False
+        else:
+            raise ToolError("Gatling tool exited with non-zero code: %s" % self.retcode, self.get_error_diagnostics())
 
     def shutdown(self):
         """
         If tool is still running - let's stop it.
         """
         shutdown_process(self.process, self.log)
-
-        if self.stdout_file:
-            self.stdout_file.close()
-        if self.stderr_file:
-            self.stderr_file.close()
 
         if self.start_time:
             self.end_time = time.time()
@@ -509,11 +463,10 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         if self.reader and self.reader.file and self.reader.file.name:
             self.engine.existing_artifact(self.reader.file.name)
+        super(GatlingExecutor, self).post_process()
 
     def install_required_tools(self):
         self.tool = self._get_tool(Gatling, config=self.settings)
-        self.settings["path"] = self.tool.tool_path
-
         required_tools = [self._get_tool(TclLibrary), self._get_tool(JavaVM), self.tool]
 
         for tool in required_tools:
@@ -545,13 +498,13 @@ class GatlingExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.stdout_file is not None:
-            with open(self.stdout_file.name) as fds:
+        if self.stdout is not None:
+            with open(self.stdout.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Gatling STDOUT:\n" + contents)
-        if self.stderr_file is not None:
-            with open(self.stderr_file.name) as fds:
+        if self.stderr is not None:
+            with open(self.stderr.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Gatling STDERR:\n" + contents)
@@ -801,15 +754,18 @@ class Gatling(RequiredTool):
         download_link = settings.get("download-link", self.DOWNLOAD_LINK).format(version=version)
         super(Gatling, self).__init__(tool_path=gatling_path, download_link=download_link, version=version, **kwargs)
 
+        self.tool_dir = get_full_path(self.tool_path, step_up=2)
+
     def check_if_installed(self):
         self.log.debug("Trying Gatling: %s", self.tool_path)
         try:
-            gatling_proc = shell_exec([self.tool_path, '--help'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            gatling_output = gatling_proc.communicate()
-            self.log.debug("Gatling check is successful: %s", gatling_output)
+            out, err = self.call([self.tool_path, '--help'])
+            self.log.debug("Gatling check output: %s", out)
+            if err:
+                self.log.warning("Gatling check stderr: %s", err)
             return True
-        except OSError:
-            self.log.info("Gatling check failed.")
+        except CALL_PROBLEMS as exc:
+            self.log.info("Gatling check failed: %s", exc)
             return False
 
     def install(self):
@@ -823,3 +779,55 @@ class Gatling(RequiredTool):
         self.log.info("Installed Gatling successfully")
         if not self.check_if_installed():
             raise ToolError("Unable to run %s after installation!" % self.tool_name)
+
+    def build_launcher(self, new_name):
+        def convert_v2():
+            modified_lines = []
+            mod_success = False
+
+            with open(self.tool_path) as fds:
+                for line in fds.readlines():
+                    if is_windows() and line.startswith('set COMPILATION_CLASSPATH=""'):
+                        mod_success = True
+                        continue  # don't add it to modified_lines - just remove
+                    if not is_windows() and line.startswith('COMPILATION_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip() + ':"${COMPILATION_CLASSPATH}"\n'  # add from env
+                    modified_lines.append(line)
+
+            if not mod_success:
+                raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
+
+            return modified_lines
+
+        def convert_v3():
+            modified_lines = []
+            mod_success = False
+
+            with open(self.tool_path) as fds:
+                for line in fds.readlines():
+                    if is_windows() and line.startswith('set COMPILER_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip() + ';%COMPILATION_CLASSPATH%\n'   # add from env
+                    if not is_windows() and line.startswith('COMPILER_CLASSPATH='):
+                        mod_success = True
+                        line = line.rstrip()[:-1] + '${COMPILATION_CLASSPATH}"\n'  # add from env
+                    modified_lines.append(line)
+
+            if not mod_success:
+                raise ToolError("Can't modify gatling launcher for jar usage, ability isn't supported")
+
+            return modified_lines
+
+        if LooseVersion(self.version) < LooseVersion('3'):
+            converted_lines = convert_v2()
+        else:
+            converted_lines = convert_v3()
+
+        self.tool_path = new_name
+
+        with open(self.tool_path, 'w') as modified:
+            modified.writelines(converted_lines)
+
+        if not is_windows():
+            os.chmod(self.tool_path, 0o755)

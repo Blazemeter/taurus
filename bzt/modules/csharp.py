@@ -14,12 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import os
-from subprocess import check_output, CalledProcessError, STDOUT
 
 from bzt import TaurusConfigError
 from bzt.modules import SubprocessedExecutor
 from bzt.engine import HavingInstallableTools
-from bzt.utils import get_full_path, is_windows, RequiredTool, RESOURCES_DIR
+from bzt.utils import get_full_path, is_windows, RequiredTool, RESOURCES_DIR, CALL_PROBLEMS
 
 
 class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
@@ -66,7 +65,7 @@ class NUnitExecutor(SubprocessedExecutor, HavingInstallableTools):
         if not is_windows():
             self.env.add_path({"MONO_PATH": self.runner_dir})
 
-        self._start_subprocess(cmdline)
+        self.process = self.execute(cmdline)
 
 
 class Mono(RequiredTool):
@@ -74,9 +73,13 @@ class Mono(RequiredTool):
         super(Mono, self).__init__(tool_path="mono", installable=False, **kwargs)
 
     def check_if_installed(self):
+        self.log.debug('Trying %s: %s', self.tool_name, self.tool_path)
         try:
-            output = check_output([self.tool_path, '--version'], stderr=STDOUT)
-            self.log.debug("%s output: %s", self.tool_name, output)
+            out, err = self.call([self.tool_path, '--version'])
+            self.log.debug("%s check stdout: %s", self.tool_name, out)
+            if err:
+                self.log.warning("%s check stderr: %s", self.tool_name, err)
             return True
-        except (CalledProcessError, OSError):
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False

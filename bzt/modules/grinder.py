@@ -17,7 +17,6 @@ limitations under the License.
 """
 import os
 import re
-import subprocess
 import time
 
 from bzt import TaurusConfigError, ToolError
@@ -27,7 +26,7 @@ from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.modules.java import TaurusJavaHelper
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt.utils import shell_exec, MirrorsManager, dehumanize_time, get_full_path, PythonGenerator
+from bzt.utils import MirrorsManager, dehumanize_time, get_full_path, PythonGenerator, CALL_PROBLEMS
 from bzt.utils import unzip, RequiredTool, JavaVM, shutdown_process, TclLibrary, FileReader, RESOURCES_DIR
 
 
@@ -45,8 +44,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         self.process = None
         self.end_time = None
         self.retcode = None
-        self.stdout_file = None
-        self.stderr_file = None
         self.java_helper = None
 
     def __write_base_props(self, fds):
@@ -124,8 +121,10 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         fds.write("# BZT Properies End\n")
 
     def prepare(self):
-        self.install_required_tools()
+        self.stdout = open(self.engine.create_artifact("grinder", ".out"), "w")
+        self.stderr = open(self.engine.create_artifact("grinder", ".err"), "w")
 
+        self.install_required_tools()
         scenario = self.get_scenario()
         self.exec_id = self.label
         self.script = self.get_script_path()
@@ -162,14 +161,8 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         Should start the tool as fast as possible.
         """
-        self.start_time = time.time()
-        out = self.engine.create_artifact("grinder-stdout", ".log")
-        err = self.engine.create_artifact("grinder-stderr", ".log")
-        self.stdout_file = open(out, "w")
-        self.stderr_file = open(err, "w")
         self.env.set({"T_GRINDER_PREFIX": self.exec_id})
-
-        self.process = self.execute(self.cmd_line, stdout=self.stdout_file, stderr=self.stderr_file)
+        self.process = self.execute(self.cmd_line)
 
     def check(self):
         """
@@ -193,12 +186,6 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         If tool is still running - let's stop it.
         """
         shutdown_process(self.process, self.log)
-
-        if self.stdout_file:
-            self.stdout_file.close()
-        if self.stderr_file:
-            self.stderr_file.close()
-
         if self.start_time:
             self.end_time = time.time()
             self.log.debug("Grinder worked for %s seconds", self.end_time - self.start_time)
@@ -209,6 +196,7 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
         """
         if self.kpi_file:
             self.engine.existing_artifact(self.kpi_file)
+        super(GrinderExecutor, self).post_process()
 
     def __scenario_from_requests(self):
         """
@@ -262,13 +250,13 @@ class GrinderExecutor(ScenarioExecutor, WidgetProvider, FileLister, HavingInstal
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.stdout_file is not None:
-            with open(self.stdout_file.name) as fds:
+        if self.stdout is not None:
+            with open(self.stdout.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Grinder STDOUT:\n" + contents)
-        if self.stderr_file is not None:
-            with open(self.stderr_file.name) as fds:
+        if self.stderr is not None:
+            with open(self.stderr.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("Grinder STDOUT:\n" + contents)
@@ -420,7 +408,6 @@ class DataLogReader(ResultsReader):
 
 class Grinder(RequiredTool):        # todo: take it from maven and convert to JarTool(?)
     VERSION = "3.11"
-
     LOCAL_PATH = "~/.bzt/grinder-taurus/lib/grinder.jar"
 
     def __init__(self, config=None, **kwargs):
@@ -435,15 +422,15 @@ class Grinder(RequiredTool):        # todo: take it from maven and convert to Ja
         self.mirror_manager = GrinderMirrorsManager(self.http_client, self.log, self.version)
 
     def check_if_installed(self):
-        self.log.debug("Trying grinder: %s", self.tool_path)
-        grinder_launch_command = ["java", "-classpath", self.tool_path, "net.grinder.Grinder"]
-        grinder_subprocess = shell_exec(grinder_launch_command, stderr=subprocess.STDOUT)
-        output = grinder_subprocess.communicate()
-        self.log.debug("%s output: %s", self.tool_name, output)
-        if grinder_subprocess.returncode == 0:
-            self.already_installed = True
+        self.log.debug("Trying %s: %s", self.tool_name, self.tool_path)
+        try:
+            out, err = self.call(["java", "-classpath", self.tool_path, "net.grinder.Grinder"])
+            if err:
+                out += err
+            self.log.debug("%s stdout: %s", self.tool_name, out)
             return True
-        else:
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
 
     def install(self):

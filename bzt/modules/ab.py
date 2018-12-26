@@ -19,7 +19,6 @@ limitations under the License.
 import logging
 import time
 from math import ceil
-from subprocess import CalledProcessError
 
 from bzt import TaurusConfigError
 from bzt.engine import ScenarioExecutor, HavingInstallableTools, SelfDiagnosable
@@ -27,7 +26,7 @@ from bzt.modules.aggregator import ConsolidatingAggregator, ResultsReader
 from bzt.modules.console import WidgetProvider, ExecutorWidget
 from bzt.requests_model import HTTPRequest
 from bzt.six import iteritems
-from bzt.utils import shell_exec, shutdown_process, RequiredTool, dehumanize_time, FileReader
+from bzt.utils import CALL_PROBLEMS, shutdown_process, RequiredTool, dehumanize_time, FileReader
 
 
 class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallableTools, SelfDiagnosable):
@@ -40,8 +39,6 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
         self.log = logging.getLogger('')
         self.process = None
         self._tsv_file = None
-        self.stdout_file = None
-        self.stderr_file = None
         self.tool = None
         self.scenario = None
 
@@ -51,10 +48,8 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
 
         self._tsv_file = self.engine.create_artifact("ab", ".tsv")
 
-        out = self.engine.create_artifact("ab", ".out")
-        err = self.engine.create_artifact("ab", ".err")
-        self.stdout_file = open(out, 'w')
-        self.stderr_file = open(err, 'w')
+        self.stdout = open(self.engine.create_artifact("ab", ".out"), 'w')
+        self.stderr = open(self.engine.create_artifact("ab", ".err"), 'w')
 
         self.reader = TSVDataReader(self._tsv_file, self.log)
         if isinstance(self.engine.aggregator, ConsolidatingAggregator):
@@ -122,8 +117,7 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
 
         self.reader.setup(load_concurrency, request.label)
 
-        self.start_time = time.time()
-        self.process = self.execute(args, stdout=self.stdout_file, stderr=self.stderr_file)
+        self.process = self.execute(args)
 
     def check(self):
         ret_code = self.process.poll()
@@ -136,12 +130,6 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
     def shutdown(self):
         shutdown_process(self.process, self.log)
 
-    def post_process(self):
-        if self.stdout_file and not self.stdout_file.closed:
-            self.stdout_file.close()
-        if self.stderr_file and not self.stderr_file.closed:
-            self.stderr_file.close()
-
     def install_required_tools(self):
         self.tool = self._get_tool(ApacheBenchmark, config=self.settings)
         if not self.tool.check_if_installed():
@@ -149,13 +137,13 @@ class ApacheBenchmarkExecutor(ScenarioExecutor, WidgetProvider, HavingInstallabl
 
     def get_error_diagnostics(self):
         diagnostics = []
-        if self.stdout_file is not None:
-            with open(self.stdout_file.name) as fds:
+        if self.stdout is not None:
+            with open(self.stdout.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("ab STDOUT:\n" + contents)
-        if self.stderr_file is not None:
-            with open(self.stderr_file.name) as fds:
+        if self.stderr is not None:
+            with open(self.stderr.name) as fds:
                 contents = fds.read().strip()
                 if contents.strip():
                     diagnostics.append("ab STDERR:\n" + contents)
@@ -208,9 +196,13 @@ class ApacheBenchmark(RequiredTool):
         super(ApacheBenchmark, self).__init__(tool_path=tool_path, installable=False, **kwargs)
 
     def check_if_installed(self):
-        self.log.debug('Checking ApacheBenchmark: %s' % self.tool_path)
+        self.log.debug('Trying %s: %s', self.tool_name, self.tool_path)
         try:
-            shell_exec([self.tool_path, '-h'])
-        except (CalledProcessError, OSError):
+            out, err = self.call([self.tool_path, '-V'])
+            self.log.debug("%s check stdout: %s", self.tool_name, out)
+            if err:
+                self.log.warning("%s check stderr: %s", self.tool_name, err)
+            return True
+        except CALL_PROBLEMS as exc:
+            self.log.warning("%s check failed: %s", self.tool_name, exc)
             return False
-        return True

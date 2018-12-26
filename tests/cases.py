@@ -82,13 +82,19 @@ class ExecutorTestCase(BZTestCase):
         self.engine = EngineEmul()
         self.obj = self.EXECUTOR()
         self.obj.engine = self.engine
-        self.obj.env = self.obj.engine.env
 
     def configure(self, config):
         self.obj.engine.config.merge({"settings": {"default-executor": "mock"}})
         self.obj.engine.config.merge(config)
         self.obj.engine.unify_config()
         self.obj.execution = self.obj.engine.config.get(ScenarioExecutor.EXEC)[0]
+
+    def tearDown(self):
+        if self.obj.stdout:
+            self.obj.stdout.close()
+        if self.obj.stderr:
+            self.obj.stderr.close()
+        super(ExecutorTestCase, self).tearDown()
 
 
 class RecordingHandler(Handler):

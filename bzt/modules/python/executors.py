@@ -54,6 +54,7 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
         return ApiritifLoadReader(self.log)
 
     def prepare(self):
+        super(ApiritifNoseExecutor, self).prepare()
         self.script = self.get_script_path()
         if not self.script:
             if "requests" in self.get_scenario():
@@ -120,9 +121,8 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             cmdline += ['--verbose']
 
         cmdline += [self.script]
-        self.start_time = time.time()
-        self._start_subprocess(cmdline)
-        self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
+        self.process = self.execute(cmdline)
+        self._tailer = FileReader(filename=self.stdout.name, parent_logger=self.log)
 
     def has_results(self):
         if not self.reader:
@@ -177,9 +177,10 @@ class ApiritifNoseExecutor(SubprocessedExecutor):
             self.log.info("\n".join(lines))
 
     def post_process(self):
-        super(ApiritifNoseExecutor, self).post_process()
         self._check_stdout()
         self.__log_lines()
+        self._tailer.close()
+        super(ApiritifNoseExecutor, self).post_process()
 
     def __is_verbose(self):
         engine_verbose = self.engine.config.get(SETTINGS).get("verbose", False)
@@ -241,6 +242,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         self._additional_args = []
 
     def prepare(self):
+        super(PyTestExecutor, self).prepare()
         self.install_required_tools()
         self.script = self.get_script_path()
         if not self.script:
@@ -265,7 +267,7 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         if sys.version >= '3':
             self.log.warning("You are using Python 3, make sure that your scripts are able to run in Python 3")
 
-        self._check_tools([TaurusPytestRunner(self.runner_path, "")])
+        self._check_tools([self._get_tool(TaurusPytestRunner, tool_path=self.runner_path)])
 
     def startup(self):
         """
@@ -285,10 +287,10 @@ class PyTestExecutor(SubprocessedExecutor, HavingInstallableTools):
         cmdline += self._additional_args
         cmdline += [self.script]
 
-        self._start_subprocess(cmdline)
+        self.process = self.execute(cmdline)
 
         if self.__is_verbose():
-            self._tailer = FileReader(filename=self.stdout_file, parent_logger=self.log)
+            self._tailer = FileReader(filename=self.stdout.name, parent_logger=self.log)
 
     def check(self):
         self.__log_lines()
@@ -323,6 +325,7 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
         return files
 
     def prepare(self):
+        super(RobotExecutor, self).prepare()
         self.install_required_tools()
         self.script = self.get_script_path()
         if not self.script:
@@ -352,8 +355,9 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
                 raise TaurusConfigError("`tags` is not a string or text")
 
     def install_required_tools(self):
-        self._check_tools([Robot(self.settings.get("interpreter", sys.executable), self.log),
-                           TaurusRobotRunner(self.runner_path, "")])
+        tools = [self._get_tool(TaurusRobotRunner, tool_path=self.runner_path),
+                 self._get_tool(Robot, python=self.settings.get("interpreter", sys.executable))]
+        self._check_tools(tools)
 
     def startup(self):
         executable = self.settings.get("interpreter", sys.executable)
@@ -374,4 +378,4 @@ class RobotExecutor(SubprocessedExecutor, HavingInstallableTools):
             cmdline += ['--include', self.tags]
 
         cmdline += [self.script]
-        self._start_subprocess(cmdline)
+        self.process = self.execute(cmdline)

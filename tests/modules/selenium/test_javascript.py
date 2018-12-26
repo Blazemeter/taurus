@@ -6,7 +6,6 @@ from os.path import join, exists, dirname
 
 import bzt
 
-from bzt.modules.aggregator import ConsolidatingAggregator
 from bzt.modules.javascript import WebdriverIOExecutor, JavaScriptExecutor, NewmanExecutor, Mocha, JSSeleniumWebdriver
 from bzt.utils import get_full_path, is_windows
 
@@ -41,15 +40,15 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
         }})
-        self.func_results = "not found"
-        sync_run_back = bzt.modules.javascript.sync_run
-        bzt.modules.javascript.sync_run = self.func_mock
+        self.func_results = "not found", None
+        call_back = bzt.utils.RequiredTool.call
+        bzt.utils.RequiredTool.call = self.func_mock
         try:
             self.obj.prepare()
         finally:
-            bzt.modules.javascript.sync_run = sync_run_back
+            bzt.utils.RequiredTool.call = call_back
 
-        self.assertEqual(5, len(self.func_args))
+        self.assertEqual(6, len(self.func_args))
 
         runner = self.obj.runner
         args = [args["args"][0] for args in self.func_args]
@@ -61,15 +60,15 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
         self.obj.execution.merge({"scenario": {
             "script": RESOURCES_DIR + "selenium/js-mocha/bd_scenarios.js"
         }})
-        self.func_results = "mocha is installed"
-        sync_run_back = bzt.utils.sync_run
-        bzt.modules.javascript.sync_run = self.func_mock
+        self.func_results = "mocha is installed", None
+        call_back = bzt.utils.RequiredTool.call
+        bzt.utils.RequiredTool.call = self.func_mock
         try:
             self.obj.prepare()
         finally:
-            bzt.modules.javascript.sync_run = sync_run_back
+            bzt.utils.RequiredTool.call = call_back
 
-        self.assertEqual(4, len(self.func_args))
+        self.assertEqual(5, len(self.func_args))
         runner = self.obj.runner
         args = [args["args"][0] for args in self.func_args]
 
@@ -108,7 +107,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
             },
         })
 
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn("--hold-for 5", stdout)
 
@@ -120,7 +119,7 @@ class TestSeleniumMochaRunner(SeleniumTestCase):
                 'executor': 'selenium'
             },
         })
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn("--iterations 3", stdout)
 
@@ -214,7 +213,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             },
         })
 
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn("--hold-for 5", stdout)
 
@@ -227,7 +226,7 @@ class TestWebdriverIOExecutor(SeleniumTestCase):
             },
         })
 
-        with open(self.obj.runner.stdout_file) as fds:
+        with open(self.obj.runner.stdout.name) as fds:
             stdout = fds.read()
         self.assertIn("--iterations 3", stdout)
 
@@ -238,7 +237,6 @@ class TestNewmanExecutor(BZTestCase):
     def full_run(self, config):
         self.obj = NewmanExecutor()
         self.obj.engine = EngineEmul()
-        self.obj.env = self.obj.engine.env
         self.obj.engine.config.merge(config)
         execution = config["execution"][0] if isinstance(config["execution"], list) else config["execution"]
         self.obj.execution.merge(execution)
