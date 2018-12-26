@@ -2,8 +2,8 @@ runtime: php72
 
 handlers:
 # Serve a directory as a static resource.
-- url: /stylesheets
-  static_dir: stylesheets
+- url: /img
+  static_dir: img
 
 
 # Serve images as static resources.
