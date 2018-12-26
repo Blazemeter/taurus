@@ -91,7 +91,7 @@
 - ship older LocustIO in Docker image (0.8.1)
 
 ## 1.12.1<sup>11 jul 2018</sup>
-- set `LC\_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
+- set `LC\\_ALL` in Docker image so JVM's `file.encoding` property will be UTF-8
 - support SSL certificates for proxies with `settings.proxy.ssl-cert` option
 - limit max variety for error messages with `max-error-variety` option
 - add Authorization Manager support for JMeter YAML scripting
@@ -124,7 +124,7 @@
 - storeTitle, storeString, storeTextBy*, storeTitle and storeValueBy* added to Nose Request (Selenium)
 - type command added to Nose Request (Selenium)
 - summary Labels added to Final Stats Reporting module 
-- built-in new support module for generated selenium script called `selenium\_taurus\_extras`
+- built-in new support module for generated selenium script called `selenium\\_taurus\\_extras`
 - services enhancing the Selenium executor can now be notified of test iteration progress
 - variable support added to Selenium (Nose)
 - new window management support was incorporated for selectWindow and closeWindow. Windows by name or sequential name incorporated (Selenium IDE and SideeX style)
@@ -144,7 +144,7 @@
 - fix `swagger2yaml` crash when an optional field is missing
 - for cloud test, if no sandbox location found and `default-location` is not valid, use first location by default
 - fix Gatling YAML scripts with CSV delimiter in `data-sources`
-- use `TAURUS\_DISABLE\_DOWNLOADS` env var to disable automated tool install
+- use `TAURUS\\_DISABLE\\_DOWNLOADS` env var to disable automated tool install
 - use more scope options for JMeter extractors
 - handle nested CSV sources in jmx2yaml
 - ignore KPI items from BlazeMeter cloud API if they have zero samples
