@@ -48,7 +48,7 @@ class AbstractThreadGroup(object):
 
         return time
 
-    def _get_val(self, name, selector=None, default=None, raw=False, seconds=False):
+    def _get_val(self, name, selector=None, default=None, raw=False):
         if not selector:
             self.log.warning('Getting of %s for %s not implemented', name, self.gtype)
             return default
@@ -63,11 +63,7 @@ class AbstractThreadGroup(object):
             return string_val
 
         try:
-            int_val = int(string_val)
-            if seconds:
-                if self.get("unit") == 'M':  # time unit
-                    int_val *= 60
-            return int_val
+            return int(string_val)
         except (ValueError, TypeError):
             msg = "Parsing {param} '{val}' in group '{gtype}' failed"
             self.log.warning(msg.format(param=name, val=string_val, gtype=self.gtype))
