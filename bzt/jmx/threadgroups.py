@@ -1,7 +1,7 @@
 from bzt.jmx.base import JMX
 from bzt.requests_model import has_variable_pattern
 
-GETTING_PARAM_ERR_MSG = "{gt}: Getting of {name} is impossible: {params}"
+GETTING_PARAM_ERR_MSG = "{tg}: Getting of {name} is impossible: {params}"
 
 
 class AbstractThreadGroup(object):
@@ -208,8 +208,11 @@ class ArrivalsThreadGroup(AbstractDynamicThreadGroup):
 class ThreadGroupHandler(object):
     CLASSES = [ThreadGroup, SteppingThreadGroup, UltimateThreadGroup, ConcurrencyThreadGroup, ArrivalsThreadGroup]
 
-    def __init__(self, logger):
+    def __init__(self, logger, raw_load, specific_load, tg):
         self.log = logger.getChild(self.__class__.__name__)
+        self.raw_load = raw_load
+        self.specific_load = specific_load
+        self.tg = tg
 
     def groups(self, jmx):
         """
@@ -223,51 +226,63 @@ class ThreadGroupHandler(object):
     @staticmethod
     def choose_val(*args):
         for arg in args:
-            if arg is not None:
-                return arg
+            if isinstance(arg, tuple):
+                if arg[0] is not None:
+                    return arg[1]
+            else:
+                if arg is not None:
+                    return arg
 
-    def convert(self, source, target_gtype, load, concurrency):
+    def convert(self, source, concurrency):
         """
         Convert a 'source' to ThreadGroup/ConcurrencyThreadGroup for applying user load params
         """
         msg = "Converting %s (%s) to %s and apply load parameters"
-        self.log.debug(msg, source.gtype, source.test_name, target_gtype)
+        self.log.debug(msg, source.gtype, source.test_name, self.tg)
 
-        if target_gtype == ThreadGroup.__name__:
+        if self.tg == ThreadGroup.__name__:
+
             new_group_element = JMX.get_thread_group(
                 concurrency=self.choose_val(concurrency, source.get("concurrency")),
-                rampup=self.choose_val(load.ramp_up, source.get_seconds("ramp-up")),
-                hold=self.choose_val(load.hold, source.get_seconds("hold")),
-                iterations=self.choose_val(load.iterations, source.get("iterations")),
+                rampup=self.choose_val(
+                    (self.raw_load.ramp_up, self.specific_load.ramp_up), source.get_seconds("ramp-up")),
+                hold=self.choose_val((self.raw_load.hold, self.specific_load.hold), source.get_seconds("hold")),
+                iterations=self.choose_val(
+                    (self.raw_load.iterations, self.specific_load.iterations), source.get("iterations")),
                 testname=source.test_name,
                 on_error=source.get("on-error"))
-        elif target_gtype == ConcurrencyThreadGroup.__name__:
+        elif self.tg == ConcurrencyThreadGroup.__name__:
             unit = source.get("unit")
-            ramp_up = load.ramp_up
-            hold = load.hold
-            if unit == "M":
-                if ramp_up:
+            ramp_up = self.raw_load.ramp_up
+            hold = self.raw_load.hold
+            if ramp_up:
+                if unit == "M":
                     if has_variable_pattern(ramp_up):
                         self.log.warning("Impossible to convert property '%s' to minutes" % ramp_up)
                     else:
-                        ramp_up = int(round(int(ramp_up)/60)) or 1
+                        ramp_up = int(round(self.specific_load.ramp_up / 60)) or 1
+                else:
+                    ramp_up = self.specific_load.ramp_up
 
-                if hold:
+            if hold:
+                if unit == "M":
                     if has_variable_pattern(hold):
                         self.log.warning("Impossible to convert property '%s' to minutes" % hold)
                     else:
-                        hold = int(round(int(hold)/60)) or 1
+                        hold = int(round(self.specific_load.hold / 60)) or 1
+                else:
+                    hold = self.specific_load.hold
 
             new_group_element = JMX.get_concurrency_thread_group(
                 concurrency=self.choose_val(concurrency, source.get("concurrency")),
                 rampup=self.choose_val(ramp_up, source.get("ramp-up")),
                 hold=self.choose_val(hold, source.get("hold")),
-                steps=self.choose_val(load.steps, source.get("steps")),
+                steps=self.choose_val((self.raw_load.steps, self.specific_load.steps), source.get("steps")),
                 testname=source.test_name,
                 unit=unit,
                 on_error=source.get("on-error"))
         else:
-            self.log.warning('Unsupported preferred thread group: %s', target_gtype)
+            self.log.warning('Unsupported preferred thread group: %s', self.tg)
             return
 
         source.element.getparent().replace(source.element, new_group_element)

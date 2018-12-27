@@ -79,7 +79,7 @@ class LoadSettingsProcessor(object):
         self.raw_load = executor.get_raw_load()
         self.specific_load = executor.get_specific_load()
         self.tg = self._detect_thread_group(executor)
-        self.tg_handler = ThreadGroupHandler(self.log)
+        self.tg_handler = ThreadGroupHandler(self.log, self.raw_load, self.specific_load, self.tg)
 
     def _detect_thread_group(self, executor):
         """
@@ -119,14 +119,12 @@ class LoadSettingsProcessor(object):
         # write variable/property as is, ignore empty load.concurrency
         if self.raw_load.concurrency is None or not isinstance(self.specific_load.concurrency, numeric_types):
             for group in groups:
-                self.tg_handler.convert(
-                    source=group, target_gtype=self.tg, load=self.raw_load, concurrency=self.raw_load.concurrency)
+                self.tg_handler.convert(source=group, concurrency=self.raw_load.concurrency)
         else:   # split numeric concurrency for thread groups
             target_list = zip(groups, self._get_concurrencies(groups))
 
             for group, concurrency in target_list:
-                self.tg_handler.convert(
-                    source=group, target_gtype=self.tg, load=self.raw_load, concurrency=concurrency)
+                self.tg_handler.convert(source=group, concurrency=concurrency)
 
         if self.specific_load.throughput:
             self._add_shaper(jmx)
