@@ -9,12 +9,6 @@ handlers:
 - url: /img
   static_dir: img
 
-- url: /msi
-  static_dir: msi
-
-- url: /snapshots
-  static_dir: snapshots
-
 - url: /favicon.ico
   static_files: img/favicon.png
   upload: img/favicon.png
